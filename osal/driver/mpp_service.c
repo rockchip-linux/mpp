@@ -26,8 +26,8 @@
 #include "mpp_common.h"
 
 #include "mpp_device_debug.h"
-#include "mpp_service.h"
 #include "mpp_service_api.h"
+#include "mpp_service_impl.h"
 
 typedef struct MppServiceQueryCfg_t {
     RK_U32      cmd_butt;
@@ -227,40 +227,6 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
         }
     }
 }
-
-#define MAX_REG_OFFSET          32
-#define MAX_RCB_OFFSET          32
-#define MAX_INFO_COUNT          16
-
-typedef struct FdTransInfo_t {
-    RK_U32          reg_idx;
-    RK_U32          offset;
-} RegOffsetInfo;
-
-typedef struct RcbInfo_t {
-    RK_U32          reg_idx;
-    RK_U32          size;
-} RcbInfo;
-
-typedef struct MppDevMppService_t {
-    RK_S32          client_type;
-    RK_S32          fd;
-
-    RK_S32          req_cnt;
-    RK_S32          reg_offset_count;
-    MppReqV1        reqs[MAX_REQ_NUM];
-    RegOffsetInfo   reg_offset_info[MAX_REG_OFFSET];
-    RK_S32          rcb_count;
-    RcbInfo         rcb_info[MAX_RCB_OFFSET];
-
-    RK_S32          info_count;
-    MppDevInfoCfg   info[MAX_INFO_COUNT];
-
-    /* support max cmd buttom  */
-    const MppServiceCmdCap *cap;
-    RK_U32          support_set_info;
-    RK_U32          support_set_rcb_info;
-} MppDevMppService;
 
 MPP_RET mpp_service_init(void *ctx, MppClientType type)
 {
