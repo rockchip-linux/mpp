@@ -31,6 +31,9 @@ add_mpp_osal_test(mpp_mem)
 # time system unit test
 add_mpp_osal_test(mpp_time)
 
+# trace system unit test
+add_mpp_osal_test(mpp_trace)
+
 # hardware platform feature detection unit test
 add_mpp_osal_test(mpp_platform)
 
