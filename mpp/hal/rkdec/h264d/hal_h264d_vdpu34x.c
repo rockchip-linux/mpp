@@ -315,9 +315,10 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     mpp_set_bitput_ctx(&bp, data, len);
     //!< sps syntax
     {
-        mpp_put_bits(&bp, -1, 4);   //!< seq_parameter_set_id
-        mpp_put_bits(&bp, -1, 8);   //!< profile_idc
-        mpp_put_bits(&bp, -1, 1);   //!< constraint_set3_flag
+        // mpp_put_bits(&bp, -1, 4);   //!< seq_parameter_set_id
+        // mpp_put_bits(&bp, -1, 8);   //!< profile_idc
+        // mpp_put_bits(&bp, -1, 1);   //!< constraint_set3_flag
+        mpp_put_bits(&bp, -1, 13); //!< sps_id && profile_idc && constraint_set3_flag
         mpp_put_bits(&bp, pp->chroma_format_idc, 2);
         mpp_put_bits(&bp, pp->bit_depth_luma_minus8, 3);
         mpp_put_bits(&bp, pp->bit_depth_chroma_minus8, 3);
@@ -365,8 +366,9 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     }
     //!< pps syntax
     {
-        mpp_put_bits(&bp, -1, 8); //!< pps_pic_parameter_set_id
-        mpp_put_bits(&bp, -1, 5); //!< pps_seq_parameter_set_id
+        // mpp_put_bits(&bp, -1, 8); //!< pps_pic_parameter_set_id
+        // mpp_put_bits(&bp, -1, 5); //!< pps_seq_parameter_set_id
+        mpp_put_bits(&bp, -1, 13); //!< pps_id && sps_id
         mpp_put_bits(&bp, pp->entropy_coding_mode_flag, 1);
         mpp_put_bits(&bp, pp->pic_order_present_flag, 1);
         mpp_put_bits(&bp, pp->num_ref_idx_l0_active_minus1, 5);
@@ -426,9 +428,12 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 
         mpp_put_bits(&bp, frame_num_wrap, 16);
     }
-    for (i = 0; i < 16; i++) {
-        mpp_put_bits(&bp, 0, 1);//!< NULL
-    }
+
+    // for (i = 0; i < 16; i++) {
+    //     mpp_put_bits(&bp, 0, 1);//!< NULL
+    // }
+    mpp_put_bits(&bp, 0, 16);//!< NULL
+
     for (i = 0; i < 16; i++) {
         mpp_put_bits(&bp, pp->RefPicLayerIdList[i], 1); //!< voidx
     }
@@ -457,26 +462,56 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     return MPP_OK;
 }
 
-static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
+static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
 {
-    RK_S32 i = 0, j = 0;
+    RK_U32 i = 0, j = 0, n = 0;
 
     if (p_hal->pp->scaleing_list_enable_flag) {
-        BitputCtx_t bp;
-        mpp_set_bitput_ctx(&bp, data, len);
-
         for (i = 0; i < 6; i++) { //!< 4x4, 6 lists
             for (j = 0; j < 16; j++) {
-                mpp_put_bits(&bp, p_hal->qm->bScalingLists4x4[i][j], 8);
+                data[n++] = p_hal->qm->bScalingLists4x4[i][j];
             }
-
         }
         for (i = 0; i < 2; i++) { //!< 8x8, 2 lists
             for (j = 0; j < 64; j++) {
-                mpp_put_bits(&bp, p_hal->qm->bScalingLists8x8[i][j], 8);
+                data[n++] = p_hal->qm->bScalingLists8x8[i][j];
             }
         }
     }
+    mpp_assert(n <= len);
+
+    return MPP_OK;
+}
+
+static MPP_RET init_common_regs(Vdpu34xRegCommon *common)
+{
+    common->reg009.dec_mode = 1;  //!< h264
+    common->reg011.buf_empty_en = 1;
+    common->reg011.dec_timeout_e = 1;
+
+    common->reg010.dec_e = 1;
+    common->reg017.slice_num = 0x3fff;
+
+    common->reg013.h26x_error_mode = 1;
+    common->reg013.colmv_error_mode = 1;
+    common->reg013.h26x_streamd_error_mode = 1;
+    common->reg021.error_deb_en = 1;
+    common->reg021.inter_error_prc_mode = 0;
+    common->reg021.error_intra_mode = 1;
+
+    common->reg024.cabac_err_en_lowbits = 0xffffffff;
+    common->reg025.cabac_err_en_highbits = 0x3ff3ffff;
+
+    common->reg026.swreg_block_gating_e = 0xffff;
+    common->reg026.block_gating_en_l2 = 0xf;
+    common->reg026.reg_cfg_gating_en = 1;
+
+    common->reg011.dec_clkgate_e = 1;
+    common->reg011.dec_e_strmd_clkgate_dis = 0;
+    common->reg011.dec_timeout_e = 1;
+
+    common->reg013.timeout_mode = 1;
+
     return MPP_OK;
 }
 
@@ -488,31 +523,10 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
 
     memset(regs, 0, sizeof(Vdpu34xH264dRegSet));
 
-    //!< set dec_mode && rlc_mode && rps_mode && slice_num
-    {
-        common->reg009.dec_mode = 1;  //!< h264
-        if (common->reg015.rlc_mode == 1) {
-            common->reg016_str_len = 0;
-        } else {
-            common->reg016_str_len = p_hal->strm_len;
-        }
-        if (regs->h264d_param.reg64.h26x_rps_mode) { // rps_mode == 1
-            regs->h264d_addr.rps_base += 0x8;
-        }
-
-        common->reg011.buf_empty_en = 1;
-        common->reg011.dec_timeout_e = 1;
-
-        common->reg010.dec_e = 1;
-        common->reg017.slice_num = 0x3fff;
-    }
+    init_common_regs(common);
+    common->reg016_str_len = p_hal->strm_len;
     common->reg013.cur_pic_is_idr = p_hal->slice_long->idr_flag;
-    common->reg013.h26x_error_mode = 1;
-    common->reg013.colmv_error_mode = 1;
-    common->reg013.h26x_streamd_error_mode = 1;
-    common->reg021.error_deb_en = 1;
-    common->reg021.inter_error_prc_mode = 0;
-    common->reg021.error_intra_mode = 1;
+    common->reg012.colmv_compress_en = (pp->frame_mbs_only_flag) ? 1 : 0;
     //!< caculate the yuv_frame_size
     {
         MppFrame mframe = NULL;
@@ -631,20 +645,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
-    {
-        common->reg024.cabac_err_en_lowbits = 0xffffffff;
-        common->reg025.cabac_err_en_highbits = 0x3ff3ffff;
-
-        common->reg026.swreg_block_gating_e = 0xffff;
-        common->reg026.block_gating_en_l2 = 0xf;
-        common->reg026.reg_cfg_gating_en = 1;
-
-        common->reg011.dec_clkgate_e = 1;
-        common->reg011.dec_e_strmd_clkgate_dis = 0;
-        common->reg011.dec_timeout_e = 1;
-        common->reg012.colmv_compress_en = (pp->frame_mbs_only_flag) ? 1 : 0;
-        common->reg013.timeout_mode = 1;
-    }
     return MPP_OK;
 }
 
@@ -876,7 +876,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     }
     prepare_spspps(p_hal, (RK_U64 *)&ctx->spspps, sizeof(ctx->spspps));
     prepare_framerps(p_hal, (RK_U64 *)&ctx->rps, sizeof(ctx->rps));
-    prepare_scanlist(p_hal, (RK_U64 *)&ctx->sclst, sizeof(ctx->sclst));
+    prepare_scanlist(p_hal, ctx->sclst, sizeof(ctx->sclst));
     set_registers(p_hal, regs, task);
 
     //!< copy datas
