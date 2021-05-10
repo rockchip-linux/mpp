@@ -267,7 +267,7 @@ static void vp8d_unref_frame(VP8DParserContext_t *p, VP8Frame *frame)
             mpp_buf_slot_clr_flag(p->frame_slots, frame->slot_index, SLOT_CODEC_USE);
         }
         frame->slot_index = 0xff;
-        mpp_free(frame->f);
+        mpp_frame_deinit(&frame->f);
         mpp_free(frame);
         frame = NULL;
     }

@@ -283,7 +283,7 @@ MPP_RET m2vd_parser_deinit(void *ctx)
     }
 
     for (k = 0; k < 3; k++) {
-        mpp_free(p->Framehead[k].f);
+        mpp_frame_deinit(&p->Framehead[k].f);
     }
 
     if (p) {

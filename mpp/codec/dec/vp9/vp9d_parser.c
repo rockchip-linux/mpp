@@ -303,13 +303,13 @@ static  RK_S32 vp9_frame_free(VP9Context *s)
         if (s->frames[i].ref) {
             vp9_unref_frame(s, &s->frames[i]);
         }
-        mpp_free(s->frames[i].f);
+        mpp_frame_deinit(&s->frames[i].f);
     }
     for (i = 0; i < 8; i++) {
         if (s->refs[i].ref) {
             vp9_unref_frame(s, &s->refs[i]);
         }
-        mpp_free(s->refs[i].f);
+        mpp_frame_deinit(&s->refs[i].f);
     }
     return 0;
 }
