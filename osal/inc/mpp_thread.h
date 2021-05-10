@@ -86,10 +86,18 @@ public:
     class Autolock
     {
     public:
-        inline Autolock(Mutex& mutex) : mLock(mutex)  { mLock.lock(); }
-        inline Autolock(Mutex* mutex) : mLock(*mutex) { mLock.lock(); }
-        inline ~Autolock() { mLock.unlock(); }
+        inline Autolock(Mutex* mutex, RK_U32 enable = 1) :
+            mEnabled(enable),
+            mLock(*mutex) {
+            if (mEnabled)
+                mLock.lock();
+        }
+        inline ~Autolock() {
+            if (mEnabled)
+                mLock.unlock();
+        }
     private:
+        RK_S32 mEnabled;
         Mutex& mLock;
     };
 
