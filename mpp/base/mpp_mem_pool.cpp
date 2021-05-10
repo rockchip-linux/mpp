@@ -129,7 +129,7 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
                   impl->used_count, impl->size);
 
         list_for_each_entry_safe(node, m, &impl->used, MppMemPoolNode, list) {
-            MPP_FREE(impl);
+            MPP_FREE(node);
             impl->used_count--;
         }
     }
