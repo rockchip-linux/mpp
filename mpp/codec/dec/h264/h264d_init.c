@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_frame_impl.h"
 
 #include "h264d_global.h"
 #include "h264d_init.h"
@@ -413,10 +414,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
         cur_mark->out_flag = 1;
         {
-            MppFrame mframe = p_Dec->curframe;
             RK_U32 hor_stride, ver_stride;
             MppFrameFormat fmt = MPP_FMT_YUV_BUTT;
             MppFrameFormat out_fmt = p_Dec->cfg->base.out_fmt;
+            MppFrameImpl *impl = (MppFrameImpl *)p_Dec->curframe;
 
             if ((H264_CHROMA_420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV420SP;
@@ -434,37 +435,34 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 /* field mode can not use FBC */
                 if (p_Vid->frame_mbs_only_flag) {
                     mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, hor_align_64);
-                    mpp_frame_set_offset_x(mframe, 0);
-                    mpp_frame_set_offset_y(mframe, 4);
+                    impl->offset_x = 0;
+                    impl->offset_y = 4;
                     fmt |= (out_fmt & MPP_FRAME_FBC_MASK);
                 }
                 p_Dec->cfg->base.out_fmt = fmt;
             }
-            mpp_frame_set_fmt(mframe, fmt);
+            impl->fmt = fmt;
 
             hor_stride = MPP_ALIGN(p_Vid->width * p_Vid->bit_depth_luma, 8) / 8;
             ver_stride = p_Vid->height;
             /* Before cropping */
-            mpp_frame_set_hor_stride(mframe, hor_stride);
-            mpp_frame_set_ver_stride(mframe, ver_stride);
+            impl->hor_stride = hor_stride;
+            impl->ver_stride = ver_stride;
             /* After cropped */
-            mpp_frame_set_width(mframe, p_Vid->width_after_crop);
-            mpp_frame_set_height(mframe, p_Vid->height_after_crop);
-            mpp_frame_set_pts(mframe, p_Vid->p_Cur->last_pts);
-            mpp_frame_set_dts(mframe, p_Vid->p_Cur->last_dts);
-
+            impl->width = p_Vid->width_after_crop;
+            impl->height = p_Vid->height_after_crop;
+            impl->pts = p_Vid->p_Cur->last_pts;
+            impl->dts = p_Vid->p_Cur->last_dts;
             /* Setting the interlace mode for the picture */
             switch (structure) {
             case FRAME:
-                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_FRAME);
+                impl->mode = MPP_FRAME_FLAG_FRAME;
                 break;
             case TOP_FIELD:
-                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
-                                   | MPP_FRAME_FLAG_TOP_FIRST);
+                impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_TOP_FIRST;
                 break;
             case BOTTOM_FIELD:
-                mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
-                                   | MPP_FRAME_FLAG_BOT_FIRST);
+                impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_BOT_FIRST;
                 break;
             default:
                 H264D_DBG(H264D_DBG_FIELD_PAIRED, "Unknown interlace mode");
@@ -474,7 +472,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             if (p_Dec->svc_valid) {
                 struct h264_slice_t *slice = &p_Dec->p_Cur->slice;
                 struct h264_nalu_svc_ext_t *svcExt = &slice->svcExt;
-                MppMeta meta = mpp_frame_get_meta(mframe);
+                MppMeta meta = impl->meta;
 
                 mpp_assert(svcExt->valid);
                 mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, svcExt->temporal_id);
@@ -486,12 +484,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 p_Vid->p_Cur->sei.pic_timing.pic_struct != 0) {
                 if (p_Vid->p_Cur->sei.pic_timing.pic_struct == 3 ||
                     p_Vid->p_Cur->sei.pic_timing.pic_struct == 5)
-                    mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
-                                       | MPP_FRAME_FLAG_TOP_FIRST);
+                    impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_TOP_FIRST;
                 if (p_Vid->p_Cur->sei.pic_timing.pic_struct == 4 ||
                     p_Vid->p_Cur->sei.pic_timing.pic_struct == 6)
-                    mpp_frame_set_mode(mframe, MPP_FRAME_FLAG_PAIRED_FIELD
-                                       | MPP_FRAME_FLAG_BOT_FIRST);
+                    impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_BOT_FIRST;
             }
 
             //!< set display parameter
@@ -499,21 +495,21 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 H264_VUI_t *p = &p_Vid->active_sps->vui_seq_parameters;
 
                 if (p->video_signal_type_present_flag && p->video_full_range_flag)
-                    mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_JPEG);
+                    impl->color_range = MPP_FRAME_RANGE_JPEG;
                 else
-                    mpp_frame_set_color_range(mframe, MPP_FRAME_RANGE_MPEG);
+                    impl->color_range = MPP_FRAME_RANGE_MPEG;
 
                 if (p->colour_description_present_flag) {
-                    mpp_frame_set_color_primaries(mframe, p->colour_primaries);
-                    mpp_frame_set_color_trc(mframe, p->transfer_characteristics);
-                    mpp_frame_set_colorspace(mframe, p->matrix_coefficients);
+                    impl->color_primaries = p->colour_primaries;
+                    impl->color_trc = p->transfer_characteristics;
+                    impl->colorspace = p->matrix_coefficients;
                 } else {
-                    mpp_frame_set_color_primaries(mframe, MPP_FRAME_PRI_UNSPECIFIED);
-                    mpp_frame_set_color_trc(mframe, MPP_FRAME_TRC_UNSPECIFIED);
-                    mpp_frame_set_colorspace(mframe, MPP_FRAME_SPC_UNSPECIFIED);
+                    impl->color_primaries = MPP_FRAME_PRI_UNSPECIFIED;
+                    impl->color_trc = MPP_FRAME_TRC_UNSPECIFIED;
+                    impl->colorspace = MPP_FRAME_SPC_UNSPECIFIED;
                 }
             }
-            mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, mframe);
+            mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, p_Dec->curframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
         }
 
