@@ -95,6 +95,7 @@ typedef struct Vdpu34xH264dRegCtx_t {
 
     MppBuffer           bufs;
     RK_S32              bufs_fd;
+    void                *bufs_ptr;
     RK_U32              offset_cabac;
     RK_U32              offset_errinfo;
     RK_U32              offset_spspps[VDPU34X_FAST_REG_SET_CNT];
@@ -663,6 +664,7 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs,
                                    VDPU34X_INFO_BUFFER_SIZE(max_cnt)));
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
+    reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
     reg_ctx->offset_cabac = VDPU34X_CABAC_TAB_OFFSET;
     reg_ctx->offset_errinfo = VDPU34X_ERROR_INFO_OFFSET;
     for (i = 0; i < max_cnt; i++) {
@@ -680,8 +682,8 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
     }
 
     //!< copy cabac table bytes
-    FUN_CHECK(ret = mpp_buffer_write(reg_ctx->bufs, reg_ctx->offset_cabac,
-                                     (void *)rkv_cabac_table_v34x, sizeof(rkv_cabac_table_v34x)));
+    memcpy((char *)reg_ctx->bufs_ptr + reg_ctx->offset_cabac,
+           (void *)rkv_cabac_table_v34x, sizeof(rkv_cabac_table_v34x));
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
@@ -879,11 +881,11 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     //!< copy datas
     RK_U32 i = 0;
+    RK_U32 offset = 0;
 
     for (i = 0; i < 256; i++) {
-        mpp_buffer_write(ctx->bufs,
-                         ctx->spspps_offset + (sizeof(ctx->spspps) * i),
-                         (void *)ctx->spspps, sizeof(ctx->spspps));
+        offset = ctx->spspps_offset + (sizeof(ctx->spspps) * i);
+        memcpy((char *)ctx->bufs_ptr + offset, (void *)ctx->spspps, sizeof(ctx->spspps));
     }
 
     regs->h264d_addr.pps_base = ctx->bufs_fd;
@@ -892,8 +894,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     trans_cfg.offset = ctx->spspps_offset;
     mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
-    mpp_buffer_write(ctx->bufs, ctx->rps_offset,
-                     (void *)ctx->rps, sizeof(ctx->rps));
+    memcpy((char *)ctx->bufs_ptr + ctx->rps_offset, (void *)ctx->rps, sizeof(ctx->rps));
     regs->h264d_addr.rps_base = ctx->bufs_fd;
     trans_cfg.reg_idx = 163;
     trans_cfg.offset = ctx->rps_offset;
@@ -901,8 +902,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->common.reg012.scanlist_addr_valid_en = 1;
     if (p_hal->pp->scaleing_list_enable_flag) {
-        mpp_buffer_write(ctx->bufs, ctx->sclst_offset,
-                         (void *)ctx->sclst, sizeof(ctx->sclst));
+        memcpy((char *)ctx->bufs_ptr + ctx->sclst_offset, (void *)ctx->sclst, sizeof(ctx->sclst));
         regs->h264d_addr.scanlist_addr = ctx->bufs_fd;
         trans_cfg.reg_idx = 180;
         trans_cfg.offset = ctx->sclst_offset;
