@@ -2027,11 +2027,15 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
 
     FUN_CHECK(ret = check_refer_dpb_buf_slots(currSlice));
     check_refer_picture_lists(currSlice);
+    {
+        H264dDxvaCtx_t *dxva_ctx = p_Dec->dxva_ctx;
 
-    prepare_init_scanlist(currSlice);
-    fill_picparams(currSlice->p_Vid, &p_Dec->dxva_ctx->pp);
-    fill_scanlist(currSlice->p_Vid, &p_Dec->dxva_ctx->qm);
-
+        fill_picparams(currSlice->p_Vid, &dxva_ctx->pp);
+        if (dxva_ctx->pp.scaleing_list_enable_flag) {
+            prepare_init_scanlist(currSlice);
+            fill_scanlist(currSlice->p_Vid, &dxva_ctx->qm);
+        }
+    }
 
     return ret = MPP_OK;
 __FAILED:

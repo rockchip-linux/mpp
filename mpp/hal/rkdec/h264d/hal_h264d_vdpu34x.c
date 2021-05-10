@@ -899,14 +899,18 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     trans_cfg.offset = ctx->rps_offset;
     mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
-    mpp_buffer_write(ctx->bufs, ctx->sclst_offset,
-                     (void *)ctx->sclst, sizeof(ctx->sclst));
-    regs->h264d_addr.scanlist_addr = ctx->bufs_fd;
-    trans_cfg.reg_idx = 180;
-    trans_cfg.offset = ctx->sclst_offset;
-    mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
     regs->common.reg012.scanlist_addr_valid_en = 1;
+    if (p_hal->pp->scaleing_list_enable_flag) {
+        mpp_buffer_write(ctx->bufs, ctx->sclst_offset,
+                         (void *)ctx->sclst, sizeof(ctx->sclst));
+        regs->h264d_addr.scanlist_addr = ctx->bufs_fd;
+        trans_cfg.reg_idx = 180;
+        trans_cfg.offset = ctx->sclst_offset;
+        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    } else {
+        regs->h264d_addr.scanlist_addr = 0;
+    }
+
     hal_h264d_rcb_info_update(p_hal, regs);
     vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, ctx->rcb_buf, ctx->rcb_info);
 
