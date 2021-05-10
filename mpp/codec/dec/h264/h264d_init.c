@@ -1068,7 +1068,7 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
     }
 
     currSlice->listXsizeP[1] = 0;
-    if (currSlice->svc_extension_flag == 0) {
+    if (currSlice->mvcExt.valid && currSlice->svc_extension_flag == 0) {
         RK_S32 curr_layer_id = currSlice->layer_id;
         currSlice->fs_listinterview0 = mpp_calloc(H264_FrameStore_t*, p_Dpb->size);
         MEM_CHECK(ret, currSlice->fs_listinterview0);
@@ -1235,7 +1235,7 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
             currSlice->listB[1][1] = tmp_s;
         }
     }
-    if (currSlice->svc_extension_flag == 0) {
+    if (currSlice->mvcExt.valid && currSlice->svc_extension_flag == 0) {
         RK_S32 curr_layer_id = currSlice->layer_id;
         // B-Slice
         currSlice->fs_listinterview0 = mpp_calloc(H264_FrameStore_t*, p_Dpb->size);
@@ -1704,6 +1704,7 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
     RK_S32 poc = 0, TOP_POC = 0, BOT_POC = 0;
     RK_S32 min_poc = 0, max_poc = 0;
     RK_S32 layer_id = 0, voidx = 0, is_used = 0, near_dpb_idx = 0;
+    RK_U32 mmco5_flag = 0;
     H264_DecCtx_t *p_Dec = currSlice->p_Dec;
 
     memset(p_Dec->refpic_info_p,    0, MAX_REF_SIZE * sizeof(H264_RefPicInfo_t));
@@ -1716,19 +1717,77 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
     //!<------ set listP -------
     near_dpb_idx = 0;
     for (j = 0; j < 32; j++) {
+        if (j >= currSlice->listXsizeP[0])
+            break;
         poc = 0;
         layer_id = currSlice->listP[0][j]->layer_id;
-        if (j < currSlice->listXsizeP[0]) {
-            if (currSlice->listP[0][j]->structure == FRAME) {
-                poc = (currSlice->listP[0][j]->is_mmco_5 && currSlice->layer_id && currSlice->listP[0][j]->layer_id == 0)
-                      ? currSlice->listP[0][j]->poc_mmco5 : currSlice->listP[0][j]->poc;
-            } else if (currSlice->listP[0][j]->structure == TOP_FIELD) {
-                poc = (currSlice->listP[0][j]->is_mmco_5 && currSlice->layer_id && currSlice->listP[0][j]->layer_id == 0)
-                      ? currSlice->listP[0][j]->top_poc_mmco5 : currSlice->listP[0][j]->top_poc;
+        mmco5_flag = (currSlice->listP[0][j]->is_mmco_5 && currSlice->layer_id && !currSlice->listP[0][j]->layer_id) ? 1 : 0;
+        if (currSlice->listP[0][j]->structure == FRAME) {
+            poc = mmco5_flag ? currSlice->listP[0][j]->poc_mmco5 : currSlice->listP[0][j]->poc;
+        } else if (currSlice->listP[0][j]->structure == TOP_FIELD) {
+            poc = mmco5_flag ? currSlice->listP[0][j]->top_poc_mmco5 : currSlice->listP[0][j]->top_poc;
+        } else {
+            poc = mmco5_flag ? currSlice->listP[0][j]->bot_poc_mmco5 : currSlice->listP[0][j]->bottom_poc;
+        }
+        for (i = 0; i < 16; i++) {
+            refpic = p_Dec->dpb_info[i].refpic;
+            TOP_POC = p_Dec->dpb_info[i].TOP_POC;
+            BOT_POC = p_Dec->dpb_info[i].BOT_POC;
+            voidx = p_Dec->dpb_info[i].voidx;
+            is_used = p_Dec->dpb_info[i].is_used;
+            if (currSlice->structure == FRAME && refpic) {
+                if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))
+                    break;
             } else {
-                poc = (currSlice->listP[0][j]->is_mmco_5 && currSlice->layer_id && currSlice->listP[0][j]->layer_id == 0)
-                      ? currSlice->listP[0][j]->bot_poc_mmco5 : currSlice->listP[0][j]->bottom_poc;
+                if (is_used == 3) {
+                    if ((poc == BOT_POC || poc == TOP_POC) && layer_id == voidx)
+                        break;
+                } else if (is_used & 1) {
+                    if (poc == TOP_POC && layer_id == voidx)
+                        break;
+                } else if (is_used & 2) {
+                    if (poc == BOT_POC && layer_id == voidx)
+                        break;
+                }
             }
+        }
+        if (i < 16) {
+            near_dpb_idx = i;
+            p_Dec->refpic_info_p[j].dpb_idx = i;
+        } else {
+            ASSERT(near_dpb_idx >= 0);
+            p_Dec->refpic_info_p[j].dpb_idx = near_dpb_idx;
+            p_Dec->errctx.cur_err_flag |= 1;
+        }
+        if (currSlice->listP[0][j]->structure == BOTTOM_FIELD) {
+            p_Dec->refpic_info_p[j].bottom_flag = 1;
+        } else {
+            p_Dec->refpic_info_p[j].bottom_flag = 0;
+        }
+        p_Dec->refpic_info_p[j].valid = 1;
+    }
+    //!<------  set listB -------
+    for (k = 0; k < 2; k++) {
+        min_poc =  0xFFFF;
+        max_poc = -0xFFFF;
+        near_dpb_idx = 0;
+        for (j = 0; j < 32; j++) {
+            if (j >= currSlice->listXsizeB[k])
+                break;
+
+            poc = 0;
+            layer_id = currSlice->listB[k][j]->layer_id;
+            mmco5_flag = (currSlice->listB[k][j]->is_mmco_5 && currSlice->layer_id && !currSlice->listB[k][j]->layer_id) ? 1 : 0;
+            if (currSlice->listB[k][j]->structure == FRAME) {
+                poc = mmco5_flag ? currSlice->listB[k][j]->poc_mmco5 : currSlice->listB[k][j]->poc;
+            } else if (currSlice->listB[k][j]->structure == TOP_FIELD) {
+                poc = mmco5_flag ? currSlice->listB[k][j]->top_poc_mmco5 : currSlice->listB[k][j]->top_poc;
+            } else {
+                poc = mmco5_flag ? currSlice->listB[k][j]->bot_poc_mmco5 : currSlice->listB[k][j]->bottom_poc;
+            }
+
+            min_poc = MPP_MIN(min_poc, poc);
+            max_poc = MPP_MAX(max_poc, poc);
             for (i = 0; i < 16; i++) {
                 refpic = p_Dec->dpb_info[i].refpic;
                 TOP_POC = p_Dec->dpb_info[i].TOP_POC;
@@ -1743,97 +1802,28 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
                         if ((poc == BOT_POC || poc == TOP_POC) && layer_id == voidx)
                             break;
                     } else if (is_used & 1) {
-                        if (poc == TOP_POC && layer_id == voidx)
+                        if (poc == TOP_POC && (layer_id == voidx || (layer_id != voidx && !currSlice->bottom_field_flag)))
                             break;
                     } else if (is_used & 2) {
-                        if (poc == BOT_POC && layer_id == voidx)
+                        if (poc == BOT_POC && (layer_id == voidx || (layer_id != voidx && currSlice->bottom_field_flag)))
                             break;
                     }
                 }
             }
             if (i < 16) {
                 near_dpb_idx = i;
-                p_Dec->refpic_info_p[j].dpb_idx = i;
+                p_Dec->refpic_info_b[k][j].dpb_idx = i;
             } else {
                 ASSERT(near_dpb_idx >= 0);
-                p_Dec->refpic_info_p[j].dpb_idx = near_dpb_idx;
+                p_Dec->refpic_info_b[k][j].dpb_idx = near_dpb_idx;
                 p_Dec->errctx.cur_err_flag |= 1;
             }
-            if (currSlice->listP[0][j]->structure == BOTTOM_FIELD) {
-                p_Dec->refpic_info_p[j].bottom_flag = 1;
+            if (currSlice->listB[k][j]->structure == BOTTOM_FIELD) {
+                p_Dec->refpic_info_b[k][j].bottom_flag = 1;
             } else {
-                p_Dec->refpic_info_p[j].bottom_flag = 0;
-            }
-            p_Dec->refpic_info_p[j].valid = 1;
-        } else {
-            p_Dec->refpic_info_p[j].valid = 0;
-            p_Dec->refpic_info_p[j].dpb_idx = 0;
-            p_Dec->refpic_info_p[j].bottom_flag = 0;
-        }
-    }
-    //!<------  set listB -------
-    for (k = 0; k < 2; k++) {
-        min_poc =  0xFFFF;
-        max_poc = -0xFFFF;
-        near_dpb_idx = 0;
-        for (j = 0; j < 32; j++) {
-            poc = 0;
-            layer_id = currSlice->listB[k][j]->layer_id;
-            if (j < currSlice->listXsizeB[k]) {
-                if (currSlice->listB[k][j]->structure == FRAME) {
-                    poc = (currSlice->listB[k][j]->is_mmco_5 && currSlice->layer_id && currSlice->listB[k][j]->layer_id == 0)
-                          ? currSlice->listB[k][j]->poc_mmco5 : currSlice->listB[k][j]->poc;
-                } else if (currSlice->listB[k][j]->structure == TOP_FIELD) {
-                    poc = (currSlice->listB[k][j]->is_mmco_5 && currSlice->layer_id && currSlice->listB[k][j]->layer_id == 0)
-                          ? currSlice->listB[k][j]->top_poc_mmco5 : currSlice->listB[k][j]->top_poc;
-                } else {
-                    poc = (currSlice->listB[k][j]->is_mmco_5 && currSlice->layer_id && currSlice->listB[k][j]->layer_id == 0)
-                          ? currSlice->listB[k][j]->bot_poc_mmco5 : currSlice->listB[k][j]->bottom_poc;
-                }
-
-                min_poc = MPP_MIN(min_poc, poc);
-                max_poc = MPP_MAX(max_poc, poc);
-                for (i = 0; i < 16; i++) {
-                    refpic = p_Dec->dpb_info[i].refpic;
-                    TOP_POC = p_Dec->dpb_info[i].TOP_POC;
-                    BOT_POC = p_Dec->dpb_info[i].BOT_POC;
-                    voidx = p_Dec->dpb_info[i].voidx;
-                    is_used = p_Dec->dpb_info[i].is_used;
-                    if (currSlice->structure == FRAME && refpic) {
-                        if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))
-                            break;
-                    } else {
-                        if (is_used == 3) {
-                            if ((poc == BOT_POC || poc == TOP_POC) && layer_id == voidx)
-                                break;
-                        } else if (is_used & 1) {
-                            if (poc == TOP_POC && (layer_id == voidx || (layer_id != voidx && !currSlice->bottom_field_flag)))
-                                break;
-                        } else if (is_used & 2) {
-                            if (poc == BOT_POC && (layer_id == voidx || (layer_id != voidx && currSlice->bottom_field_flag)))
-                                break;
-                        }
-                    }
-                }
-                if (i < 16) {
-                    near_dpb_idx = i;
-                    p_Dec->refpic_info_b[k][j].dpb_idx = i;
-                } else {
-                    ASSERT(near_dpb_idx >= 0);
-                    p_Dec->refpic_info_b[k][j].dpb_idx = near_dpb_idx;
-                    p_Dec->errctx.cur_err_flag |= 1;
-                }
-                if (currSlice->listB[k][j]->structure == BOTTOM_FIELD) {
-                    p_Dec->refpic_info_b[k][j].bottom_flag = 1;
-                } else {
-                    p_Dec->refpic_info_b[k][j].bottom_flag = 0;
-                }
-                p_Dec->refpic_info_b[k][j].valid = 1;
-            } else {
-                p_Dec->refpic_info_b[k][j].valid = 0;
-                p_Dec->refpic_info_b[k][j].dpb_idx = 0;
                 p_Dec->refpic_info_b[k][j].bottom_flag = 0;
             }
+            p_Dec->refpic_info_b[k][j].valid = 1;
         }
 
     }
