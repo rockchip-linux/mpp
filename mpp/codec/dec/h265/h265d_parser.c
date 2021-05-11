@@ -1287,6 +1287,27 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
         }
         break;
     case NAL_PPS:
+        if (s->pre_pps_data == NULL) {
+            s->pre_pps_data = mpp_calloc(RK_U8, length + 128);
+            memcpy(s->pre_pps_data, nal, length);
+            s->pps_len = length;
+            s->pps_buf_size = length + 128;
+            s->ps_need_upate = 1;
+        } else if (s->pps_len == length) {
+            if (memcmp(s->pre_pps_data, nal, length)) {
+                s->ps_need_upate = 1;
+                memcpy(s->pre_pps_data, nal, length);
+            }
+        } else {
+            if (s->pps_buf_size < length) {
+                MPP_FREE(s->pre_pps_data);
+                s->pre_pps_data = mpp_calloc(RK_U8, length + 128);
+                memcpy(s->pre_pps_data, nal, length);
+                s->pps_buf_size = length + 128;
+                s->pps_len = length;
+            }
+            s->ps_need_upate = 1;
+        }
         ret = mpp_hevc_decode_nal_pps(s);
         if (ret < 0) {
             mpp_err("mpp_hevc_decode_nal_pps error ret = %d", ret);
@@ -1890,6 +1911,8 @@ MPP_RET h265d_deinit(void *ctx)
     if (s->nals) {
         mpp_free(s->nals);
     }
+
+    MPP_FREE(s->pre_pps_data);
 
     s->nals_allocated = 0;
 

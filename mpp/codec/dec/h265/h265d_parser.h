@@ -600,6 +600,9 @@ typedef struct HEVCContext {
     /*temporary storage for slice_cut_param*/
     RK_U32  start_bit;
     RK_U32  end_bit;
+    void   *pre_pps_data;
+    RK_S32  pps_len;
+    RK_S32  pps_buf_size;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,

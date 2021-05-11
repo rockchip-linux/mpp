@@ -1937,7 +1937,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         ret =  MPP_ERR_STREAM;
         goto err;
     }
-    READ_ONEBIT(gb, & pps->pic_slice_level_chroma_qp_offsets_present_flag);
+    READ_ONEBIT(gb, &pps->pic_slice_level_chroma_qp_offsets_present_flag);
 
     READ_ONEBIT(gb, &pps->weighted_pred_flag);
 
@@ -2109,16 +2109,12 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         }
     }
 
-    if (s->pps_list[pps_id] && !memcmp(s->vps_list[pps_id], pps_buf, sizeof(HEVCPPS))) {
-        mpp_hevc_pps_free(pps_buf);
-    } else {
-        if (s->pps_list[pps_id]) {
-            mpp_hevc_pps_free(s->pps_list[pps_id]);
-            s->pps_list[pps_id] = NULL;
-        }
-        s->pps_list[pps_id] = pps_buf;
-        s->ps_need_upate = 1;
+    if (s->pps_list[pps_id]) {
+        mpp_hevc_pps_free(s->pps_list[pps_id]);
+        s->pps_list[pps_id] = NULL;
     }
+
+    s->pps_list[pps_id] = pps_buf;
 
     if (s->pps_list[pps_id])
         s->pps_list_of_updated[pps_id] = 1;
