@@ -347,7 +347,7 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     hw_ctx->mv_base_addr = vp9_hw_regs->swreg7_decout_base;
-    hw_ctx->mv_base_offset = sw_yuv_virstride;
+    hw_ctx->mv_base_offset = mpp_get_ioctl_version() ? sw_yuv_virstride << 4 : sw_yuv_virstride;
     if (hw_ctx->pre_mv_base_addr < 0) {
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;
         hw_ctx->pre_mv_base_offset = hw_ctx->mv_base_offset;
