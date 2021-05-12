@@ -385,22 +385,26 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     pthread_mutex_lock(&group->buf_lock);
     p->buffer_id = group->buffer_id++;
     INIT_LIST_HEAD(&p->list_status);
-    list_add_tail(&p->list_status, &group->list_unused);
+
+    if (buffer) {
+        p->ref_count++;
+        p->used = 1;
+        list_add_tail(&p->list_status, &group->list_used);
+        group->count_used++;
+        *buffer = p;
+    } else {
+        list_add_tail(&p->list_status, &group->list_unused);
+        group->count_unused++;
+    }
 
     group->usage += info->size;
     group->buffer_count++;
-    group->count_unused++;
     pthread_mutex_unlock(&group->buf_lock);
 
     buf_add_log(p, (group->mode == MPP_BUFFER_INTERNAL) ? (BUF_CREATE) : (BUF_COMMIT), caller);
 
     if (group->mode == MPP_BUFFER_INTERNAL)
         MppBufferService::get_instance()->inc_total(info->size);
-
-    if (buffer) {
-        inc_buffer_ref(p, caller);
-        *buffer = p;
-    }
 
     if (group->callback)
         group->callback(group->arg, group);
@@ -498,7 +502,15 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size)
                         size, pos->buffer_id, pos->info.size);
             if (pos->info.size >= size) {
                 buffer = pos;
-                inc_buffer_ref(buffer, __FUNCTION__);
+                pthread_mutex_lock(&buffer->lock);
+                buf_add_log(buffer, BUF_REF_INC, __FUNCTION__);
+                buffer->ref_count++;
+                buffer->used = 1;
+                list_del_init(&buffer->list_status);
+                list_add_tail(&buffer->list_status, &p->list_used);
+                p->count_used++;
+                p->count_unused--;
+                pthread_mutex_unlock(&buffer->lock);
                 found = 1;
                 break;
             } else {
