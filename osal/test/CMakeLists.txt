@@ -28,6 +28,9 @@ add_mpp_osal_test(mpp_env)
 # malloc system unit test
 add_mpp_osal_test(mpp_mem)
 
+# mpp_mem_pool unit test
+add_mpp_osal_test(mpp_mem_pool)
+
 # time system unit test
 add_mpp_osal_test(mpp_time)
 
