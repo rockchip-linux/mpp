@@ -27,6 +27,7 @@
 #include "hal_vp8e_putbit.h"
 #include "hal_vp8e_table.h"
 #include "hal_vp8e_debug.h"
+#include "vepu_common.h"
 
 static MPP_RET set_frame_params(void *hal)
 {
@@ -1106,84 +1107,14 @@ static MPP_RET set_parameter(void *hal)
     }
 
     hw_cfg->r_mask_msb = hw_cfg->g_mask_msb = hw_cfg->b_mask_msb = 0;
-    switch (set->format) {
-    case MPP_FMT_YUV420P:
-        hw_cfg->input_format = INPUT_YUV420PLANAR;
-        break;
-    case MPP_FMT_YUV420SP:
-        hw_cfg->input_format = INPUT_YUV420SEMIPLANAR;
-        break;
-    case MPP_FMT_YUV422_YUYV:
-        hw_cfg->input_format = INPUT_YUYV422INTERLEAVED;
-        break;
-    case MPP_FMT_YUV422_UYVY:
-        hw_cfg->input_format = INPUT_UYVY422INTERLEAVED;
-        break;
-    case MPP_FMT_RGB565:
-        hw_cfg->input_format = INPUT_RGB565;
-        hw_cfg->r_mask_msb = 15;
-        hw_cfg->g_mask_msb = 10;
-        hw_cfg->b_mask_msb = 4;
-        break;
-    case MPP_FMT_BGR565:
-        hw_cfg->input_format = INPUT_RGB565;
-        hw_cfg->b_mask_msb = 15;
-        hw_cfg->g_mask_msb = 10;
-        hw_cfg->r_mask_msb = 4;
-        break;
-    case MPP_FMT_RGB555:
-        hw_cfg->input_format = INPUT_RGB555;
-        hw_cfg->r_mask_msb = 14;
-        hw_cfg->g_mask_msb = 9;
-        hw_cfg->b_mask_msb = 4;
-        break;
-    case MPP_FMT_BGR555:
-        hw_cfg->input_format = INPUT_RGB555;
-        hw_cfg->b_mask_msb = 14;
-        hw_cfg->g_mask_msb = 9;
-        hw_cfg->r_mask_msb = 4;
-        break;
-    case MPP_FMT_RGB444:
-        hw_cfg->input_format = INPUT_RGB444;
-        hw_cfg->r_mask_msb = 11;
-        hw_cfg->g_mask_msb = 7;
-        hw_cfg->b_mask_msb = 3;
-        break;
-    case MPP_FMT_BGR444:
-        hw_cfg->input_format = INPUT_RGB444;
-        hw_cfg->b_mask_msb = 11;
-        hw_cfg->g_mask_msb = 7;
-        hw_cfg->r_mask_msb = 3;
-        break;
-    case MPP_FMT_RGB888:
-        hw_cfg->input_format = INPUT_RGB888;
-        hw_cfg->r_mask_msb = 23;
-        hw_cfg->g_mask_msb = 15;
-        hw_cfg->b_mask_msb = 7;
-        break;
-    case MPP_FMT_BGR888:
-        hw_cfg->input_format = INPUT_RGB888;
-        hw_cfg->b_mask_msb = 23;
-        hw_cfg->g_mask_msb = 15;
-        hw_cfg->r_mask_msb = 7;
-        break;
-    case MPP_FMT_RGB101010:
-        hw_cfg->input_format = INPUT_RGB101010;
-        hw_cfg->r_mask_msb = 29;
-        hw_cfg->g_mask_msb = 19;
-        hw_cfg->b_mask_msb = 9;
-        break;
-    case MPP_FMT_BGR101010:
-        hw_cfg->input_format = INPUT_RGB101010;
-        hw_cfg->b_mask_msb = 29;
-        hw_cfg->g_mask_msb = 19;
-        hw_cfg->r_mask_msb = 9;
-        break;
-    default:
-        mpp_err("unsupported color format %d", set->format);
+    VepuFormatCfg fmt_cfg;
+    if (!get_vepu_fmt(&fmt_cfg, set->format)) {
+        hw_cfg->input_format = fmt_cfg.format;
+        hw_cfg->r_mask_msb = fmt_cfg.r_mask;
+        hw_cfg->g_mask_msb = fmt_cfg.g_mask;
+        hw_cfg->b_mask_msb = fmt_cfg.b_mask;
+    } else
         return MPP_NOK;
-        break;
-    }
 
     return MPP_OK;
 }
