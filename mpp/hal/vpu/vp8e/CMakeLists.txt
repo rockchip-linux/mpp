@@ -1,4 +1,4 @@
-include_directories(.)
+include_directories(../common/)
 
 set(HAL_VP8E_HDR
     hal_vp8e_debug.h
