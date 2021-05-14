@@ -129,7 +129,8 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
         /* jpeg encoder do not have mirring / denoise feature */
 
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
+        if ((change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
+            (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
             if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
                 dst->width = src->height;
                 dst->height = src->width;
