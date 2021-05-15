@@ -101,29 +101,45 @@ struct list_head {
 #define list_entry(ptr, type, member) \
     ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
-/*
- * due to typeof gcc extension list_for_each_entry and list_for_each_entry_safe
- * can not be used on windows platform
- * So we add a extra type parameter to the macro
- */
+#define list_first_entry(ptr, type, member) \
+        list_entry((ptr)->next, type, member)
+
+#define list_last_entry(ptr, type, member) \
+        list_entry((ptr)->prev, type, member)
+
+#define list_first_entry_or_null(ptr, type, member) ({ \
+        struct list_head *head__ = (ptr); \
+        struct list_head *pos__ = head__->next; \
+        pos__ != head__ ? list_entry(pos__, type, member) : NULL; \
+})
+
+#define list_next_entry(pos, type, member) \
+        list_entry((pos)->member.next, type, member)
+
+#define list_prev_entry(pos, type, member) \
+        list_entry((pos)->member.prev, type, member)
+
 #define list_for_each_entry(pos, head, type, member) \
     for (pos = list_entry((head)->next, type, member); \
          &pos->member != (head); \
-         pos = list_entry(pos->member.next, type, member))
+         pos = list_next_entry(pos, type, member))
 
 #define list_for_each_entry_safe(pos, n, head, type, member) \
-    for (pos = list_entry((head)->next, type, member),  \
-         n = list_entry(pos->member.next, type, member); \
+    for (pos = list_first_entry(head, type, member),  \
+         n = list_next_entry(pos, type, member); \
          &pos->member != (head);                    \
-         pos = n, n = list_entry(n->member.next, type, member))
+         pos = n, n = list_next_entry(n, type, member))
 
 #define list_for_each_entry_reverse(pos, head, type, member) \
-    for (pos = list_entry((head)->prev, type, member); \
+    for (pos = list_last_entry(head, type, member); \
          &pos->member != (head); \
-         pos = list_entry(pos->member.prev, type, member))
+         pos = list_prev_entry(pos, type, member))
 
-#define list_first_entry(ptr, type, member) \
-        list_entry((ptr)->next, type, member)
+#define list_for_each_entry_safe_reverse(pos, n, head, type, member) \
+    for (pos = list_last_entry(head, type, member),  \
+         n = list_prev_entry(pos, type, member); \
+         &pos->member != (head);                    \
+         pos = n, n = list_prev_entry(n, type, member))
 
 static __inline void __list_add(struct list_head * _new,
                                 struct list_head * prev,
