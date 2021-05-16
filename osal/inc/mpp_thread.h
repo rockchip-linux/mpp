@@ -152,6 +152,7 @@ public:
     RK_S32 timedwait(Mutex& mutex, RK_S64 timeout);
     RK_S32 timedwait(Mutex* mutex, RK_S64 timeout);
     RK_S32 signal();
+    RK_S32 broadcast();
 
 private:
     pthread_cond_t mCond;
@@ -195,6 +196,10 @@ inline RK_S32 Condition::signal()
 {
     return pthread_cond_signal(&mCond);
 }
+inline RK_S32 Condition::broadcast()
+{
+    return pthread_cond_broadcast(&mCond);
+}
 
 class MppMutexCond
 {
@@ -208,6 +213,7 @@ public:
     void    wait()      { mCondition.wait(mLock); }
     RK_S32  wait(RK_S64 timeout) { return mCondition.timedwait(mLock, timeout); }
     void    signal()    { mCondition.signal(); }
+    void    broadcast() { mCondition.broadcast(); }
     Mutex   *mutex()    { return &mLock; }
 
 private:
