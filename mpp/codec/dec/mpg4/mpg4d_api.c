@@ -234,6 +234,7 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
     if (!p->need_split ||
         (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA)) {
         p->got_eos = eos;
+        task->flags.eos = eos;
         // NOTE: empty eos packet
         if (eos && !length) {
             mpg4d_flush(dec);
@@ -268,9 +269,9 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
             p->left_length = mpp_packet_get_length(p->task_pkt);
         }
         p->got_eos = mpp_packet_get_eos(p->task_pkt);
+        task->flags.eos = p->got_eos;
     }
     task->input_packet = p->task_pkt;
-    task->flags.eos    = p->got_eos;
 
     return MPP_OK;
 }
