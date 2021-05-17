@@ -249,8 +249,6 @@ static void *mpp_timer_thread(void *ctx)
         return NULL;
     }
 
-    mpp_log("timer %p start looping\n", impl);
-
     while (1) {
         if (MPP_THREAD_RUNNING != thd->get_status())
             break;
