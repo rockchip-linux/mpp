@@ -19,11 +19,22 @@
 #include "mpp_log.h"
 #include "mpp_time.h"
 
+void *timer_test(void *param)
+{
+    static RK_S32 count = 0;
+    (void) param;
+
+    mpp_log("mpp timer trigger %d\n", count++);
+
+    return NULL;
+}
+
 int main()
 {
     RK_S64 time_0;
     RK_S64 time_1;
     MppClock clock;
+    MppTimer timer;
     RK_S32 i;
 
     mpp_log("mpp time test start\n");
@@ -39,6 +50,20 @@ int main()
     mpp_log("diff expected 10 ms real %.2f ms\n", (float)(time_1 - time_0) / 1000);
 
     mpp_log("mpp time test done\n");
+
+    mpp_log("mpp timer test start\n");
+
+    timer = mpp_timer_get("test");
+
+    mpp_timer_set_callback(timer, timer_test, NULL);
+    mpp_timer_set_timing(timer, 1000, 1000);
+    mpp_timer_set_enable(timer, 1);
+
+    sleep(2);
+
+    mpp_timer_put(timer);
+
+    mpp_log("mpp timer test done\n");
 
     mpp_log("mpp clock test start\n");
 
