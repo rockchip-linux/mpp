@@ -1476,7 +1476,8 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
         mpp_stopwatch_record(stopwatch, "encode task start");
 
         if (mpp_enc_check_frm_pkt(enc)) {
-            mpp_stopwatch_record(stopwatch, "invalid on chekc frm pkt");
+            mpp_stopwatch_record(stopwatch, "invalid on check frm pkt");
+            reset_hal_enc_task(hal_task);
             ret = MPP_NOK;
             goto TASK_DONE;
         }
