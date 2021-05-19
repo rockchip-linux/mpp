@@ -1,3 +1,10 @@
+mpp (1.5.0-1) stable; urgency=critical
+
+  * [mpp_enc_impl]: Cleanup hal_task on empty eos task
+    ...
+
+ -- Caesar Wang <wxt@rock-chips.com>  Thu, 20 May 2021 09:40:00 +0800
+
 mpp (1.4.0-1) stable; urgency=critical
 
   [ Herman Chen ]
