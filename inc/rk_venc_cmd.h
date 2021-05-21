@@ -598,17 +598,15 @@ typedef struct MppEncH264Cfg_t {
 
     /*
      * H.264 codec syntax config
-     * svc                  - deprecated, reserved for compile compatibility
      *
      * do NOT setup the three option below unless you are familiar with encoder detail
      * poc_type             - picture order count type 0 ~ 2
      * log2_max_poc_lsb     - used in sps with poc_type 0,
      * log2_max_frame_num   - used in sps
      */
-    RK_U8               svc;
-    RK_U8               poc_type;
-    RK_U8               log2_max_poc_lsb;
-    RK_U8               log2_max_frame_num;
+    RK_U32              poc_type;
+    RK_U32              log2_max_poc_lsb;
+    RK_U32              log2_max_frame_num;
     RK_U32              gaps_not_allowed;
 
     /*
