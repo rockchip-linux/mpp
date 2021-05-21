@@ -718,10 +718,10 @@ typedef struct MppEncH264Cfg_t {
     RK_S32              intra_refresh_arg;
 
     /* extra mode config */
-    RK_S16              max_ltr_frames;
-    RK_S16              max_tid;
-    RK_S16              prefix_mode;
-    RK_S16              base_layer_pid;
+    RK_S32              max_ltr_frames;
+    RK_S32              max_tid;
+    RK_S32              prefix_mode;
+    RK_S32              base_layer_pid;
 } MppEncH264Cfg;
 
 #define H265E_MAX_ROI_NUMBER  64
