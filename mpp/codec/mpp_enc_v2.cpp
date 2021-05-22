@@ -22,6 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_info.h"
 #include "mpp_common.h"
+#include "mpp_2str.h"
 
 #include "mpp.h"
 #include "mpp_enc_debug.h"
@@ -198,11 +199,14 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
 MPP_RET mpp_enc_start_v2(MppEnc ctx)
 {
     MppEncImpl *enc = (MppEncImpl *)ctx;
+    char name[16];
 
     enc_dbg_func("%p in\n", enc);
 
-    enc->thread_enc = new MppThread(mpp_enc_thread,
-                                    enc->mpp, "mpp_enc");
+    snprintf(name, sizeof(name) - 1, "mpp_%se_%d",
+             strof_coding_type(enc->coding), getpid());
+
+    enc->thread_enc = new MppThread(mpp_enc_thread, enc->mpp, name);
     enc->thread_enc->start();
 
     enc_dbg_func("%p out\n", enc);
