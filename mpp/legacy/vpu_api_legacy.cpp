@@ -69,10 +69,10 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
         ret = MPP_FMT_BGR444;
     } break;
     case ENC_INPUT_RGB888 : {
-        ret = MPP_FMT_RGB888;
+        ret = MPP_FMT_RGBA8888;
     } break;
     case ENC_INPUT_BGR888 : {
-        ret = MPP_FMT_BGR888;
+        ret = MPP_FMT_BGRA8888;
     } break;
     case ENC_INPUT_RGB101010 : {
         ret = MPP_FMT_RGB101010;
@@ -122,7 +122,27 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
 
     mpp_enc_cfg_set_s32(enc_cfg, "prep:width", width);
     mpp_enc_cfg_set_s32(enc_cfg, "prep:height", height);
-    mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", MPP_ALIGN(width, 16));
+    switch (fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420SP :
+    case MPP_FMT_YUV420SP_VU : {
+        mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", MPP_ALIGN(width, 16));
+    } break;
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565:
+    case MPP_FMT_RGB555:
+    case MPP_FMT_BGR555: {
+        mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", 2 * MPP_ALIGN(width, 16));
+    } break;
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 : {
+        mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", 4 * MPP_ALIGN(width, 16));
+    } break;
+    default: {
+        mpp_err("unsupport format 0x%x\n", fmt & MPP_FRAME_FMT_MASK);
+    } break;
+    }
     mpp_enc_cfg_set_s32(enc_cfg, "prep:ver_stride", MPP_ALIGN(height, 8));
     mpp_enc_cfg_set_s32(enc_cfg, "prep:format", fmt);
 
