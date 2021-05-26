@@ -523,6 +523,12 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
         if (change & MPP_ENC_RC_CFG_CHANGE_QP_VI)
             dst->qp_delta_vi = src->qp_delta_vi;
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_HIER_QP) {
+            dst->hier_qp_en = src->hier_qp_en;
+            memcpy(dst->hier_qp_delta, src->hier_qp_delta, sizeof(src->hier_qp_delta));
+            memcpy(dst->hier_frame_num, src->hier_frame_num, sizeof(src->hier_frame_num));
+        }
+
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
             mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
@@ -959,6 +965,11 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
+
+    cfg->hier_qp_cfg.hier_qp_en = rc->hier_qp_en;
+    memcpy(cfg->hier_qp_cfg.hier_frame_num, rc->hier_frame_num, sizeof(rc->hier_frame_num));
+    memcpy(cfg->hier_qp_cfg.hier_qp_delta, rc->hier_qp_delta, sizeof(rc->hier_qp_delta));
+
     mpp_assert(rc->fps_out_num);
     cfg->stat_times = rc->gop * rc->fps_out_denorm / rc->fps_out_num;
     if (cfg->stat_times < 2)

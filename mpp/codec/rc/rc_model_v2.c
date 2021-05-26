@@ -663,6 +663,50 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     return MPP_OK;
 }
 
+void rc_hier_calc_dealt_qp(RcModelV2Ctx *p)
+{
+    RcHierQPCfg *hier_qp_cfg = &p->usr_cfg.hier_qp_cfg;
+
+    if (!hier_qp_cfg->hier_qp_en)
+        return;
+
+    if (p->frame_type == INTRA_FRAME || p->frame_type == INTER_VI_FRAME) {
+        p->hier_frm_cnt[3] = 0;
+        p->hier_frm_cnt[2] = 0;
+        p->hier_frm_cnt[1] = 0;
+        p->hier_frm_cnt[0] = 0;
+        p->qp_layer_id = 0;
+    } else {
+        if (p->hier_frm_cnt[3] < hier_qp_cfg->hier_frame_num[3]) {
+            p->hier_frm_cnt[3]++;
+            p->qp_layer_id = 4;
+        } else if (p->hier_frm_cnt[2] < hier_qp_cfg->hier_frame_num[2]) {
+            p->hier_frm_cnt[2]++;
+            p->hier_frm_cnt[3] = 0;
+            p->qp_layer_id = 3;
+        } else if (p->hier_frm_cnt[1] < hier_qp_cfg->hier_frame_num[1]) {
+            p->hier_frm_cnt[1]++;
+            p->hier_frm_cnt[3] = 0;
+            p->hier_frm_cnt[2] = 0;
+            p->qp_layer_id = 2;
+        } else if (p->hier_frm_cnt[0] < hier_qp_cfg->hier_frame_num[0]) {
+            p->hier_frm_cnt[0]++;
+            p->hier_frm_cnt[3] = 0;
+            p->hier_frm_cnt[2] = 0;
+            p->hier_frm_cnt[1] = 0;
+            p->qp_layer_id = 1;
+        } else {
+            p->hier_frm_cnt[3] = 0;
+            p->hier_frm_cnt[2] = 0;
+            p->hier_frm_cnt[1] = 0;
+            p->hier_frm_cnt[0] = 0;
+            p->qp_layer_id = 0;
+        }
+    }
+
+    return;
+}
+
 MPP_RET calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
@@ -1393,6 +1437,16 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 rc_dbg_rc("qp %d -> %d (vi)\n", p->start_qp, p->start_qp - usr_cfg->vi_quality_delta);
                 p->start_qp -= usr_cfg->vi_quality_delta;
             }
+        }
+    }
+
+    if (usr_cfg->hier_qp_cfg.hier_qp_en && !p->reenc_cnt) {
+        rc_hier_calc_dealt_qp(p);
+        if (p->qp_layer_id) {
+            RK_S32 hier_qp_delta = usr_cfg->hier_qp_cfg.hier_qp_delta[p->qp_layer_id - 1];
+
+            p->start_qp -= hier_qp_delta;
+            rc_dbg_qp("hier_qp: layer %d delta %d", p->qp_layer_id, hier_qp_delta);
         }
     }
 

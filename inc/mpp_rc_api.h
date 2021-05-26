@@ -105,6 +105,12 @@ typedef struct RcDebreathCfg_t {
     RK_U32      strength;
 } RcDebreathCfg;
 
+typedef struct RcHierQPCfg_t {
+    RK_S32      hier_qp_en;
+    RK_S32      hier_qp_delta[4];
+    RK_S32      hier_frame_num[4];
+} RcHierQPCfg;
+
 /*
  * Control parameter from external config
  *
@@ -172,6 +178,7 @@ typedef struct RcCfg_s {
 
     RcSuperframeCfg super_cfg;
     RcDebreathCfg   debreath_cfg;
+    RcHierQPCfg     hier_qp_cfg;
 } RcCfg;
 
 /*
