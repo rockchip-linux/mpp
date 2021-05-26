@@ -94,6 +94,8 @@ typedef struct RcModelV2Ctx_t {
     RK_U32          drop_cnt;
     RK_S32          on_drop;
     RK_S32          on_pskip;
+    RK_S32          qp_layer_id;
+    RK_S32          hier_frm_cnt[4];
 
     MPP_RET         (*calc_ratio)(void* ctx, EncRcTaskInfo *cfg);
     MPP_RET         (*re_calc_ratio)(void* ctx, EncRcTaskInfo *cfg);

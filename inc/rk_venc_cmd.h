@@ -190,7 +190,8 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_QP_VI         = (1 << 21),
     MPP_ENC_RC_CFG_CHANGE_QP_ROW        = (1 << 22),
     MPP_ENC_RC_CFG_CHANGE_QP_ROW_I      = (1 << 23),
-    MPP_ENC_RC_CFG_CHANGE_DEBREATH      = (1 << 26),
+    MPP_ENC_RC_CFG_CHANGE_DEBREATH      = (1 << 24),
+    MPP_ENC_RC_CFG_CHANGE_HIER_QP       = (1 << 25),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -357,6 +358,10 @@ typedef struct MppEncRcCfg_t {
     RK_S32                  qp_max_step;                /* delta qp between each two P frame */
     RK_S32                  qp_delta_ip;                /* delta qp between I and P */
     RK_S32                  qp_delta_vi;                /* delta qp between vi and P */
+
+    RK_S32                  hier_qp_en;
+    RK_S32                  hier_qp_delta[4];
+    RK_S32                  hier_frame_num[4];
 } MppEncRcCfg;
 
 

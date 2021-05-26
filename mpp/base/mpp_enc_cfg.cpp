@@ -147,6 +147,9 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(rc,   qp_step,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
     ENTRY(rc,   qp_ip,          S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
     ENTRY(rc,   qp_vi,          S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_VI,            rc, qp_delta_vi) \
+    ENTRY(rc,   hier_qp_en,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_qp_en) \
+    ENTRY(rc,   hier_qp_delta,  St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_qp_delta) \
+    ENTRY(rc,   hier_frame_num, St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_frame_num) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
