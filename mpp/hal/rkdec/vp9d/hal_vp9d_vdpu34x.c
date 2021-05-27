@@ -772,6 +772,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
 
     hal_vp9d_rcb_info_update(hal, vp9_hw_regs, pic_param);
     vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, hw_ctx->rcb_buf, hw_ctx->rcb_info);
+    vdpu34x_setup_statistic(&vp9_hw_regs->common, &vp9_hw_regs->statistic);
 
     // whether need update counts
     if (pic_param->refresh_frame_context && !pic_param->parallelmode) {
@@ -867,6 +868,16 @@ static MPP_RET hal_vp9d_vdpu34x_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = &hw_regs->vp9d_addr;
         wr_cfg.size = sizeof(hw_regs->vp9d_addr);
         wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        wr_cfg.reg = &hw_regs->statistic;
+        wr_cfg.size = sizeof(hw_regs->statistic);
+        wr_cfg.offset = OFFSET_STATISTIC_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {

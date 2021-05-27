@@ -265,6 +265,7 @@ typedef struct Vdpu34xVp9dRegSet_t {
     Vdpu34xRegCommonAddr    common_addr;
     Vdpu34xRegVp9dAddr      vp9d_addr;
     Vdpu34xRegIrqStatus     irq_status;
+    Vdpu34xRegStatistic     statistic;
 } Vdpu34xVp9dRegSet;
 
 #endif /* __HAL_VDPU34X_VP9D_H__ */
