@@ -168,4 +168,12 @@ void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta)
     sta->reg256.axi_cnt_type = 1;
 
     sta->reg257.addr_align_type = 1;
+
+    /* set hurry */
+    sta->reg270.axi_rd_hurry_level = 3;
+    sta->reg270.axi_wr_hurry_level = 1;
+    sta->reg270.axi_wr_qos = 1;
+    sta->reg270.axi_rd_qos = 3;
+    sta->reg270.bus2mc_buffer_qos_level = 255;
+    sta->reg271_wr_wait_cycle_qos = 0;
 }

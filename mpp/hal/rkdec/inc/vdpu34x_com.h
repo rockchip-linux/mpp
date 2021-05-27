@@ -375,7 +375,7 @@ typedef struct Vdpu34xRegStatistic_t {
         RK_U32      reserve0                    : 8;
         RK_U32      axi_rd_hurry_level          : 2;
         RK_U32      reserve1                    : 2;
-        RK_U32      axi_qr_qos                  : 2;
+        RK_U32      axi_wr_qos                  : 2;
         RK_U32      reserve2                    : 2;
         RK_U32      axi_wr_hurry_level          : 2;
         RK_U32      reserve3                    : 2;

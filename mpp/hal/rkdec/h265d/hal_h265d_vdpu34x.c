@@ -1078,6 +1078,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
     vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->rcb_buf, reg_cxt->rcb_info);
+    vdpu34x_setup_statistic(&hw_regs->common, &hw_regs->statistic);
 
     return ret;
 }
@@ -1154,6 +1155,16 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = &hw_regs->h265d_addr;
         wr_cfg.size = sizeof(hw_regs->h265d_addr);
         wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+
+        ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        wr_cfg.reg = &hw_regs->statistic;
+        wr_cfg.size = sizeof(hw_regs->statistic);
+        wr_cfg.offset = OFFSET_STATISTIC_REGS;
 
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {

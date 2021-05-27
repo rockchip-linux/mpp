@@ -930,6 +930,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     hal_h264d_rcb_info_update(p_hal, regs);
     vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, ctx->rcb_buf, ctx->rcb_info);
+    vdpu34x_setup_statistic(&regs->common, &regs->statistic);
 
 __RETURN:
     return ret = MPP_OK;
@@ -989,6 +990,16 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = &regs->h264d_addr;
         wr_cfg.size = sizeof(regs->h264d_addr);
         wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        wr_cfg.reg = &regs->statistic;
+        wr_cfg.size = sizeof(regs->statistic);
+        wr_cfg.offset = OFFSET_STATISTIC_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
