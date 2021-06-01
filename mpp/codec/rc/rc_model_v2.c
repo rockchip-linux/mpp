@@ -306,8 +306,6 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
     ctx->stat_watl = water_level;
     switch (ctx->frame_type) {
     case INTRA_FRAME: {
-        ctx->gop_frm_cnt = 0;
-        ctx->gop_qp_sum = 0;
         mpp_data_update_v2(ctx->i_bit, real_bit);
         ctx->i_sumbits = mpp_data_sum_v2(ctx->i_bit);
         ctx->i_scale = 80 * ctx->i_sumbits / (2 * ctx->p_sumbits);
@@ -992,6 +990,8 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->motion_sensitivity = 90;
 
     ctx->first_frm_flg = 1;
+    ctx->gop_frm_cnt = 0;
+    ctx->gop_qp_sum = 0;
 
     target_bps = ctx->usr_cfg.bps_max;
     ctx->re_calc_ratio = reenc_calc_vbr_ratio;
@@ -1238,6 +1238,10 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         info->quality_min = usr_cfg->min_quality;
     }
 
+    if (frm->is_idr) {
+        p->gop_frm_cnt = 0;
+        p->gop_qp_sum = 0;
+    }
 
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
     rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
@@ -1395,9 +1399,6 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
     p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);
     info->quality_target = p->start_qp;
 
-    p->gop_frm_cnt++;
-    p->gop_qp_sum += p->start_qp;
-
     rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
               bit_min, bit_target, bit_max,
               info->bit_min, info->bit_target, info->bit_max);
@@ -1504,6 +1505,9 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
         moving_judge_update(p, cfg);
         bit_statics_update(p, cfg->bit_real);
     }
+
+    p->gop_frm_cnt++;
+    p->gop_qp_sum += p->start_qp;
 
     p->last_frame_type = p->frame_type;
     p->pre_mean_qp = cfg->quality_real;
