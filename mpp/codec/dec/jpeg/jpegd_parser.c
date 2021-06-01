@@ -878,8 +878,11 @@ done:
             ret = MPP_ERR_STREAM;
         }
     }
+    jpegd_dbg_func("exit\n");
+    return ret;
 
 fail:
+    ret = MPP_ERR_STREAM;
     jpegd_dbg_func("exit\n");
     return ret;
 }
