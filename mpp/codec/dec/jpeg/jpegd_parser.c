@@ -381,42 +381,6 @@ __BITREAD_ERR:
     return ret;
 }
 
-static MPP_RET jpegd_decode_com(JpegdCtx *ctx)
-{
-    MPP_RET ret = MPP_NOK;
-    BitReadCtx_t *gb = ctx->bit_ctx;
-    RK_U32 len;
-
-    len = jpegd_read_len(gb);
-    if (len >= 2 && len - 2 <= gb->bytes_left_) {
-        RK_U32 i;
-        RK_U8 *cbuf = mpp_calloc_size(RK_U8, len - 1);
-        if (!cbuf) {
-            mpp_err_f("allocate buffer failed\n");
-            return MPP_ERR_NOMEM;
-        }
-
-        for (i = 0; i < len - 2; i++)
-            READ_BITS(gb, 8, &cbuf[i]);
-
-        if (i > 0 && cbuf[i - 1] == '\n')
-            cbuf[i - 1] = 0;
-        else
-            cbuf[i] = 0;
-
-        jpegd_dbg_marker("comment: '%s'\n", cbuf);
-
-        mpp_free(cbuf);
-        ret = MPP_OK;
-    }
-
-__BITREAD_ERR:
-    if (ret != MPP_OK)
-        jpegd_dbg_syntax("bit read error!\n");
-
-    return ret;
-}
-
 static MPP_RET jpegd_decode_sof(JpegdCtx *ctx)
 {
     MPP_RET ret = MPP_NOK;
@@ -825,11 +789,6 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             if ((ret = jpegd_decode_dqt(ctx)) != MPP_OK) {
                 mpp_err_f("quantize tables decode error\n");
                 goto fail;
-            }
-            break;
-        case COM:
-            if ((ret = jpegd_decode_com(ctx)) != MPP_OK) {
-                mpp_err_f("comment decode error\n");
             }
             break;
         case SOF0:
