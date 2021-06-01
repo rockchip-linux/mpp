@@ -810,6 +810,9 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             /* nothing to do on SOI */
             syntax->dht_found = 0;
             syntax->eoi_found = 0;
+            syntax->qtable_cnt = 0;
+            syntax->qtbl_entry = 0;
+            syntax->htbl_entry = 0;
             break;
         case DHT:
             if ((ret = jpegd_decode_dht(ctx)) != MPP_OK) {
@@ -871,6 +874,11 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
                 goto fail;
             }
 
+            if ((syntax->strm_offset + 2) < ctx->buf_size &&
+                buf_ptr[syntax->sos_len] == 0xff && buf_ptr[syntax->sos_len + 1] == 0xd8) {
+                jpegd_dbg_marker("Encontered SOI again, parse again!\n");
+                break;
+            }
             if (!ctx->scan_all_marker) {
                 jpegd_dbg_marker("just scan parts of markers!\n");
                 goto done;
