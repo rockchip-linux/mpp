@@ -533,8 +533,8 @@ MPP_RET calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     idx1 = (ins_bps << 5) / target_bps;
     idx2 = (pre_ins_bps << 5) / target_bps;
 
-    idx1 = mpp_clip(idx1, 0, 64);
-    idx2 = mpp_clip(idx2, 0, 64);
+    idx1 = mpp_clip(idx1, 0, 63);
+    idx2 = mpp_clip(idx2, 0, 63);
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2]; // %3
 
     /*ins_bps is increase and pre_ins > target_bps*15/16 will raise up ins_ratio to decrease bit
@@ -627,8 +627,8 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     idx1 = ins_bps / (target_bps >> 5);
     idx2 = pre_ins_bps / (target_bps >> 5);
 
-    idx1 = mpp_clip(idx1, 0, 64);
-    idx2 = mpp_clip(idx2, 0, 64);
+    idx1 = mpp_clip(idx1, 0, 63);
+    idx2 = mpp_clip(idx2, 0, 63);
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
 
     bps_ratio = 96 * (ins_bps - target_bps) / target_bps;
@@ -733,8 +733,8 @@ MPP_RET calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     idx1 = ins_bps / (max_bps_target >> 5);
     idx2 = pre_ins_bps / (max_bps_target >> 5);
 
-    idx1 = mpp_clip(idx1, 0, 64);
-    idx2 = mpp_clip(idx2, 0, 64);
+    idx1 = mpp_clip(idx1, 0, 63);
+    idx2 = mpp_clip(idx2, 0, 63);
     ins_ratio = tab_lnx[idx1] - tab_lnx[idx2];
 
     rc_dbg_bps("%10s|%10s|%10s|%10s|%10s|%10s", "r_bits", "t_bits", "ins_bps", "p_ins_bps",
@@ -800,8 +800,8 @@ MPP_RET reenc_calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 
     idx1 = ins_bps / (max_bps_target >> 5);
     idx2 = pre_ins_bps / (max_bps_target >> 5);
-    idx1 = mpp_clip(idx1, 0, 64);
-    idx2 = mpp_clip(idx2, 0, 64);
+    idx1 = mpp_clip(idx1, 0, 63);
+    idx2 = mpp_clip(idx2, 0, 63);
     if (pre_ins_bps < ins_bps && bps_change < ins_bps) {
         ins_ratio = 6 * (tab_lnx[idx1] - tab_lnx[idx2]);
         ins_ratio = mpp_clip(ins_ratio, -192, 256);
@@ -937,8 +937,8 @@ MPP_RET calc_avbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     i_ratio = mpp_clip(p->pre_i_scale >> 4, 10, 200);
     idx1 = ins_bps / (max_bps_target >> 5);
     idx2 = pre_ins_bps / (max_bps_target >> 5);
-    idx1 = mpp_clip(idx1, 0, 64);
-    idx2 = mpp_clip(idx2, 0, 64);
+    idx1 = mpp_clip(idx1, 0, 63);
+    idx2 = mpp_clip(idx2, 0, 63);
     ins_ratio = tab_lnx[idx2] - tab_lnx[idx1];
     max_bps = bps_change;
     if (max_bps < pre_ins_bps) {
