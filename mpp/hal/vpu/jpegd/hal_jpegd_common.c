@@ -264,7 +264,18 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 
         pp_info->pp_enable = 1;
         pp_info->pp_in_fmt = pp_in_fmt;
-        pp_info->pp_out_fmt = PP_OUT_FORMAT_YUV420INTERLAVE;
+
+        switch (ctx->output_fmt) {
+        case MPP_FMT_ARGB8888:
+        case MPP_FMT_ABGR8888:
+        case MPP_FMT_RGBA8888:
+        case MPP_FMT_BGRA8888:
+            pp_info->pp_out_fmt = PP_OUT_FORMAT_ARGB;
+            break;
+        default:
+            pp_info->pp_out_fmt = PP_OUT_FORMAT_YUV420INTERLAVE;
+            break;
+        }
 
         jpegd_dbg_hal("Post Process! pp_in_fmt:%d, pp_out_fmt:%d",
                       pp_in_fmt, pp_info->pp_out_fmt);
