@@ -144,6 +144,19 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
         mpp_free(tmp);
     } break;
+    case MPP_FMT_ARGB8888:
+    case MPP_FMT_ABGR8888:
+    case MPP_FMT_BGRA8888:
+    case MPP_FMT_RGBA8888: {
+        RK_U32 i;
+        RK_U8 *base_y = base;
+        RK_U8 *tmp = mpp_malloc(RK_U8, width * height * 4);
+
+        for (i = 0; i < height; i++, base_y += h_stride * 4)
+            fwrite(base_y, 1, width * 4, fp);
+
+        mpp_free(tmp);
+    } break;
     default : {
         mpp_err("not supported format %d\n", fmt);
     } break;

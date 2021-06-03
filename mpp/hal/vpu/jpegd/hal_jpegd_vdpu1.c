@@ -525,13 +525,39 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         post->reg85_ctrl.sw_pp_out_format = 0;
         break;
     case PP_OUT_FORMAT_ARGB:
-        post->reg82_r_mask = 0x000000FF | (0xff << 24);
-        post->reg83_g_mask = 0x0000FF00 | (0xff << 24);
-        post->reg84_b_mask = 0x00FF0000 | (0xff << 24);
+        if (ctx->output_fmt == MPP_FMT_ARGB8888) {
+            post->reg82_r_mask = 0x0000FF00 | (0xff);
+            post->reg83_g_mask = 0x00FF0000 | (0xff);
+            post->reg84_b_mask = 0xFF000000 | (0xff);
 
-        post->reg79_scaling_0.sw_rgb_r_padd = 24;
-        post->reg79_scaling_0.sw_rgb_g_padd = 16;
-        post->reg80_scaling_1.sw_rgb_b_padd = 8;
+            post->reg79_scaling_0.sw_rgb_r_padd = 16;
+            post->reg79_scaling_0.sw_rgb_g_padd = 8;
+            post->reg80_scaling_1.sw_rgb_b_padd = 0;
+        } else if (ctx->output_fmt == MPP_FMT_ABGR8888) {
+            post->reg82_r_mask = 0xFF000000 | (0xff);
+            post->reg83_g_mask = 0x00FF0000 | (0xff);
+            post->reg84_b_mask = 0x0000FF00 | (0xff);
+
+            post->reg79_scaling_0.sw_rgb_r_padd = 0;
+            post->reg79_scaling_0.sw_rgb_g_padd = 8;
+            post->reg80_scaling_1.sw_rgb_b_padd = 16;
+        } else if (ctx->output_fmt == MPP_FMT_BGRA8888) {
+            post->reg82_r_mask = 0x00FF0000 | (0xff << 24);
+            post->reg83_g_mask = 0x0000FF00 | (0xff << 24);
+            post->reg84_b_mask = 0x000000FF | (0xff << 24);
+
+            post->reg79_scaling_0.sw_rgb_r_padd = 8;
+            post->reg79_scaling_0.sw_rgb_g_padd = 16;
+            post->reg80_scaling_1.sw_rgb_b_padd = 24;
+        } else if (ctx->output_fmt == MPP_FMT_RGBA8888) {
+            post->reg82_r_mask = 0x000000FF | (0xff << 24);
+            post->reg83_g_mask = 0x0000FF00 | (0xff << 24);
+            post->reg84_b_mask = 0x00FF0000 | (0xff << 24);
+
+            post->reg79_scaling_0.sw_rgb_r_padd = 24;
+            post->reg79_scaling_0.sw_rgb_g_padd = 16;
+            post->reg80_scaling_1.sw_rgb_b_padd = 8;
+        }
 
         post->reg79_scaling_0.sw_rgb_pix_in32 = 0;
         post->reg85_ctrl.sw_pp_out_format = 0;

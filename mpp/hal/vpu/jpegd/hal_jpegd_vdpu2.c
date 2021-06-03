@@ -542,13 +542,39 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg38.sw_pp_out_format = 0;
         break;
     case    PP_OUT_FORMAT_ARGB:
-        reg->reg9_r_mask = 0x000000FF | (0xff << 24);
-        reg->reg10_g_mask = 0x0000FF00 | (0xff << 24);
-        reg->reg11_b_mask = 0x00FF0000 | (0xff << 24);
+        if (ctx->output_fmt == MPP_FMT_ARGB8888) {
+            reg->reg9_r_mask = 0x0000FF00 | (0xff);
+            reg->reg10_g_mask = 0x00FF0000 | (0xff);
+            reg->reg11_b_mask = 0xFF000000 | (0xff);
 
-        reg->reg16.sw_rgb_r_padd = 24;
-        reg->reg16.sw_rgb_g_padd = 16;
-        reg->reg16.sw_rgb_b_padd = 8;
+            reg->reg16.sw_rgb_r_padd = 16;
+            reg->reg16.sw_rgb_g_padd = 8;
+            reg->reg16.sw_rgb_b_padd = 0;
+        } else if (ctx->output_fmt == MPP_FMT_ABGR8888) {
+            reg->reg9_r_mask = 0xFF000000 | (0xff);
+            reg->reg10_g_mask = 0x00FF0000 | (0xff);
+            reg->reg11_b_mask = 0x0000FF00 | (0xff);
+
+            reg->reg16.sw_rgb_r_padd = 0;
+            reg->reg16.sw_rgb_g_padd = 8;
+            reg->reg16.sw_rgb_b_padd = 16;
+        } else if (ctx->output_fmt == MPP_FMT_BGRA8888) {
+            reg->reg9_r_mask = 0x00FF0000 | (0xff << 24);
+            reg->reg10_g_mask = 0x0000FF00 | (0xff << 24);
+            reg->reg11_b_mask = 0x000000FF | (0xff << 24);
+
+            reg->reg16.sw_rgb_r_padd = 8;
+            reg->reg16.sw_rgb_g_padd = 16;
+            reg->reg16.sw_rgb_b_padd = 24;
+        } else if (ctx->output_fmt == MPP_FMT_RGBA8888) {
+            reg->reg9_r_mask = 0x000000FF | (0xff << 24);
+            reg->reg10_g_mask = 0x0000FF00 | (0xff << 24);
+            reg->reg11_b_mask = 0x00FF0000 | (0xff << 24);
+
+            reg->reg16.sw_rgb_r_padd = 24;
+            reg->reg16.sw_rgb_g_padd = 16;
+            reg->reg16.sw_rgb_b_padd = 8;
+        }
 
         reg->reg37.sw_rgb_pix_in32 = 0;
         reg->reg38.sw_pp_out_format = 0;
