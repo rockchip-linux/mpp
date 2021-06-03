@@ -24,6 +24,7 @@
 #include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "osal_2str.h"
 
 #include "mpp_device_debug.h"
 #include "mpp_service_api.h"
@@ -43,49 +44,6 @@ static const MppServiceQueryCfg query_cfg[] = {
 };
 
 static const RK_U32 query_count = MPP_ARRAY_ELEMS(query_cfg);
-
-static const char *mpp_service_hw_name[] = {
-    /* 0 ~ 3 */
-    /* VPU_CLIENT_VDPU1         */  "vdpu1",
-    /* VPU_CLIENT_VDPU2         */  "vdpu2",
-    /* VPU_CLIENT_VDPU1_PP      */  "vdpu1_pp",
-    /* VPU_CLIENT_VDPU2_PP      */  "vdpu2_pp",
-    /* 4 ~ 7 */
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* 8 ~ 11 */
-    /* VPU_CLIENT_HEVC_DEC      */  "rkhevc",
-    /* VPU_CLIENT_RKVDEC        */  "rkvdec",
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* 12 ~ 15 */
-    /* VPU_CLIENT_AVSPLUS_DEC   */  "avsd",
-    /* VPU_CLIENT_JPEG_DEC      */  "rkjpegd",
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* 16 ~ 19 */
-    /* VPU_CLIENT_RKVENC        */  "rkvenc",
-    /* VPU_CLIENT_VEPU1         */  "vepu1",
-    /* VPU_CLIENT_VEPU2         */  "vepu2",
-    /* VPU_CLIENT_VEPU2_LITE    */  "vepu2_lite",
-    /* 20 ~ 23 */
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* 24 ~ 27 */
-    /* VPU_CLIENT_VEPU22        */  "vepu22",
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* 28 ~ 31 */
-    /* IEP_CLIENT_TYPE          */  "iep",
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-    /* VPU_CLIENT_BUTT          */  NULL,
-};
 
 const char *mpp_get_mpp_service_name(void)
 {
@@ -217,11 +175,12 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
                 /* then get hw_id */
                 ret = mpp_service_ioctl(fd, MPP_CMD_QUERY_HW_ID, sizeof(val), &val);
                 if (!ret) {
-                    mpp_dev_dbg_probe("client %-10s hw_id %08x\n", mpp_service_hw_name[i], val);
+                    mpp_dev_dbg_probe("client %-10s hw_id %08x\n",
+                                      strof_client_type((MppClientType)i), val);
                     hw_ids[i] = val;
                 } else
                     mpp_err("check valid client %-10s for hw_id failed\n",
-                            mpp_service_hw_name[i]);
+                            strof_client_type((MppClientType)i));
             }
             close(fd);
         }
