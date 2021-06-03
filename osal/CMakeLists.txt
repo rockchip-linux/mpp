@@ -47,6 +47,7 @@ add_library(osal STATIC
     mpp_mem.cpp
     mpp_env.cpp
     mpp_log.cpp
+    osal_2str.c
     # Those files have a compiler marco protection, so only target
     # OS will be built
     android/os_allocator.c
