@@ -157,7 +157,8 @@ static const char *dec_cfg_func_names[] = {
     ENTRY(base, internal_pts,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_INTERNAL_PTS,    base, internal_pts) \
     ENTRY(base, sort_pts,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_SORT_PTS,        base, sort_pts) \
     ENTRY(base, disable_error,  U32, RK_U32,            MPP_DEC_CFG_CHANGE_DISABLE_ERROR,   base, disable_error) \
-    ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc)
+    ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc) \
+    ENTRY(base, batch_mode,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_BATCH_MODE,      base, batch_mode)
 
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
@@ -171,7 +172,7 @@ RK_S32 dec_const_strlen(const char* str)
     return *str ? 1 + dec_const_strlen(str + 1) : 0;
 }
 
-static RK_S32 dec_node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) + 36;
+static RK_S32 dec_node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) + 40;
 
 class MppDecCfgService
 {
