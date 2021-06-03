@@ -28,6 +28,7 @@ typedef enum MppDecCfgChange_e {
     MPP_DEC_CFG_CHANGE_SORT_PTS         = (1 << 5),
     MPP_DEC_CFG_CHANGE_DISABLE_ERROR    = (1 << 6),
     MPP_DEC_CFG_CHANGE_ENABLE_VPROC     = (1 << 7),
+    MPP_DEC_CFG_CHANGE_BATCH_MODE       = (1 << 8),
     MPP_DEC_CFG_CHANGE_ALL              = (0xFFFFFFFF),
 } MppDecCfgChange;
 
@@ -42,6 +43,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              sort_pts;
     RK_U32              disable_error;
     RK_U32              enable_vproc;
+    RK_U32              batch_mode;
 } MppDecBaseCfg;
 
 typedef struct MppDecStatusCfg_t {

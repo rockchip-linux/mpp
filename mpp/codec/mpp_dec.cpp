@@ -311,6 +311,14 @@ MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
     p->parser_fast_mode     = base->fast_parse;
     p->enable_deinterlace   = base->enable_vproc;
     p->disable_error        = base->disable_error;
+    p->batch_mode           = base->batch_mode;
+
+    if (p->dev) {
+        if (p->batch_mode)
+            mpp_dev_ioctl(p->dev, MPP_DEV_BATCH_ON, NULL);
+        else
+            mpp_dev_ioctl(p->dev, MPP_DEV_BATCH_OFF, NULL);
+    }
 
     status->hal_task_count  = (base->fast_parse) ? 3 : 2;
     status->vproc_task_count = 0;
@@ -1522,6 +1530,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_VPROC)
             dst_base->enable_vproc = src_base->enable_vproc;
 
+        if (change & MPP_DEC_CFG_CHANGE_BATCH_MODE)
+            dst_base->batch_mode = src_base->batch_mode;
+
         dst_base->change = change;
         src_base->change = 0;
     }
@@ -1736,6 +1747,9 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
         mpp_buf_slot_deinit(dec->packet_slots);
         dec->packet_slots = NULL;
     }
+
+    if (dec->batch_mode)
+        mpp_dev_ioctl(dec->dev, MPP_DEV_BATCH_OFF, NULL);
 
     if (dec->cmd_lock) {
         delete dec->cmd_lock;
