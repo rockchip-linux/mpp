@@ -711,6 +711,7 @@ MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
      * but not 16-pixel aligned
      */
     if ((s->height % 16) && ((s->height % 16) <= 8) &&
+        (!ctx->pp_info.pp_enable) &&
         (s->yuv_mode == JPEGDEC_YUV422 ||
          s->yuv_mode == JPEGDEC_YUV444 ||
          s->yuv_mode == JPEGDEC_YUV411)) {
