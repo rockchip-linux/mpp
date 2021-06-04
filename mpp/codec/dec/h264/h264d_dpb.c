@@ -1281,6 +1281,29 @@ __FAILED:
     return ret;
 }
 
+static void flush_one_dpb_mark(H264_DecCtx_t *p_Dec, H264_DpbMark_t *p_mark)
+{
+    if (NULL == p_mark)
+        return;
+    if (p_mark->out_flag && (p_mark->slot_idx >= 0)) {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
+        if (mframe) {
+            H264D_DBG(H264D_DBG_SLOT_FLUSH, "[DPB_BUF_FLUSH] slot_idx=%d, top_used=%d, bot_used=%d",
+                      p_mark->slot_idx, p_mark->top_used, p_mark->bot_used);
+            mpp_frame_set_discard(mframe, 1);
+            mpp_buf_slot_set_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
+            mpp_buf_slot_clr_flag(p_Dec->frame_slots, p_mark->slot_idx, SLOT_CODEC_USE);
+            p_Dec->last_frame_slot_idx = p_mark->slot_idx;
+        }
+        reset_dpb_mark(p_mark);
+        return;
+    }
+    H264D_DBG(H264D_DBG_WARNNING, "out_flag %d slot_idx %d\n", p_mark->out_flag, p_mark->slot_idx);
+}
+
 /*!
 ***********************************************************************
 * \brief
@@ -1373,6 +1396,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
+    flush_one_dpb_mark(p_Vid->p_Dec, p->mem_mark);
     return ret;
 }
 
