@@ -51,6 +51,7 @@ static RK_U8 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
         if (marker >= 0xc0 && marker <= 0xfe) {
             val = *(buf_ptr + 1);
             jpegd_dbg_marker("find_marker skipped %d bytes\n", buf_ptr - *pbuf_ptr);
+            *pbuf_ptr = buf_ptr;
             return val;
         } else {
             jpegd_dbg_marker("0x%x is not a marker\n", marker);
