@@ -25,6 +25,8 @@
 #define VDPU_POC_BUF_SIZE          (34*4)        /* bytes */
 #define VDPU_SCALING_LIST_SIZE     (6*16+2*64)   /* bytes */
 
+#define DEBUG_REF_LIST 0
+
 extern const RK_U32 vdpu_cabac_table[VDPU_CABAC_TAB_SIZE / 4];
 extern const RK_U32 vdpu_value_list[34];
 
@@ -83,6 +85,7 @@ typedef struct h264d_refs_list_t {
     RK_S32 lt_flag;
     RK_S32 ref_poc;
     RK_S32 ref_picnum;
+    RK_S32 ref_flag;
 } H264dRefsList_t;
 
 typedef struct h264d_vdpu_reg_ctx_t {

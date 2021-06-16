@@ -205,12 +205,16 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     }
 
     //!< add in Rock-chip RKVDEC IP
+    pp->RefPicFiledFlags = 0;
+    pp->RefPicColmvUsedFlags = 0;
     for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        if (dpb_info[i].colmv_is_used) {
-            pp->RefPicColmvUsedFlags |= 1 << i;
-        }
-        if (dpb_info[i].field_flag) {
-            pp->RefPicFiledFlags |= 1 << i;
+        if (dpb_info[i].refpic) {
+            if (dpb_info[i].colmv_is_used) {
+                pp->RefPicColmvUsedFlags |= 1 << i;
+            }
+            if (dpb_info[i].field_flag) {
+                pp->RefPicFiledFlags |= 1 << i;
+            }
         }
     }
 

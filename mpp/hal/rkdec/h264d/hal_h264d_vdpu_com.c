@@ -206,11 +206,11 @@ static MPP_RET get_info_input(H264dVdpuPriv_t *priv,
         RK_U32 i = 0;
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
-                priv->new_dpb[i].valid = 1;
+                priv->new_dpb[i].valid        = 1;
                 priv->new_dpb[i].is_long_term = pp->RefFrameList[i].AssociatedFlag;
-                priv->new_dpb[i].slot_index = pp->RefFrameList[i].Index7Bits;
-                priv->new_dpb[i].top_poc = pp->FieldOrderCntList[i][0];
-                priv->new_dpb[i].bot_poc = pp->FieldOrderCntList[i][1];
+                priv->new_dpb[i].slot_index   = pp->RefFrameList[i].Index7Bits;
+                priv->new_dpb[i].top_poc      = pp->FieldOrderCntList[i][0];
+                priv->new_dpb[i].bot_poc      = pp->FieldOrderCntList[i][1];
                 if (priv->new_dpb[i].is_long_term) {
                     priv->new_dpb[i].long_term_frame_idx = pp->FrameNumList[i];
                 } else {
@@ -221,16 +221,15 @@ static MPP_RET get_info_input(H264dVdpuPriv_t *priv,
                                               >> (2 * i + 0)) & 0x1) ? 1 : 0;
                 priv->new_dpb[i].bot_used = ((pp->UsedForReferenceFlags
                                               >> (2 * i + 1)) & 0x1) ? 1 : 0;
+                priv->new_dpb[i].colmv_is_used = ((pp->RefPicColmvUsedFlags >> i) & 0x1) ? 1 : 0;
+                priv->new_dpb[i].field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 1 : 0;
+                priv->new_dpb[i].is_ilt_flag = ((pp->UsedForInTerviewflags >> i) & 0x1) ? 1 : 0;
             }
         }
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->ViewIDList); i++) {
             priv->new_dpb[i].view_id = pp->ViewIDList[i];
         }
-        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-            priv->new_dpb[i].colmv_is_used = ((pp->RefPicColmvUsedFlags >> i) & 0x1) ? 1 : 0;
-            priv->new_dpb[i].field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 1 : 0;
-            priv->new_dpb[i].is_ilt_flag = ((pp->UsedForInTerviewflags >> i) & 0x1) ? 1 : 0;
-        }
+
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefPicLayerIdList); i++) {
             priv->new_dpb[i].voidx = pp->RefPicLayerIdList[i];
         }
@@ -272,6 +271,9 @@ static MPP_RET refill_info_input(H264dVdpuPriv_t *priv,
         H264dVdpuDpbInfo_t *old_dpb = priv->old_dpb[priv->layed_id];
         //!< re-fill dpb_info
         pp->UsedForReferenceFlags = 0;
+        pp->RefPicColmvUsedFlags = 0;
+        pp->RefPicFiledFlags = 0;
+        pp->UsedForInTerviewflags = 0;
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
             if (old_dpb[i].valid) {
                 fill_picture_entry(&pp->RefFrameList[i], old_dpb[i].slot_index,
@@ -287,6 +289,15 @@ static MPP_RET refill_info_input(H264dVdpuPriv_t *priv,
                 if (old_dpb[i].bot_used) { //!< bot_field
                     pp->UsedForReferenceFlags |= 1 << (2 * i + 1);
                 }
+                if (old_dpb[i].colmv_is_used) {
+                    pp->RefPicColmvUsedFlags |= 1 << i;
+                }
+                if (old_dpb[i].field_flag) {
+                    pp->RefPicFiledFlags |= 1 << i;
+                }
+                if (old_dpb[i].is_ilt_flag) {
+                    pp->UsedForInTerviewflags |= 1 << i;
+                }
             } else {
                 pp->RefFrameList[i].bPicEntry = 0xff;
                 pp->FieldOrderCntList[i][0] = 0;
@@ -298,20 +309,7 @@ static MPP_RET refill_info_input(H264dVdpuPriv_t *priv,
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->ViewIDList); i++) {
             pp->ViewIDList[i] = old_dpb[i].view_id;
         }
-        pp->RefPicColmvUsedFlags = 0;
-        pp->RefPicFiledFlags = 0;
-        pp->UsedForInTerviewflags = 0;
-        for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-            if (old_dpb[i].colmv_is_used) {
-                pp->RefPicColmvUsedFlags |= 1 << i;
-            }
-            if (old_dpb[i].field_flag) {
-                pp->RefPicFiledFlags |= 1 << i;
-            }
-            if (old_dpb[i].is_ilt_flag) {
-                pp->UsedForInTerviewflags |= 1 << i;
-            }
-        }
+
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->RefPicLayerIdList); i++) {
             pp->RefPicLayerIdList[i] = old_dpb[i].voidx;
         }
@@ -347,6 +345,20 @@ MPP_RET adjust_input(H264dVdpuPriv_t *priv,
         RK_U32 find_flag = 0;
         H264dVdpuDpbInfo_t *new_dpb = priv->new_dpb;
         H264dVdpuDpbInfo_t *old_dpb = priv->old_dpb[priv->layed_id];
+
+#if DEBUG_REF_LIST
+        {
+            mpp_log("=== frame_num %d ===\n", pp->frame_num);
+            for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[priv->layed_id]); i++) {
+                mpp_log("old_dpb[%d] frame_num=%d field=%d poc0=%d poc1=%d\n",
+                        i, old_dpb[i].frame_num, old_dpb[i].field_flag, old_dpb[i].top_poc, old_dpb[i].bot_poc);
+            }
+            for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[priv->layed_id]); i++) {
+                mpp_log("new_dpb[%d] frame_num=%d field=%d poc0=%d poc1=%d\n",
+                        i, new_dpb[i].frame_num, new_dpb[i].field_flag, new_dpb[i].top_poc, new_dpb[i].bot_poc);
+            }
+        }
+#endif
         //!< delete old dpb
         for (i = 0; i < MPP_ARRAY_ELEMS(priv->old_dpb[priv->layed_id]); i++) {
             find_flag = 0;
@@ -359,12 +371,12 @@ MPP_RET adjust_input(H264dVdpuPriv_t *priv,
                         find_flag = ((old_dpb[i].slot_index
                                       == new_dpb[j].slot_index)
                                      ? find_flag : 0);
-                        if (new_dpb[j].top_used) {
+                        if (new_dpb[j].top_used && old_dpb[i].top_used) {
                             find_flag =
                                 ((old_dpb[i].top_poc == new_dpb[j].top_poc)
                                  ? find_flag : 0);
                         }
-                        if (new_dpb[j].bot_used) {
+                        if (new_dpb[j].bot_used && old_dpb[i].bot_used) {
                             find_flag  =
                                 ((old_dpb[i].bot_poc == new_dpb[j].bot_poc)
                                  ? find_flag : 0);
@@ -372,6 +384,7 @@ MPP_RET adjust_input(H264dVdpuPriv_t *priv,
                         if (find_flag) { //!< found
                             new_dpb[j].have_same = 1;
                             new_dpb[j].new_dpb_idx = i;
+                            old_dpb[i] = new_dpb[j];
                             break;
                         }
                     }
@@ -431,12 +444,17 @@ RK_S32 compare_p(const void *a, const void *b)
     H264dRefsList_t *p0 = (H264dRefsList_t *)a;
     H264dRefsList_t *p1 = (H264dRefsList_t *)b;
 
+    if (!p0->ref_flag)
+        return 1;
+    if (!p1->ref_flag)
+        return -1;
+
     if (p0->lt_flag && p1->lt_flag) { // inc
         val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
     } else if (!p0->lt_flag && p1->lt_flag) { // dec
-        val = 1;
-    } else if (p0->lt_flag && !p1->lt_flag) { // inc
         val = -1;
+    } else if (p0->lt_flag && !p1->lt_flag) { // inc
+        val = 1;
     } else if (!p0->lt_flag && !p1->lt_flag) { // dec
         val = (p0->ref_picnum < p1->ref_picnum) ? 1 : -1;
     }
@@ -449,6 +467,11 @@ RK_S32 compare_b0(const void *a, const void *b)
     RK_S32 val = 0;
     H264dRefsList_t *p0 = (H264dRefsList_t *)a;
     H264dRefsList_t *p1 = (H264dRefsList_t *)b;
+
+    if (!p0->ref_flag)
+        return 1;
+    if (!p1->ref_flag)
+        return -1;
 
     if (p0->lt_flag && p1->lt_flag) { // inc
         val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
@@ -475,12 +498,17 @@ RK_S32 compare_b1(const void *a, const void *b)
     H264dRefsList_t *p0 = (H264dRefsList_t *)a;
     H264dRefsList_t *p1 = (H264dRefsList_t *)b;
 
+    if (!p0->ref_flag)
+        return 1;
+    if (!p1->ref_flag)
+        return -1;
+
     if (p0->lt_flag && p1->lt_flag) { // inc
         val = (p0->ref_picnum > p1->ref_picnum) ? 1 : -1;
     } else if (!p0->lt_flag && p1->lt_flag) {
-        val = 1;
-    } else if (p0->lt_flag && !p1->lt_flag) {
         val = -1;
+    } else if (p0->lt_flag && !p1->lt_flag) {
+        val = 1;
     } else if (!p0->lt_flag && !p1->lt_flag) {
         if (MPP_MIN(p0->ref_poc, p1->ref_poc) > p0->cur_poc) { // inc
             val = (p0->ref_poc > p1->ref_poc) ? 1 : -1;
