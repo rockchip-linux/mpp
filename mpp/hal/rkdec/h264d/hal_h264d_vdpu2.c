@@ -33,6 +33,11 @@
 #include "hal_h264d_vdpu2.h"
 #include "hal_h264d_vdpu2_reg.h"
 
+const RK_U32 vdpu2_ref_idx[16] = {
+    84, 85, 86, 87, 88, 89, 90, 91,
+    92, 93, 94, 95, 96, 97, 98, 99
+};
+
 static MPP_RET set_device_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_reg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -386,6 +391,8 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
+    RK_U32 validFlags = 0;
+    RK_U32 longTermTmp = 0, longTermflags = 0;
 
     p_regs->sw57.dec_wr_extmen_dis = 0;
     p_regs->sw57.rlc_mode_en = 0;
@@ -404,8 +411,6 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     p_regs->sw114.poc_field_len = p_hal->slice_long[0].poc_used_bitlen;
     /* reference picture flags, TODO separate fields */
     if (pp->field_pic_flag) {
-        RK_U32 validFlags = 0;
-        RK_U32 longTermTmp = 0, longTermflags = 0;
         for (i = 0; i < 32; i++) {
             if (pp->RefFrameList[i / 2].bPicEntry == 0xff) { //!< invalid
                 longTermflags <<= 1;
@@ -421,17 +426,16 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         p_regs->sw107.refpic_term_flag = longTermflags;
         p_regs->sw108.refpic_valid_flag = validFlags;
     } else {
-        RK_U32 validFlags = 0;
-        RK_U32 longTermTmp = 0, longTermflags = 0;
         for (i = 0; i < 16; i++) {
             if (pp->RefFrameList[i].bPicEntry == 0xff) {  //!< invalid
                 longTermflags <<= 1;
                 validFlags <<= 1;
             } else {
+                RK_U32 use_flag = (pp->UsedForReferenceFlags >> (2 * i)) & 0x03;
+
                 longTermTmp = pp->RefFrameList[i].AssociatedFlag;
                 longTermflags = (longTermflags << 1) | longTermTmp;
-                validFlags = (validFlags << 1)
-                             | ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03);
+                validFlags = (validFlags << 1) | (use_flag > 0);
             }
         }
         p_regs->sw107.refpic_term_flag = (longTermflags << 16);
@@ -452,6 +456,7 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     {
         H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
         RK_U32 *ptr = (RK_U32 *)reg_ctx->poc_ptr;
+
         //!< set reference reorder poc
         for (i = 0; i < 32; i++) {
             if (pp->RefFrameList[i / 2].bPicEntry != 0xff) {
@@ -462,12 +467,40 @@ static MPP_RET set_vlc_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         }
         //!< set current poc
         if (pp->field_pic_flag || !pp->MbaffFrameFlag) {
-            *ptr++ = pp->CurrFieldOrderCnt[0];
-            *ptr++ = pp->CurrFieldOrderCnt[1];
+            if (pp->field_pic_flag)
+                *ptr++ = pp->CurrFieldOrderCnt[pp->CurrPic.AssociatedFlag ? 1 : 0];
+            else
+                *ptr++ = MPP_MIN(pp->CurrFieldOrderCnt[0], pp->CurrFieldOrderCnt[1]);
         } else {
             *ptr++ = pp->CurrFieldOrderCnt[0];
             *ptr++ = pp->CurrFieldOrderCnt[1];
         }
+
+#if DEBUG_REF_LIST
+        {
+            H264dVdpuRegCtx_t *reg_ctx = (H264dVdpuRegCtx_t *)p_hal->reg_ctx;
+            RK_U32 *ptr_tmp = (RK_U32 *)reg_ctx->poc_ptr;
+            RK_U32 *ref_reg = &p_regs->sw76;
+            char file_name[128];
+            sprintf(file_name, "/sdcard/test/mpp_pocbase_log.txt");
+            FILE *fp = fopen(file_name, "ab");
+            char buf[1024];
+            RK_S32 buf_len = 0, buf_size = sizeof(buf) - 1;
+
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, "=== poc_base filed %d fram_num %d ===\n",
+                                pp->field_pic_flag || !pp->MbaffFrameFlag, pp->frame_num);
+            for (; ptr_tmp < ptr; ptr_tmp++)
+                buf_len += snprintf(buf + buf_len, buf_size - buf_len, "poc 0x%08x\n", *ptr_tmp);
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, "term_flag 0x%08x refpic_valid_flag 0x%08x \n",
+                                longTermflags, validFlags);
+            for (i = 0; i < 8; i++)
+                buf_len += snprintf(buf + buf_len, buf_size - buf_len, "ref[%d] 0x%08x\n", i, ref_reg[i]);
+            fprintf(fp, "%s", buf);
+
+            fflush(fp);
+            fclose(fp);
+        }
+#endif
     }
     p_regs->sw115.cabac_en = pp->entropy_coding_mode_flag;
     //!< stream position update
@@ -490,23 +523,29 @@ static MPP_RET set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
     RK_U32 num_refs = 0;
+    RK_U32 num_reorder = 0;
     H264dRefsList_t m_lists[3][16];
     DXVA_PicParams_H264_MVC  *pp = p_hal->pp;
+    RK_U32 max_frame_num = 1 << (pp->log2_max_frame_num_minus4 + 4);
 
     // init list
     memset(m_lists, 0, sizeof(m_lists));
     for (i = 0; i < 16; i++) {
-        m_lists[0][i].idx = i;
-        m_lists[0][i].cur_poc = pp->CurrPic.AssociatedFlag
-                                ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
         RK_U32 ref_flag = pp->UsedForReferenceFlags >> (2 * i) & 0x3;
+
+        m_lists[0][i].idx = i;
         if (ref_flag) {
             num_refs++;
+            m_lists[0][i].cur_poc = pp->CurrPic.AssociatedFlag
+                                    ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
+            m_lists[0][i].ref_flag = ref_flag;
             m_lists[0][i].lt_flag = pp->RefFrameList[i].AssociatedFlag;
             if (m_lists[0][i].lt_flag) {
                 m_lists[0][i].ref_picnum = pp->LongTermPicNumList[i];
             } else {
-                m_lists[0][i].ref_picnum = pp->FrameNumList[i];
+                m_lists[0][i].ref_picnum = pp->FrameNumList[i] > pp->frame_num ?
+                                           (pp->FrameNumList[i] - max_frame_num) :
+                                           pp->FrameNumList[i];
             }
 
             if (ref_flag == 3) {
@@ -516,13 +555,35 @@ static MPP_RET set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
             } else if (ref_flag & 0x2) {
                 m_lists[0][i].ref_poc = pp->FieldOrderCntList[i][1];
             }
+#if DEBUG_REF_LIST
+            mpp_log("i %d ref_pic_num %d lt_flag %d ref_flag %d ref_poc %d cur_poc %d\n",
+                    i, m_lists[0][i].ref_picnum, m_lists[0][i].lt_flag, ref_flag,
+                    m_lists[0][i].ref_poc, m_lists[0][i].cur_poc);
+#endif
+            num_reorder = i + 1;
         }
     }
+    /*
+     * the value of num_reorder may be greater than num_refs,
+     * e.g. v: valid  x: invalid
+     *      num_refs = 3, num_reorder = 4
+     *      the index 1 will be reorder to the end
+     *   ┌─┬─┬─┬─┬─┬─┬─┐
+     *   │0│1│2│3│.│.│F│
+     *   ├─┼─┼─┼─┼─┼─┼─┤
+     *   │v│x│v│v│x│x│x│
+     *   └─┴─┴─┴─┴─┴─┴─┘
+     */
     memcpy(m_lists[1], m_lists[0], sizeof(m_lists[0]));
     memcpy(m_lists[2], m_lists[0], sizeof(m_lists[0]));
-    qsort(m_lists[0], num_refs, sizeof(m_lists[0][0]), compare_p);
-    qsort(m_lists[1], num_refs, sizeof(m_lists[1][0]), compare_b0);
-    qsort(m_lists[2], num_refs, sizeof(m_lists[2][0]), compare_b1);
+    qsort(m_lists[0], num_reorder, sizeof(m_lists[0][0]), compare_p);
+    qsort(m_lists[1], num_reorder, sizeof(m_lists[1][0]), compare_b0);
+    qsort(m_lists[2], num_reorder, sizeof(m_lists[2][0]), compare_b1);
+    if (num_refs > 1 && !p_hal->pp->field_pic_flag) {
+        if (!memcmp(m_lists[1], m_lists[2], sizeof(m_lists[1]))) {
+            MPP_SWAP(H264dRefsList_t, m_lists[2][0], m_lists[2][1]);
+        }
+    }
 
     //!< list0 list1 listP
     for (i = 0; i < 16; i++) {
@@ -530,6 +591,37 @@ static MPP_RET set_ref_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
         set_refer_pic_list_b0(p_regs, i, m_lists[1][i].idx);
         set_refer_pic_list_b1(p_regs, i, m_lists[2][i].idx);
     }
+#if DEBUG_REF_LIST
+    {
+        char file_name[128]; \
+        sprintf(file_name, "/sdcard/test/mpp2_RefPicList_log.txt"); \
+        FILE *fp = fopen(file_name, "ab"); \
+        char buf[1024];
+        RK_S32 buf_len = 0, buf_size = sizeof(buf) - 1;
+        // fwrite(buf, 1, size, fp);
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "frame_num %d field %d bottom %d\n",
+                            pp->frame_num, pp->field_pic_flag, pp->CurrPic.AssociatedFlag);
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "list0 : ");
+        for (i = 0; i < 16; i++)
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, " %04d", m_lists[1][i]);
+        fprintf(fp, "%s\n", buf);
+
+        buf_len = 0;
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "list1 : ");
+        for (i = 0; i < 16; i++)
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, " %04d", m_lists[2][i]);
+        fprintf(fp, "%s\n", buf);
+
+        buf_len = 0;
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "listP : ");
+        for (i = 0; i < 16; i++)
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, " %04d", m_lists[0][i]);
+        fprintf(fp, "%s\n", buf);
+
+        fflush(fp); \
+        fclose(fp); \
+    }
+#endif
 
     return ret = MPP_OK;
 }
@@ -543,46 +635,67 @@ static MPP_RET set_asic_regs(H264dHalCtx_t *p_hal, H264dVdpuRegs_t *p_regs)
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     DXVA_Slice_H264_Long *p_long = &p_hal->slice_long[0];
 
-    /* reference picture physic address */
-    for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
-        RK_U32 val = 0;
-        RK_U32 top_closer = 0;
-        RK_U32 field_flag = 0;
-        if (pp->RefFrameList[i].bPicEntry != 0xff) {
-            mpp_buf_slot_get_prop(p_hal->frame_slots,
-                                  pp->RefFrameList[i].Index7Bits,
-                                  SLOT_BUFFER, &frame_buf); //!< reference phy addr
-            j = i;
-        } else {
-            mpp_buf_slot_get_prop(p_hal->frame_slots,
-                                  pp->CurrPic.Index7Bits,
-                                  SLOT_BUFFER, &frame_buf); //!< current out phy addr
-        }
+    {
+#if DEBUG_REF_LIST
+        char file_name[128]; \
+        sprintf(file_name, "/sdcard/test/mpp2_dpb_log.txt"); \
+        FILE *fp = fopen(file_name, "ab"); \
+        char buf[2048];
+        static RK_U32 num = 0;
+        RK_S32 buf_len = 0, buf_size = sizeof(buf) - 1;
 
-        field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 0x2 : 0;
-        if (field_flag) {
-            RK_U32 used_flag = 0;
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "cnt %d frame_num %d field %d bottom %d\n",
+                            num++, pp->frame_num, pp->field_pic_flag, pp->CurrPic.AssociatedFlag);
+#endif
+        for (i = 0, j = 0xff; i < MPP_ARRAY_ELEMS(pp->RefFrameList); i++) {
+            RK_U32 val = 0;
+            RK_U32 top_closer = 0;
+            RK_U32 field_flag = 0;
             RK_S32 cur_poc = 0;
-            RK_S32 ref_poc = 0;
+            RK_U32 used_flag = 0;
 
+            if (pp->RefFrameList[i].bPicEntry != 0xff) {
+                mpp_buf_slot_get_prop(p_hal->frame_slots,
+                                      pp->RefFrameList[i].Index7Bits,
+                                      SLOT_BUFFER, &frame_buf); //!< reference phy addr
+                j = i;
+#if DEBUG_REF_LIST
+                buf_len += snprintf(buf + buf_len, buf_size - buf_len, "refPicList[%d], frame_num=%d, poc0=%d, poc1=%d\n",
+                                    i, pp->FrameNumList[i], pp->FieldOrderCntList[i][0], pp->FieldOrderCntList[i][1]);
+#endif
+            } else {
+                mpp_buf_slot_get_prop(p_hal->frame_slots,
+                                      pp->CurrPic.Index7Bits,
+                                      SLOT_BUFFER, &frame_buf); //!< current out phy addr
+            }
+
+            field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 0x2 : 0;
             cur_poc = pp->CurrPic.AssociatedFlag
                       ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
             used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
             if (used_flag & 0x3) {
-                ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0],
-                                  pp->FieldOrderCntList[i][1]);
+                top_closer = MPP_ABS(pp->FieldOrderCntList[i][0] - cur_poc) <
+                             MPP_ABS(pp->FieldOrderCntList[i][1] - cur_poc) ? 0x1 : 0;
             } else if (used_flag & 0x2) {
-                ref_poc = pp->FieldOrderCntList[i][1];
+                top_closer = 0;
             } else if (used_flag & 0x1) {
-                ref_poc = pp->FieldOrderCntList[i][0];
+                top_closer = 1;
             }
-            top_closer = (cur_poc < ref_poc) ? 0x1 : 0;
+            val = top_closer | field_flag;
+            if (val) {
+                mpp_dev_set_reg_offset(p_hal->dev, vdpu2_ref_idx[i], val);
+#if DEBUG_REF_LIST
+                buf_len += snprintf(buf + buf_len, buf_size - buf_len, "ref_offset[%d] %d\n",
+                                    i, val);
+#endif
+            }
+            set_refer_pic_base_addr(p_regs, i, mpp_buffer_get_fd(frame_buf));
         }
-        val = top_closer | field_flag;
-
-        if (val)
-            mpp_dev_set_reg_offset(p_hal->dev, 84 + i, val);
-        set_refer_pic_base_addr(p_regs, i, mpp_buffer_get_fd(frame_buf));
+#if DEBUG_REF_LIST
+        fprintf(fp, "%s\n", buf);
+        fflush(fp);
+        fclose(fp);
+#endif
     }
     /* inter-view reference picture */
     {
@@ -835,13 +948,34 @@ MPP_RET vdpu2_h264d_start(void *hal, HalTaskInfo *task)
     if (strstr(soc_name, "rk3326") || strstr(soc_name, "px30") || strstr(soc_name, "rk3228H"))
         cache_en = ((w * h) >= (1280 * 720)) ? 1 : 0;
 
-    p_regs->sw57.cache_en = cache_en;
-    p_regs->sw57.pref_sigchan = 1;
-    p_regs->sw56.bus_pos_sel = 1;
-    p_regs->sw57.intra_dbl3t = 1;
+    p_regs->sw57.cache_en       = cache_en;
+    p_regs->sw57.pref_sigchan   = 1;
+    p_regs->sw56.bus_pos_sel    = 1;
+    p_regs->sw57.intra_dbl3t    = 1;
     p_regs->sw57.inter_dblspeed = 1;
     p_regs->sw57.intra_dblspeed = 1;
 
+#if DEBUG_REF_LIST
+    {
+        char file_name[128];
+        sprintf(file_name, "/sdcard/test/mpp2_reg_dump_log.txt");
+        FILE *fp = fopen(file_name, "ab");
+        char buf[2048];
+        RK_S32 buf_len = 0, buf_size = sizeof(buf) - 1;
+        RK_U32 *reg_tmp = (RK_U32*)reg_ctx->regs;
+        RK_U32 i;
+
+        buf_len += snprintf(buf + buf_len, buf_size - buf_len, "=== reg dump fram_num %d ===\n",
+                            p_hal->pp->frame_num);
+        for (i = 50; i < 116; i++) {
+            buf_len += snprintf(buf + buf_len, buf_size - buf_len, "Regs[%d] = 0x%08x\n", i, reg_tmp[i]);
+        }
+        fprintf(fp, "%s", buf);
+
+        fflush(fp);
+        fclose(fp);
+    }
+#endif
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;

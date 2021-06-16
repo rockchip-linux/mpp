@@ -32,6 +32,11 @@
 #include "hal_h264d_vdpu1.h"
 #include "hal_h264d_vdpu1_reg.h"
 
+const RK_U32 vdpu1_ref_idx[16] = {
+    14, 15, 16, 17, 18, 19, 20, 21,
+    22, 23, 24, 25, 26, 27, 28, 29
+};
+
 static MPP_RET vdpu1_set_refer_pic_idx(H264dVdpu1Regs_t *p_regs, RK_U32 i,
                                        RK_U16 val)
 {
@@ -393,7 +398,7 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal,
             } else {
                 longTermTmp = pp->RefFrameList[i].AssociatedFlag;
                 longTermflags = (longTermflags << 1) | longTermTmp;
-                validTmp = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03);
+                validTmp = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x03) > 0;
                 validFlags = (validFlags << 1) | validTmp;
             }
         }
@@ -427,8 +432,10 @@ static MPP_RET vdpu1_set_vlc_regs(H264dHalCtx_t *p_hal,
 
         //!< set current poc
         if (pp->field_pic_flag || !pp->MbaffFrameFlag) {
-            *pocBase++ = pp->CurrFieldOrderCnt[0];
-            *pocBase++ = pp->CurrFieldOrderCnt[1];
+            if (pp->field_pic_flag)
+                *pocBase++ = pp->CurrFieldOrderCnt[pp->CurrPic.AssociatedFlag ? 1 : 0];
+            else
+                *pocBase++ = MPP_MIN(pp->CurrFieldOrderCnt[0], pp->CurrFieldOrderCnt[1]);
         } else {
             *pocBase++ = pp->CurrFieldOrderCnt[0];
             *pocBase++ = pp->CurrFieldOrderCnt[1];
@@ -460,23 +467,29 @@ static MPP_RET vdpu1_set_ref_regs(H264dHalCtx_t *p_hal,
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
     RK_U32 num_refs = 0;
+    RK_U32 num_reorder = 0;
     H264dRefsList_t m_lists[3][16];
     DXVA_PicParams_H264_MVC  *pp = p_hal->pp;
+    RK_U32 max_frame_num = 1 << (pp->log2_max_frame_num_minus4 + 4);
 
     // init list
     memset(m_lists, 0, sizeof(m_lists));
     for (i = 0; i < 16; i++) {
-        m_lists[0][i].idx = i;
-        m_lists[0][i].cur_poc = pp->CurrPic.AssociatedFlag
-                                ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
         RK_U32 ref_flag = pp->UsedForReferenceFlags >> (2 * i) & 0x3;
+
+        m_lists[0][i].idx = i;
         if (ref_flag) {
             num_refs++;
+            m_lists[0][i].cur_poc = pp->CurrPic.AssociatedFlag
+                                    ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
+            m_lists[0][i].ref_flag = ref_flag;
             m_lists[0][i].lt_flag = pp->RefFrameList[i].AssociatedFlag;
             if (m_lists[0][i].lt_flag) {
                 m_lists[0][i].ref_picnum = pp->LongTermPicNumList[i];
             } else {
-                m_lists[0][i].ref_picnum = pp->FrameNumList[i];
+                m_lists[0][i].ref_picnum = pp->FrameNumList[i] > pp->frame_num ?
+                                           (pp->FrameNumList[i] - max_frame_num) :
+                                           pp->FrameNumList[i];
             }
 
             if (ref_flag == 3) {
@@ -486,14 +499,30 @@ static MPP_RET vdpu1_set_ref_regs(H264dHalCtx_t *p_hal,
             } else if (ref_flag & 0x2) {
                 m_lists[0][i].ref_poc = pp->FieldOrderCntList[i][1];
             }
+            num_reorder = i + 1;
         }
     }
+    /*
+     * the value of num_reorder may be greater than num_refs,
+     * e.g. v: valid  x: invalid
+     *      num_refs = 3, num_reorder = 4
+     *      the index 1 will be reorder to the end
+     *   ┌─┬─┬─┬─┬─┬─┬─┐
+     *   │0│1│2│3│.│.│F│
+     *   ├─┼─┼─┼─┼─┼─┼─┤
+     *   │v│x│v│v│x│x│x│
+     *   └─┴─┴─┴─┴─┴─┴─┘
+     */
     memcpy(m_lists[1], m_lists[0], sizeof(m_lists[0]));
     memcpy(m_lists[2], m_lists[0], sizeof(m_lists[0]));
-    qsort(m_lists[0], num_refs, sizeof(m_lists[0][0]), compare_p);
-    qsort(m_lists[1], num_refs, sizeof(m_lists[1][0]), compare_b0);
-    qsort(m_lists[2], num_refs, sizeof(m_lists[2][0]), compare_b1);
-
+    qsort(m_lists[0], num_reorder, sizeof(m_lists[0][0]), compare_p);
+    qsort(m_lists[1], num_reorder, sizeof(m_lists[1][0]), compare_b0);
+    qsort(m_lists[2], num_reorder, sizeof(m_lists[2][0]), compare_b1);
+    if (num_refs > 1 && !p_hal->pp->field_pic_flag) {
+        if (!memcmp(m_lists[1], m_lists[2], sizeof(m_lists[1]))) {
+            MPP_SWAP(H264dRefsList_t, m_lists[2][0], m_lists[2][1]);
+        }
+    }
     //!< list0 list1 listP
     for (i = 0; i < 16; i++) {
         vdpu1_set_refer_pic_list_p(p_regs, i, m_lists[0][i].idx);
@@ -519,6 +548,9 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal,
         RK_U32 val = 0;
         RK_U32 top_closer = 0;
         RK_U32 field_flag = 0;
+        RK_S32 cur_poc = 0;
+        RK_U32 used_flag = 0;
+
         if (pp->RefFrameList[i].bPicEntry != 0xff) {
             mpp_buf_slot_get_prop(p_hal->frame_slots,
                                   pp->RefFrameList[i].Index7Bits,
@@ -531,27 +563,20 @@ static MPP_RET vdpu1_set_asic_regs(H264dHalCtx_t *p_hal,
         }
 
         field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 0x2 : 0;
-        if (field_flag) {
-            RK_U32 used_flag = 0;
-            RK_S32 cur_poc = 0;
-            RK_S32 ref_poc = 0;
-
-            cur_poc = pp->CurrPic.AssociatedFlag
-                      ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
-            used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
-            if (used_flag & 0x3) {
-                ref_poc = MPP_MIN(pp->FieldOrderCntList[i][0],
-                                  pp->FieldOrderCntList[i][1]);
-            } else if (used_flag & 0x2) {
-                ref_poc = pp->FieldOrderCntList[i][1];
-            } else if (used_flag & 0x1) {
-                ref_poc = pp->FieldOrderCntList[i][0];
-            }
-            top_closer = (cur_poc < ref_poc) ? 0x1 : 0;
+        cur_poc = pp->CurrPic.AssociatedFlag
+                  ? pp->CurrFieldOrderCnt[1] : pp->CurrFieldOrderCnt[0];
+        used_flag = ((pp->UsedForReferenceFlags >> (2 * i)) & 0x3);
+        if (used_flag & 0x3) {
+            top_closer = MPP_ABS(pp->FieldOrderCntList[i][0] - cur_poc) <
+                         MPP_ABS(pp->FieldOrderCntList[i][1] - cur_poc) ? 0x1 : 0;
+        } else if (used_flag & 0x2) {
+            top_closer = 0;
+        } else if (used_flag & 0x1) {
+            top_closer = 1;
         }
         val = top_closer | field_flag;
         if (val)
-            mpp_dev_set_reg_offset(p_hal->dev, 14 + i, val);
+            mpp_dev_set_reg_offset(p_hal->dev, vdpu1_ref_idx[i], val);
         vdpu1_set_refer_pic_base_addr(p_regs, i, mpp_buffer_get_fd(frame_buf));
     }
 

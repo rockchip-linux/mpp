@@ -471,7 +471,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
             }
         }
         currSlice->structure = p_Vid->structure;
-        currSlice->mb_aff_frame_flag = (currSlice->active_sps->mb_adaptive_frame_field_flag && (currSlice->field_pic_flag == 0));
+        currSlice->mb_aff_frame_flag = currSlice->active_sps->mb_adaptive_frame_field_flag;
         if (currSlice->idr_flag) {
             READ_UE(p_bitctx, &currSlice->idr_pic_id);
         } else if (currSlice->svc_extension_flag == 0 && currSlice->mvcExt.non_idr_flag == 0) {
