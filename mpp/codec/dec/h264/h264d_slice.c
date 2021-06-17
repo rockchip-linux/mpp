@@ -24,7 +24,19 @@
 #include "h264d_sps.h"
 #include "h264d_pps.h"
 
+#define PIXW_1080P      (1920)
+#define PIXH_1080P      (1088)
+#define PIXW_4Kx2K      (4096)
+#define PIXH_4Kx2K      (2304)
+#define PIXW_8Kx4K      (8192)
+#define PIXH_8Kx4K      (4320)
 
+#define MAX_MBW_1080P   (((PIXW_1080P) / 16) - 1)   /* 119 */
+#define MAX_MBH_1080P   (((PIXH_1080P) / 16) - 1)   /* 67  */
+#define MAX_MBW_4Kx2K   (((PIXW_4Kx2K) / 16) - 1)   /* 255 */
+#define MAX_MBH_4Kx2K   (((PIXH_4Kx2K) / 16) - 1)   /* 143 */
+#define MAX_MBW_8Kx4K   (((PIXW_8Kx4K) / 16) - 1)   /* 511 */
+#define MAX_MBH_8Kx4K   (((PIXH_8Kx4K) / 16) - 1)   /* 269 */
 
 static MPP_RET ref_pic_list_mvc_modification(H264_SLICE_t *currSlice)
 {
@@ -239,10 +251,12 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     }
 }
 
-static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PPS_t *pps)
+static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
+                             H264_PPS_t *pps, const MppDecHwCap *hw_info)
 {
     RK_U32 ret = 0;
-
+    RK_S32 max_mb_width  = MAX_MBW_1080P;
+    RK_S32 max_mb_height = MAX_MBH_1080P;
     ret |= (sps->seq_parameter_set_id > 63);
     ret |= (sps->separate_colour_plane_flag == 1);
     ret |= (sps->chroma_format_idc == 3);
@@ -253,8 +267,18 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps, H264_PP
     ret |= (sps->log2_max_pic_order_cnt_lsb_minus4 > 12);
     ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
     ret |= (sps->max_num_ref_frames > 16);
-    ret |= (sps->pic_width_in_mbs_minus1 < 3 || sps->pic_width_in_mbs_minus1 > 255);
-    ret |= (sps->pic_height_in_map_units_minus1 < 3 || sps->pic_height_in_map_units_minus1 > 143);
+
+    if (hw_info && hw_info->cap_8k) {
+        max_mb_width  = MAX_MBW_8Kx4K;
+        max_mb_height = MAX_MBH_8Kx4K;
+    } else if (hw_info && hw_info->cap_4k) {
+        max_mb_width  = MAX_MBW_4Kx2K;
+        max_mb_height = MAX_MBH_4Kx2K;
+    }
+
+    ret |= (sps->pic_width_in_mbs_minus1 < 3 || sps->pic_width_in_mbs_minus1 > max_mb_width);
+    ret |= (sps->pic_height_in_map_units_minus1 < 3 || sps->pic_height_in_map_units_minus1 > max_mb_height);
+
     if (ret) {
         H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
         goto __FAILED;
@@ -341,7 +365,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
         cur_sps = (cur_sps && cur_sps->Valid) ? cur_sps : NULL;
         VAL_CHECK(ret, cur_sps != NULL);
     }
-    VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps) != MPP_NOK);
+    VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps, p_Vid->p_Dec->hw_info) != MPP_NOK);
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
     FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));

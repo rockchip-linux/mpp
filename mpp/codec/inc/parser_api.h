@@ -22,6 +22,7 @@
 #include "mpp_buf_slot.h"
 #include "mpp_dec_cfg.h"
 #include "hal_task.h"
+#include "mpp_soc.h"
 
 /*
  * slots    - all decoder need a slots interface to sync its internal dpb management
@@ -30,10 +31,11 @@
  * the reset wait for extension
  */
 typedef struct DecParserInitCfg_t {
-    MppCodingType   coding;
-    MppBufSlots     frame_slots;
-    MppBufSlots     packet_slots;
-    MppDecCfgSet    *cfg;
+    MppCodingType       coding;
+    MppBufSlots         frame_slots;
+    MppBufSlots         packet_slots;
+    MppDecCfgSet        *cfg;
+    const MppDecHwCap   *hw_info;
 } ParserCfg;
 
 

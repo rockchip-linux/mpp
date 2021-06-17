@@ -1641,6 +1641,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             frame_slots,
             packet_slots,
             &p->cfg,
+            p->hw_info,
         };
 
         ret = mpp_parser_init(&parser, &parser_cfg);

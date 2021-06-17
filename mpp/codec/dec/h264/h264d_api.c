@@ -336,6 +336,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     p_Dec->p_Vid->p_Dec = p_Dec;
     p_Dec->p_Vid->p_Inp = p_Dec->p_Inp;
     p_Dec->p_Vid->p_Cur = p_Dec->p_Cur;
+    p_Dec->hw_info      = init->hw_info;
     FUN_CHECK(ret = init_input_ctx(p_Dec->p_Inp, init));
     FUN_CHECK(ret = init_cur_ctx(p_Dec->p_Cur));
     FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
