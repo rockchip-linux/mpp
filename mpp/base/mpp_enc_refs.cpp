@@ -822,6 +822,10 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         frm->is_non_ref = 0;
         frm->is_lt_ref = 1;
         frm->lt_idx = usr_cfg->force_lt_idx;
+        if (frm->is_idr && frm->lt_idx) {
+            frm->lt_idx = 0;
+            mpp_err_f("can not set IDR to ltr with non-zero index\n");
+        }
         /* lt_ref will be forced to tid 0 */
         frm->temporal_id = 0;
 
