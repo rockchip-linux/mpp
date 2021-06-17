@@ -1132,7 +1132,8 @@ typedef struct h264_dec_ctx_t {
     //!< add
     MppBufSlots                frame_slots;   //!< corresponding to dpb_mark
     MppBufSlots                packet_slots;
-    MppDecCfgSet              *cfg;
+    MppDecCfgSet               *cfg;
+    const MppDecHwCap          *hw_info;
 
     MppFrame                   curframe;
     MppPacket                  task_pkt;
