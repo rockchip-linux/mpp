@@ -139,6 +139,8 @@ typedef struct H265dContext {
     void *compare_info;
 
     MppDecCfgSet *cfg;
+
+    const MppDecHwCap *hw_info;
 } H265dContext_t;
 #ifdef  __cplusplus
 extern "C" {

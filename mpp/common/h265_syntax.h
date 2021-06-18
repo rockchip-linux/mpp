@@ -19,9 +19,12 @@
 #ifndef __H265_SYNTAX_H__
 #define __H265_SYNTAX_H__
 
-#define MAX_WIDTH    (4096)
-#define MAX_HEIGHT   (2304)
-
+#define PIXW_1080P      (1920)
+#define PIXH_1080P      (1088)
+#define PIXW_4Kx2K      (4096)
+#define PIXH_4Kx2K      (2304)
+#define PIXW_8Kx4K      (8192)
+#define PIXH_8Kx4K      (4320)
 
 #if 0
 

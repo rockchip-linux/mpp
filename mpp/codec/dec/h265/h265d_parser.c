@@ -2033,6 +2033,8 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     }
     mpp_buf_slot_setup(s->slots, 25);
 
+    s->h265dctx->hw_info = parser_cfg->hw_info;
+
     s->pre_pps_id = -1;
 
 #ifdef dump

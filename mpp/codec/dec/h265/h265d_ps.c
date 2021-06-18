@@ -1949,8 +1949,17 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
 
     // check support solution
     {
-        RK_S32 max_supt_width = MAX_WIDTH;
-        RK_S32 max_supt_height = pps->tiles_enabled_flag ? MAX_HEIGHT : MAX_WIDTH;
+        RK_S32 max_supt_width = PIXW_1080P;
+        RK_S32 max_supt_height = pps->tiles_enabled_flag ? PIXH_1080P : PIXW_1080P;
+        const MppDecHwCap *hw_info = s->h265dctx->hw_info;
+
+        if (hw_info && hw_info->cap_8k) {
+            max_supt_width = PIXW_8Kx4K;
+            max_supt_height = pps->tiles_enabled_flag ? PIXH_8Kx4K : PIXW_8Kx4K;
+        } else if (hw_info && hw_info->cap_4k) {
+            max_supt_width = PIXW_4Kx2K;
+            max_supt_height = pps->tiles_enabled_flag ? PIXH_4Kx2K : PIXW_4Kx2K;
+        }
 
         if (sps->width > max_supt_width || sps->height > max_supt_height) {
             mpp_err("cannot support %dx%d, max solution %dx%d\n",
