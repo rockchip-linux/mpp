@@ -1590,12 +1590,12 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
 
         consumed = mpp_hevc_extract_rbsp(s, buf, extract_length, nal);
 
-        s->nb_nals++;
-
         if (consumed <= 0) {
             ret = MPP_ERR_STREAM;
             goto fail;
         }
+
+        s->nb_nals++;
 
         mpp_set_bitread_ctx(&s->HEVClc->gb, (RK_U8 *)nal->data, nal->size);
         mpp_set_pre_detection(&s->HEVClc->gb);
@@ -1617,8 +1617,8 @@ static RK_S32 split_nal_units(HEVCContext *s, RK_U8 *buf, RK_U32 length)
         length -= consumed;
     }
 fail:
-    return ret;
 
+    return (s->nb_nals) ? MPP_OK : ret;
 }
 
 static RK_S32 parser_nal_units(HEVCContext *s)
