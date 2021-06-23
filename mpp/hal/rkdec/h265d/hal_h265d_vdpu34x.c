@@ -416,35 +416,32 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
             }
         }
 
-        {
-            RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->bufs) + reg_cxt->sclst_offset;
+        mpp_put_bits(&bp, 0, 32);
+        mpp_put_bits(&bp, 0, 70);
+        mpp_put_align(&bp, 64, 0xf);//128
+    }
 
-            if (dxva_cxt->pp.scaling_list_data_present_flag) {
-                addr = (dxva_cxt->pp.pps_id + 16) * 1360;
-            } else if (dxva_cxt->pp.scaling_list_enabled_flag) {
-                addr = dxva_cxt->pp.sps_id * 1360;
-            } else {
-                addr = 80 * 1360;
-            }
+    if (dxva_cxt->pp.scaling_list_enabled_flag) {
+        MppDevRegOffsetCfg trans_cfg;
+        RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_cxt->bufs) + reg_cxt->sclst_offset;
 
-            hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
-
-            /* need to config addr */
-            if (addr) {
-                MppDevRegOffsetCfg trans_cfg;
-
-                trans_cfg.reg_idx = 180;
-                trans_cfg.offset = addr;
-                mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-            }
-
-            mpp_put_bits(&bp, 0, 32);
-            hw_reg->h265d_addr.reg180_scanlist_addr = reg_cxt->bufs_fd;
-            hw_reg->common.reg012.scanlist_addr_valid_en = 1;
-
-            mpp_put_bits(&bp, 0, 70);
-            mpp_put_align(&bp, 64, 0xf);//128
+        if (dxva_cxt->pp.scaling_list_data_present_flag) {
+            addr = (dxva_cxt->pp.pps_id + 16) * 1360;
+        } else if (dxva_cxt->pp.scaling_list_enabled_flag) {
+            addr = dxva_cxt->pp.sps_id * 1360;
+        } else {
+            addr = 80 * 1360;
         }
+
+        hal_h265d_output_scalinglist_packet(hal, ptr_scaling + addr, dxva);
+
+        hw_reg->h265d_addr.reg180_scanlist_addr = reg_cxt->bufs_fd;
+        hw_reg->common.reg012.scanlist_addr_valid_en = 1;
+
+        /* need to config addr */
+        trans_cfg.reg_idx = 180;
+        trans_cfg.offset = addr + reg_cxt->sclst_offset;
+        mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
     for (i = 0; i < 64; i++)
@@ -478,9 +475,8 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
     void *pps_ptr = mpp_buffer_get_ptr(reg_cxt->bufs) + reg_cxt->spspps_offset;
 
-    if (dxva_cxt->pp.ps_update_flag) {
+    if (dxva_cxt->pp.ps_update_flag || dxva_cxt->pp.scaling_list_enabled_flag) {
         RK_U64 *pps_packet = reg_cxt->pps_buf;
-
 
         if (NULL == pps_ptr) {
             mpp_err("pps_data get ptr error");
@@ -531,7 +527,7 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         ///<-zrh comment ^ 100 bit above
 
         mpp_put_bits(&bp, 0                                                    , 7 );
-        mpp_put_align(&bp                                                         , 32, 0xf);
+        mpp_put_align(&bp                                                      , 32, 0xf);
 
         // PPS
         mpp_put_bits(&bp, dxva_cxt->pp.pps_id                                    , 6 );
@@ -550,7 +546,7 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
 
         mpp_put_bits(&bp, log2_min_cb_size +
                      dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size -
-                     dxva_cxt->pp.diff_cu_qp_delta_depth                             , 3);
+                     dxva_cxt->pp.diff_cu_qp_delta_depth                           , 3);
 
         h265h_dbg(H265H_DBG_PPS, "log2_min_cb_size %d %d %d \n", log2_min_cb_size,
                   dxva_cxt->pp.log2_diff_max_min_luma_coding_block_size, dxva_cxt->pp.diff_cu_qp_delta_depth );
@@ -560,8 +556,8 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
         mpp_put_bits(&bp, dxva_cxt->pp.pps_slice_chroma_qp_offsets_present_flag    , 1);
         mpp_put_bits(&bp, dxva_cxt->pp.weighted_pred_flag                          , 1);
         mpp_put_bits(&bp, dxva_cxt->pp.weighted_bipred_flag                        , 1);
-        mpp_put_bits(&bp, dxva_cxt->pp.transquant_bypass_enabled_flag              , 1 );
-        mpp_put_bits(&bp, dxva_cxt->pp.tiles_enabled_flag                          , 1 );
+        mpp_put_bits(&bp, dxva_cxt->pp.transquant_bypass_enabled_flag              , 1);
+        mpp_put_bits(&bp, dxva_cxt->pp.tiles_enabled_flag                          , 1);
         mpp_put_bits(&bp, dxva_cxt->pp.entropy_coding_sync_enabled_flag            , 1);
         mpp_put_bits(&bp, dxva_cxt->pp.pps_loop_filter_across_slices_enabled_flag  , 1);
         mpp_put_bits(&bp, dxva_cxt->pp.loop_filter_across_tiles_enabled_flag       , 1);
