@@ -1103,6 +1103,8 @@ static MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
     JpegCtx->buffer = (RK_U8 *)mpp_packet_get_data(JpegCtx->input_packet);
     JpegCtx->buf_size = (RK_U32)mpp_packet_get_size(JpegCtx->input_packet);
 
+    memset(JpegCtx->syntax, 0, sizeof(JpegdSyntax));
+
     ret = jpegd_decode_frame(JpegCtx);
     if (MPP_OK == ret) {
         if (jpegd_allocate_frame(JpegCtx))
