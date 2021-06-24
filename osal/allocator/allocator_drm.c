@@ -290,6 +290,9 @@ static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
 
     p = (allocator_ctx_drm *)ctx;
 
+    /* NOTE: update hnd avoid freed hnd */
+    drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
+
     drm_dbg_func("dev %d unmap %p size %d fd %d handle %p\n", p->drm_device,
                  data->ptr, data->size, data->fd, data->hnd);
 
@@ -338,6 +341,9 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
 
     if (NULL == data->ptr) {
         struct drm_mode_map_dumb dmmd;
+
+        /* NOTE: update hnd avoid freed hnd */
+        drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
 
         memset(&dmmd, 0, sizeof(dmmd));
         dmmd.handle = (RK_U32)(intptr_t)data->hnd;
