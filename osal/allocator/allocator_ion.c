@@ -293,7 +293,7 @@ static MPP_RET allocator_ion_open(void **ctx, MppAllocatorCfg *cfg)
 
     *ctx = NULL;
 
-    fd = open(dev_ion, O_RDWR);
+    fd = open(dev_ion, O_RDWR | O_CLOEXEC);
     if (fd < 0) {
         mpp_err("open %s failed!\n", dev_ion);
         return MPP_ERR_UNKNOW;

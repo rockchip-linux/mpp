@@ -51,7 +51,7 @@ static MPP_RET iep2_init(IepCtx *ictx)
 
     mpp_env_get_u32("iep_debug", &iep_debug, 0);
 
-    ctx->fd = open("/dev/mpp_service", O_RDWR);
+    ctx->fd = open("/dev/mpp_service", O_RDWR | O_CLOEXEC);
     if (ctx->fd < 0) {
         mpp_err("can NOT find device /dev/iep2\n");
         return MPP_NOK;

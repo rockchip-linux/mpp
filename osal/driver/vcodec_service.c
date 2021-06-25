@@ -487,7 +487,7 @@ MPP_RET vcodec_service_init(void *ctx, MppClientType type)
     } break;
     }
 
-    p->fd = open(name, O_RDWR);
+    p->fd = open(name, O_RDWR | O_CLOEXEC);
     if (p->fd < 0) {
         mpp_err("open vcodec_service %s failed\n", name);
         return ret;

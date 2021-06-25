@@ -72,7 +72,7 @@ MPP_RET iep_init(IepCtx *ctx)
             break;
         }
 
-        fd = open(iep_name, O_RDWR);
+        fd = open(iep_name, O_RDWR | O_CLOEXEC);
         if (fd < 0) {
             mpp_err("can NOT find iep device %s\n", iep_name);
             break;
