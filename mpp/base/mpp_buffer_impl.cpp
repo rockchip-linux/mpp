@@ -917,7 +917,11 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
     if (finished)
         return ;
 
-    AutoMutex auto_lock(get_lock());
+    Mutex *lock = get_lock();
+
+    if (!finalizing)
+        lock->lock();
+
     buf_grp_add_log(p, GRP_RELEASE, caller);
 
     // remove unused list
@@ -965,6 +969,9 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
             p->is_orphan = 1;
         }
     }
+
+    if (!finalizing)
+        lock->unlock();
 }
 
 void MppBufferService::destroy_group(MppBufferGroupImpl *group)
