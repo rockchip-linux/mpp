@@ -692,7 +692,7 @@ MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
         return NULL;
     }
 
-    server->server_fd = open(mServerName, O_RDWR);
+    server->server_fd = open(mServerName, O_RDWR | O_CLOEXEC);
     if (server->server_fd < 0) {
         mpp_err("mpp server get bat server failed to open device\n");
         goto failed;

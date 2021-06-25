@@ -118,7 +118,7 @@ MPP_RET rga_init(RgaCtx *ctx)
         goto END;
     }
 
-    impl->rga_fd = open(DEFAULT_RGA_DEV, O_RDWR, 0);
+    impl->rga_fd = open(DEFAULT_RGA_DEV, O_RDWR | O_CLOEXEC, 0);
     if (impl->rga_fd < 0) {
         mpp_err_f("open device failed\n");
         mpp_free(impl);

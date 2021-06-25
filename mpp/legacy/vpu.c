@@ -158,7 +158,7 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
     }
 
     path = mpp_get_vcodec_dev_name(ctx_type, coding);
-    fd = open(path, O_RDWR);
+    fd = open(path, O_RDWR | O_CLOEXEC);
 
     mpp_env_get_u32("vpu_debug", &vpu_debug, 0);
 
@@ -335,9 +335,9 @@ RK_U32 VPUCheckSupportWidth()
 {
     VPUHwDecConfig_t hwCfg;
     int fd = -1;
-    fd = open("/dev/vpu_service", O_RDWR);
+    fd = open("/dev/vpu_service", O_RDWR | O_CLOEXEC);
     if (fd < 0) {
-        fd = open("/dev/vpu-service", O_RDWR);
+        fd = open("/dev/vpu-service", O_RDWR | O_CLOEXEC);
     }
     memset(&hwCfg, 0, sizeof(VPUHwDecConfig_t));
     if (fd >= 0) {

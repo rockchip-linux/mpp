@@ -123,7 +123,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     memset(hw_ids, 0, sizeof(RK_U32) * 32);
 
     /* check hw_support flag for valid client type */
-    fd = open(mpp_get_mpp_service_name(), O_RDWR);
+    fd = open(mpp_get_mpp_service_name(), O_RDWR | O_CLOEXEC);
     if (fd < 0) {
         mpp_err("open mpp_service to check cmd capability failed\n");
         memset(cap, 0, sizeof(*cap));
@@ -163,7 +163,7 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
         if (hw_support & (1 << i)) {
             val = i;
 
-            fd = open(mpp_get_mpp_service_name(), O_RDWR);
+            fd = open(mpp_get_mpp_service_name(), O_RDWR | O_CLOEXEC);
             if (fd < 0) {
                 mpp_err("open mpp_service to check cmd capability failed\n");
                 break;
@@ -194,7 +194,7 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     MPP_RET ret = MPP_NOK;
 
     p->cap = mpp_get_mpp_service_cmd_cap();
-    p->client = open(mpp_get_mpp_service_name(), O_RDWR);
+    p->client = open(mpp_get_mpp_service_name(), O_RDWR | O_CLOEXEC);
     if (p->client < 0) {
         mpp_err("open mpp_service failed\n");
         return ret;
