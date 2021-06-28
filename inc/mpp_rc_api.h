@@ -136,7 +136,7 @@ typedef struct RcCfg_s {
     RK_S32      bps_min;
     RK_S32      bps_target;
     RK_S32      bps_max;
-    RK_S32      stat_times;
+    RK_S32      stats_time;
 
     /* max I frame bit ratio to P frame bit */
     RK_S32      max_i_bit_prop;

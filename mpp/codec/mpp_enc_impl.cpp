@@ -971,9 +971,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     memcpy(cfg->hier_qp_cfg.hier_qp_delta, rc->hier_qp_delta, sizeof(rc->hier_qp_delta));
 
     mpp_assert(rc->fps_out_num);
-    cfg->stat_times = rc->gop * rc->fps_out_denorm / rc->fps_out_num;
-    if (cfg->stat_times < 2)
-        cfg->stat_times = 2;
+    cfg->stats_time = rc->gop * rc->fps_out_denorm / rc->fps_out_num;
+    if (cfg->stats_time < 2)
+        cfg->stats_time = 2;
 
     /* quality configure */
     switch (codec->coding) {

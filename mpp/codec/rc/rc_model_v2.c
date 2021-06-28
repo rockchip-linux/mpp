@@ -137,7 +137,7 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
 {
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
-    RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stat_times / fps->fps_out_denorm;
+    RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stats_time / fps->fps_out_denorm;
     stat_len = stat_len ? stat_len : 1;
 
     bits_model_param_deinit(ctx);
@@ -294,7 +294,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi)
 
     mpp_data_update_v2(ctx->stat_rate, real_bit != 0);
     mpp_data_update_v2(ctx->stat_bits, real_bit);
-    ctx->ins_bps = mpp_data_sum_v2(ctx->stat_bits) / usr_cfg->stat_times;
+    ctx->ins_bps = mpp_data_sum_v2(ctx->stat_bits) / usr_cfg->stats_time;
     if (real_bit + ctx->stat_watl > ctx->watl_thrd)
         water_level = ctx->watl_thrd - ctx->bit_per_frame;
     else
@@ -591,7 +591,7 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
     RcCfg *usr_cfg = &p->usr_cfg;
-    RK_S32 stat_time = usr_cfg->stat_times;
+    RK_S32 stat_time = usr_cfg->stats_time;
     RK_S32 pre_ins_bps = mpp_data_sum_v2(p->stat_bits) / stat_time;
     RK_S32 ins_bps = (pre_ins_bps * stat_time - mpp_data_get_pre_val_v2(p->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 real_bit = cfg->bit_real;
@@ -775,7 +775,7 @@ MPP_RET reenc_calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
     RcCfg *usr_cfg = &p->usr_cfg;
-    RK_S32 stat_time = usr_cfg->stat_times;
+    RK_S32 stat_time = usr_cfg->stats_time;
     RK_S32 pre_ins_bps = mpp_data_sum_v2(p->stat_bits) / stat_time;
     RK_S32 ins_bps = (pre_ins_bps * stat_time - mpp_data_get_pre_val_v2(p->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 bps_change = p->target_bps;
@@ -988,14 +988,14 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_S64 gop_bits = 0;
-    RK_U32 stat_times = ctx->usr_cfg.stat_times;
+    RK_U32 stats_time = ctx->usr_cfg.stats_time;
     RK_U32 target_bps;
 
     rc_dbg_func("enter %p\n", ctx);
 
-    if (stat_times == 0) {
-        stat_times = 3;
-        usr_cfg->stat_times = stat_times;
+    if (stats_time == 0) {
+        stats_time = 3;
+        usr_cfg->stats_time = stats_time;
     }
 
     usr_cfg->min_i_bit_prop = mpp_clip(usr_cfg->min_i_bit_prop, 10, 100);
@@ -1074,7 +1074,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
 
     rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
               ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,
-              ctx->usr_cfg.stat_times);
+              ctx->usr_cfg.stats_time);
 
     if (bits_model_param_init(ctx)) {
         return MPP_NOK;
@@ -1125,7 +1125,7 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RcCfg *usr_cfg = &ctx->usr_cfg;
     RK_S32 frame_type = ctx->frame_type;
     RK_S32 bit_thr = 0;
-    RK_S32 stat_time = usr_cfg->stat_times;
+    RK_S32 stat_time = usr_cfg->stats_time;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
     RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
                       + cfg->bit_real) / stat_time;
