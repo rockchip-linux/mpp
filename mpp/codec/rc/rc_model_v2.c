@@ -988,15 +988,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_S64 gop_bits = 0;
-    RK_U32 stats_time = ctx->usr_cfg.stats_time;
     RK_U32 target_bps;
 
     rc_dbg_func("enter %p\n", ctx);
-
-    if (stats_time == 0) {
-        stats_time = 3;
-        usr_cfg->stats_time = stats_time;
-    }
 
     usr_cfg->min_i_bit_prop = mpp_clip(usr_cfg->min_i_bit_prop, 10, 100);
     usr_cfg->max_i_bit_prop = mpp_clip(usr_cfg->max_i_bit_prop,
