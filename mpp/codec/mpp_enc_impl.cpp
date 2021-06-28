@@ -529,6 +529,9 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             memcpy(dst->hier_frame_num, src->hier_frame_num, sizeof(src->hier_frame_num));
         }
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_ST_TIME)
+            dst->stats_time = src->stats_time;
+
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
             mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
@@ -587,6 +590,10 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
             mpp_err("invalid qp max step %d restore to %d\n",
                     dst->qp_max_step, bak.qp_max_step);
             dst->qp_max_step = bak.qp_max_step;
+        }
+        if (dst->stats_time && dst->stats_time > 60) {
+            mpp_err("warning: bitrate statistic time %d is larger than 60s\n",
+                    dst->stats_time);
         }
 
         dst->change |= change;
@@ -971,9 +978,8 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     memcpy(cfg->hier_qp_cfg.hier_qp_delta, rc->hier_qp_delta, sizeof(rc->hier_qp_delta));
 
     mpp_assert(rc->fps_out_num);
-    cfg->stats_time = rc->gop * rc->fps_out_denorm / rc->fps_out_num;
-    if (cfg->stats_time < 2)
-        cfg->stats_time = 2;
+    cfg->stats_time = rc->stats_time ? rc->stats_time : 3;
+    cfg->stats_time = mpp_clip(cfg->stats_time, 1, 60);
 
     /* quality configure */
     switch (codec->coding) {

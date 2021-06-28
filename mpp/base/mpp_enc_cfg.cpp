@@ -150,6 +150,7 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(rc,   hier_qp_en,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_qp_en) \
     ENTRY(rc,   hier_qp_delta,  St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_qp_delta) \
     ENTRY(rc,   hier_frame_num, St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_frame_num) \
+    ENTRY(rc,   stats_time,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_ST_TIME,          rc, stats_time) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
@@ -250,7 +251,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 77;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 73;
 
 class MppEncCfgService
 {
