@@ -192,6 +192,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_QP_ROW_I      = (1 << 23),
     MPP_ENC_RC_CFG_CHANGE_DEBREATH      = (1 << 24),
     MPP_ENC_RC_CFG_CHANGE_HIER_QP       = (1 << 25),
+    MPP_ENC_RC_CFG_CHANGE_ST_TIME       = (1 << 26),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -309,9 +310,9 @@ typedef struct MppEncRcCfg_t {
     RK_U32  max_reenc_times;
 
     /*
-     * stat_times   - the time of bitrate statistics
+     * stats_time   - the time of bitrate statistics
      */
-    RK_S32  stat_times;
+    RK_S32  stats_time;
 
     /*
      * drop frame parameters

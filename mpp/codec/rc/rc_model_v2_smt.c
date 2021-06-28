@@ -416,7 +416,7 @@ MPP_RET bits_model_update_smt(RcModelV2SmtCtx *ctx, RK_S32 real_bit)
 
 MPP_RET reenc_calc_cbr_ratio_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
 {
-    RK_S32 stat_time = ctx->usr_cfg.stat_times;
+    RK_S32 stat_time = ctx->usr_cfg.stats_time;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
     RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1) + cfg->bit_real) / stat_time;
     RK_S32 real_bit = cfg->bit_real;
@@ -497,7 +497,7 @@ MPP_RET reenc_calc_cbr_ratio_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
 
 MPP_RET reenc_calc_vbr_ratio_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
 {
-    RK_S32 stat_time = ctx->usr_cfg.stat_times;
+    RK_S32 stat_time = ctx->usr_cfg.stats_time;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
     RK_S32 ins_bps = (last_ins_bps * stat_time - mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
                       + cfg->bit_real) / stat_time;
@@ -555,7 +555,7 @@ MPP_RET check_re_enc_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
     RK_S32 frame_type = ctx->frame_type;
     RK_S32 i_flag = 0;
     RK_S32 big_flag = 0;
-    RK_S32 stat_time = ctx->usr_cfg.stat_times;
+    RK_S32 stat_time = ctx->usr_cfg.stats_time;
     RK_S32 last_ins_bps = mpp_data_sum_v2(ctx->stat_bits) / stat_time;
     RK_S32 ins_bps = (last_ins_bps * stat_time -  mpp_data_get_pre_val_v2(ctx->stat_bits, -1)
                       + cfg->bit_real) / stat_time;
