@@ -457,6 +457,7 @@ MPP_RET process_sps(H264_SLICE_t *currSlice)
     if (cur_sps->Valid) {
         memcpy(&currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id], cur_sps, sizeof(H264_SPS_t));
     }
+    p_Cur->p_Vid->spspps_update = 1;
 
     return ret = MPP_OK;
 __FAILED:
