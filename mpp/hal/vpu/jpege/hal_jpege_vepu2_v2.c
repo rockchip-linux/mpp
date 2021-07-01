@@ -58,8 +58,10 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
 
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
+    ret = hal_jpege_vepu_init_rc(&ctx->hal_rc);
+    if (ret)
+        return ret;
 
-    memset(&ctx->hal_rc, 0, sizeof(ctx->hal_rc));
     ctx->cfg = cfg->cfg;
     ctx->reg_size = sizeof(RK_U32) * VEPU_JPEGE_VEPU2_NUM_REGS;
     ctx->regs = mpp_calloc_size(void, ctx->reg_size + EXTRA_INFO_SIZE);
@@ -93,6 +95,8 @@ MPP_RET hal_jpege_vepu2_deinit(void *hal)
         mpp_dev_deinit(ctx->dev);
         ctx->dev = NULL;
     }
+
+    hal_jpege_vepu_deinit_rc(&ctx->hal_rc);
 
     MPP_FREE(ctx->regs);
     MPP_FREE(ctx->regs_out);
