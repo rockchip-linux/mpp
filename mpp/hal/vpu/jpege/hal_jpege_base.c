@@ -73,15 +73,6 @@ MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task)
         hal_rc->q_factor = 100 - rc_info->quality_target;
         hal_jpege_dbg_input("use qfactor=%d, rc_info->quality_target=%d\n", hal_rc->q_factor, rc_info->quality_target);
 
-        if (!hal_rc->qtable_y)
-            hal_rc->qtable_y = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
-        if (!hal_rc->qtable_c)
-            hal_rc->qtable_c = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
-        if (NULL == hal_rc->qtable_y || NULL == hal_rc->qtable_c) {
-            mpp_err_f("qtable is null, malloc err\n");
-            return MPP_ERR_MALLOC;
-        }
-
         q = hal_rc->q_factor;
         if (q < 50)
             q = 5000 / q;
@@ -97,6 +88,28 @@ MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task)
             hal_rc->qtable_c[i] = MPP_CLIP3(1, 255, cq);
         }
     }
+
+    return MPP_OK;
+}
+
+MPP_RET hal_jpege_vepu_init_rc(HalJpegeRc *hal_rc)
+{
+    memset(hal_rc, 0, sizeof(HalJpegeRc));
+    hal_rc->qtable_y = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+    hal_rc->qtable_c = mpp_malloc(RK_U8, QUANTIZE_TABLE_SIZE);
+
+    if (NULL == hal_rc->qtable_y || NULL == hal_rc->qtable_c) {
+        mpp_err_f("qtable is null, malloc err\n");
+        return MPP_ERR_MALLOC;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET hal_jpege_vepu_deinit_rc(HalJpegeRc *hal_rc)
+{
+    MPP_FREE(hal_rc->qtable_y);
+    MPP_FREE(hal_rc->qtable_c);
 
     return MPP_OK;
 }

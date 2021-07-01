@@ -74,6 +74,8 @@ extern "C" {
 
 MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task);
 void get_msb_lsb_at_pos(RK_U32 *msb, RK_U32 *lsb, RK_U8 *buf, RK_U32 bytepos);
+MPP_RET hal_jpege_vepu_init_rc(HalJpegeRc *hal_rc);
+MPP_RET hal_jpege_vepu_deinit_rc(HalJpegeRc *hal_rc);
 
 #ifdef __cplusplus
 }
