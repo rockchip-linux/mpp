@@ -703,6 +703,11 @@ void MppBufferService::inc_total(RK_U32 size)
 
 void MppBufferService::dec_total(RK_U32 size)
 {
+    if (finalizing) {
+        total_size -= size;
+        return;
+    }
+
     AutoMutex auto_lock(MppBufferService::get_lock());
     total_size -= size;
 }
@@ -954,6 +959,7 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
     // remove unused list
     if (!list_empty(&p->list_unused)) {
         MppBufferImpl *pos, *n;
+
         list_for_each_entry_safe(pos, n, &p->list_unused, MppBufferImpl, list_status) {
             put_buffer(p, pos, 0, caller);
         }
@@ -980,8 +986,7 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
                 if (p->dump_on_exit)
                     mpp_err("clearing buffer %p\n", pos);
                 pos->ref_count = 0;
-                pos->used = 0;
-                pos->discard = 0;
+                pos->discard = 1;
                 put_buffer(p, pos, 0, caller);
             }
 
