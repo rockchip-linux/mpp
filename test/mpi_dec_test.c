@@ -446,13 +446,15 @@ static int dec_advanced(MpiDecLoopData *data)
                 mpp_log_q(quiet, "%p found eos frame\n", ctx);
             }
         }
-        if (data->frame_num > 0 && data->frame_count < data->frame_num) {
+
+        if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
+            data->eos = 1;
+        } else {
             data->eos = 0;
             clearerr(data->fp_input);
             rewind(data->fp_input);
-        } else {
-            data->eos = 1;
         }
+
         /* output queue */
         ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
         if (ret)
