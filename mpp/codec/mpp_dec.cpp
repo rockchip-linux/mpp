@@ -1356,7 +1356,7 @@ void *mpp_dec_advanced_thread(void *data)
         mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
         mpp_task_meta_get_frame (mpp_task, KEY_OUTPUT_FRAME,  &frame);
 
-        if (NULL == packet) {
+        if (NULL == packet || NULL == frame) {
             mpp_port_enqueue(input, mpp_task);
             task.status.mpp_pkt_in_rdy = 0;
             continue;
