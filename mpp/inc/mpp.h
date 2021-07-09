@@ -99,6 +99,10 @@ public:
     Mpp();
     ~Mpp();
     MPP_RET init(MppCtxType type, MppCodingType coding);
+
+    MPP_RET start();
+    MPP_RET stop();
+
     MPP_RET put_packet(MppPacket packet);
     MPP_RET get_frame(MppFrame *frame);
 

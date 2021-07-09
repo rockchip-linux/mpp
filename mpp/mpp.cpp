@@ -285,6 +285,16 @@ void Mpp::clear()
     mpp_dump_deinit(&mDump);
 }
 
+MPP_RET Mpp::start()
+{
+    return MPP_OK;
+}
+
+MPP_RET Mpp::stop()
+{
+    return MPP_OK;
+}
+
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
     if (!mInitDone)
