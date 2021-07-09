@@ -137,7 +137,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
 
     mpp_assert(0 == mpp_packet_get_length(packet));
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -161,7 +161,7 @@ static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
         ret = p->ctx->put_packet(packet);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -185,7 +185,7 @@ static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
         ret = p->ctx->get_frame(frame);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -209,7 +209,7 @@ static MPP_RET mpi_encode(MppCtx ctx, MppFrame frame, MppPacket *packet)
         // TODO: do encode here
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -233,7 +233,7 @@ static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
         ret = p->ctx->put_frame(frame);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -257,7 +257,7 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
         ret = p->ctx->get_packet(packet);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -268,7 +268,7 @@ static MPP_RET mpi_isp(MppCtx ctx, MppFrame dst, MppFrame src)
 
     // TODO: do isp process here
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return MPP_OK;
 }
 
@@ -279,7 +279,7 @@ static MPP_RET mpi_isp_put_frame(MppCtx ctx, MppFrame frame)
 
     // TODO: do isp put frame process here
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -318,7 +318,7 @@ static MPP_RET mpi_poll(MppCtx ctx, MppPortType type, MppPollType timeout)
             ret = MPP_OK;
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -342,7 +342,7 @@ static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
         ret = p->ctx->dequeue(type, task);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -366,7 +366,7 @@ static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
         ret = p->ctx->enqueue(type, task);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -384,7 +384,7 @@ static MPP_RET mpi_reset(MppCtx ctx)
         ret = p->ctx->reset();
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -402,7 +402,7 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
         ret = p->ctx->control(cmd, param);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -493,7 +493,7 @@ MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
         p->coding   = coding;
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
@@ -515,7 +515,35 @@ MPP_RET mpp_destroy(MppCtx ctx)
         mpp_free(p);
     } while (0);
 
-    mpi_dbg_func("leave ret %d\n", ret);
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
+    return ret;
+}
+
+MPP_RET mpp_start(MppCtx ctx)
+{
+    mpi_dbg_func("enter ctx %p\n", ctx);
+
+    MpiImpl *p = (MpiImpl*)ctx;
+    MPP_RET ret = check_mpp_ctx(p);
+
+    if (MPP_OK == ret)
+        ret = p->ctx->start();
+
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
+    return ret;
+}
+
+MPP_RET mpp_stop(MppCtx ctx)
+{
+    mpi_dbg_func("enter ctx %p\n", ctx);
+
+    MpiImpl *p = (MpiImpl*)ctx;
+    MPP_RET ret = check_mpp_ctx(p);
+
+    if (MPP_OK == ret)
+        ret = p->ctx->stop();
+
+    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
     return ret;
 }
 
