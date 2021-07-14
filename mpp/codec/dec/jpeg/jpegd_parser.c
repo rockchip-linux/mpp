@@ -733,7 +733,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     RK_U32 buf_size = ctx->buf_size;
     BitReadCtx_t *gb = ctx->bit_ctx;
     JpegdSyntax *syntax = ctx->syntax;
-    RK_S32 start_code;
+    RK_S32 start_code = 0xffd8;
 
     const RK_U8 *buf_ptr = buf;
     const RK_U8 *const buf_end = buf + buf_size;
@@ -741,7 +741,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     syntax->htbl_entry = 0;
     syntax->qtbl_entry = 0;
 
-    if (buf_size < 4 || *buf_ptr != 0xFF || *(buf_ptr + 1) != SOI) {
+    if (buf_size < 8 || !memchr(buf_ptr, start_code, 8)) {
         // not jpeg
         ret = MPP_ERR_STREAM;
         goto fail;
