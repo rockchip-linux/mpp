@@ -250,7 +250,7 @@ static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
                  (RK_U32)((intptr_t)info->hnd));
 
     ret = drm_handle_to_fd(p->drm_device, (RK_U32)((intptr_t)info->hnd),
-                           &info->fd, 0);
+                           &info->fd, DRM_CLOEXEC | DRM_RDWR);
 
     if (ret) {
         mpp_err_f("handle_to_fd failed ret %d\n", ret);
@@ -271,7 +271,7 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
     ret = drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
 
     ret = drm_handle_to_fd(p->drm_device, (RK_U32)((intptr_t)data->hnd),
-                           &data->fd, 0);
+                           &data->fd, DRM_CLOEXEC | DRM_RDWR);
 
     data->ptr = NULL;
     drm_dbg_func("leave dev %d\n", p->drm_device);
@@ -340,30 +340,16 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
         return MPP_ERR_NULL_PTR;
 
     if (NULL == data->ptr) {
-        struct drm_mode_map_dumb dmmd;
-
-        /* NOTE: update hnd avoid freed hnd */
-        drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
-
-        memset(&dmmd, 0, sizeof(dmmd));
-        dmmd.handle = (RK_U32)(intptr_t)data->hnd;
-
-        ret = drm_ioctl(p->drm_device, DRM_IOCTL_MODE_MAP_DUMB, &dmmd);
-        if (ret) {
-            mpp_err_f("map_dumb failed: %s\n", strerror(ret));
-            return ret;
-        }
-
         data->ptr = drm_mmap(NULL, data->size, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, p->drm_device, dmmd.offset);
+                             MAP_SHARED, data->fd, 0);
         if (data->ptr == MAP_FAILED) {
             mpp_err("mmap failed: %s\n", strerror(errno));
             data->ptr = NULL;
             return -errno;
         }
 
-        drm_dbg_func("dev %d mmap handle %d to %p\n", p->drm_device,
-                     dmmd.handle, data->ptr);
+        drm_dbg_func("dev %d mmap fd %d to %p\n", p->drm_device,
+                     data->fd, data->ptr);
     }
 
     return ret;
