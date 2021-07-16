@@ -233,6 +233,7 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 {
     jpegd_dbg_func("enter\n");
     RK_U32 pp_in_fmt = 0;
+    RK_U32 stride = 0;
     PPInfo *pp_info = &(ctx->pp_info);
     MppFrame frm = NULL;
 
@@ -266,15 +267,25 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
         pp_info->pp_in_fmt = pp_in_fmt;
 
         switch (ctx->output_fmt) {
-        case MPP_FMT_ARGB8888:
-        case MPP_FMT_ABGR8888:
-        case MPP_FMT_RGBA8888:
-        case MPP_FMT_BGRA8888:
+        case MPP_FMT_RGB565 :
+        case MPP_FMT_BGR565 :
+        case MPP_FMT_RGB555 :
+        case MPP_FMT_BGR555 :
+        case MPP_FMT_RGB444 :
+        case MPP_FMT_BGR444 : {
+            pp_info->pp_out_fmt = PP_OUT_FORMAT_RGB565;
+            stride = s->hor_stride * 2;
+        } break;
+        case MPP_FMT_ARGB8888 :
+        case MPP_FMT_ABGR8888 :
+        case MPP_FMT_RGBA8888 :
+        case MPP_FMT_BGRA8888 : {
             pp_info->pp_out_fmt = PP_OUT_FORMAT_ARGB;
-            break;
-        default:
+            stride = s->hor_stride * 4;
+        } break;
+        default : {
             pp_info->pp_out_fmt = PP_OUT_FORMAT_YUV420INTERLAVE;
-            break;
+        } break;
         }
 
         jpegd_dbg_hal("Post Process! pp_in_fmt:%d, pp_out_fmt:%d",
@@ -288,6 +299,10 @@ void jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
     mpp_buf_slot_get_prop(ctx->frame_slots, output,
                           SLOT_FRAME_PTR, &frm);
     mpp_frame_set_fmt(frm, ctx->output_fmt);
+    mpp_frame_set_hor_stride_pixel(frm, s->hor_stride);
+    /* update RGBX format byte stride and pixel stride */
+    if (stride)
+        mpp_frame_set_hor_stride(frm, stride);
 
     jpegd_dbg_func("exit\n");
     return;
