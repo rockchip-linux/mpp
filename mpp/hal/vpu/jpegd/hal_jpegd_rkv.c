@@ -301,6 +301,7 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
     MPP_RET ret = MPP_OK;
     JpegdSyntax *s = syntax;
     JpegRegSet *regs = (JpegRegSet *)ctx->regs;
+    RK_U32 stride = syntax->hor_stride;
     MppFrame frm = NULL;
 
     mpp_buf_slot_get_prop(ctx->frame_slots, out_idx, SLOT_FRAME_PTR, &frm);
@@ -315,6 +316,8 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
     } else {
         regs->reg2_sys.scaledown_mode = SCALEDOWN_DISABLE;
     }
+
+    mpp_frame_set_hor_stride_pixel(frm, stride);
 
     if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {   // PP enable
         if (MPP_FRAME_FMT_IS_YUV(ctx->output_fmt) && s->output_fmt != MPP_FMT_YUV400) {
@@ -336,8 +339,10 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
         } else if (MPP_FRAME_FMT_IS_RGB(ctx->output_fmt)) {
             if (ctx->output_fmt == MPP_FMT_RGB888) {
                 regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_RGB888;
+                mpp_frame_set_hor_stride(frm, stride * 3);
             } else if (ctx->output_fmt == MPP_FMT_BGR565) { //bgr565le
                 regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_RGB565;
+                mpp_frame_set_hor_stride(frm, stride * 2);
             } else {
                 mpp_err_f("unsupported output format %d\n", ctx->output_fmt);
                 ret = MPP_NOK;
