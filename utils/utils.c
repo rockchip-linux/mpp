@@ -58,6 +58,9 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
     base = (RK_U8 *)mpp_buffer_get_ptr(buffer);
 
+    if (MPP_FRAME_FMT_IS_RGB(fmt) && MPP_FRAME_FMT_IS_LE(fmt)) {
+        fmt &= MPP_FRAME_FMT_MASK;
+    }
     switch (fmt) {
     case MPP_FMT_YUV422SP : {
         /* YUV422SP -> YUV422P for better display */
@@ -152,8 +155,23 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         RK_U8 *base_y = base;
         RK_U8 *tmp = mpp_malloc(RK_U8, width * height * 4);
 
-        for (i = 0; i < height; i++, base_y += h_stride * 4)
+        for (i = 0; i < height; i++, base_y += h_stride)
             fwrite(base_y, 1, width * 4, fp);
+
+        mpp_free(tmp);
+    } break;
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565:
+    case MPP_FMT_RGB555:
+    case MPP_FMT_BGR555:
+    case MPP_FMT_RGB444:
+    case MPP_FMT_BGR444: {
+        RK_U32 i;
+        RK_U8 *base_y = base;
+        RK_U8 *tmp = mpp_malloc(RK_U8, width * height * 2);
+
+        for (i = 0; i < height; i++, base_y += h_stride)
+            fwrite(base_y, 1, width * 2, fp);
 
         mpp_free(tmp);
     } break;

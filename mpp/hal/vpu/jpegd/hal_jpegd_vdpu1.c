@@ -470,8 +470,6 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
             post->reg69.sw_color_coeffa2 = tmp;
         }
 
-        post->reg61_dev_conf.sw_pp_out_endian = 0;
-
         /* saturation */
         satur = 64 + SATURATION;
 
@@ -504,72 +502,36 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         post->reg71_color_coeff_1.sw_color_coeffe = (unsigned int) tmp;
     }
 
-    switch (out_color) {
-    case PP_OUT_FORMAT_RGB565:
-        post->reg82_r_mask = 0xF800F800;
-        post->reg83_g_mask = 0x07E007E0;
-        post->reg84_b_mask = 0x001F001F;
-        post->reg79_scaling_0.sw_rgb_r_padd = 0;
-        post->reg79_scaling_0.sw_rgb_g_padd = 5;
-        post->reg80_scaling_1.sw_rgb_b_padd = 11;
+    if (out_color <= PP_OUT_FORMAT_ARGB) {
+        PpRgbCfg *cfg = get_pp_rgb_Cfg(ctx->output_fmt);
+        post->reg82_r_mask = cfg->r_mask;
+        post->reg83_g_mask = cfg->g_mask;
+        post->reg84_b_mask = cfg->b_mask;
+        post->reg79_scaling_0.sw_rgb_r_padd = cfg->r_padd;
+        post->reg79_scaling_0.sw_rgb_g_padd = cfg->g_padd;
+        post->reg80_scaling_1.sw_rgb_b_padd = cfg->b_padd;
+
         if (dither) {
             jpegd_dbg_hal("we do dither.");
-            post->reg91_pip_2.sw_dither_select_r = 2;
-            post->reg91_pip_2.sw_dither_select_g = 3;
-            post->reg91_pip_2.sw_dither_select_b = 2;
+            post->reg91_pip_2.sw_dither_select_r = cfg->r_dither;
+            post->reg91_pip_2.sw_dither_select_r = cfg->g_dither;
+            post->reg91_pip_2.sw_dither_select_r = cfg->b_dither;
         } else {
             jpegd_dbg_hal("we do not dither.");
         }
-        post->reg79_scaling_0.sw_rgb_pix_in32 = 1;
-        post->reg85_ctrl.sw_pp_out_swap16_e = 1;
+
+        post->reg79_scaling_0.sw_rgb_pix_in32 = cfg->rgb_in_32;
+        post->reg85_ctrl.sw_pp_out_swap16_e = cfg->swap_16;
+        post->reg61_dev_conf.sw_pp_out_swap32_e = cfg->swap_32;
+        post->reg61_dev_conf.sw_pp_out_endian = cfg->out_endian;
+
         post->reg85_ctrl.sw_pp_out_format = 0;
-        break;
-    case PP_OUT_FORMAT_ARGB:
-        if (ctx->output_fmt == MPP_FMT_ARGB8888) {
-            post->reg82_r_mask = 0x0000FF00 | (0xff);
-            post->reg83_g_mask = 0x00FF0000 | (0xff);
-            post->reg84_b_mask = 0xFF000000 | (0xff);
 
-            post->reg79_scaling_0.sw_rgb_r_padd = 16;
-            post->reg79_scaling_0.sw_rgb_g_padd = 8;
-            post->reg80_scaling_1.sw_rgb_b_padd = 0;
-        } else if (ctx->output_fmt == MPP_FMT_ABGR8888) {
-            post->reg82_r_mask = 0xFF000000 | (0xff);
-            post->reg83_g_mask = 0x00FF0000 | (0xff);
-            post->reg84_b_mask = 0x0000FF00 | (0xff);
-
-            post->reg79_scaling_0.sw_rgb_r_padd = 0;
-            post->reg79_scaling_0.sw_rgb_g_padd = 8;
-            post->reg80_scaling_1.sw_rgb_b_padd = 16;
-        } else if (ctx->output_fmt == MPP_FMT_BGRA8888) {
-            post->reg82_r_mask = 0x00FF0000 | (0xff << 24);
-            post->reg83_g_mask = 0x0000FF00 | (0xff << 24);
-            post->reg84_b_mask = 0x000000FF | (0xff << 24);
-
-            post->reg79_scaling_0.sw_rgb_r_padd = 8;
-            post->reg79_scaling_0.sw_rgb_g_padd = 16;
-            post->reg80_scaling_1.sw_rgb_b_padd = 24;
-        } else if (ctx->output_fmt == MPP_FMT_RGBA8888) {
-            post->reg82_r_mask = 0x000000FF | (0xff << 24);
-            post->reg83_g_mask = 0x0000FF00 | (0xff << 24);
-            post->reg84_b_mask = 0x00FF0000 | (0xff << 24);
-
-            post->reg79_scaling_0.sw_rgb_r_padd = 24;
-            post->reg79_scaling_0.sw_rgb_g_padd = 16;
-            post->reg80_scaling_1.sw_rgb_b_padd = 8;
-        }
-
-        post->reg79_scaling_0.sw_rgb_pix_in32 = 0;
-        post->reg85_ctrl.sw_pp_out_format = 0;
-        break;
-    case PP_OUT_FORMAT_YUV422INTERLAVE:
+    } else if (out_color == PP_OUT_FORMAT_YUV422INTERLAVE) {
         post->reg85_ctrl.sw_pp_out_format = 3;
-        break;
-    case PP_OUT_FORMAT_YUV420INTERLAVE: {
+    } else if (out_color == PP_OUT_FORMAT_YUV420INTERLAVE) {
         post->reg85_ctrl.sw_pp_out_format = 5;
-    }
-    break;
-    default:
+    } else {
         mpp_err_f("unsuppotred format:%d", out_color);
         return -1;
     }

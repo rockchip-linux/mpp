@@ -31,6 +31,209 @@
 #include "jpegd_api.h"
 #include "hal_jpegd_common.h"
 
+static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
+    //ffmpeg: rgb565be, bin(rrrr,rggg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, rrrr,rggg)
+    {
+        .fmt = MPP_FMT_RGB565, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 0, .g_padd = 5, .b_padd = 11,
+        .r_dither = 2, .g_dither = 3, .b_dither = 2,
+        .r_mask = 0xf800f800, .g_mask = 0x07e007e0, .b_mask = 0x001f001f
+    },
+    //ffmpeg: bgr565be, bin(bbbb,bggg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, bbbb,bggg)
+    {
+        .fmt = MPP_FMT_BGR565, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 11, .g_padd = 5, .b_padd = 0,
+        .r_dither = 2, .g_dither = 3, .b_dither = 2,
+        .r_mask = 0x001f001f, .g_mask = 0x07e007e0, .b_mask = 0xf800f800
+    },
+    //ffmpeg: rgb555be, bin(0rrr,rrgg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, 0rrr,rrgg)
+    {
+        .fmt = MPP_FMT_RGB555, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 1, .g_padd = 6, .b_padd = 11,
+        .r_dither = 2, .g_dither = 2, .b_dither = 2,
+        .r_mask = 0x7c007c00, .g_mask = 0x03e003e0, .b_mask = 0x001f001f
+    },
+    //ffmpeg: bgr555be, bin(0bbb,bbgg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, 0bbb,bbgg)
+    {
+        .fmt = MPP_FMT_BGR555, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 11, .g_padd = 6, .b_padd = 1,
+        .r_dither = 2, .g_dither = 2, .b_dither = 2,
+        .r_mask = 0x001f001f, .g_mask = 0x03e003e0, .b_mask = 0x7c007c00
+    },
+    //ffmpeg: rgb444be, bin(0000,rrrr, gggg,bbbb) mem MSB-->LSB(gggg,bbbb, 0000,rrrr)
+    {
+        .fmt = MPP_FMT_RGB444, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 12, .g_padd = 0, .b_padd = 4,
+        .r_dither = 1, .g_dither = 1, .b_dither = 1,
+        .r_mask = 0x000f000f, .g_mask = 0xf000f000, .b_mask = 0x0f000f00
+    },
+    //ffmpeg: bgr444be, bin(0000,bbbb, gggg,rrrr) mem MSB-->LSB(gggg,rrrr, 0000,bbbb)
+    {
+        .fmt = MPP_FMT_BGR444, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 4, .g_padd = 0, .b_padd = 12, .r_mask = 0x0f000f00,
+        .r_dither = 1, .g_dither = 1, .b_dither = 1,
+        .g_mask = 0xf000f000, .b_mask = 0x000f000f
+    },
+    //ffmpeg: argb, bin(aaaa,aaaa, rrrr,rrrr, gggg,gggg, bbbb,bbbb)
+    {
+        .fmt = MPP_FMT_ARGB8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 16, .g_padd = 8, .b_padd = 0,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x0000ff00 | 0xff,
+        .g_mask = 0x00ff0000 | 0xff,
+        .b_mask = 0xff000000 | 0xff
+    },
+    //ffmepg: rgba, bin(aaaa,aaaa, bbbb,bbbb, gggg,gggg, rrrr,rrrr)
+    {
+        .fmt = MPP_FMT_ABGR8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 0, .g_padd = 8, .b_padd = 16,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0xff000000 | 0xff,
+        .g_mask = 0x00ff0000 | 0xff,
+        .b_mask = 0x0000ff00 | 0xff
+    },
+    //ffmpeg: bgra, bin(bbbb,bbbb, gggg,gggg, rrrr,rrrr, aaaa,aaaa)
+    {
+        .fmt = MPP_FMT_BGRA8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 8, .g_padd = 16, .b_padd = 24,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x00ff0000 | (0xff << 24),
+        .g_mask = 0x0000ff00 | (0xff << 24),
+        .b_mask = 0x000000ff | (0xff << 24)
+    },
+    //ffmpeg: rgba, bin(rrrr,rrrr, gggg,gggg, bbbb,bbbb, aaaa,aaaa)
+    {
+        .fmt = MPP_FMT_RGBA8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 24, .g_padd = 16, .b_padd = 8,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x000000ff | (0xff << 24),
+        .g_mask = 0x0000ff00 | (0xff << 24),
+        .b_mask = 0x00ff0000 | (0xff << 24)
+    },
+};
+
+static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
+    //ffmpeg: rgb565le, bin(gggb,bbbb, rrrr,rggg) mem MSB-->LSB(rrrr,rggg, gggb,bbbb)
+    {
+        .fmt = MPP_FMT_RGB565 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 0, .g_padd = 5, .b_padd = 11,
+        .r_dither = 2, .g_dither = 3, .b_dither = 2,
+        .r_mask = 0xf800f800, .g_mask = 0x07e007e0, .b_mask = 0x001f001f
+    },
+    //ffmpeg: bgr565le, bin(gggr,rrrr, bbbb,bggg) mem MSB-->LSB(bbbb,bggg, gggr,rrrr)
+    {
+        .fmt = MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 11, .g_padd = 5, .b_padd = 0,
+        .r_dither = 2, .g_dither = 3, .b_dither = 2,
+        .r_mask = 0x001f001f, .g_mask = 0x07e007e0, .b_mask = 0xf800f800
+    },
+    //ffmpeg: rgb555le, bin(gggb,bbbb, 0rrr,rrgg) mem MSB-->LSB(0rrr,rrgg, gggb,bbbb)
+    {
+        .fmt = MPP_FMT_RGB555 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 1, .g_padd = 6, .b_padd = 11,
+        .r_dither = 2, .g_dither = 2, .b_dither = 2,
+        .r_mask = 0x7c007c00, .g_mask = 0x03e003e0, .b_mask = 0x001f001f
+    },
+    //ffmpeg: bgr555le, bin(gggr,rrrr, 0bbb,bbgg) mem MSB-->LSB(0bbb,bbgg, gggr,rrrr)
+    {
+        .fmt = MPP_FMT_BGR555 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 11, .g_padd = 6, .b_padd = 1,
+        .r_dither = 2, .g_dither = 2, .b_dither = 2,
+        .r_mask = 0x001f001f, .g_mask = 0x03e003e0, .b_mask = 0x7c007c00
+    },
+    //ffmpeg: rgb444le, bin(gggg,bbbb, 0000,rrrr) mem MSB-->LSB(0000,rrrr, gggg,bbbb)
+    {
+        .fmt = MPP_FMT_RGB444 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 12, .g_padd = 0, .b_padd = 4,
+        .r_dither = 1, .g_dither = 1, .b_dither = 1,
+        .r_mask = 0x000f000f, .g_mask = 0xf000f000, .b_mask = 0x0f000f00
+    },
+    //ffmpeg: bgr444le, bin(gggg,rrrr, 0000,bbbb) mem MSB-->LSB(0000,bbbb, gggg,rrrr)
+    {
+        .fmt = MPP_FMT_BGR444 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
+        .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
+        .r_padd = 4, .g_padd = 0, .b_padd = 12, .r_mask = 0x0f000f00,
+        .r_dither = 1, .g_dither = 1, .b_dither = 1,
+        .g_mask = 0xf000f000, .b_mask = 0x000f000f
+    },
+    //in memory: [31:0] A:R:G:B 8:8:8:8 little endian
+    {
+        .fmt = MPP_FMT_ARGB8888 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 8, .g_padd = 16, .b_padd = 24,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x00ff0000 | (0xff << 24),
+        .g_mask = 0x0000ff00 | (0xff << 24),
+        .b_mask = 0x000000ff | (0xff << 24)
+    },
+    //in memory: [31:0] A:B:G:R 8:8:8:8 little endian
+    {
+        .fmt = MPP_FMT_ABGR8888 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 24, .g_padd = 16, .b_padd = 8,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x000000ff | (0xff << 24),
+        .g_mask = 0x0000ff00 | (0xff << 24),
+        .b_mask = 0x00ff0000 | (0xff << 24)
+    },
+    //in memory: [31:0] B:G:R:A 8:8:8:8 little endian
+    {
+        .fmt = MPP_FMT_BGRA8888 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 16, .g_padd = 8, .b_padd = 0,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0x0000ff00 | 0xff,
+        .g_mask = 0x00ff0000 | 0xff,
+        .b_mask = 0xff000000 | 0xff
+    },
+    //in memory: [31:0] R:G:B:A 8:8:8:8 little endian
+    {
+        .fmt = MPP_FMT_RGBA8888 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
+        .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
+        .r_padd = 0, .g_padd = 8, .b_padd = 16,
+        .r_dither = 0, .g_dither = 0, .b_dither = 0,
+        .r_mask = 0xff000000 | 0xff,
+        .g_mask = 0x00ff0000 | 0xff,
+        .b_mask = 0x0000ff00 | 0xff
+    },
+};
+
+PpRgbCfg* get_pp_rgb_Cfg(MppFrameFormat fmt)
+{
+    PpRgbCfg* cfg = NULL;
+    PpRgbCfg* cfg_array = NULL;
+    RK_U8 i = 0;
+
+    if (MPP_FRAME_FMT_IS_LE(fmt))
+        cfg_array = pp_rgb_le_cfgs;
+    else
+        cfg_array = pp_rgb_cfgs;
+
+    for (i = 0; i < PP_RGB_CFG_LENTH; i++) {
+        if (cfg_array[i].fmt ==  fmt) {
+            cfg = &cfg_array[i];
+            break;
+        }
+    }
+
+    return cfg;
+}
+
 RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length)
 {
     RK_U8 *p = mpp_buffer_get_ptr(stream);
@@ -240,6 +443,8 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
     MPP_RET ret = MPP_OK;
 
     if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {
+        MppFrameFormat fmt = MPP_FMT_BUTT;
+
         /* Using pp to convert all format to yuv420sp */
         switch (s->output_fmt) {
         case MPP_FMT_YUV400:
@@ -268,7 +473,13 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
         pp_info->pp_enable = 1;
         pp_info->pp_in_fmt = pp_in_fmt;
 
-        switch (ctx->output_fmt) {
+        fmt = ctx->output_fmt;
+
+        if (MPP_FRAME_FMT_IS_LE(fmt)) {
+            fmt &= MPP_FRAME_FMT_MASK;
+        }
+
+        switch (fmt) {
         case MPP_FMT_RGB565 :
         case MPP_FMT_BGR565 :
         case MPP_FMT_RGB555 :

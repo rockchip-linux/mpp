@@ -521,74 +521,38 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         reg->reg2.sw_color_coeffe = (unsigned int) tmp;
     }
 
-    switch (out_color) {
-    case    PP_OUT_FORMAT_RGB565:
-        reg->reg9_r_mask = 0xF800F800;
-        reg->reg10_g_mask = 0x07E007E0;
-        reg->reg11_b_mask = 0x001F001F;
-        reg->reg16.sw_rgb_r_padd = 0;
-        reg->reg16.sw_rgb_g_padd = 5;
-        reg->reg16.sw_rgb_b_padd = 11;
+    if (out_color <= PP_OUT_FORMAT_ARGB) {
+        PpRgbCfg *cfg = get_pp_rgb_Cfg(ctx->output_fmt);
+        reg->reg9_r_mask = cfg->r_mask;
+        reg->reg10_g_mask = cfg->g_mask;
+        reg->reg11_b_mask = cfg->b_mask;
+        reg->reg16.sw_rgb_r_padd = cfg->r_padd;
+        reg->reg16.sw_rgb_g_padd = cfg->g_padd;
+        reg->reg16.sw_rgb_b_padd = cfg->b_padd;
+
         if (dither) {
-            jpegd_dbg_hal("we do dither.\n");
-            reg->reg36.sw_dither_select_r = 2;
-            reg->reg36.sw_dither_select_g = 3;
-            reg->reg36.sw_dither_select_b = 2;
+            jpegd_dbg_hal("we do dither.");
+            reg->reg36.sw_dither_select_r = cfg->r_dither;
+            reg->reg36.sw_dither_select_g = cfg->g_dither;
+            reg->reg36.sw_dither_select_b = cfg->b_dither;
         } else {
-            jpegd_dbg_hal("we do not dither.\n");
-        }
-        reg->reg37.sw_rgb_pix_in32 = 1;
-        reg->reg37.sw_pp_out_swap16_e = 1;
-        reg->reg38.sw_pp_out_format = 0;
-        break;
-    case    PP_OUT_FORMAT_ARGB:
-        if (ctx->output_fmt == MPP_FMT_ARGB8888) {
-            reg->reg9_r_mask = 0x0000FF00 | (0xff);
-            reg->reg10_g_mask = 0x00FF0000 | (0xff);
-            reg->reg11_b_mask = 0xFF000000 | (0xff);
-
-            reg->reg16.sw_rgb_r_padd = 16;
-            reg->reg16.sw_rgb_g_padd = 8;
-            reg->reg16.sw_rgb_b_padd = 0;
-        } else if (ctx->output_fmt == MPP_FMT_ABGR8888) {
-            reg->reg9_r_mask = 0xFF000000 | (0xff);
-            reg->reg10_g_mask = 0x00FF0000 | (0xff);
-            reg->reg11_b_mask = 0x0000FF00 | (0xff);
-
-            reg->reg16.sw_rgb_r_padd = 0;
-            reg->reg16.sw_rgb_g_padd = 8;
-            reg->reg16.sw_rgb_b_padd = 16;
-        } else if (ctx->output_fmt == MPP_FMT_BGRA8888) {
-            reg->reg9_r_mask = 0x00FF0000 | (0xff << 24);
-            reg->reg10_g_mask = 0x0000FF00 | (0xff << 24);
-            reg->reg11_b_mask = 0x000000FF | (0xff << 24);
-
-            reg->reg16.sw_rgb_r_padd = 8;
-            reg->reg16.sw_rgb_g_padd = 16;
-            reg->reg16.sw_rgb_b_padd = 24;
-        } else if (ctx->output_fmt == MPP_FMT_RGBA8888) {
-            reg->reg9_r_mask = 0x000000FF | (0xff << 24);
-            reg->reg10_g_mask = 0x0000FF00 | (0xff << 24);
-            reg->reg11_b_mask = 0x00FF0000 | (0xff << 24);
-
-            reg->reg16.sw_rgb_r_padd = 24;
-            reg->reg16.sw_rgb_g_padd = 16;
-            reg->reg16.sw_rgb_b_padd = 8;
+            jpegd_dbg_hal("we do not dither.");
         }
 
-        reg->reg37.sw_rgb_pix_in32 = 0;
+        reg->reg37.sw_rgb_pix_in32 = cfg->rgb_in_32;
+        reg->reg37.sw_pp_out_swap16_e = cfg->swap_16;
+        reg->reg37.sw_pp_out_swap32_e = cfg->swap_32;
+        reg->reg37.sw_pp_out_endian = cfg->out_endian;
+
         reg->reg38.sw_pp_out_format = 0;
-        break;
-    case    PP_OUT_FORMAT_YUV422INTERLAVE:
+
+    } else if (out_color == PP_OUT_FORMAT_YUV422INTERLAVE) {
         reg->reg38.sw_pp_out_format = 3;
-        break;
-    case    PP_OUT_FORMAT_YUV420INTERLAVE: {
+    } else if (out_color == PP_OUT_FORMAT_YUV420INTERLAVE) {
         reg->reg38.sw_pp_out_format = 5;
-    }
-    break;
-    default:
+    } else {
         mpp_err_f("unsuppotred format:%d", out_color);
-        return MPP_NOK;
+        return -1;
     }
 
     reg->reg38.sw_rotation_mode = 0;

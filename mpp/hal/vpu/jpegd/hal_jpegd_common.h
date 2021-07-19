@@ -50,6 +50,26 @@ static const RK_U8 zzOrder[64] = {
     58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
 };
 
+#define PP_RGB_CFG_LENTH (10)
+typedef struct PpRgbCfg_t {
+    MppFrameFormat fmt;
+    RK_U8   pp_out_fmt;
+    RK_U8   out_endian;
+    RK_U8   swap_16;
+    RK_U8   swap_32;
+    RK_U8   rgb_in_32;
+    RK_U8   r_padd;
+    RK_U8   g_padd;
+    RK_U8   b_padd;
+    RK_U8   r_dither;
+    RK_U8   g_dither;
+    RK_U8   b_dither;
+    RK_U32  r_mask;
+    RK_U32  g_mask;
+    RK_U32  b_mask;
+} PpRgbCfg;
+
+PpRgbCfg* get_pp_rgb_Cfg(MppFrameFormat fmt);
 RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length);
 
 void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
