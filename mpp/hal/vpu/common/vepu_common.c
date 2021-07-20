@@ -103,6 +103,25 @@ static VepuFormatCfg vepu_rgb_le_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     { .format = VEPU_FMT_RGB444,    .r_mask = 11, .g_mask =  7, .b_mask =  3, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
     //MPP_FMT_BGR444LE, ffmpeg: bgr444le, bin(gggg,rrrr,0000,bbbb)
     { .format = VEPU_FMT_RGB444,    .r_mask =  3, .g_mask =  7, .b_mask = 11, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
+
+    //MPP_FMT_RGB888, ffmpeg: rgb24, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
+    //MPP_FMT_BGR888, ffmpeg: bgr24, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
+
+    //MPP_FMT_RGB101010, bin(00rr,rrrr,rrrr,gggg,gggg,ggbb,bbbb,bbbb)
+    { .format = VEPU_FMT_RGB101010, .r_mask = 29, .g_mask = 19, .b_mask =  9, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
+    //MPP_FMT_BGR101010, bin(00bb,bbbb,bbbb,gggg,gggg,ggrr,rrrr,rrrr)
+    { .format = VEPU_FMT_RGB101010, .r_mask =  9, .g_mask = 19, .b_mask = 29, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
+
+    //MPP_FMT_ARGB8888LE, argb, bin(aaaa,aaaa,rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    { .format = VEPU_FMT_RGB888,    .r_mask = 23, .g_mask = 15, .b_mask =  7, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
+    //MPP_FMT_ABGR8888LE, ffmepg: rgba, bin(aaaa,aaaa,bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    { .format = VEPU_FMT_RGB888,    .r_mask =  7, .g_mask = 15, .b_mask = 23, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
+    //MPP_FMT_BGRA8888LE, ffmpeg: bgra, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr,aaaa,aaaa)
+    { .format = VEPU_FMT_RGB888,    .r_mask = 15, .g_mask = 23, .b_mask = 31, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
+    //MPP_FMT_RGBA8888LE, ffmpeg: rgba, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb,aaaa,aaaa)
+    { .format = VEPU_FMT_RGB888,    .r_mask = 31, .g_mask = 23, .b_mask = 15, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
 };
 
 MPP_RET get_vepu_fmt(VepuFormatCfg *cfg, MppFrameFormat format)
