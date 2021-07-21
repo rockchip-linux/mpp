@@ -123,7 +123,7 @@ if ((val) < 0) {\
 
 
 #define START_PREFIX_3BYTE        3
-#define MAX_NUM_DPB_LAYERS        2
+#define MAX_NUM_DPB_LAYERS        2    //!< must >= 2
 #define MAX_LIST_SIZE             33   //!< for init list reorder
 #define MAX_DPB_SIZE              16   //!< for prepare dpb info
 #define MAX_REF_SIZE              32   //!< for prepare ref pic info
@@ -816,8 +816,8 @@ typedef struct h264_slice_t {
     struct h264_frame_store_t    **fs_listinterview0;
     struct h264_frame_store_t    **fs_listinterview1;
     //struct h264_store_pic_t     **listX[6];
-    struct h264_store_pic_t      **listP[2];
-    struct h264_store_pic_t      **listB[2];
+    struct h264_store_pic_t      **listP[MAX_NUM_DPB_LAYERS];
+    struct h264_store_pic_t      **listB[MAX_NUM_DPB_LAYERS];
 
     //---- MVC extend ----
     RK_S32   svc_extension_flag;      // should be always 0, for MVC
@@ -951,8 +951,8 @@ typedef struct h264d_cur_ctx_t {
     struct h264d_curstrm_t   strm;
     struct h264_slice_t      slice;
 
-    struct h264_store_pic_t **listP[2];
-    struct h264_store_pic_t **listB[2];
+    struct h264_store_pic_t **listP[MAX_NUM_DPB_LAYERS];
+    struct h264_store_pic_t **listB[MAX_NUM_DPB_LAYERS];
     struct h264d_input_ctx_t *p_Inp;
     struct h264_dec_ctx_t    *p_Dec;
     struct h264d_video_ctx_t *p_Vid;   //!< parameters for video decoder
