@@ -35,6 +35,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_buf_slot.h"
+#include "mpp_mem_pool.h"
 
 #include "hal_task.h"
 #include "h265d_codec.h"
@@ -489,6 +490,8 @@ typedef struct HEVCContext {
     RK_U8 *vps_list[MAX_VPS_COUNT];
     RK_U8 *sps_list[MAX_SPS_COUNT];
     RK_U8 *pps_list[MAX_PPS_COUNT];
+
+    MppMemPool sps_pool;
 
     SliceHeader sh;
 
