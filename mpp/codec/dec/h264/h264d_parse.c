@@ -86,7 +86,7 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     currSlice->active_sps = p_Vid->active_sps;
     currSlice->active_pps = p_Vid->active_pps;
     //--- reset listP listB
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         currSlice->listP[i] = p_Vid->p_Cur->listP[i];
         currSlice->listB[i] = p_Vid->p_Cur->listB[i];
         for (j = 0; j < MAX_LIST_SIZE; j++) {
