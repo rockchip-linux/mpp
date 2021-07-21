@@ -1399,7 +1399,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     RK_S32 value = 0;
 
     HEVCSPS *sps;
-    RK_U8 *sps_buf = mpp_calloc(RK_U8, sizeof(*sps));
+    RK_U8 *sps_buf = mpp_mem_pool_get(s->sps_pool);
 
     if (!sps_buf)
         return MPP_ERR_NOMEM;
@@ -1816,7 +1816,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
 
     if (s->sps_list[sps_id] &&
         !memcmp(s->sps_list[sps_id], sps_buf, sizeof(HEVCSPS))) {
-        mpp_free(sps_buf);
+        mpp_mem_pool_put(s->sps_pool, sps_buf);
     } else {
         for (i = 0; (RK_U32)i < MPP_ARRAY_ELEMS(s->pps_list); i++) {
             if (s->pps_list[i] && ((HEVCPPS*)s->pps_list[i])->sps_id == sps_id) {
@@ -1825,7 +1825,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             }
         }
         if (s->sps_list[sps_id] != NULL)
-            mpp_free(s->sps_list[sps_id]);
+            mpp_mem_pool_put(s->sps_pool, s->sps_list[sps_id]);
         s->sps_list[sps_id] = sps_buf;
         s->ps_need_upate = 1;
     }
@@ -1858,17 +1858,28 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     RK_S32 i;
     RK_S32 ret    = 0;
     RK_S32 pps_id = 0;
-
     HEVCPPS *pps = NULL;
-    RK_U8 *pps_buf;
-    pps_buf = mpp_calloc(RK_U8, sizeof(*pps));
 
-    if (!pps_buf)
-        return MPP_ERR_NOMEM;
-
-    pps = ( HEVCPPS *)pps_buf;
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding PPS\n");
 
+    // Coded parameters
+    READ_UE(gb, &pps_id);
+    if (pps_id >= MAX_PPS_COUNT) {
+        mpp_err( "PPS id out of range: %d\n", pps_id);
+        ret =  MPP_ERR_STREAM;
+        goto err;
+    }
+
+    if (s->pps_list[pps_id])
+        pps = (HEVCPPS *)s->pps_list[pps_id];
+    else
+        pps = (HEVCPPS *)mpp_calloc(RK_U8, sizeof(*pps));
+
+    if (!pps)
+        return MPP_ERR_NOMEM;
+    memset(pps, 0, sizeof(*pps));
+
+    pps->pps_id = pps_id;///<- zrh add
     // Default values
     pps->loop_filter_across_tiles_enabled_flag = 1;
     pps->num_tile_columns                      = 1;
@@ -1878,14 +1889,6 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     pps->beta_offset                           = 0;
     pps->tc_offset                             = 0;
 
-    // Coded parameters
-    READ_UE(gb, &pps_id);
-    pps->pps_id = pps_id;///<- zrh add
-    if (pps_id >= MAX_PPS_COUNT) {
-        mpp_err( "PPS id out of range: %d\n", pps_id);
-        ret =  MPP_ERR_STREAM;
-        goto err;
-    }
     READ_UE(gb, &pps->sps_id);
     if (pps->sps_id >= MAX_SPS_COUNT) {
         mpp_err( "SPS id out of range: %d\n", pps->sps_id);
@@ -2088,7 +2091,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         CurrentFameInf_t *info = (CurrentFameInf_t *)s->h265dctx->compare_info;
         HEVCPPS *openhevc_pps = (HEVCPPS*)&info->pps[pps_id];
         mpp_log("compare pps in");
-        if (compare_pps(openhevc_pps, (HEVCPPS*)pps_buf) < 0) {
+        if (compare_pps(openhevc_pps, (HEVCPPS*)pps) < 0) {
             mpp_err("compare pps with openhevc error found");
             mpp_assert(0);
             return -1;
@@ -2118,12 +2121,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         }
     }
 
-    if (s->pps_list[pps_id]) {
-        mpp_hevc_pps_free(s->pps_list[pps_id]);
-        s->pps_list[pps_id] = NULL;
-    }
-
-    s->pps_list[pps_id] = pps_buf;
+    s->pps_list[pps_id] = (RK_U8 *)pps;
 
     if (s->pps_list[pps_id])
         s->pps_list_of_updated[pps_id] = 1;
@@ -2131,6 +2129,5 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     return 0;
 __BITREAD_ERR:
 err:
-    mpp_hevc_pps_free(pps_buf);
     return ret;
 }
