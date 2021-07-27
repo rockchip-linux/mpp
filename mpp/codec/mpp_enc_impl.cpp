@@ -576,12 +576,12 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                     dst->qp_init, dst->qp_min_i, dst->qp_max_i,
                     dst->qp_min, dst->qp_max);
         }
-        if (dst->qp_delta_ip < 0) {
+        if (MPP_ABS(dst->qp_delta_ip) > 8) {
             mpp_err("invalid qp delta ip %d restore to %d\n",
                     dst->qp_delta_ip, bak.qp_delta_ip);
             dst->qp_delta_ip = bak.qp_delta_ip;
         }
-        if (dst->qp_delta_vi < 0) {
+        if (MPP_ABS(dst->qp_delta_vi) > 6) {
             mpp_err("invalid qp delta vi %d restore to %d\n",
                     dst->qp_delta_vi, bak.qp_delta_vi);
             dst->qp_delta_vi = bak.qp_delta_vi;
