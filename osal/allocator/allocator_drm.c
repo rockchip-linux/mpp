@@ -45,37 +45,6 @@ static RK_U32 drm_debug = 0;
 #define drm_dbg(flag, fmt, ...)     _mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
 #define drm_dbg_func(fmt, ...)      drm_dbg(DRM_FUNCTION, fmt, ## __VA_ARGS__)
 
-#if defined(ANDROID) && !defined(__LP64__)
-#include <errno.h> /* for EINVAL */
-
-extern void *__mmap2(void *, size_t, int, int, int, size_t);
-
-static inline void *drm_mmap(void *addr, size_t length, int prot, int flags,
-                             int fd, loff_t offset)
-{
-    /* offset must be aligned to 4096 (not necessarily the page size) */
-    if (offset & 4095) {
-        errno = EINVAL;
-        return MAP_FAILED;
-    }
-
-    return __mmap2(addr, length, prot, flags, fd, (size_t) (offset >> 12));
-}
-
-#  define drm_munmap(addr, length) \
-              munmap(addr, length)
-
-#else
-
-/* assume large file support exists */
-#  define drm_mmap(addr, length, prot, flags, fd, offset) \
-              mmap(addr, length, prot, flags, fd, offset)
-
-#  define drm_munmap(addr, length) \
-              munmap(addr, length)
-
-#endif
-
 typedef struct {
     RK_U32  alignment;
     RK_S32  drm_device;
@@ -297,7 +266,7 @@ static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
                  data->ptr, data->size, data->fd, data->hnd);
 
     if (data->ptr) {
-        drm_munmap(data->ptr, data->size);
+        munmap(data->ptr, data->size);
         data->ptr = NULL;
     }
     close(data->fd);
@@ -340,8 +309,8 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
         return MPP_ERR_NULL_PTR;
 
     if (NULL == data->ptr) {
-        data->ptr = drm_mmap(NULL, data->size, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, data->fd, 0);
+        data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE,
+                         MAP_SHARED, data->fd, 0);
         if (data->ptr == MAP_FAILED) {
             mpp_err("mmap failed: %s\n", strerror(errno));
             data->ptr = NULL;
