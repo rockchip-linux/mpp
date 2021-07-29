@@ -450,6 +450,10 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     READ_UE(p_bitctx, &currSlice->start_mb_nr); //!< first_mb_in_slice
     READ_UE(p_bitctx, &temp); //!< slice_type
     p_Vid->slice_type = currSlice->slice_type = temp % 5;
+    if (p_Vid->slice_type == H264_SP_SLICE || p_Vid->slice_type == H264_SI_SLICE) {
+        H264D_WARNNING("sp or si slice not support\n");
+        goto __FAILED;
+    }
     READ_UE(p_bitctx, &currSlice->pic_parameter_set_id);
     init_slice_parmeters(currSlice);
     FUN_CHECK(ret = set_slice_user_parmeters(currSlice));
