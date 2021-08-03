@@ -513,7 +513,6 @@ MPP_RET calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     RK_S32 pre_ins_bps = p->last_inst_bps;
     RK_S32 idx1, idx2;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio, wl_ratio;
-    RK_S32 flag = 0;
     RK_S32 fluc_l = 3;
 
     rc_dbg_func("enter %p\n", p);
@@ -546,26 +545,18 @@ MPP_RET calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     } else if ( ins_bps < pre_ins_bps && pre_ins_bps - target_bps < (target_bps >> 4)) {
         ins_ratio = 4 * ins_ratio;
     } else {
-        if (bit_diff_ratio < -128) {
-            ins_ratio = -128;
-            flag = 1;
-        } else {
-            ins_ratio = 0;
-        }
+        ins_ratio = 0;
     }
 
     bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
 
-    if (!flag) {
-        ins_ratio = mpp_clip(ins_ratio, -128, 256);
-        ins_ratio = bit_diff_ratio + ins_ratio;
-    }
+    ins_ratio = mpp_clip(ins_ratio, -128, 256);
 
     bps_ratio = (ins_bps - target_bps) * fluc_l / (target_bps >> 4);
     wl_ratio = 4 * (p->stat_watl - p->watl_base) * fluc_l / p->watl_base;
     bps_ratio = mpp_clip(bps_ratio, -32, 32);
     wl_ratio  = mpp_clip(wl_ratio, -16, 32);
-    p->next_ratio = ins_ratio + bps_ratio + wl_ratio;
+    p->next_ratio = bit_diff_ratio + ins_ratio + bps_ratio + wl_ratio;
 
     rc_dbg_qp("%10s|%10s|%10s|%10s|%10s|%10s", "diff_ratio", "ins_ratio", "bps_ratio",
               "wl_ratio", "next_ratio", "cur_qp_s");
@@ -720,7 +711,6 @@ MPP_RET calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
 
     RK_S32 idx1, idx2;
     RK_S32 bit_diff_ratio, ins_ratio, bps_ratio;
-    RK_S32 flag = 0;
 
     rc_dbg_func("enter %p\n", p);
 
@@ -742,18 +732,16 @@ MPP_RET calc_vbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     rc_dbg_bps("%10d %10d %10d %10d %10d %10d", pre_real_bits, pre_target_bits, ins_bps,
                pre_ins_bps, bps_change, max_bps_target);
 
-    if (ins_bps <= bps_change || (ins_bps > bps_change && ins_bps <= pre_ins_bps)) {
-        flag = ins_bps < pre_ins_bps;
-        if (bps_change <= pre_ins_bps)
-            flag = 0;
-        if (!flag) {
-            bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
-        } else {
-            ins_ratio = 3 * ins_ratio;
-        }
-    } else {
+
+    if (ins_bps > bps_change && ins_bps > pre_ins_bps) {
         ins_ratio = 6 * ins_ratio;
+    } else if (ins_bps <= pre_ins_bps && bps_change > pre_ins_bps) {
+        ins_ratio = 3 * ins_ratio;
+    } else {
+        ins_ratio = 0;
     }
+
+    bit_diff_ratio = mpp_clip(bit_diff_ratio, -128, 256);
     ins_ratio = mpp_clip(ins_ratio, -128, 256);
     bps_ratio = 3 * (ins_bps - bps_change) / (max_bps_target >> 4);
     bps_ratio = mpp_clip(bps_ratio, -16, 32);
@@ -941,17 +929,17 @@ MPP_RET calc_avbr_ratio(void *ctx, EncRcTaskInfo *cfg)
     idx2 = mpp_clip(idx2, 0, 63);
     ins_ratio = tab_lnx[idx2] - tab_lnx[idx1];
     max_bps = bps_change;
+
     if (max_bps < pre_ins_bps) {
         max_bps = pre_ins_bps;
     }
-    if (ins_bps <= max_bps) {
-        if (ins_bps < pre_ins_bps && bps_change > pre_ins_bps) {
-            ins_ratio = 3 * ins_ratio;
-        } else {
-            ins_ratio = 0;
-        }
-    } else {
+
+    if (ins_bps >  max_bps) {
         ins_ratio = 6 * ins_ratio;
+    } else  if (ins_bps < pre_ins_bps && bps_change > pre_ins_bps) {
+        ins_ratio = 3 * ins_ratio;
+    } else {
+        ins_ratio = 0;
     }
 
     ins_ratio = mpp_clip(ins_ratio >> 2, -128, 256);
