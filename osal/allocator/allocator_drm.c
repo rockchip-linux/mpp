@@ -309,16 +309,21 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
         return MPP_ERR_NULL_PTR;
 
     if (NULL == data->ptr) {
-        data->ptr = mmap(NULL, data->size, PROT_READ | PROT_WRITE,
-                         MAP_SHARED, data->fd, 0);
+        int flags = PROT_READ;
+
+        if (fcntl(data->fd, F_GETFL) & O_RDWR)
+            flags |= PROT_WRITE;
+
+        data->ptr = mmap(NULL, data->size, flags, MAP_SHARED, data->fd, 0);
         if (data->ptr == MAP_FAILED) {
             mpp_err("mmap failed: %s\n", strerror(errno));
             data->ptr = NULL;
             return -errno;
         }
 
-        drm_dbg_func("dev %d mmap fd %d to %p\n", p->drm_device,
-                     data->fd, data->ptr);
+        drm_dbg_func("dev %d mmap fd %d to %p (%s)\n", p->drm_device,
+                     data->fd, data->ptr,
+                     flags & PROT_WRITE ? "RDWR" : "RDONLY");
     }
 
     return ret;
