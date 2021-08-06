@@ -172,8 +172,6 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->dpdnt_sli_seg_flg   = 0;
     sp->sli_pps_id          = slice->m_pps->m_PPSId;
     sp->no_out_pri_pic      = slice->no_output_of_prior_pics_flag;
-    sp->tot_poc_num         = slice->tot_poc_num;
-
 
     sp->sli_tc_ofst_div2 = slice->m_deblockingFilterTcOffsetDiv2;
     sp->sli_beta_ofst_div2 = slice->m_deblockingFilterBetaOffsetDiv2;
@@ -201,6 +199,7 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
     RK_S32 i, j, k;
     sp->dlt_poc_msb_prsnt0 = 0;
     sp->dlt_poc_msb_cycl0 = 0;
+    sp->tot_poc_num = 0;
     if (slice->m_bdIdx < 0) {
         RK_S32 prev = 0;
         sp->st_ref_pic_flg = 0;
@@ -209,18 +208,24 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
         for (j = 0; j < rps->num_negative_pic; j++) {
             if (0 == j) {
                 sp->dlt_poc_s0_m10 = prev - rps->delta_poc[j] - 1;
-                sp->used_by_s0_flg = rps->m_used[j];
+                sp->used_by_s0_flg = rps->m_ref[j];
             } else if (1 == j) {
                 sp->dlt_poc_s0_m11 = prev - rps->delta_poc[j] - 1;
-                sp->used_by_s0_flg |= rps->m_used[j] << 1;
+                sp->used_by_s0_flg |= rps->m_ref[j] << 1;
             } else if (2 == j) {
                 sp->dlt_poc_s0_m12 = prev - rps->delta_poc[j] - 1;
-                sp->used_by_s0_flg |= rps->m_used[j] << 2;
+                sp->used_by_s0_flg |= rps->m_ref[j] << 2;
             } else if (3 == j) {
                 sp->dlt_poc_s0_m13 = prev - rps->delta_poc[j] - 1;
-                sp->used_by_s0_flg |= rps->m_used[j] << 3;
+                sp->used_by_s0_flg |= rps->m_ref[j] << 3;
             }
             prev = rps->delta_poc[j];
+        }
+    }
+
+    for (i = 0; i < rps->m_numberOfPictures; i++) {
+        if (rps->m_ref[i]) {
+            sp->tot_poc_num++;
         }
     }
 
@@ -280,12 +285,11 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
 
         for ( i = rps->m_numberOfPictures - 1; i > offset - 1; i--) {
             RK_U32 deltaFlag = 0;
-
             if ((i == rps->m_numberOfPictures - 1) || (i == rps->m_numberOfPictures - 1 - numLtrpInSPS)) {
                 deltaFlag = 1;
             }
             poc_lsb_lt[numLongTerm - 1 - (i - offset)] = rps->m_pocLSBLT[i];
-            used_by_lt_flg[numLongTerm - 1 - (i - offset)] = rps->m_used[i];
+            used_by_lt_flg[numLongTerm - 1 - (i - offset)] = rps->m_ref[i];
             dlt_poc_msb_prsnt[numLongTerm - 1 - (i - offset)] = rps->m_deltaPocMSBPresentFlag[i];
 
             if (rps->m_deltaPocMSBPresentFlag[i]) {

@@ -1485,10 +1485,10 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         if (ctx->frame_type == INTRA_FRAME) {
             /* reset ref pictures */
             i_nal_type    = NAL_IDR_W_RADL;
-        } else if (ctx->frame_type == INTER_P_FRAME ) {
+        } else if (ctx->frame_type == INTER_P_FRAME && !syn->sp.non_reference_flag) {
             i_nal_type    = NAL_TRAIL_R;
         } else {
-            i_nal_type    = NAL_TRAIL_R;
+            i_nal_type    = NAL_TRAIL_N;
         }
         regs->synt_nal.nal_unit_type    = i_nal_type;
     }

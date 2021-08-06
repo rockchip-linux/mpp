@@ -63,6 +63,7 @@ typedef struct H265eReferencePictureSet_e {
     RK_S32  num_positive_pic;
     RK_S32  delta_poc[MAX_REFS];
     RK_U32  m_used[MAX_REFS];
+    RK_U32  m_ref[MAX_REFS];
     RK_S32  poc[MAX_REFS];
     RK_S32  m_RealPoc[MAX_REFS];
 
