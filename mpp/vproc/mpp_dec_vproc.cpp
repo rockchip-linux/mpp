@@ -384,8 +384,8 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         params.param.com.dfmt = IEP2_FMT_YUV420;
         params.param.com.sswap = IEP2_YUV_SWAP_SP_UV;
         params.param.com.dswap = IEP2_YUV_SWAP_SP_UV;
-        params.param.com.width = img.act_w;
-        params.param.com.height = img.act_h;
+        params.param.com.width = mpp_frame_get_hor_stride(frm);
+        params.param.com.height = mpp_frame_get_ver_stride(frm);
 
         ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
 
@@ -434,8 +434,8 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         params.param.com.dfmt = IEP2_FMT_YUV420;
         params.param.com.sswap = IEP2_YUV_SWAP_SP_UV;
         params.param.com.dswap = IEP2_YUV_SWAP_SP_UV;
-        params.param.com.width = img.act_w;
-        params.param.com.height = img.act_h;
+        params.param.com.width = mpp_frame_get_hor_stride(frm);
+        params.param.com.height = mpp_frame_get_ver_stride(frm);
         ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
 
         mode = mode | MPP_FRAME_FLAG_IEP_DEI_I2O1;

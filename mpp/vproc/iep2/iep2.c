@@ -39,7 +39,8 @@
 #include "mpp_platform.h"
 
 #define IEP2_TILE_W_MAX     120
-#define IEP2_TILE_H_MAX     272
+#define IEP2_TILE_H_MAX     480
+
 RK_U32 iep_debug = 0;
 
 static MPP_RET iep2_init(IepCtx *ictx)
