@@ -223,13 +223,16 @@ void sort_delta_poc(H265eReferencePictureSet *rps)
     for (j = 1; j < rps->m_numberOfPictures; j++) {
         RK_S32 deltaPOC = rps->delta_poc[j];
         RK_U32 used = rps->m_used[j];
+        RK_U32 refed = rps->m_ref[j];
         for (k = j - 1; k >= 0; k--) {
             int temp = rps->delta_poc[k];
             if (deltaPOC < temp) {
                 rps->delta_poc[k + 1] = temp;
                 rps->m_used[k + 1] =  rps->m_used[k];
+                rps->m_ref[k + 1] = rps->m_ref[k];
                 rps->delta_poc[k] = deltaPOC;
                 rps->m_used[k] = used;
+                rps->m_ref[k] = refed;
             }
         }
     }
@@ -239,10 +242,13 @@ void sort_delta_poc(H265eReferencePictureSet *rps)
     for (j = 0, k = numNegPics - 1; j < numNegPics >> 1; j++, k--) {
         RK_S32 deltaPOC = rps->delta_poc[j];
         RK_U32 used = rps->m_used[j];
+        RK_U32 refed = rps->m_ref[j];
         rps->delta_poc[j] = rps->delta_poc[k];
         rps->m_used[j] = rps->m_used[k];
+        rps->m_ref[j] = rps->m_ref[k];
         rps->delta_poc[k] =  deltaPOC;
         rps->m_used[k] = used;
+        rps->m_ref[k] = refed;
     }
 }
 
@@ -555,6 +561,7 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
     for (idx_rps = 0; idx_rps < 16; idx_rps++) {
         rps->delta_poc[idx_rps] = 0;
         rps->m_used[idx_rps] = 0;
+        rps->m_ref[idx_rps] = 0;
     }
 
     memset(rps->delta_poc, 0, MAX_REFS * sizeof(int));
@@ -612,13 +619,19 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
         } else {
             ref_dealt_poc = p->poc - curPoc;
         }
+
+        for (i = 0; i < st_size; i++) {
+            rps->m_ref[i] = (rps->delta_poc[i] == ref_dealt_poc);
+        }
     }
+
     if (lt_size > 0) {
         for ( i = 0; i < lt_size; i++) {
             h265e_dbg_dpb("numLongTermRefPic %d nShortTerm %d", lt_size, st_size);
             rps->poc[i + st_size] = nLongTermRefPicPoc[i];
             rps->m_RealPoc[i + st_size] = nLongTermRefPicRealPoc[i];
             rps->m_used[i + st_size] = 1;
+            rps->m_ref[i + st_size] = p->is_long_term;
             rps->delta_poc[i + st_size] = nLongTermDealtPoc[i];
             rps->check_lt_msb[i + st_size] = isMsbValid[i];
         }
