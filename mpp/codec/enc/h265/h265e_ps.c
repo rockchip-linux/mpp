@@ -298,14 +298,14 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_bLongTermRefsPresent = 0;
     sps->m_TMVPFlagsPresent = codec->tmvp_enable;
     sps->m_useStrongIntraSmoothing = codec->cu_cfg.strong_intra_smoothing_enabled_flag;
-
     if (cpb_info->max_lt_cnt) {
         sps->m_numLongTermRefPicSPS = cpb_info->max_lt_cnt;
         sps->m_bLongTermRefsPresent = 1;
         sps->m_TMVPFlagsPresent = 0;
         codec->tmvp_enable = 0;
+    } else if (cpb_info->max_st_tid) {
+        sps->m_TMVPFlagsPresent = 0;
     }
-
     sps->m_ptl = &vps->m_ptl;
     sps->m_vuiParametersPresentFlag = 1;
     if (sps->m_vuiParametersPresentFlag) {
