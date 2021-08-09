@@ -85,7 +85,7 @@ static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
 
 #define CABAC_TAB_ALIGEND_SIZE          (MPP_ALIGN(27456, SZ_4K))
 #define SPSPPS_ALIGNED_SIZE             (MPP_ALIGN(112 * 64, SZ_4K))
-#define RPS_ALIGEND_SIZE                (MPP_ALIGN(600 * 32, SZ_4K))
+#define RPS_ALIGEND_SIZE                (MPP_ALIGN(400 * 8, SZ_4K))
 #define SCALIST_ALIGNED_SIZE            (MPP_ALIGN(81 * 1360, SZ_4K))
 #define INFO_BUFFER_SIZE                (SPSPPS_ALIGNED_SIZE + RPS_ALIGEND_SIZE + SCALIST_ALIGNED_SIZE)
 #define ALL_BUFFER_SIZE(cnt)            (CABAC_TAB_ALIGEND_SIZE + INFO_BUFFER_SIZE *cnt)
