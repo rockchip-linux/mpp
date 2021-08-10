@@ -38,7 +38,7 @@ static MPP_RET interpret_picture_timing_info(
     RK_U32 num_clock_ts[9] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
     struct h264_vui_t *vui_seq_parameters = NULL;
 
-    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id].vui_seq_parameters);
+    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id]->vui_seq_parameters);
     pic_timing = &(sei_msg->pic_timing);
 
     if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
@@ -167,7 +167,7 @@ static MPP_RET interpret_buffering_period_info(
     }
 
     sei_msg->seq_parameter_set_id = seq_parameter_set_id;
-    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id].vui_seq_parameters);
+    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id]->vui_seq_parameters);
 
     if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
         for (i = 0; i < vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
@@ -266,10 +266,14 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 {
     RK_S32  tmp_byte = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    H264_SEI_t *sei_msg  = &currSlice->p_Cur->sei;
+    H264_SEI_t *sei_msg  = NULL;
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
     RK_U32 next;
 
+    if (!currSlice->p_Cur->sei)
+        currSlice->p_Cur->sei = mpp_calloc(H264_SEI_t, 1);
+
+    sei_msg = currSlice->p_Cur->sei;
     sei_msg->mvc_scalable_nesting_flag = 0;  //init to false
     sei_msg->p_Dec = currSlice->p_Dec;
     do {

@@ -80,6 +80,12 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
         }
         MPP_FREE(p_Cur->strm.nalu_buf);
         MPP_FREE(p_Cur->strm.head_buf);
+
+        for (i = 0; i < MAX_MARKING_TIMES; i++)
+            MPP_FREE(p_Cur->dec_ref_pic_marking_buffer[i]);
+
+        MPP_FREE(p_Cur->subsps);
+        MPP_FREE(p_Cur->sei);
     }
 
 __RETURN:
@@ -124,14 +130,19 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     INP_CHECK(ret, !p_Vid);
 
     for (i = 0; i < MAXSPS; i++) {
-        recycle_subsps(&p_Vid->subspsSet[i]);
+        if (p_Vid->subspsSet[i])
+            recycle_subsps(p_Vid->subspsSet[i]);
+    }
+    for (i = 0; i < MAXSPS; i++) {
+        MPP_FREE(p_Vid->spsSet[i]);
+        MPP_FREE(p_Vid->ppsSet[i]);
+        MPP_FREE(p_Vid->subspsSet[i]);
     }
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         free_dpb(p_Vid->p_Dpb_layer[i]);
         MPP_FREE(p_Vid->p_Dpb_layer[i]);
     }
     free_storable_picture(p_Vid->p_Dec, p_Vid->dec_pic);
-    //free_frame_store(p_Dec, &p_Vid->out_buffer);
     if (p_Vid->pic_st) {
         mpp_mem_pool_deinit(p_Vid->pic_st);
         p_Vid->pic_st = NULL;
@@ -155,26 +166,12 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
         p_Vid->p_Dpb_layer[i]->init_done = 0;
         p_Vid->p_Dpb_layer[i]->poc_interval = 2;
     }
-    //!< init video pars
-    for (i = 0; i < MAXSPS; i++) {
-        p_Vid->spsSet[i].seq_parameter_set_id = 0;
-        p_Vid->subspsSet[i].sps.seq_parameter_set_id = 0;
-    }
-    for (i = 0; i < MAXPPS; i++) {
-        p_Vid->ppsSet[i].pic_parameter_set_id = 0;
-        p_Vid->ppsSet[i].seq_parameter_set_id = 0;
-    }
+
     //!< init active_sps
     p_Vid->active_sps       = NULL;
     p_Vid->active_subsps    = NULL;
     p_Vid->active_sps_id[0] = -1;
     p_Vid->active_sps_id[1] = -1;
-    //!< init subspsSet
-    for (i = 0; i < MAXSPS; i++) {
-        p_Vid->subspsSet[i].sps.seq_parameter_set_id = 0;
-        p_Vid->subspsSet[i].num_views_minus1 = -1;
-        p_Vid->subspsSet[i].num_level_values_signalled_minus1 = -1;
-    }
     p_Vid->pic_st = mpp_mem_pool_init(sizeof(H264_StorePic_t));
 __RETURN:
     return ret = MPP_OK;
@@ -592,7 +589,8 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
     p_err->cur_err_flag  = 0;
     p_err->used_ref_flag = 0;
     p_Dec->is_parser_end = 0;
-    memset(&p_Dec->p_Cur->sei, 0, sizeof(p_Dec->p_Cur->sei));
+    if (p_Dec->p_Cur->sei)
+        memset(p_Dec->p_Cur->sei, 0, sizeof(*p_Dec->p_Cur->sei));
 
     ret = parse_loop(p_Dec);
     if (ret) {

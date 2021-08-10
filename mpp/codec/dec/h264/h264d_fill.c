@@ -302,9 +302,6 @@ MPP_RET fill_slice_syntax(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx)
     p_long->nal_ref_idc = currSlice->nal_reference_idc;
     p_long->profileIdc = currSlice->active_sps->profile_idc;
 
-
-
-
     for (i = 0; i < MPP_ARRAY_ELEMS(p_long->RefPicList[0]); i++) {
         dpb_idx = currSlice->p_Dec->refpic_info_p[i].dpb_idx;
         dpb_valid = currSlice->p_Dec->refpic_info_p[i].valid;

@@ -132,21 +132,23 @@ typedef struct _DXVA_Slice_H264_Long {
     RK_U16  first_mb_in_slice;
     RK_U16  NumMbsForSlice;
 
-    RK_U16  BitOffsetToSliceData; /* after CABAC alignment */
 
     RK_U8   slice_type;
-    RK_U8   luma_log2_weight_denom;
-    RK_U8   chroma_log2_weight_denom;
     RK_U8   num_ref_idx_l0_active_minus1;
     RK_U8   num_ref_idx_l1_active_minus1;
+    DXVA_PicEntry_H264 RefPicList[3][32]; /* L0 & L1 */
+#if 0
+    RK_U16  BitOffsetToSliceData; /* after CABAC alignment */
+    RK_U8   luma_log2_weight_denom;
+    RK_U8   chroma_log2_weight_denom;
     RK_S8   slice_alpha_c0_offset_div2;
     RK_S8   slice_beta_offset_div2;
     RK_U8   Reserved8Bits;
-    DXVA_PicEntry_H264 RefPicList[3][32]; /* L0 & L1 */
     RK_S16  Weights[2][32][3][2]; /* L0 & L1; Y, Cb, Cr */
     RK_S8   slice_qs_delta;
     /* rest off-host parse */
     RK_S8   slice_qp_delta;
+#endif
     RK_U8   redundant_pic_cnt;
     RK_U8   direct_spatial_mv_pred_flag;
     RK_U8   cabac_init_idc;

@@ -181,7 +181,9 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
         if (pSlice->adaptive_ref_pic_buffering_flag) {
             RK_U32 i = 0;
             do { //!< read Memory Management Control Operation
-                tmp_drpm = &pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
+                if (!pSlice->p_Cur->dec_ref_pic_marking_buffer[i])
+                    pSlice->p_Cur->dec_ref_pic_marking_buffer[i] = mpp_calloc(H264_DRPM_t, 1);
+                tmp_drpm = pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
                 tmp_drpm->Next = NULL;
                 READ_UE(p_bitctx, &val); //!< mmco
                 tmp_drpm->memory_management_control_operation = val;
@@ -329,30 +331,30 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     //!< use parameter set
     if (currSlice->pic_parameter_set_id >= 0 &&
         currSlice->pic_parameter_set_id < MAXPPS) {
-        cur_pps = &p_Vid->ppsSet[currSlice->pic_parameter_set_id];
+        cur_pps = p_Vid->ppsSet[currSlice->pic_parameter_set_id];
         cur_pps = (cur_pps && cur_pps->Valid) ? cur_pps : NULL;
     }
     VAL_CHECK(ret, cur_pps != NULL);
 
     if (currSlice->mvcExt.valid) {
-        cur_sps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id].sps;
-        cur_subsps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
+        cur_subsps = p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
+        cur_sps = &cur_subsps->sps;
         if (cur_subsps->Valid) {
             if ((RK_S32)currSlice->mvcExt.view_id == cur_subsps->view_id[0]) { // combine subsps to sps
                 p_Vid->active_mvc_sps_flag = 0;
                 cur_subsps = NULL;
-                cur_sps = &p_Vid->spsSet[cur_pps->seq_parameter_set_id];
+                cur_sps = p_Vid->spsSet[cur_pps->seq_parameter_set_id];
             } else if ((RK_S32)currSlice->mvcExt.view_id == cur_subsps->view_id[1]) {
                 p_Vid->active_mvc_sps_flag = 1;
             }
         } else {
             p_Vid->active_mvc_sps_flag = 0;
-            cur_sps = &p_Vid->spsSet[cur_pps->seq_parameter_set_id];
+            cur_sps = p_Vid->spsSet[cur_pps->seq_parameter_set_id];
             cur_subsps = NULL;
         }
     } else {
         p_Vid->active_mvc_sps_flag = 0;
-        cur_sps = &p_Vid->spsSet[cur_pps->seq_parameter_set_id];
+        cur_sps = p_Vid->spsSet[cur_pps->seq_parameter_set_id];
         cur_subsps = NULL;
     }
 
@@ -383,7 +385,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
      */
     if (p_Vid->p_Dec->mvc_valid) {
         struct h264_subsps_t *active_subsps = NULL;
-        active_subsps = &p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
+        active_subsps = p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
         if (active_subsps->Valid)
             p_Vid->active_subsps = active_subsps;
         else
