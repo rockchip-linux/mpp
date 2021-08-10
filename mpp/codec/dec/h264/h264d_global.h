@@ -121,7 +121,6 @@ if ((val) < 0) {\
 }} while (0)
 
 
-
 #define START_PREFIX_3BYTE        3
 #define MAX_NUM_DPB_LAYERS        2    //!< must >= 2
 #define MAX_LIST_SIZE             33   //!< for init list reorder
@@ -942,10 +941,10 @@ typedef struct h264d_curstrm_t {
 //!< current parameters
 typedef struct h264d_cur_ctx_t {
     struct h264_sps_t        sps;
-    struct h264_subsps_t     subsps;
+    struct h264_subsps_t     *subsps;
     struct h264_pps_t        pps;
     struct h264_prefix_t     prefix;
-    struct h264_sei_t        sei;
+    struct h264_sei_t        *sei;
     struct h264_nalu_t       nalu;
     struct bitread_ctx_t     bitctx; //!< for control bit_read
     struct h264d_curstrm_t   strm;
@@ -967,14 +966,14 @@ typedef struct h264d_cur_ctx_t {
     RK_S32                    long_term_pic_idx[2][MAX_REORDER_TIMES];
     RK_S32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
 
-    struct h264_drpm_t        dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
+    struct h264_drpm_t        *dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
 } H264dCurCtx_t;
 
 //!< parameters for video decoder
 typedef struct h264d_video_ctx_t {
-    struct h264_sps_t            spsSet[MAXSPS];      //!< MAXSPS, all sps storage
-    struct h264_subsps_t         subspsSet[MAXSPS];   //!< MAXSPS, all subpps storage
-    struct h264_pps_t            ppsSet[MAXPPS];      //!< MAXPPS, all pps storage
+    struct h264_sps_t            *spsSet[MAXSPS];      //!< MAXSPS, all sps storage
+    struct h264_subsps_t         *subspsSet[MAXSPS];   //!< MAXSPS, all subpps storage
+    struct h264_pps_t            *ppsSet[MAXPPS];      //!< MAXPPS, all pps storage
     struct h264_sps_t            *active_sps;
     struct h264_subsps_t         *active_subsps;
     struct h264_pps_t            *active_pps;
@@ -990,7 +989,7 @@ typedef struct h264d_video_ctx_t {
     struct h264_dpb_mark_t       *active_dpb_mark[MAX_NUM_DPB_LAYERS];  //!< acitve_dpb_memory
 
     struct h264_store_pic_t      old_pic;
-    struct h264_old_slice_par_t  old_slice;
+
     RK_S32    *qmatrix[12];  //!< scanlist pointer
     RK_U32    stream_size;
     RK_S32    last_toppoc[MAX_NUM_DPB_LAYERS];

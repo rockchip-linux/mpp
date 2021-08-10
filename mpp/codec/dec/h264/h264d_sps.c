@@ -267,8 +267,8 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     }
     READ_ONEBIT(p_bitctx, &cur_sps->vui_parameters_present_flag);
 
-    init_VUI(&cur_sps->vui_seq_parameters);
     if (cur_sps->vui_parameters_present_flag) {
+        init_VUI(&cur_sps->vui_seq_parameters);
         ret = read_VUI(p_bitctx, &cur_sps->vui_seq_parameters);
     }
     cur_sps->Valid = 1;
@@ -455,7 +455,11 @@ MPP_RET process_sps(H264_SLICE_t *currSlice)
     FUN_CHECK(ret = get_max_dec_frame_buf_size(cur_sps));
     //!< make SPS available, copy
     if (cur_sps->Valid) {
-        memcpy(&currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id], cur_sps, sizeof(H264_SPS_t));
+        if (!currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id]) {
+            currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id] = mpp_calloc(H264_SPS_t, 1);
+        }
+        memcpy(currSlice->p_Vid->spsSet[cur_sps->seq_parameter_set_id],
+               cur_sps, sizeof(H264_SPS_t));
     }
     p_Cur->p_Vid->spspps_update = 1;
 
@@ -517,9 +521,13 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     BitReadCtx_t *p_bitctx = &currSlice->p_Cur->bitctx;
-    H264_subSPS_t *cur_subsps = &currSlice->p_Cur->subsps;
+    H264_subSPS_t *cur_subsps = NULL;
     H264_subSPS_t *p_subset = NULL;
 
+    if (!currSlice->p_Cur->subsps)
+        currSlice->p_Cur->subsps = mpp_calloc(H264_subSPS_t, 1);
+
+    cur_subsps = currSlice->p_Cur->subsps;
     reset_cur_subpps_data(cur_subsps); //reset
 
     FUN_CHECK(ret = parser_sps(p_bitctx, &cur_subsps->sps, currSlice->p_Dec));
@@ -530,7 +538,9 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
     }
     get_max_dec_frame_buf_size(&cur_subsps->sps);
     //!< make subSPS available
-    p_subset = &currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id];
+    if (!currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id])
+        currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id] = mpp_malloc(H264_subSPS_t, 1);
+    p_subset = currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id];
     if (p_subset->Valid) {
         recycle_subsps(p_subset);
     }
@@ -538,7 +548,7 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    recycle_subsps(&currSlice->p_Cur->subsps);
+    recycle_subsps(currSlice->p_Cur->subsps);
 
     return ret;
 }
