@@ -38,6 +38,7 @@ typedef struct JpegdHalCtx {
     MppBufSlots            packet_slots;
     MppBufSlots            frame_slots;
     MppDev                 dev;
+    MppClientType          dev_type;
     void                   *regs;
     MppBufferGroup         group;
     MppBuffer              frame_buf;

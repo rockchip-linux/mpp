@@ -759,9 +759,10 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
 
     //configure
     JpegHalCtx->packet_slots = cfg->packet_slots;
-    JpegHalCtx->frame_slots = cfg->frame_slots;
+    JpegHalCtx->frame_slots  = cfg->frame_slots;
+    JpegHalCtx->dev_type     = VPU_CLIENT_VDPU2;
 
-    ret = mpp_dev_init(&JpegHalCtx->dev, VPU_CLIENT_VDPU2);
+    ret = mpp_dev_init(&JpegHalCtx->dev, JpegHalCtx->dev_type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
@@ -884,24 +885,14 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer outputBuf = NULL;
 
     ret = jpeg_image_check_size(syntax->hor_stride, syntax->ver_stride);
-
-    if (ret != MPP_OK)
-        return ret;
+    if (ret)
+        goto RET;
 
     if (syn->dec.valid) {
-        syn->dec.valid = 0;
-        jpegd_setup_output_fmt(JpegHalCtx, syntax, syn->dec.output);
-
-        if (JpegHalCtx->set_output_fmt_flag && (NULL != JpegHalCtx->dev)) {
-            mpp_dev_deinit(JpegHalCtx->dev);
-
-            ret = mpp_dev_init(&JpegHalCtx->dev, VPU_CLIENT_VDPU2_PP);
-            if (ret) {
-                mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-                return ret;
-            }
-
-            jpegd_dbg_hal("mpp_dev_init success.\n");
+        ret = jpegd_setup_output_fmt(JpegHalCtx, syntax, syn->dec.output);
+        if (ret) {
+            mpp_err_f("setup output format %x failed\n", syntax->output_fmt);
+            goto RET;
         }
 
         /* input stream address */
@@ -916,13 +907,15 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
         JpegHalCtx->frame_fd = mpp_buffer_get_fd(outputBuf);
 
         ret = jpegd_gen_regs(JpegHalCtx, syntax);
-        if (ret != MPP_OK) {
+        if (ret) {
             mpp_err_f("generate registers failed\n");
-            return ret;
+            goto RET;
         }
-
-        syn->dec.valid = 1;
     }
+
+RET:
+    if (ret)
+        syn->dec.valid = 0;
 
     jpegd_dbg_func("exit\n");
     return ret;
