@@ -411,6 +411,21 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         p->req_cnt++;
     }
 
+    if (p->info_count) {
+        if (p->support_set_info) {
+            MppReqV1 *mpp_req = &p->reqs[p->req_cnt];;
+
+            mpp_req->cmd = MPP_CMD_SEND_CODEC_INFO;
+            mpp_req->flag = 0;
+            mpp_req->size = p->info_count * sizeof(p->info[0]);
+            mpp_req->offset = 0;
+            mpp_req->data_ptr = REQ_DATA_PTR(p->info);
+
+            p->req_cnt++;
+        }
+        p->info_count = 0;
+    }
+
     /* setup flag for multi message request */
     if (p->req_cnt > 1) {
         RK_S32 i;
@@ -431,25 +446,6 @@ MPP_RET mpp_service_cmd_send(void *ctx)
                       ret, errno, strerror(errno));
             ret = errno;
         }
-    }
-
-    if (p->info_count) {
-        if (p->support_set_info) {
-            MppReqV1 req;
-
-            req.cmd = MPP_CMD_SEND_CODEC_INFO;
-            req.flag = 0;
-            req.size = p->info_count * sizeof(p->info[0]);
-            req.offset = 0;
-            req.data_ptr = REQ_DATA_PTR(p->info);
-
-            ret = mpp_service_ioctl_request(p->client, &req);
-            if (ret) {
-                p->support_set_info = 0;
-                ret = MPP_OK;
-            }
-        }
-        p->info_count = 0;
     }
 
     p->req_cnt = 0;
