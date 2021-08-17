@@ -1180,9 +1180,10 @@ static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 
     const char* soc_name = NULL;
     soc_name = mpp_get_soc_name();
-    if (soc_name && (strstr(soc_name, "1108") || strstr(soc_name, "3566"))) {
-        /* rv1108: no need to copy stream when decoding jpeg;
-         *         just scan parts of markers to reduce CPU's occupancy
+    if (soc_name && (strstr(soc_name, "1108") || strstr(soc_name, "356"))) {
+        /*
+         * no need to copy stream when decoding jpeg;
+         * just scan parts of markers to reduce CPU's occupancy
          */
         JpegCtx->copy_flag = 0;
     } else {
