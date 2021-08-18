@@ -39,6 +39,7 @@ typedef struct JpegdHalCtx {
     MppBufSlots            frame_slots;
     MppDev                 dev;
     MppClientType          dev_type;
+    RK_U32                 codec_type;
     void                   *regs;
     MppBufferGroup         group;
     MppBuffer              frame_buf;
@@ -55,6 +56,7 @@ typedef struct JpegdHalCtx {
     RK_S32                 pkt_fd;    /* input stream's physical address(fd) */
     RK_S32                 frame_fd;  /* output picture's physical address(fd) */
 
+    RK_U32                 have_pp;
     PPInfo                 pp_info;
 } JpegdHalCtx;
 

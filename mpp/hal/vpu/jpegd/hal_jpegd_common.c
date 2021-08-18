@@ -432,6 +432,15 @@ void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
     return;
 }
 
+void jpegd_check_have_pp(JpegdHalCtx *ctx)
+{
+    ctx->codec_type = mpp_get_vcodec_type();
+    ctx->have_pp = ((ctx->dev_type == VPU_CLIENT_VDPU1) &&
+                    (ctx->codec_type & (1 << VPU_CLIENT_VDPU1_PP))) ||
+                   ((ctx->dev_type == VPU_CLIENT_VDPU2) &&
+                    (ctx->codec_type & (1 << VPU_CLIENT_VDPU2_PP)));
+}
+
 MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 {
     jpegd_dbg_func("enter\n");
@@ -442,7 +451,8 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
     MppFrame frm = NULL;
     MPP_RET ret = MPP_OK;
 
-    if (ctx->set_output_fmt_flag && (ctx->output_fmt != s->output_fmt)) {
+    if (ctx->have_pp && ctx->set_output_fmt_flag &&
+        ctx->output_fmt != s->output_fmt) {
         MppFrameFormat fmt = MPP_FMT_BUTT;
 
         /* Using pp to convert all format to yuv420sp */
