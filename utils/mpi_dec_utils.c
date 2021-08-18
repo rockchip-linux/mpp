@@ -198,7 +198,7 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
     const char *next;
     RK_S32 optindex = 1;
     RK_S32 handleoptions = 1;
-    RK_S32 err = MPP_NOK;
+    RK_S32 err = MPP_OK;
 
     if ((argc < 2) || (cmd == NULL)) {
         err = 1;
@@ -296,10 +296,15 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
             case 'f' : {
                 if (next) {
                     cmd->format = (MppFrameFormat)atoi(next);
+
+                    if (!MPP_FRAME_FMT_IS_YUV(cmd->format) &&
+                        !MPP_FRAME_FMT_IS_RGB(cmd->format))
+                        err = 1;
                 }
 
                 if (!next || err) {
-                    mpp_err("invalid input coding type\n");
+                    mpp_err("invalid output format\n");
+                    cmd->format = MPP_FMT_BUTT;
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
