@@ -779,13 +779,17 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
         JpegHalCtx->output_fmt = *((MppFrameFormat *)param);
         JpegHalCtx->set_output_fmt_flag = 1;
         jpegd_dbg_hal("output_format:%d\n", JpegHalCtx->output_fmt);
+
+        if (!MPP_FRAME_FMT_IS_YUV(JpegHalCtx->output_fmt) && !MPP_FRAME_FMT_IS_RGB(JpegHalCtx->output_fmt)) {
+            mpp_err_f("output format %d is invalid.\n", JpegHalCtx->output_fmt);
+            ret = MPP_ERR_VALUE;
+        }
     } break;
     //TODO support scale and tile output
     default :
-        ret = MPP_NOK;
         break;
     }
 
-    jpegd_dbg_func("exit\n");
+    jpegd_dbg_func("exit ret %d\n", ret);
     return ret;
 }

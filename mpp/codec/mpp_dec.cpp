@@ -348,7 +348,11 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     MPP_RET ret = MPP_OK;
 
     mpp_parser_control(dec->parser, cmd, param);
-    mpp_hal_control(dec->hal, cmd, param);
+
+    ret = mpp_hal_control(dec->hal, cmd, param);
+
+    if (ret)
+        goto RET;
 
     switch (cmd) {
     case MPP_DEC_SET_FRAME_INFO : {
@@ -423,6 +427,7 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     } break;
     }
 
+RET:
     return ret;
 }
 

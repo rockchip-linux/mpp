@@ -664,8 +664,13 @@ int dec_decode(MpiDecTestCmd *cmd)
         }
     } else {
         /* NOTE: change output format before jpeg decoding */
-        if (cmd->format < MPP_FMT_BUTT)
+        if (MPP_FRAME_FMT_IS_YUV(cmd->format) || MPP_FRAME_FMT_IS_RGB(cmd->format)) {
             ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
+            if (ret) {
+                mpp_err("Failed to set output format %d\n", cmd->format);
+                goto MPP_TEST_OUT;
+            }
+        }
 
         while (!data.eos) {
             dec_advanced(&data);
