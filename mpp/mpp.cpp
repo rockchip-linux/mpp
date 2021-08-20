@@ -378,6 +378,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         goto RET;
     }
 
+    mpp_ops_dec_put_pkt(mDump, packet);
+
     /* enqueue valid task to decoder */
     ret = enqueue(MPP_PORT_INPUT, task_dequeue);
     if (ret) {
