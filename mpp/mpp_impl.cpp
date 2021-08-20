@@ -322,7 +322,7 @@ MPP_RET mpp_ops_init(MppDump info, MppCtxType type, MppCodingType coding)
 MPP_RET mpp_ops_dec_put_pkt(MppDump info, MppPacket pkt)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
-    if (NULL == p || NULL == pkt)
+    if (NULL == p || NULL == pkt || NULL == p->fp_in)
         return MPP_OK;
 
     RK_U32 length = mpp_packet_get_length(pkt);
