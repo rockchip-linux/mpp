@@ -38,6 +38,10 @@ static MPP_RET interpret_picture_timing_info(
     RK_U32 num_clock_ts[9] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
     struct h264_vui_t *vui_seq_parameters = NULL;
 
+    if (!p_videoctx->spsSet[sei_msg->seq_parameter_set_id]) {
+        H264D_ERR("seq_parameter_set_id %d may be invalid\n", sei_msg->seq_parameter_set_id);
+        goto __BITREAD_ERR;
+    }
     vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id]->vui_seq_parameters);
     pic_timing = &(sei_msg->pic_timing);
 
@@ -162,7 +166,8 @@ static MPP_RET interpret_buffering_period_info(
 
     READ_UE(p_bitctx, &seq_parameter_set_id);
 
-    if (seq_parameter_set_id > 31) {
+    if (seq_parameter_set_id > 31 || !p_videoctx->spsSet[seq_parameter_set_id]) {
+        H264D_ERR("seq_parameter_set_id %d may be invalid\n", seq_parameter_set_id);
         goto __BITREAD_ERR;
     }
 
