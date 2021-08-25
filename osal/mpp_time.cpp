@@ -241,7 +241,7 @@ static void *mpp_timer_thread(void *ctx)
 
     // last expire time
     ts.it_interval.tv_sec = impl->interval / 1000;
-    ts.it_interval.tv_nsec = (impl->interval % 1000) * 1000;
+    ts.it_interval.tv_nsec = (impl->interval % 1000) * 1000 * 1000;
 
     ret = timerfd_settime(timer_fd, 0, &ts, NULL);
     if (ret < 0) {
