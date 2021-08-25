@@ -255,8 +255,8 @@ void h265e_slice_init(void *ctx, EncFrmStatus curr)
         slice->m_deblockingFilterBetaOffsetDiv2 = pps->m_deblockingFilterBetaOffsetDiv2;
         slice->m_deblockingFilterTcOffsetDiv2 = pps->m_deblockingFilterTcOffsetDiv2;
     }
-    slice->m_saoEnabledFlag = codec->sao_cfg.slice_sao_luma_flag;
-    slice->m_saoEnabledFlagChroma = codec->sao_cfg.slice_sao_chroma_flag;
+    slice->m_saoEnabledFlag = !codec->sao_cfg.slice_sao_luma_disable;
+    slice->m_saoEnabledFlagChroma = !codec->sao_cfg.slice_sao_chroma_disable;
     slice->m_maxNumMergeCand = codec->merge_cfg.max_mrg_cnd;
     slice->m_cabacInitFlag = codec->entropy_cfg.cabac_init_flag;
     slice->m_picOutputFlag = 1;
