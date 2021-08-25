@@ -95,8 +95,8 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 
     h265->slice_cfg.split_enable = 0;
     h265->entropy_cfg.cabac_init_flag = 1;
-    h265->sao_cfg.slice_sao_chroma_flag = 1;
-    h265->sao_cfg.slice_sao_luma_flag = 1;
+    h265->sao_cfg.slice_sao_chroma_disable = 0;
+    h265->sao_cfg.slice_sao_luma_disable = 0;
     h265->dblk_cfg.slice_deblocking_filter_disabled_flag = 0;
     h265->cu_cfg.strong_intra_smoothing_enabled_flag = 1;
     h265->merge_cfg.max_mrg_cnd = 2;
@@ -432,6 +432,10 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
 
     if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
         memcpy(&dst->vui, &src->vui, sizeof(src->vui));
+    }
+
+    if (change & MPP_ENC_H265_CFG_SAO_CHANGE) {
+        memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
     }
 
     /*

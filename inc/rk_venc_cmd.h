@@ -881,8 +881,8 @@ typedef struct MppEncH265DblkCfg_t {
 } MppEncH265DblkCfg_t;
 
 typedef struct MppEncH265SaoCfg_t {
-    RK_U32  slice_sao_luma_flag;
-    RK_U32  slice_sao_chroma_flag;
+    RK_U32  slice_sao_luma_disable;
+    RK_U32  slice_sao_chroma_disable;
 } MppEncH265SaoCfg;
 
 typedef struct MppEncH265TransCfg_t {

@@ -211,6 +211,8 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(h265, qp_max_i,       S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_max_i) \
     ENTRY(h265, qp_step,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
     ENTRY(h265, qp_delta_ip,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
+    ENTRY(h265, sao_luma_disable,   S32, RK_S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_luma_disable) \
+    ENTRY(h265, sao_chroma_disable, S32, RK_S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_chroma_disable) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
@@ -251,7 +253,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 73;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 61;
 
 class MppEncCfgService
 {
