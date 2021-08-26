@@ -23,6 +23,7 @@
 #include "mpp_env.h"
 #include "mpp_common.h"
 #include "mpp_mem.h"
+#include "mpp_2str.h"
 
 #include "jpege_debug.h"
 #include "jpege_api_v2.h"
@@ -87,7 +88,7 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
         rc->fps_out_flex = 0;
         rc->fps_out_num = 30;
         rc->fps_out_denorm = 1;
-        rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+        rc->rc_mode = MPP_ENC_RC_MODE_VBR;
         /* init default quant */
         jpeg_cfg->quant = 10;
     }
@@ -299,7 +300,7 @@ static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
     return ret;
 }
 
-static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
+static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src, MppEncRcCfg *rc)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = src->change;
@@ -312,6 +313,12 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
             if (dst->quant < 0 || dst->quant > 10) {
                 mpp_err_f("invalid quality level %d is not in range [0..10] set to default 8\n");
                 dst->quant = 8;
+            }
+
+            if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+                mpp_log("setup quant %d change mode %s fixqp", dst->quant,
+                        strof_rc_mode(rc->rc_mode));
+                rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
             }
         } else if (change & MPP_ENC_JPEG_CFG_CHANGE_QFACTOR) {
             if (src->q_factor < 1 || src->q_factor > 99) {
@@ -364,6 +371,12 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src)
                 /* default use one chroma qtable, select qtable_u */
                 memcpy(dst->qtable_y, src->qtable_y, QUANTIZE_TABLE_SIZE);
                 memcpy(dst->qtable_u, src->qtable_u, QUANTIZE_TABLE_SIZE);
+
+                if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+                    mpp_log("setup qtable will change mode %s fixqp", dst->quant,
+                            strof_rc_mode(rc->rc_mode));
+                    rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+                }
             } else {
                 mpp_err_f("invalid qtable y %p u %p v %p\n",
                           src->qtable_y, src->qtable_u, src->qtable_v);
@@ -426,7 +439,7 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             src->rc.change = 0;
         }
         if (src->codec.jpeg.change) {
-            ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg);
+            ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg, &cfg->rc);
             src->codec.jpeg.change = 0;
         }
         if (src->split.change) {
@@ -442,7 +455,7 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-        ret = jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &codec->jpeg);
+        ret = jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &codec->jpeg, &cfg->rc);
     } break;
     case MPP_ENC_SET_IDR_FRAME :
     case MPP_ENC_SET_OSD_PLT_CFG :
