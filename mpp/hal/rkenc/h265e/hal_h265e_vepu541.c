@@ -596,6 +596,9 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
             thd[i]  = hw->aq_thrd_i[i];
             step[i] = hw->aq_step_i[i] & 0x3f;
         }
+
+        regs->rdo_quant.quant_f_bias_I = 171;
+        regs->rdo_quant.quant_f_bias_P = 85;
     } else {
         RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
         RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
