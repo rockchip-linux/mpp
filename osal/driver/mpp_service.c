@@ -387,6 +387,22 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         return MPP_ERR_VALUE;
     }
 
+    if (p->info_count) {
+        if (p->support_set_info) {
+            MppReqV1 mpp_req;
+
+            mpp_req.cmd = MPP_CMD_SEND_CODEC_INFO;
+            mpp_req.flag = MPP_FLAGS_LAST_MSG;
+            mpp_req.size = p->info_count * sizeof(p->info[0]);
+            mpp_req.offset = 0;
+            mpp_req.data_ptr = REQ_DATA_PTR(p->info);
+            ret = mpp_service_ioctl_request(p->server, &mpp_req);
+            if (ret)
+                p->support_set_info = 0;
+        }
+        p->info_count = 0;
+    }
+
     /* set fd trans info if needed */
     if (p->reg_offset_count) {
         MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
@@ -409,21 +425,6 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         mpp_req->offset = 0;
         mpp_req->data_ptr = REQ_DATA_PTR(&p->rcb_info[0]);
         p->req_cnt++;
-    }
-
-    if (p->info_count) {
-        if (p->support_set_info) {
-            MppReqV1 *mpp_req = &p->reqs[p->req_cnt];;
-
-            mpp_req->cmd = MPP_CMD_SEND_CODEC_INFO;
-            mpp_req->flag = 0;
-            mpp_req->size = p->info_count * sizeof(p->info[0]);
-            mpp_req->offset = 0;
-            mpp_req->data_ptr = REQ_DATA_PTR(p->info);
-
-            p->req_cnt++;
-        }
-        p->info_count = 0;
     }
 
     /* setup flag for multi message request */

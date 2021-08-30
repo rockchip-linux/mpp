@@ -587,7 +587,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 
     reg->reg41.sw_pp_pipeline_e = ctx->pp_info.pp_enable;
 
-    mpp_log_f("pp_enable %d\n", ctx->pp_info.pp_enable);
+    jpegd_dbg_hal("pp_enable %d\n", ctx->pp_info.pp_enable);
 
     if (ctx->pp_info.pp_enable) {
         reg->reg41.sw_pp_pipeline_e = 1;
