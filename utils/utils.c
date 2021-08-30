@@ -28,6 +28,9 @@ void _show_options(int count, OptionInfo *options)
 {
     int i;
     for (i = 0; i < count; i++) {
+        if (NULL == options[i].name)
+            continue;
+
         mpp_log("-%s  %-16s\t%s\n",
                 options[i].name, options[i].argname, options[i].help);
     }
