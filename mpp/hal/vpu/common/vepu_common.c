@@ -307,7 +307,7 @@ MPP_RET get_vepu_offset_cfg(VepuOffsetCfg *cfg)
         case MPP_FMT_YUV422_YUYV :
         case MPP_FMT_YUV422_UYVY : {
             mpp_assert((offset_x & 1) == 0);
-            cfg->offset_byte[0] = offset_y * hor_stride + offset_x * 4;
+            cfg->offset_byte[0] = offset_y * hor_stride + offset_x * 2;
         } break;
         case MPP_FMT_RGB565 :
         case MPP_FMT_BGR565 :
