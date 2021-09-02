@@ -148,7 +148,7 @@ MPP_RET hal_h265d_flush(void *ctx)
 
 MPP_RET hal_h265d_control(void *ctx, MpiCmd cmd, void *param)
 {
-    MPP_RET ret = MPP_NOK;
+    MPP_RET ret = MPP_OK;
     HalH265dCtx *p = (HalH265dCtx *)ctx;
 
     if (p && p->api && p->api->control)
