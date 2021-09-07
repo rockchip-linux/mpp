@@ -407,8 +407,8 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_deblockingFilterControlPresentFlag = !codec->dblk_cfg.slice_deblocking_filter_disabled_flag;
     if (pps->m_deblockingFilterControlPresentFlag) {
         pps->m_deblockingFilterOverrideEnabledFlag = 0;
-        pps->m_picDisableDeblockingFilterFlag = (!!codec->dblk_cfg.slice_beta_offset_div2) ||
-                                                (!!codec->dblk_cfg.slice_tc_offset_div2);
+        pps->m_picDisableDeblockingFilterFlag = (!codec->dblk_cfg.slice_beta_offset_div2) &&
+                                                (!codec->dblk_cfg.slice_tc_offset_div2);
         if (!pps->m_picDisableDeblockingFilterFlag) {
             pps->m_deblockingFilterBetaOffsetDiv2 = codec->dblk_cfg.slice_beta_offset_div2;
             pps->m_deblockingFilterTcOffsetDiv2 = codec->dblk_cfg.slice_tc_offset_div2;
