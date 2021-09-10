@@ -72,7 +72,7 @@ typedef struct MppDecVprocCtxImpl_t {
     MppFrame            prev_frm1;
 } MppDecVprocCtxImpl;
 
-static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts)
+static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts, RK_U32 err)
 {
     mpp_list *list = mpp->mFrames;
     MppFrame out = NULL;
@@ -80,6 +80,7 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
 
     mpp_frame_init(&out);
     mpp_frame_copy(out, frame);
+    mpp_frame_set_errinfo(out, err);
     impl = (MppFrameImpl *)out;
     if (pts >= 0)
         impl->pts = pts;
@@ -221,6 +222,7 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
     MppBuffer dst1 = NULL;
     int fd = -1;
     size_t buf_size = mpp_buffer_get_size(buf);
+    RK_U32 frame_err = 0;
 
     // setup source IepImg
     dec_vproc_set_img_fmt(&img, frm);
@@ -247,7 +249,8 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
         buf = mpp_frame_get_buffer(ctx->prev_frm0);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
-
+        frame_err = mpp_frame_get_errinfo(ctx->prev_frm0) ||
+                    mpp_frame_get_discard(ctx->prev_frm0);
         // setup dst 0
         dst0 = dec_vproc_get_buffer(group, buf_size);
         mpp_assert(dst0);
@@ -257,7 +260,8 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
         buf = mpp_frame_get_buffer(frm);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC1);
-
+        frame_err |= mpp_frame_get_errinfo(frm) ||
+                     mpp_frame_get_discard(frm);
         // setup dst 1
         dst1 = dec_vproc_get_buffer(group, buf_size);
         mpp_assert(dst1);
@@ -274,11 +278,11 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
 
         // NOTE: we need to process pts here
         if (mode & MPP_FRAME_FLAG_TOP_FIRST) {
-            dec_vproc_put_frame(mpp, frm, dst0, first_pts);
-            dec_vproc_put_frame(mpp, frm, dst1, curr_pts);
+            dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
+            dec_vproc_put_frame(mpp, frm, dst1, curr_pts, frame_err);
         } else {
-            dec_vproc_put_frame(mpp, frm, dst1, first_pts);
-            dec_vproc_put_frame(mpp, frm, dst0, curr_pts);
+            dec_vproc_put_frame(mpp, frm, dst1, first_pts, frame_err);
+            dec_vproc_put_frame(mpp, frm, dst0, curr_pts, frame_err);
         }
     } else {
         // 2 in 1 out case
@@ -286,6 +290,8 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
         buf = mpp_frame_get_buffer(frm);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
+        frame_err = mpp_frame_get_errinfo(frm) ||
+                    mpp_frame_get_discard(frm);
 
         // setup dst 0
         dst0 = dec_vproc_get_buffer(group, buf_size);
@@ -299,7 +305,7 @@ static void dec_vproc_set_dei_v1(MppDecVprocCtxImpl *ctx, MppFrame frm)
 
         // start hardware
         dec_vproc_start_dei(ctx, mode);
-        dec_vproc_put_frame(mpp, frm, dst0, -1);
+        dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
     }
 }
 
@@ -316,6 +322,7 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
     int fd = -1;
     size_t buf_size = mpp_buffer_get_size(buf);
     iep_com_ops *ops = ctx->com_ctx->ops;
+    RK_U32 frame_err = 0;
 
     // setup source IepImg
     dec_vproc_set_img_fmt(&img, frm);
@@ -334,14 +341,20 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         buf = mpp_frame_get_buffer(ctx->prev_frm0);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
+        frame_err = mpp_frame_get_errinfo(ctx->prev_frm0) ||
+                    mpp_frame_get_discard(ctx->prev_frm0);
 
         buf = mpp_frame_get_buffer(frm);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC1);
+        frame_err |= mpp_frame_get_errinfo(frm) ||
+                     mpp_frame_get_discard(frm);
 
         buf = mpp_frame_get_buffer(ctx->prev_frm1);
         fd = mpp_buffer_get_fd(buf);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC2);
+        frame_err |= mpp_frame_get_errinfo(ctx->prev_frm1) ||
+                     mpp_frame_get_discard(ctx->prev_frm0);
 
         // setup dst 0
         dst0 = dec_vproc_get_buffer(group, buf_size);
@@ -381,11 +394,11 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
 
         // NOTE: we need to process pts here
         if (mode & MPP_FRAME_FLAG_TOP_FIRST) {
-            dec_vproc_put_frame(mpp, frm, dst0, first_pts);
-            dec_vproc_put_frame(mpp, frm, dst1, curr_pts);
+            dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
+            dec_vproc_put_frame(mpp, frm, dst1, curr_pts, frame_err);
         } else {
-            dec_vproc_put_frame(mpp, frm, dst1, first_pts);
-            dec_vproc_put_frame(mpp, frm, dst0, curr_pts);
+            dec_vproc_put_frame(mpp, frm, dst1, first_pts, frame_err);
+            dec_vproc_put_frame(mpp, frm, dst0, curr_pts, frame_err);
         }
     } else {
         struct iep2_api_params params;
@@ -397,6 +410,9 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_SRC);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC1);
         dec_vproc_set_img(ctx, &img, fd, IEP_CMD_SET_DEI_SRC2);
+
+        frame_err = mpp_frame_get_errinfo(frm) ||
+                    mpp_frame_get_discard(frm);
 
         // setup dst 0
         dst0 = dec_vproc_get_buffer(group, buf_size);
@@ -421,7 +437,7 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
 
         // start hardware
         dec_vproc_start_dei(ctx, mode);
-        dec_vproc_put_frame(mpp, frm, dst0, -1);
+        dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
     }
 }
 
@@ -486,7 +502,7 @@ static void *dec_vproc_thread(void *data)
 
                 mpp_frame_init(&frm);
                 mpp_frame_set_eos(frm, eos);
-                dec_vproc_put_frame(mpp, frm, NULL, -1);
+                dec_vproc_put_frame(mpp, frm, NULL, -1, 0);
                 dec_vproc_clr_prev(ctx);
                 mpp_frame_deinit(&frm);
 
@@ -498,7 +514,7 @@ static void *dec_vproc_thread(void *data)
 
             if (change) {
                 vproc_dbg_status("info change\n");
-                dec_vproc_put_frame(mpp, frm, NULL, -1);
+                dec_vproc_put_frame(mpp, frm, NULL, -1, 0);
                 dec_vproc_clr_prev(ctx);
 
                 hal_task_hnd_set_status(task, TASK_IDLE);
