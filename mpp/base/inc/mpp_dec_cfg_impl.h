@@ -26,4 +26,6 @@ typedef struct MppDecCfgImpl_t {
     MppDecCfgSet        cfg;
 } MppDecCfgImpl;
 
+void mpp_dec_cfg_set_default(MppDecCfgSet *cfg);
+
 #endif /*__MPP_DEC_CFG_IMPL_H__*/
