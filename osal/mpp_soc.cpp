@@ -781,10 +781,8 @@ RK_U32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding)
         cap = MppSocService::get()->get_dec_cap();
     else if (type == MPP_CTX_ENC)
         cap = MppSocService::get()->get_enc_cap();
-    else {
-        mpp_err_f("invalid ctx type %d\n", type);
+    else
         return 0;
-    }
 
     if (!cap)
         return 0;
