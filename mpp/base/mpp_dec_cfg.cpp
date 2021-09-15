@@ -150,6 +150,10 @@ static const char *dec_cfg_func_names[] = {
 
 #define ENTRY_TABLE(ENTRY)  \
     /* rc config */ \
+    ENTRY(base, type,           U32, MppCtxType,        MPP_DEC_CFG_CHANGE_TYPE,            base, type) \
+    ENTRY(base, coding,         U32, MppCodingType,     MPP_DEC_CFG_CHANGE_CODING,          base, coding) \
+    ENTRY(base, hw_type,        U32, MppCodingType,     MPP_DEC_CFG_CHANGE_HW_TYPE,         base, hw_type) \
+    ENTRY(base, batch_mode,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_BATCH_MODE,      base, batch_mode) \
     ENTRY(base, out_fmt,        U32, MppFrameFormat,    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT,   base, out_fmt) \
     ENTRY(base, fast_out,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_FAST_OUT,        base, fast_out) \
     ENTRY(base, fast_parse,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_FAST_PARSE,      base, fast_parse) \
@@ -157,8 +161,7 @@ static const char *dec_cfg_func_names[] = {
     ENTRY(base, internal_pts,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_INTERNAL_PTS,    base, internal_pts) \
     ENTRY(base, sort_pts,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_SORT_PTS,        base, sort_pts) \
     ENTRY(base, disable_error,  U32, RK_U32,            MPP_DEC_CFG_CHANGE_DISABLE_ERROR,   base, disable_error) \
-    ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc) \
-    ENTRY(base, batch_mode,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_BATCH_MODE,      base, batch_mode)
+    ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc)
 
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
@@ -172,7 +175,7 @@ RK_S32 dec_const_strlen(const char* str)
     return *str ? 1 + dec_const_strlen(str + 1) : 0;
 }
 
-static RK_S32 dec_node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) + 40;
+static RK_S32 dec_node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) + 39;
 
 class MppDecCfgService
 {
@@ -228,9 +231,11 @@ MppDecCfgService::~MppDecCfgService()
     }
 }
 
-static void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
+void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
 {
-    (void) cfg;
+    cfg->base.type = MPP_CTX_BUTT;
+    cfg->base.coding = MPP_VIDEO_CodingUnused;
+    cfg->base.hw_type = -1;
 }
 
 MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
