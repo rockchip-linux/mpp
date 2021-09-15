@@ -1511,6 +1511,18 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         MppDecBaseCfg *dst_base = &dst->base;
         RK_U32 change = src_base->change;
 
+        if (change & MPP_DEC_CFG_CHANGE_TYPE)
+            dst_base->type = src_base->type;
+
+        if (change & MPP_DEC_CFG_CHANGE_CODING)
+            dst_base->coding = src_base->coding;
+
+        if (change & MPP_DEC_CFG_CHANGE_HW_TYPE)
+            dst_base->hw_type = src_base->hw_type;
+
+        if (change & MPP_DEC_CFG_CHANGE_BATCH_MODE)
+            dst_base->batch_mode = src_base->batch_mode;
+
         if (change & MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT)
             dst_base->out_fmt = src_base->out_fmt;
 
@@ -1534,9 +1546,6 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
 
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_VPROC)
             dst_base->enable_vproc = src_base->enable_vproc;
-
-        if (change & MPP_DEC_CFG_CHANGE_BATCH_MODE)
-            dst_base->batch_mode = src_base->batch_mode;
 
         dst_base->change = change;
         src_base->change = 0;
@@ -1595,6 +1604,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     coding = cfg->coding;
 
     mpp_assert(cfg->cfg);
+    mpp_dec_cfg_set_default(&p->cfg);
     mpp_dec_set_cfg(&p->cfg, cfg->cfg);
     mpp_dec_update_cfg(p);
 

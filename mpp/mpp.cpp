@@ -36,6 +36,8 @@
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
 
+#include "mpp_dec_cfg_impl.h"
+
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
@@ -95,6 +97,7 @@ Mpp::Mpp()
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
     memset(&mDecInitcfg, 0, sizeof(mDecInitcfg));
+    mpp_dec_cfg_set_default(&mDecInitcfg);
     mDecInitcfg.base.enable_vproc = 1;
     mDecInitcfg.base.change  |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
 
@@ -947,9 +950,17 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT :
     case MPP_DEC_SET_OUTPUT_FORMAT :
-    case MPP_DEC_QUERY :
-    case MPP_DEC_SET_CFG : {
+    case MPP_DEC_QUERY : {
         ret = mpp_dec_control(mDec, cmd, param);
+    } break;
+    case MPP_DEC_SET_CFG : {
+        if (mDec)
+            ret = mpp_dec_control(mDec, cmd, param);
+        else if (param) {
+            MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+
+            ret = mpp_dec_set_cfg(&mDecInitcfg, &dec_cfg->cfg);
+        }
     } break;
     default : {
     } break;
