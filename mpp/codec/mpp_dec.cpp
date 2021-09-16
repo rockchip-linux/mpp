@@ -423,6 +423,14 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
 
         dec_dbg_func("set dec cfg\n");
     } break;
+    case MPP_DEC_GET_CFG: {
+        MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+
+        if (dec_cfg)
+            memcpy(&dec_cfg->cfg, &dec->cfg, sizeof(dec->cfg));
+
+        dec_dbg_func("get dec cfg\n");
+    } break;
     default : {
     } break;
     }

@@ -962,6 +962,16 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
             ret = mpp_dec_set_cfg(&mDecInitcfg, &dec_cfg->cfg);
         }
     } break;
+    case MPP_DEC_GET_CFG : {
+        if (mDec)
+            ret = mpp_dec_control(mDec, cmd, param);
+        else if (param) {
+            MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+
+            memcpy(&dec_cfg->cfg, &mDecInitcfg, sizeof(dec_cfg->cfg));
+            ret = MPP_OK;
+        }
+    } break;
     default : {
     } break;
     }
