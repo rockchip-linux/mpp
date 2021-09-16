@@ -630,6 +630,13 @@ int dec_decode(MpiDecTestCmd *cmd)
 
     mpp_dec_cfg_init(&cfg);
 
+    /* get default config from decoder context */
+    ret = mpi->control(ctx, MPP_DEC_GET_CFG, cfg);
+    if (ret) {
+        mpp_err("%p failed to get decoder cfg ret %d\n", ctx, ret);
+        goto MPP_TEST_OUT;
+    }
+
     /*
      * split_parse is to enable mpp internal frame spliter when the input
      * packet is not aplited into frames.
