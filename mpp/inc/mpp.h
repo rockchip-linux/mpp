@@ -103,6 +103,9 @@ public:
     MPP_RET start();
     MPP_RET stop();
 
+    MPP_RET pause();
+    MPP_RET resume();
+
     MPP_RET put_packet(MppPacket packet);
     MPP_RET get_frame(MppFrame *frame);
 

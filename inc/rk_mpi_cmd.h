@@ -37,6 +37,9 @@
 /* separate encoder / decoder control command to different segment */
 #define CMD_CFG_ID_MASK                 (0x0000FF00)
 
+/* mpp status control command */
+#define CMD_STATE_OPS                   (0x00000100)
+
 /* decoder control command */
 #define CMD_DEC_CFG_ALL                 (0x00000000)
 #define CMD_DEC_QUERY                   (0x00000100)
@@ -70,6 +73,13 @@ typedef enum {
      */
     MPP_SET_INPUT_TIMEOUT,              /* parameter type RK_S64 */
     MPP_SET_OUTPUT_TIMEOUT,             /* parameter type RK_S64 */
+
+    MPP_STATE_CMD_BASE                  = CMD_MODULE_MPP | CMD_STATE_OPS,
+    MPP_START,
+    MPP_STOP,
+    MPP_PAUSE,
+    MPP_RESUME,
+
     MPP_CMD_END,
 
     MPP_CODEC_CMD_BASE                  = CMD_MODULE_CODEC,

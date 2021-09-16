@@ -519,34 +519,6 @@ MPP_RET mpp_destroy(MppCtx ctx)
     return ret;
 }
 
-MPP_RET mpp_start(MppCtx ctx)
-{
-    mpi_dbg_func("enter ctx %p\n", ctx);
-
-    MpiImpl *p = (MpiImpl*)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-
-    if (MPP_OK == ret)
-        ret = p->ctx->start();
-
-    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
-    return ret;
-}
-
-MPP_RET mpp_stop(MppCtx ctx)
-{
-    mpi_dbg_func("enter ctx %p\n", ctx);
-
-    MpiImpl *p = (MpiImpl*)ctx;
-    MPP_RET ret = check_mpp_ctx(p);
-
-    if (MPP_OK == ret)
-        ret = p->ctx->stop();
-
-    mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
-    return ret;
-}
-
 MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding)
 {
     MPP_RET ret = MPP_NOK;

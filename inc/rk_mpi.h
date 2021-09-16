@@ -242,33 +242,6 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi);
 MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding);
 /**
  * @ingroup rk_mpi
- * @brief Call after mpp_init to start mpp working.
- *        Control SET_CFG can be called both before and after mpp_start.
- *        Before mpp_start is called both global param and dynamic param can be set.
- *        After mpp_start is called only dynamic param can be set.
- *        This funciton purpose is to stop recieving global param and do
- *        preparation for processing data flow.
- *        This function will call internal context start function.
- * @param[in] ctx The context of mpp, created by mpp_create().
- * @return 0 for success, others for failure. The return value is an
- *         error code. For details, please refer mpp_err.h.
- */
-MPP_RET mpp_start(MppCtx ctx);
-/**
- * @ingroup rk_mpi
- * @brief Call before mpp_destroy to stop mpp working.
- *        Control SET_CFG can be called after starting.
- *        Before mpp_stop is called only dynamic param can be set.
- *        After mpp_stop is called both global param and dynamic param can be set.
- *        This funciton purpose is to stop processing data and do preparation
- *        to receive global param.
- * @param[in] ctx The context of mpp, created by mpp_create().
- * @return 0 for success, others for failure. The return value is an
- *         error code. For details, please refer mpp_err.h.
- */
-MPP_RET mpp_stop(MppCtx ctx);
-/**
- * @ingroup rk_mpi
  * @brief Destroy mpp context and free both context and mpi structure,
  *        it matches with mpp_init().
  * @param[in] ctx The context of mpp, created by mpp_create().
