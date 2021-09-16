@@ -298,6 +298,16 @@ MPP_RET Mpp::stop()
     return MPP_OK;
 }
 
+MPP_RET Mpp::pause()
+{
+    return MPP_OK;
+}
+
+MPP_RET Mpp::resume()
+{
+    return MPP_OK;
+}
+
 MPP_RET Mpp::put_packet(MppPacket packet)
 {
     if (!mInitDone)
@@ -853,6 +863,20 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
             mInputTimeout = timeout;
         else
             mOutputTimeout = timeout;
+    } break;
+
+    case MPP_START : {
+        start();
+    } break;
+    case MPP_STOP : {
+        stop();
+    } break;
+
+    case MPP_PAUSE : {
+        pause();
+    } break;
+    case MPP_RESUME : {
+        resume();
     } break;
 
     default : {
