@@ -29,6 +29,7 @@
 #include "mpp_env.h"
 #include "mpp_platform.h"
 #include "mpp_common.h"
+#include "osal_2str.h"
 
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
@@ -82,48 +83,57 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     MppHalApi *p_api = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    RK_U32 vcodec_type = mpp_get_vcodec_type();
-    MppClientType type = VPU_CLIENT_BUTT;
-    VpuHwMode hw_mode = MODE_NULL;
-    RK_U32 hw_id = 0;
+    MppClientType client_type = VPU_CLIENT_BUTT;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
 
-    // check codec_type first
-    if (!(vcodec_type & (HAVE_RKVDEC | HAVE_VDPU1 | HAVE_VDPU2))) {
-        mpp_err_f("can not found H.264 decoder hardware on platform %x\n", vcodec_type);
-        return ret;
-    }
-
-    p_api = &p_hal->hal_api;
-
-    p_hal->frame_slots  = cfg->frame_slots;
-    p_hal->packet_slots = cfg->packet_slots;
-    p_hal->cfg = cfg->cfg;
-    p_hal->fast_mode = cfg->cfg->base.fast_parse;
 
     //!< choose hard mode
     {
-        RK_U32 mode = 0;
-        mpp_env_get_u32("use_mpp_mode", &mode, 0);
+        RK_S32 hw_type = -1;
+        RK_U32 mode = MODE_NULL;
+        RK_U32 vcodec_type = mpp_get_vcodec_type();
 
-        if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
-            hw_mode = RKVDEC_MODE;
-            type = VPU_CLIENT_RKVDEC;
-        } else if (vcodec_type & HAVE_VDPU1) {
-            hw_mode = VDPU1_MODE;
-            type = VPU_CLIENT_VDPU1;
-        } else if (vcodec_type & HAVE_VDPU2) {
-            hw_mode = VDPU2_MODE;
-            type = VPU_CLIENT_VDPU2;
+        // check codec_type
+        if (!(vcodec_type & (HAVE_RKVDEC | HAVE_VDPU1 | HAVE_VDPU2))) {
+            mpp_err_f("can not found H.264 decoder hardware on platform %x\n", vcodec_type);
+            return ret;
         }
-        hw_id = mpp_get_client_hw_id(type);
-        H264D_DBG(H264D_DBG_HARD_MODE, "hw_plat %08x mode %d hw_id %08x\n",
-                  vcodec_type, mode, hw_id);
+        mpp_env_get_u32("use_mpp_mode", &mode, MODE_NULL);
+        if (MODE_NULL == mode) {
+            MppDecBaseCfg *base = &cfg->cfg->base;
+
+            if (mpp_check_soc_cap(base->type, base->coding))
+                hw_type = base->hw_type;
+
+            if (hw_type > 0) {
+                if (vcodec_type & (1 << hw_type)) {
+                    mpp_log("init with %s hw\n", strof_client_type(hw_type));
+                    client_type = hw_type;
+                } else
+                    mpp_err_f("invalid hw_type %d with vcodec_type %08x\n",
+                              hw_type, vcodec_type);
+            }
+        }
+
+        if (client_type == VPU_CLIENT_BUTT) {
+            if ((mode <= RKVDEC_MODE) && (vcodec_type & HAVE_RKVDEC)) {
+                client_type = VPU_CLIENT_RKVDEC;
+            } else if (vcodec_type & HAVE_VDPU1) {
+                client_type = VPU_CLIENT_VDPU1;
+            } else if (vcodec_type & HAVE_VDPU2) {
+                client_type = VPU_CLIENT_VDPU2;
+            }
+        }
+        H264D_DBG(H264D_DBG_HARD_MODE, "client_type %d\n", client_type);
     }
-    switch (hw_mode) {
-    case RKVDEC_MODE :
+
+    p_api = &p_hal->hal_api;
+    switch (client_type) {
+    case VPU_CLIENT_RKVDEC : {
+        RK_U32 hw_id = mpp_get_client_hw_id(client_type);
+
         if (hw_id == HWID_VDPU34X) {
             p_api->init    = vdpu34x_h264d_init;
             p_api->deinit  = vdpu34x_h264d_deinit;
@@ -143,8 +153,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
             p_api->flush   = rkv_h264d_flush;
             p_api->control = rkv_h264d_control;
         }
-        break;
-    case VDPU1_MODE : {
+    } break;
+    case VPU_CLIENT_VDPU1 : {
         p_api->init    = vdpu1_h264d_init;
         p_api->deinit  = vdpu1_h264d_deinit;
         p_api->reg_gen = vdpu1_h264d_gen_regs;
@@ -154,7 +164,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->flush   = vdpu1_h264d_flush;
         p_api->control = vdpu1_h264d_control;
     } break;
-    case VDPU2_MODE : {
+    case VPU_CLIENT_VDPU2 : {
         p_api->init    = vdpu2_h264d_init;
         p_api->deinit  = vdpu2_h264d_deinit;
         p_api->reg_gen = vdpu2_h264d_gen_regs;
@@ -165,21 +175,26 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         p_api->control = vdpu2_h264d_control;
     } break;
     default : {
-        mpp_err_f("hard mode error, value=%d\n", hw_mode);
+        mpp_err_f("client_type error, value=%d\n", client_type);
         mpp_assert(0);
     } break;
     }
-    //!< callback function to parser module
-    p_hal->dec_cb = cfg->dec_cb;
 
     mpp_env_get_u32("hal_h264d_debug", &hal_h264d_debug, 0);
 
-    ret = mpp_dev_init(&cfg->dev, type);
+    ret = mpp_dev_init(&cfg->dev, client_type);
     if (ret) {
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         goto __FAILED;
     }
-    p_hal->dev = cfg->dev;
+
+    //!< callback function to parser module
+    p_hal->dec_cb       = cfg->dec_cb;
+    p_hal->cfg          = cfg->cfg;
+    p_hal->dev          = cfg->dev;
+    p_hal->frame_slots  = cfg->frame_slots;
+    p_hal->packet_slots = cfg->packet_slots;
+    p_hal->fast_mode    = cfg->cfg->base.fast_parse;
 
     //< get buffer group
     if (p_hal->buf_group == NULL) {
