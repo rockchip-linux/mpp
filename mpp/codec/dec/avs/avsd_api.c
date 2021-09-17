@@ -29,7 +29,7 @@
 #include "avsd_syntax.h"
 #include "avsd_api.h"
 #include "avsd_parse.h"
-
+#include "mpp_dec_cb_param.h"
 
 RK_U32 avsd_parse_debug = 0;
 

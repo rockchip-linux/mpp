@@ -29,6 +29,7 @@
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_rkv_reg.h"
+#include "mpp_dec_cb_param.h"
 
 /* Number registers for the decoder */
 #define DEC_RKV_REGISTERS          78
@@ -785,10 +786,10 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->dec_cb) {
-        DecCbHalDone m_ctx;
+        DecCbHalDone param;
 
-        m_ctx.task = (void *)&task->dec;
-        m_ctx.regs = (RK_U32 *)p_regs;
+        param.task = (void *)&task->dec;
+        param.regs = (RK_U32 *)p_regs;
 
         if (p_regs->sw01.dec_error_sta
             || (!p_regs->sw01.dec_rdy_sta)
@@ -796,11 +797,11 @@ __SKIP_HARD:
             || p_regs->sw45.strmd_error_status
             || p_regs->sw45.colmv_error_ref_picidx
             || p_regs->sw76.strmd_detect_error_flag)
-            m_ctx.hard_err = 1;
+            param.hard_err = 1;
         else
-            m_ctx.hard_err = 0;
+            param.hard_err = 0;
 
-        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
+        mpp_callback(p_hal->dec_cb, &param);
     }
     memset(&p_regs->sw01, 0, sizeof(RK_U32));
     if (p_hal->fast_mode) {

@@ -38,6 +38,7 @@ add_library(osal STATIC
     mpp_runtime.cpp
     mpp_allocator.cpp
     mpp_mem_pool.cpp
+    mpp_callback.cpp
     mpp_eventfd.cpp
     mpp_thread.cpp
     mpp_common.cpp

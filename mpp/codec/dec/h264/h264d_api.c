@@ -30,6 +30,7 @@
 #include "h264d_slice.h"
 #include "h264d_dpb.h"
 #include "h264d_init.h"
+#include "mpp_dec_cb_param.h"
 
 RK_U32 rkv_h264d_parse_debug = 0;
 

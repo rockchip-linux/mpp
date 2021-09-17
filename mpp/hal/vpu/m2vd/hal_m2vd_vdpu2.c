@@ -387,7 +387,7 @@ MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
     }
     if (reg_out->sw55.dec_error_int | reg_out->sw55.dec_buffer_int) {
         if (ctx->dec_cb)
-            mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, NULL);
+            mpp_callback(ctx->dec_cb, NULL);
     }
 
     if (M2VH_DBG_IRQ & m2vh_debug)

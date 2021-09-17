@@ -2069,7 +2069,7 @@ MPP_RET hal_h265e_vepu22_wait(void *hal, HalTaskInfo *task)
         feedback.bs_size = 0;
     }
 
-    mpp_callback(ctx->enc_cb, ENC_CALLBACK_BASE, &feedback);
+    mpp_callback(ctx->enc_cb, &feedback);
     task->enc.length = feedback.bs_size;
     hal_h265e_dbg_func("leave hal %p,status = %d,size = %d\n",
                        hal, feedback.status, feedback.bs_size);

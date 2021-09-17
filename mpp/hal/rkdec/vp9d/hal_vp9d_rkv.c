@@ -614,7 +614,7 @@ MPP_RET hal_vp9d_rkv_wait(void *hal, HalTaskInfo *task)
 
         hal_vp9d_update_counts(mpp_buffer_get_ptr(hw_ctx->count_base), task->dec.syntax.data);
 
-        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &pic_param->counts);
+        mpp_callback(p_hal->dec_cb, &pic_param->counts);
     }
     if (p_hal->fast_mode) {
         hw_ctx->g_buf[task->dec.reg_index].use_flag = 0;

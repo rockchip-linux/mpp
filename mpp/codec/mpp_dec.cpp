@@ -32,6 +32,7 @@
 #include "mpp_dec_cfg_impl.h"
 
 #include "mpp_dec_vproc.h"
+#include "mpp_dec_cb_param.h"
 
 static RK_U32 mpp_dec_debug = 0;
 
@@ -1562,19 +1563,17 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
     return MPP_OK;
 }
 
-MPP_RET mpp_dec_callback(void *ctx, MppCbCmd cmd, void *param)
+MPP_RET mpp_dec_callback_hal_to_parser(const char *caller, void *ctx,
+                                       RK_S32 cmd, void *param)
 {
     MppDecImpl *p = (MppDecImpl *)ctx;
     MPP_RET ret = MPP_OK;
+    (void) caller;
 
-    switch (cmd) {
-    case DEC_PARSER_CALLBACK : {
-        if (p->parser)
-            ret = mpp_parser_callback(p->parser, param);
-    } break;
-    default : {
-    } break;
-    }
+    mpp_assert(cmd == DEC_PARSER_CALLBACK);
+
+    if (p->parser)
+        ret = mpp_parser_callback(p->parser, param);
 
     return ret;
 }
@@ -1616,8 +1615,9 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     mpp_dec_set_cfg(&p->cfg, cfg->cfg);
     mpp_dec_update_cfg(p);
 
-    p->dec_cb.callBack = mpp_dec_callback;
+    p->dec_cb.callBack = mpp_dec_callback_hal_to_parser;
     p->dec_cb.ctx = p;
+    p->dec_cb.cmd = DEC_PARSER_CALLBACK;
 
     status = &p->cfg.status;
 

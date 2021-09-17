@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
+ * Copyright 2021 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 
 #include "mpp_callback.h"
 
-MPP_RET mpp_callback(MppCbCtx *ctx, MppCbCmd cmd, void *param)
+MPP_RET mpp_callback_f(const char *caller, MppCbCtx *ctx, void *param)
 {
     if (ctx && ctx->ctx && ctx->callBack)
-        return ctx->callBack(ctx->ctx, cmd, param);
+        return ctx->callBack(caller, ctx->ctx, ctx->cmd, param);
 
     return MPP_OK;
 }

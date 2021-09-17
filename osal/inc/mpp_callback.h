@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
+ * Copyright 2021 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,35 +20,21 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
-typedef enum MppCallBackCmd_e {
-    MPP_CALLBACK_NONE       = 0,
-
-    DEC_CALLBACK_BASE       = 0x100,
-    DEC_PARSER_CALLBACK     = (DEC_CALLBACK_BASE + 1),
-
-    ENC_CALLBACK_BASE       = 0x200,
-    MPP_CALLBACK_CMD_BUTT,
-} MppCbCmd;
-
-/* DEC_CALLBACK_BASE */
-typedef struct DecCallBackParam_t {
-    void    *task;
-    RK_U32  *regs;
-    RK_U32  hard_err;
-} DecCbHalDone;
-
-typedef MPP_RET (*MppCallBack)(void *ctx, MppCbCmd cmd, void *param);
+typedef MPP_RET (*MppCallBack)(const char *caller, void *ctx, RK_S32 cmd, void *param);
 
 typedef struct DecCallBackCtx_t {
     MppCallBack callBack;
     void        *ctx;
+    RK_S32      cmd;
 } MppCbCtx;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_callback(MppCbCtx *ctx, MppCbCmd cmd, void *param);
+#define mpp_callback(ctx, param)  mpp_callback_f(__FUNCTION__, ctx, param)
+
+MPP_RET mpp_callback_f(const char *caller, MppCbCtx *ctx, void *param);
 
 #ifdef __cplusplus
 }

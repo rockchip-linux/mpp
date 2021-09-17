@@ -23,8 +23,7 @@
 #include "avsd_syntax.h"
 #include "hal_avsd_api.h"
 #include "hal_avsd_reg.h"
-
-
+#include "mpp_dec_cb_param.h"
 
 static RK_S32 get_queue_pic(AvsdHalCtx_t *p_hal)
 {
