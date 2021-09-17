@@ -434,9 +434,9 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
 
     /* reg012 ENC_RSL */
     regs->reg012.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
-    regs->reg012.pic_wfill  = prep->width & 0xf;
+    regs->reg012.pic_wfill  = MPP_ALIGN(prep->width, 16) - prep->width;
     regs->reg012.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
-    regs->reg012.pic_hfill  = prep->height & 0xf;
+    regs->reg012.pic_hfill  = MPP_ALIGN(prep->height, 16) - prep->height;
 
     /* reg015 DTRNS_MAP */
     regs->reg015.src_bus_edin = cfg.src_endian;
