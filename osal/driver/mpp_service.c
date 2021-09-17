@@ -215,6 +215,7 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     p->server = p->client;
     p->batch_io = 0;
     p->serv_ctx = NULL;
+    p->dev_cb   = NULL;
 
     return ret;
 }
@@ -258,6 +259,15 @@ MPP_RET mpp_service_detach(void *ctx)
 
     if (p->batch_io)
         mpp_server_detach(p);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_service_set_cb_ctx(void *ctx, MppCbCtx *cb_ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    p->dev_cb = cb_ctx;
 
     return MPP_OK;
 }
@@ -486,6 +496,7 @@ const MppDevApi mpp_service_api = {
     mpp_service_deinit,
     mpp_service_attach,
     mpp_service_detach,
+    mpp_service_set_cb_ctx,
     mpp_service_reg_wr,
     mpp_service_reg_rd,
     mpp_service_reg_offset,
