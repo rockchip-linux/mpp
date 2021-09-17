@@ -26,6 +26,7 @@
 #include "mpg4d_api.h"
 #include "mpg4d_parser.h"
 #include "mpp_packet_impl.h"
+#include "mpp_dec_cb_param.h"
 
 #define MPG4D_INIT_STREAM_SIZE      SZ_64K
 

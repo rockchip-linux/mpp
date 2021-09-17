@@ -29,6 +29,7 @@
 
 #include "hal_avsd_api.h"
 #include "hal_avsd_reg.h"
+#include "mpp_dec_cb_param.h"
 
 RK_U32 avsd_hal_debug = 0;
 
@@ -302,13 +303,13 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->dec_cb) {
-        DecCbHalDone m_ctx;
+        DecCbHalDone param;
 
-        m_ctx.task = (void *)&task->dec;
-        m_ctx.regs = (RK_U32 *)p_hal->p_regs;
-        m_ctx.hard_err = (!((AvsdRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int);
+        param.task = (void *)&task->dec;
+        param.regs = (RK_U32 *)p_hal->p_regs;
+        param.hard_err = (!((AvsdRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int);
 
-        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
+        mpp_callback(p_hal->dec_cb, &param);
     }
     update_parameters(p_hal);
     memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));

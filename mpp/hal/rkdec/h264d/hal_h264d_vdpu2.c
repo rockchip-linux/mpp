@@ -32,6 +32,7 @@
 #include "hal_h264d_vdpu_com.h"
 #include "hal_h264d_vdpu2.h"
 #include "hal_h264d_vdpu2_reg.h"
+#include "mpp_dec_cb_param.h"
 
 const RK_U32 vdpu2_ref_idx[16] = {
     84, 85, 86, 87, 88, 89, 90, 91,
@@ -1055,13 +1056,13 @@ MPP_RET vdpu2_h264d_wait(void *hal, HalTaskInfo *task)
 
 __SKIP_HARD:
     if (p_hal->dec_cb) {
-        DecCbHalDone m_ctx;
+        DecCbHalDone param;
 
-        m_ctx.task = (void *)&task->dec;
-        m_ctx.regs = (RK_U32 *)reg_ctx->regs;
-        m_ctx.hard_err = !p_regs->sw55.dec_rdy_sts;
+        param.task = (void *)&task->dec;
+        param.regs = (RK_U32 *)reg_ctx->regs;
+        param.hard_err = !p_regs->sw55.dec_rdy_sts;
 
-        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
+        mpp_callback(p_hal->dec_cb, &param);
     }
     memset(&p_regs->sw55, 0, sizeof(RK_U32));
     if (p_hal->fast_mode) {

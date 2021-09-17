@@ -30,6 +30,7 @@
 #include "hal_m4vd_com.h"
 #include "hal_m4vd_vdpu1.h"
 #include "hal_m4vd_vdpu1_reg.h"
+#include "mpp_dec_cb_param.h"
 
 static void vdpu1_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 {
@@ -466,13 +467,13 @@ MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
         }
     }
     if (ctx->dec_cb) {
-        DecCbHalDone m_ctx;
+        DecCbHalDone param;
 
-        m_ctx.task = (void *)&task->dec;
-        m_ctx.regs = (RK_U32 *)ctx->regs;
-        m_ctx.hard_err = !regs->SwReg01.sw_dec_rdy_int;
+        param.task = (void *)&task->dec;
+        param.regs = (RK_U32 *)ctx->regs;
+        param.hard_err = !regs->SwReg01.sw_dec_rdy_int;
 
-        mpp_callback(ctx->dec_cb, DEC_PARSER_CALLBACK, &m_ctx);
+        mpp_callback(ctx->dec_cb, &param);
     }
 
     memset(&regs->SwReg01, 0, sizeof(RK_U32));

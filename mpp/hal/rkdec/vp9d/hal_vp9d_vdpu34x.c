@@ -959,7 +959,7 @@ static MPP_RET hal_vp9d_vdpu34x_wait(void *hal, HalTaskInfo *task)
     if (p_hal->dec_cb && task->dec.flags.wait_done) {
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
         hal_vp9d_update_counts(mpp_buffer_get_ptr(hw_ctx->count_base), task->dec.syntax.data);
-        mpp_callback(p_hal->dec_cb, DEC_PARSER_CALLBACK, &pic_param->counts);
+        mpp_callback(p_hal->dec_cb, &pic_param->counts);
     }
 #endif
     if (p_hal->fast_mode) {
