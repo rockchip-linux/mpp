@@ -174,6 +174,18 @@ static __inline void list_del_init(struct list_head *entry)
     INIT_LIST_HEAD(entry);
 }
 
+static __inline void list_move(struct list_head *list, struct list_head *head)
+{
+    __list_del(list->prev, list->next);
+    list_add(list, head);
+}
+
+static __inline void list_move_tail(struct list_head *list, struct list_head *head)
+{
+    __list_del(list->prev, list->next);
+    list_add_tail(list, head);
+}
+
 static __inline int list_is_last(const struct list_head *list, const struct list_head *head)
 {
     return list->next == head;
