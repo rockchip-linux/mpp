@@ -308,6 +308,8 @@ void process_task(void *p)
                     session->task_done++;
                     session->cond->signal();
                     session->cond->unlock();
+                    if (session->ctx && session->ctx->dev_cb)
+                        mpp_callback(session->ctx->dev_cb, NULL);
 
                     batch->poll_cnt++;
                     cmd->flag |= 1;

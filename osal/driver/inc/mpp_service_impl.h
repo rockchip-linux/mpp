@@ -40,6 +40,7 @@ typedef struct MppDevMppService_t {
     RK_S32          server;
     void            *serv_ctx;
     RK_S32          batch_io;
+    MppCbCtx        *dev_cb;
 
     RK_S32          req_cnt;
     RK_S32          reg_offset_count;
