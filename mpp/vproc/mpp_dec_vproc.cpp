@@ -435,6 +435,8 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         params.param.com.height = img.act_h;
         ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
 
+        mode = mode | MPP_FRAME_FLAG_IEP_DEI_I2O1;
+        mpp_frame_set_mode(frm, mode);
         // start hardware
         dec_vproc_start_dei(ctx, mode);
         dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
