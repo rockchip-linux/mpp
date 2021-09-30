@@ -51,6 +51,7 @@ typedef struct HalH264eVepu2Ctx_t {
 
     /* input / recon / refer address config */
     HalH264eVepuAddr        hw_addr;
+    VepuOffsetCfg           hw_offset;
 
     /* macroblock ratecontrol config */
     HalH264eVepuMbRc        hw_mbrc;
@@ -194,6 +195,7 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
     HalH264eVepuPrep *hw_prep = &ctx->hw_prep;
     HalH264eVepuAddr *hw_addr = &ctx->hw_addr;
     HalH264eVepuBufs *hw_bufs = &ctx->hw_bufs;
+    VepuOffsetCfg *hw_offset = &ctx->hw_offset;
     H264eFrmInfo *frms = ctx->frms;
 
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -222,6 +224,16 @@ static MPP_RET hal_h264e_vepu2_get_task_v2(void *hal, HalEncTask *task)
     hw_addr->refr[0] = mpp_buffer_get_fd(refr);
     hw_addr->recn[1] = hw_addr->recn[0];
     hw_addr->refr[1] = hw_addr->refr[0];
+
+    hw_offset->fmt = prep->format;
+    hw_offset->width = prep->width;
+    hw_offset->height = prep->height;
+    hw_offset->hor_stride = prep->hor_stride;
+    hw_offset->ver_stride = prep->ver_stride;
+    hw_offset->offset_x = mpp_frame_get_offset_x(task->frame);
+    hw_offset->offset_y = mpp_frame_get_offset_y(task->frame);
+
+    get_vepu_offset_cfg(hw_offset);
 
     h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
                                    ctx->slice, ctx->prefix);
@@ -273,6 +285,7 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     HalH264eVepuPrep *hw_prep = &ctx->hw_prep;
     HalH264eVepuAddr *hw_addr = &ctx->hw_addr;
     HalH264eVepuMbRc *hw_mbrc = &ctx->hw_mbrc;
+    VepuOffsetCfg *hw_offset = &ctx->hw_offset;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     EncFrmStatus *frm = &task->rc_task->frm;
     H264eSps *sps = ctx->sps;
@@ -534,10 +547,17 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 
     /* set buffers addr */
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_LUMA, hw_addr->orig[0]);
+    if (hw_offset->offset_byte[0])
+        mpp_dev_set_reg_offset(ctx->dev, VEPU_REG_ADDR_IN_LUMA >> 2,
+                               hw_offset->offset_byte[0]);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CB, hw_addr->orig[1]);
-    mpp_dev_set_reg_offset(ctx->dev, VEPU_REG_ADDR_IN_CB >> 2, hw_prep->offset_cb);
+    if (hw_offset->offset_byte[1])
+        mpp_dev_set_reg_offset(ctx->dev, VEPU_REG_ADDR_IN_CB >> 2,
+                               hw_offset->offset_byte[1]);
     H264E_HAL_SET_REG(reg, VEPU_REG_ADDR_IN_CR, hw_addr->orig[2]);
-    mpp_dev_set_reg_offset(ctx->dev, VEPU_REG_ADDR_IN_CR >> 2, hw_prep->offset_cr);
+    if (hw_offset->offset_byte[2])
+        mpp_dev_set_reg_offset(ctx->dev, VEPU_REG_ADDR_IN_CR >> 2,
+                               hw_offset->offset_byte[2]);
 
     MppBuffer nal_size_table = h264e_vepu_buf_get_nal_size_table(hw_bufs);
     RK_S32 nal_size_table_fd = nal_size_table ? mpp_buffer_get_fd(nal_size_table) : 0;
