@@ -290,7 +290,7 @@ static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
     }
     pthread_mutex_unlock(&buffer->lock);
 
-    mpp_mem_pool_put(mpp_buffer_pool, buffer);
+    mpp_mem_pool_put_f(caller, mpp_buffer_pool, buffer);
 
     return MPP_OK;
 }
@@ -364,7 +364,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         goto RET;
     }
 
-    p = (MppBufferImpl *)mpp_mem_pool_get(mpp_buffer_pool);
+    p = (MppBufferImpl *)mpp_mem_pool_get_f(caller, mpp_buffer_pool);
     if (NULL == p) {
         mpp_err_f("failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
@@ -376,7 +376,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     ret = func(group->allocator, info);
     if (ret) {
         mpp_err_f("failed to create buffer with size %d\n", info->size);
-        mpp_mem_pool_put(mpp_buffer_pool, p);
+        mpp_mem_pool_put_f(caller, mpp_buffer_pool, p);
         ret = MPP_ERR_MALLOC;
         goto RET;
     }
@@ -869,7 +869,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
                                                 RK_U32 is_misc)
 {
     MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
-    MppBufferGroupImpl *p = (MppBufferGroupImpl *)mpp_mem_pool_get(mpp_buf_grp_pool);
+    MppBufferGroupImpl *p = (MppBufferGroupImpl *)mpp_mem_pool_get_f(caller, mpp_buf_grp_pool);
     if (NULL == p) {
         mpp_err("MppBufferService failed to allocate group context\n");
         return NULL;
