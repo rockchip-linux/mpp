@@ -20,9 +20,6 @@ macro(add_mpp_test module)
     endif()
 endmacro()
 
-# mpi unit test
-add_mpp_test(mpi)
-
 # mpp info test
 add_mpp_test(mpp_info)
 
