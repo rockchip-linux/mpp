@@ -1515,6 +1515,7 @@ static const char *timing_str[DEC_TIMING_BUTT] = {
 MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
 {
     MppDecBaseCfg *src_base = &src->base;
+    MppDecCbCfg *src_cb = &src->cb;
 
     if (src_base->change) {
         MppDecBaseCfg *dst_base = &dst->base;
@@ -1558,6 +1559,26 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
 
         dst_base->change = change;
         src_base->change = 0;
+    }
+
+    if (src_cb->change) {
+        MppDecCbCfg *dst_cb = &dst->cb;
+        RK_U32 change = src_cb->change;
+
+        if (change & MPP_DEC_CB_CFG_CHANGE_PKT_RDY) {
+            dst_cb->pkt_rdy_cb = src_cb->pkt_rdy_cb;
+            dst_cb->pkt_rdy_ctx = src_cb->pkt_rdy_ctx;
+            dst_cb->pkt_rdy_cmd = src_cb->pkt_rdy_cmd;
+        }
+
+        if (change & MPP_DEC_CB_CFG_CHANGE_FRM_RDY) {
+            dst_cb->frm_rdy_cb = src_cb->frm_rdy_cb;
+            dst_cb->frm_rdy_ctx = src_cb->frm_rdy_ctx;
+            dst_cb->frm_rdy_cmd = src_cb->frm_rdy_cmd;
+        }
+
+        dst_cb->change = change;
+        src_cb->change = 0;
     }
 
     return MPP_OK;
