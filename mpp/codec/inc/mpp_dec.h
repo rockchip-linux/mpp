@@ -22,6 +22,13 @@
 #include "rk_mpi_cmd.h"
 #include "mpp_dec_cfg.h"
 
+typedef enum MppDecEvent_e {
+    MPP_DEC_EVENT_ON_PKT_RELEASE,
+    MPP_DEC_EVENT_ON_FRM_READY,
+
+    MPP_DEC_EVENT_BUTT,
+} MppDecEvent;
+
 typedef void* MppDec;
 
 typedef struct {
@@ -45,6 +52,7 @@ MPP_RET mpp_dec_reset(MppDec ctx);
 MPP_RET mpp_dec_flush(MppDec ctx);
 MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag);
+MPP_RET mpp_dec_callback(MppDec ctx, MppDecEvent event, void *arg);
 
 /* update init cfg before init */
 MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param);

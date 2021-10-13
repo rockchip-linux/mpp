@@ -169,6 +169,7 @@ MPP_RET mpp_parser_callback(void *prs, void *err_info)
         return MPP_OK;
     return p->api->callback(p->ctx, err_info);
 }
+
 MPP_RET mpp_parser_reset(Parser prs)
 {
     if (NULL == prs) {

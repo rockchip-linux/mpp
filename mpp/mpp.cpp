@@ -60,7 +60,7 @@ static void *list_wraper_frame(void *arg)
     return NULL;
 }
 
-Mpp::Mpp()
+Mpp::Mpp(MppCtx ctx = NULL)
     : mPackets(NULL),
       mFrames(NULL),
       mTimeStamps(NULL),
@@ -83,6 +83,7 @@ Mpp::Mpp()
       mOutputTimeout(MPP_POLL_BUTT),
       mInputTask(NULL),
       mEosTask(NULL),
+      mCtx(ctx),
       mDec(NULL),
       mEnc(NULL),
       mEncVersion(0),

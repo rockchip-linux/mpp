@@ -203,6 +203,18 @@ static MPP_RET dec_release_task_in_port(MppPort port)
     return ret;
 }
 
+static void dec_release_input_packet(MppDecImpl *dec, RK_S32 force)
+{
+    if (dec->mpp_pkt_in) {
+        if (force || 0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
+            mpp_packet_deinit(&dec->mpp_pkt_in);
+
+            mpp_dec_callback(dec, MPP_DEC_EVENT_ON_PKT_RELEASE, dec->mpp_pkt_in);
+            dec->mpp_pkt_in = NULL;
+        }
+    }
+}
+
 static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 {
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
@@ -265,10 +277,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             task->status.task_parsed_rdy = 0;
         }
 
-        if (dec->mpp_pkt_in) {
-            mpp_packet_deinit(&dec->mpp_pkt_in);
-            dec->mpp_pkt_in = NULL;
-        }
+        dec_release_input_packet(dec, 1);
 
         while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
             /* release extra ref in slot's MppBuffer */
@@ -590,6 +599,8 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
 
         if (fake_frame)
             mpp_frame_deinit(&frame);
+
+        mpp_dec_callback(dec, MPP_DEC_EVENT_ON_FRM_READY, out);
     }
 }
 
@@ -812,10 +823,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         mpp_clock_pause(dec->clocks[DEC_PRS_PREPARE]);
 
-        if (0 == mpp_packet_get_length(dec->mpp_pkt_in)) {
-            mpp_packet_deinit(&dec->mpp_pkt_in);
-            dec->mpp_pkt_in = NULL;
-        }
+        dec_release_input_packet(dec, 0);
     }
 
     task->status.curr_task_rdy = task_dec->valid;
@@ -1939,6 +1947,29 @@ MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag)
     return MPP_OK;
 }
 
+MPP_RET mpp_dec_callback(MppDec ctx, MppDecEvent event, void *arg)
+{
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+    MppDecCbCfg *cb = &dec->cfg.cb;
+    Mpp *mpp = (Mpp *)dec->mpp;
+    MPP_RET ret = MPP_OK;
+
+    switch (event) {
+    case MPP_DEC_EVENT_ON_PKT_RELEASE : {
+        if (cb->pkt_rdy_cb)
+            ret = cb->pkt_rdy_cb(cb->pkt_rdy_ctx, mpp->mCtx, cb->pkt_rdy_cmd, arg);
+    } break;
+    case MPP_DEC_EVENT_ON_FRM_READY : {
+        if (cb->frm_rdy_cb)
+            ret = cb->frm_rdy_cb(cb->frm_rdy_ctx, mpp->mCtx, cb->frm_rdy_cmd, arg);
+    } break;
+    default : {
+    } break;
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_dec_control(MppDec ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -2013,5 +2044,3 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
 
     return ret;
 }
-
-

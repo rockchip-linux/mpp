@@ -95,6 +95,9 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
     mpp->mFramePutCount++;
     list->signal();
     list->unlock();
+
+    if (mpp->mDec)
+        mpp_dec_callback(mpp->mDec, MPP_DEC_EVENT_ON_FRM_READY, out);
 }
 
 static void dec_vproc_clr_prev0(MppDecVprocCtxImpl *ctx)
