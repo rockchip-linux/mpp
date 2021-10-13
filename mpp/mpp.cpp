@@ -63,7 +63,6 @@ static void *list_wraper_frame(void *arg)
 Mpp::Mpp(MppCtx ctx = NULL)
     : mPackets(NULL),
       mFrames(NULL),
-      mTimeStamps(NULL),
       mPacketPutCount(0),
       mPacketGetCount(0),
       mFramePutCount(0),
@@ -134,7 +133,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_DEC : {
         mPackets    = new mpp_list(list_wraper_packet);
         mFrames     = new mpp_list(list_wraper_frame);
-        mTimeStamps = new mpp_list(list_wraper_packet);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_NON_BLOCK;
@@ -273,10 +271,7 @@ void Mpp::clear()
         delete mFrames;
         mFrames = NULL;
     }
-    if (mTimeStamps) {
-        delete mTimeStamps;
-        mTimeStamps = NULL;
-    }
+
     if (mPacketGroup) {
         mpp_buffer_group_put(mPacketGroup);
         mPacketGroup = NULL;

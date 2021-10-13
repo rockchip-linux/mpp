@@ -118,6 +118,17 @@ typedef struct DecTask_t {
     HalTaskInfo     info;
 } DecTask;
 
+static RK_S32 ts_cmp(void *priv, const struct list_head *a, const struct list_head *b)
+{
+    MppPktTs *ts1, *ts2;
+    (void)priv;
+
+    ts1 = container_of(a, MppPktTs, link);
+    ts2 = container_of(b, MppPktTs, link);
+
+    return ts1->pts - ts2->pts;
+}
+
 static void dec_task_init(DecTask *task)
 {
     task->hnd = NULL;
@@ -294,8 +305,15 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
         }
 
         if (dec->cfg.base.sort_pts) {
-            AutoMutex autoLock(mpp->mTimeStamps->mutex());
-            mpp->mTimeStamps->flush();
+            // flush
+            MppPktTs *ts, *pos;
+
+            mpp_spinlock_lock(&dec->ts_lock);
+            list_for_each_entry_safe(ts, pos, &dec->ts_link, MppPktTs, link) {
+                list_del_init(&ts->link);
+                mpp_mem_pool_put(dec->ts_pool, ts);
+            }
+            mpp_spinlock_unlock(&dec->ts_lock);
         }
 
         if (task->status.dec_pkt_copy_rdy) {
@@ -526,17 +544,18 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
 
     if (!change) {
         if (dec->cfg.base.sort_pts) {
-            MppPacket pkt = NULL;
-            mpp_list *ts = mpp->mTimeStamps;
+            MppPktTs *pkt_ts;
 
-            AutoMutex autoLock(ts->mutex());
-            if (ts->list_size()) {
-                ts->del_at_head(&pkt, sizeof(pkt));
-                mpp_frame_set_dts(frame, mpp_packet_get_dts(pkt));
-                mpp_frame_set_pts(frame, mpp_packet_get_pts(pkt));
-                mpp_packet_deinit(&pkt);
-            } else
-                mpp_err_f("pull out packet error.\n");
+            mpp_spinlock_lock(&dec->ts_lock);
+            pkt_ts = list_first_entry_or_null(&dec->ts_link, MppPktTs, link);
+            if (pkt_ts)
+                list_del_init(&pkt_ts->link);
+            mpp_spinlock_unlock(&dec->ts_lock);
+            if (pkt_ts) {
+                mpp_frame_set_dts(frame, pkt_ts->dts);
+                mpp_frame_set_pts(frame, pkt_ts->pts);
+                mpp_mem_pool_put(dec->ts_pool, pkt_ts);
+            }
         }
     }
     mpp_frame_set_info_change(frame, change);
@@ -781,19 +800,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         dec_dbg_detail("detail: %p get pkt pts %llu len %d\n", dec,
                        mpp_packet_get_pts(dec->mpp_pkt_in),
                        mpp_packet_get_length(dec->mpp_pkt_in));
-
-        if (dec->cfg.base.sort_pts) {
-            MppPacket pkt_in = NULL;
-            mpp_list *ts = mpp->mTimeStamps;
-
-            AutoMutex autoLock(ts->mutex());
-            mpp_packet_new(&pkt_in);
-            if (pkt_in) {
-                mpp_packet_set_pts(pkt_in, mpp_packet_get_pts(dec->mpp_pkt_in));
-                mpp_packet_set_dts(pkt_in, mpp_packet_get_dts(dec->mpp_pkt_in));
-                ts->add_at_tail(&pkt_in, sizeof(pkt_in));
-            }
-        }
     }
 
     /*
@@ -827,7 +833,18 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_clock_start(dec->clocks[DEC_PRS_PREPARE]);
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         mpp_clock_pause(dec->clocks[DEC_PRS_PREPARE]);
+        if (dec->cfg.base.sort_pts && task_dec->valid) {
+            MppPktTs *pkt_ts = (MppPktTs*)mpp_mem_pool_get(dec->ts_pool);
 
+            mpp_assert(pkt_ts);
+            pkt_ts->pts = mpp_packet_get_pts(dec->mpp_pkt_in);
+            pkt_ts->dts = mpp_packet_get_dts(dec->mpp_pkt_in);
+            INIT_LIST_HEAD(&pkt_ts->link);
+            mpp_spinlock_lock(&dec->ts_lock);
+            list_add_tail(&pkt_ts->link, &dec->ts_link);
+            list_sort(NULL, &dec->ts_link, ts_cmp);
+            mpp_spinlock_unlock(&dec->ts_lock);
+        }
         dec_release_input_packet(dec, 0);
     }
 
@@ -1729,6 +1746,15 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         sem_init(&p->parser_reset, 0, 0);
         sem_init(&p->hal_reset, 0, 0);
 
+        // init timestamp for record and sort pts
+        mpp_spinlock_init(&p->ts_lock);
+        INIT_LIST_HEAD(&p->ts_link);
+        p->ts_pool = mpp_mem_pool_init(sizeof(MppPktTs));
+        if (!p->ts_pool) {
+            mpp_err_f("malloc ts pool failed!\n");
+            break;
+        }
+
         *dec = p;
         dec_dbg_func("%p out\n", p);
         return MPP_OK;
@@ -1813,6 +1839,10 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
 
     sem_destroy(&dec->parser_reset);
     sem_destroy(&dec->hal_reset);
+    if (dec->ts_pool) {
+        mpp_mem_pool_deinit(dec->ts_pool);
+        dec->ts_pool = NULL;
+    }
 
     mpp_free(dec);
     dec_dbg_func("%p out\n", dec);

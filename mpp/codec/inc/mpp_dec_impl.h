@@ -18,6 +18,8 @@
 #define __MPP_DEC_IMPL_H__
 
 #include "mpp_time.h"
+#include "mpp_mem_pool.h"
+#include "mpp_lock.h"
 #include "hal_info.h"
 
 #include "mpp.h"
@@ -122,7 +124,17 @@ typedef struct MppDecImpl_t {
     RK_U32              dec_in_pkt_count;
     RK_U32              dec_hw_run_count;
     RK_U32              dec_out_frame_count;
+
+    MppMemPool          ts_pool;
+    struct list_head    ts_link;
+    spinlock_t          ts_lock;
 } MppDecImpl;
+
+typedef struct MppPktTimestamp_t {
+    struct list_head link;
+    RK_S32  pts;
+    RK_S32  dts;
+} MppPktTs;
 
 #ifdef __cplusplus
 extern "C" {
