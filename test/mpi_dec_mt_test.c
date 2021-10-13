@@ -56,11 +56,11 @@ typedef struct {
 
     /* runtime flag */
     RK_U32          quiet;
-} MpiDecLoopData;
+} MpiDecMtLoopData;
 
 void *thread_input(void *arg)
 {
-    MpiDecLoopData *data = (MpiDecLoopData *)arg;
+    MpiDecMtLoopData *data = (MpiDecMtLoopData *)arg;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     char   *buf = data->buf;
@@ -110,7 +110,7 @@ void *thread_input(void *arg)
 
 void *thread_output(void *arg)
 {
-    MpiDecLoopData *data = (MpiDecLoopData *)arg;
+    MpiDecMtLoopData *data = (MpiDecMtLoopData *)arg;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     MppFrame  frame  = NULL;
@@ -275,7 +275,7 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     pthread_t thd_in;
     pthread_t thd_out;
     pthread_attr_t attr;
-    MpiDecLoopData data;
+    MpiDecMtLoopData data;
 
     mpp_log("mpi_dec_test start\n");
     memset(&data, 0, sizeof(data));
