@@ -18,6 +18,7 @@
 #define __RK_VDEC_CMD_H__
 
 #include "rk_type.h"
+#include "mpp_err.h"
 
 /*
  * decoder query interface is only for debug usage
@@ -61,5 +62,8 @@ typedef struct MppDecQueryCfg_t {
     RK_U32      dec_hw_run_cnt;
     RK_U32      dec_out_frm_cnt;
 } MppDecQueryCfg;
+
+typedef void* MppExtCbCtx;
+typedef MPP_RET (*MppExtCbFunc)(MppExtCbCtx cb_ctx, MppCtx mpp, RK_S32 cmd, void *arg);
 
 #endif /*__RK_VDEC_CMD_H__*/
