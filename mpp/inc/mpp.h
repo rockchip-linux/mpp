@@ -124,7 +124,6 @@ public:
 
     mpp_list        *mPackets;
     mpp_list        *mFrames;
-    mpp_list        *mTimeStamps;
     /* counters for debug */
     RK_U32          mPacketPutCount;
     RK_U32          mPacketGetCount;
