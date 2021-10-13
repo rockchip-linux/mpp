@@ -96,7 +96,7 @@
 class Mpp
 {
 public:
-    Mpp();
+    Mpp(MppCtx ctx);
     ~Mpp();
     MPP_RET init(MppCtxType type, MppCodingType coding);
 
@@ -173,6 +173,7 @@ public:
     MppTask         mInputTask;
     MppTask         mEosTask;
 
+    MppCtx          mCtx;
     MppDec          mDec;
     MppEnc          mEnc;
 

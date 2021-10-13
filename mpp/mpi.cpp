@@ -449,7 +449,7 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
         }
 
         memset(p, 0, sizeof(*p));
-        p->ctx = new Mpp();
+        p->ctx = new Mpp(p);
         if (NULL == p->ctx) {
             mpp_free(p);
             mpp_err_f("failed to new Mpp\n");
