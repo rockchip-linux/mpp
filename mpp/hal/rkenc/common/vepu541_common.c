@@ -373,7 +373,7 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
     }
 
     if (roi->number > VEPU541_MAX_ROI_NUM) {
-        mpp_err_f("invalid region number %d\n", buf, roi->number);
+        mpp_err_f("invalid region number %d\n", roi->number);
         goto DONE;
     }
 
