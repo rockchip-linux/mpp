@@ -122,7 +122,7 @@ struct ClusterWorker_s {
 };
 
 struct MppCluster_s {
-    char                    name[32];
+    char                    name[16];
     pid_t                   pid;
     RK_S32                  client_type;
     RK_S32                  node_id;
