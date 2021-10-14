@@ -58,9 +58,15 @@ RK_S32  mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd);
 void    mpi_dec_test_show_options(MpiDecTestCmd* cmd);
 void    mpi_dec_test_help();
 
-void    reader_init(FileReader* file_reader, char* file_in, FILE* fp_in);
-void    reader_deinit(FileReader *file_reader);
-RK_U32  reader_read(FileReader file_reader, char** buf, size_t *size);
-void    reader_rewind(FileReader file_reader);
+void    reader_init(FileReader* reader, char* file_in, FILE* fp_in);
+void    reader_deinit(FileReader *reader);
+
+void    reader_start(FileReader reader);
+void    reader_sync(FileReader reader);
+void    reader_stop(FileReader reader);
+
+RK_U32  reader_read(FileReader reader, char** buf, size_t *size);
+RK_U32  reader_index_read(FileReader reader, RK_S32 index, char** buf, size_t *size);
+void    reader_rewind(FileReader reader);
 
 #endif

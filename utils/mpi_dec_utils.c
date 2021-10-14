@@ -17,30 +17,66 @@
 #define MODULE_TAG "mpi_dec_utils"
 
 #include <string.h>
+#include <pthread.h>
 
-#include "mpp_mem.h"
-#include "mpp_log.h"
 #include "rk_mpi.h"
 #include "utils.h"
+
+#include "mpp_env.h"
+#include "mpp_mem.h"
+#include "mpp_log.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
+#include "mpp_buffer.h"
+
 #include "mpi_dec_utils.h"
 
 #define IVF_HEADER_LENGTH           32
 #define IVF_FRAME_HEADER_LENGTH     12
 
+#define DEFAULT_PACKET_SIZE         SZ_4K
+
 typedef enum {
     FILE_NORMAL_TYPE,
+    FILE_JPEG_TYPE,
     FILE_IVF_TYPE,
     FILE_BUTT,
 } FileType;
 
+typedef RK_U32 (*ReaderFunc)(FileReader data);
+
+typedef struct FileBufSlot_t {
+    MppBuffer       hw_buf;
+    size_t          size;
+    RK_U32          eos;
+    char            *buf;
+} FileBufSlot;
+
 typedef struct FileReader_t {
-    char        *buf;
-    FILE        *fp_input;
-    size_t      buf_size;
-    size_t      read_size;
-    FileType    file_type;
+    FILE            *fp_input;
+    size_t          file_size;
+
+    FileType        file_type;
+    char            *buf;
+    size_t          buf_size;
+    size_t          stuff_size;
+    RK_S32          seek_base;
+    ReaderFunc      read_func;
+
+    /* return value for each read */
+    size_t          read_total;
+    size_t          read_size;
+
+    pthread_t       thd;
+    volatile RK_U32 thd_stop;
+
+    RK_U32          slot_max;
+    RK_U32          slot_cnt;
+    RK_U32          slot_rd_idx;
+    FileBufSlot     **slots;
 } FileReaderImpl;
+
+#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
 
 OptionInfo mpi_dec_cmd[] = {
     {"i",               "input_file",           "input bitstream file"},
@@ -59,130 +95,286 @@ OptionInfo mpi_dec_cmd[] = {
 
 static RK_U32 read_ivf_file(FileReader data)
 {
-    FileReaderImpl *reader = (FileReaderImpl*)data;
-    char   *buf = reader->buf;
-    size_t data_size = 0;
-    size_t buf_size = reader->buf_size;
-    RK_U32 eos = 0;
+    FileReaderImpl *impl = (FileReaderImpl*)data;
     RK_U8 ivf_data[IVF_FRAME_HEADER_LENGTH] = {0};
+    size_t ivf_data_size = IVF_FRAME_HEADER_LENGTH;
+    FILE *fp = impl->fp_input;
+    FileBufSlot *slot = NULL;
+    size_t data_size = 0;
+    size_t read_size = 0;
+    RK_U32 eos = 0;
 
-    if (fread(ivf_data, 1, IVF_FRAME_HEADER_LENGTH, reader->fp_input) != IVF_FRAME_HEADER_LENGTH)
-        return -1;
-    data_size = ivf_data[0] |
-                (ivf_data[1] << 8) |
-                (ivf_data[2] << 16) |
-                (ivf_data[3] << 24);
-    /* buffer size not enough, realloc */
-    if (data_size > buf_size) {
-        size_t realloc_size = MPP_ALIGN(data_size, SZ_4K);
-        mpp_log("buf size not enough realloc size %d\n", realloc_size);
-        buf = mpp_realloc(buf, char, realloc_size);
-        if (NULL == buf) {
-            mpp_err("mpi_dec_test realloc input stream buffer failed\n");
-        }
-        reader->buf = buf;
-        reader->buf_size = realloc_size;
+    if (fread(ivf_data, 1, ivf_data_size, fp) != ivf_data_size) {
+        /* end of frame queue */
+        slot = mpp_calloc(FileBufSlot, 1);
+        slot->eos = 1;
+        impl->slots[impl->slot_cnt] = slot;
+
+        return 1;
     }
 
-    reader->read_size = fread(buf, 1, data_size, reader->fp_input);
+    data_size = ivf_data[0] | (ivf_data[1] << 8) | (ivf_data[2] << 16) | (ivf_data[3] << 24);
+    slot = mpp_malloc_size(FileBufSlot, MPP_ALIGN(sizeof(FileBufSlot) + data_size, SZ_4K));
+    slot->buf = (char *)(slot + 1);
+    read_size = fread(slot->buf, 1, data_size, fp);
+    impl->read_total += read_size;
+    impl->read_size = read_size;
+
     /* check reach eos whether or not */
-    if (!data_size || reader->read_size != data_size || feof(reader->fp_input)) {
+    if (slot->size != data_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
-    }
+
+    slot->hw_buf = NULL;
+    slot->size = read_size;
+    slot->eos = eos;
+
+    mpp_assert(impl->slot_cnt < impl->slot_max);
+    impl->slots[impl->slot_cnt] = slot;
+
     return eos;
+}
+
+static RK_U32 read_jpeg_file(FileReader data)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)data;
+    FILE *fp = impl->fp_input;
+    size_t read_size = 0;
+    size_t buf_size = impl->file_size;
+    MppBuffer hw_buf = NULL;
+    FileBufSlot *slot = mpp_calloc(FileBufSlot, 1);
+
+    mpp_buffer_get(NULL, &hw_buf, impl->file_size);
+    mpp_assert(hw_buf);
+
+    slot->buf = mpp_buffer_get_ptr(hw_buf);
+    mpp_assert(slot->buf);
+    read_size = fread(slot->buf, 1, buf_size, fp);
+
+    mpp_assert(read_size == buf_size);
+
+    impl->read_total += read_size;
+    impl->read_size = read_size;
+
+    slot->hw_buf = hw_buf;
+    slot->size  = read_size;
+    slot->eos   = 1;
+
+    mpp_assert(impl->slot_cnt < impl->slot_max);
+    impl->slots[impl->slot_cnt] = slot;
+
+    return 1;
 }
 
 static RK_U32 read_normal_file(FileReader data)
 {
-    FileReaderImpl *reader = (FileReaderImpl*)data;
-    char   *buf = reader->buf;
-    size_t buf_size = reader->buf_size;
+    FileReaderImpl *impl = (FileReaderImpl*)data;
+    FILE *fp = impl->fp_input;
+    size_t read_size = 0;
+    size_t buf_size = impl->buf_size;
+    size_t size = sizeof(FileBufSlot) + buf_size + impl->stuff_size;
+    FileBufSlot *slot = mpp_malloc_size(FileBufSlot, size);
     RK_U32 eos = 0;
 
-    reader->read_size = fread(buf, 1, buf_size, reader->fp_input);
+    slot->buf = (char *)(slot + 1);
+    read_size = fread(slot->buf, 1, buf_size, fp);
+    impl->read_total += read_size;
+    impl->read_size = read_size;
+
     /* check reach eos whether or not */
-    if (!buf_size || reader->read_size != buf_size || feof(reader->fp_input))
+    if (read_size != buf_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
+
+    slot->hw_buf = NULL;
+    slot->size  = read_size;
+    slot->eos   = eos;
+
+    mpp_assert(impl->slot_cnt < impl->slot_max);
+    impl->slots[impl->slot_cnt] = slot;
 
     return eos;
 }
 
 static void check_file_type(FileReader data, char *file_in)
 {
-    FileReaderImpl *reader = (FileReaderImpl*)data;
+    FileReaderImpl *impl = (FileReaderImpl*)data;
 
     if (strstr(file_in, ".ivf")) {
-        reader->file_type = FILE_IVF_TYPE;
-        reader->buf_size = SZ_2M;
+        impl->file_type     = FILE_IVF_TYPE;
+        impl->buf_size      = 0;
+        impl->stuff_size    = 0;
+        impl->seek_base     = IVF_HEADER_LENGTH;
+        impl->read_func     = read_ivf_file;
+        impl->slot_max      = MPP_ALIGN(impl->file_size, SZ_4K) / SZ_4K;
+
+        fseek(impl->fp_input, impl->seek_base, SEEK_SET);
+    } else if (strstr(file_in, ".jpg") ||
+               strstr(file_in, ".jpeg") ||
+               strstr(file_in, ".mjpeg")) {
+        impl->file_type     = FILE_JPEG_TYPE;
+        impl->buf_size      = impl->file_size;
+        impl->stuff_size    = 0;
+        impl->seek_base     = 0;
+        impl->read_func     = read_jpeg_file;
+        impl->slot_max      = 1;
     } else {
-        reader->file_type = FILE_NORMAL_TYPE;
-        reader->buf_size = SZ_4K;
+        RK_U32 buf_size = 0;
+
+        mpp_env_get_u32("reader_buf_size", &buf_size, DEFAULT_PACKET_SIZE);
+
+        buf_size = MPP_MAX(buf_size, SZ_4K);
+        buf_size = MPP_ALIGN(buf_size, SZ_4K);
+
+        impl->file_type     = FILE_NORMAL_TYPE;
+        impl->buf_size      = buf_size;
+        impl->stuff_size    = 256;
+        impl->seek_base     = 0;
+        impl->read_func     = read_normal_file;
+        impl->slot_max      = MPP_ALIGN(impl->file_size, buf_size) / buf_size;
     }
 }
 
-RK_U32 reader_read(FileReader file_reader, char** buf, size_t *size)
+RK_U32 reader_read(FileReader reader, char** buf, size_t *size)
 {
-    FileReaderImpl *reader = file_reader;
-    FileType type = reader->file_type;
-    RK_U32  eos = 0;
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+    RK_U32 slot_rd_idx = impl->slot_rd_idx;
+    FileBufSlot *slot = NULL;
 
-    switch (type) {
-    case FILE_NORMAL_TYPE : {
-        eos = read_normal_file(reader);
-    } break;
-    case FILE_IVF_TYPE : {
-        eos = read_ivf_file(reader);
-    } break;
-    default : {
-    } break;
+    mpp_assert(slot_rd_idx < impl->slot_max);
+    mpp_assert(impl->slots);
+
+    do {
+        slot = impl->slots[slot_rd_idx];
+        if (slot == NULL)
+            msleep(1);
+    } while (slot == NULL);
+
+    mpp_assert(slot);
+
+    *buf  = slot->buf;
+    *size = slot->size;
+    impl->slot_rd_idx++;
+
+    return slot->eos;
+}
+
+RK_U32 reader_index_read(FileReader reader, RK_S32 index, char** buf, size_t *size)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+    RK_U32 slot_rd_idx = index;
+    FileBufSlot *slot = NULL;
+
+    mpp_assert(slot_rd_idx < impl->slot_max);
+    mpp_assert(impl->slots);
+
+    do {
+        slot = impl->slots[slot_rd_idx];
+        if (slot == NULL)
+            msleep(1);
+    } while (slot == NULL);
+
+    mpp_assert(slot);
+
+    *buf  = slot->buf;
+    *size = slot->size;
+
+    return slot->eos;
+}
+
+void reader_rewind(FileReader reader)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+
+    impl->slot_rd_idx = 0;
+}
+
+void reader_init(FileReader* reader, char* file_in, FILE* fp_in)
+{
+    FileReaderImpl *impl = mpp_calloc(FileReaderImpl, 1);
+    FILE *fp_input = fopen(file_in, "rb");
+    (void) fp_in;
+
+    mpp_assert(fp_input);
+
+    impl->fp_input = fp_input;
+    fseek(fp_input, 0L, SEEK_END);
+    impl->file_size = ftell(fp_input);
+    fseek(fp_input, 0L, SEEK_SET);
+
+    check_file_type(impl, file_in);
+
+    impl->slots = mpp_calloc(FileBufSlot *, impl->slot_max);
+
+    reader_start(impl);
+
+    *reader = impl;
+}
+
+void reader_deinit(FileReader *reader)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)(*reader);
+    RK_U32 i;
+
+    mpp_assert(impl);
+    reader_stop(impl);
+
+    if (impl->fp_input) {
+        fclose(impl->fp_input);
+        impl->fp_input = NULL;
     }
 
-    *buf  = reader->buf;
-    *size = reader->read_size;
-    return eos;
-}
+    for (i = 0; i < impl->slot_cnt; i++) {
+        FileBufSlot *slot = impl->slots[i];
+        if (!slot)
+            continue;
 
-void reader_rewind(FileReader file_reader)
-{
-    FileReaderImpl *reader = (FileReaderImpl*)file_reader;
-    FileType type = reader->file_type;
-
-    clearerr(reader->fp_input);
-
-    switch (type) {
-    case FILE_NORMAL_TYPE : {
-        rewind(reader->fp_input);
-    } break;
-    case FILE_IVF_TYPE : {
-        fseek(reader->fp_input, IVF_HEADER_LENGTH, SEEK_SET);
-    } break;
-    default : {
-    } break;
+        if (slot->hw_buf) {
+            mpp_buffer_put(&slot->hw_buf);
+            slot->hw_buf = NULL;
+        }
+        MPP_FREE(impl->slots[i]);
     }
+
+    MPP_FREE(impl->slots);
+    MPP_FREE(impl);
+    *reader = NULL;
 }
 
-void reader_init(FileReader* file_reader, char* file_in, FILE* fp_in)
+static void* reader_worker(void *param)
 {
-    FileReaderImpl *reader = mpp_malloc(FileReaderImpl, 1);
+    FileReaderImpl *impl = (FileReaderImpl*)param;
+    RK_U32 eos = 0;
 
-    check_file_type(reader, file_in);
+    while (!impl->thd_stop && !eos) {
+        eos = impl->read_func(impl);
+        impl->slot_cnt++;
+        mpp_assert(impl->slot_cnt <= impl->slot_max);
+    }
 
-    reader->buf      = mpp_malloc(char, reader->buf_size);
-    reader->fp_input = fp_in;
-
-    if (reader->file_type == FILE_IVF_TYPE)
-        fseek(reader->fp_input, IVF_HEADER_LENGTH, SEEK_SET);
-
-    *file_reader = reader;
+    return NULL;
 }
 
-void reader_deinit(FileReader *file_reader)
+void reader_start(FileReader reader)
 {
-    FileReaderImpl *reader = (FileReaderImpl*)(*file_reader);
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
 
-    MPP_FREE(reader->buf);
-    MPP_FREE(reader);
-    *file_reader = NULL;
+    impl->thd_stop = 0;
+    pthread_create(&impl->thd, NULL, reader_worker, impl);
+}
+
+void reader_sync(FileReader reader)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+
+    pthread_join(impl->thd, NULL);
+    impl->thd_stop = 1;
+}
+
+void reader_stop(FileReader reader)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+
+    if (__sync_bool_compare_and_swap(&impl->thd_stop, 0, 1))
+        pthread_join(impl->thd, NULL);
 }
 
 void mpi_dec_test_help()
