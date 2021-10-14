@@ -29,7 +29,10 @@ void mpp_spinlock_init(spinlock_t *lock)
 
 void mpp_spinlock_lock(spinlock_t *lock)
 {
-    while (!__sync_bool_compare_and_swap(&lock->lock, LOCK_IDLE, LOCK_BUSY));
+    while (!__sync_bool_compare_and_swap(&lock->lock, LOCK_IDLE, LOCK_BUSY)) {
+        asm("NOP");
+        asm("NOP");
+    }
 }
 
 void mpp_spinlock_unlock(spinlock_t *lock)
