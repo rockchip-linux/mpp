@@ -448,7 +448,8 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg017.src_range  = cfg.src_range;
     regs->reg017.out_fmt_cfg = 0;
 
-    y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
+    y_stride = (MPP_FRAME_FMT_IS_FBC(fmt)) ? (MPP_ALIGN(prep->width, 16)) :
+               (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
     c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
                y_stride : y_stride / 2;
 
