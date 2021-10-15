@@ -991,7 +991,9 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
     regs->src_fmt.rbuv_swap = fmt->rbuv_swap;
     regs->src_fmt.src_range = fmt->src_range;
     regs->src_proc.src_rot = prep_cfg->rotation;
-    if (prep_cfg->hor_stride) {
+    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
+        stridey = MPP_ALIGN(prep_cfg->width, 16);
+    } else if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
         if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
