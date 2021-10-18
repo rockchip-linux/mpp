@@ -17,6 +17,8 @@
 #ifndef __MPP_LOCK_H__
 #define __MPP_LOCK_H__
 
+#include <stdbool.h>
+
 #include "rk_type.h"
 
 #ifdef __cplusplus
