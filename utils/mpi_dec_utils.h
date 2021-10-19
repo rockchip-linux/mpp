@@ -27,7 +27,7 @@
 typedef void* FileReader;
 
 /* For overall configure setup */
-typedef struct {
+typedef struct MpiDecTestCmd_t {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
     char            file_config[MAX_FILE_NAME_LENGTH];
@@ -68,5 +68,7 @@ void    reader_stop(FileReader reader);
 RK_U32  reader_read(FileReader reader, char** buf, size_t *size);
 RK_U32  reader_index_read(FileReader reader, RK_S32 index, char** buf, size_t *size);
 void    reader_rewind(FileReader reader);
+
+void show_dec_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S64 last_count);
 
 #endif
