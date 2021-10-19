@@ -83,6 +83,14 @@ RK_S32 parse_config_line(const char *str, OpsLine *info);
 MPP_RET name_to_frame_format(const char *name, MppFrameFormat *fmt);
 MPP_RET name_to_coding_type(const char *name, MppCodingType *coding);
 
+typedef void* FpsCalc;
+typedef void (*FpsCalcCb)(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S64 last_count);
+
+MPP_RET fps_calc_init(FpsCalc *ctx);
+MPP_RET fps_calc_deinit(FpsCalc ctx);
+MPP_RET fps_calc_set_cb(FpsCalc ctx, FpsCalcCb cb);
+MPP_RET fps_calc_inc(FpsCalc ctx);
+
 #ifdef __cplusplus
 }
 #endif
