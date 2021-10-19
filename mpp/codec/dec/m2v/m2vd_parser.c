@@ -468,7 +468,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     length = mpp_packet_get_length(pkt);
     eos = mpp_packet_get_eos(pkt);
 
-    if (eos && !length) {
+    if (eos && !length && !p->left_length) {
         task->valid = 0;
         task->flags.eos = 1;
         m2vd_parser_flush(ctx);
@@ -514,6 +514,9 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_data(p->input_packet, p->bitstream_sw_buf);
         mpp_packet_set_size(p->input_packet, p->max_stream_size);
 
+        if (mpp_packet_get_eos(pkt))
+            mpp_packet_set_eos(p->input_packet);
+
         p->pts = mpp_packet_get_pts(pkt);
         task->valid = 1;
         mpp_packet_set_length(pkt, 0);
@@ -531,7 +534,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_extra_data(p->input_packet);
     }
 
-    p->eos = mpp_packet_get_eos(pkt);
+    p->eos = mpp_packet_get_pts(p->input_packet);
     mpp_packet_set_pts(p->input_packet, p->pts);
     task->input_packet = p->input_packet;
     task->flags.eos = p->eos;
