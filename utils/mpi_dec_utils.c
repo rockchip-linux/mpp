@@ -377,6 +377,15 @@ void reader_stop(FileReader reader)
         pthread_join(impl->thd, NULL);
 }
 
+void show_dec_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S64 last_count)
+{
+    float avg_fps = (float)total_count * 1000000 / total_time;
+    float ins_fps = (float)last_count * 1000000 / last_time;
+
+    mpp_log("decoded %10lld frame fps avg %7.2f ins %7.2f\n",
+            total_count, avg_fps, ins_fps);
+}
+
 void mpi_dec_test_help()
 {
     mpp_log("usage: mpi_dec_test [options]\n");
