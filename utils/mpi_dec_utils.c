@@ -45,13 +45,6 @@ typedef enum {
 
 typedef RK_U32 (*ReaderFunc)(FileReader data);
 
-typedef struct FileBufSlot_t {
-    MppBuffer       hw_buf;
-    size_t          size;
-    RK_U32          eos;
-    char            *buf;
-} FileBufSlot;
-
 typedef struct FileReader_t {
     FILE            *fp_input;
     size_t          file_size;
@@ -115,8 +108,8 @@ static RK_U32 read_ivf_file(FileReader data)
 
     data_size = ivf_data[0] | (ivf_data[1] << 8) | (ivf_data[2] << 16) | (ivf_data[3] << 24);
     slot = mpp_malloc_size(FileBufSlot, MPP_ALIGN(sizeof(FileBufSlot) + data_size, SZ_4K));
-    slot->buf = (char *)(slot + 1);
-    read_size = fread(slot->buf, 1, data_size, fp);
+    slot->data = (char *)(slot + 1);
+    read_size = fread(slot->data, 1, data_size, fp);
     impl->read_total += read_size;
     impl->read_size = read_size;
 
@@ -124,9 +117,10 @@ static RK_U32 read_ivf_file(FileReader data)
     if (slot->size != data_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
 
-    slot->hw_buf = NULL;
+    slot->buf = NULL;
     slot->size = read_size;
     slot->eos = eos;
+    slot->index = impl->slot_cnt;
 
     mpp_assert(impl->slot_cnt < impl->slot_max);
     impl->slots[impl->slot_cnt] = slot;
@@ -146,18 +140,19 @@ static RK_U32 read_jpeg_file(FileReader data)
     mpp_buffer_get(NULL, &hw_buf, impl->file_size);
     mpp_assert(hw_buf);
 
-    slot->buf = mpp_buffer_get_ptr(hw_buf);
-    mpp_assert(slot->buf);
-    read_size = fread(slot->buf, 1, buf_size, fp);
+    slot->data = mpp_buffer_get_ptr(hw_buf);
+    mpp_assert(slot->data);
+    read_size = fread(slot->data, 1, buf_size, fp);
 
     mpp_assert(read_size == buf_size);
 
     impl->read_total += read_size;
     impl->read_size = read_size;
 
-    slot->hw_buf = hw_buf;
+    slot->buf = hw_buf;
     slot->size  = read_size;
     slot->eos   = 1;
+    slot->index = impl->slot_cnt;
 
     mpp_assert(impl->slot_cnt < impl->slot_max);
     impl->slots[impl->slot_cnt] = slot;
@@ -175,8 +170,8 @@ static RK_U32 read_normal_file(FileReader data)
     FileBufSlot *slot = mpp_malloc_size(FileBufSlot, size);
     RK_U32 eos = 0;
 
-    slot->buf = (char *)(slot + 1);
-    read_size = fread(slot->buf, 1, buf_size, fp);
+    slot->data = (char *)(slot + 1);
+    read_size = fread(slot->data, 1, buf_size, fp);
     impl->read_total += read_size;
     impl->read_size = read_size;
 
@@ -184,9 +179,10 @@ static RK_U32 read_normal_file(FileReader data)
     if (read_size != buf_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
 
-    slot->hw_buf = NULL;
+    slot->buf = NULL;
     slot->size  = read_size;
     slot->eos   = eos;
+    slot->index = impl->slot_cnt;
 
     mpp_assert(impl->slot_cnt < impl->slot_max);
     impl->slots[impl->slot_cnt] = slot;
@@ -233,51 +229,61 @@ static void check_file_type(FileReader data, char *file_in)
     }
 }
 
-RK_U32 reader_read(FileReader reader, char** buf, size_t *size)
+MPP_RET reader_read(FileReader reader, FileBufSlot **buf)
 {
     FileReaderImpl *impl = (FileReaderImpl*)reader;
-    RK_U32 slot_rd_idx = impl->slot_rd_idx;
     FileBufSlot *slot = NULL;
 
-    mpp_assert(slot_rd_idx < impl->slot_max);
-    mpp_assert(impl->slots);
+    if (NULL == impl || NULL == impl->slots) {
+        mpp_log_f("invalid reader %p\n", reader);
+        return MPP_NOK;
+    }
+
+    if (impl->slot_rd_idx >= impl->slot_max) {
+        mpp_log_f("invalid read index % max %d\n", impl->slot_rd_idx, impl->slot_max);
+        return MPP_NOK;
+    }
 
     do {
-        slot = impl->slots[slot_rd_idx];
+        slot = impl->slots[impl->slot_rd_idx];
         if (slot == NULL)
             msleep(1);
     } while (slot == NULL);
 
     mpp_assert(slot);
 
-    *buf  = slot->buf;
-    *size = slot->size;
+    *buf  = slot;
     impl->slot_rd_idx++;
 
-    return slot->eos;
+    return MPP_OK;
 }
 
-RK_U32 reader_index_read(FileReader reader, RK_S32 index, char** buf, size_t *size)
+MPP_RET reader_index_read(FileReader reader, RK_S32 index, FileBufSlot **buf)
 {
     FileReaderImpl *impl = (FileReaderImpl*)reader;
-    RK_U32 slot_rd_idx = index;
     FileBufSlot *slot = NULL;
 
-    mpp_assert(slot_rd_idx < impl->slot_max);
-    mpp_assert(impl->slots);
+    if (NULL == impl || NULL == impl->slots) {
+        mpp_log_f("invalid reader %p\n", reader);
+        return MPP_NOK;
+    }
+
+    if (index >= (RK_S32)impl->slot_max) {
+        mpp_log_f("invalid read index % max %d\n", index, impl->slot_max);
+        return MPP_NOK;
+    }
 
     do {
-        slot = impl->slots[slot_rd_idx];
+        slot = impl->slots[index];
         if (slot == NULL)
             msleep(1);
     } while (slot == NULL);
 
     mpp_assert(slot);
 
-    *buf  = slot->buf;
-    *size = slot->size;
+    *buf  = slot;
 
-    return slot->eos;
+    return MPP_OK;
 }
 
 void reader_rewind(FileReader reader)
@@ -327,9 +333,9 @@ void reader_deinit(FileReader *reader)
         if (!slot)
             continue;
 
-        if (slot->hw_buf) {
-            mpp_buffer_put(&slot->hw_buf);
-            slot->hw_buf = NULL;
+        if (slot->buf) {
+            mpp_buffer_put(&slot->buf);
+            slot->buf = NULL;
         }
         MPP_FREE(impl->slots[i]);
     }

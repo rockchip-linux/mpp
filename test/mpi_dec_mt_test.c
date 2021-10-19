@@ -38,6 +38,7 @@ typedef struct {
     MppApi          *mpi;
 
     volatile RK_U32 loop_end;
+    sem_t           sem_end;
 
     /* buffer for stream data reading */
     char            *buf;
@@ -63,47 +64,55 @@ void *thread_input(void *arg)
     MpiDecMtLoopData *data = (MpiDecMtLoopData *)arg;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
-    char   *buf = data->buf;
     MppPacket packet = data->packet;
     FileReader reader = data->reader;
+    RK_U32 quiet = data->quiet;
 
-    mpp_log("put packet thread start\n");
+    mpp_log_q(quiet, "put packet thread start\n");
 
     do {
         RK_U32 pkt_done = 0;
-        RK_U32 pkt_eos  = 0;
-        size_t read_size = 0;
+        RK_U32 pkt_eos = 0;
+        FileBufSlot *slot = NULL;
+        MPP_RET ret = reader_read(reader, &slot);
+        if (ret)
+            break;
 
-        pkt_eos = reader_read(reader, &buf, &read_size);
+        mpp_packet_set_data(packet, slot->data);
+        mpp_packet_set_size(packet, slot->size);
+        mpp_packet_set_pos(packet, slot->data);
+        mpp_packet_set_length(packet, slot->size);
 
-        if (pkt_eos)
-            reader_rewind(reader);
-
-        mpp_packet_set_data(packet, buf);
-        if (read_size > mpp_packet_get_size(packet))
-            mpp_packet_set_size(packet, read_size);
-        mpp_packet_set_pos(packet, buf);
-        mpp_packet_set_length(packet, read_size);
+        pkt_eos = slot->eos;
         // setup eos flag
         if (pkt_eos) {
-            mpp_packet_set_eos(packet);
-            // mpp_log("found last packet\n");
-        } else
-            mpp_packet_clr_eos(packet);
+            if (data->frame_num < 0) {
+                mpp_log_q(quiet, "%p loop again\n", ctx);
+                reader_rewind(reader);
+                pkt_eos = 0;
+            } else {
+                mpp_log_q(quiet, "%p found last packet\n", ctx);
+                mpp_packet_set_eos(packet);
+            }
+        }
 
         // send packet until it success
         do {
-            MPP_RET ret = mpi->decode_put_packet(ctx, packet);
-            if (MPP_OK == ret)
+            ret = mpi->decode_put_packet(ctx, packet);
+            if (MPP_OK == ret) {
                 pkt_done = 1;
-            else {
+                mpp_assert(0 == mpp_packet_get_length(packet));
+            } else {
                 // if failed wait a moment and retry
                 msleep(5);
             }
         } while (!pkt_done);
+
+        if (pkt_eos)
+            break;
     } while (!data->loop_end);
 
-    mpp_log("put packet thread end\n");
+    mpp_log_q(quiet, "put packet thread end\n");
 
     return NULL;
 }
@@ -116,10 +125,11 @@ void *thread_output(void *arg)
     MppFrame  frame  = NULL;
     RK_U32 quiet = data->quiet;
 
-    mpp_log("get frame thread start\n");
+    mpp_log_q(quiet, "get frame thread start\n");
 
     // then get all available frame and release
     do {
+        RK_U32 frm_eos = 0;
         RK_S32 times = 5;
         MPP_RET ret = MPP_OK;
 
@@ -222,25 +232,29 @@ void *thread_output(void *arg)
                 data->frame_count++;
             }
 
-            if (mpp_frame_get_eos(frame)) {
-                mpp_log_q(quiet, "found last frame loop again\n");
-                // when get a eos status mpp need a reset to restart decoding
-                ret = mpi->reset(ctx);
-                if (MPP_OK != ret)
-                    mpp_err("mpi->reset failed\n");
-            }
-
+            frm_eos = mpp_frame_get_eos(frame);
             mpp_frame_deinit(&frame);
             frame = NULL;
+
+            if (frm_eos) {
+                mpp_log_q(quiet, "found last frame and quit\n");
+                // when get a eos status mpp need a reset to restart decoding
+                data->loop_end = 1;
+                mpp_log_q(quiet, "found last frame and quit ok\n");
+                sem_post(&data->sem_end);
+                break;
+            }
+
             if (data->frame_num > 0 && data->frame_count >= (RK_U32)data->frame_num) {
                 data->loop_end = 1;
                 mpp_log("%p reach max frame number %d\n", ctx, data->frame_count);
+                sem_post(&data->sem_end);
                 break;
             }
         }
     } while (!data->loop_end);
 
-    mpp_log("get frame thread end\n");
+    mpp_log_q(quiet, "get frame thread end\n");
 
     return NULL;
 }
@@ -356,6 +370,7 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     data.frame_num      = cmd->frame_num;
     data.reader         = reader;
     data.quiet          = cmd->quiet;
+    sem_init(&data.sem_end, 0, 0);
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -371,22 +386,30 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
         mpp_err("failed to create thread for output ret %d\n", ret);
         goto THREAD_END;
     }
-    // wait for input then quit decoding
-    mpp_log("*******************************************\n");
-    mpp_log("**** Press Enter to stop loop decoding ****\n");
-    mpp_log("*******************************************\n");
 
-    getc(stdin);
-    data.loop_end = 1;
+    if (cmd->frame_num < 0) {
+        // wait for input then quit decoding
+        mpp_log("*******************************************\n");
+        mpp_log("**** Press Enter to stop loop decoding ****\n");
+        mpp_log("*******************************************\n");
+
+        getc(stdin);
+        data.loop_end = 1;
+    } else {
+        sem_wait(&data.sem_end);
+    }
     ret = mpi->reset(ctx);
     if (MPP_OK != ret)
         mpp_err("mpi->reset failed\n");
 
 THREAD_END:
     pthread_attr_destroy(&attr);
-    mpp_log("all threads end\n");
+    mpp_log("all threads join start\n");
     pthread_join(thd_in, NULL);
     pthread_join(thd_out, NULL);
+    mpp_log("all threads join done\n");
+
+    sem_destroy(&data.sem_end);
 
     ret = mpi->reset(ctx);
     if (MPP_OK != ret) {

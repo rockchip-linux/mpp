@@ -105,8 +105,16 @@ static int dec_simple(MpiDecLoopData *data)
 
         // when packet size is valid read the input binary file
         if (packet_size) {
+            FileBufSlot *slot = NULL;
+            ret = reader_read(reader, &slot);
 
-            data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
+            mpp_assert(ret == MPP_OK);
+            mpp_assert(slot);
+
+            pkt_eos = slot->eos;
+            buf = slot->data;
+            read_size = slot->size;
+            data->eos = pkt_eos;
 
             if (pkt_eos) {
                 if (data->frame_num < 0) {
