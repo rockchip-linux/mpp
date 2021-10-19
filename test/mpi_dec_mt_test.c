@@ -34,11 +34,11 @@
 #include "mpi_dec_utils.h"
 
 typedef struct {
+    MpiDecTestCmd   *cmd;
     MppCtx          ctx;
     MppApi          *mpi;
 
     volatile RK_U32 loop_end;
-    sem_t           sem_end;
 
     /* buffer for stream data reading */
     char            *buf;
@@ -51,7 +51,7 @@ typedef struct {
 
     FILE            *fp_input;
     FILE            *fp_output;
-    RK_U64          frame_count;
+    RK_S32          frame_count;
     RK_S32          frame_num;
     FileReader      reader;
 
@@ -86,7 +86,7 @@ void *thread_input(void *arg)
         pkt_eos = slot->eos;
         // setup eos flag
         if (pkt_eos) {
-            if (data->frame_num < 0) {
+            if (data->frame_num < 0 || data->frame_count < data->frame_num) {
                 mpp_log_q(quiet, "%p loop again\n", ctx);
                 reader_rewind(reader);
                 pkt_eos = 0;
@@ -106,7 +106,7 @@ void *thread_input(void *arg)
                 // if failed wait a moment and retry
                 msleep(5);
             }
-        } while (!pkt_done);
+        } while (!pkt_done && !data->loop_end);
 
         if (pkt_eos)
             break;
@@ -120,6 +120,7 @@ void *thread_input(void *arg)
 void *thread_output(void *arg)
 {
     MpiDecMtLoopData *data = (MpiDecMtLoopData *)arg;
+    MpiDecTestCmd *cmd = data->cmd;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     MppFrame  frame  = NULL;
@@ -143,7 +144,7 @@ void *thread_output(void *arg)
             }
             mpp_err("decode_get_frame failed too much time\n");
         }
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("decode_get_frame failed ret %d\n", ret);
             continue;
         }
@@ -197,58 +198,45 @@ void *thread_output(void *arg)
                     break;
                 }
             } else {
-                // found normal output frame
-                RK_U32 err_info = mpp_frame_get_errinfo(frame) | mpp_frame_get_discard(frame);
-                if (err_info)
-                    mpp_log_q(quiet, "decoder_get_frame get err info:%d discard:%d.\n",
-                              mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame));
+                char log_buf[256];
+                RK_S32 log_size = sizeof(log_buf) - 1;
+                RK_S32 log_len = 0;
+                RK_U32 err_info = mpp_frame_get_errinfo(frame);
+                RK_U32 discard = mpp_frame_get_discard(frame);
 
+                log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                    "decode get frame %d", data->frame_count);
+
+                if (mpp_frame_has_meta(frame)) {
+                    MppMeta meta = mpp_frame_get_meta(frame);
+                    RK_S32 temporal_id = 0;
+
+                    mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id);
+
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        " tid %d", temporal_id);
+                }
+
+                if (err_info || discard) {
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        " err %x discard %x", err_info, discard);
+                }
+                mpp_log_q(quiet, "%p %s\n", ctx, log_buf);
+
+                data->frame_count++;
                 if (data->fp_output && !err_info)
                     dump_mpp_frame_to_file(frame, data->fp_output);
 
-                // calculate fps here
-                static RK_S64 last_time = 0;
-                static RK_S64 last_count = 0;
-
-                if (data->frame_count == 0) {
-                    last_time = mpp_time();
-                    last_count = 0;
-                } else {
-                    RK_S64 now = mpp_time();
-                    RK_S64 elapsed = now - last_time;
-
-                    // print on each second
-                    if (elapsed >= 1000000) {
-                        RK_S64 frames = data->frame_count - last_count;
-                        float fps = (float)frames * 1000000 / elapsed;
-
-                        mpp_log("decoded %10lld frame %7.2f fps\n",
-                                data->frame_count, fps);
-
-                        last_time = now;
-                        last_count = data->frame_count;
-                    }
-                }
-                data->frame_count++;
+                fps_calc_inc(cmd->fps);
             }
 
             frm_eos = mpp_frame_get_eos(frame);
             mpp_frame_deinit(&frame);
             frame = NULL;
 
-            if (frm_eos) {
-                mpp_log_q(quiet, "found last frame and quit\n");
-                // when get a eos status mpp need a reset to restart decoding
+            if ((data->frame_num > 0 && (data->frame_count >= data->frame_num)) ||
+                ((data->frame_num == 0) && frm_eos)) {
                 data->loop_end = 1;
-                mpp_log_q(quiet, "found last frame and quit ok\n");
-                sem_post(&data->sem_end);
-                break;
-            }
-
-            if (data->frame_num > 0 && data->frame_count >= (RK_U32)data->frame_num) {
-                data->loop_end = 1;
-                mpp_log("%p reach max frame number %d\n", ctx, data->frame_count);
-                sem_post(&data->sem_end);
                 break;
             }
         }
@@ -262,7 +250,7 @@ void *thread_output(void *arg)
 int mt_dec_decode(MpiDecTestCmd *cmd)
 {
     MPP_RET ret         = MPP_OK;
-    size_t file_size    = 0;
+    FileReader reader   = cmd->reader;
 
     // base flow context
     MppCtx ctx          = NULL;
@@ -281,7 +269,6 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     RK_U32 width        = cmd->width;
     RK_U32 height       = cmd->height;
     MppCodingType type  = cmd->type;
-    FileReader reader   = NULL;
 
     // resources
     size_t packet_size  = MPI_DEC_STREAM_SIZE;
@@ -293,20 +280,6 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
 
     mpp_log("mpi_dec_test start\n");
     memset(&data, 0, sizeof(data));
-
-    if (cmd->have_input) {
-        data.fp_input = fopen(cmd->file_input, "rb");
-        if (NULL == data.fp_input) {
-            mpp_err("failed to open input file %s\n", cmd->file_input);
-            goto MPP_TEST_OUT;
-        }
-
-        fseek(data.fp_input, 0L, SEEK_END);
-        file_size = ftell(data.fp_input);
-        rewind(data.fp_input);
-        reader_init(&reader, cmd->file_input, data.fp_input);
-        mpp_log("input file size %ld\n", file_size);
-    }
 
     if (cmd->have_output) {
         data.fp_output = fopen(cmd->file_output, "w+b");
@@ -326,8 +299,7 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
 
     // decoder demo
     ret = mpp_create(&ctx, &mpi);
-
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("mpp_create failed\n");
         goto MPP_TEST_OUT;
     }
@@ -336,7 +308,7 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
     param = &need_split;
     ret = mpi->control(ctx, mpi_cmd, param);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("mpi->control failed\n");
         goto MPP_TEST_OUT;
     }
@@ -348,18 +320,19 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     if (timeout) {
         param = &timeout;
         ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
-        if (MPP_OK != ret) {
+        if (ret) {
             mpp_err("Failed to set output timeout %d ret %d\n", timeout, ret);
             goto MPP_TEST_OUT;
         }
     }
 
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("mpp_init failed\n");
         goto MPP_TEST_OUT;
     }
 
+    data.cmd            = cmd;
     data.ctx            = ctx;
     data.mpi            = mpi;
     data.loop_end       = 0;
@@ -370,7 +343,6 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
     data.frame_num      = cmd->frame_num;
     data.reader         = reader;
     data.quiet          = cmd->quiet;
-    sem_init(&data.sem_end, 0, 0);
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -395,24 +367,16 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
 
         getc(stdin);
         data.loop_end = 1;
-    } else {
-        sem_wait(&data.sem_end);
     }
-    ret = mpi->reset(ctx);
-    if (MPP_OK != ret)
-        mpp_err("mpi->reset failed\n");
 
 THREAD_END:
     pthread_attr_destroy(&attr);
-    mpp_log("all threads join start\n");
+
     pthread_join(thd_in, NULL);
     pthread_join(thd_out, NULL);
-    mpp_log("all threads join done\n");
-
-    sem_destroy(&data.sem_end);
 
     ret = mpi->reset(ctx);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("mpi->reset failed\n");
         goto MPP_TEST_OUT;
     }
@@ -422,8 +386,6 @@ MPP_TEST_OUT:
         mpp_packet_deinit(&packet);
         packet = NULL;
     }
-
-    reader_deinit(&reader);
 
     if (frame) {
         mpp_frame_deinit(&frame);
@@ -464,19 +426,17 @@ int main(int argc, char **argv)
     cmd->timeout = -1;
 
     // parse the cmd option
-    ret = mpi_dec_test_parse_options(argc, argv, cmd);
+    ret = mpi_dec_test_cmd_init(cmd, argc, argv);
     if (ret) {
         if (ret < 0) {
-            mpp_err("mpi_dec_test_parse_options: input parameter invalid\n");
+            mpp_err("mpi_dec_test_cmd_init: input parameter invalid\n");
         }
 
-        mpi_dec_test_help();
-        return ret;
+        mpi_dec_test_cmd_help();
+        goto RET;
     }
 
-    mpi_dec_test_show_options(cmd);
-
-    mpp_env_set_u32("mpi_debug", cmd->debug);
+    mpi_dec_test_cmd_options(cmd);
 
     ret = mt_dec_decode(cmd);
     if (MPP_OK == ret)
@@ -484,7 +444,9 @@ int main(int argc, char **argv)
     else
         mpp_err("test failed ret %d\n", ret);
 
-    mpp_env_set_u32("mpi_debug", 0x0);
+RET:
+    mpi_dec_test_cmd_deinit(cmd);
+
     return ret;
 }
 
