@@ -21,6 +21,8 @@
 
 #include "mpp_mem.h"
 #include "mpp_log.h"
+#include "mpp_lock.h"
+#include "mpp_time.h"
 #include "mpp_common.h"
 #include "utils.h"
 
@@ -1232,4 +1234,84 @@ MPP_RET name_to_coding_type(const char *name, MppCodingType *coding)
     }
 
     return ret;
+}
+
+typedef struct FpsCalcImpl_t {
+    spinlock_t  lock;
+    FpsCalcCb   callback;
+
+    RK_S64      total_start;
+    RK_S64      total_count;
+
+    RK_S64      last_start;
+    RK_S64      last_count;
+} FpsCalcImpl;
+
+MPP_RET fps_calc_init(FpsCalc *ctx)
+{
+    FpsCalcImpl *impl = mpp_calloc(FpsCalcImpl, 1);
+    MPP_RET ret = MPP_NOK;
+
+    if (impl) {
+        mpp_spinlock_init(&impl->lock);
+        ret = MPP_OK;
+    }
+    *ctx = impl;
+
+    return ret;
+}
+
+MPP_RET fps_calc_deinit(FpsCalc ctx)
+{
+    MPP_FREE(ctx);
+
+    return MPP_OK;
+}
+
+MPP_RET fps_calc_set_cb(FpsCalc ctx, FpsCalcCb cb)
+{
+    FpsCalcImpl *impl = (FpsCalcImpl *)ctx;
+
+    impl->callback = cb;
+
+    return MPP_OK;
+}
+
+MPP_RET fps_calc_inc(FpsCalc ctx)
+{
+    FpsCalcImpl *impl = (FpsCalcImpl *)ctx;
+    RK_S64 total_time = 0;
+    RK_S64 total_count = 0;
+    RK_S64 last_time = 0;
+    RK_S64 last_count = 0;
+
+    mpp_spinlock_lock(&impl->lock);
+    {
+        RK_S64 now = mpp_time();
+        if (!impl->total_count) {
+            impl->total_start = now;
+            impl->last_start = now;
+        } else {
+            RK_S64 elapsed = now - impl->last_start;
+
+            // print on each second
+            if (elapsed >= 1000000) {
+                total_time = now - impl->total_start;
+                total_count = impl->total_count;
+                last_time = now - impl->last_start;
+                last_count = impl->total_count - impl->last_count;
+
+                impl->last_start = now;
+                impl->last_count = impl->total_count;
+            }
+        }
+
+        impl->total_count++;
+    }
+    mpp_spinlock_unlock(&impl->lock);
+
+    if (impl->callback && total_time)
+        impl->callback(total_time, total_count, last_time, last_count);
+
+    return MPP_OK;
 }
