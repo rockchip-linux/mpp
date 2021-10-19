@@ -83,17 +83,25 @@ static int multi_dec_simple(MpiDecCtx *data)
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
     RK_U32 err_info = 0;
-    MPP_RET ret = MPP_OK;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     char   *buf = data->buf;
     MppPacket packet = data->packet;
     MppFrame  frame  = NULL;
     FileReader reader = data->reader;
+    FileBufSlot *slot = NULL;
     size_t read_size = 0;
     RK_U32 quiet = data->quiet;
+    MPP_RET ret = reader_read(reader, &slot);
 
-    data->eos = pkt_eos = reader_read(reader, &buf, &read_size);
+    mpp_assert(ret == MPP_OK);
+    mpp_assert(slot);
+
+    pkt_eos = slot->eos;
+    buf = slot->data;
+    read_size = slot->size;
+    data->eos = pkt_eos;
+
     if (pkt_eos) {
         if (data->frame_num < 0) {
             mpp_log_q(quiet, "%p loop again\n", ctx);
