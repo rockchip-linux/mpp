@@ -31,30 +31,24 @@
 #include "utils.h"
 
 typedef struct {
+    MpiDecTestCmd   *cmd;
     MppCtx          ctx;
     MppApi          *mpi;
     RK_U32          quiet;
 
     /* end of stream flag when set quit the loop */
-    RK_U32          eos;
-
-    /* buffer for stream data reading */
-    char            *buf;
+    RK_U32          loop_end;
 
     /* input and output */
     MppBufferGroup  frm_grp;
-    MppBufferGroup  pkt_grp;
     MppPacket       packet;
-    size_t          packet_size;
     MppFrame        frame;
 
     FILE            *fp_input;
     FILE            *fp_output;
-    FILE            *fp_config;
     RK_S32          frame_count;
     RK_S32          frame_num;
     size_t          max_usage;
-    FileReader      reader;
 } MpiDecLoopData;
 
 static int dec_simple(MpiDecLoopData *data)
@@ -62,87 +56,43 @@ static int dec_simple(MpiDecLoopData *data)
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
     MPP_RET ret = MPP_OK;
+    MpiDecTestCmd *cmd = data->cmd;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
-    char   *buf = data->buf;
     MppPacket packet = data->packet;
     MppFrame  frame  = NULL;
-    size_t read_size = 0;
-    size_t packet_size = data->packet_size;
-    FileReader reader = data->reader;
+    FileBufSlot *slot = NULL;
     RK_U32 quiet = data->quiet;
 
-    do {
-        if (data->fp_config) {
-            char line[MAX_FILE_NAME_LENGTH];
-            char *ptr = NULL;
+    // when packet size is valid read the input binary file
+    ret = reader_read(cmd->reader, &slot);
 
-            do {
-                ptr = fgets(line, MAX_FILE_NAME_LENGTH, data->fp_config);
-                if (ptr) {
-                    OpsLine info;
-                    RK_S32 cnt = parse_config_line(line, &info);
+    mpp_assert(ret == MPP_OK);
+    mpp_assert(slot);
 
-                    // parser for packet message
-                    if (cnt >= 3 && 0 == strncmp("pkt", info.cmd, sizeof(info.cmd))) {
-                        packet_size = info.value2;
-                        break;
-                    }
+    pkt_eos = slot->eos;
 
-                    // parser for reset message at the end
-                    if (0 == strncmp("rst", info.cmd, 3)) {
-                        mpp_log("%p get reset cmd\n", ctx);
-                        packet_size = 0;
-                        break;
-                    }
-                } else {
-                    mpp_log("%p get end of cfg file\n", ctx);
-                    packet_size = 0;
-                    break;
-                }
-            } while (1);
+    if (pkt_eos) {
+        if (data->frame_num < 0 || data->frame_num > data->frame_count) {
+            mpp_log_q(quiet, "%p loop again\n", ctx);
+            reader_rewind(cmd->reader);
+            pkt_eos = 0;
+        } else {
+            mpp_log_q(quiet, "%p found last packet\n", ctx);
+            data->loop_end = 1;
         }
+    }
 
-        // when packet size is valid read the input binary file
-        if (packet_size) {
-            FileBufSlot *slot = NULL;
-            ret = reader_read(reader, &slot);
-
-            mpp_assert(ret == MPP_OK);
-            mpp_assert(slot);
-
-            pkt_eos = slot->eos;
-            buf = slot->data;
-            read_size = slot->size;
-            data->eos = pkt_eos;
-
-            if (pkt_eos) {
-                if (data->frame_num < 0) {
-                    mpp_log_q(quiet, "%p loop again\n", ctx);
-                    reader_rewind(reader);
-                    if (data->fp_config) {
-                        clearerr(data->fp_config);
-                        rewind(data->fp_config);
-                    }
-                    data->eos = pkt_eos = 0;
-                } else {
-                    mpp_log_q(quiet, "%p found last packet\n", ctx);
-                    break;
-                }
-            }
-        }
-    } while (!read_size);
-
-    mpp_packet_set_data(packet, buf);
-    if (read_size > mpp_packet_get_size(packet))
-        mpp_packet_set_size(packet, read_size);
-    mpp_packet_set_pos(packet, buf);
-    mpp_packet_set_length(packet, read_size);
+    mpp_packet_set_data(packet, slot->data);
+    mpp_packet_set_size(packet, slot->size);
+    mpp_packet_set_pos(packet, slot->data);
+    mpp_packet_set_length(packet, slot->size);
     // setup eos flag
     if (pkt_eos)
         mpp_packet_set_eos(packet);
 
     do {
+        RK_U32 frm_eos = 0;
         RK_S32 times = 5;
         // send the packet first if packet is not done
         if (!pkt_done) {
@@ -154,7 +104,6 @@ static int dec_simple(MpiDecLoopData *data)
         // then get all available frame and release
         do {
             RK_S32 get_frm = 0;
-            RK_U32 frm_eos = 0;
 
         try_again:
             ret = mpi->decode_get_frame(ctx, &frame);
@@ -311,6 +260,8 @@ static int dec_simple(MpiDecLoopData *data)
                     data->frame_count++;
                     if (data->fp_output && !err_info)
                         dump_mpp_frame_to_file(frame, data->fp_output);
+
+                    fps_calc_inc(cmd->fps);
                 }
                 frm_eos = mpp_frame_get_eos(frame);
                 mpp_frame_deinit(&frame);
@@ -336,19 +287,18 @@ static int dec_simple(MpiDecLoopData *data)
                 break;
             }
 
-            if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
-                data->eos = 1;
+            if ((data->frame_num > 0 && (data->frame_count >= data->frame_num)) ||
+                ((data->frame_num == 0) && frm_eos))
                 break;
-            }
 
             if (get_frm)
                 continue;
             break;
         } while (1);
 
-        if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
-            data->eos = 1;
-            mpp_log_q(quiet, "%p reach max frame number %d\n", ctx, data->frame_count);
+        if ((data->frame_num > 0 && (data->frame_count >= data->frame_num)) ||
+            ((data->frame_num == 0) && frm_eos)) {
+            data->loop_end = 1;
             break;
         }
 
@@ -370,33 +320,24 @@ static int dec_simple(MpiDecLoopData *data)
 
 static int dec_advanced(MpiDecLoopData *data)
 {
-    RK_U32 pkt_eos  = 0;
     MPP_RET ret = MPP_OK;
+    MpiDecTestCmd *cmd = data->cmd;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
-    char   *buf = data->buf;
-    MppPacket packet = data->packet;
+    MppPacket packet = NULL;
     MppFrame  frame  = data->frame;
     MppTask task = NULL;
-    size_t read_size = fread(buf, 1, data->packet_size, data->fp_input);
     RK_U32 quiet = data->quiet;
+    FileBufSlot *slot = NULL;
 
-    if (read_size != data->packet_size || feof(data->fp_input)) {
-        if (data->frame_num < 0) {
-            clearerr(data->fp_input);
-            rewind(data->fp_input);
-        } else {
-            mpp_log_q(quiet, "%p found last packet\n", ctx);
-            // setup eos flag
-            data->eos = pkt_eos = 1;
-        }
-    }
+    ret = reader_index_read(cmd->reader, 0, &slot);
+    mpp_assert(ret == MPP_OK);
+    mpp_assert(slot);
 
-    // reset pos
-    mpp_packet_set_pos(packet, buf);
-    mpp_packet_set_length(packet, read_size);
+    mpp_packet_init_with_buffer(&packet, slot->buf);
+
     // setup eos flag
-    if (pkt_eos)
+    if (slot->eos)
         mpp_packet_set_eos(packet);
 
     ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
@@ -439,8 +380,8 @@ static int dec_advanced(MpiDecLoopData *data)
 
     if (task) {
         MppFrame frame_out = NULL;
+
         mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
-        //mpp_assert(packet_out == packet);
 
         if (frame) {
             /* write frame to file here */
@@ -453,14 +394,15 @@ static int dec_advanced(MpiDecLoopData *data)
             if (mpp_frame_get_eos(frame_out)) {
                 mpp_log_q(quiet, "%p found eos frame\n", ctx);
             }
+            fps_calc_inc(cmd->fps);
         }
 
-        if (data->frame_num > 0 && data->frame_count >= data->frame_num) {
-            data->eos = 1;
-        } else {
-            data->eos = 0;
-            clearerr(data->fp_input);
-            rewind(data->fp_input);
+        if (data->frame_num > 0) {
+            if (data->frame_count >= data->frame_num)
+                data->loop_end = 1;
+        } else if (data->frame_num == 0) {
+            if (slot->eos)
+                data->loop_end = 1;
         }
 
         /* output queue */
@@ -469,14 +411,70 @@ static int dec_advanced(MpiDecLoopData *data)
             mpp_err("%p mpp task output enqueue failed\n", ctx);
     }
 
+    /*
+     * The following input port task dequeue and enqueue is to make sure that
+     * the input packet can be released. We can directly deinit the input packet
+     * after frame output in most cases.
+     */
+    if (0) {
+        mpp_packet_deinit(&packet);
+    } else {
+        ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
+        if (ret) {
+            mpp_err("%p mpp task input dequeue failed\n", ctx);
+            return ret;
+        }
+
+        mpp_assert(task);
+        if (task) {
+            MppPacket packet_out = NULL;
+
+            mpp_task_meta_get_packet(task, KEY_INPUT_PACKET, &packet_out);
+
+            if (!packet_out || packet_out != packet)
+                mpp_err_f("mismatch packet %p -> %p\n", packet, packet_out);
+
+            mpp_packet_deinit(&packet_out);
+
+            /* input empty task back to mpp to maintain task status */
+            ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
+            if (ret)
+                mpp_err("%p mpp task input enqueue failed\n", ctx);
+        }
+    }
+
     return ret;
+}
+
+void *thread_decode(void *arg)
+{
+    MpiDecLoopData *data = (MpiDecLoopData *)arg;
+    MpiDecTestCmd *cmd = data->cmd;
+    MppCtx ctx  = data->ctx;
+    MppApi *mpi = data->mpi;
+
+    if (cmd->simple) {
+        while (!data->loop_end)
+            dec_simple(data);
+    } else {
+        /* NOTE: change output format before jpeg decoding */
+        if (MPP_FRAME_FMT_IS_YUV(cmd->format) || MPP_FRAME_FMT_IS_RGB(cmd->format)) {
+            MPP_RET ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
+            if (ret) {
+                mpp_err("Failed to set output format %d\n", cmd->format);
+                return NULL;
+            }
+        }
+
+        while (!data->loop_end)
+            dec_advanced(data);
+    }
+
+    return NULL;
 }
 
 int dec_decode(MpiDecTestCmd *cmd)
 {
-    MPP_RET ret         = MPP_OK;
-    size_t file_size    = 0;
-
     // base flow context
     MppCtx ctx          = NULL;
     MppApi *mpi         = NULL;
@@ -499,28 +497,17 @@ int dec_decode(MpiDecTestCmd *cmd)
     MppDecCfg cfg       = NULL;
 
     // resources
-    char *buf           = NULL;
-    size_t packet_size  = cmd->pkt_size;
-    MppBuffer pkt_buf   = NULL;
     MppBuffer frm_buf   = NULL;
-    FileReader reader   = NULL;
+    pthread_t thd;
+    pthread_attr_t attr;
     MpiDecLoopData data;
+    MPP_RET ret = MPP_OK;
 
     mpp_log("mpi_dec_test start\n");
     memset(&data, 0, sizeof(data));
+    pthread_attr_init(&attr);
 
-    if (cmd->have_input) {
-        data.fp_input = fopen(cmd->file_input, "rb");
-        if (NULL == data.fp_input) {
-            mpp_err("failed to open input file %s\n", cmd->file_input);
-            goto MPP_TEST_OUT;
-        }
-
-        fseek(data.fp_input, 0L, SEEK_END);
-        file_size = ftell(data.fp_input);
-        rewind(data.fp_input);
-        mpp_log("input file size %ld\n", file_size);
-    }
+    cmd->simple = (cmd->type != MPP_VIDEO_CodingMJPEG) ? (1) : (0);
 
     if (cmd->have_output) {
         data.fp_output = fopen(cmd->file_output, "w+b");
@@ -530,16 +517,7 @@ int dec_decode(MpiDecTestCmd *cmd)
         }
     }
 
-    if (cmd->have_config) {
-        data.fp_config = fopen(cmd->file_config, "r");
-        if (NULL == data.fp_config) {
-            mpp_err("failed to open config file %s\n", cmd->file_config);
-            goto MPP_TEST_OUT;
-        }
-    }
-
     if (cmd->simple) {
-        reader_init(&reader, cmd->file_input, data.fp_input);
         ret = mpp_packet_init(&packet, NULL, 0);
         if (ret) {
             mpp_err("mpp_packet_init failed\n");
@@ -552,12 +530,6 @@ int dec_decode(MpiDecTestCmd *cmd)
         ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION);
         if (ret) {
             mpp_err("failed to get buffer group for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        ret = mpp_buffer_group_get_internal(&data.pkt_grp, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("failed to get buffer group for output packet ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
@@ -580,25 +552,11 @@ int dec_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
 
-        // NOTE: for mjpeg decoding send the whole file
-        if (type == MPP_VIDEO_CodingMJPEG) {
-            packet_size = file_size;
-        }
-
-        ret = mpp_buffer_get(data.pkt_grp, &pkt_buf, packet_size);
-        if (ret) {
-            mpp_err("failed to get buffer for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-        mpp_packet_init_with_buffer(&packet, pkt_buf);
-        buf = mpp_buffer_get_ptr(pkt_buf);
-
         mpp_frame_set_buffer(frame, frm_buf);
     }
 
     // decoder demo
     ret = mpp_create(&ctx, &mpi);
-
     if (ret) {
         mpp_err("mpp_create failed\n");
         goto MPP_TEST_OUT;
@@ -611,7 +569,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
     param = &need_split;
     ret = mpi->control(ctx, mpi_cmd, param);
-    if (MPP_OK != ret) {
+    if (ret) {
         mpp_err("%p mpi->control failed\n", ctx);
         goto MPP_TEST_OUT;
     }
@@ -661,36 +619,35 @@ int dec_decode(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
+    data.cmd            = cmd;
     data.ctx            = ctx;
     data.mpi            = mpi;
-    data.eos            = 0;
-    data.buf            = buf;
+    data.loop_end       = 0;
     data.packet         = packet;
-    data.packet_size    = packet_size;
     data.frame          = frame;
     data.frame_count    = 0;
     data.frame_num      = cmd->frame_num;
-    data.reader         = reader;
     data.quiet          = cmd->quiet;
 
-    if (cmd->simple) {
-        while (!data.eos) {
-            dec_simple(&data);
-        }
-    } else {
-        /* NOTE: change output format before jpeg decoding */
-        if (MPP_FRAME_FMT_IS_YUV(cmd->format) || MPP_FRAME_FMT_IS_RGB(cmd->format)) {
-            ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
-            if (ret) {
-                mpp_err("Failed to set output format %d\n", cmd->format);
-                goto MPP_TEST_OUT;
-            }
-        }
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-        while (!data.eos) {
-            dec_advanced(&data);
-        }
+    ret = pthread_create(&thd, &attr, thread_decode, &data);
+    if (ret) {
+        mpp_err("failed to create thread for input ret %d\n", ret);
+        goto MPP_TEST_OUT;
     }
+
+    if (cmd->frame_num < 0) {
+        // wait for input then quit decoding
+        mpp_log("*******************************************\n");
+        mpp_log("**** Press Enter to stop loop decoding ****\n");
+        mpp_log("*******************************************\n");
+
+        getc(stdin);
+        data.loop_end = 1;
+    }
+
+    pthread_join(thd, NULL);
 
     cmd->max_usage = data.max_usage;
     {
@@ -735,23 +692,11 @@ MPP_TEST_OUT:
         ctx = NULL;
     }
 
-    if (cmd->simple) {
-        reader_deinit(&reader);
-    } else {
-        if (pkt_buf) {
-            mpp_buffer_put(pkt_buf);
-            pkt_buf = NULL;
-        }
-
+    if (!cmd->simple) {
         if (frm_buf) {
             mpp_buffer_put(frm_buf);
             frm_buf = NULL;
         }
-    }
-
-    if (data.pkt_grp) {
-        mpp_buffer_group_put(data.pkt_grp);
-        data.pkt_grp = NULL;
     }
 
     if (data.frm_grp) {
@@ -764,15 +709,12 @@ MPP_TEST_OUT:
         data.fp_output = NULL;
     }
 
-    if (data.fp_input) {
-        fclose(data.fp_input);
-        data.fp_input = NULL;
-    }
-
     if (cfg) {
         mpp_dec_cfg_deinit(cfg);
         cfg = NULL;
     }
+
+    pthread_attr_destroy(&attr);
 
     return ret;
 }
@@ -788,21 +730,17 @@ int main(int argc, char **argv)
     cmd->pkt_size = MPI_DEC_STREAM_SIZE;
 
     // parse the cmd option
-    ret = mpi_dec_test_parse_options(argc, argv, cmd);
+    ret = mpi_dec_test_cmd_init(cmd, argc, argv);
     if (ret) {
         if (ret < 0) {
-            mpp_err("mpi_dec_test_parse_options: input parameter invalid\n");
+            mpp_err("mpi_dec_test_cmd_init: input parameter invalid\n");
         }
 
-        mpi_dec_test_help();
-        return ret;
+        mpi_dec_test_cmd_help();
+        goto RET;
     }
 
-    mpi_dec_test_show_options(cmd);
-
-    mpp_env_set_u32("mpi_debug", cmd->debug);
-
-    cmd->simple = (cmd->type != MPP_VIDEO_CodingMJPEG) ? (1) : (0);
+    mpi_dec_test_cmd_options(cmd);
 
     ret = dec_decode(cmd);
     if (MPP_OK == ret)
@@ -810,7 +748,9 @@ int main(int argc, char **argv)
     else
         mpp_err("test failed ret %d\n", ret);
 
-    mpp_env_set_u32("mpi_debug", 0x0);
+RET:
+    mpi_dec_test_cmd_deinit(cmd);
+
     return ret;
 }
 

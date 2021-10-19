@@ -38,17 +38,14 @@ typedef struct FileBufSlot_t {
 typedef struct MpiDecTestCmd_t {
     char            file_input[MAX_FILE_NAME_LENGTH];
     char            file_output[MAX_FILE_NAME_LENGTH];
-    char            file_config[MAX_FILE_NAME_LENGTH];
+
     MppCodingType   type;
     MppFrameFormat  format;
     RK_U32          width;
     RK_U32          height;
-    RK_U32          debug;
-    RK_U32          quiet;
 
     RK_U32          have_input;
     RK_U32          have_output;
-    RK_U32          have_config;
 
     RK_U32          simple;
     RK_S32          timeout;
@@ -58,21 +55,32 @@ typedef struct MpiDecTestCmd_t {
     RK_S32          nthreads;
     // report information
     size_t          max_usage;
+
+    /* data for share */
+    FileReader      reader;
+    FpsCalc         fps;
+
+    /* runtime log flag */
+    RK_U32          debug;
+    RK_U32          quiet;
+    RK_U32          trace_fps;
 } MpiDecTestCmd;
 
 extern OptionInfo mpi_dec_cmd[];
 
-RK_S32  mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd);
-void    mpi_dec_test_show_options(MpiDecTestCmd* cmd);
-void    mpi_dec_test_help();
+RK_S32  mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv);
+RK_S32  mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd);
+void    mpi_dec_test_cmd_options(MpiDecTestCmd* cmd);
+void    mpi_dec_test_cmd_help();
 
-void    reader_init(FileReader* reader, char* file_in, FILE* fp_in);
-void    reader_deinit(FileReader *reader);
+void    reader_init(FileReader* reader, char* file_in);
+void    reader_deinit(FileReader reader);
 
 void    reader_start(FileReader reader);
 void    reader_sync(FileReader reader);
 void    reader_stop(FileReader reader);
 
+size_t  reader_size(FileReader reader);
 MPP_RET reader_read(FileReader reader, FileBufSlot **buf);
 MPP_RET reader_index_read(FileReader reader, RK_S32 index, FileBufSlot **buf);
 void    reader_rewind(FileReader reader);

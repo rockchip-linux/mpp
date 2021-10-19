@@ -1272,7 +1272,8 @@ MPP_RET fps_calc_set_cb(FpsCalc ctx, FpsCalcCb cb)
 {
     FpsCalcImpl *impl = (FpsCalcImpl *)ctx;
 
-    impl->callback = cb;
+    if (impl)
+        impl->callback = cb;
 
     return MPP_OK;
 }
@@ -1284,6 +1285,9 @@ MPP_RET fps_calc_inc(FpsCalc ctx)
     RK_S64 total_count = 0;
     RK_S64 last_time = 0;
     RK_S64 last_count = 0;
+
+    if (NULL == impl)
+        return MPP_OK;
 
     mpp_spinlock_lock(&impl->lock);
     {

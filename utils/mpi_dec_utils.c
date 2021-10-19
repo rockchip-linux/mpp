@@ -59,6 +59,7 @@ typedef struct FileReader_t {
     /* return value for each read */
     size_t          read_total;
     size_t          read_size;
+    MppBufferGroup  group;
 
     pthread_t       thd;
     volatile RK_U32 thd_stop;
@@ -79,10 +80,10 @@ OptionInfo mpi_dec_cmd[] = {
     {"h",               "height",               "the height of input bitstream"},
     {"t",               "type",                 "input stream coding type"},
     {"f",               "format",               "output frame format type"},
-    {"d",               "debug",                "debug flag"},
     {"x",               "timeout",              "output timeout interval"},
     {"n",               "frame_number",         "max output frame number"},
     {"s",               "instance_nb",          "number of instances"},
+    {"v",               "trace",                "q - quiet f - show fps"},
     {NULL},
 };
 
@@ -137,7 +138,7 @@ static RK_U32 read_jpeg_file(FileReader data)
     MppBuffer hw_buf = NULL;
     FileBufSlot *slot = mpp_calloc(FileBufSlot, 1);
 
-    mpp_buffer_get(NULL, &hw_buf, impl->file_size);
+    mpp_buffer_get(impl->group, &hw_buf, impl->file_size);
     mpp_assert(hw_buf);
 
     slot->data = mpp_buffer_get_ptr(hw_buf);
@@ -149,7 +150,7 @@ static RK_U32 read_jpeg_file(FileReader data)
     impl->read_total += read_size;
     impl->read_size = read_size;
 
-    slot->buf = hw_buf;
+    slot->buf   = hw_buf;
     slot->size  = read_size;
     slot->eos   = 1;
     slot->index = impl->slot_cnt;
@@ -212,6 +213,8 @@ static void check_file_type(FileReader data, char *file_in)
         impl->seek_base     = 0;
         impl->read_func     = read_jpeg_file;
         impl->slot_max      = 1;
+        mpp_buffer_group_get_internal(&impl->group, MPP_BUFFER_TYPE_ION);
+        mpp_assert(impl->group);
     } else {
         RK_U32 buf_size = 0;
 
@@ -227,6 +230,17 @@ static void check_file_type(FileReader data, char *file_in)
         impl->read_func     = read_normal_file;
         impl->slot_max      = MPP_ALIGN(impl->file_size, buf_size) / buf_size;
     }
+}
+
+size_t reader_size(FileReader reader)
+{
+    FileReaderImpl *impl = (FileReaderImpl*)reader;
+    size_t size = 0;
+
+    if (impl)
+        size = impl->file_size;
+
+    return size;
 }
 
 MPP_RET reader_read(FileReader reader, FileBufSlot **buf)
@@ -293,13 +307,19 @@ void reader_rewind(FileReader reader)
     impl->slot_rd_idx = 0;
 }
 
-void reader_init(FileReader* reader, char* file_in, FILE* fp_in)
+void reader_init(FileReader* reader, char* file_in)
 {
-    FileReaderImpl *impl = mpp_calloc(FileReaderImpl, 1);
     FILE *fp_input = fopen(file_in, "rb");
-    (void) fp_in;
+    FileReaderImpl *impl = NULL;
 
-    mpp_assert(fp_input);
+    if (!fp_input) {
+        mpp_err("failed to open input file %s\n", file_in);
+        *reader = NULL;
+        return;
+    }
+
+    impl = mpp_calloc(FileReaderImpl, 1);
+    mpp_assert(impl);
 
     impl->fp_input = fp_input;
     fseek(fp_input, 0L, SEEK_END);
@@ -315,9 +335,9 @@ void reader_init(FileReader* reader, char* file_in, FILE* fp_in)
     *reader = impl;
 }
 
-void reader_deinit(FileReader *reader)
+void reader_deinit(FileReader reader)
 {
-    FileReaderImpl *impl = (FileReaderImpl*)(*reader);
+    FileReaderImpl *impl = (FileReaderImpl*)(reader);
     RK_U32 i;
 
     mpp_assert(impl);
@@ -334,15 +354,19 @@ void reader_deinit(FileReader *reader)
             continue;
 
         if (slot->buf) {
-            mpp_buffer_put(&slot->buf);
+            mpp_buffer_put(slot->buf);
             slot->buf = NULL;
         }
         MPP_FREE(impl->slots[i]);
     }
 
+    if (impl->group) {
+        mpp_buffer_group_put(impl->group);
+        impl->group = NULL;
+    }
+
     MPP_FREE(impl->slots);
     MPP_FREE(impl);
-    *reader = NULL;
 }
 
 static void* reader_worker(void *param)
@@ -392,14 +416,14 @@ void show_dec_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S6
             total_count, avg_fps, ins_fps);
 }
 
-void mpi_dec_test_help()
+void mpi_dec_test_cmd_help()
 {
     mpp_log("usage: mpi_dec_test [options]\n");
     show_options(mpi_dec_cmd);
     mpp_show_support_format();
 }
 
-RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
+RK_S32 mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv)
 {
     const char *opt;
     const char *next;
@@ -449,26 +473,6 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
-            case 'c' : {
-                if (next) {
-                    strncpy(cmd->file_config, next, MAX_FILE_NAME_LENGTH - 1);
-                    cmd->have_config = 1;
-
-                    // enlarge packet buffer size for large input stream case
-                    cmd->pkt_size = SZ_1M;
-                } else {
-                    mpp_log("output file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'd' : {
-                if (next) {
-                    cmd->debug = atoi(next);;
-                } else {
-                    mpp_err("invalid debug flag\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
             case 'w' : {
                 if (next) {
                     cmd->width = atoi(next);
@@ -479,7 +483,7 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
             } break;
             case 'h' : {
                 if ((*(opt + 1) != '\0') && !strncmp(opt, "help", 4)) {
-                    mpi_dec_test_help();
+                    mpi_dec_test_cmd_help();
                     err = 1;
                     goto PARSE_OPINIONS_OUT;
                 } else if (next) {
@@ -544,9 +548,13 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
                     goto PARSE_OPINIONS_OUT;
                 }
             } break;
-            case 'q' : {
-                cmd->quiet = 1;
-                optindex--;
+            case 'v' : {
+                if (next) {
+                    if (strstr(next, "q"))
+                        cmd->quiet = 1;
+                    if (strstr(next, "f"))
+                        cmd->trace_fps = 1;
+                }
             } break;
             default : {
                 mpp_err("skip invalid opt %c\n", *opt);
@@ -560,18 +568,45 @@ RK_S32 mpi_dec_test_parse_options(int argc, char **argv, MpiDecTestCmd* cmd)
     err = 0;
 
 PARSE_OPINIONS_OUT:
+    if (cmd->have_input) {
+        reader_init(&cmd->reader, cmd->file_input);
+        if (cmd->reader)
+            mpp_log("input file %s size %ld\n", cmd->file_input, reader_size(cmd->reader));
+    }
+    if (cmd->trace_fps) {
+        fps_calc_init(&cmd->fps);
+        mpp_assert(cmd->fps);
+        fps_calc_set_cb(cmd->fps, show_dec_fps);
+    }
+
     return err;
 }
 
-void mpi_dec_test_show_options(MpiDecTestCmd* cmd)
+RK_S32 mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd)
+{
+    if (!cmd)
+        return 0;
+
+    if (cmd->reader) {
+        reader_deinit(cmd->reader);
+        cmd->reader = NULL;
+    }
+
+    if (cmd->fps) {
+        fps_calc_deinit(cmd->fps);
+        cmd->fps = NULL;
+    }
+
+    return 0;
+}
+
+void mpi_dec_test_cmd_options(MpiDecTestCmd* cmd)
 {
     mpp_log("cmd parse result:\n");
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);
-    mpp_log("config file name: %s\n", cmd->file_config);
     mpp_log("width      : %4d\n", cmd->width);
     mpp_log("height     : %4d\n", cmd->height);
-    mpp_log("type       : %d\n", cmd->type);
-    mpp_log("debug flag : %x\n", cmd->debug);
-    mpp_log("max frames : %d\n", cmd->frame_num);
+    mpp_log("type       : %4d\n", cmd->type);
+    mpp_log("max frames : %4d\n", cmd->frame_num);
 }
