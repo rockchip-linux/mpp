@@ -46,15 +46,13 @@ typedef struct {
     MppPacket       packet;
     MppFrame        frame;
 
-    FILE            *fp_input;
     FILE            *fp_output;
     RK_S32          packet_count;
     RK_S32          frame_count;
+    RK_S32          frame_num;
 
     RK_S64          first_pkt;
     RK_S64          first_frm;
-    RK_S32          frame_num;
-    FileReader      reader;
 
     /* runtime flag */
     RK_U32          quiet;
@@ -81,15 +79,11 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
     MpiDecTestCmd *cmd = data->cmd;
     RK_U32 pkt_done = 0;
     RK_U32 pkt_eos  = 0;
-    RK_U32 err_info = 0;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
-    char   *buf = NULL;
     MppPacket packet = data->packet;
-    MppFrame  frame  = NULL;
-    FileReader reader = data->reader;
+    FileReader reader = cmd->reader;
     FileBufSlot *slot = NULL;
-    size_t read_size = 0;
     RK_U32 quiet = data->quiet;
     MPP_RET ret = reader_index_read(reader, data->packet_count++, &slot);
 
@@ -97,8 +91,6 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
     mpp_assert(slot);
 
     pkt_eos = slot->eos;
-    buf = slot->data;
-    read_size = slot->size;
 
     if (pkt_eos) {
         if (data->frame_num < 0 || data->frame_num > data->frame_count) {
@@ -111,11 +103,10 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
         }
     }
 
-    mpp_packet_set_data(packet, buf);
-    if (read_size > mpp_packet_get_size(packet))
-        mpp_packet_set_size(packet, read_size);
-    mpp_packet_set_pos(packet, buf);
-    mpp_packet_set_length(packet, read_size);
+    mpp_packet_set_data(packet, slot->data);
+    mpp_packet_set_size(packet, slot->size);
+    mpp_packet_set_pos(packet, slot->data);
+    mpp_packet_set_length(packet, slot->size);
     // setup eos flag
     if (pkt_eos)
         mpp_packet_set_eos(packet);
@@ -136,6 +127,7 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
         // then get all available frame and release
         do {
             RK_S32 get_frm = 0;
+            MppFrame frame = NULL;
 
         try_again:
             ret = mpi->decode_get_frame(ctx, &frame);
@@ -204,6 +196,8 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
                         break;
                     }
                 } else {
+                    RK_U32 err_info = 0;
+
                     if (!data->first_frm)
                         data->first_frm = mpp_time();
 
@@ -225,7 +219,6 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
                 }
                 frm_eos = mpp_frame_get_eos(frame);
                 mpp_frame_deinit(&frame);
-                frame = NULL;
                 get_frm = 1;
             }
 
@@ -311,6 +304,9 @@ static int multi_dec_advanced(MpiDecMultiCtx *data)
         return ret;
     }
 
+    if (!data->first_pkt)
+        data->first_pkt = mpp_time();
+
     /* poll and wait here */
     ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
     if (ret) {
@@ -332,6 +328,9 @@ static int multi_dec_advanced(MpiDecMultiCtx *data)
         mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
 
         if (frame) {
+            if (!data->first_frm)
+                data->first_frm = mpp_time();
+
             if (data->fp_output)
                 dump_mpp_frame_to_file(frame, data->fp_output);
 
@@ -399,7 +398,6 @@ void* multi_dec_decode(void *cmd_ctx)
     MpiDecMultiCtx *dec_ctx  = &info->ctx;
     MpiDecMultiCtxRet *rets  = &info->ret;
     MpiDecTestCmd *cmd  = info->cmd;
-    FileReader reader   = cmd->reader;
     MPP_RET ret         = MPP_OK;
 
     // base flow context
@@ -410,10 +408,9 @@ void* multi_dec_decode(void *cmd_ctx)
     MppPacket packet    = NULL;
     MppFrame  frame     = NULL;
 
-    MpiCmd mpi_cmd      = MPP_CMD_BASE;
-    MppParam param      = NULL;
+    // config for runtime mode
+    MppDecCfg cfg       = NULL;
     RK_U32 need_split   = 1;
-    MppPollType timeout = cmd->timeout;
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
@@ -479,31 +476,34 @@ void* multi_dec_decode(void *cmd_ctx)
     mpp_log("%p mpi_dec_test decoder test start w %d h %d type %d\n",
             ctx, width, height, type);
 
-    // NOTE: decoder split mode need to be set before init
-    mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
-    param = &need_split;
-    ret = mpi->control(ctx, mpi_cmd, param);
-    if (ret) {
-        mpp_err("mpi->control failed\n");
-        goto MPP_TEST_OUT;
-    }
-
-    // NOTE: timeout value please refer to MppPollType definition
-    //  0   - non-block call (default)
-    // -1   - block call
-    // +val - timeout value in ms
-    if (timeout) {
-        param = &timeout;
-        ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
-        if (ret) {
-            mpp_err("Failed to set output timeout %d ret %d\n", timeout, ret);
-            goto MPP_TEST_OUT;
-        }
-    }
-
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
     if (ret) {
         mpp_err("mpp_init failed\n");
+        goto MPP_TEST_OUT;
+    }
+
+    mpp_dec_cfg_init(&cfg);
+
+    /* get default config from decoder context */
+    ret = mpi->control(ctx, MPP_DEC_GET_CFG, cfg);
+    if (ret) {
+        mpp_err("%p failed to get decoder cfg ret %d\n", ctx, ret);
+        goto MPP_TEST_OUT;
+    }
+
+    /*
+     * split_parse is to enable mpp internal frame spliter when the input
+     * packet is not aplited into frames.
+     */
+    ret = mpp_dec_cfg_set_u32(cfg, "base:split_parse", need_split);
+    if (ret) {
+        mpp_err("%p failed to set split_parse ret %d\n", ctx, ret);
+        goto MPP_TEST_OUT;
+    }
+
+    ret = mpi->control(ctx, MPP_DEC_SET_CFG, cfg);
+    if (ret) {
+        mpp_err("%p failed to set cfg %p ret %d\n", ctx, cfg, ret);
         goto MPP_TEST_OUT;
     }
 
@@ -515,7 +515,6 @@ void* multi_dec_decode(void *cmd_ctx)
     dec_ctx->packet_count   = 0;
     dec_ctx->frame_count    = 0;
     dec_ctx->frame_num      = cmd->frame_num;
-    dec_ctx->reader         = reader;
     dec_ctx->quiet          = cmd->quiet;
 
     RK_S64 t_s, t_e;
@@ -574,9 +573,9 @@ MPP_TEST_OUT:
         dec_ctx->fp_output = NULL;
     }
 
-    if (dec_ctx->fp_input) {
-        fclose(dec_ctx->fp_input);
-        dec_ctx->fp_input = NULL;
+    if (cfg) {
+        mpp_dec_cfg_deinit(cfg);
+        cfg = NULL;
     }
 
     return NULL;

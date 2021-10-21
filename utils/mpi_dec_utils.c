@@ -602,6 +602,9 @@ RK_S32 mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd)
 
 void mpi_dec_test_cmd_options(MpiDecTestCmd* cmd)
 {
+    if (cmd->quiet)
+        return;
+
     mpp_log("cmd parse result:\n");
     mpp_log("input  file name: %s\n", cmd->file_input);
     mpp_log("output file name: %s\n", cmd->file_output);

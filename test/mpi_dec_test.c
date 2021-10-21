@@ -44,11 +44,17 @@ typedef struct {
     MppPacket       packet;
     MppFrame        frame;
 
-    FILE            *fp_input;
     FILE            *fp_output;
     RK_S32          frame_count;
     RK_S32          frame_num;
+
+    RK_S64          first_pkt;
+    RK_S64          first_frm;
+
     size_t          max_usage;
+    float           frame_rate;
+    RK_S64          elapsed_time;
+    RK_S64          delay;
 } MpiDecLoopData;
 
 static int dec_simple(MpiDecLoopData *data)
@@ -60,7 +66,6 @@ static int dec_simple(MpiDecLoopData *data)
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     MppPacket packet = data->packet;
-    MppFrame  frame  = NULL;
     FileBufSlot *slot = NULL;
     RK_U32 quiet = data->quiet;
 
@@ -93,24 +98,29 @@ static int dec_simple(MpiDecLoopData *data)
 
     do {
         RK_U32 frm_eos = 0;
-        RK_S32 times = 5;
+        RK_S32 times = 30;
+
         // send the packet first if packet is not done
         if (!pkt_done) {
             ret = mpi->decode_put_packet(ctx, packet);
-            if (MPP_OK == ret)
+            if (MPP_OK == ret) {
                 pkt_done = 1;
+                if (!data->first_pkt)
+                    data->first_pkt = mpp_time();
+            }
         }
 
         // then get all available frame and release
         do {
             RK_S32 get_frm = 0;
+            MppFrame frame = NULL;
 
         try_again:
             ret = mpi->decode_get_frame(ctx, &frame);
             if (MPP_ERR_TIMEOUT == ret) {
                 if (times > 0) {
                     times--;
-                    msleep(2);
+                    msleep(1);
                     goto try_again;
                 }
                 mpp_err("%p decode_get_frame failed too much time\n", ctx);
@@ -238,6 +248,9 @@ static int dec_simple(MpiDecLoopData *data)
                     RK_U32 err_info = mpp_frame_get_errinfo(frame);
                     RK_U32 discard = mpp_frame_get_discard(frame);
 
+                    if (!data->first_frm)
+                        data->first_frm = mpp_time();
+
                     log_len += snprintf(log_buf + log_len, log_size - log_len,
                                         "decode get frame %d", data->frame_count);
 
@@ -265,7 +278,6 @@ static int dec_simple(MpiDecLoopData *data)
                 }
                 frm_eos = mpp_frame_get_eos(frame);
                 mpp_frame_deinit(&frame);
-                frame = NULL;
                 get_frm = 1;
             }
 
@@ -278,7 +290,7 @@ static int dec_simple(MpiDecLoopData *data)
 
             // if last packet is send but last frame is not found continue
             if (pkt_eos && pkt_done && !frm_eos) {
-                msleep(10);
+                msleep(1);
                 continue;
             }
 
@@ -309,10 +321,10 @@ static int dec_simple(MpiDecLoopData *data)
          * why sleep here:
          * mpi->decode_put_packet will failed when packet in internal queue is
          * full,waiting the package is consumed .Usually hardware decode one
-         * frame which resolution is 1080p needs 2 ms,so here we sleep 3ms
+         * frame which resolution is 1080p needs 2 ms,so here we sleep 1ms
          * * is enough.
          */
-        msleep(3);
+        msleep(1);
     } while (1);
 
     return ret;
@@ -363,6 +375,9 @@ static int dec_advanced(MpiDecLoopData *data)
         return ret;
     }
 
+    if (!data->first_pkt)
+        data->first_pkt = mpp_time();
+
     /* poll and wait here */
     ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
     if (ret) {
@@ -384,6 +399,9 @@ static int dec_advanced(MpiDecLoopData *data)
         mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
 
         if (frame) {
+            if (!data->first_frm)
+                data->first_frm = mpp_time();
+
             /* write frame to file here */
             if (data->fp_output)
                 dump_mpp_frame_to_file(frame, data->fp_output);
@@ -452,6 +470,9 @@ void *thread_decode(void *arg)
     MpiDecTestCmd *cmd = data->cmd;
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
+    RK_S64 t_s, t_e;
+
+    t_s = mpp_time();
 
     if (cmd->simple) {
         while (!data->loop_end)
@@ -470,6 +491,16 @@ void *thread_decode(void *arg)
             dec_advanced(data);
     }
 
+    t_e = mpp_time();
+    data->elapsed_time = t_e - t_s;
+    data->frame_count = data->frame_count;
+    data->frame_rate = (float)data->frame_count * 1000000 / data->elapsed_time;
+    data->delay = data->first_frm - data->first_pkt;
+
+    mpp_log("decode %d frames time %lld ms delay %3d ms fps %3.2f\n",
+            data->frame_count, (RK_S64)(data->elapsed_time / 1000),
+            (RK_S32)(data->delay / 1000), data->frame_rate);
+
     return NULL;
 }
 
@@ -483,11 +514,6 @@ int dec_decode(MpiDecTestCmd *cmd)
     MppPacket packet    = NULL;
     MppFrame  frame     = NULL;
 
-    MpiCmd mpi_cmd      = MPP_CMD_BASE;
-    MppParam param      = NULL;
-    RK_U32 need_split   = 1;
-    MppPollType timeout = cmd->timeout;
-
     // paramter for resource malloc
     RK_U32 width        = cmd->width;
     RK_U32 height       = cmd->height;
@@ -495,6 +521,7 @@ int dec_decode(MpiDecTestCmd *cmd)
 
     // config for runtime mode
     MppDecCfg cfg       = NULL;
+    RK_U32 need_split   = 1;
 
     // resources
     MppBuffer frm_buf   = NULL;
@@ -565,29 +592,6 @@ int dec_decode(MpiDecTestCmd *cmd)
     mpp_log("%p mpi_dec_test decoder test start w %d h %d type %d\n",
             ctx, width, height, type);
 
-    // NOTE: decoder split mode need to be set before init
-    mpi_cmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
-    param = &need_split;
-    ret = mpi->control(ctx, mpi_cmd, param);
-    if (ret) {
-        mpp_err("%p mpi->control failed\n", ctx);
-        goto MPP_TEST_OUT;
-    }
-
-    // NOTE: timeout value please refer to MppPollType definition
-    //  0   - non-block call (default)
-    // -1   - block call
-    // +val - timeout value in ms
-    if (timeout) {
-        param = &timeout;
-        ret = mpi->control(ctx, MPP_SET_OUTPUT_TIMEOUT, param);
-        if (ret) {
-            mpp_err("%p failed to set output timeout %d ret %d\n",
-                    ctx, timeout, ret);
-            goto MPP_TEST_OUT;
-        }
-    }
-
     ret = mpp_init(ctx, MPP_CTX_DEC, type);
     if (ret) {
         mpp_err("%p mpp_init failed\n", ctx);
@@ -650,25 +654,6 @@ int dec_decode(MpiDecTestCmd *cmd)
     pthread_join(thd, NULL);
 
     cmd->max_usage = data.max_usage;
-    {
-        MppDecQueryCfg query;
-
-        memset(&query, 0, sizeof(query));
-        query.query_flag = MPP_DEC_QUERY_ALL;
-        ret = mpi->control(ctx, MPP_DEC_QUERY, &query);
-        if (ret) {
-            mpp_err("%p mpi->control query failed\n", ctx);
-            goto MPP_TEST_OUT;
-        }
-
-        /*
-         * NOTE:
-         * 1. Output frame count included info change frame and empty eos frame.
-         * 2. Hardware run count is real decoded frame count.
-         */
-        mpp_log("%p input %d pkt output %d frm decode %d frames\n", ctx,
-                query.dec_in_pkt_cnt, query.dec_out_frm_cnt, query.dec_hw_run_cnt);
-    }
 
     ret = mpi->reset(ctx);
     if (ret) {
