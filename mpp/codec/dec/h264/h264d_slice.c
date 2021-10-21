@@ -338,6 +338,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
 
     if (currSlice->mvcExt.valid) {
         cur_subsps = p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
+        VAL_CHECK(ret, cur_subsps);
         cur_sps = &cur_subsps->sps;
         if (cur_subsps->Valid) {
             if ((RK_S32)currSlice->mvcExt.view_id == cur_subsps->view_id[0]) { // combine subsps to sps
@@ -365,8 +366,8 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     } else { //!< layer_id == 0
         cur_subsps = NULL;
         cur_sps = (cur_sps && cur_sps->Valid) ? cur_sps : NULL;
-        VAL_CHECK(ret, cur_sps != NULL);
     }
+    VAL_CHECK(ret, cur_sps);
     VAL_CHECK(ret, check_sps_pps(cur_sps, cur_subsps, cur_pps, p_Vid->p_Dec->hw_info) != MPP_NOK);
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
@@ -385,7 +386,9 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
      */
     if (p_Vid->p_Dec->mvc_valid) {
         struct h264_subsps_t *active_subsps = NULL;
+
         active_subsps = p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
+        VAL_CHECK(ret, active_subsps);
         if (active_subsps->Valid)
             p_Vid->active_subsps = active_subsps;
         else
