@@ -1161,8 +1161,10 @@ static MPP_RET dpb_split_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *fs)
     }
     return ret = MPP_OK;
 __FAILED:
-    MPP_FREE(fs->top_field);
-    MPP_FREE(fs->bottom_field);
+    mpp_mem_pool_put(p_Vid->pic_st, fs->top_field);
+    mpp_mem_pool_put(p_Vid->pic_st, fs->bottom_field);
+    fs->top_field = NULL;
+    fs->bottom_field = NULL;
     return ret;
 }
 
