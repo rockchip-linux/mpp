@@ -1836,7 +1836,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     return 0;
 __BITREAD_ERR:
 err:
-    mpp_free(sps_buf);
+    mpp_mem_pool_put(s->sps_pool, sps_buf);
     return ret;
 }
 
