@@ -242,290 +242,49 @@ RK_S32 mpp_meta_size(MppMeta meta)
     return __sync_fetch_and_add(&impl->node_count, 0);
 }
 
-MPP_RET mpp_meta_set_s32(MppMeta meta, MppMetaKey key, RK_S32 val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
+#define MPP_META_ACCESSOR(func_type, arg_type, key_type, key_field)  \
+    MPP_RET mpp_meta_set_##func_type(MppMeta meta, MppMetaKey key, arg_type val) \
+    { \
+        if (NULL == meta) { \
+            mpp_err_f("found NULL input\n"); \
+            return MPP_ERR_NULL_PTR; \
+        } \
+        MppMetaService *service = MppMetaService::get_inst(); \
+        RK_S32 index = service->get_index_of_key(key, key_type); \
+        if (index < 0) \
+            return MPP_NOK; \
+        MppMetaImpl *impl = (MppMetaImpl *)meta; \
+        MppMetaVal *meta_val = &impl->vals[index]; \
+        if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID)) \
+            __sync_fetch_and_add(&impl->node_count, 1); \
+        meta_val->key_field = val; \
+        __sync_fetch_and_or(&meta_val->state, META_VAL_READY); \
+        return MPP_OK; \
+    } \
+    MPP_RET mpp_meta_get_##func_type(MppMeta meta, MppMetaKey key, arg_type *val) \
+    { \
+        if (NULL == meta) { \
+            mpp_err_f("found NULL input\n"); \
+            return MPP_ERR_NULL_PTR; \
+        } \
+        MppMetaService *service = MppMetaService::get_inst(); \
+        RK_S32 index = service->get_index_of_key(key, key_type); \
+        if (index < 0) \
+            return MPP_NOK; \
+        MppMetaImpl *impl = (MppMetaImpl *)meta; \
+        MppMetaVal *meta_val = &impl->vals[index]; \
+        MPP_RET ret = MPP_NOK; \
+        if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
+            *val = meta_val->key_field; \
+            __sync_fetch_and_sub(&impl->node_count, 1); \
+            ret = MPP_OK; \
+        } \
+        return ret; \
     }
 
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_S32);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->val_s32 = val;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_set_s64(MppMeta meta, MppMetaKey key, RK_S64 val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_S64);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->val_s64 = val;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_set_ptr(MppMeta meta, MppMetaKey key, void *val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_PTR);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->val_ptr = val;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_get_s32(MppMeta meta, MppMetaKey key, RK_S32 *val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_S32);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *val = meta_val->val_s32;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_meta_get_s64(MppMeta meta, MppMetaKey key, RK_S64 *val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_S64);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *val = meta_val->val_s64;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_meta_get_ptr(MppMeta meta, MppMetaKey key, void  **val)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_PTR);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *val = meta_val->val_ptr;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_meta_set_frame(MppMeta meta, MppMetaKey key, MppFrame frame)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_FRAME);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->frame = frame;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_set_packet(MppMeta meta, MppMetaKey key, MppPacket packet)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_PACKET);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->packet = packet;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_set_buffer(MppMeta meta, MppMetaKey key, MppBuffer buffer)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_BUFFER);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID))
-        __sync_fetch_and_add(&impl->node_count, 1);
-    meta_val->buffer = buffer;
-    __sync_fetch_and_or(&meta_val->state, META_VAL_READY);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_meta_get_frame(MppMeta meta, MppMetaKey key, MppFrame *frame)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_FRAME);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *frame = meta_val->frame;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_meta_get_packet(MppMeta meta, MppMetaKey key, MppPacket *packet)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_PACKET);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *packet = meta_val->packet;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_meta_get_buffer(MppMeta meta, MppMetaKey key, MppBuffer *buffer)
-{
-    if (NULL == meta) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    MppMetaService *service = MppMetaService::get_inst();
-    RK_S32 index = service->get_index_of_key(key, TYPE_BUFFER);
-    if (index < 0)
-        return MPP_NOK;
-
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppMetaVal *meta_val = &impl->vals[index];
-    MPP_RET ret = MPP_NOK;
-
-    if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) {
-        *buffer = meta_val->buffer;
-        __sync_fetch_and_sub(&impl->node_count, 1);
-        ret = MPP_OK;
-    }
-
-    return ret;
-}
+MPP_META_ACCESSOR(s32, RK_S32, TYPE_S32, val_s32)
+MPP_META_ACCESSOR(s64, RK_S64, TYPE_S64, val_s64)
+MPP_META_ACCESSOR(ptr, void *, TYPE_PTR, val_ptr)
+MPP_META_ACCESSOR(frame, MppFrame, TYPE_FRAME, frame)
+MPP_META_ACCESSOR(packet, MppPacket, TYPE_PACKET, packet)
+MPP_META_ACCESSOR(buffer, MppBuffer, TYPE_BUFFER, buffer)
