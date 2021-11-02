@@ -28,6 +28,9 @@ add_mpp_base_test(mpp_buffer)
 # mpp_packet unit test
 add_mpp_base_test(mpp_packet)
 
+# mpp_meta unit test
+add_mpp_base_test(mpp_meta)
+
 # mpp_bitwriter unit test
 add_mpp_base_test(mpp_bit)
 
