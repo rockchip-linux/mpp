@@ -49,7 +49,6 @@ typedef struct MppTaskQueueImpl_t {
     Mutex               *lock;
     RK_S32              task_count;
     RK_S32              ready;          // flag for deinit
-    Condition           *finish_done;   // condition for deinit done
 
     // two ports inside of task queue
     MppPort             input;
@@ -471,15 +470,6 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
                 mpp_err_f("idx %d task %p status %d meta size %d\n", i,
                           &p->tasks[i], p->tasks[i].status,
                           mpp_meta_size(meta));
-
-                while (mpp_meta_size(meta)) {
-                    MppMetaNode *node = mpp_meta_next_node(meta);
-
-                    mpp_err_f("meta %p node %p id %d type %d\n",
-                              meta, node, node->node_id, node->type_id);
-
-                    MPP_FREE(node);
-                }
             }
             mpp_meta_put(p->tasks[i].meta);
         }
