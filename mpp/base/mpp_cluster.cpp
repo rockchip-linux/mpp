@@ -21,6 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_lock.h"
 #include "mpp_time.h"
 
 #include "mpp_cluster.h"
@@ -256,7 +257,7 @@ MPP_RET mpp_node_task_schedule_f(const char *caller, MppNodeTask *task)
             cluster_dbg_flow("%s sched task %x unknow state %x\n", node_name, old_st);
         }
 
-        ret = __sync_bool_compare_and_swap(&node->state, old_st, new_st);
+        ret = MPP_BOOL_CAS(&node->state, old_st, new_st);
         cluster_dbg_flow("%s sched task %x -> %x cas ret %d act %d\n",
                          node_name, old_st, new_st, ret, action);
     } while (!ret);
@@ -294,7 +295,7 @@ MPP_RET mpp_node_task_detach(MppNodeTask *task)
         const char *node_name = task->node_name;
         MppNodeProc *proc = task->proc;
 
-        __sync_fetch_and_and(&node->state, ~NODE_VALID);
+        MPP_FETCH_AND(&node->state, ~NODE_VALID);
 
         mpp_node_task_schedule(task);
 
@@ -431,7 +432,7 @@ RK_S32 cluster_worker_get_task(ClusterWorker *p)
                 new_st = old_st ^ (NODE_WAIT | NODE_RUN);
 
                 mpp_assert(old_st & NODE_WAIT);
-                ret = __sync_bool_compare_and_swap(&node->state, old_st, new_st);
+                ret = MPP_BOOL_CAS(&node->state, old_st, new_st);
             } while (!ret);
 
             list_add_tail(&task->list_sched, &p->list_task);
@@ -503,7 +504,7 @@ static void cluster_worker_run_task(ClusterWorker *p)
                 old_st = state;
                 // NOTE: clear NODE_RUN and NODE_SIGNAL, set NODE_WAIT
                 new_st = old_st ^ (NODE_SIGNAL | NODE_WAIT | NODE_RUN);
-                cas_ret = __sync_bool_compare_and_swap(&node->state, old_st, new_st);
+                cas_ret = MPP_BOOL_CAS(&node->state, old_st, new_st);
             } while (!cas_ret);
 
             cluster_dbg_flow("%s run state %x -> %x signal -> wait\n", p->name, old_st, new_st);
@@ -518,7 +519,7 @@ static void cluster_worker_run_task(ClusterWorker *p)
                 old_st = node->state;
                 new_st = old_st ^ (NODE_IDLE | NODE_RUN);
 
-                cas_ret = __sync_bool_compare_and_swap(&node->state, old_st, new_st);
+                cas_ret = MPP_BOOL_CAS(&node->state, old_st, new_st);
             } while (!cas_ret);
             mpp_assert(node->state & NODE_IDLE);
             mpp_assert(!(node->state & NODE_RUN));
@@ -707,13 +708,13 @@ MPP_RET mpp_node_attach(MppNode node, MppClientType type)
     mpp_assert(priority < MAX_PRIORITY);
     mpp_assert(p);
 
-    impl->node_id = __sync_fetch_and_add(&p->node_id, 1);
+    impl->node_id = MPP_FETCH_ADD(&p->node_id, 1);
 
     snprintf(impl->name, sizeof(impl->name) - 1, "%s:%d", p->name, impl->node_id);
 
     mpp_node_task_attach(&impl->task, impl, queue, &impl->work);
 
-    __sync_fetch_and_add(&p->node_count, 1);
+    MPP_FETCH_ADD(&p->node_count, 1);
 
     cluster_dbg_flow("%s:%d attached %d\n", p->name, impl->node_id, p->node_count);
 

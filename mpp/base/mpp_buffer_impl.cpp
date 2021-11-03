@@ -21,6 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_hash.h"
+#include "mpp_lock.h"
 #include "mpp_mem_pool.h"
 
 #include "mpp_buffer_impl.h"
@@ -694,20 +695,20 @@ void mpp_buffer_service_dump(const char *info)
 
 void MppBufferService::inc_total(RK_U32 size)
 {
-    RK_U32 total = __sync_add_and_fetch(&total_size, size);
+    RK_U32 total = MPP_ADD_FETCH(&total_size, size);
     bool ret;
 
     do {
         RK_U32 old_max = total_max;
         RK_U32 new_max = MPP_MAX(total, old_max);
 
-        ret = __sync_bool_compare_and_swap(&total_max, old_max, new_max);
+        ret = MPP_BOOL_CAS(&total_max, old_max, new_max);
     } while (!ret);
 }
 
 void MppBufferService::dec_total(RK_U32 size)
 {
-    __sync_fetch_and_sub(&total_size, size);
+    MPP_FETCH_SUB(&total_size, size);
 }
 
 RK_U32 mpp_buffer_total_now()
