@@ -23,6 +23,7 @@
 extern "C" {
 #endif
 extern const ParserApi api_avsd_parser;
+extern const ParserApi api_avsd_plus_parser;
 
 MPP_RET  avsd_init   (void *decoder, ParserCfg *cfg);
 MPP_RET  avsd_deinit (void *decoder);

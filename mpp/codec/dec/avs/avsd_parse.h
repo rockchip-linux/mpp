@@ -32,6 +32,8 @@
 
 #define AVSD_DBG_INPUT             (0x00000010)   //!< input packet
 #define AVSD_DBG_TIME              (0x00000020)   //!< input packet
+#define AVSD_DBG_SYNTAX            (0x00000040)
+#define AVSD_DBG_REF               (0x00000080)
 
 #define AVSD_DBG_CALLBACK          (0x00008000)
 
@@ -76,7 +78,6 @@ if ((val) < 0) {\
         goto __FAILED; \
 }} while (0)
 
-#define MAX_HEADER_SIZE     (2*1024)
 #define MAX_STREAM_SIZE     (2*1024*1024)
 
 //!< NALU type
@@ -96,7 +97,6 @@ if ((val) < 0) {\
 #define VIDEO_TIME_CODE                0x000001E0
 
 
-
 #define EDGE_SIZE                     16
 #define MB_SIZE                       16
 #define YUV420                         0
@@ -108,20 +108,11 @@ enum avsd_picture_type_e {
     B_PICTURE = 2
 };
 
-typedef struct avsd_nalu_t {
-    RK_U32 header;
-    RK_U32 size;
-    RK_U32 length;
-    RK_U8 *pdata;
-    RK_U8  start_pos;
-    RK_U8  eof; //!< end of frame stream
-} AvsdNalu_t;
-
-
 typedef struct avsd_sequence_header_t {
     RK_U8  profile_id;
     RK_U8  level_id;
     RK_U8  progressive_sequence;
+    RK_U8  version;
     RK_U32 horizontal_size;
     RK_U32 vertical_size;
 
@@ -153,7 +144,7 @@ typedef struct avsd_picture_header {
     RK_U8  picture_coding_type;
     RK_U8  time_code_flag;
     RK_U32 time_code;
-    RK_U8  picture_distance;
+    RK_U8  picture_distance;        // poc
     RK_U32 bbv_check_times;
     RK_U8  progressive_frame;
     RK_U8  picture_structure;
@@ -187,71 +178,66 @@ typedef struct avsd_picture_header {
 
 typedef struct avsd_frame_t {
     RK_U32   valid;
+    RK_U32   idx;
 
     RK_U32   pic_type;
-
     RK_U32   frame_mode; //!< set mpp frame flag
-
     RK_U32   width;
     RK_U32   height;
     RK_U32   ver_stride;
     RK_U32   hor_stride;
-
     RK_S64   pts;
     RK_S64   dts;
 
+    RK_S32   stream_len;
+    RK_S32   stream_offset;
     RK_U32   had_display;
     RK_S32   slot_idx;
 } AvsdFrame_t;
 
-
-
-typedef struct avsd_stream_buf_t {
-    RK_U8 *pbuf;
-    RK_U32 size;
-    RK_U32 len;
-} AvsdStreamBuf_t;
-
 typedef struct avsd_memory_t {
-    struct avsd_stream_buf_t   headerbuf;
-    struct avsd_stream_buf_t   streambuf;
     struct avsd_syntax_t       syntax;
     struct avsd_frame_t        save[3];
+    BitReadCtx_t               bitctx;
 } AvsdMemory_t;
-
 
 //!< decoder parameters
 typedef struct avs_dec_ctx_t {
-    MppBufSlots                frame_slots;
-    MppBufSlots                packet_slots;
+    MppBufSlots              frame_slots;
+    MppBufSlots              packet_slots;
 
-    MppPacket                  task_pkt;
-    struct avsd_memory_t      *mem; //!< resotre slice data to decoder
-    struct avsd_stream_buf_t  *p_stream;
-    struct avsd_stream_buf_t  *p_header;
-    //-------- input ---------------
-    RK_U32      frame_no;
-    ParserCfg   init;
-    RK_U8  has_get_eos;
-    RK_U64 pkt_no;
-    //-------- current --------------
-    struct avsd_nalu_t      *nal; //!< current nalu
-    //--------  video  --------------
-    struct bitread_ctx_t     bitctx;
+    MppPacket                task_pkt;
+    RK_U32                   frame_no;
+    ParserCfg                init;
+    RK_U8                    got_eos;
+    RK_U32                   pkt_no;
+
+    struct avsd_memory_t    *mem;
+    RK_U8                   *streambuf;
+    RK_U32                   stream_len;
+    RK_U32                   stream_size;
+
+    BitReadCtx_t            *bx;
+    RK_U32                   left_length;
+
     AvsdSeqHeader_t          vsh;
     AvsdSeqExtHeader_t       ext;
-
     AvsdPicHeader_t          ph;
     AvsdSyntax_t            *syn;
+    AvsdFrame_t             *dpb[2]; //!<  2 refer frames or 4 refer field
+    AvsdFrame_t             *cur;    //!< for decoder field
 
-    AvsdFrame_t             *dpb[2];    //!< 2 refer frames or 4 refer field
-    AvsdFrame_t             *cur;       //!< for decoder field
-    //!<------------------------------------
+    RK_U32                   need_split;
+    RK_U32                   state;
+    RK_U32                   vop_header_found;
     RK_U32                   got_vsh;
+    RK_U32                   got_ph;
     RK_U32                   got_keyframe;
     RK_U32                   mb_width;
     RK_U32                   mb_height;
     RK_U32                   vec_flag; //!< video_edit_code_flag
+
+    RK_U32                   disable_error;
 } AvsdCtx_t;
 
 
@@ -269,7 +255,7 @@ MPP_RET avsd_fill_parameters(AvsdCtx_t *p_dec, AvsdSyntax_t *syn);
 
 MPP_RET avsd_update_dpb(AvsdCtx_t *p_dec);
 
-MPP_RET avsd_parse_prepare(AvsdCtx_t *p_dec, MppPacket  *pkt, HalDecTask *task);
+MPP_RET avsd_parser_split(AvsdCtx_t *ctx, MppPacket *dst, MppPacket *src);
 MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task);
 
 #ifdef  __cplusplus

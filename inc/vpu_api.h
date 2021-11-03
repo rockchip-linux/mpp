@@ -240,7 +240,8 @@ typedef enum OMX_RK_VIDEO_CODINGTYPE {
     OMX_RK_VIDEO_CodingDIVX3,                           /**< DIVX3 */
     OMX_RK_VIDEO_CodingVP6,
     OMX_RK_VIDEO_CodingHEVC,                            /**< H.265/HEVC */
-    OMX_RK_VIDEO_CodingAVS,                             /**< AVS+ */
+    OMX_RK_VIDEO_CodingAVSPLUS,                         /**< AVS+ profile 0x48 */
+    OMX_RK_VIDEO_CodingAVS,                             /**< AVS  profile 0x20 */
     OMX_RK_VIDEO_CodingKhronosExtensions = 0x6F000000,  /**< Reserved region for introducing Khronos Standard Extensions */
     OMX_RK_VIDEO_CodingVendorStartUnused = 0x7F000000,  /**< Reserved region for introducing Vendor Extensions */
     OMX_RK_VIDEO_CodingMax = 0x7FFFFFFF

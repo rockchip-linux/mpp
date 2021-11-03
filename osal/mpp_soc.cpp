@@ -49,7 +49,7 @@
 #define HAVE_AVS2   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
 #define HAVE_AV1    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAV1))))
 
-#define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
+#define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8|HAVE_AVS)
 #define CAP_CODING_JPEGD_PP     (HAVE_MJPEG)
 #define CAP_CODING_AVSD         (HAVE_AVS)
 #define CAP_CODING_AVSPD        (HAVE_AVSP)
@@ -300,23 +300,6 @@ static const MppDecHwCap vdpu38x = {
     .cap_down_scale     = 1,
     .cap_lmt_linebuf    = 0,
     .cap_core_num       = 2,
-    .reserved           = 0,
-};
-
-static const MppDecHwCap avsd = {
-    .cap_coding         = CAP_CODING_AVSD,
-    .type               = VPU_CLIENT_AVSPLUS_DEC,
-    .cap_fbc            = 0,
-    .cap_4k             = 0,
-    .cap_8k             = 0,
-    .cap_colmv_buf      = 0,
-    .cap_hw_h265_rps    = 0,
-    .cap_hw_vp9_prob    = 0,
-    .cap_jpg_pp_out     = 0,
-    .cap_10bit          = 0,
-    .cap_down_scale     = 0,
-    .cap_lmt_linebuf    = 1,
-    .cap_core_num       = 1,
     .reserved           = 0,
 };
 
@@ -582,7 +565,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3228h",
         ROCKCHIP_SOC_RK3228H,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_VEPU22,
-        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avsd, NULL, NULL, },
+        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avspd, NULL, NULL, },
         {   &vepu2_no_jpeg, &vepu22, NULL, NULL, },
     },
     {   /*

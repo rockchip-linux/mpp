@@ -46,6 +46,7 @@
 static const MppHalApi *hw_apis[] = {
 #if HAVE_AVSD
     &hal_api_avsd,
+    &hal_api_avsd_plus,
 #endif
 #if HAVE_AVS2D
     &hal_api_avs2d,
