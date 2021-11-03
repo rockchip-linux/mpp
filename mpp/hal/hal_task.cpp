@@ -21,6 +21,7 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_list.h"
+#include "mpp_lock.h"
 
 #include "hal_task.h"
 
@@ -39,11 +40,12 @@ struct HalTaskGroupImpl_t {
     MppCtxType          type;
     RK_S32              task_count;
 
-    Mutex               *lock;
+    spinlock_t          lock;
 
-    HalTaskImpl         *tasks;
     struct list_head    list[TASK_BUTT];
     RK_U32              count[TASK_BUTT];
+
+    HalTaskImpl         tasks[];
 };
 
 MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count)
@@ -54,51 +56,36 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count)
     }
 
     HalTaskGroupImpl *p = NULL;
-    HalTaskImpl *tasks = NULL;
-    Mutex *lock = NULL;
 
     do {
-        p = mpp_calloc(HalTaskGroupImpl, 1);
+        p = mpp_calloc_size(HalTaskGroupImpl, sizeof(HalTaskGroupImpl) +
+                            sizeof(HalTaskImpl) * count);
         if (NULL == p) {
             mpp_err_f("malloc group failed\n");
             break;
         }
-        lock = new Mutex();
-        if (NULL == lock) {
-            mpp_err_f("new lock failed\n");
-            break;;
-        }
-        tasks = mpp_calloc(HalTaskImpl, count);
-        if (NULL == tasks) {
-            mpp_err_f("malloc tasks list failed\n");
-            break;;
-        }
 
         p->task_count = count;
-        p->lock  = lock;
-        p->tasks = tasks;
+        mpp_spinlock_init(&p->lock);
 
         for (RK_U32 i = 0; i < TASK_BUTT; i++)
             INIT_LIST_HEAD(&p->list[i]);
 
         for (RK_S32 i = 0; i < count; i++) {
-            INIT_LIST_HEAD(&tasks[i].list);
-            tasks[i].index  = i;
-            tasks[i].group  = p;
-            tasks[i].status = TASK_IDLE;
-            list_add_tail(&tasks[i].list, &p->list[TASK_IDLE]);
+            HalTaskImpl *task = &p->tasks[i];
+
+            INIT_LIST_HEAD(&task->list);
+            task->index  = i;
+            task->group  = p;
+            task->status = TASK_IDLE;
+            list_add_tail(&task->list, &p->list[TASK_IDLE]);
             p->count[TASK_IDLE]++;
         }
         *group = p;
         return MPP_OK;
     } while (0);
 
-    if (p)
-        mpp_free(p);
-    if (lock)
-        delete lock;
-    if (tasks)
-        mpp_free(tasks);
+    MPP_FREE(p);
 
     *group = NULL;
     return MPP_NOK;
@@ -106,17 +93,7 @@ MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count)
 
 MPP_RET hal_task_group_deinit(HalTaskGroup group)
 {
-    if (NULL == group) {
-        mpp_err_f("found NULL input group\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    if (p->tasks)
-        mpp_free(p->tasks);
-    if (p->lock)
-        delete p->lock;
-    mpp_free(p);
+    MPP_FREE(group);
     return MPP_OK;
 }
 
@@ -129,14 +106,18 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *h
 
     *hnd = NULL;
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    AutoMutex auto_lock(p->lock);
     struct list_head *list = &p->list[status];
-    if (list_empty(list))
+
+    mpp_spinlock_lock(&p->lock);
+    if (list_empty(list)) {
+        mpp_spinlock_unlock(&p->lock);
         return MPP_NOK;
+    }
 
     HalTaskImpl *task = list_entry(list->next, HalTaskImpl, list);
     mpp_assert(task->status == status);
     *hnd = task;
+    mpp_spinlock_unlock(&p->lock);
     return MPP_OK;
 }
 
@@ -146,13 +127,16 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status)
         mpp_err_f("found invaid input group %p status %d \n", group, status);
         return MPP_ERR_UNKNOW;
     }
+
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    AutoMutex auto_lock(p->lock);
     struct list_head *list = &p->list[status];
-    if (list_empty(list)) {
-        return MPP_OK;
-    }
-    return MPP_NOK;
+    MPP_RET ret;
+
+    mpp_spinlock_lock(&p->lock);
+    ret = list_empty(list) ? MPP_OK : MPP_NOK;
+    mpp_spinlock_unlock(&p->lock);
+
+    return ret;
 }
 MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *count)
 {
@@ -162,8 +146,11 @@ MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *cou
     }
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
-    AutoMutex auto_lock(p->lock);
+
+    mpp_spinlock_lock(&p->lock);
     *count = p->count[status];
+    mpp_spinlock_unlock(&p->lock);
+
     return MPP_OK;
 }
 
@@ -176,15 +163,18 @@ MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status)
 
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
+
     mpp_assert(group);
     mpp_assert(impl->index < group->task_count);
 
-    AutoMutex auto_lock(group->lock);
+    mpp_spinlock_lock(&group->lock);
     list_del_init(&impl->list);
     list_add_tail(&impl->list, &group->list[status]);
     group->count[impl->status]--;
     group->count[status]++;
     impl->status = status;
+    mpp_spinlock_unlock(&group->lock);
+
     return MPP_OK;
 }
 
@@ -197,9 +187,13 @@ MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task)
 
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
+
     mpp_assert(impl->index < group->task_count);
-    AutoMutex auto_lock(group->lock);
+
+    mpp_spinlock_lock(&group->lock);
     memcpy(&impl->task, task, sizeof(impl->task));
+    mpp_spinlock_unlock(&group->lock);
+
     return MPP_OK;
 }
 
@@ -212,9 +206,13 @@ MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task)
 
     HalTaskImpl *impl = (HalTaskImpl *)hnd;
     HalTaskGroupImpl *group = impl->group;
+
     mpp_assert(impl->index < group->task_count);
-    AutoMutex auto_lock(group->lock);
+
+    mpp_spinlock_lock(&group->lock);
     memcpy(task, &impl->task, sizeof(impl->task));
+    mpp_spinlock_unlock(&group->lock);
+
     return MPP_OK;
 }
 
@@ -224,8 +222,10 @@ MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type)
         mpp_err_f("found invalid input task %p type %d\n", task, type);
         return MPP_ERR_UNKNOW;
     }
+
     if (MPP_CTX_DEC == type) {
         HalDecTask *p = &task->dec;
+
         p->valid  = 0;
         p->flags.val = 0;
         p->flags.eos = 0;
@@ -238,6 +238,6 @@ MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type)
     } else {
         memset(&task->enc, 0, sizeof(task->enc));
     }
+
     return MPP_OK;
 }
-
