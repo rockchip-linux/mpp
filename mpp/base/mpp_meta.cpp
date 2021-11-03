@@ -148,7 +148,7 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
 
         strncpy(impl->tag, tag_src, sizeof(impl->tag));
         impl->caller = caller;
-        impl->meta_id = __sync_fetch_and_add(&meta_id, 1);
+        impl->meta_id = MPP_FETCH_ADD(&meta_id, 1);
         INIT_LIST_HEAD(&impl->list_meta);
         INIT_LIST_HEAD(&impl->list_node);
         impl->ref_count = 1;
@@ -160,7 +160,7 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
         mpp_spinlock_lock(&mLock);
         list_add_tail(&impl->list_meta, &mlist_meta);
         mpp_spinlock_unlock(&mLock);
-        __sync_fetch_and_add(&meta_count, 1);
+        MPP_FETCH_ADD(&meta_count, 1);
     } else {
         mpp_err_f("failed to malloc meta data\n");
     }
@@ -172,7 +172,7 @@ void MppMetaService::put_meta(MppMetaImpl *meta)
     if (finished)
         return ;
 
-    RK_S32 ref_count = __sync_sub_and_fetch(&meta->ref_count, 1);
+    RK_S32 ref_count = MPP_SUB_FETCH(&meta->ref_count, 1);
 
     if (ref_count > 0)
         return;
@@ -185,7 +185,7 @@ void MppMetaService::put_meta(MppMetaImpl *meta)
     mpp_spinlock_lock(&mLock);
     list_del_init(&meta->list_meta);
     mpp_spinlock_unlock(&mLock);
-    __sync_fetch_and_sub(&meta_count, 1);
+    MPP_FETCH_SUB(&meta_count, 1);
 
     mpp_free(meta);
 }
@@ -226,7 +226,7 @@ MPP_RET mpp_meta_inc_ref(MppMeta meta)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
 
-    __sync_add_and_fetch(&impl->ref_count, 1);
+    MPP_FETCH_ADD(&impl->ref_count, 1);
     return MPP_OK;
 }
 
@@ -239,7 +239,7 @@ RK_S32 mpp_meta_size(MppMeta meta)
 
     MppMetaImpl *impl = (MppMetaImpl *)meta;
 
-    return __sync_fetch_and_add(&impl->node_count, 0);
+    return MPP_FETCH_ADD(&impl->node_count, 0);
 }
 
 #define MPP_META_ACCESSOR(func_type, arg_type, key_type, key_field)  \
@@ -255,10 +255,10 @@ RK_S32 mpp_meta_size(MppMeta meta)
             return MPP_NOK; \
         MppMetaImpl *impl = (MppMetaImpl *)meta; \
         MppMetaVal *meta_val = &impl->vals[index]; \
-        if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_INVALID, META_VAL_VALID)) \
-            __sync_fetch_and_add(&impl->node_count, 1); \
+        if (MPP_BOOL_CAS(&meta_val->state, META_VAL_INVALID, META_VAL_VALID)) \
+            MPP_FETCH_ADD(&impl->node_count, 1); \
         meta_val->key_field = val; \
-        __sync_fetch_and_or(&meta_val->state, META_VAL_READY); \
+        MPP_FETCH_OR(&meta_val->state, META_VAL_READY); \
         return MPP_OK; \
     } \
     MPP_RET mpp_meta_get_##func_type(MppMeta meta, MppMetaKey key, arg_type *val) \
@@ -274,9 +274,9 @@ RK_S32 mpp_meta_size(MppMeta meta)
         MppMetaImpl *impl = (MppMetaImpl *)meta; \
         MppMetaVal *meta_val = &impl->vals[index]; \
         MPP_RET ret = MPP_NOK; \
-        if (__sync_bool_compare_and_swap(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
+        if (MPP_BOOL_CAS(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
             *val = meta_val->key_field; \
-            __sync_fetch_and_sub(&impl->node_count, 1); \
+            MPP_FETCH_SUB(&impl->node_count, 1); \
             ret = MPP_OK; \
         } \
         return ret; \

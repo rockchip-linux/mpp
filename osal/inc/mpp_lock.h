@@ -21,6 +21,27 @@
 
 #include "rk_type.h"
 
+#define MPP_FETCH_ADD           __sync_fetch_and_add
+#define MPP_FETCH_SUB           __sync_fetch_and_sub
+#define MPP_FETCH_OR            __sync_fetch_and_or
+#define MPP_FETCH_AND           __sync_fetch_and_and
+#define MPP_FETCH_XOR           __sync_fetch_and_xor
+#define MPP_FETCH_NAND          __sync_fetch_and_nand
+
+#define MPP_ADD_FETCH           __sync_add_and_fetch
+#define MPP_SUB_FETCH           __sync_sub_and_fetch
+#define MPP_OR_FETCH            __sync_or_and_fetch
+#define MPP_AND_FETCH           __sync_and_and_fetch
+#define MPP_XOR_FETCH           __sync_xor_and_fetch
+#define MPP_NAND_FETCH          __sync_nand_and_fetch
+
+#define MPP_BOOL_CAS            __sync_bool_compare_and_swap
+#define MPP_VAL_CAS             __sync_val_compare_and_swap
+
+#define MPP_SYNC                __sync_synchronize
+#define MPP_SYNC_TEST_SET       __sync_lock_test_and_set
+#define MPP_SYNC_CLR            __sync_lock_release
+
 #ifdef __cplusplus
 extern "C" {
 #endif

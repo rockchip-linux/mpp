@@ -24,12 +24,12 @@
 
 void mpp_spinlock_init(spinlock_t *lock)
 {
-    __sync_lock_test_and_set(&lock->lock, LOCK_IDLE);
+    MPP_SYNC_CLR(&lock->lock);
 }
 
 void mpp_spinlock_lock(spinlock_t *lock)
 {
-    while (!__sync_bool_compare_and_swap(&lock->lock, LOCK_IDLE, LOCK_BUSY)) {
+    while (!MPP_BOOL_CAS(&lock->lock, LOCK_IDLE, LOCK_BUSY)) {
         asm("NOP");
         asm("NOP");
     }
@@ -37,12 +37,10 @@ void mpp_spinlock_lock(spinlock_t *lock)
 
 void mpp_spinlock_unlock(spinlock_t *lock)
 {
-    RK_U32 val = __sync_lock_test_and_set(&lock->lock, LOCK_IDLE);
-    if (!val)
-        mpp_err("unlock %p when it is idle", lock);
+    MPP_SYNC_CLR(&lock->lock);
 }
 
 bool mpp_spinlock_trylock(spinlock_t *lock)
 {
-    return __sync_bool_compare_and_swap(&lock->lock, LOCK_IDLE, LOCK_BUSY);
+    return MPP_BOOL_CAS(&lock->lock, LOCK_IDLE, LOCK_BUSY);
 }
