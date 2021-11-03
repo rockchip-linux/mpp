@@ -1,18 +1,18 @@
 /*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef __HAL_AVSD_REG_H__
 #define __HAL_AVSD_REG_H__
@@ -23,96 +23,6 @@
 #include "parser_api.h"
 #include "hal_avsd_api.h"
 #include "avsd_syntax.h"
-
-#define AVSD_HAL_DBG_ERROR             (0x00000001)
-#define AVSD_HAL_DBG_ASSERT            (0x00000002)
-#define AVSD_HAL_DBG_WARNNING          (0x00000004)
-#define AVSD_HAL_DBG_TRACE             (0x00000008)
-
-#define AVSD_HAL_DBG_OFFSET            (0x00010000)
-
-extern RK_U32 avsd_hal_debug;
-
-#define AVSD_HAL_DBG(level, fmt, ...)\
-do {\
-    if (level & avsd_hal_debug)\
-    { mpp_log(fmt, ## __VA_ARGS__); }\
-} while (0)
-
-#define AVSD_HAL_TRACE(fmt, ...)\
-do {\
-    if (AVSD_HAL_DBG_TRACE & avsd_hal_debug)\
-    { mpp_log_f(fmt, ## __VA_ARGS__); }\
-} while (0)
-
-#define INP_CHECK(ret, val, ...)\
-do{\
-    if ((val)) {    \
-        ret = MPP_ERR_INIT; \
-        AVSD_HAL_DBG(AVSD_HAL_DBG_WARNNING, "input empty(%d).\n", __LINE__); \
-        goto __RETURN; \
-    }\
-} while (0)
-
-#define FUN_CHECK(val)\
-do{\
-    if ((val) < 0) {\
-        AVSD_HAL_DBG(AVSD_HAL_DBG_WARNNING, "Function error(%d).\n", __LINE__); \
-        goto __FAILED; \
-    }\
-} while (0)
-
-//!< memory malloc check
-#define MEM_CHECK(ret, val, ...)\
-do{\
-    if (!(val)) {\
-        ret = MPP_ERR_MALLOC; \
-        mpp_err_f("malloc buffer error(%d).\n", __LINE__); \
-        goto __FAILED; \
-    }\
-} while (0)
-
-#define FIELDPICTURE    0
-#define FRAMEPICTURE    1
-
-enum {
-    IFRAME = 0,
-    PFRAME = 1,
-    BFRAME = 2
-};
-
-typedef struct avsd_hal_picture_t {
-    RK_U32 valid;
-    RK_U32 pic_type;
-    RK_U32 pic_code_type;
-    RK_U32 picture_distance;
-
-    RK_S32 slot_idx;
-} AvsdHalPic_t;
-
-typedef struct avsd_hal_ctx_t {
-    MppBufSlots     frame_slots;
-    MppBufSlots     packet_slots;
-    MppBufferGroup  buf_group;
-    MppCbCtx        *dec_cb;
-    MppDev          dev;
-    AvsdSyntax_t    syn;
-    RK_U32          *p_regs;
-    MppBuffer       mv_buf;
-
-    AvsdHalPic_t    pic[3];
-    //!< add for control
-    RK_U32          first_field;
-    RK_U32          prev_pic_structure;
-    RK_U32          prev_pic_code_type;
-    RK_S32          future2prev_past_dist;
-    RK_S32          work0;
-    RK_S32          work1;
-    RK_S32          work_out;
-    RK_U32          data_offset;
-
-    RK_U32          frame_no;
-} AvsdHalCtx_t;
 
 #define AVSD_REGISTERS     60
 
@@ -130,13 +40,13 @@ typedef struct {
         RK_U32 dec_rdy_int : 1;
         RK_U32 dec_bus_int : 1;
         RK_U32 dec_buffer_int : 1;
-        RK_U32 dec_aso_int : 1;
+        RK_U32 reserve3 : 1;
         RK_U32 dec_error_int : 1;
-        RK_U32 dec_slice_int : 1;
+        RK_U32 reserve4 : 1;
         RK_U32 dec_timeout : 1;
-        RK_U32 reserve3 : 5;
+        RK_U32 reserve5 : 5;
         RK_U32 dec_pic_inf : 1;
-        RK_U32 reserve4 : 7;
+        RK_U32 reserve6 : 7;
     } sw01;
     union {
         struct {
@@ -170,22 +80,21 @@ typedef struct {
         RK_U32 dec_axi_wr_id : 8;
         RK_U32 dec_ahb_hlock_e : 1;
         RK_U32 picord_count_e : 1;
-        RK_U32 seq_mbaff_e : 1;
+        RK_U32 reserve0 : 1;
         RK_U32 reftopfirst_e : 1;
         RK_U32 write_mvs_e : 1;
         RK_U32 pic_fixed_quant : 1;
         RK_U32 filtering_dis : 1;
         RK_U32 dec_out_dis : 1;
         RK_U32 ref_topfield_e : 1;
-        RK_U32 sorenson_e : 1;
+        RK_U32 reserve1 : 1;
         RK_U32 fwd_interlace_e : 1;
         RK_U32 pic_topfiled_e : 1;
         RK_U32 pic_inter_e : 1;
         RK_U32 pic_b_e : 1;
         RK_U32 pic_fieldmode_e : 1;
         RK_U32 pic_interlace_e : 1;
-        RK_U32 pjpeg_e : 1;
-        RK_U32 divx3_e : 1;
+        RK_U32 reserve2 : 2;
         RK_U32 skip_mode : 1;
         RK_U32 rlc_mode_e : 1;
         RK_U32 dec_mode : 4;
@@ -209,7 +118,6 @@ typedef struct {
             RK_U32 strm_start_bit : 6;
         };
     } sw05;
-
     struct {
         RK_U32 stream_len : 24;
         RK_U32 stream_len_ext : 1;
@@ -218,7 +126,7 @@ typedef struct {
     } sw06;
     struct {
         RK_U32 reserve0 : 25;
-        RK_U32 avs_h264_h_ext : 1;
+        RK_U32 avs_h_ext : 1;
         RK_U32 reserve1 : 6;
     } sw07;
     RK_U32 sw08;
@@ -301,7 +209,6 @@ typedef struct {
         RK_U32 ref_dist_cur_2 : 16;
         RK_U32 ref_dist_cur_3 : 16;
     } sw31;
-
     struct {
         RK_U32 ref_invd_col_0 : 16;
         RK_U32 ref_invd_col_1 : 16;
@@ -399,27 +306,13 @@ typedef struct {
     struct {
         RK_U32 refbu_bot_sum : 16;
         RK_U32 refbu_top_sum : 16;
-    };
+    } sw56;
     RK_U32 sw57;
     struct {
         RK_U32 reserve0 : 31;
         RK_U32 serv_merge_dis : 1;
     } sw58;
     RK_U32 sw59;
-} AvsdRegs_t;
+} AvsdPlusRegs_t;
 
-
-
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
-MPP_RET set_defalut_parameters(AvsdHalCtx_t *p_hal);
-MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task);
-MPP_RET update_parameters(AvsdHalCtx_t *p_hal);
-#ifdef  __cplusplus
-}
-#endif
-
-#endif /*__HAL_AVSD_REG_H__*/
+#endif /*__HAL_AVSD_PLUS_REG_H__*/

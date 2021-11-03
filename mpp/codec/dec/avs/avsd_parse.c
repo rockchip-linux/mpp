@@ -1,19 +1,18 @@
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #define MODULE_TAG "avsd_parse"
 
@@ -26,57 +25,6 @@
 
 #include "avsd_api.h"
 #include "avsd_parse.h"
-
-
-static MPP_RET add_nalu_header(AvsdCtx_t *p_dec, RK_U32 header)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
-    AvsdStreamBuf_t *p_buf = p_dec->p_header;
-    RK_U32 add_size = sizeof(AvsdNalu_t);
-
-    if ((p_buf->len + add_size) > p_buf->size) {
-        mpp_err_f("buffer is larger than %d", p_buf->size);
-        goto __FAILED;
-    }
-    p_dec->nal = (AvsdNalu_t *)&p_buf->pbuf[p_buf->len];
-    p_dec->nal->eof = 0;
-    p_dec->nal->header = header;
-    p_dec->nal->pdata = NULL;
-    p_dec->nal->length = 0;
-    p_dec->nal->start_pos = 4;
-    p_buf->len += add_size;
-
-    return ret = MPP_OK;
-__FAILED:
-    return ret;
-}
-
-static MPP_RET store_cur_nalu(AvsdCtx_t *p_dec, RK_U8 *p_start, RK_U32 nalu_len)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    AvsdStreamBuf_t *p_buf = NULL;
-    AvsdNalu_t *p_nalu = p_dec->nal;
-
-    if (p_nalu->header >= SLICE_MIN_START_CODE
-        && p_nalu->header <= SLICE_MAX_START_CODE) {
-        p_buf = p_dec->p_stream;
-    } else {
-        p_buf = p_dec->p_header;
-    }
-    if ((p_buf->len + nalu_len) > p_buf->size) {
-        mpp_err_f("buffer is larger than %d", p_buf->size);
-        goto __FAILED;
-    }
-    p_nalu->length += nalu_len;
-    p_nalu->pdata = &p_buf->pbuf[p_buf->len];
-    memcpy(p_nalu->pdata, p_start, nalu_len);
-    p_buf->len += nalu_len;
-
-    return ret = MPP_OK;
-__FAILED:
-    return ret;
-}
 
 static MPP_RET get_sequence_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh)
 {
@@ -277,26 +225,45 @@ static MPP_RET get_i_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, 
     if (ph->time_code_flag) {
         READ_BITS(bitctx, 24, &ph->time_code);
     }
-    SKIP_BITS(bitctx, 1);
-    READ_BITS(bitctx, 8, &ph->picture_distance);
+
+    vsh->version = 0;
+    /* check stream version */
     if (vsh->low_delay) {
-        READ_UE(bitctx, &ph->bbv_check_times);
-    }
-    READ_ONEBIT(bitctx, &ph->progressive_frame);
-    if (!ph->progressive_frame) {
-        READ_ONEBIT(bitctx, &ph->picture_structure);
+        vsh->version = 1;
     } else {
-        ph->picture_structure = 1; //!< frame picture
+        SHOW_BITS(bitctx, 9, &val_temp);
+        if (!(val_temp & 1)) {
+            vsh->version = 1;
+        } else {
+            SHOW_BITS(bitctx, 11, &val_temp);
+            if (val_temp & 3)
+                vsh->version = 1;
+        }
     }
+
+    if (vsh->version > 0)
+        SKIP_BITS(bitctx, 1);   // marker bit
+
+    READ_BITS(bitctx, 8, &ph->picture_distance);
+
+    if (vsh->low_delay)
+        READ_UE(bitctx, &ph->bbv_check_times);
+
+    READ_ONEBIT(bitctx, &ph->progressive_frame);
+
+    ph->picture_structure = 1;  // default frame
+    if (!ph->progressive_frame)
+        READ_ONEBIT(bitctx, &ph->picture_structure);
+
     READ_ONEBIT(bitctx, &ph->top_field_first);
     READ_ONEBIT(bitctx, &ph->repeat_first_field);
     READ_ONEBIT(bitctx, &ph->fixed_picture_qp);
     READ_BITS(bitctx, 6, &ph->picture_qp);
-    if (!ph->progressive_frame && !ph->picture_structure) {
+
+    ph->skip_mode_flag = 0;
+    if (!ph->progressive_frame && !ph->picture_structure)
         READ_ONEBIT(bitctx, &ph->skip_mode_flag);
-    } else {
-        ph->skip_mode_flag = 0;
-    }
+
     READ_BITS(bitctx, 4, &val_temp); //!< reserve 4 bits
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserve bits not equal to zeros.\n");
@@ -374,7 +341,10 @@ __FAILED:
 static void reset_one_save(AvsdFrame_t *p)
 {
     if (p) {
+        RK_U32 idx = p->idx;
+
         memset(p, 0, sizeof(AvsdFrame_t));
+        p->idx = idx;
         p->slot_idx = -1;
     }
 }
@@ -392,7 +362,7 @@ static AvsdFrame_t *get_one_save(AvsdCtx_t *p_dec, HalDecTask *task)
         }
     }
     if (!p_cur) {
-        AVSD_DBG(AVSD_DBG_WARNNING, "error, mem_save dpb has not get.\n");
+        mpp_err("mem_save dpb %d slots has not get\n", MPP_ARRAY_ELEMS(p_dec->mem->save));
         goto __FAILED;
     }
     (void)task;
@@ -409,8 +379,7 @@ static MPP_RET set_frame_unref(AvsdCtx_t *pdec, AvsdFrame_t *p)
 
     if (p && p->slot_idx >= 0) {
         mpp_buf_slot_clr_flag(pdec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
-        memset(p, 0, sizeof(AvsdFrame_t));
-        p->slot_idx = -1;
+        reset_one_save(p);
     }
 
     return ret = MPP_OK;
@@ -450,11 +419,13 @@ MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec)
     p_dec->cur = NULL;
     p_dec->dpb[0] = NULL;
     p_dec->dpb[1] = NULL;
-    p_dec->has_get_eos = 0;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
-        memset(&p_dec->mem->save[i], 0, sizeof(AvsdFrame_t));
-        p_dec->mem->save[i].slot_idx = -1;
+        AvsdFrame_t *frm = &p_dec->mem->save[i];
+
+        memset(frm, 0, sizeof(*frm));
+        frm->idx = i;
+        frm->slot_idx = -1;
     }
 
     return MPP_OK;
@@ -676,6 +647,10 @@ MPP_RET avsd_fill_parameters(AvsdCtx_t *p_dec, AvsdSyntax_t *syn)
     pp->noForwardReferenceFlag = p_dec->ph.no_forward_reference_flag;
     pp->pbFieldEnhancedFlag = p_dec->ph.pb_field_enhanced_flag;
 
+    //!< set stream offset
+    syn->bitstream_size = p_dec->cur->stream_len;
+    syn->bitstream_offset = p_dec->cur->stream_offset;
+
     return MPP_OK;
 }
 /*!
@@ -684,73 +659,71 @@ MPP_RET avsd_fill_parameters(AvsdCtx_t *p_dec, AvsdSyntax_t *syn)
 *    prepare function for parser
 ***********************************************************************
 */
-MPP_RET avsd_parse_prepare(AvsdCtx_t *p_dec, MppPacket *pkt, HalDecTask *task)
+MPP_RET avsd_parser_split(AvsdCtx_t *p, MppPacket *dst, MppPacket *src)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    RK_U8  *p_curdata = NULL;
-    RK_U8  *p_start = NULL;  //!< store nalu start
-    RK_U32 nalu_len = 0;
-    RK_U8  got_frame_flag = 0;
-    RK_U8  got_nalu_flag = 0;
-    RK_U32 pkt_length = 0;
+    MPP_RET ret = MPP_NOK;
+    AVSD_PARSE_TRACE("In.\n");
 
-    RK_U32 prefix = 0xFFFFFFFF;
+    RK_U8 *src_buf = (RK_U8 *)mpp_packet_get_pos(src);
+    RK_U32 src_len = (RK_U32)mpp_packet_get_length(src);
+    RK_U32 src_eos = mpp_packet_get_eos(src);
+    RK_S64 src_pts = mpp_packet_get_pts(src);
+    RK_U8 *dst_buf = (RK_U8 *)mpp_packet_get_data(dst);
+    RK_U32 dst_len = (RK_U32)mpp_packet_get_length(dst);
+    RK_U32 src_pos = 0;
 
-    AVSD_PARSE_TRACE("In.");
-    //!< check input
-    if (mpp_packet_get_length(pkt) < 4) {
-        AVSD_DBG(AVSD_DBG_WARNNING, "input have no stream.");
-        mpp_packet_set_length(pkt, 0);
-        goto __RETURN;
-    }
-
-    pkt_length = (RK_U32)mpp_packet_get_length(pkt);
-    p_curdata = p_start = (RK_U8 *)mpp_packet_get_pos(pkt);
-
-    while (pkt_length > 0) {
-        //!<  found next nalu start code
-        if ((prefix & 0xFFFFFF00) == 0x00000100) {
-            if (got_nalu_flag)  {
-                nalu_len = (RK_U32)(p_curdata - p_start) - 4;
-                FUN_CHECK(ret = store_cur_nalu(p_dec, p_start, nalu_len));
-            }
-            FUN_CHECK(ret = add_nalu_header(p_dec, prefix));
-            p_start = p_curdata - 4;
-            got_nalu_flag = 1;
+    // find the began of the vop
+    if (!p->vop_header_found) {
+        // add last startcode to the new frame data
+        if ((dst_len < sizeof(p->state))
+            && ((p->state & 0x00FFFFFF) == 0x000001)) {
+            dst_buf[0] = 0;
+            dst_buf[1] = 0;
+            dst_buf[2] = 1;
+            dst_len = 3;
         }
-        //!< found next picture start code
-        if (prefix == I_PICUTRE_START_CODE || prefix == PB_PICUTRE_START_CODE) {
-            task->valid = 1;
-            if (got_frame_flag) {
-                p_dec->nal->eof = 1;
-                pkt_length += 4;
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
+            if (p->state == I_PICUTRE_START_CODE ||
+                p->state == PB_PICUTRE_START_CODE) {
+                p->vop_header_found = 1;
+                mpp_packet_set_pts(dst, src_pts);
                 break;
             }
-            got_frame_flag = 1;
-        }
-
-        prefix = (prefix << 8) | (*p_curdata);
-        p_curdata++;
-        pkt_length--;
-    }
-    //!< reach the packet end
-    if (!pkt_length) {
-        nalu_len = (RK_U32)(p_curdata - p_start);
-        FUN_CHECK(ret = store_cur_nalu(p_dec, p_start, nalu_len));
-        if (task->valid) {
-            FUN_CHECK(ret = add_nalu_header(p_dec, 0));
-            p_dec->nal->eof = 1;
         }
     }
-    //!< reset position
-    pkt_length = (RK_U32)mpp_packet_get_length(pkt) - pkt_length;
-    mpp_packet_set_pos(pkt, (RK_U8 *)mpp_packet_get_pos(pkt) + pkt_length);
 
-__RETURN:
-    AVSD_PARSE_TRACE("Out.");
+    // find the end of the vop
+    if (p->vop_header_found) {
+        while (src_pos < src_len) {
+            p->state = (p->state << 8) | src_buf[src_pos];
+            dst_buf[dst_len++] = src_buf[src_pos++];
+            if ((p->state & 0x00FFFFFF) == 0x000001) {
+                if (src_buf[src_pos] > (SLICE_MAX_START_CODE & 0xFF) &&
+                    src_buf[src_pos] != (USER_DATA_CODE & 0xFF)) {
+                    dst_len -= 3;
+                    p->vop_header_found = 0;
+                    ret = MPP_OK; // split complete
+                    break;
+                }
+            }
+        }
+    }
+    // the last packet
+    if (src_eos && src_pos >= src_len) {
+        mpp_packet_set_eos(dst);
+        ret = MPP_OK;
+    }
 
-    return ret = MPP_OK;
-__FAILED:
+    AVSD_DBG(AVSD_DBG_INPUT, "[pkt_in] vop_header_found= %d, dst_len=%d, src_pos=%d\n",
+             p->vop_header_found, dst_len, src_pos);
+    // reset the src and dst
+    mpp_packet_set_length(dst, dst_len);
+    mpp_packet_set_pos(src, src_buf + src_pos);
+
+    AVSD_PARSE_TRACE("out.\n");
+
     return ret;
 }
 /*!
@@ -762,32 +735,38 @@ __FAILED:
 MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_U32 startcode = 0xFF;
+    RK_U32 pic_type = 0;
+    RK_U32 got_slice = 0;
 
-    RK_U8 pic_type = 0;
-    AvsdNalu_t *p_nalu = (AvsdNalu_t *)p_dec->p_header->pbuf;
+    RK_U8 *data = (RK_U8 *)mpp_packet_get_data(task->input_packet);
+    RK_S32 length = (RK_S32)mpp_packet_get_length(task->input_packet);
 
-    task->valid = 0;
-    while (!p_nalu->eof) {
-        RK_U32 startcode = p_nalu->header;
+    mpp_set_bitread_ctx(p_dec->bx, data, length);
+    AVSD_DBG(AVSD_DBG_SYNTAX, "bytes_left_=%d\n", p_dec->bx->bytes_left_);
+    while (p_dec->bx->bytes_left_ && !got_slice) {
+        RK_S32 tmp = 0;
+        mpp_align_get_bits(p_dec->bx);
+        mpp_read_bits(p_dec->bx, 8, &tmp);
+        startcode = (startcode << 8) | tmp;
+        if ((startcode & 0xFFFFFF00) != 0x100)
+            continue;
+        AVSD_DBG(AVSD_DBG_SYNTAX, "startcode=%08x\n", startcode);
 
-        if (startcode >= SLICE_MIN_START_CODE && startcode <= SLICE_MAX_START_CODE) {
-            p_nalu++;
-        } else {
-            memset(&p_dec->bitctx, 0, sizeof(BitReadCtx_t));
-            mpp_set_bitread_ctx(&p_dec->bitctx, p_nalu->pdata + p_nalu->start_pos, p_nalu->length);
-            p_nalu = (AvsdNalu_t *)(p_nalu->pdata + p_nalu->length);
-        }
-
-        if (startcode != VIDEO_SEQUENCE_START_CODE && !p_dec->got_vsh) {
-            // when has not got sequence header, then do nothing
+        // when has not got sequence header, then do nothing
+        if (!p_dec->got_vsh &&
+            startcode != VIDEO_SEQUENCE_START_CODE) {
+            AVSD_DBG(AVSD_DBG_WARNNING, "when has not got sequence header, then do nothing\n");
             continue;
         }
+        //continue;
         switch (startcode) {
         case VIDEO_SEQUENCE_START_CODE:
-            ret = get_sequence_header(&p_dec->bitctx, &p_dec->vsh);
+            ret = get_sequence_header(p_dec->bx, &p_dec->vsh);
             if (ret == MPP_OK) {
                 p_dec->got_vsh = 1;
             }
+            AVSD_DBG(AVSD_DBG_WARNNING, "got vsh %d\n", p_dec->got_vsh);
             break;
         case VIDEO_SEQUENCE_END_CODE:
             break;
@@ -797,59 +776,66 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
             p_dec->vec_flag = 0;
             break;
         case I_PICUTRE_START_CODE:
+            AVSD_DBG(AVSD_DBG_WARNNING, "got I picture start code\n");
             if (!p_dec->got_keyframe) {
                 avsd_reset_parameters(p_dec);
                 p_dec->got_keyframe = 1;
             }
-            ret = get_i_picture_header(&p_dec->bitctx, &p_dec->vsh, &p_dec->ph);
+            ret = get_i_picture_header(p_dec->bx, &p_dec->vsh, &p_dec->ph);
             if (ret == MPP_OK) {
                 p_dec->cur = get_one_save(p_dec, task);
+                p_dec->got_ph = 1;
             }
             p_dec->cur->pic_type = pic_type = I_PICTURE;
             p_dec->vec_flag++;
             break;
         case EXTENSION_START_CODE:
-            ret = get_extension_header(&p_dec->bitctx, &p_dec->ext);
+            ret = get_extension_header(p_dec->bx, &p_dec->ext);
             break;
         case PB_PICUTRE_START_CODE:
+            AVSD_DBG(AVSD_DBG_WARNNING, "got PB picture start code\n");
             if (!p_dec->got_keyframe) {
                 avsd_reset_parameters(p_dec);
                 break;
             }
-            ret = get_pb_picture_header(&p_dec->bitctx, &p_dec->vsh, &p_dec->ph);
+            ret = get_pb_picture_header(p_dec->bx, &p_dec->vsh, &p_dec->ph);
             if (ret == MPP_OK) {
                 p_dec->cur = get_one_save(p_dec, task);
+                p_dec->got_ph = 1;
             }
             p_dec->cur->pic_type = pic_type = p_dec->ph.picture_coding_type;
             p_dec->vec_flag += (p_dec->vec_flag == 1 && pic_type == P_PICTURE);
             break;
         default:
-            if (!p_dec->cur
-                || (pic_type == P_PICTURE && !p_dec->dpb[0])
-                || (pic_type == B_PICTURE && !p_dec->dpb[0])
-                || (pic_type == B_PICTURE && !p_dec->dpb[1] && !p_dec->vsh.low_delay)
-                || (pic_type == P_PICTURE && p_dec->vec_flag < 1)
-                || (pic_type == B_PICTURE && p_dec->vec_flag < 2)) {
-                mpp_err_f("missing refer frame.\n");
-                ret = MPP_NOK;
-                goto __FAILED;
-            }
-            if (startcode >= SLICE_MIN_START_CODE
+            if (p_dec->cur
+                && startcode >= SLICE_MIN_START_CODE
                 && startcode <= SLICE_MAX_START_CODE) {
-                task->valid = 1;
+                got_slice = 1;
+                p_dec->cur->stream_len = length;
+                p_dec->cur->stream_offset = p_dec->bx->used_bits / 8 - 4;
+                task->valid = p_dec->got_vsh && p_dec->got_ph;
+                AVSD_DBG(AVSD_DBG_SYNTAX, "offset=%d,got_vsh=%d, got_ph=%d, task->valid=%d\n",
+                         p_dec->cur->stream_offset, p_dec->got_vsh, p_dec->got_ph, task->valid);
             }
-
+            if ((pic_type == P_PICTURE && !p_dec->dpb[0]) ||
+                (pic_type == B_PICTURE && !p_dec->dpb[0]) ||
+                (pic_type == B_PICTURE && !p_dec->dpb[1] && !p_dec->vsh.low_delay) ||
+                (pic_type == P_PICTURE && p_dec->vec_flag < 1) ||
+                (pic_type == B_PICTURE && p_dec->vec_flag < 2)) {
+                AVSD_DBG(AVSD_DBG_REF, "missing refer frame.\n");
+                if (!p_dec->disable_error)
+                    goto __FAILED;
+            }
             break;
         }
     }
 
-    return ret = MPP_OK;
+    if (!task->valid)
+        goto __FAILED;
+
+    return MPP_OK;
 __FAILED:
+    task->valid = 0;
     reset_one_save(p_dec->cur);
-
-    return ret;
+    return MPP_NOK;
 }
-
-
-
-

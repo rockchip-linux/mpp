@@ -134,8 +134,8 @@ int VPUClientInit(VPU_CLIENT_TYPE type)
         ctx_type  = MPP_CTX_DEC;
         type = VPU_DEC;
         break;
-    case VPU_DEC_AVS:
-        coding = MPP_VIDEO_CodingAVS;
+    case VPU_DEC_AVSPLUS:
+        coding = MPP_VIDEO_CodingAVSPLUS;
         ctx_type  = MPP_CTX_DEC;
         type = VPU_DEC;
         break;

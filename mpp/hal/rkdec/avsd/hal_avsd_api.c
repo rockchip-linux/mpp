@@ -1,20 +1,18 @@
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #define MODULE_TAG "hal_avsd_api"
 
@@ -22,141 +20,97 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "rk_mpi_cmd.h"
+#include "mpp_debug.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "mpp_platform.h"
+#include "mpp_device.h"
 
-#include "hal_avsd_api.h"
-#include "hal_avsd_reg.h"
 #include "mpp_dec_cb_param.h"
+#include "hal_avsd_api.h"
+#include "hal_avsd_base.h"
+#include "hal_avsd_vdpu1.h"
+#include "hal_avsd_vdpu2.h"
+#include "hal_avsd_plus.h"
 
-RK_U32 avsd_hal_debug = 0;
-
-MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task);
-
-static RK_U32 avsd_ver_align(RK_U32 val)
+static MPP_RET init_hard_platform(AvsdHalCtx_t *p_hal, MppCodingType coding)
 {
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 avsd_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 avsd_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 16));
-}
-
-static void explain_input_buffer(AvsdHalCtx_t *p_hal, HalDecTask *task)
-{
-    memcpy(&p_hal->syn, task->syntax.data, sizeof(AvsdSyntax_t));
-}
-
-static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
-{
-    RK_U8 i = 0;
-    RK_U8 *pdata = NULL;
-    MppBuffer mbuffer = NULL;
+    MppHalApi *p_api = &p_hal->hal_api;
+    RK_U32 vcodec_type = mpp_get_vcodec_type();
+    MppClientType client_type = VPU_CLIENT_BUTT;
     MPP_RET ret = MPP_ERR_UNKNOW;
-    AvsdRegs_t *p_regs = (AvsdRegs_t *)p_hal->p_regs;
 
-    //!< re-find start code and calculate offset
-    p_hal->data_offset = p_regs->sw12.rlc_vlc_base >> 10;
-    mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
-    pdata = (RK_U8 *)mpp_buffer_get_ptr(mbuffer) + p_hal->data_offset;
-    while (i < 8) {
-        if (pdata[i] == 0 && pdata[i + 1] == 0 && pdata[i + 2] == 1) {
-            p_hal->data_offset += i;
-            p_hal->syn.bitstream_size -= i;
-            break;
-        }
-        i++;
+    if (coding == MPP_VIDEO_CodingAVSPLUS) {
+        if (!(vcodec_type & HAVE_AVSDEC))
+            mpp_err("coding %x vcodec_type %x do not found avs hw %x\n",
+                    coding, vcodec_type, HAVE_AVSDEC);
+    } else {
+        RK_U32 hw_flag = HAVE_VDPU1 | HAVE_VDPU2 | HAVE_VDPU1_PP | HAVE_VDPU2_PP;
+
+        if (!(vcodec_type & hw_flag ))
+            mpp_err("coding %x vcodec_type %x do not found avs hw %x\n",
+                    coding, vcodec_type, hw_flag);
     }
-    AVSD_HAL_DBG(AVSD_HAL_DBG_OFFSET, "frame_no=%d, offset=%d\n", p_hal->frame_no, p_hal->data_offset);
-    //!< re-generate register
-    memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
-    FUN_CHECK(ret = set_defalut_parameters(p_hal));
-    FUN_CHECK(ret = set_regs_parameters(p_hal, &task->dec));
-    hal_avsd_start((void *)p_hal, task);
-    hal_avsd_wait((void *)p_hal, task);
 
-    return ret = MPP_OK;
-__FAILED:
-    return ret;
+    if ((coding == MPP_VIDEO_CodingAVSPLUS) &&
+        (vcodec_type & HAVE_AVSDEC)) {
+        p_api->init    = hal_avsd_plus_init;
+        p_api->deinit  = hal_avsd_plus_deinit;
+        p_api->reg_gen = hal_avsd_plus_gen_regs;
+        p_api->start   = hal_avsd_plus_start;
+        p_api->wait    = hal_avsd_plus_wait;
+        p_api->reset   = hal_avsd_plus_reset;
+        p_api->flush   = hal_avsd_plus_flush;
+        p_api->control = hal_avsd_plus_control;
+        client_type    = VPU_CLIENT_AVSPLUS_DEC;
+    } else if ((coding == MPP_VIDEO_CodingAVS) &&
+               (vcodec_type & (HAVE_VDPU1 | HAVE_VDPU1_PP))) {
+        p_api->init    = hal_avsd_vdpu1_init;
+        p_api->deinit  = hal_avsd_vdpu1_deinit;
+        p_api->reg_gen = hal_avsd_vdpu1_gen_regs;
+        p_api->start   = hal_avsd_vdpu1_start;
+        p_api->wait    = hal_avsd_vdpu1_wait;
+        p_api->reset   = hal_avsd_vdpu1_reset;
+        p_api->flush   = hal_avsd_vdpu1_flush;
+        p_api->control = hal_avsd_vdpu1_control;
+        client_type    = VPU_CLIENT_VDPU1;
+    } else if ((coding == MPP_VIDEO_CodingAVS) &&
+               (vcodec_type & (HAVE_VDPU2 | HAVE_VDPU2_PP))) {
+        p_api->init    = hal_avsd_vdpu2_init;
+        p_api->deinit  = hal_avsd_vdpu2_deinit;
+        p_api->reg_gen = hal_avsd_vdpu2_gen_regs;
+        p_api->start   = hal_avsd_vdpu2_start;
+        p_api->wait    = hal_avsd_vdpu2_wait;
+        p_api->reset   = hal_avsd_vdpu2_reset;
+        p_api->flush   = hal_avsd_vdpu2_flush;
+        p_api->control = hal_avsd_vdpu2_control;
+        client_type    = VPU_CLIENT_VDPU2;
+    } else {
+        ret = MPP_NOK;
+        goto __FAILED;
+    }
+    p_hal->coding = coding;
+    AVSD_HAL_DBG(AVSD_DBG_HARD_MODE, "hw_spt %08x, coding %d\n", vcodec_type, coding);
 
-}
-/*!
-***********************************************************************
-* \brief
-*    init
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    AvsdHalCtx_t *p_hal = NULL;
-
-    AVSD_HAL_TRACE("In.");
-    INP_CHECK(ret, NULL == decoder);
-
-    mpp_env_get_u32("avsd_debug", &avsd_hal_debug, 0);
-
-    p_hal = (AvsdHalCtx_t *)decoder;
-    memset(p_hal, 0, sizeof(AvsdHalCtx_t));
-
-    p_hal->frame_slots = cfg->frame_slots;
-    p_hal->packet_slots = cfg->packet_slots;
-    //!< callback function to parser module
-    p_hal->dec_cb = cfg->dec_cb;
-    //!< mpp_device_init
-
-    ret = mpp_dev_init(&p_hal->dev, VPU_CLIENT_AVSPLUS_DEC);
+    ret = mpp_dev_init(&p_hal->dev, client_type);
     if (ret) {
         mpp_err("mpp_device_init failed. ret: %d\n", ret);
         return ret;
+
     }
-
-    //< get buffer group
-    if (p_hal->buf_group == NULL) {
-        RK_U32 buf_size = (1920 * 1088) / 16;
-
-        FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
-        FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->mv_buf, buf_size));
-    }
-
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avsd_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avsd_len_align);
-
-    p_hal->p_regs = mpp_calloc_size(RK_U32 , sizeof(AvsdRegs_t));
-    MEM_CHECK(ret, p_hal->p_regs);
-
-    //!< initial for control
-    p_hal->first_field = 1;
-    p_hal->prev_pic_structure = 0; //!< field
-
-    memset(p_hal->pic, 0, sizeof(p_hal->pic));
-    p_hal->work_out = -1;
-    p_hal->work0 = -1;
-    p_hal->work1 = -1;
-
-__RETURN:
-    AVSD_HAL_TRACE("Out.");
-
     return ret = MPP_OK;
 __FAILED:
     return ret;
 }
+
 /*!
-***********************************************************************
-* \brief
-*    deinit
-***********************************************************************
-*/
+ ***********************************************************************
+ * \brief
+ *    deinit
+ ***********************************************************************
+ */
 //extern "C"
 MPP_RET hal_avsd_deinit(void *decoder)
 {
@@ -166,20 +120,17 @@ MPP_RET hal_avsd_deinit(void *decoder)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    //!< mpp_device_init
+    FUN_CHECK(ret = p_hal->hal_api.deinit(decoder));
+    //!< mpp_dev_init
     if (p_hal->dev) {
         ret = mpp_dev_deinit(p_hal->dev);
         if (ret)
             mpp_err("mpp_dev_deinit failed. ret: %d\n", ret);
     }
-    if (p_hal->mv_buf) {
-        FUN_CHECK(ret = mpp_buffer_put(p_hal->mv_buf));
-    }
+
     if (p_hal->buf_group) {
         FUN_CHECK(ret = mpp_buffer_group_put(p_hal->buf_group));
     }
-    MPP_FREE(p_hal->p_regs);
-
 __RETURN:
     AVSD_HAL_TRACE("Out.");
 
@@ -187,175 +138,151 @@ __RETURN:
 __FAILED:
     return ret;
 }
+
 /*!
-***********************************************************************
-* \brief
-*    generate register
-***********************************************************************
-*/
+ ***********************************************************************
+ * \brief
+ *    init
+ ***********************************************************************
+ */
+//extern "C"
+MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
+
+    AVSD_HAL_TRACE("In.");
+    INP_CHECK(ret, NULL == decoder);
+
+    memset(p_hal, 0, sizeof(AvsdHalCtx_t));
+    p_hal->frame_slots = cfg->frame_slots;
+    p_hal->packet_slots = cfg->packet_slots;
+
+    //!< callback function to parser module
+    p_hal->dec_cb = cfg->dec_cb;
+    mpp_env_get_u32("avsd_debug", &avsd_hal_debug, 0);
+    //< get buffer group
+    FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
+
+    FUN_CHECK(ret = init_hard_platform(p_hal, cfg->coding));
+
+    //!< run init funtion
+    FUN_CHECK(ret = p_hal->hal_api.init(decoder, cfg));
+
+__RETURN:
+    AVSD_HAL_TRACE("Out.");
+
+    return ret = MPP_OK;
+__FAILED:
+    hal_avsd_deinit(decoder);
+    return ret;
+}
+
+/*!
+ ***********************************************************************
+ * \brief
+ *    generate register
+ ***********************************************************************
+ */
 //extern "C"
 MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-
-    AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
-    AVSD_HAL_TRACE("In.");
-    INP_CHECK(ret, NULL == decoder);
-    if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
-        goto __RETURN;
-    }
-    memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
-    explain_input_buffer(p_hal, &task->dec);
-    p_hal->data_offset = 0;
-
-    FUN_CHECK(ret = set_defalut_parameters(p_hal));
-    FUN_CHECK(ret = set_regs_parameters(p_hal, &task->dec));
-
-__RETURN:
-    AVSD_HAL_TRACE("Out.");
-
-    return ret = MPP_OK;
-__FAILED:
-    return ret;
-}
-/*!
-***********************************************************************
-* \brief h
-*    start hard
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    MppCodingType coding = MPP_VIDEO_CodingUnused;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
-    AVSD_HAL_TRACE("In.");
-    INP_CHECK(ret, NULL == decoder);
+    memcpy(&p_hal->syn, task->dec.syntax.data, sizeof(AvsdSyntax_t));
+    // check coding
+    coding = (p_hal->syn.pp.profileId == 0x48) ? MPP_VIDEO_CodingAVSPLUS : MPP_VIDEO_CodingAVS;
+    if (coding != p_hal->coding) {
+        if (p_hal->dev) {
+            ret = mpp_dev_deinit(p_hal->dev);
+            if (ret)
+                mpp_err("mpp_dev_deinit failed. ret: %d\n", ret);
 
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
-        goto __RETURN;
+            p_hal->dev = NULL;
+        }
+        ret = init_hard_platform(p_hal, coding);
+        if (ret) {
+            mpp_err_f("change paltform %x -> %x error\n", p_hal->coding, coding);
+            return ret;
+        }
     }
-
-    do {
-        MppDevRegWrCfg wr_cfg;
-        MppDevRegRdCfg rd_cfg;
-
-        wr_cfg.reg = p_hal->p_regs;
-        wr_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
-        wr_cfg.offset = 0;
-
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
-
-        rd_cfg.reg = p_hal->p_regs;
-        rd_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
-        rd_cfg.offset = 0;
-
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_RD, &rd_cfg);
-        if (ret) {
-            mpp_err_f("set register read failed %d\n", ret);
-            break;
-        }
-
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_SEND, NULL);
-        if (ret) {
-            mpp_err_f("send cmd failed %d\n", ret);
-            break;
-        }
-    } while (0);
 
     p_hal->frame_no++;
 
-__RETURN:
-    AVSD_HAL_TRACE("Out.");
-
-    return ret;
+    return p_hal->hal_api.reg_gen(decoder, task);
 }
 /*!
-***********************************************************************
-* \brief
-*    wait hard
-***********************************************************************
-*/
+ ***********************************************************************
+ * \brief h
+ *    start hard
+ ***********************************************************************
+ */
+//extern "C"
+MPP_RET hal_avsd_start(void *decoder, HalTaskInfo *task)
+{
+    AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
+
+    return p_hal->hal_api.start(decoder, task);
+}
+/*!
+ ***********************************************************************
+ * \brief
+ *    wait hard
+ ***********************************************************************
+ */
 //extern "C"
 MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
-    AvsdRegs_t *p_regs = (AvsdRegs_t *)p_hal->p_regs;
 
-    AVSD_HAL_TRACE("In.");
-    INP_CHECK(ret, NULL == decoder);
-
-    if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
-        goto __SKIP_HARD;
-    }
-
-    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
-    if (ret)
-        mpp_err_f("poll cmd failed %d\n", ret);
-
-    update_parameters(p_hal);
-    if (!p_hal->first_field && p_hal->syn.pp.pictureStructure == FIELDPICTURE)
-        repeat_other_field(p_hal, task);
-
-__SKIP_HARD:
-    if (p_hal->dec_cb) {
-        DecCbHalDone param;
-
-        param.task = (void *)&task->dec;
-        param.regs = (RK_U32 *)p_regs;
-        param.hard_err = !p_regs->sw01.dec_rdy_int;
-
-        mpp_callback(p_hal->dec_cb, &param);
-    }
-
-    memset(&p_regs->sw01, 0, sizeof(p_regs->sw01));
-__RETURN:
-    AVSD_HAL_TRACE("Out.");
-
-    return ret;
+    return p_hal->hal_api.wait(decoder, task);
 }
 /*!
-***********************************************************************
-* \brief
-*    reset
-***********************************************************************
-*/
+ ***********************************************************************
+ * \brief
+ *    reset
+ ***********************************************************************
+ */
 //extern "C"
 MPP_RET hal_avsd_reset(void *decoder)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
-    AVSD_HAL_TRACE("In.");
+    return p_hal->hal_api.reset(p_hal);
+}
+/*!
+ ***********************************************************************
+ * \brief
+ *    flush
+ ***********************************************************************
+ */
+//extern "C"
+MPP_RET hal_avsd_flush(void *decoder)
+{
+    AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
-    memset(p_hal->p_regs, 0, sizeof(AvsdRegs_t));
+    return p_hal->hal_api.flush(p_hal);
+}
+/*!
+ ***********************************************************************
+ * \brief
+ *    control
+ ***********************************************************************
+ */
+//extern "C"
+MPP_RET hal_avsd_control(void *decoder, MpiCmd cmd_type, void *param)
+{
+    AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
-    p_hal->first_field = 1;
-    p_hal->prev_pic_structure = 0; //!< field
-
-    memset(p_hal->pic, 0, sizeof(p_hal->pic));
-    p_hal->work_out = -1;
-    p_hal->work0 = -1;
-    p_hal->work1 = -1;
-
-
-    AVSD_HAL_TRACE("Out.");
-
-    return ret = MPP_OK;
+    return p_hal->hal_api.control(decoder, cmd_type, param);
 }
 
 const MppHalApi hal_api_avsd = {
-    .name = "avsd_rkdec",
+    .name = "avsd_vdpu",
     .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingAVSPLUS,
+    .coding = MPP_VIDEO_CodingAVS,
     .ctx_size = sizeof(AvsdHalCtx_t),
     .flag = 0,
     .init = hal_avsd_init,
@@ -364,6 +291,22 @@ const MppHalApi hal_api_avsd = {
     .start = hal_avsd_start,
     .wait = hal_avsd_wait,
     .reset = hal_avsd_reset,
-    .flush = NULL,
-    .control = NULL,
+    .flush = hal_avsd_flush,
+    .control = hal_avsd_control,
+};
+
+const MppHalApi hal_api_avsd_plus = {
+    .name = "avsd_plus",
+    .type = MPP_CTX_DEC,
+    .coding = MPP_VIDEO_CodingAVSPLUS,
+    .ctx_size = sizeof(AvsdHalCtx_t),
+    .flag = 0,
+    .init = hal_avsd_init,
+    .deinit = hal_avsd_deinit,
+    .reg_gen = hal_avsd_gen_regs,
+    .start =  hal_avsd_start,
+    .wait = hal_avsd_wait,
+    .reset = hal_avsd_reset,
+    .flush = hal_avsd_flush,
+    .control = hal_avsd_control,
 };

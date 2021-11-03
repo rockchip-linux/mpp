@@ -256,7 +256,7 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
 
     ret = mpp_dev_init(&ctx->dev, ctx->dev_type);
     if (ret) {
-        mpp_err("mpp_device_init failed. ret: %d\n", ret);
+        mpp_err("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
 
