@@ -52,6 +52,23 @@ static RK_U32 mpp_dec_debug = 0;
 #define dec_dbg_reset(fmt, ...)         mpp_dec_dbg(MPP_DEC_DBG_RESET, fmt, ## __VA_ARGS__)
 #define dec_dbg_notify(fmt, ...)        mpp_dec_dbg_f(MPP_DEC_DBG_NOTIFY, fmt, ## __VA_ARGS__)
 
+/* external wait state */
+#define MPP_DEC_WAIT_PKT_IN             (0x00000001)    /* input packet not ready */
+#define MPP_DEC_WAIT_FRM_OUT            (0x00000002)    /* frame output queue full */
+
+#define MPP_DEC_WAIT_INFO_CHG           (0x00000020)    /* wait info change ready */
+#define MPP_DEC_WAIT_BUF_RDY            (0x00000040)    /* wait valid frame buffer */
+#define MPP_DEC_WAIT_TSK_ALL_DONE       (0x00000080)    /* wait all task done */
+
+#define MPP_DEC_WAIT_TSK_HND_RDY        (0x00000100)    /* wait task handle ready */
+#define MPP_DEC_WAIT_TSK_PREV_DONE      (0x00000200)    /* wait previous task done */
+#define MPP_DEC_WAIT_BUF_GRP_RDY        (0x00000200)    /* wait buffer group change ready */
+
+/* internal wait state */
+#define MPP_DEC_WAIT_BUF_SLOT_RDY       (0x00001000)    /* wait buffer slot ready */
+#define MPP_DEC_WAIT_PKT_BUF_RDY        (0x00002000)    /* wait packet buffer ready */
+#define MPP_DEC_WAIT_BUF_SLOT_KEEP      (0x00004000)    /* wait buffer slot reservation */
+
 typedef union PaserTaskWait_u {
     RK_U32          val;
     struct {
@@ -98,12 +115,6 @@ typedef struct DecTask_t {
     DecTaskStatus   status;
     PaserTaskWait   wait;
 
-    RK_S32          hal_pkt_idx_in;
-    RK_S32          hal_frm_idx_out;
-
-    MppBuffer       hal_pkt_buf_in;
-    MppBuffer       hal_frm_buf_out;
-
     HalTaskInfo     info;
 } DecTask;
 
@@ -113,12 +124,6 @@ static void dec_task_init(DecTask *task)
     task->status.val = 0;
     task->wait.val   = 0;
     task->status.prev_task_rdy  = 1;
-
-    task->hal_pkt_idx_in  = -1;
-    task->hal_frm_idx_out = -1;
-
-    task->hal_pkt_buf_in  = NULL;
-    task->hal_frm_buf_out = NULL;
 
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 }
@@ -855,14 +860,13 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     /*
      * 5. malloc hardware buffer for the packet slot index
      */
-    task->hal_pkt_idx_in = task_dec->input;
     stream_size = mpp_packet_get_size(task_dec->input_packet);
 
-    mpp_buf_slot_get_prop(packet_slots, task->hal_pkt_idx_in, SLOT_BUFFER, &hal_buf_in);
+    mpp_buf_slot_get_prop(packet_slots, task_dec->input, SLOT_BUFFER, &hal_buf_in);
     if (NULL == hal_buf_in) {
         mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
         if (hal_buf_in) {
-            mpp_buf_slot_set_prop(packet_slots, task->hal_pkt_idx_in, SLOT_BUFFER, hal_buf_in);
+            mpp_buf_slot_set_prop(packet_slots, task_dec->input, SLOT_BUFFER, hal_buf_in);
             mpp_buffer_put(hal_buf_in);
         }
     } else {
@@ -870,7 +874,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_assert(buf->info.size >= stream_size);
     }
 
-    task->hal_pkt_buf_in = hal_buf_in;
     task->wait.dec_pkt_buf = (NULL == hal_buf_in);
     if (task->wait.dec_pkt_buf)
         return MPP_NOK;
@@ -879,7 +882,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 6. copy prepared stream to hardware buffer
      */
     if (!task->status.dec_pkt_copy_rdy) {
-        void *dst = mpp_buffer_get_ptr(task->hal_pkt_buf_in);
+        void *dst = mpp_buffer_get_ptr(hal_buf_in);
         void *src = mpp_packet_get_data(task_dec->input_packet);
         size_t length = mpp_packet_get_length(task_dec->input_packet);
 
@@ -1057,7 +1060,6 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         dec->info_updated = 1;
     }
 
-    task->hal_frm_buf_out = hal_buf_out;
     task->wait.dec_pic_match = (NULL == hal_buf_out);
     if (task->wait.dec_pic_match)
         return MPP_NOK;
