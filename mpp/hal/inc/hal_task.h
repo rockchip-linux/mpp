@@ -38,13 +38,10 @@ typedef struct HalDecVprocTask_t {
     RK_S32                  input;
 } HalDecVprocTask;
 
-typedef struct HalTask_u {
-    HalTaskHnd              hnd;
-    union {
-        HalDecTask          dec;
-        HalEncTask          enc;
-        HalDecVprocTask     dec_vproc;
-    };
+typedef union HalTask_u {
+    HalDecTask              dec;
+    HalEncTask              enc;
+    HalDecVprocTask         dec_vproc;
 } HalTaskInfo;
 
 #ifdef __cplusplus
