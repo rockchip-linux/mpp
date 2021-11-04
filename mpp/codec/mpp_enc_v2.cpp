@@ -311,9 +311,14 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     switch (cmd) {
     case MPP_ENC_GET_CFG : {
         MppEncCfgImpl *p = (MppEncCfgImpl *)param;
+        MppEncCfgSet *cfg = &p->cfg;
 
         enc_dbg_ctrl("get all config\n");
-        memcpy(&p->cfg, &enc->cfg, sizeof(enc->cfg));
+        memcpy(cfg, &enc->cfg, sizeof(enc->cfg));
+        if (cfg->prep.rotation == MPP_ENC_ROT_90 ||
+            cfg->prep.rotation == MPP_ENC_ROT_270) {
+            MPP_SWAP(RK_S32, cfg->prep.width, cfg->prep.height);
+        }
     } break;
     case MPP_ENC_GET_PREP_CFG : {
         enc_dbg_ctrl("get prep config\n");
