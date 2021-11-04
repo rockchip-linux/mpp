@@ -220,13 +220,6 @@ MPP_RET dummy_dec_parse(void *dec, HalDecTask *task)
     mpp_frame_set_hor_stride(frame, MPP_ALIGN(width, 16));
     mpp_frame_set_ver_stride(frame, MPP_ALIGN(height, 16));
 
-    if (task->prev_status) {
-        /*
-         * if previous task has error happened mark the previous frame to be error
-         */
-        mpp_err("previous task error found\n");
-    }
-
     /*
      * set slots information
      * 1. output index MUST be set
