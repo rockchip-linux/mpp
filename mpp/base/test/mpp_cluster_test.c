@@ -17,7 +17,6 @@
 #define MODULE_TAG "mpp_cluster_test"
 
 #include "mpp_log.h"
-#include "mpp_mem.h"
 #include "mpp_time.h"
 #include "mpp_common.h"
 

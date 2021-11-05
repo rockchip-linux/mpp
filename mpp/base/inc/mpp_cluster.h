@@ -17,6 +17,7 @@
 #ifndef __MPP_CLUSTER_H__
 #define __MPP_CLUSTER_H__
 
+#include "mpp_err.h"
 #include "mpp_list.h"
 #include "mpp_thread.h"
 #include "mpp_dev_defs.h"
@@ -25,7 +26,7 @@
 
 typedef void* MppNode;
 
-typedef RK_S32 (*TaskProc)(void *param);
+typedef MPP_RET (*TaskProc)(void *param);
 
 #ifdef __cplusplus
 extern "C" {
