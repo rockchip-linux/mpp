@@ -480,7 +480,7 @@ static void cluster_worker_run_task(ClusterWorker *p)
             mpp_err_f("%s run state check %x is invalid on run", p->name, node->state);
 
         time_start = mpp_time();
-        proc_ret = (MPP_RET)proc->proc(proc->param);
+        proc_ret = proc->proc(proc->param);
         time_end = mpp_time();
 
         cluster_dbg_flow("%s run %s ret %d\n", p->name, task->node_name, proc_ret);
