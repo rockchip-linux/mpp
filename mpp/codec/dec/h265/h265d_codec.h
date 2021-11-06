@@ -29,6 +29,7 @@
 #define __H265D_CODEC_H__
 
 #include "mpp_frame.h"
+#include "mpp_soc.h"
 #include "mpp_dec_cfg.h"
 
 typedef struct MppRational {

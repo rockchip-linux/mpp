@@ -33,7 +33,6 @@
 #include "hal_m2vd_api.h"
 #include "hal_mpg4d_api.h"
 #include "hal_jpegd_api.h"
-#include "hal_h265e_api.h"
 
 // for test and demo
 #include "hal_dummy_dec_api.h"

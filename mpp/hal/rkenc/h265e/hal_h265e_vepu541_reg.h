@@ -17,11 +17,7 @@
 #ifndef __HAL_H265E_VEPU541_REG_H__
 #define __HAL_H265E_VEPU541_REG_H__
 
-#include "mpp_buffer.h"
-#include "mpp_enc_hal.h"
-#include "hal_task.h"
-#include "rkv_enc_def.h"
-#include "h265_syntax.h"
+#include "rk_type.h"
 
 /* OSD position */
 typedef struct {

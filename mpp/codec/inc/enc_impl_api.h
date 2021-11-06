@@ -19,7 +19,7 @@
 
 #include "rk_mpi_cmd.h"
 
-#include "hal_task.h"
+#include "hal_enc_task.h"
 #include "mpp_enc_cfg.h"
 #include "mpp_enc_refs.h"
 

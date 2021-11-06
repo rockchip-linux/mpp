@@ -20,10 +20,10 @@
 
 #include "mpp_env.h"
 #include "mpp_log.h"
+#include "mpp_mem.h"
 #include "mpp_common.h"
 
 #include "mpp_enc_hal.h"
-#include "mpp_hal.h"
 #include "mpp_platform.h"
 
 //#include "hal_vp8e_base.h"
