@@ -70,9 +70,6 @@ static const MppHalApi *hw_apis[] = {
 #if HAVE_JPEGD
     &hal_api_jpegd,
 #endif
-#if HAVE_H265E
-    &hal_api_h265e,
-#endif
     &hal_api_dummy_dec,
     &hal_api_dummy_enc,
 };

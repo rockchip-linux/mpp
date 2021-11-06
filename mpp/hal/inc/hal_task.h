@@ -40,7 +40,6 @@ typedef struct HalDecVprocTask_t {
 
 typedef union HalTask_u {
     HalDecTask              dec;
-    HalEncTask              enc;
     HalDecVprocTask         dec_vproc;
 } HalTaskInfo;
 

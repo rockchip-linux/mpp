@@ -33,6 +33,8 @@ typedef struct HalH265eV2Ctx_t {
     void                *hw_ctx;
 } HalH265eV2Ctx;
 
+RK_U32 hal_h265e_debug = 0;
+
 static MPP_RET hal_h265ev2_init(void *hal, MppEncHalCfg *cfg)
 {
     HalH265eV2Ctx *ctx = (HalH265eV2Ctx *)hal;

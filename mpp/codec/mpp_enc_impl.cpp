@@ -95,7 +95,7 @@ typedef struct EncTask_t {
     RK_S32          seq_idx;
     EncTaskStatus   status;
     EncTaskWait     wait;
-    HalTaskInfo     info;
+    HalEncTask      info;
 } EncTask;
 
 static RK_U8 uuid_version[16] = {
@@ -1189,7 +1189,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
@@ -1297,7 +1297,7 @@ static MPP_RET mpp_enc_reenc_simple(Mpp *mpp, EncTask *task)
     MppEncHal hal = enc->enc_hal;
     EncRcTask *rc_task = &enc->rc_task;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1342,7 +1342,7 @@ static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncTask *task)
     EncRcTask *rc_task = &enc->rc_task;
     EncRcTaskInfo *info = &rc_task->info;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1367,7 +1367,7 @@ static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncTask *task)
     EncRcTask *rc_task = &enc->rc_task;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1399,7 +1399,7 @@ TASK_DONE:
 
 static void mpp_enc_terminate_task(MppEncImpl *enc, EncTask *task)
 {
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     EncFrmStatus *frm = &enc->rc_task.frm;
 
     mpp_stopwatch_record(hal_task->stopwatch, "encode task done");
@@ -1438,7 +1438,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncTaskStatus *status = &task->status;
     EncTaskWait *wait = &task->wait;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MppStopwatch stopwatch = NULL;
     MPP_RET ret = MPP_OK;
 
@@ -1613,7 +1613,7 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncTask *task)
     EncFrmStatus *frm = &rc_task->frm;
     EncTaskStatus *status = &task->status;
     EncTaskWait *wait = &task->wait;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
@@ -1831,7 +1831,7 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncTask *task)
     EncRcTask *rc_task = &enc->rc_task;
     EncFrmStatus *frm = &rc_task->frm;
     MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
-    HalEncTask *hal_task = &task->info.enc;
+    HalEncTask *hal_task = &task->info;
     MPP_RET ret = MPP_OK;
 
     // 17. normal encode
