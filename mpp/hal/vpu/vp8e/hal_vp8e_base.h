@@ -17,15 +17,12 @@
 #ifndef __HAL_VP8E_BASE_H__
 #define __HAL_VP8E_BASE_H__
 
-#include "mpp_mem.h"
-
-#include "mpp_hal.h"
 #include "mpp_device.h"
+#include "hal_enc_task.h"
 
 #include "vp8e_syntax.h"
 
 #include "hal_vp8e_entropy.h"
-#include "hal_vp8e_putbit.h"
 
 #define VP8_PROB_COUNT_MV_OFFSET     (222)
 #define VP8_PROB_COUNT_BUF_SIZE      (244*2)
@@ -341,8 +338,6 @@ typedef struct hal_vp8e_ctx_s {
     RK_U32           reg_size;
 
     MppEncCfgSet     *cfg;
-
-    MppHalApi        hal_api;
 
     Vp8eSps          sps;
     Vp8ePps          ppss;

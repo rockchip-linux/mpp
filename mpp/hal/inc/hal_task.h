@@ -20,7 +20,6 @@
 
 #include "mpp_err.h"
 #include "hal_dec_task.h"
-#include "hal_enc_task.h"
 
 typedef union HalDecVprocTaskFlag_t {
     RK_U32          val;

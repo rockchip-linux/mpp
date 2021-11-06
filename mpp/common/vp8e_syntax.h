@@ -19,6 +19,7 @@
 
 #include "rk_type.h"
 #include "mpp_enc_cfg.h"
+
 typedef struct {
     RK_S32  a1;
     RK_S32  a2;

@@ -23,7 +23,6 @@
 #include "mpp_platform.h"
 
 #include "hal_task.h"
-#include "mpp_enc_cfg.h"
 #include "mpp_dec_cfg.h"
 #include "mpp_device.h"
 

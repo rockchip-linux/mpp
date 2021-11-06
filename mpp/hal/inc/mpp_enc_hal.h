@@ -17,7 +17,7 @@
 #ifndef __MPP_ENC_HAL_H__
 #define __MPP_ENC_HAL_H__
 
-#include "hal_task.h"
+#include "hal_enc_task.h"
 #include "mpp_enc_cfg.h"
 #include "mpp_device.h"
 

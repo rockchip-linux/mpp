@@ -29,7 +29,6 @@
 
 #include "h265e_syntax_new.h"
 #include "hal_h265e_debug.h"
-#include "hal_h265e_api.h"
 #include "hal_h265e_vepu541_reg.h"
 #include "hal_h265e_vepu54x_reg_l2.h"
 #include "vepu541_common.h"
