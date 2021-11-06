@@ -223,20 +223,16 @@ MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type)
         return MPP_ERR_UNKNOW;
     }
 
-    if (MPP_CTX_DEC == type) {
-        HalDecTask *p = &task->dec;
+    HalDecTask *p = &task->dec;
 
-        p->valid  = 0;
-        p->flags.val = 0;
-        p->flags.eos = 0;
-        p->input_packet = NULL;
-        p->output = -1;
-        p->input = -1;
-        memset(&task->dec.syntax, 0, sizeof(task->dec.syntax));
-        memset(task->dec.refer, -1, sizeof(task->dec.refer));
-    } else {
-        memset(&task->enc, 0, sizeof(task->enc));
-    }
+    p->valid  = 0;
+    p->flags.val = 0;
+    p->flags.eos = 0;
+    p->input_packet = NULL;
+    p->output = -1;
+    p->input = -1;
+    memset(&task->dec.syntax, 0, sizeof(task->dec.syntax));
+    memset(task->dec.refer, -1, sizeof(task->dec.refer));
 
     return MPP_OK;
 }
