@@ -1432,6 +1432,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
+    RK_U32 max_buf_size = 0;
 
     VAL_CHECK(ret, NULL != p);  //!< if frame, check for new store
     //!< set use flag
@@ -1470,10 +1471,14 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         p->is_long_term = 0;
     }
     while (!remove_unused_frame_from_dpb(p_Dpb));
-    //!< when full output one frame
     H264D_DBG(H264D_DBG_DPB_INFO, "before out, dpb[%d] used_size %d, size %d",
               p_Dpb->layer_id, p_Dpb->used_size, p_Dpb->size);
-    while (p_Dpb->used_size >= p_Dpb->size) {
+    //!< when full output one frame or more then setting max_buf_size
+    max_buf_size = p_Vid->p_Inp->max_buf_size;
+    if (max_buf_size)
+        H264D_DBG(H264D_DBG_DPB_INFO, "max_buf_size=%d\n", max_buf_size);
+    while (p_Dpb->used_size >= p_Dpb->size ||
+           (max_buf_size && p_Dpb->used_size >= max_buf_size)) {
         RK_S32 min_poc = 0, min_pos = 0;
         RK_S32 find_flag = 0;
 
