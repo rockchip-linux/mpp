@@ -111,6 +111,21 @@ typedef struct Vepu541OsdPos_t {
     RK_U32  osd_rb_y                : 8;
 } Vepu541OsdPos;
 
+typedef struct Vepu580OsdPos_t {
+    /* X coordinate/16 of OSD region's left-top point. */
+    RK_U32  osd_lt_x                : 10;
+    RK_U32  reserved0               : 6;
+    /* Y coordinate/16 of OSD region's left-top point. */
+    RK_U32  osd_lt_y                : 10;
+    RK_U32  reserved1               : 6;
+    /* X coordinate/16 of OSD region's right-bottom point. */
+    RK_U32  osd_rb_x                : 10;
+    RK_U32  reserved2               : 6;
+    /* Y coordinate/16 of OSD region's right-bottom point. */
+    RK_U32  osd_rb_y                : 10;
+    RK_U32  reserved3               : 6;
+} Vepu580OsdPos;
+
 typedef struct Vepu541B8NumQp_t {
     RK_U32  b8num_qp                : 18;
     RK_U32  reserved                : 14;
@@ -155,6 +170,7 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h);
 
 MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg);
 MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg);
+MPP_RET vepu580_set_osd(Vepu541OsdCfg *cfg);
 
 #ifdef __cplusplus
 }

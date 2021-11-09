@@ -1035,6 +1035,7 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
     MPP_RET ret = MPP_OK;
     H265eV580HalContext *ctx = (H265eV580HalContext *)hal;
     RK_U32 i = 0;
+    H265eV580RegSet *regs = NULL;
     mpp_env_get_u32("hal_h265e_debug", &hal_h265e_debug, 0);
     hal_h265e_enter();
 
@@ -1056,9 +1057,9 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
-
+    regs = (H265eV580RegSet *)ctx->regs;
     ctx->dev = cfg->dev;
-    ctx->osd_cfg.reg_base = ctx->regs;
+    ctx->osd_cfg.reg_base = (void *)&regs->reg_osd_cfg;
     ctx->osd_cfg.dev = ctx->dev;
     ctx->osd_cfg.plt_cfg = &ctx->cfg->plt_cfg;
     ctx->osd_cfg.osd_data = NULL;
@@ -1854,12 +1855,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     vepu580_h265_set_slice_regs(syn, reg_base);
     vepu580_h265_set_ref_regs(syn, reg_base);
 
-    /* if (ctx->is_vepu540) {
-         vepu540_set_osd(&ctx->osd_cfg);
-     } else {
-         vepu541_set_osd(&ctx->osd_cfg);
-     }*/
-
+    vepu580_set_osd(&ctx->osd_cfg);
     /* ROI configure */
     vepu580_h265_set_roi_regs(ctx, reg_base);
 
@@ -2040,12 +2036,17 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
             break;
         }
 
-        if (hal_h265e_debug & HAL_H265E_DBG_RDO_REGS) {
-            regs = (RK_U32*)&hw_regs->reg_rdo;
-            for (i = 0; i < sizeof(vepu580_rdo_cfg) / 4; i++) {
-                hal_h265e_dbg_rdo("set reg[%04x]: 0%08x\n", i * 4, regs[i]);
-            }
+
+        cfg.reg = &hw_regs->reg_osd_cfg;
+        cfg.size = sizeof(vepu580_osd_cfg);
+        cfg.offset = VEPU580_OSD_OFFSET;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
+            break;
         }
+
 
         cfg1.reg = &reg_out->hw_status;
         cfg1.size = sizeof(RK_U32);

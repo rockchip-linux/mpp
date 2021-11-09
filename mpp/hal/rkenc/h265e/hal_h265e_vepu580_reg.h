@@ -2208,6 +2208,13 @@ typedef struct Vepu580RdoCfg_t {
 #endif
 } vepu580_rdo_cfg;
 
+typedef struct osd_plt_t {
+    RK_U32 y        : 8;
+    RK_U32 u        : 8;
+    RK_U32 v        : 8;
+    RK_U32 alpha    : 8;
+} osd_plt;
+
 /* class: osd */
 /* 0x00003000 reg3072 - 0x00003084 reg3105*/
 typedef struct Vepu580OsdCfg_t {
@@ -2399,20 +2406,7 @@ typedef struct Vepu580OsdCfg_t {
     RK_U32 reserved3100_3103[4];
 
     /* 0x00003080 reg3104 */
-    struct {
-        RK_U32 y        : 8;
-        RK_U32 u        : 8;
-        RK_U32 v        : 8;
-        RK_U32 alpha    : 8;
-    } osd_plt0;
-
-    /* 0x00003084 reg3105 */
-    struct {
-        RK_U32 y        : 8;
-        RK_U32 u        : 8;
-        RK_U32 v        : 8;
-        RK_U32 alpha    : 8;
-    } osd_plt1;
+    osd_plt plt_data[256];
 } vepu580_osd_cfg;
 
 // /* class: osd_plt 255 */
