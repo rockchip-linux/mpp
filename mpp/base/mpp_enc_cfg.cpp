@@ -239,7 +239,8 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(hw,   aq_thrd_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_THRD_I,        hw, aq_thrd_i) \
     ENTRY(hw,   aq_thrd_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P,        hw, aq_thrd_p) \
     ENTRY(hw,   aq_step_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I,        hw, aq_step_i) \
-    ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p)
+    ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
+    ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable)
 
 ENTRY_TABLE(EXPAND_AS_FUNC)
 ENTRY_TABLE(EXPAND_AS_API)
@@ -253,7 +254,7 @@ RK_S32 const_strlen(const char* str)
     return *str ? 1 + const_strlen(str + 1) : 0;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 61;
+static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 52;
 
 class MppEncCfgService
 {
