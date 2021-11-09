@@ -170,7 +170,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         goto DONE;
     }
 
-    p->osd_cfg.reg_base = &p->regs_set;
+    p->osd_cfg.reg_base = &p->regs_set.reg_osd;
     p->osd_cfg.dev = p->dev;
     p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
     p->osd_cfg.osd_data = NULL;
@@ -1508,12 +1508,8 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
         setup_vepu580_force_slice_split(regs, prep->width);
 
     setup_vepu580_me(regs, sps, slice);
-#if 0
-    if (ctx->is_vepu540)
-        vepu540_set_osd(&ctx->osd_cfg);
-    else
-        vepu580_set_osd(&ctx->osd_cfg);
-#endif
+
+    vepu580_set_osd(&ctx->osd_cfg);
     setup_vepu580_l2(&ctx->regs_set, slice);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
