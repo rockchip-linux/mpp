@@ -69,10 +69,7 @@ typedef struct HalH264eVepu580Ctx_t {
     EncRcTaskInfo           hal_rc_cfg;
 
     /* roi */
-    MppEncROICfg            *roi_data;
-    MppBufferGroup          roi_grp;
-    MppBuffer               roi_buf;
-    RK_S32                  roi_buf_size;
+    void                    *roi_data;
 
     /* osd */
     Vepu541OsdCfg           osd_cfg;
@@ -127,16 +124,6 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
     if (p->dev) {
         mpp_dev_deinit(p->dev);
         p->dev = NULL;
-    }
-
-    if (p->roi_buf) {
-        mpp_buffer_put(p->roi_buf);
-        p->roi_buf = NULL;
-    }
-
-    if (p->roi_grp) {
-        mpp_buffer_group_put(p->roi_grp);
-        p->roi_grp = NULL;
     }
 
     if (p->ext_line_buf) {
@@ -371,7 +358,7 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
         MppMeta meta = mpp_frame_get_meta(task->frame);
 
-        mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+        mpp_meta_get_ptr(meta, KEY_ROI_DATA2, (void **)&ctx->roi_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
     }
@@ -1034,46 +1021,30 @@ static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDev dev,
 
 static void setup_vepu580_roi(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
 {
-    MppEncROICfg *roi = ctx->roi_data;
-    RK_U32 w = ctx->sps->pic_width_in_mbs * 16;
-    RK_U32 h = ctx->sps->pic_height_in_mbs * 16;
-
     hal_h264e_dbg_func("enter\n");
 
-    /* roi setup */
-    if (roi && roi->number && roi->regions) {
-        RK_S32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
-
-        if (!ctx->roi_buf || roi_buf_size != ctx->roi_buf_size) {
-            if (NULL == ctx->roi_grp)
-                mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
-            else if (roi_buf_size != ctx->roi_buf_size) {
-                if (ctx->roi_buf) {
-                    mpp_buffer_put(ctx->roi_buf);
-                    ctx->roi_buf = NULL;
-                }
-                mpp_buffer_group_clear(ctx->roi_grp);
-            }
-
-            mpp_assert(ctx->roi_grp);
-
-            if (NULL == ctx->roi_buf)
-                mpp_buffer_get(ctx->roi_grp, &ctx->roi_buf, roi_buf_size);
-
-            ctx->roi_buf_size = roi_buf_size;
-        }
-
-        mpp_assert(ctx->roi_buf);
-        RK_S32 fd = mpp_buffer_get_fd(ctx->roi_buf);
-        void *buf = mpp_buffer_get_ptr(ctx->roi_buf);
+    /* memset register on start so do not clear registers again here */
+    if (ctx->roi_data) {
+        /* roi setup */
+        MppEncROICfg2 *cfg = ( MppEncROICfg2 *)ctx->roi_data;
 
         regs->reg_base.enc_pic.roi_en = 1;
-        regs->reg_base.roi_addr = fd;
+        regs->reg_base.roi_addr = mpp_buffer_get_fd(cfg->base_cfg_buf);
 
-        vepu541_set_roi(buf, roi, w, h);
-    } else {
-        regs->reg_base.enc_pic.roi_en = 0;
-        regs->reg_base.roi_addr = 0;
+        if (cfg->roi_qp_en) {
+            regs->reg_base.roi_qp_addr  =  mpp_buffer_get_fd(cfg->qp_cfg_buf);
+            regs->reg_base.roi_en.roi_qp_en = 1;
+        }
+
+        if (cfg->roi_amv_en) {
+            regs->reg_base.qoi_amv_addr =  mpp_buffer_get_fd(cfg->amv_cfg_buf);
+            regs->reg_base.roi_en.roi_amv_en = 1;
+        }
+
+        if (cfg->roi_mv_en) {
+            regs->reg_base.qoi_mv_addr =  mpp_buffer_get_fd(cfg->mv_cfg_buf);
+            regs->reg_base.roi_en.roi_mv_en = 1;
+        }
     }
 
     hal_h264e_dbg_func("leave\n");
