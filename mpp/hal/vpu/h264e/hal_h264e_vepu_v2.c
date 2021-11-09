@@ -495,6 +495,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     HalH264eVepuMbRcImpl *p = (HalH264eVepuMbRcImpl *)ctx;
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
+    MppEncHwCfg* hw_cfg = &cfg->hw;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -523,7 +524,7 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     p->fps_count        = p->fps_threshold;
 
     // if not constant
-    p->mb_bit_rc_enable = rc->rc_mode != MPP_ENC_RC_MODE_FIXQP;
+    p->mb_bit_rc_enable = !hw_cfg->mb_rc_disable && (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP);
 
     hal_h264e_dbg_rc("estimated init qp %d\n", p->qp_init_est);
 

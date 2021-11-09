@@ -374,6 +374,7 @@ typedef enum MppEncHwCfgChange_e {
     MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P     = (1 << 3),
     MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I     = (1 << 4),
     MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P     = (1 << 5),
+    MPP_ENC_HW_CFG_CHANGE_MB_RC         = (1 << 6),
     MPP_ENC_HW_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncHwCfgChange;
 
@@ -393,6 +394,9 @@ typedef struct MppEncHwCfg_t {
     RK_U32                  aq_thrd_p[16];
     RK_S32                  aq_step_i[16];
     RK_S32                  aq_step_p[16];
+
+    /* vepu1/2 */
+    RK_S32                  mb_rc_disable;
 } MppEncHwCfg;
 
 /*
