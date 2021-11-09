@@ -1108,6 +1108,19 @@ typedef struct MppEncROICfg_t {
     MppEncROIRegion     *regions;      /**< ROI parameters */
 } MppEncROICfg;
 
+typedef struct MppEncROICfg2_t {
+    MppBuffer          base_cfg_buf;
+    MppBuffer          qp_cfg_buf;
+    MppBuffer          amv_cfg_buf;
+    MppBuffer          mv_cfg_buf;
+
+    RK_U32             roi_qp_en    : 1;
+    RK_U32             roi_amv_en   : 1;
+    RK_U32             roi_mv_en    : 1;
+    RK_U32             reserve_bits : 29;
+    RK_U32             reserve[3];
+} MppEncROICfg2;
+
 /*
  * Mpp OSD parameter
  *

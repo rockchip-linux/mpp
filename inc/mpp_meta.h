@@ -82,6 +82,17 @@ typedef enum MppMetaKey_e {
     KEY_OSD_DATA2               = FOURCC_META('o', 's', 'd', '2'),
     KEY_USER_DATA               = FOURCC_META('u', 's', 'r', 'd'),
     KEY_USER_DATAS              = FOURCC_META('u', 'r', 'd', 's'),
+
+    /*
+     * For vepu580 roi buffer config mode
+     * The encoder roi structure is so complex that we should provide a buffer
+     * tunnel for externl user to config encoder hardware by direct sending
+     * roi data buffer.
+     * This way can reduce the config parsing and roi buffer data generating
+     * overhead in mpp.
+     */
+    KEY_ROI_DATA2               = FOURCC_META('r', 'o', 'i', '2'),
+
     /*
      * qpmap for rv1109/1126 encoder qpmap config
      * Input data is a MppBuffer which contains an array of 16bit Vepu541RoiCfg.
