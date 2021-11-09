@@ -483,13 +483,16 @@ __FAILED:
 *   control/perform
 ***********************************************************************
 */
-MPP_RET  h264d_control(void *decoder, MpiCmd cmd_type, void *param)
+MPP_RET h264d_control(void *decoder, MpiCmd cmd_type, void *param)
 {
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
 
     switch (cmd_type) {
     case MPP_DEC_SET_ENABLE_FAST_PLAY:
         p_Dec->p_Vid->dpb_fast_out = (param) ? (*((RK_U32 *)param)) : (1);
+        break;
+    case MPP_DEC_SET_MAX_USE_BUFFER_SIZE :
+        p_Dec->p_Inp->max_buf_size = (param) ? (*((RK_U32 *)param)) : (0);
         break;
     default:
         break;

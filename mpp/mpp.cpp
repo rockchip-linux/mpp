@@ -1205,7 +1205,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT :
     case MPP_DEC_SET_OUTPUT_FORMAT :
-    case MPP_DEC_QUERY : {
+    case MPP_DEC_QUERY :
+    case MPP_DEC_SET_MAX_USE_BUFFER_SIZE: {
         ret = mpp_dec_control(mDec, cmd, param);
     } break;
     case MPP_DEC_SET_CFG : {
