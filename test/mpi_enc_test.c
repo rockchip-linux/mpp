@@ -32,6 +32,7 @@
 #include "utils.h"
 #include "mpi_enc_utils.h"
 #include "camera_source.h"
+#include "mpp_enc_roi_utils.h"
 
 typedef struct {
     // global flow control flag
@@ -56,7 +57,7 @@ typedef struct {
     MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
     MppEncOSDData   osd_data;
-    MppEncROIRegion roi_region[3];
+    RoiRegionCfg    roi_region;
     MppEncROICfg    roi_cfg;
 
     // input / output
@@ -76,6 +77,7 @@ typedef struct {
     RK_S32 num_frames;
     RK_S32 loop_times;
     CamSource *cam_ctx;
+    MppEncRoiCtx roi_ctx;
 
     // resources
     size_t header_size;
@@ -458,6 +460,11 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
     mpp_env_get_u32("user_data_enable", &p->user_data_enable, 0);
 
+    if (p->roi_enable) {
+        mpp_enc_roi_init(&p->roi_ctx, p->width, p->height, p->type, 4);
+        mpp_assert(p->roi_ctx);
+    }
+
 RET:
     return ret;
 }
@@ -629,32 +636,31 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             }
 
             if (p->roi_enable) {
-                MppEncROIRegion *region = p->roi_region;
+                RoiRegionCfg *region = &p->roi_region;
 
                 /* calculated in pixels */
-                region->x = 304;
-                region->y = 480;
-                region->w = 1344;
-                region->h = 600;
-                region->intra = 0;              /* flag of forced intra macroblock */
-                region->quality = 24;           /* qp of macroblock */
-                region->abs_qp_en = 1;
-                region->area_map_en = 1;
-                region->qp_area_idx = 0;
+                region->x = MPP_ALIGN(p->width / 8, 16);
+                region->y = MPP_ALIGN(p->height / 8, 16);
+                region->w = 128;
+                region->h = 256;
+                region->force_intra = 0;
+                region->qp_mode = 1;
+                region->qp_val = 24;
 
-                region++;
-                region->x = region->y = 16;
-                region->w = region->h = 64;    /* 16-pixel aligned is better */
-                region->intra = 1;              /* flag of forced intra macroblock */
-                region->quality = 10;           /* qp of macroblock */
-                region->abs_qp_en = 1;
-                region->area_map_en = 1;
-                region->qp_area_idx = 1;
+                mpp_enc_roi_add_region(p->roi_ctx, region);
 
-                p->roi_cfg.number = 2;
-                p->roi_cfg.regions = p->roi_region;
+                region->x = MPP_ALIGN(p->width / 2, 16);
+                region->y = MPP_ALIGN(p->height / 4, 16);
+                region->w = 256;
+                region->h = 128;
+                region->force_intra = 1;
+                region->qp_mode = 1;
+                region->qp_val = 10;
 
-                mpp_meta_set_ptr(meta, KEY_ROI_DATA, (void*)&p->roi_cfg); // new way for roi
+                mpp_enc_roi_add_region(p->roi_ctx, region);
+
+                /* send roi info by metadata */
+                mpp_enc_roi_setup_meta(p->roi_ctx, meta);
             }
         }
 
@@ -872,6 +878,11 @@ MPP_TEST_OUT:
     if (p->buf_grp) {
         mpp_buffer_group_put(p->buf_grp);
         p->buf_grp = NULL;
+    }
+
+    if (p->roi_ctx) {
+        mpp_enc_roi_deinit(p->roi_ctx);
+        p->roi_ctx = NULL;
     }
 
     test_ctx_deinit(&p);

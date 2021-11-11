@@ -1108,6 +1108,12 @@ typedef struct MppEncROICfg_t {
     MppEncROIRegion     *regions;      /**< ROI parameters */
 } MppEncROICfg;
 
+/**
+ * @brief Mpp ROI parameter for vepu54x / vepu58x
+ * @note  These encoders have more complex roi configure structure.
+ *        User need to generate roi structure data for different soc.
+ *        And send buffers to encoder through metadata.
+ */
 typedef struct MppEncROICfg2_t {
     MppBuffer          base_cfg_buf;
     MppBuffer          qp_cfg_buf;
