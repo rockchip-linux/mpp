@@ -134,7 +134,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     case VPU_CLIENT_RKVDEC : {
         RK_U32 hw_id = mpp_get_client_hw_id(client_type);
 
-        if (hw_id == HWID_VDPU34X) {
+        if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
             p_api->init    = vdpu34x_h264d_init;
             p_api->deinit  = vdpu34x_h264d_deinit;
             p_api->reg_gen = vdpu34x_h264d_gen_regs;

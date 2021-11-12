@@ -46,7 +46,7 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     p->dev = cfg->dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
-    if (hw_id == HWID_VDPU34X)
+    if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X)
         p->api = &hal_vp9d_vdpu34x;
     else
         p->api = &hal_vp9d_rkv;

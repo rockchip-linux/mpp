@@ -18,5 +18,6 @@
 #define __VDPU34X_H__
 
 #define HWID_VDPU34X                (0x032a3f03)
+#define HWID_VDPU38X                (0x53813f05)
 
 #endif /* __VDPU34X_H__ */
