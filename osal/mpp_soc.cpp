@@ -242,6 +242,20 @@ static const MppDecHwCap vdpu34x = {
     .reserved           = 0,
 };
 
+static const MppDecHwCap vdpu38x = {
+    .cap_coding         = CAP_CODING_VDPU341,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_buf      = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 1,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .reserved           = 0,
+};
+
 static const MppDecHwCap avsd = {
     .cap_coding         = CAP_CODING_AVSD,
     .type               = VPU_CLIENT_AVSPLUS_DEC,
@@ -354,6 +368,18 @@ static const MppEncHwCap vepu540 = {
     .cap_fbc            = 0x1 | 0x2,
     .cap_4k             = 0,
     .cap_8k             = 0,
+    .cap_hw_osd         = 1,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
+/* vepu58x */
+static const MppEncHwCap vepu58x = {
+    .cap_coding         = CAP_CODING_VEPU54X,
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 0x1 | 0x2,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
     .cap_hw_osd         = 1,
     .cap_hw_roi         = 1,
     .reserved           = 0,
@@ -599,6 +625,19 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
         {   &vepu540, &vepu2, NULL, NULL, },
+    },
+    {   /*
+         * rk3588 has codec:
+         * 1 - vpu2 for jpeg/vp8 encoder and decoder
+         * 2 - RK H.264/H.265/VP9 8K decoder
+         * 3 - RK H.264/H.265 8K encoder
+         * 4 - RK jpeg decoder
+         */
+        "rk3588",
+        ROCKCHIP_SOC_RK3588,
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
+        {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, },
+        {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
     },
 };
 

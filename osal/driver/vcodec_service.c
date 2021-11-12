@@ -334,7 +334,8 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
     case ROCKCHIP_SOC_RK3566 :
-    case ROCKCHIP_SOC_RK3568 : {
+    case ROCKCHIP_SOC_RK3568 :
+    case ROCKCHIP_SOC_RK3588 : {
         /*
          * rk3566/rk3568 has codec:
          * 1 - vpu2 for jpeg/vp8 encoder and decoder
