@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU580_H__
-#define __HAL_H264E_VEPU580_H__
+#ifndef __VEPU5XX_H__
+#define __VEPU5XX_H__
 
-#include "mpp_enc_hal.h"
+#define HWID_VEPU58X                (0x50603312)
 
-extern const MppEncHalApi hal_h264e_vepu580;
-
-#endif /* __HAL_H264E_VEPU541_H__ */
+#endif /* __VEPU5XX_H__ */
