@@ -54,12 +54,15 @@ typedef RK_U8 vp9_prob;
 
 #define PROB_SIZE                       4864
 #define COUNT_SIZE                      13208
+
 /*
- * nCtuX*nCtuY*8*8/2
- * MaxnCtuX = 4096/64
- * MaxnCtuY = 2304/64
+ * MAX_SEGMAP_SIZE calculate(e.g. 4096x2304):
+ *      nCtuX*nCtuY*8*8/2
+ *      MaxnCtuX = 4096/64
+ *      MaxnCtuY = 2304/64
+ * for support 8k resolusion, segmap_size(8k) = segmap_size(4k) * 4
  */
-#define MAX_SEGMAP_SIZE                 73728
+#define MAX_SEGMAP_SIZE                 (73728 * 4)
 
 #define VP9_DUMP 0
 
