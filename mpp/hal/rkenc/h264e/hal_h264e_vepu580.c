@@ -50,6 +50,11 @@ typedef struct HalH264eVepu580Ctx_t {
     RK_S32                  thumb_buf_size;
     RK_S32                  max_buf_cnt;
 
+    /* external line buffer over 4K */
+    MppBufferGroup          ext_line_buf_grp;
+    MppBuffer               ext_line_buf;
+    RK_S32                  ext_line_buf_size;
+
     /* syntax for input from enc_impl */
     RK_U32                  updated;
     H264eSps                *sps;
@@ -74,8 +79,6 @@ typedef struct HalH264eVepu580Ctx_t {
 
     /* register */
     HalVepu580RegSet        regs_set;
-    // Vepu580H264eRegL2Set    regs_l2_set;
-    // Vepu580H264eRegRet      regs_set;
 } HalH264eVepu580Ctx;
 
 #define CHROMA_KLUT_TAB_SIZE    (24 * sizeof(RK_U32))
@@ -136,6 +139,16 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
         p->roi_grp = NULL;
     }
 
+    if (p->ext_line_buf) {
+        mpp_buffer_put(p->ext_line_buf);
+        p->ext_line_buf = NULL;
+    }
+
+    if (p->ext_line_buf_grp) {
+        mpp_buffer_group_put(p->ext_line_buf_grp);
+        p->ext_line_buf_grp = NULL;
+    }
+
     if (p->hw_recn) {
         hal_bufs_deinit(p->hw_recn);
         p->hw_recn = NULL;
@@ -176,8 +189,6 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
     p->osd_cfg.osd_data = NULL;
     p->osd_cfg.osd_data2 = NULL;
 
-    mpp_log("vepu580 reg size %d %d\n", sizeof(p->regs_set), sizeof(HalVepu580RegSet));
-
     {   /* setup default hardware config */
         MppEncHwCfg *hw = &cfg->cfg->hw;
 
@@ -212,10 +223,43 @@ static void setup_hal_bufs(HalH264eVepu580Ctx *ctx)
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
     RK_S32 new_max_cnt = 2;
     MppEncRefCfg ref_cfg = cfg->ref_cfg;
+
     if (ref_cfg) {
         MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
         if (new_max_cnt < MPP_MAX(new_max_cnt, info->dpb_size + 1))
             new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
+    }
+
+    if (aligned_w > SZ_4K) {
+        RK_S32 ext_line_buf_size = MPP_ALIGN((aligned_w - SZ_4K) / 64 * 30 * 16, 256);
+
+        if (NULL == ctx->ext_line_buf_grp)
+            mpp_buffer_group_get_internal(&ctx->ext_line_buf_grp, MPP_BUFFER_TYPE_ION);
+        else if (ext_line_buf_size != ctx->ext_line_buf_size) {
+            if (ctx->ext_line_buf) {
+                mpp_buffer_put(ctx->ext_line_buf);
+                ctx->ext_line_buf = NULL;
+            }
+            mpp_buffer_group_clear(ctx->ext_line_buf_grp);
+        }
+
+        mpp_assert(ctx->ext_line_buf_grp);
+
+        if (NULL == ctx->ext_line_buf)
+            mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_buf, ext_line_buf_size);
+
+        ctx->ext_line_buf_size = ext_line_buf_size;
+    } else {
+        if (ctx->ext_line_buf) {
+            mpp_buffer_put(ctx->ext_line_buf);
+            ctx->ext_line_buf = NULL;
+        }
+        if (ctx->ext_line_buf_grp) {
+            mpp_buffer_group_clear(ctx->ext_line_buf_grp);
+            mpp_buffer_group_put(ctx->ext_line_buf_grp);
+            ctx->ext_line_buf_grp = NULL;
+        }
+        ctx->ext_line_buf_size = 0;
     }
 
     if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
@@ -1467,6 +1511,24 @@ static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice)
     hal_h264e_dbg_func("leave\n");
 }
 
+static void setup_vepu580_ext_line_buf(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
+{
+    if (ctx->ext_line_buf) {
+        MppDevRegOffsetCfg trans_cfg;
+        RK_S32 fd = mpp_buffer_get_fd(ctx->ext_line_buf);
+
+        regs->reg_base.ebuft_addr = fd;
+        regs->reg_base.ebufb_addr = fd;
+
+        trans_cfg.reg_idx = 183;
+        trans_cfg.offset = ctx->ext_line_buf_size;
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    } else {
+        regs->reg_base.ebufb_addr = 0;
+        regs->reg_base.ebufb_addr = 0;
+    }
+}
+
 static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 {
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
@@ -1511,6 +1573,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 
     vepu580_set_osd(&ctx->osd_cfg);
     setup_vepu580_l2(&ctx->regs_set, slice);
+    setup_vepu580_ext_line_buf(regs, ctx);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
