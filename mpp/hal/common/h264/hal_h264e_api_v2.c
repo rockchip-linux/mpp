@@ -26,6 +26,7 @@
 
 #include "hal_h264e_debug.h"
 #include "h264e_syntax.h"
+#include "vepu5xx.h"
 #include "hal_h264e_api_v2.h"
 #include "hal_h264e_vepu1_v2.h"
 #include "hal_h264e_vepu2_v2.h"
@@ -53,7 +54,7 @@ static MPP_RET hal_h264e_init(void *hal, MppEncHalCfg *cfg)
         RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVENC);
 
         switch (hw_id) {
-        case HWID_VEPU580 : {
+        case HWID_VEPU58X : {
             api = &hal_h264e_vepu580;
         } break;
         default : {
