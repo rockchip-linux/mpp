@@ -116,7 +116,7 @@ static RK_U32 read_ivf_file(FileReader data)
     impl->read_size = read_size;
 
     /* check reach eos whether or not */
-    if (slot->size != data_size || feof(fp) || impl->read_total >= impl->file_size)
+    if (read_size != data_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
 
     slot->buf = NULL;
