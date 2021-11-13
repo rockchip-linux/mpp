@@ -1368,7 +1368,7 @@ static RK_U32 h264e_lambda_default[58] = {
     0x0016dbcb, 0x001ccccc,
 };
 
-static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice)
+static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice, MppEncHwCfg *hw)
 {
     RK_U32 i;
 
@@ -1496,6 +1496,23 @@ static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice)
         regs->reg_s3.fme_sqi_thd1.move_lambda = 1;
     }
 
+    {
+        RK_U8* thd = (RK_U8*)&regs->reg_rc_klut.aq_tthd0;
+        RK_U8* step = (RK_U8*)&regs->reg_rc_klut.aq_stp0;
+
+        if (slice->slice_type == H264_I_SLICE) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(h264_aq_tthd_default); i++) {
+                thd[i] = hw->aq_thrd_i[i];
+                step[i] = hw->aq_step_i[i] & 0x3f;
+            }
+        } else {
+            for (i = 0; i < MPP_ARRAY_ELEMS(h264_P_aq_step_default); i++) {
+                thd[i] = hw->aq_thrd_p[i];
+                step[i] = hw->aq_step_p[i] & 0x3f;
+            }
+        }
+    }
+
     mpp_env_get_u32("dump_l2_reg", &dump_l2_reg, 0);
 
     if (dump_l2_reg) {
@@ -1572,7 +1589,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     setup_vepu580_me(regs, sps, slice);
 
     vepu580_set_osd(&ctx->osd_cfg);
-    setup_vepu580_l2(&ctx->regs_set, slice);
+    setup_vepu580_l2(&ctx->regs_set, slice, &ctx->cfg->hw);
     setup_vepu580_ext_line_buf(regs, ctx);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
