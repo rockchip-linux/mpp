@@ -2120,6 +2120,7 @@ static MPP_RET vepu580_h265_set_feedback(H265eV580HalContext *ctx, HalEncTask *e
     RK_U32 hw_status = elem->hw_status;
 
     fb->qp_sum += elem->st.qp_sum;
+
     fb->out_strm_size += elem->st.bs_lgth_l32;
 
     fb->sse_sum += (RK_S64)(elem->st.sse_h32 << 16) +
@@ -2323,19 +2324,12 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
     H265eV580HalContext *ctx = (H265eV580HalContext *)hal;
     HalEncTask *enc_task = task;
     vepu580_h265_fbk *fb = &ctx->feedback;
-    RK_U32 i = 0;
     hal_h265e_enter();
-    RK_U32 buf_size = mpp_buffer_get_size(enc_task->output);
 
-    for (i = 0; i < ctx->title_num; i++) {
-        vepu580_h265_set_feedback(ctx, enc_task, i);
-        if (i > 0) {
-            RK_U8 *ptr = mpp_buffer_get_ptr(enc_task->output);
-            memmove(ptr + enc_task->length, ptr +  buf_size / 2, fb->out_strm_size);
-        }
-        enc_task->hw_length = fb->out_strm_size;
-        enc_task->length += fb->out_strm_size;
-    }
+    vepu580_h265_set_feedback(ctx, enc_task, ctx->title_num - 1);
+
+    enc_task->hw_length = fb->out_strm_size;
+    enc_task->length += fb->out_strm_size;
 
     hal_h265e_dbg_detail("output stream size %d\n", fb->out_strm_size);
 
