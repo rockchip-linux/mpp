@@ -459,9 +459,9 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
         return ret;
 
     regs->reg_base.enc_rsl.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
-    regs->reg_base.src_fill.pic_wfill  = prep->width & 0xf;
+    regs->reg_base.src_fill.pic_wfill = MPP_ALIGN(prep->width, 16) - prep->width;
     regs->reg_base.enc_rsl.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
-    regs->reg_base.src_fill.pic_hfill  = prep->height & 0xf;
+    regs->reg_base.src_fill.pic_hfill = MPP_ALIGN(prep->height, 16) - prep->height;
 
     regs->reg_ctl.dtrns_map.src_bus_edin = cfg.src_endian;
 
