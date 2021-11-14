@@ -1654,29 +1654,23 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     regs->reg0160_adr_src0     = mpp_buffer_get_fd(enc_task->input);
     regs->reg0161_adr_src1     = regs->reg0160_adr_src0;
     regs->reg0162_adr_src2     = regs->reg0160_adr_src0;
+
+    recon_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.recon_pic.slot_idx);
+    ref_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
+
     if (!syn->sp.non_reference_flag) {
-        MppDevRegOffsetCfg cfg_fd;
-
-        recon_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.recon_pic.slot_idx);
-        ref_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
-
         regs->reg0163_rfpw_h_addr  = mpp_buffer_get_fd(recon_buf->buf[0]);
         regs->reg0164_rfpw_b_addr  = regs->reg0163_rfpw_h_addr;
-        regs->reg0165_rfpr_h_addr = mpp_buffer_get_fd(ref_buf->buf[0]);
-        regs->reg0166_rfpr_b_addr = regs->reg0165_rfpr_h_addr;
-        regs->reg0167_cmvw_addr  = mpp_buffer_get_fd(recon_buf->buf[2]);
-        regs->reg0168_cmvr_addr = mpp_buffer_get_fd(ref_buf->buf[2]);
-
-        regs->reg0169_dspw_addr = mpp_buffer_get_fd(recon_buf->buf[1]);
-        regs->reg0170_dspr_addr = mpp_buffer_get_fd(ref_buf->buf[1]);
-
-        cfg_fd.reg_idx = 164;
-        cfg_fd.offset = ctx->fbc_header_len;
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
-        cfg_fd.reg_idx = 166;
-        cfg_fd.offset = ctx->fbc_header_len;
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        mpp_dev_set_reg_offset(ctx->dev, 164, ctx->fbc_header_len);
     }
+    regs->reg0165_rfpr_h_addr = mpp_buffer_get_fd(ref_buf->buf[0]);
+    regs->reg0166_rfpr_b_addr = regs->reg0165_rfpr_h_addr;
+    regs->reg0167_cmvw_addr = mpp_buffer_get_fd(recon_buf->buf[2]);
+    regs->reg0168_cmvr_addr = mpp_buffer_get_fd(ref_buf->buf[2]);
+    regs->reg0169_dspw_addr = mpp_buffer_get_fd(recon_buf->buf[1]);
+    regs->reg0170_dspr_addr = mpp_buffer_get_fd(ref_buf->buf[1]);
+
+    mpp_dev_set_reg_offset(ctx->dev, 166, ctx->fbc_header_len);
 
     if (syn->pp.tiles_enabled_flag) {
         if (NULL == ctx->tile_grp)
@@ -1718,14 +1712,8 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     regs->reg0181_roi_mv_addr = regs->reg0160_adr_src0;
     regs->reg0182_ebuft_addr = regs->reg0160_adr_src0;
     regs->reg183_ebufb_addr = regs->reg0160_adr_src0;
-    {
-        MppDevRegOffsetCfg cfg_fd;
 
-        cfg_fd.reg_idx = 175;
-        cfg_fd.offset = mpp_packet_get_length(task->packet);
-
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
-    }
+    mpp_dev_set_reg_offset(ctx->dev, 175, mpp_packet_get_length(task->packet));
 }
 MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
 {
