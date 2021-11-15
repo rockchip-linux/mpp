@@ -2208,13 +2208,6 @@ typedef struct Vepu580RdoCfg_t {
 #endif
 } vepu580_rdo_cfg;
 
-typedef struct osd_plt_t {
-    RK_U32 y        : 8;
-    RK_U32 u        : 8;
-    RK_U32 v        : 8;
-    RK_U32 alpha    : 8;
-} osd_plt;
-
 /* class: osd */
 /* 0x00003000 reg3072 - 0x00003084 reg3105*/
 typedef struct Vepu580OsdCfg_t {
@@ -2404,22 +2397,9 @@ typedef struct Vepu580OsdCfg_t {
 
     /* 0x3070 - 0x307c */
     RK_U32 reserved3100_3103[4];
-
-    /* 0x00003080 reg3104 */
-    osd_plt plt_data[256];
+    /* 0x03080-0x347c reg3104-reg3360 */
+    RK_U32 plt[256];
 } vepu580_osd_cfg;
-
-// /* class: osd_plt 255 */
-// /* 0x0000347c reg3359 */
-// typedef struct Vepu580Section6_t {
-//     /* 0x0000347c reg3359 */
-//     struct {
-//         RK_U32 y        : 8;
-//         RK_U32 u        : 8;
-//         RK_U32 v        : 8;
-//         RK_U32 alpha    : 8;
-//     } osd_plt255;
-// } vepu580section6;
 
 /* class: st */
 /* 0x00004000 reg4096 - 0x000042cc reg4275 */
@@ -3360,4 +3340,3 @@ typedef struct H265eV580StatusElem_t {
 } H265eV580StatusElem;
 
 #endif
-

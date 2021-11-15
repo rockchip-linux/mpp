@@ -452,6 +452,8 @@ DONE:
 #define ENC_DEFAULT_OSD_INV_THR         15
 
 #define VEPU541_OSD_ADDR_IDX_BASE       124
+#define VEPU580_OSD_ADDR_IDX_BASE       3092
+
 #define VEPU541_OSD_CFG_OFFSET          0x01C0
 #define VEPU541_OSD_PLT_OFFSET          0x0400
 
@@ -1035,7 +1037,7 @@ MPP_RET vepu580_set_osd(Vepu541OsdCfg *cfg)
             if (tmp->buf_offset) {
                 MppDevRegOffsetCfg trans_cfg;
 
-                trans_cfg.reg_idx = VEPU541_OSD_ADDR_IDX_BASE + k;
+                trans_cfg.reg_idx = VEPU580_OSD_ADDR_IDX_BASE + k;
                 trans_cfg.offset = tmp->buf_offset;
                 mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
             }
