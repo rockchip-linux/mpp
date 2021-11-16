@@ -316,6 +316,10 @@ static MPP_RET read_with_pixel_width(RK_U8 *buf, RK_S32 width, RK_S32 height,
 
     for (row = 0; row < height; row++) {
         RK_S32 read_size = fread(buf + row * hor_stride, 1, width * pix_w, fp);
+        if (feof(fp)) {
+            ret = MPP_NOK;
+            break;
+        }
         if (read_size != width * pix_w) {
             mpp_err_f("read file failed expect %d vs %d\n",
                       width * pix_w, read_size);
