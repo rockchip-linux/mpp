@@ -302,6 +302,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_hor_stride_pixel(impl->info_set, hor_stride_pixel);
     mpp_frame_set_buf_size(impl->info_set, size);
     mpp_frame_set_buf_size(frame, size);
+    mpp_frame_set_hor_stride_pixel(frame, hor_stride_pixel);
     impl->buf_size = size;
 
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;

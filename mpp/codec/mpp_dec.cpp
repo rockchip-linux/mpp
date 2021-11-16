@@ -1475,6 +1475,7 @@ void *mpp_dec_advanced_thread(void *data)
             mpp_frame_set_height(frame, mpp_frame_get_height(tmp));
             mpp_frame_set_hor_stride(frame, mpp_frame_get_hor_stride(tmp));
             mpp_frame_set_ver_stride(frame, mpp_frame_get_ver_stride(tmp));
+            mpp_frame_set_hor_stride_pixel(frame, mpp_frame_get_hor_stride_pixel(tmp));
             mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp));
             mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp));
             mpp_frame_set_errinfo(frame, mpp_frame_get_errinfo(tmp));
