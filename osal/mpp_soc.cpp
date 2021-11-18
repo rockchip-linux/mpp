@@ -46,6 +46,7 @@
 #define HAVE_HEVC   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingHEVC))))
 #define HAVE_AVSP   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVSPLUS))))
 #define HAVE_AVS    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS))))
+#define HAVE_AVS2   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
 
 #define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_JPEGD_PP     (HAVE_MJPEG)
@@ -53,6 +54,7 @@
 #define CAP_CODING_HEVC         (HAVE_HEVC)
 #define CAP_CODING_VDPU341      (HAVE_AVC|HAVE_HEVC|HAVE_VP9)
 #define CAP_CODING_VDPU341_LITE (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VDPU381      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
 
 #define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
@@ -243,7 +245,7 @@ static const MppDecHwCap vdpu34x = {
 };
 
 static const MppDecHwCap vdpu38x = {
-    .cap_coding         = CAP_CODING_VDPU341,
+    .cap_coding         = CAP_CODING_VDPU381,
     .type               = VPU_CLIENT_RKVDEC,
     .cap_fbc            = 2,
     .cap_4k             = 1,
