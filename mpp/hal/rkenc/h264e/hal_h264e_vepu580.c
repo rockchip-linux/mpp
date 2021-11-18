@@ -231,7 +231,8 @@ static void setup_hal_bufs(HalH264eVepu580Ctx *ctx)
     }
 
     if (aligned_w > SZ_4K) {
-        RK_S32 ext_line_buf_size = MPP_ALIGN((aligned_w - SZ_4K) / 64 * 30 * 16, 256);
+        /* 480 bytes for each ctu above 4096 */
+        RK_S32 ext_line_buf_size = MPP_ALIGN((aligned_w - SZ_4K) / 64 * 480, 256);
 
         if (NULL == ctx->ext_line_buf_grp)
             mpp_buffer_group_get_internal(&ctx->ext_line_buf_grp, MPP_BUFFER_TYPE_ION);
@@ -1173,26 +1174,6 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu580_force_slice_split(HalVepu580RegSet *regs, RK_S32 width)
-{
-    RK_S32 mb_w = MPP_ALIGN(width, 16) >> 4;
-
-    hal_h264e_dbg_func("enter\n");
-
-    regs->reg_base.sli_splt.sli_splt = 1;
-    regs->reg_base.sli_splt.sli_splt_mode = 1;
-    regs->reg_base.sli_splt.sli_splt_cpst = 0;
-    regs->reg_base.sli_splt.sli_max_num_m1 = 500;
-    regs->reg_base.sli_splt.sli_flsh = 1;
-    regs->reg_base.sli_cnum.sli_splt_cnum_m1 = mb_w - 1;
-
-    regs->reg_base.sli_byte.sli_splt_byte = 0;
-    regs->reg_base.enc_pic.slen_fifo = 0;
-    regs->reg_base.sli_cfg.sli_crs_en = 0;
-
-    hal_h264e_dbg_func("leave\n");
-}
-
 static void calc_cime_parameter(HalVepu580RegSet *regs, H264eSps *sps)
 {
     Vepu580BaseCfg *base_regs = &regs->reg_base;
@@ -1537,7 +1518,7 @@ static void setup_vepu580_ext_line_buf(HalVepu580RegSet *regs, HalH264eVepu580Ct
         regs->reg_base.ebuft_addr = fd;
         regs->reg_base.ebufb_addr = fd;
 
-        trans_cfg.reg_idx = 183;
+        trans_cfg.reg_idx = 182;
         trans_cfg.offset = ctx->ext_line_buf_size;
         mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     } else {
@@ -1551,7 +1532,6 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     HalVepu580RegSet *regs = &ctx->regs_set;
     MppEncCfgSet *cfg = ctx->cfg;
-    MppEncPrepCfg *prep = &cfg->prep;
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
@@ -1583,13 +1563,10 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     regs->reg_base.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
     setup_vepu580_split(regs, &cfg->split);
-    if (prep->width > 1920)
-        setup_vepu580_force_slice_split(regs, prep->width);
-
     setup_vepu580_me(regs, sps, slice);
 
     vepu580_set_osd(&ctx->osd_cfg);
-    setup_vepu580_l2(&ctx->regs_set, slice, &ctx->cfg->hw);
+    setup_vepu580_l2(&ctx->regs_set, slice, &cfg->hw);
     setup_vepu580_ext_line_buf(regs, ctx);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
