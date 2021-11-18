@@ -382,7 +382,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_useDQP = 0;
     if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
         pps->m_useDQP = 1;
-        pps->m_maxCuDQPDepth = 2;
+        pps->m_maxCuDQPDepth = 0;
         pps->m_minCuDQPSize = (sps->m_maxCUSize >> pps->m_maxCuDQPDepth);
     }
 
@@ -407,8 +407,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_deblockingFilterControlPresentFlag = !codec->dblk_cfg.slice_deblocking_filter_disabled_flag;
     if (pps->m_deblockingFilterControlPresentFlag) {
         pps->m_deblockingFilterOverrideEnabledFlag = 0;
-        pps->m_picDisableDeblockingFilterFlag = (!codec->dblk_cfg.slice_beta_offset_div2) &&
-                                                (!codec->dblk_cfg.slice_tc_offset_div2);
+        pps->m_picDisableDeblockingFilterFlag = 0;
         if (!pps->m_picDisableDeblockingFilterFlag) {
             pps->m_deblockingFilterBetaOffsetDiv2 = codec->dblk_cfg.slice_beta_offset_div2;
             pps->m_deblockingFilterTcOffsetDiv2 = codec->dblk_cfg.slice_tc_offset_div2;
@@ -438,23 +437,13 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_nNumTileRowsMinus1 = 0;
     pps->m_nNumTileColumnsMinus1 = 0;
     pps->m_loopFilterAcrossTilesEnabledFlag = 1;
-
-    if (sps->m_picWidthInLumaSamples > 1920) {
+    {
         const char *soc_name = mpp_get_soc_name();
-
         /* check tile support on rk3566 and rk3568 */
         if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
-            if (sps->m_picWidthInLumaSamples <= 3840) {
-                pps->m_nNumTileColumnsMinus1 = 1;
-            } else {
-                pps->m_nNumTileColumnsMinus1 = 2;
-            }
+            pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 1920 ;
         } else if (strstr(soc_name, "rk3588")) {
-            if (sps->m_picWidthInLumaSamples > 4096) {
-                pps->m_nNumTileColumnsMinus1 = 1;
-            } else if (sps->m_picWidthInLumaSamples > 4096 * 2) {
-                pps->m_nNumTileColumnsMinus1 = 2;
-            }
+            pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 4096 ;
         }
         if (pps->m_nNumTileColumnsMinus1) {
             pps->m_tiles_enabled_flag = 1;
