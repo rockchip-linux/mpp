@@ -121,8 +121,8 @@ static RK_U32 aq_thd_default[16] = {
 static RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
-    0,  1,  2,  2,
-    3,  3,  4,  4,
+    0,  1,  2,  3,
+    4,  5,  6,  8,
 };
 
 static RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
@@ -582,8 +582,8 @@ static void vepu580_h265_sobel_cfg(hevc_vepu580_wgt *reg)
     reg->i16_sobel_e_15.intra_l16_sobel_e0_qp7_high  =  0;
     reg->i16_sobel_e_17.intra_l16_sobel_e0_qp8_high  =  0;
 
-    reg->i32_sobel_t_00.intra_l32_sobel_t2 = 640 ;
-    reg->i32_sobel_t_00.intra_l32_sobel_t3 = 0  ;
+    reg->i32_sobel_t_00.intra_l32_sobel_t2 = 64 ;
+    reg->i32_sobel_t_00.intra_l32_sobel_t3 = 400  ;
     reg->i32_sobel_t_01.intra_l32_sobel_t4 = 8  ;
     reg->i32_sobel_t_02.intra_l32_sobel_t5 = 100 ;
     reg->i32_sobel_t_02.intra_l32_sobel_t6 = 100 ;
@@ -600,11 +600,11 @@ static void vepu580_h265_sobel_cfg(hevc_vepu580_wgt *reg)
     reg->i32_sobel_b_01.intra_l32_sobel_b1_qp3 =  0;
     reg->i32_sobel_b_02.intra_l32_sobel_b1_qp4 =  0;
 
-    reg->i32_sobel_c.intra_l32_sobel_c1_qp0 = 18;
-    reg->i32_sobel_c.intra_l32_sobel_c1_qp1 = 18;
-    reg->i32_sobel_c.intra_l32_sobel_c1_qp2 = 18;
-    reg->i32_sobel_c.intra_l32_sobel_c1_qp3 = 18;
-    reg->i32_sobel_c.intra_l32_sobel_c1_qp4 = 18;
+    reg->i32_sobel_c.intra_l32_sobel_c1_qp0 = 16;
+    reg->i32_sobel_c.intra_l32_sobel_c1_qp1 = 16;
+    reg->i32_sobel_c.intra_l32_sobel_c1_qp2 = 16;
+    reg->i32_sobel_c.intra_l32_sobel_c1_qp3 = 16;
+    reg->i32_sobel_c.intra_l32_sobel_c1_qp4 = 16;
 
     reg->i32_sobel_d_00.intra_l32_sobel_d1_qp0 =  0;
     reg->i32_sobel_d_00.intra_l32_sobel_d1_qp1 =  0;
@@ -914,7 +914,7 @@ static void vepu580_h265_rdo_cfg (vepu580_rdo_cfg *reg)
     p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = 16  ;
     p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = 16  ;
 
-    reg->rdo_segment_b64_thd0.rdo_segment_cu64_th0        = 35;
+    reg->rdo_segment_b64_thd0.rdo_segment_cu64_th0        = 160;
     reg->rdo_segment_b64_thd0.rdo_segment_cu64_th1        = 96;
     reg->rdo_segment_b64_thd1.rdo_segment_cu64_th2        = 30;
     reg->rdo_segment_b64_thd1.rdo_segment_cu64_th3        = 0 ;
@@ -922,7 +922,7 @@ static void vepu580_h265_rdo_cfg (vepu580_rdo_cfg *reg)
     reg->rdo_segment_b64_thd1.rdo_segment_cu64_th5_minus1 = 4 ;
     reg->rdo_segment_b64_thd1.rdo_segment_cu64_th6_minus1 = 11;
 
-    reg->rdo_segment_b32_thd0.rdo_segment_cu32_th0 = 35;
+    reg->rdo_segment_b32_thd0.rdo_segment_cu32_th0 = 160;
     reg->rdo_segment_b32_thd0.rdo_segment_cu32_th1 = 96;
     reg->rdo_segment_b32_thd1.rdo_segment_cu32_th2 = 30;
     reg->rdo_segment_b32_thd1.rdo_segment_cu32_th3 = 0 ;
@@ -934,10 +934,10 @@ static void vepu580_h265_rdo_cfg (vepu580_rdo_cfg *reg)
     reg->rdo_segment_multi.rdo_segment_cu32_multi = 22;
     reg->rdo_segment_multi.rdo_smear_cu16_multi = 6;
 
-    reg->rdo_b16_smear_thd0.rdo_smear_cu16_cime_sad_th0 = 68 ;
-    reg->rdo_b16_smear_thd0.rdo_smear_cu16_cime_sad_th1 = 48 ;
-    reg->rdo_b16_smear_thd1.rdo_smear_cu16_cime_sad_th2 = 48 ;
-    reg->rdo_b16_smear_thd1.rdo_smear_cu16_cime_sad_th3 = 52 ;
+    reg->rdo_b16_smear_thd0.rdo_smear_cu16_cime_sad_th0 = 64 ;
+    reg->rdo_b16_smear_thd0.rdo_smear_cu16_cime_sad_th1 = 32 ;
+    reg->rdo_b16_smear_thd1.rdo_smear_cu16_cime_sad_th2 = 36 ;
+    reg->rdo_b16_smear_thd1.rdo_smear_cu16_cime_sad_th3 = 64 ;
 
 
     reg->preintra_b32_cst_var_thd.pre_intra32_cst_var_th00 = 0;
@@ -1070,8 +1070,8 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
     {   /* setup default hardware config */
         MppEncHwCfg *hw = &cfg->cfg->hw;
 
-        hw->qp_delta_row_i  = 0;
-        hw->qp_delta_row    = 1;
+        hw->qp_delta_row_i  = 2;
+        hw->qp_delta_row    = 2;
 
         memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
@@ -1318,7 +1318,7 @@ static MPP_RET vepu580_h265_set_rc_regs(H265eV580HalContext *ctx, H265eV580RegSe
     MppEncHwCfg *hw = &cfg->hw;
     MppEncCodecCfg *codec = &cfg->codec;
     MppEncH265Cfg *h265 = &codec->h265;
-    RK_S32 mb_wd64, mb_h64, i;
+    RK_S32 mb_wd64, mb_h64;
     mb_wd64 = (syn->pp.pic_width + 63) / 64;
     mb_h64 = (syn->pp.pic_height + 63) / 64;
 
@@ -1337,8 +1337,8 @@ static MPP_RET vepu580_h265_set_rc_regs(H265eV580HalContext *ctx, H265eV580RegSe
             ctu_target_bits_mul_16 = 0x50000;
         }
         ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd64) >> 4;
-        negative_bits_thd = 0 - ctu_target_bits / 5;
-        positive_bits_thd = ctu_target_bits / 4;
+        negative_bits_thd = 0 - 5 * ctu_target_bits / 16;
+        positive_bits_thd = 5 * ctu_target_bits / 16;
 
         reg_base->reg0192_enc_pic.pic_qp    = rc_cfg->quality_target;
         reg_base->reg0240_synt_sli1.sli_qp  = rc_cfg->quality_target;
@@ -1352,19 +1352,25 @@ static MPP_RET vepu580_h265_set_rc_regs(H265eV580HalContext *ctx, H265eV580RegSe
         reg_base->reg213_rc_qp.rc_min_qp   = rc_cfg->quality_min;
         reg_base->reg214_rc_tgt.ctu_ebit  = ctu_target_bits_mul_16;
 
-        reg_rc->rc_dthd_0_8[0] = positive_bits_thd;
-        for (i = 1 ; i < 9; i++)
-            reg_rc->rc_dthd_0_8[i] = negative_bits_thd;
+        reg_rc->rc_dthd_0_8[0] = 2 * negative_bits_thd;
+        reg_rc->rc_dthd_0_8[1] = negative_bits_thd;
+        reg_rc->rc_dthd_0_8[2] = positive_bits_thd;
+        reg_rc->rc_dthd_0_8[3] = 2 * positive_bits_thd;
+        reg_rc->rc_dthd_0_8[4] = 0x7FFFFFFF;
+        reg_rc->rc_dthd_0_8[5] = 0x7FFFFFFF;
+        reg_rc->rc_dthd_0_8[6] = 0x7FFFFFFF;
+        reg_rc->rc_dthd_0_8[7] = 0x7FFFFFFF;
+        reg_rc->rc_dthd_0_8[8] = 0x7FFFFFFF;
 
-        reg_rc->rc_adj0.qp_adj0    = -1;
-        reg_rc->rc_adj0.qp_adj1    = 0;
+        reg_rc->rc_adj0.qp_adj0    = -2;
+        reg_rc->rc_adj0.qp_adj1    = -1;
         reg_rc->rc_adj0.qp_adj2    = 0;
-        reg_rc->rc_adj0.qp_adj3    = 0;
-        reg_rc->rc_adj0.qp_adj4    = 0;
+        reg_rc->rc_adj0.qp_adj3    = 1;
+        reg_rc->rc_adj0.qp_adj4    = 2;
         reg_rc->rc_adj1.qp_adj5    = 0;
         reg_rc->rc_adj1.qp_adj6    = 0;
         reg_rc->rc_adj1.qp_adj7    = 0;
-        reg_rc->rc_adj1.qp_adj8    = 1;
+        reg_rc->rc_adj1.qp_adj8    = 0;
 
         reg_rc->roi_qthd0.qpmin_area0 = h265->qpmin_map[0] > 0 ? h265->qpmin_map[0] : rc_cfg->quality_min;
         reg_rc->roi_qthd0.qpmax_area0 = h265->qpmax_map[0] > 0 ? h265->qpmax_map[0] : rc_cfg->quality_max;
@@ -1809,7 +1815,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     vepu580_h265_set_me_regs(ctx, syn, reg_base);
 
     reg_base->reg0232_rdo_cfg.chrm_spcl   = 1;
-    reg_base->reg0232_rdo_cfg.cu_inter_e    = 0xf;
+    reg_base->reg0232_rdo_cfg.cu_inter_e    = 0x06db;
     reg_base->reg0232_rdo_cfg.cu_intra_e    = 0xf;
 
     if (syn->pp.num_long_term_ref_pics_sps) {
@@ -2159,8 +2165,6 @@ static MPP_RET vepu580_h265_set_feedback(H265eV580HalContext *ctx, HalEncTask *e
     memcpy(&fb->st_cu_num_qp[0], &elem->st.st_b8_qp0, 52 * sizeof(RK_U32));
 
     if (index == (ctx->title_num - 1)) {
-        hal_rc_ret->madi = fb->st_madi;
-        hal_rc_ret->madp = fb->st_madp;
         hal_rc_ret->bit_real += fb->out_strm_size * 8;
 
         if (fb->st_mb_num) {
@@ -2188,6 +2192,9 @@ static MPP_RET vepu580_h265_set_feedback(H265eV580HalContext *ctx, HalEncTask *e
             hal_rc_ret->quality_real = fb->qp_sum / mb8_num;
             // hal_cfg[k].sse          = fb->sse_sum / mb64_num;
         }
+
+        hal_rc_ret->madi = fb->st_madi;
+        hal_rc_ret->madp = fb->st_madp;
     }
     hal_h265e_leave();
     return MPP_OK;
