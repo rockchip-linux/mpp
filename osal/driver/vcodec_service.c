@@ -149,6 +149,7 @@ const char *mpp_get_platform_dev_name(MppCtxType type, MppCodingType coding, RK_
     if ((platform & HAVE_RKVDEC) && (type == MPP_CTX_DEC) &&
         (coding == MPP_VIDEO_CodingAVC ||
          coding == MPP_VIDEO_CodingHEVC ||
+         coding == MPP_VIDEO_CodingAVS2 ||
          coding == MPP_VIDEO_CodingVP9)) {
         dev = mpp_find_device(mpp_rkvdec_dev);
     } else if ((platform & HAVE_HEVC_DEC) && (type == MPP_CTX_DEC) &&
@@ -334,8 +335,7 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
             dev = mpp_find_device(mpp_vpu_dev);
     } break;
     case ROCKCHIP_SOC_RK3566 :
-    case ROCKCHIP_SOC_RK3568 :
-    case ROCKCHIP_SOC_RK3588 : {
+    case ROCKCHIP_SOC_RK3568 : {
         /*
          * rk3566/rk3568 has codec:
          * 1 - vpu2 for jpeg/vp8 encoder and decoder
@@ -346,6 +346,35 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         if (type == MPP_CTX_DEC) {
             if (coding == MPP_VIDEO_CodingAVC ||
                 coding == MPP_VIDEO_CodingHEVC ||
+                coding == MPP_VIDEO_CodingVP9)
+                dev = mpp_find_device(mpp_rkvdec_dev);
+            else if (coding == MPP_VIDEO_CodingMJPEG)
+                dev = mpp_find_device(mpp_jpegd_dev);
+            else
+                dev = mpp_find_device(mpp_vpu_dev);
+        } else if (type == MPP_CTX_ENC) {
+            if (coding == MPP_VIDEO_CodingAVC ||
+                coding == MPP_VIDEO_CodingHEVC)
+                dev = mpp_find_device(mpp_rkvenc_dev);
+            else if (coding == MPP_VIDEO_CodingMJPEG ||
+                     coding == MPP_VIDEO_CodingVP8)
+                dev = mpp_find_device(mpp_vpu_dev);
+            else
+                dev = NULL;
+        }
+    } break;
+    case ROCKCHIP_SOC_RK3588 : {
+        /*
+         * rk3588 has codec:
+         * 1 - RK H.264/H.265/VP9/AVS2 8K decoder
+         * 2 - RK H.264/H.265 8K encoder
+         * 3 - vpu2 for jpeg/vp8 encoder and decoder
+         * 4 - RK jpeg decoder
+         */
+        if (type == MPP_CTX_DEC) {
+            if (coding == MPP_VIDEO_CodingAVC ||
+                coding == MPP_VIDEO_CodingHEVC ||
+                coding == MPP_VIDEO_CodingAVS2 ||
                 coding == MPP_VIDEO_CodingVP9)
                 dev = mpp_find_device(mpp_rkvdec_dev);
             else if (coding == MPP_VIDEO_CodingMJPEG)
