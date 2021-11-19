@@ -1341,6 +1341,7 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt, 
     reg_base->reg0198_src_fmt.rbuv_swap = fmt->rbuv_swap;
     reg_base->reg0198_src_fmt.src_range = fmt->src_range;
     reg_base->reg0198_src_fmt.out_fmt = 1;
+    reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 
     if (prep_cfg->hor_stride) {
