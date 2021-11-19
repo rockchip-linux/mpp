@@ -534,7 +534,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_extra_data(p->input_packet);
     }
 
-    p->eos = mpp_packet_get_pts(p->input_packet);
+    p->eos = mpp_packet_get_eos(p->input_packet);
     mpp_packet_set_pts(p->input_packet, p->pts);
     task->input_packet = p->input_packet;
     task->flags.eos = p->eos;
