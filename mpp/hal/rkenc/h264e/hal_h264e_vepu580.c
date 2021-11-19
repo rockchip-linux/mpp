@@ -231,8 +231,8 @@ static void setup_hal_bufs(HalH264eVepu580Ctx *ctx)
     }
 
     if (aligned_w > SZ_4K) {
-        /* 480 bytes for each ctu above 4096 */
-        RK_S32 ext_line_buf_size = MPP_ALIGN((aligned_w - SZ_4K) / 64 * 480, 256);
+        /* 480 bytes for each ctu above 3072 */
+        RK_S32 ext_line_buf_size = (aligned_w - 3 * SZ_1K) / 64 * 480;
 
         if (NULL == ctx->ext_line_buf_grp)
             mpp_buffer_group_get_internal(&ctx->ext_line_buf_grp, MPP_BUFFER_TYPE_ION);
