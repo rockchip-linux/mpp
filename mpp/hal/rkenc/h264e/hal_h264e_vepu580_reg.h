@@ -24,6 +24,7 @@
 #define VEPU580_RC_KLUT_CFG_OFFSET  (1024 * sizeof(RK_U32))
 #define VEPU580_SECTION_3_OFFSET    (1472 * sizeof(RK_U32))
 #define VEPU580_RDO_CFG_OFFSET      (2048 * sizeof(RK_U32))
+#define VEPU580_SCL_CFG_OFFSET      (2176 * sizeof(RK_U32))
 #define VEPU580_OSD_OFFSET          (3072 * sizeof(RK_U32))
 #define VEPU580_STATUS_OFFSET       (4096 * sizeof(RK_U32))
 #define VEPU580_DBG_OFFSET          (5120 * sizeof(RK_U32))
@@ -2294,6 +2295,30 @@ typedef struct Vepu580RdoCfg_t {
     } preintra_b16_cst_wgt;
 } Vepu580RdoCfg;
 
+/* class: scaling list  */
+/* 0x00002200 reg2200 - 0x00003084 reg3105*/
+typedef struct Vepu580SclCfg_t {
+    /* 0x00002200 */
+    RK_U16  intra8_y[64];
+    RK_U16  intra8_u[64];
+    RK_U16  intra8_v[64];
+    RK_U16  inter8_y[64];
+    RK_U16  inter8_u[64];
+    RK_U16  inter8_v[64];
+    /* 0x00002500 */
+    RK_U32  q_iq_16_32[480];
+    /* 0x00002c80 */
+    RK_U32  q_dc_y16;
+    RK_U32  q_dc_u16;
+    RK_U32  q_dc_v16;
+    RK_U32  q_dc_v32;
+    /* 0x00002c90 */
+    RK_U32  iq_dc_0;
+    RK_U32  iq_dc_1;
+    /* 0x00002c98 */
+    RK_U32  scal_clk_sel;
+} Vepu580SclCfg;
+
 /* class: osd */
 /* 0x00003000 reg3072 - 0x00003084 reg3105*/
 typedef struct Vepu580Osd_t {
@@ -2982,6 +3007,7 @@ typedef struct HalVepu580Reg_t {
     Vepu580RcKlutCfg    reg_rc_klut;
     Vepu580Section3     reg_s3;
     Vepu580RdoCfg       reg_rdo;
+    Vepu580SclCfg       reg_scl;
     Vepu580Osd          reg_osd;
     Vepu580Status       reg_st;
     Vepu580Dbg          reg_dbg;
