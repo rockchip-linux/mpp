@@ -195,9 +195,12 @@ static MPP_RET hal_h265d_vdpu34x_deinit(void *hal)
         reg_cxt->bufs = NULL;
     }
 
-    if (reg_cxt->rcb_buf) {
-        mpp_buffer_put(reg_cxt->rcb_buf);
-        reg_cxt->rcb_buf = NULL;
+    loop = reg_cxt->fast_mode ? MPP_ARRAY_ELEMS(reg_cxt->rcb_buf) : 1;
+    for (i = 0; i < loop; i++) {
+        if (reg_cxt->rcb_buf[i]) {
+            mpp_buffer_put(reg_cxt->rcb_buf[i]);
+            reg_cxt->rcb_buf[i] = NULL;
+        }
     }
 
     if (reg_cxt->group) {
@@ -778,19 +781,23 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
         reg_cxt->ctu_size !=  ctu_size ||
         reg_cxt->width != width ||
         reg_cxt->height != height) {
-        MppBuffer rcb_buf = reg_cxt->rcb_buf;
-
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            rcb_buf = NULL;
-        }
+        RK_U32 i = 0;
+        RK_U32 loop = reg_cxt->fast_mode ? MPP_ARRAY_ELEMS(reg_cxt->g_buf) : 1;
 
         reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
         h265d_refine_rcb_size(reg_cxt->rcb_info, hw_regs, width, height, dxva_cxt);
 
-        mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
+        for (i = 0; i < loop; i++) {
+            MppBuffer rcb_buf;
 
-        reg_cxt->rcb_buf        = rcb_buf;
+            if (reg_cxt->rcb_buf[i]) {
+                mpp_buffer_put(reg_cxt->rcb_buf[i]);
+                reg_cxt->rcb_buf[i] = NULL;
+            }
+            mpp_buffer_get(reg_cxt->group, &rcb_buf, reg_cxt->rcb_buf_size);
+            reg_cxt->rcb_buf[i] = rcb_buf;
+        }
+
         reg_cxt->num_row_tiles  = num_tiles;
         reg_cxt->bit_depth      = bit_depth;
         reg_cxt->chroma_fmt_idc = chroma_fmt_idc;
@@ -1066,7 +1073,9 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg011.buf_empty_en = 1;
 
     hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
-    vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->rcb_buf, reg_cxt->rcb_info);
+    vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->fast_mode ?
+                      reg_cxt->rcb_buf[syn->dec.reg_index] : reg_cxt->rcb_buf[0],
+                      reg_cxt->rcb_info);
     vdpu34x_setup_statistic(&hw_regs->common, &hw_regs->statistic);
 
     return ret;

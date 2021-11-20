@@ -117,9 +117,10 @@ typedef struct Vdpu34xH264dRegCtx_t {
     RK_U32              bit_depth;
     RK_U32              mbaff;
     RK_U32              chroma_format_idc;
+
     RK_S32              rcb_buf_size;
     Vdpu34xRcbInfo      rcb_info[RCB_BUF_COUNT];
-    MppBuffer           rcb_buf;
+    MppBuffer           rcb_buf[VDPU34X_FAST_REG_SET_CNT];
 
     Vdpu34xH264dRegSet  *regs;
 } Vdpu34xH264dRegCtx;
@@ -734,14 +735,15 @@ MPP_RET vdpu34x_h264d_deinit(void *hal)
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_ctx->reg_buf[i].regs);
 
-    if (reg_ctx->rcb_buf) {
-        mpp_buffer_put(reg_ctx->rcb_buf);
-        reg_ctx->rcb_buf = NULL;
-    }
+    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->rcb_buf) : 1;
+    for (i = 0; i < loop; i++)
+        mpp_buffer_put(reg_ctx->rcb_buf[i]);
+
     if (p_hal->cmv_bufs) {
         hal_bufs_deinit(p_hal->cmv_bufs);
         p_hal->cmv_bufs = NULL;
     }
+
     MPP_FREE(p_hal->reg_ctx);
 
     return MPP_OK;
@@ -814,19 +816,21 @@ static void hal_h264d_rcb_info_update(void *hal, Vdpu34xH264dRegSet *regs)
          ctx->mbaff != mbaff ||
          ctx->width != width ||
          ctx->height != height) {
-        MppBuffer rcb_buf = ctx->rcb_buf;
-
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            rcb_buf = NULL;
-        }
+        RK_U32 i;
+        RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
 
         ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
         h264d_refine_rcb_size(hal, ctx->rcb_info, regs, width, height);
+        for (i = 0; i < loop; i++) {
+            MppBuffer rcb_buf = ctx->rcb_buf[i];
 
-        mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
-
-        ctx->rcb_buf        = rcb_buf;
+            if (rcb_buf) {
+                mpp_buffer_put(rcb_buf);
+                ctx->rcb_buf[i] = NULL;
+            }
+            mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
+            ctx->rcb_buf[i] = rcb_buf;
+        }
         ctx->bit_depth      = bit_depth;
         ctx->width          = width;
         ctx->height         = height;
@@ -934,7 +938,9 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     hal_h264d_rcb_info_update(p_hal, regs);
-    vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, ctx->rcb_buf, ctx->rcb_info);
+    vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
+                      ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
+                      ctx->rcb_info);
     vdpu34x_setup_statistic(&regs->common, &regs->statistic);
 
 __RETURN:

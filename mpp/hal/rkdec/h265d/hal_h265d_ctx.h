@@ -54,7 +54,7 @@ typedef struct HalH265dCtx_t {
     RK_S32          height;
     RK_S32          rcb_buf_size;
     Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
-    MppBuffer       rcb_buf;
+    MppBuffer       rcb_buf[MAX_GEN_REG];
 
     void*           hw_regs;
     H265dRegBuf     g_buf[MAX_GEN_REG];
