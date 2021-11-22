@@ -1238,7 +1238,7 @@ static void calc_cime_parameter(HalVepu580RegSet *regs, H264eSps *sps)
     RK_S32 srch_w = base_regs->me_rnge.cme_srch_h * 4;
     RK_S32 srch_h = base_regs->me_rnge.cme_srch_v * 4;
     RK_S32 frm_sta = 0, frm_end = 0, pic_w = 0;
-    RK_S32 pic_wd64 = ((sps->pic_width_in_mbs + 1) * 8 + 63) / 64;//((base_regs->pic_wd8_m1 + 1) * 8 + 63) / 64;
+    RK_S32 pic_wd64 = MPP_ALIGN(sps->pic_width_in_mbs * 16, 64) / 64;
 
     // calc cime_linebuf_w
     {
