@@ -195,74 +195,6 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     return ret;
 }
 
-static MPP_RET jpege_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    if (change) {
-        MppEncRcCfg bak = *dst;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-            dst->rc_mode = src->rc_mode;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-            dst->bps_target = src->bps_target;
-            dst->bps_max = src->bps_max;
-            dst->bps_min = src->bps_min;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-            dst->fps_in_flex = src->fps_in_flex;
-            dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denorm = src->fps_in_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-            dst->fps_out_flex = src->fps_out_flex;
-            dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denorm = src->fps_out_denorm;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
-            dst->max_reenc_times = src->max_reenc_times;
-
-        // parameter checking
-        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                    src->rc_mode);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                    dst->quality);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            if ((dst->bps_target >= 500 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                (dst->bps_max    >= 500 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                (dst->bps_min    >= 500 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~500M\n",
-                        dst->bps_target, dst->bps_min, dst->bps_max);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new rc config\n");
-            *dst = bak;
-        } else {
-            jpege_dbg_ctrl("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                           dst->bps_target, dst->bps_min, dst->bps_max,
-                           dst->fps_in_num, dst->fps_out_num, dst->gop);
-        }
-    }
-
-    return ret;
-}
-
 /* gen quantizer table by q_factor according to RFC435 spec. */
 static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
 {
@@ -434,10 +366,6 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= jpege_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
         }
-        if (src->rc.change) {
-            ret |= jpege_proc_rc_cfg(&cfg->rc, &src->rc);
-            src->rc.change = 0;
-        }
         if (src->codec.jpeg.change) {
             ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg, &cfg->rc);
             src->codec.jpeg.change = 0;
@@ -449,9 +377,6 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_PREP_CFG : {
         ret = jpege_proc_prep_cfg(&cfg->prep, param);
-    } break;
-    case MPP_ENC_SET_RC_CFG : {
-        ret = jpege_proc_rc_cfg(&cfg->rc, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
         MppEncCodecCfg *codec = (MppEncCodecCfg *)param;

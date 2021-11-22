@@ -19,6 +19,9 @@
 
 #include "rk_type.h"
 
+#define MPP_ENC_MIN_BPS     (SZ_1K)
+#define MPP_ENC_MAX_BPS     (SZ_1M * 200)
+
 /* Rate control parameter */
 typedef enum MppEncRcMode_e {
     MPP_ENC_RC_MODE_VBR,
