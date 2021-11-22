@@ -18,6 +18,7 @@
 
 #include <string.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #include "mpp_time.h"
 #include "mpp_common.h"
@@ -419,7 +420,7 @@ static RK_S32 check_low_delay_part_mode(MppEncImpl *enc)
     return 1;
 }
 
-MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
+MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg *src)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = src->change;
@@ -543,12 +544,25 @@ MPP_RET mpp_enc_proc_rc_cfg(MppEncRcCfg *dst, MppEncRcCfg *src)
                     dst->quality);
             ret = MPP_ERR_VALUE;
         }
+
         if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            if ((dst->bps_target >= 100 * SZ_1M || dst->bps_target <= 1 * SZ_1K) ||
-                (dst->bps_max    >= 100 * SZ_1M || dst->bps_max    <= 1 * SZ_1K) ||
-                (dst->bps_min    >= 100 * SZ_1M || dst->bps_min    <= 1 * SZ_1K)) {
-                mpp_err("invalid bit per second %d [%d:%d] out of range 1K~100M\n",
-                        dst->bps_target, dst->bps_min, dst->bps_max);
+            RK_S32 bps_min = MPP_ENC_MIN_BPS;
+            RK_S32 bps_max = MPP_ENC_MAX_BPS;
+
+            if (coding == MPP_VIDEO_CodingMJPEG) {
+                bps_min *= 4;
+                bps_max *= 4;
+                if (bps_max < 0)
+                    bps_max = INT_MAX;
+            }
+
+            if ((dst->bps_target >= bps_max || dst->bps_target <= bps_min) ||
+                (dst->bps_max    >= bps_max || dst->bps_max    <= bps_min) ||
+                (dst->bps_min    >= bps_max || dst->bps_min    <= bps_min)) {
+                mpp_err("invalid bit per second %x:%u min %x:%u max %x:%u out of range %dK~%dM\n",
+                        dst->bps_target, dst->bps_target, dst->bps_min,
+                        dst->bps_min, dst->bps_max, dst->bps_max,
+                        bps_min / SZ_1K,  bps_max / SZ_1M);
                 ret = MPP_ERR_VALUE;
             }
         }
@@ -679,7 +693,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 
         /* process rc cfg at mpp_enc module */
         if (src->rc.change) {
-            ret = mpp_enc_proc_rc_cfg(&enc->cfg.rc, &src->rc);
+            ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, &src->rc);
             src->rc.change = 0;
         }
 
@@ -695,7 +709,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     case MPP_ENC_SET_RC_CFG : {
         MppEncRcCfg *src = (MppEncRcCfg *)param;
         if (src)
-            ret = mpp_enc_proc_rc_cfg(&enc->cfg.rc, src);
+            ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, src);
     } break;
     case MPP_ENC_SET_IDR_FRAME : {
         enc->frm_cfg.force_idr++;
