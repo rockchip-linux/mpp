@@ -757,6 +757,7 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     RefsCnt *lt_cfg = cpb->lt_cnter;
     RK_S32 set_to_lt = 0;
     RK_S32 cleanup_cpb = 0;
+    RK_S32 prev_frm_is_pass1 = frm->save_pass1;
     RK_S32 i;
 
     /* step 1. check igop from cfg_set and force idr for usr_cfg */
@@ -868,6 +869,10 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     } else
         ref->val = 0;
 
+    /* step 5. check use previous pass one frame as input */
+    if (prev_frm_is_pass1)
+        frm->use_pass1 = 1;
+
     if (enc_refs_debug & MPP_ENC_REFS_DBG_FRM) {
         mpp_log_f("frm status:\n");
         dump_frm(frm);
@@ -891,6 +896,93 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     return MPP_OK;
 }
 
+RK_S32 mpp_enc_refs_next_frm_is_intra(MppEncRefs refs)
+{
+    if (NULL == refs) {
+        mpp_err_f("invalid NULL input refs\n");
+        return MPP_ERR_VALUE;
+    }
+
+    enc_refs_dbg_func("enter %p\n", refs);
+
+    MppEncRefsImpl *p = (MppEncRefsImpl *)refs;
+    EncVirtualCpb *cpb = &p->cpb;
+    MppEncRefFrmUsrCfg *usr_cfg = &p->usr_cfg;
+    RK_S32 is_intra = 0;
+
+    if (p->changed & ENC_REFS_IGOP_CHANGED)
+        is_intra = 1;
+
+    if (p->igop && cpb->seq_idx >= p->igop)
+        is_intra = 1;
+
+    if (usr_cfg->force_flag & ENC_FORCE_IDR)
+        is_intra = 1;
+
+    if (!cpb->frm_idx)
+        is_intra = 0;
+
+    enc_refs_dbg_func("leave %p\n", refs);
+
+    return is_intra;
+}
+
+MPP_RET mpp_enc_refs_get_cpb_pass1(MppEncRefs refs, EncCpbStatus *status)
+{
+    if (NULL == refs) {
+        mpp_err_f("invalid NULL input refs\n");
+        return MPP_ERR_VALUE;
+    }
+
+    enc_refs_dbg_func("enter %p\n", refs);
+
+    MppEncRefsImpl *p = (MppEncRefsImpl *)refs;
+    EncVirtualCpb *cpb = &p->cpb;
+    EncFrmStatus *frm = &status->curr;
+    EncFrmStatus *ref = &status->refr;
+
+    frm->valid = 1;
+    frm->save_pass1 = 1;
+    frm->is_non_ref = 1;
+    frm->is_lt_ref = 0;
+    frm->temporal_id = 0;
+    frm->ref_mode = REF_TO_PREV_REF_FRM;
+    frm->ref_arg = 0;
+    frm->non_recn = 0;
+
+    /* step 4. try find ref by the ref_mode */
+    EncFrmStatus *ref_found = get_ref_from_cpb(cpb, frm);
+    if (ref_found) {
+        RK_S32 cpb_idx = check_ref_cpb_pos(cpb, ref_found);
+
+        mpp_assert(cpb_idx >= 0);
+        cpb->list0[0].val = ref->val;
+        ref->val = ref_found->val;
+    } else
+        ref->val = 0;
+
+    if (enc_refs_debug & MPP_ENC_REFS_DBG_FRM) {
+        mpp_log_f("frm status:\n");
+        dump_frm(frm);
+        mpp_log_f("ref status:\n");
+        dump_frm(ref);
+    }
+
+    /* step 5. generate cpb init */
+    memset(status->init, 0, sizeof(status->init));
+    save_cpb_status(cpb, status->init);
+    // TODO: cpb_init must be the same to cpb_final
+
+    /* step 6. store frame according to status */
+    store_ref_to_cpb(cpb, frm);
+
+    /* step 7. generate cpb final */
+    memset(status->final, 0, sizeof(status->final));
+    save_cpb_status(cpb, status->final);
+
+    enc_refs_dbg_func("leave %p\n", refs);
+    return MPP_OK;
+}
 MPP_RET mpp_enc_refs_stash(MppEncRefs refs)
 {
     if (NULL == refs) {

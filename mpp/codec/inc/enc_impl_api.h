@@ -32,9 +32,6 @@ typedef struct EncImplCfg_t {
     MppClientType   type;
     MppEncCfgSet    *cfg;
     MppEncRefs      refs;
-
-    // output
-    RK_S32          task_count;
 } EncImplCfg;
 
 /*

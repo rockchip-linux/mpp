@@ -29,6 +29,7 @@ typedef struct MppEncHalCfg_t {
     // output from enc_impl
     MppClientType   type;
     MppDev          dev;
+    RK_S32          cap_recn_out;
 } MppEncHalCfg;
 
 typedef struct MppEncHalApi_t {

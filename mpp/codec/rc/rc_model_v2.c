@@ -474,10 +474,10 @@ MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx)
 MPP_RET calc_debreath_qp(RcModelV2Ctx *ctx)
 {
     rc_dbg_func("enter %p\n", ctx);
-    RK_S32 qp_start_sum = 0;
-    RK_U8 idx2 = ctx->pre_iblk4_prop >> 5;
-    RK_S32 new_start_qp = 0;
     RcDebreathCfg *debreath_cfg = &ctx->usr_cfg.debreath_cfg;
+    RK_S32 qp_start_sum = 0;
+    RK_S32 new_start_qp = 0;
+    RK_U8 idx2 = MPP_MIN(ctx->pre_iblk4_prop >> 5, (RK_S32)sizeof(intra_qp_map) - 1);
 
     static RK_S8 strength_map[36] = {
         0, 1, 1, 2,  2,  2,  3,  3,  3,  4,  4,  4,
@@ -485,7 +485,7 @@ MPP_RET calc_debreath_qp(RcModelV2Ctx *ctx)
         9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12
     };
 
-    qp_start_sum = ctx->gop_qp_sum / ctx->gop_frm_cnt;
+    qp_start_sum = MPP_MIN(ctx->gop_qp_sum / ctx->gop_frm_cnt, (RK_S32)sizeof(strength_map) - 1);
 
     rc_dbg_qp("i start_qp %d, qp_start_sum = %d, intra_lv4_prop %d",
               ctx->start_qp, qp_start_sum, ctx->pre_iblk4_prop);
@@ -496,8 +496,7 @@ MPP_RET calc_debreath_qp(RcModelV2Ctx *ctx)
     else
         new_start_qp = qp_start_sum;
 
-    ctx->start_qp =  new_start_qp;
-    ctx->start_qp = mpp_clip(ctx->start_qp, 20, 51);
+    ctx->start_qp = mpp_clip(new_start_qp, ctx->usr_cfg.min_i_quality, ctx->usr_cfg.max_i_quality);
 
     rc_dbg_func("leave %p\n", ctx);
     return MPP_OK;
@@ -1264,11 +1263,6 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         info->quality_min = usr_cfg->min_quality;
     }
 
-    if (frm->is_idr) {
-        p->gop_frm_cnt = 0;
-        p->gop_qp_sum = 0;
-    }
-
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
     rc_dbg_rc("bitrate [%d : %d : %d]\n", info->bit_min, info->bit_target, info->bit_max);
     rc_dbg_rc("quality [%d : %d : %d]\n", info->quality_min, info->quality_target, info->quality_max);
@@ -1407,9 +1401,13 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 
             if (!p->reenc_cnt) {
                 p->cur_scale_qp = qp_scale;
-                if (p->usr_cfg.debreath_cfg.enable)
+                if (p->usr_cfg.debreath_cfg.enable) {
                     calc_debreath_qp(ctx);
+                }
             }
+
+            p->gop_frm_cnt = 0;
+            p->gop_qp_sum = 0;
         } else {
             qp_scale = mpp_clip(qp_scale, (info->quality_min << 6), (info->quality_max << 6));
             p->cur_scale_qp = qp_scale;

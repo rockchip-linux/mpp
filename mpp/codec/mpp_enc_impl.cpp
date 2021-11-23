@@ -1201,6 +1201,74 @@ static MPP_RET mpp_enc_check_pkt_buf(MppEncImpl *enc)
     return MPP_OK;
 }
 
+static MPP_RET mpp_enc_proc_two_pass(Mpp *mpp, EncTask *task)
+{
+    MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
+    MPP_RET ret = MPP_OK;
+
+    if (mpp_enc_refs_next_frm_is_intra(enc->refs)) {
+        EncRcTask *rc_task = &enc->rc_task;
+        EncFrmStatus frm_bak = rc_task->frm;
+        EncRcTaskInfo rc_info = rc_task->info;
+        EncCpbStatus *cpb = &rc_task->cpb;
+        EncFrmStatus *frm = &rc_task->frm;
+        HalEncTask *hal_task = &task->info;
+        EncImpl impl = enc->impl;
+        MppEncHal hal = enc->enc_hal;
+        MppPacket packet = hal_task->packet;
+        RK_S32 task_len = hal_task->length;
+        RK_S32 hw_len = hal_task->hw_length;
+        RK_S32 pkt_len = mpp_packet_get_length(packet);
+
+        enc_dbg_detail("task %d two pass mode enter\n", frm->seq_idx);
+        rc_task->info = enc->rc_info_prev;
+
+        enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
+        mpp_enc_refs_get_cpb_pass1(enc->refs, cpb);
+
+        enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
+        ENC_RUN_FUNC2(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
+        ENC_RUN_FUNC2(enc_impl_proc_hal, impl, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d hal get task\n", frm->seq_idx);
+        ENC_RUN_FUNC2(mpp_enc_hal_get_task, hal, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d hal generate reg\n", frm->seq_idx);
+        ENC_RUN_FUNC2(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d hal start\n", frm->seq_idx);
+        ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d hal wait\n", frm->seq_idx);
+        ENC_RUN_FUNC2(mpp_enc_hal_wait,  hal, hal_task, mpp, ret);
+
+        enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
+        ENC_RUN_FUNC2(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
+
+        //recover status & packet
+        mpp_packet_set_length(packet, pkt_len);
+        hal_task->hw_length = hw_len;
+        hal_task->length = task_len;
+
+        *frm = frm_bak;
+        rc_task->info = rc_info;
+
+        enc_dbg_detail("task %d two pass mode leave\n", frm->seq_idx);
+    }
+TASK_DONE:
+    return ret;
+}
+
+static void mpp_enc_rc_info_backup(MppEncImpl *enc)
+{
+    if (!enc->support_hw_deflicker || !enc->cfg.rc.debreath_en)
+        return;
+
+    enc->rc_info_prev = enc->rc_task.info;
+}
+
 static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
@@ -1214,6 +1282,12 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
+
+    if (enc->support_hw_deflicker && enc->cfg.rc.debreath_en) {
+        ret = mpp_enc_proc_two_pass(mpp, task);
+        if (ret)
+            return ret;
+    }
 
     enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
     mpp_enc_refs_get_cpb(enc->refs, cpb);
@@ -1923,6 +1997,7 @@ TASK_DONE:
     mpp_task_meta_set_frame(enc->task_in, KEY_INPUT_FRAME, enc->frame);
     mpp_port_enqueue(enc->input, enc->task_in);
 
+    mpp_enc_rc_info_backup(enc);
     reset_enc_task(enc);
     task->status.val = 0;
 

@@ -75,7 +75,6 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
     p->cfg = cfg->cfg;
 
     mpp_assert(cfg->coding = MPP_VIDEO_CodingMJPEG);
-    cfg->task_count = 1;
 
     {
         /* init default rc config */
