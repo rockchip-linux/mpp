@@ -1174,11 +1174,12 @@ static void setup_vepu541_me(Vepu541H264eRegSet *regs, H264eSps *sps,
 
     if (is_vepu540) {
         RK_S32 w_temp = 1296;
-        RK_S32 h_temp = 4;
-        RK_S32 h_val_0 = 4;
-        RK_S32 h_val_1 = 24;
+        RK_S32 h_temp = 1;
+        RK_S32 h_val_0 = 1;
+        RK_S32 h_val_1 = 18;
         RK_S32 temp0, temp1;
-        RK_S32 cime_linebuf_w = pic_w / 64;
+        RK_U32 pic_temp = ((regs->reg012.pic_wd8_m1 + 1) * 8 + 63) / 64 * 64;
+        RK_S32 cime_linebuf_w =  pic_temp / 64;
 
         regs->reg091.cme_linebuf_w = cime_linebuf_w;
 
