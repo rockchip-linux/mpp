@@ -43,7 +43,18 @@ typedef union EncFrmStatus_u {
          * 1 - do not write the reconstructed frame pixel to memory
          */
         RK_U32          non_recn        : 1;
-        RK_U32          reserved0       : 2;
+
+        /*
+         * 0 - normal frame and normal dpb management
+         * 1 - save recon frame as first pass extra frame. Used in two pass mode
+         */
+        RK_U32          save_pass1      : 1;
+
+        /*
+         * 0 - use normal input source frame as input
+         * 1 - use the previously stored first pass recon frame as input frame
+         */
+        RK_U32          use_pass1       : 1;
 
         /* reference status flag */
         /*

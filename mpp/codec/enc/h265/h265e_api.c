@@ -54,7 +54,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg = ctrlCfg->cfg;
 
     memset(&p->syntax, 0, sizeof(p->syntax));
-    ctrlCfg->task_count = 1;
 
     p->extra_info = mpp_calloc(H265eExtraInfo, 1);
 

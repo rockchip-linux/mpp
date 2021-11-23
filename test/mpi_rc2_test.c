@@ -961,11 +961,6 @@ RET:
                             } \
                         } while (0)
 
-static const char *name_of_gop_mode[] = {
-    "normal_p",
-    "smart_p",
-};
-
 static void *rc2_pre_dec_thread(void *param)
 {
     MpiRc2TestCtx *ctx = (MpiRc2TestCtx *)param;
@@ -1057,16 +1052,19 @@ static MPP_RET mpi_rc_codec(MpiRc2TestCtx *ctx)
             ctx->frm_idx, elapsed_time / 1000, frame_rate);
 
     if (ctx->frm_idx) {
-        mpp_log("%s: %s: average: bps %d | psnr %5.2f | ssim %5.5f", ctx->enc_cmd->file_input,
-                name_of_gop_mode[ctx->enc_cmd->gop_mode],
+        MpiEncTestArgs* enc_cmd = ctx->enc_cmd;
+
+        mpp_log("%s: %s: average: bps %d | psnr %5.2f | ssim %5.5f",
+                enc_cmd->file_input, enc_cmd->gop_mode ? "smart_p" : "normal_p",
                 30 * (RK_U32)(ctx->total_bits / ctx->frm_idx),
                 ctx->total_psnrs / ctx->frm_idx, ctx->total_ssims / ctx->frm_idx);
         if (ctx->file.fp_stat)
-            fprintf(ctx->file.fp_stat, "%s: %s: average: bps %dk | psnr %5.2f | ssim %5.5f \n", ctx->enc_cmd->file_input,
-                    name_of_gop_mode[ctx->enc_cmd->gop_mode],
+            fprintf(ctx->file.fp_stat, "%s: %s: average: bps %dk | psnr %5.2f | ssim %5.5f \n",
+                    enc_cmd->file_input, enc_cmd->gop_mode ? "smart_p" : "normal_p",
                     30 * (RK_U32)(ctx->total_bits / ctx->frm_idx) / 1000,
                     ctx->total_psnrs / ctx->frm_idx, ctx->total_ssims / ctx->frm_idx);
     }
+
     CHECK_RET(ctx->enc_mpi->reset(ctx->enc_ctx));
     CHECK_RET(ctx->dec_mpi_pre->reset(ctx->dec_ctx_pre));
     CHECK_RET(ctx->dec_mpi_post->reset(ctx->dec_ctx_post));

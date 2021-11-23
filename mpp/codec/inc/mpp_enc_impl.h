@@ -125,6 +125,10 @@ typedef struct MppEncImpl_t {
     MppEncRefs          refs;
     MppEncRefFrmUsrCfg  frm_cfg;
 
+    /* two-pass deflicker parameters */
+    RK_U32              support_hw_deflicker;
+    EncRcTaskInfo       rc_info_prev;
+
     /* Encoder configure set */
     MppEncCfgSet        cfg;
 } MppEncImpl;

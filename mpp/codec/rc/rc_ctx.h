@@ -21,7 +21,6 @@
 
 typedef struct RcModelV2Ctx_t {
     RcCfg           usr_cfg;
-    EncRcTaskInfo   hal_cfg;
 
     RK_U32          frame_type;
     RK_U32          last_frame_type;

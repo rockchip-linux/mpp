@@ -68,12 +68,12 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     enc_hal_cfg.cfg = &p->cfg;
     enc_hal_cfg.type = VPU_CLIENT_BUTT;
     enc_hal_cfg.dev = NULL;
+    enc_hal_cfg.cap_recn_out = 0;
 
     ctrl_cfg.coding = coding;
     ctrl_cfg.type = VPU_CLIENT_BUTT;
     ctrl_cfg.cfg = &p->cfg;
     ctrl_cfg.refs = p->refs;
-    ctrl_cfg.task_count = 2;
 
     ret = mpp_enc_hal_init(&enc_hal, &enc_hal_cfg);
     if (ret) {
@@ -82,7 +82,6 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     }
 
     ctrl_cfg.type = enc_hal_cfg.type;
-    ctrl_cfg.task_count = -1;
 
     ret = enc_impl_init(&impl, &ctrl_cfg);
     if (ret) {
@@ -106,6 +105,9 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     p->version_length = strlen(p->version_info);
     p->rc_cfg_size = SZ_1K;
     p->rc_cfg_info = mpp_calloc_size(char, p->rc_cfg_size);
+
+    if (enc_hal_cfg.cap_recn_out)
+        p->support_hw_deflicker = 1;
 
     {
         // create header packet storage

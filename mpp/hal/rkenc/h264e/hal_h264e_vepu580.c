@@ -49,6 +49,7 @@ typedef struct HalH264eVepu580Ctx_t {
     RK_S32                  pixel_buf_size;
     RK_S32                  thumb_buf_size;
     RK_S32                  max_buf_cnt;
+    MppDevRegOffCfgs        *offsets;
 
     /* external line buffer over 4K */
     MppBufferGroup          ext_line_buf_grp;
@@ -76,6 +77,9 @@ typedef struct HalH264eVepu580Ctx_t {
 
     /* finetune */
     void                    *tune;
+
+    /* two-pass deflicker */
+    MppBuffer               buf_pass1;
 
     /* register */
     HalVepu580RegSet        regs_set;
@@ -146,6 +150,16 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
         p->hw_recn = NULL;
     }
 
+    if (p->offsets) {
+        mpp_dev_multi_offset_deinit(p->offsets);
+        p->offsets = NULL;
+    }
+
+    if (p->buf_pass1) {
+        mpp_buffer_put(p->buf_pass1);
+        p->buf_pass1 = NULL;
+    }
+
     if (p->tune) {
         vepu580_h264e_tune_deinit(p->tune);
         p->tune = NULL;
@@ -198,8 +212,12 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         memcpy(hw->aq_step_i, h264_I_aq_step_default, sizeof(hw->aq_step_i));
         memcpy(hw->aq_step_p, h264_P_aq_step_default, sizeof(hw->aq_step_p));
     }
+    mpp_dev_multi_offset_init(&p->offsets, 24);
+    p->osd_cfg.reg_cfg = p->offsets;
 
     p->tune = vepu580_h264e_tune_init(p);
+
+    cfg->cap_recn_out = 1;
 
 DONE:
     if (ret)
@@ -556,6 +574,71 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
     hal_h264e_dbg_func("leave\n");
 
     return ret;
+}
+
+static MPP_RET vepu580_h264e_save_pass1_patch(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
+{
+    RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 16);
+    RK_S32 height_align = MPP_ALIGN(ctx->cfg->prep.height, 16);
+
+    if (NULL == ctx->buf_pass1) {
+        mpp_buffer_get(NULL, &ctx->buf_pass1, width_align * height_align * 3 / 2);
+        if (!ctx->buf_pass1) {
+            mpp_err("buf_pass1 malloc fail, debreath invaild");
+            return MPP_NOK;
+        }
+    }
+
+    regs->reg_base.enc_pic.cur_frm_ref = 1;
+    regs->reg_base.rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
+    regs->reg_base.rfpw_b_addr = regs->reg_base.rfpw_h_addr;
+    regs->reg_base.enc_pic.rec_fbc_dis = 1;
+    mpp_dev_multi_offset_update(ctx->offsets, 164, width_align * height_align);
+
+    return MPP_OK;
+}
+
+static MPP_RET vepu580_h264e_use_pass1_patch(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
+{
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
+    RK_S32 hor_stride = MPP_ALIGN(prep->width, 16);
+    RK_S32 ver_stride = MPP_ALIGN(prep->height, 16);
+    RK_S32 frame_size = hor_stride * ver_stride;
+    RK_S32 fd_in = mpp_buffer_get_fd(ctx->buf_pass1);
+    RK_S32 y_stride;
+    RK_S32 c_stride;
+
+    hal_h264e_dbg_func("enter\n");
+
+    regs->reg_base.src_fmt.src_cfmt   = VEPU541_FMT_YUV420SP;
+    regs->reg_base.src_fmt.alpha_swap = 0;
+    regs->reg_base.src_fmt.rbuv_swap  = 0;
+    regs->reg_base.src_fmt.out_fmt    = 1;
+
+    y_stride = MPP_ALIGN(prep->width, 16);
+    c_stride = y_stride;
+
+    regs->reg_base.src_proc.afbcd_en   =  0;
+    regs->reg_base.src_strd0.src_strd0  = y_stride;
+    regs->reg_base.src_strd1.src_strd1  = c_stride;
+
+    regs->reg_base.src_proc.src_mirr   = 0;
+    regs->reg_base.src_proc.src_rot    = 0;
+    regs->reg_base.src_proc.txa_en     = 0;
+
+    regs->reg_base.pic_ofst.pic_ofst_y = 0;
+    regs->reg_base.pic_ofst.pic_ofst_x = 0;
+
+
+    regs->reg_base.adr_src0   = fd_in;
+    regs->reg_base.adr_src1   = fd_in;
+    regs->reg_base.adr_src2   = fd_in;
+
+    mpp_dev_multi_offset_update(ctx->offsets, 161, frame_size);
+    mpp_dev_multi_offset_update(ctx->offsets, 162, frame_size);
+
+    hal_h264e_dbg_func("leave\n");
+    return MPP_OK;
 }
 
 static void setup_vepu580_codec(HalVepu580RegSet *regs, H264eSps *sps,
@@ -1056,7 +1139,7 @@ static void setup_vepu580_rc_base(HalVepu580RegSet *regs, H264eSps *sps,
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDev dev,
+static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDevRegOffCfgs *offsets,
                                  HalEncTask *task)
 {
     MppFrame frm = task->frame;
@@ -1131,23 +1214,10 @@ static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDev dev,
         }
     }
 
-    MppDevRegOffsetCfg trans_cfg;
-
-    trans_cfg.reg_idx = 161;
-    trans_cfg.offset = off_in[0];
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 162;
-    trans_cfg.offset = off_in[1];
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 172;
-    trans_cfg.offset = siz_out;
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 175;
-    trans_cfg.offset = off_out;
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_multi_offset_update(offsets, 161, off_in[0]);
+    mpp_dev_multi_offset_update(offsets, 162, off_in[1]);
+    mpp_dev_multi_offset_update(offsets, 172, siz_out);
+    mpp_dev_multi_offset_update(offsets, 175, off_out);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1183,13 +1253,14 @@ static void setup_vepu580_roi(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu580_recn_refr(HalVepu580RegSet *regs, MppDev dev,
-                                    H264eFrmInfo *frms, HalBufs bufs,
-                                    RK_S32 fbc_hdr_size)
+static void setup_vepu580_recn_refr(HalH264eVepu580Ctx *ctx, HalVepu580RegSet *regs)
 {
+    H264eFrmInfo *frms = ctx->frms;
+    HalBufs bufs = ctx->hw_recn;
+    RK_S32 fbc_hdr_size = ctx->pixel_buf_fbc_hdr_size;
+
     HalBuf *curr = hal_bufs_get_buf(bufs, frms->curr_idx);
     HalBuf *refr = hal_bufs_get_buf(bufs, frms->refr_idx);
-    MppDevRegOffsetCfg trans_cfg;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -1204,10 +1275,6 @@ static void setup_vepu580_recn_refr(HalVepu580RegSet *regs, MppDev dev,
         regs->reg_base.rfpw_h_addr = fd;
         regs->reg_base.rfpw_b_addr = fd;
         regs->reg_base.dspw_addr = mpp_buffer_get_fd(buf_thumb);
-
-        trans_cfg.reg_idx = 164;
-        trans_cfg.offset = fbc_hdr_size;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
     if (refr && refr->cnt) {
@@ -1221,11 +1288,10 @@ static void setup_vepu580_recn_refr(HalVepu580RegSet *regs, MppDev dev,
         regs->reg_base.rfpr_h_addr = fd;
         regs->reg_base.rfpr_b_addr = fd;
         regs->reg_base.dspr_addr = mpp_buffer_get_fd(buf_thumb);
-
-        trans_cfg.reg_idx = 166;
-        trans_cfg.offset = fbc_hdr_size;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
+
+    mpp_dev_multi_offset_update(ctx->offsets, 164, fbc_hdr_size);
+    mpp_dev_multi_offset_update(ctx->offsets, 166, fbc_hdr_size);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1620,20 +1686,21 @@ static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice, MppEncHw
 
 static void setup_vepu580_ext_line_buf(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
 {
+    RK_S32 offset = 0;
+
     if (ctx->ext_line_buf) {
-        MppDevRegOffsetCfg trans_cfg;
         RK_S32 fd = mpp_buffer_get_fd(ctx->ext_line_buf);
 
         regs->reg_base.ebuft_addr = fd;
         regs->reg_base.ebufb_addr = fd;
 
-        trans_cfg.reg_idx = 182;
-        trans_cfg.offset = ctx->ext_line_buf_size;
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        offset = ctx->ext_line_buf_size;
     } else {
         regs->reg_base.ebufb_addr = 0;
         regs->reg_base.ebufb_addr = 0;
     }
+
+    mpp_dev_multi_offset_update(ctx->offsets, 182, offset);
 }
 
 static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
@@ -1644,6 +1711,8 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
+    EncRcTask *rc_task = task->rc_task;
+    EncFrmStatus *frm = &rc_task->frm;
     MPP_RET ret = MPP_OK;
 
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -1661,11 +1730,10 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     setup_vepu580_rdo_pred(regs, sps, pps, slice);
     setup_vepu580_rdo_cfg(&regs->reg_rdo);
     setup_vepu580_scl_cfg(&regs->reg_scl);
-    setup_vepu580_rc_base(regs, sps, slice, &cfg->hw, task->rc_task);
-    setup_vepu580_io_buf(regs, ctx->dev, task);
+    setup_vepu580_rc_base(regs, sps, slice, &cfg->hw, rc_task);
+    setup_vepu580_io_buf(regs, ctx->offsets, task);
     setup_vepu580_roi(regs, ctx);
-    setup_vepu580_recn_refr(regs, ctx->dev, ctx->frms, ctx->hw_recn,
-                            ctx->pixel_buf_fbc_hdr_size);
+    setup_vepu580_recn_refr(ctx, regs);
 
     regs->reg_base.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
 
@@ -1679,6 +1747,13 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     setup_vepu580_l2(&ctx->regs_set, slice, &cfg->hw);
     setup_vepu580_ext_line_buf(regs, ctx);
     vepu580_h264e_tune_reg_patch(ctx->tune);
+
+    /* two pass register patch */
+    if (frm->save_pass1)
+        vepu580_h264e_save_pass1_patch(regs, ctx);
+
+    if (frm->use_pass1)
+        vepu580_h264e_use_pass1_patch(regs, ctx);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
@@ -1786,6 +1861,12 @@ static MPP_RET hal_h264e_vepu580_start(void *hal, HalEncTask *task)
         ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
+            break;
+        }
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFS, ctx->offsets);
+        if (ret) {
+            mpp_err_f("set register offsets failed %d\n", ret);
             break;
         }
 
@@ -1900,6 +1981,8 @@ static MPP_RET hal_h264e_vepu580_ret_task(void *hal, HalEncTask *task)
     task->hal_ret.number = 1;
 
     vepu580_h264e_tune_stat_update(ctx->tune);
+
+    mpp_dev_multi_offset_reset(ctx->offsets);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 

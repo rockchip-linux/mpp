@@ -75,6 +75,11 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs);
 MPP_RET mpp_enc_refs_stash(MppEncRefs refs);
 MPP_RET mpp_enc_refs_rollback(MppEncRefs refs);
 
+/* two-pass encoding functions */
+/* check next frame is intra or not */
+RK_S32  mpp_enc_refs_next_frm_is_intra(MppEncRefs refs);
+MPP_RET mpp_enc_refs_get_cpb_pass1(MppEncRefs refs, EncCpbStatus *status);
+
 #define dump_frm(frm)   _dump_frm(frm, __FUNCTION__, __LINE__)
 
 void _dump_frm(EncFrmStatus *frm, const char *func, RK_S32 line);
