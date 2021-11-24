@@ -278,6 +278,14 @@ typedef struct HEVCSPS {
 #endif
 } HEVCSPS;
 
+typedef struct HevcPpsBufInfo_t {
+    RK_U32 *column_width;       ///< ColumnWidth
+    RK_U32 *row_height;         ///< RowHeight
+
+    RK_S32 column_width_size;
+    RK_S32 row_height_size;
+} HevcPpsBufInfo;
+
 typedef struct HEVCPPS {
     RK_S32 sps_id;
     RK_S32 pps_id;
@@ -332,10 +340,9 @@ typedef struct HEVCPPS {
     RK_U8 pps_extension_flag;
     RK_U8 pps_range_extensions_flag;
     RK_U8 pps_extension_data_flag;
-    // Inferred parameters
-    RK_U32 *column_width;  ///< ColumnWidth
-    RK_U32 *row_height;    ///< RowHeight
 
+    // Inferred parameters
+    HevcPpsBufInfo bufs;
 } HEVCPPS;
 
 typedef struct SliceHeader {
@@ -658,8 +665,5 @@ RK_S32 mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *frame, RK_S32 poc);
 void mpp_hevc_unref_frame(HEVCContext *s, HEVCFrame *frame, RK_S32 flags);
 
 void mpp_hevc_pps_free(RK_U8 *data);
-
-
-
 
 #endif /* __H265D_PAESER_H__ */
