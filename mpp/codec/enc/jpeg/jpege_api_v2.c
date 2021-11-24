@@ -305,7 +305,7 @@ static MPP_RET jpege_proc_jpeg_cfg(MppEncJpegCfg *dst, MppEncJpegCfg *src, MppEn
                 memcpy(dst->qtable_u, src->qtable_u, QUANTIZE_TABLE_SIZE);
 
                 if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-                    mpp_log("setup qtable will change mode %s fixqp", dst->quant,
+                    mpp_log("setup qtable will change mode %s fixqp",
                             strof_rc_mode(rc->rc_mode));
                     rc->rc_mode = MPP_ENC_RC_MODE_FIXQP;
                 }
