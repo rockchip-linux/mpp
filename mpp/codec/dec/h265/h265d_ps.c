@@ -1438,7 +1438,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     parse_ptl(s, &sps->ptl, sps->max_sub_layers);
 
     READ_UE(gb, &sps_id);
-    sps->sps_id = sps_id;///<- zrh add
+    sps->sps_id = sps_id;
     if (sps_id >= MAX_SPS_COUNT) {
         mpp_err( "SPS id out of range: %d\n", sps_id);
         ret =  MPP_ERR_STREAM;
@@ -1495,7 +1495,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     sps->bit_depth   =  sps->bit_depth + 8;
     READ_UE(gb, &bit_depth_chroma);
     bit_depth_chroma = bit_depth_chroma + 8;
-    sps->bit_depth_chroma = bit_depth_chroma;///<- zrh add
+    sps->bit_depth_chroma = bit_depth_chroma;
     if (bit_depth_chroma != sps->bit_depth) {
         mpp_err(
             "Luma bit depth (%d) is different from chroma bit depth (%d), "
@@ -1843,22 +1843,25 @@ err:
 void mpp_hevc_pps_free(RK_U8 *data)
 {
     HEVCPPS *pps = (HEVCPPS*)data;
-    if (pps != NULL) {
-        mpp_free(pps->column_width);
-        mpp_free(pps->row_height);
-        mpp_free(pps);
+
+    if (pps) {
+        MPP_FREE(pps->bufs.column_width);
+        MPP_FREE(pps->bufs.row_height);
+        MPP_FREE(pps);
     }
 }
 
 int mpp_hevc_decode_nal_pps(HEVCContext *s)
 {
-
     BitReadCtx_t *gb = &s->HEVClc->gb;
-    HEVCSPS      *sps = NULL;
-    RK_S32 i;
-    RK_S32 ret    = 0;
-    RK_S32 pps_id = 0;
+    HEVCSPS *sps = NULL;
     HEVCPPS *pps = NULL;
+    HevcPpsBufInfo *bufs = NULL;
+    RK_S32 buf_size = 0;
+    RK_S32 new_pps = 0;
+    RK_S32 pps_id = 0;
+    RK_S32 ret = 0;
+    RK_S32 i;
 
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding PPS\n");
 
@@ -1870,16 +1873,21 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         goto err;
     }
 
-    if (s->pps_list[pps_id])
-        pps = (HEVCPPS *)s->pps_list[pps_id];
-    else
+    pps = (HEVCPPS *)s->pps_list[pps_id];
+    if (pps) {
+        // NOTE: keep tile buffers at the end
+        memset(pps, 0, sizeof(*pps) - sizeof(pps->bufs));
+    } else {
         pps = (HEVCPPS *)mpp_calloc(RK_U8, sizeof(*pps));
+        new_pps = 1;
+    }
 
     if (!pps)
         return MPP_ERR_NOMEM;
-    memset(pps, 0, sizeof(*pps));
 
-    pps->pps_id = pps_id;///<- zrh add
+    bufs = &pps->bufs;
+
+    pps->pps_id = pps_id;
     // Default values
     pps->loop_filter_across_tiles_enabled_flag = 1;
     pps->num_tile_columns                      = 1;
@@ -1991,9 +1999,19 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
             goto err;
         }
 
-        pps->column_width = mpp_malloc(RK_U32, pps->num_tile_columns);
-        pps->row_height   = mpp_malloc(RK_U32, pps->num_tile_rows);
-        if (!pps->column_width || !pps->row_height) {
+        buf_size = pps->num_tile_columns * sizeof(RK_U32);
+        if (bufs->column_width_size < buf_size) {
+            bufs->column_width = mpp_malloc_size(RK_U32, buf_size);
+            bufs->column_width_size = buf_size;
+        }
+
+        buf_size = pps->num_tile_rows * sizeof(RK_U32);
+        if (bufs->row_height_size < buf_size) {
+            bufs->row_height = mpp_malloc_size(RK_U32, buf_size);
+            bufs->row_height_size = buf_size;
+        }
+
+        if (!bufs->column_width || !bufs->row_height) {
             ret = MPP_ERR_NOMEM;
             goto err;
         }
@@ -2002,29 +2020,29 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         if (!pps->uniform_spacing_flag) {
             RK_S32 sum = 0;
             for (i = 0; i < pps->num_tile_columns - 1; i++) {
-                READ_UE(gb, &pps->column_width[i]);
-                pps->column_width[i] +=  1;
-                sum                  += pps->column_width[i];
+                READ_UE(gb, &bufs->column_width[i]);
+                bufs->column_width[i] += 1;
+                sum                   += bufs->column_width[i];
             }
             if (sum >= sps->ctb_width) {
                 mpp_err( "Invalid tile widths.\n");
                 ret =  MPP_ERR_STREAM;
                 goto err;
             }
-            pps->column_width[pps->num_tile_columns - 1] = sps->ctb_width - sum;
+            bufs->column_width[pps->num_tile_columns - 1] = sps->ctb_width - sum;
 
             sum = 0;
             for (i = 0; i < pps->num_tile_rows - 1; i++) {
-                READ_UE(gb, &pps->row_height[i]);
-                pps->row_height[i] += 1;
-                sum                += pps->row_height[i];
+                READ_UE(gb, &bufs->row_height[i]);
+                bufs->row_height[i] += 1;
+                sum                 += bufs->row_height[i];
             }
             if (sum >= sps->ctb_height) {
                 mpp_err( "Invalid tile heights.\n");
                 ret =  MPP_ERR_STREAM;
                 goto err;
             }
-            pps->row_height[pps->num_tile_rows - 1] = sps->ctb_height - sum;
+            bufs->row_height[pps->num_tile_rows - 1] = sps->ctb_height - sum;
         }
         READ_ONEBIT(gb, &pps->loop_filter_across_tiles_enabled_flag);
     }
@@ -2101,23 +2119,30 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
 
     // Inferred parameters
     if (pps->uniform_spacing_flag) {
-        if (!pps->column_width) {
-            pps->column_width = mpp_malloc(RK_U32, pps->num_tile_columns );
-            pps->row_height   = mpp_malloc(RK_U32, pps->num_tile_rows);
+        buf_size = pps->num_tile_columns * sizeof(RK_U32);
+        if (bufs->column_width_size < buf_size) {
+            bufs->column_width = mpp_malloc_size(RK_U32, buf_size);
+            bufs->column_width_size = buf_size;
         }
-        if (!pps->column_width || !pps->row_height) {
+
+        buf_size = pps->num_tile_rows * sizeof(RK_U32);
+        if (bufs->row_height_size < buf_size) {
+            bufs->row_height = mpp_malloc_size(RK_U32, buf_size);
+            bufs->row_height_size = buf_size;
+        }
+        if (!bufs->column_width || !bufs->row_height) {
             ret = MPP_ERR_NOMEM;
             goto err;
         }
 
         for (i = 0; i < pps->num_tile_columns; i++) {
-            pps->column_width[i] = ((i + 1) * sps->ctb_width) / pps->num_tile_columns -
-                                   (i * sps->ctb_width) / pps->num_tile_columns;
+            bufs->column_width[i] = ((i + 1) * sps->ctb_width) / pps->num_tile_columns -
+                                    (i * sps->ctb_width) / pps->num_tile_columns;
         }
 
         for (i = 0; i < pps->num_tile_rows; i++) {
-            pps->row_height[i] = ((i + 1) * sps->ctb_height) / pps->num_tile_rows -
-                                 (i * sps->ctb_height) / pps->num_tile_rows;
+            bufs->row_height[i] = ((i + 1) * sps->ctb_height) / pps->num_tile_rows -
+                                  (i * sps->ctb_height) / pps->num_tile_rows;
         }
     }
 
@@ -2129,5 +2154,8 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     return 0;
 __BITREAD_ERR:
 err:
+    if (new_pps)
+        mpp_hevc_pps_free((RK_U8 *)pps);
+
     return ret;
 }

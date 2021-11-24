@@ -149,10 +149,10 @@ static void fill_picture_parameters(const HEVCContext *h,
 
         if (!pps->uniform_spacing_flag) {
             for (i = 0; i < (RK_U32)pps->num_tile_columns; i++)
-                pp->column_width_minus1[i] = pps->column_width[i] - 1;
+                pp->column_width_minus1[i] = pps->bufs.column_width[i] - 1;
 
             for (i = 0; i < (RK_U32)pps->num_tile_rows; i++)
-                pp->row_height_minus1[i] = pps->row_height[i] - 1;
+                pp->row_height_minus1[i] = pps->bufs.row_height[i] - 1;
         }
     }
 
