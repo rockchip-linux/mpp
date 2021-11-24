@@ -733,8 +733,14 @@ MPP_RET vdpu34x_h264d_deinit(void *hal)
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_ctx->reg_buf[i].regs);
 
-    mpp_buffer_put(reg_ctx->rcb_buf);
-    hal_bufs_deinit(p_hal->cmv_bufs);
+    if (reg_ctx->rcb_buf) {
+        mpp_buffer_put(reg_ctx->rcb_buf);
+        reg_ctx->rcb_buf = NULL;
+    }
+    if (p_hal->cmv_bufs) {
+        hal_bufs_deinit(p_hal->cmv_bufs);
+        p_hal->cmv_bufs = NULL;
+    }
     MPP_FREE(p_hal->reg_ctx);
 
     return MPP_OK;

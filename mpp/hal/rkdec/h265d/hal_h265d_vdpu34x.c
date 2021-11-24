@@ -186,46 +186,38 @@ static MPP_RET hal_h265d_vdpu34x_init(void *hal, MppHalCfg *cfg)
 
 static MPP_RET hal_h265d_vdpu34x_deinit(void *hal)
 {
-
-    RK_S32 ret = 0;
     HalH265dCtx *reg_cxt = (HalH265dCtx *)hal;
-    RK_U32 i = 0;
     RK_U32 loop = reg_cxt->fast_mode ? MPP_ARRAY_ELEMS(reg_cxt->g_buf) : 1;
+    RK_U32 i;
 
-    if (reg_cxt->bufs)
+    if (reg_cxt->bufs) {
         mpp_buffer_put(reg_cxt->bufs);
+        reg_cxt->bufs = NULL;
+    }
+
+    if (reg_cxt->rcb_buf) {
+        mpp_buffer_put(reg_cxt->rcb_buf);
+        reg_cxt->rcb_buf = NULL;
+    }
+
+    if (reg_cxt->group) {
+        mpp_buffer_group_put(reg_cxt->group);
+        reg_cxt->group = NULL;
+    }
 
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_cxt->g_buf[i].hw_regs);
 
-    if (reg_cxt->scaling_qm) {
-        mpp_free(reg_cxt->scaling_qm);
+    MPP_FREE(reg_cxt->scaling_qm);
+    MPP_FREE(reg_cxt->scaling_rk);
+    MPP_FREE(reg_cxt->pps_buf);
+    MPP_FREE(reg_cxt->sw_rps_buf);
+
+    if (reg_cxt->cmv_bufs) {
+        hal_bufs_deinit(reg_cxt->cmv_bufs);
+        reg_cxt->cmv_bufs = NULL;
     }
 
-    if (reg_cxt->scaling_rk) {
-        mpp_free(reg_cxt->scaling_rk);
-    }
-
-    if (reg_cxt->pps_buf) {
-        mpp_free(reg_cxt->pps_buf);
-    }
-
-    if (reg_cxt->sw_rps_buf) {
-        mpp_free(reg_cxt->sw_rps_buf);
-    }
-
-
-    if (reg_cxt->rcb_buf)
-        mpp_buffer_put(reg_cxt->rcb_buf);
-
-    if (reg_cxt->group) {
-        ret = mpp_buffer_group_put(reg_cxt->group);
-        if (ret) {
-            mpp_err("h265d group free buffer failed\n");
-            return ret;
-        }
-    }
-    hal_bufs_deinit(reg_cxt->cmv_bufs);
     return MPP_OK;
 }
 
