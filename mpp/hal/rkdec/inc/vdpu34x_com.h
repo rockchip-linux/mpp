@@ -219,6 +219,11 @@ typedef struct Vdpu34xRegCommon_t {
         RK_U32      reserve                 : 11;
         RK_U32      reg_cfg_gating_en       : 1;
     } reg026;
+
+    /* NOTE: reg027 ~ reg032 are added in vdpu38x at rk3588 */
+    RK_U32  reg027_031[5];
+    /* NOTE: timeout must be config in vdpu38x */
+    RK_U32  reg032_timeout_threshold;
 } Vdpu34xRegCommon;
 
 /* base: OFFSET_COMMON_ADDR_REGS */

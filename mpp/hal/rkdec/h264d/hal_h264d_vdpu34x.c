@@ -644,6 +644,7 @@ static MPP_RET init_common_regs(Vdpu34xH264dRegSet *regs)
     common->reg026.swreg_block_gating_e = 0xffff;
     common->reg026.block_gating_en_l2 = 0xf;
     common->reg026.reg_cfg_gating_en = 1;
+    common->reg032_timeout_threshold = 0x0fffffff;
 
     common->reg011.dec_clkgate_e = 1;
     common->reg011.dec_e_strmd_clkgate_dis = 0;
