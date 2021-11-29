@@ -3141,11 +3141,9 @@ typedef struct Vepu580Dbg_t {
         RK_U32 dspr_crdy    : 1;
         RK_U32 dspr_cvld    : 1;
         RK_U32 lktr_busy    : 1;
-        RK_U32 reserved     : 4;
+        RK_U32 lpfr_otsd    : 4;
         RK_U32 rfpr_otsd    : 12;
         RK_U32 dspr_otsd    : 4;
-        RK_U32 lpfr_otsd    : 4;
-        RK_U32 reserved1    : 16;
     } dbg_dma_ch_st;
 
     /* 0x00005140 reg5200 */
