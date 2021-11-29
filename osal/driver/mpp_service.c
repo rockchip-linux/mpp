@@ -355,9 +355,6 @@ MPP_RET mpp_service_rcb_info(void *ctx, MppDevRcbInfoCfg *cfg)
     if (!p->support_set_rcb_info)
         return MPP_OK;
 
-    if (!cfg->size)
-        return MPP_OK;
-
     if (p->rcb_count >= MAX_RCB_OFFSET) {
         mpp_err_f("reach max offset definition\n", MAX_RCB_OFFSET);
         return MPP_NOK;
