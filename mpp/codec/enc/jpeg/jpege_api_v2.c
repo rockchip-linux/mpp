@@ -195,11 +195,11 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     return ret;
 }
 
-/* gen quantizer table by q_factor according to RFC435 spec. */
+/* gen quantizer table by q_factor according to RFC2435 spec. */
 static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
 {
     MPP_RET ret = MPP_OK;
-    RK_U8 q = *factor;
+    RK_U32 q, qfactor = *factor;
     RK_U32 i;
     RK_U8 *qtable_y = NULL;
     RK_U8 *qtable_c = NULL;
@@ -216,10 +216,10 @@ static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
     qtable_y = cfg->qtable_y;
     qtable_c = cfg->qtable_u;
 
-    if (q < 50)
-        q = 5000 / (*factor);
+    if (qfactor < 50)
+        q = 5000 / qfactor;
     else
-        q = 200 - (*factor << 1);
+        q = 200 - (qfactor << 1);
 
     for (i = 0; i < QUANTIZE_TABLE_SIZE; i++) {
         RK_S16 lq = (jpege_luma_quantizer[i] * q + 50) / 100;
