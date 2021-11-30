@@ -84,6 +84,7 @@ typedef struct H265eV541HalContext_t {
     RK_U32              frame_cnt;
     Vepu541OsdCfg       osd_cfg;
     MppEncROICfg        *roi_data;
+    MppEncROICfg2       *roi_data2;
     void                *roi_buf;
     MppBufferGroup      roi_grp;
     MppBuffer           roi_hw_buf;
@@ -849,7 +850,12 @@ MPP_RET vepu541_h265_set_roi(void *dst_buf, void *src_buf, RK_S32 w, RK_S32 h)
 static MPP_RET
 vepu541_h265_set_roi_regs(H265eV541HalContext *ctx, H265eV541RegSet *regs)
 {
-    if (ctx->qpmap) {
+    if (ctx->roi_data2) {
+        MppEncROICfg2 *cfg = ( MppEncROICfg2 *)ctx->roi_data2;
+
+        regs->enc_pic.roi_en = 1;
+        regs->roi_addr_hevc = mpp_buffer_get_fd(cfg->base_cfg_buf);
+    } else if (ctx->qpmap) {
         regs->enc_pic.roi_en = 1;
         regs->roi_addr_hevc = mpp_buffer_get_fd(ctx->qpmap);
     } else {
@@ -1896,6 +1902,7 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         MppMeta meta = mpp_frame_get_meta(frame);
 
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+        mpp_meta_get_ptr(meta, KEY_ROI_DATA2, (void **)&ctx->roi_data2);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
         mpp_meta_get_buffer(meta, KEY_QPMAP0, &ctx->qpmap);
