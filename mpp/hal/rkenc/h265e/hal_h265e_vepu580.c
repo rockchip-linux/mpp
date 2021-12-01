@@ -1685,7 +1685,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->reg0008_int_en.brsp_otsd_en        = 1;
     reg_ctl->reg0008_int_en.wbus_err_en         = 1;
     reg_ctl->reg0008_int_en.rbus_err_en         = 1;
-    reg_ctl->reg0008_int_en.wdg_en              = 0;
+    reg_ctl->reg0008_int_en.wdg_en              = 1;
     reg_ctl->reg0008_int_en.lkt_err_int_en      = 0;
 
     reg_ctl->reg0012_dtrns_map.lpfw_bus_ordr    = 0x0;
@@ -1703,8 +1703,8 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
 
     reg_ctl->reg0013_dtrns_cfg.dspr_otsd        = (ctx->frame_type == INTER_P_FRAME);
     reg_ctl->reg0013_dtrns_cfg.axi_brsp_cke     = 0x0;
-    reg_ctl->reg0014_enc_wdg.vs_load_thd        = 0;
-    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0;
+    reg_ctl->reg0014_enc_wdg.vs_load_thd        = 0x1fffff;
+    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0xff;
 
     reg_ctl->reg0021_func_en.cke                = 1;
     reg_ctl->reg0021_func_en.resetn_hw_en       = 1;
