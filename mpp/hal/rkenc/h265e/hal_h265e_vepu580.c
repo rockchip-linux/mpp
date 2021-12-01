@@ -1706,6 +1706,10 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->reg0014_enc_wdg.vs_load_thd        = 0;
     reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0;
 
+    reg_ctl->reg0021_func_en.cke                = 1;
+    reg_ctl->reg0021_func_en.resetn_hw_en       = 1;
+    reg_ctl->reg0021_func_en.enc_done_tmvp_en   = 1;
+
     reg_base->reg0196_enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
     reg_base->reg0197_src_fill.pic_wfill    = (syn->pp.pic_width & 0x7)
                                               ? (8 - (syn->pp.pic_width & 0x7)) : 0;
