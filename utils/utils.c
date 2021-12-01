@@ -91,6 +91,7 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         fwrite(tmp, 1, width * height, fp);
         mpp_free(tmp);
     } break;
+    case MPP_FMT_YUV420SP_VU :
     case MPP_FMT_YUV420SP : {
         RK_U32 i;
         RK_U8 *base_y = base;
