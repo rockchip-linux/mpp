@@ -395,7 +395,7 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     regs->reg_ctl.int_en.brsp_otsd_en        = 1;
     regs->reg_ctl.int_en.wbus_err_en         = 1;
     regs->reg_ctl.int_en.rbus_err_en         = 1;
-    regs->reg_ctl.int_en.wdg_en              = 0;
+    regs->reg_ctl.int_en.wdg_en              = 1;
 
     /* reg005 INT_MSK */
     regs->reg_ctl.int_msk.enc_done_msk       = 0;
@@ -411,8 +411,8 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     /* reg006 INT_CLR is not set */
     /* reg007 INT_STA is read only */
     /* reg008 ~ reg0011 gap */
-    regs->reg_ctl.enc_wdg.vs_load_thd        = 0;//x1ffff;
-    regs->reg_ctl.enc_wdg.rfp_load_thd       = 0;//xff;
+    regs->reg_ctl.enc_wdg.vs_load_thd        = 0x1fffff;
+    regs->reg_ctl.enc_wdg.rfp_load_thd       = 0xff;
 
     /* reg015 DTRNS_MAP */
     regs->reg_ctl.dtrns_map.cmvw_bus_ordr      = 0;
