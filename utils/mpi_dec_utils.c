@@ -44,7 +44,7 @@ typedef enum {
     FILE_BUTT,
 } FileType;
 
-typedef RK_U32 (*ReaderFunc)(FileReader data);
+typedef FileBufSlot *(*ReaderFunc)(FileReader data);
 
 typedef struct FileReader_t {
     FILE            *fp_input;
@@ -88,7 +88,29 @@ OptionInfo mpi_dec_cmd[] = {
     {NULL},
 };
 
-static RK_U32 read_ivf_file(FileReader data)
+static MPP_RET add_new_slot(FileReaderImpl* impl, FileBufSlot *slot)
+{
+    mpp_assert(impl);
+
+    slot->index = impl->slot_cnt;
+    impl->slots[impl->slot_cnt] = slot;
+    impl->slot_cnt++;
+
+    if (impl->slot_cnt >= impl->slot_max) {
+        impl->slots = mpp_realloc(impl->slots, FileBufSlot*, impl->slot_max * 2);
+        if (!impl->slots)
+            return MPP_NOK;
+
+        impl->slot_max *= 2;
+    }
+
+    mpp_assert(impl->slots);
+    mpp_assert(impl->slot_cnt < impl->slot_max);
+
+    return MPP_OK;
+}
+
+static FileBufSlot *read_ivf_file(FileReader data)
 {
     FileReaderImpl *impl = (FileReaderImpl*)data;
     RK_U8 ivf_data[IVF_FRAME_HEADER_LENGTH] = {0};
@@ -103,11 +125,11 @@ static RK_U32 read_ivf_file(FileReader data)
         /* end of frame queue */
         slot = mpp_calloc(FileBufSlot, 1);
         slot->eos = 1;
-        impl->slots[impl->slot_cnt] = slot;
 
-        return 1;
+        return slot;
     }
 
+    impl->read_total += ivf_data_size;
     data_size = ivf_data[0] | (ivf_data[1] << 8) | (ivf_data[2] << 16) | (ivf_data[3] << 24);
     slot = mpp_malloc_size(FileBufSlot, MPP_ALIGN(sizeof(FileBufSlot) + data_size, SZ_4K));
     slot->data = (char *)(slot + 1);
@@ -115,22 +137,20 @@ static RK_U32 read_ivf_file(FileReader data)
     impl->read_total += read_size;
     impl->read_size = read_size;
 
+    if (!data_size)
+        mpp_err("data_size is zero! ftell size %d\n", ftell(fp));
     /* check reach eos whether or not */
-    if (read_size != data_size || feof(fp) || impl->read_total >= impl->file_size)
+    if (!data_size || read_size != data_size || feof(fp) || impl->read_total >= impl->file_size)
         eos = 1;
 
     slot->buf = NULL;
     slot->size = read_size;
     slot->eos = eos;
-    slot->index = impl->slot_cnt;
 
-    mpp_assert(impl->slot_cnt < impl->slot_max);
-    impl->slots[impl->slot_cnt] = slot;
-
-    return eos;
+    return slot;
 }
 
-static RK_U32 read_jpeg_file(FileReader data)
+static FileBufSlot *read_jpeg_file(FileReader data)
 {
     FileReaderImpl *impl = (FileReaderImpl*)data;
     FILE *fp = impl->fp_input;
@@ -154,15 +174,11 @@ static RK_U32 read_jpeg_file(FileReader data)
     slot->buf   = hw_buf;
     slot->size  = read_size;
     slot->eos   = 1;
-    slot->index = impl->slot_cnt;
 
-    mpp_assert(impl->slot_cnt < impl->slot_max);
-    impl->slots[impl->slot_cnt] = slot;
-
-    return 1;
+    return slot;
 }
 
-static RK_U32 read_normal_file(FileReader data)
+static FileBufSlot *read_normal_file(FileReader data)
 {
     FileReaderImpl *impl = (FileReaderImpl*)data;
     FILE *fp = impl->fp_input;
@@ -184,12 +200,8 @@ static RK_U32 read_normal_file(FileReader data)
     slot->buf = NULL;
     slot->size  = read_size;
     slot->eos   = eos;
-    slot->index = impl->slot_cnt;
 
-    mpp_assert(impl->slot_cnt < impl->slot_max);
-    impl->slots[impl->slot_cnt] = slot;
-
-    return eos;
+    return slot;
 }
 
 static void check_file_type(FileReader data, char *file_in)
@@ -202,9 +214,10 @@ static void check_file_type(FileReader data, char *file_in)
         impl->stuff_size    = 0;
         impl->seek_base     = IVF_HEADER_LENGTH;
         impl->read_func     = read_ivf_file;
-        impl->slot_max      = MPP_ALIGN(impl->file_size, SZ_4K) / SZ_4K;
+        impl->slot_max      = 1024;     /* preset 1024 file slots */
 
         fseek(impl->fp_input, impl->seek_base, SEEK_SET);
+        impl->read_total = impl->seek_base;
     } else if (strstr(file_in, ".jpg") ||
                strstr(file_in, ".jpeg") ||
                strstr(file_in, ".mjpeg")) {
@@ -229,7 +242,7 @@ static void check_file_type(FileReader data, char *file_in)
         impl->stuff_size    = 256;
         impl->seek_base     = 0;
         impl->read_func     = read_normal_file;
-        impl->slot_max      = MPP_ALIGN(impl->file_size, buf_size) / buf_size;
+        impl->slot_max      = 1024;     /* preset 1024 file slots */
     }
 }
 
@@ -261,7 +274,7 @@ MPP_RET reader_read(FileReader reader, FileBufSlot **buf)
 
     do {
         slot = impl->slots[impl->slot_rd_idx];
-        if (slot == NULL)
+        if (slot == NULL || (impl->slot_rd_idx > impl->slot_cnt))
             msleep(1);
     } while (slot == NULL);
 
@@ -329,7 +342,7 @@ void reader_init(FileReader* reader, char* file_in)
 
     check_file_type(impl, file_in);
 
-    impl->slots = mpp_calloc(FileBufSlot *, impl->slot_max);
+    impl->slots = mpp_calloc(FileBufSlot*, impl->slot_max);
 
     reader_start(impl);
 
@@ -376,9 +389,13 @@ static void* reader_worker(void *param)
     RK_U32 eos = 0;
 
     while (!impl->thd_stop && !eos) {
-        eos = impl->read_func(impl);
-        impl->slot_cnt++;
-        mpp_assert(impl->slot_cnt <= impl->slot_max);
+        FileBufSlot *slot = impl->read_func(impl);
+
+        if (NULL == slot)
+            break;
+
+        add_new_slot(impl, slot);
+        eos = slot->eos;
     }
 
     return NULL;
