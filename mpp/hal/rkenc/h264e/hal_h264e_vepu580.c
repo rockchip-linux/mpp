@@ -376,7 +376,7 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     regs->reg_ctl.enc_strt.lkt_num            = 0;
     regs->reg_ctl.enc_strt.vepu_cmd          = 1;
     regs->reg_ctl.func_en.cke                = 1;
-    regs->reg_ctl.func_en.resetn_hw_en       = 0;
+    regs->reg_ctl.func_en.resetn_hw_en       = 1;
     regs->reg_ctl.func_en.enc_done_tmvp_en   = 1;
 
     /* reg002 ENC_CLR */
