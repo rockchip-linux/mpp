@@ -204,6 +204,13 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
                 mpp_free(hw_ctx->g_buf[i].hw_regs);
                 hw_ctx->g_buf[i].hw_regs = NULL;
             }
+            if (hw_ctx->g_buf[i].rcb_buf) {
+                ret = mpp_buffer_put(hw_ctx->g_buf[i].rcb_buf);
+                if (ret) {
+                    mpp_err("vp9 rcb_buf[%d] put buffer failed\n", i);
+                    return ret;
+                }
+            }
         }
     } else {
         if (hw_ctx->probe_base) {
@@ -238,16 +245,16 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
             mpp_free(hw_ctx->hw_regs);
             hw_ctx->hw_regs = NULL;
         }
-    }
-    if (hw_ctx->rcb_buf) {
-        ret = mpp_buffer_put(hw_ctx->rcb_buf);
-        if (ret) {
-            mpp_err("vp9 rcb_buf put buffer failed\n");
-            return ret;
+        if (hw_ctx->rcb_buf) {
+            ret = mpp_buffer_put(hw_ctx->rcb_buf);
+            if (ret) {
+                mpp_err("vp9 rcb_buf put buffer failed\n");
+                return ret;
+            }
         }
     }
 
-    if (hw_ctx->rcb_buf) {
+    if (hw_ctx->cmv_bufs) {
         ret = hal_bufs_deinit(hw_ctx->cmv_bufs);
         if (ret) {
             mpp_err("vp9 cmv bufs deinit buffer failed\n");
@@ -397,19 +404,34 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, voi
         hw_ctx->bit_depth != bit_depth ||
         hw_ctx->width != width ||
         hw_ctx->height != height) {
-        MppBuffer rcb_buf = hw_ctx->rcb_buf;
-
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            rcb_buf = NULL;
-        }
 
         hw_ctx->rcb_buf_size = get_rcb_buf_size(hw_ctx->rcb_info, width, height);
         vp9d_refine_rcb_size(hw_ctx->rcb_info, hw_regs, width, height, pic_param);
 
-        mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+        if (p_hal->fast_mode) {
+            RK_U32 i;
 
-        hw_ctx->rcb_buf        = rcb_buf;
+            for (i = 0; i < MPP_ARRAY_ELEMS(hw_ctx->g_buf); i++) {
+                MppBuffer rcb_buf = hw_ctx->g_buf[i].rcb_buf;
+
+                if (rcb_buf) {
+                    mpp_buffer_put(rcb_buf);
+                    hw_ctx->g_buf[i].rcb_buf = NULL;
+                }
+                mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+                hw_ctx->g_buf[i].rcb_buf = rcb_buf;
+            }
+        } else {
+            MppBuffer rcb_buf = hw_ctx->rcb_buf;
+
+            if (rcb_buf) {
+                mpp_buffer_put(rcb_buf);
+                rcb_buf = NULL;
+            }
+            mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+            hw_ctx->rcb_buf = rcb_buf;
+        }
+
         hw_ctx->num_row_tiles  = num_tiles;
         hw_ctx->bit_depth      = bit_depth;
         hw_ctx->width          = width;
@@ -773,7 +795,12 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
                      hw_ctx->ls_info.last_intra_only);
 
     hal_vp9d_rcb_info_update(hal, vp9_hw_regs, pic_param);
-    vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, hw_ctx->rcb_buf, hw_ctx->rcb_info);
+    {
+        MppBuffer rcb_buf = NULL;
+
+        rcb_buf = p_hal->fast_mode ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf : hw_ctx->rcb_buf;
+        vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, rcb_buf, hw_ctx->rcb_info);
+    }
     vdpu34x_setup_statistic(&vp9_hw_regs->common, &vp9_hw_regs->statistic);
 
     // whether need update counts
