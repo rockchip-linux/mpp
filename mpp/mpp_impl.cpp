@@ -363,7 +363,7 @@ MPP_RET mpp_ops_dec_put_pkt(MppDump info, MppPacket pkt)
 MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
-    if (NULL == p || NULL == frame || NULL == p->fp_out || NULL == p->fp_buf)
+    if (NULL == p || NULL == frame || NULL == p->fp_out)
         return MPP_OK;
 
     AutoMutex auto_lock(p->lock);
@@ -400,7 +400,7 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
-    if (NULL == p || NULL == frame || NULL == p->fp_in || NULL == p->fp_buf)
+    if (NULL == p || NULL == frame || NULL == p->fp_in)
         return MPP_OK;
 
     AutoMutex auto_lock(p->lock);
