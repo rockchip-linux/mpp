@@ -109,6 +109,12 @@ typedef union DecTaskStatus_u {
     };
 } DecTaskStatus;
 
+typedef struct MppPktTimestamp_t {
+    struct list_head link;
+    RK_S64  pts;
+    RK_S64  dts;
+} MppPktTs;
+
 typedef struct DecTask_t {
     HalTaskHnd      hnd;
 
@@ -116,6 +122,7 @@ typedef struct DecTask_t {
     PaserTaskWait   wait;
 
     HalTaskInfo     info;
+    MppPktTs        ts_cur;
 } DecTask;
 
 static RK_S32 ts_cmp(void *priv, const struct list_head *a, const struct list_head *b)
@@ -135,6 +142,7 @@ static void dec_task_init(DecTask *task)
     task->status.val = 0;
     task->wait.val   = 0;
     task->status.prev_task_rdy  = 1;
+    INIT_LIST_HEAD(&task->ts_cur.link);
 
     hal_task_info_init(&task->info, MPP_CTX_DEC);
 }
@@ -834,16 +842,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         mpp_clock_pause(dec->clocks[DEC_PRS_PREPARE]);
         if (dec->cfg.base.sort_pts && task_dec->valid) {
-            MppPktTs *pkt_ts = (MppPktTs*)mpp_mem_pool_get(dec->ts_pool);
-
-            mpp_assert(pkt_ts);
-            pkt_ts->pts = mpp_packet_get_pts(dec->mpp_pkt_in);
-            pkt_ts->dts = mpp_packet_get_dts(dec->mpp_pkt_in);
-            INIT_LIST_HEAD(&pkt_ts->link);
-            mpp_spinlock_lock(&dec->ts_lock);
-            list_add_tail(&pkt_ts->link, &dec->ts_link);
-            list_sort(NULL, &dec->ts_link, ts_cmp);
-            mpp_spinlock_unlock(&dec->ts_lock);
+            task->ts_cur.pts = mpp_packet_get_pts(dec->mpp_pkt_in);
+            task->ts_cur.dts = mpp_packet_get_dts(dec->mpp_pkt_in);
         }
         dec_release_input_packet(dec, 0);
     }
@@ -1080,6 +1080,19 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     task->wait.dec_pic_match = (NULL == hal_buf_out);
     if (task->wait.dec_pic_match)
         return MPP_NOK;
+
+    if (dec->cfg.base.sort_pts) {
+        MppPktTs *pkt_ts = (MppPktTs *)mpp_mem_pool_get(dec->ts_pool);
+
+        mpp_assert(pkt_ts);
+        pkt_ts->pts = task->ts_cur.pts;
+        pkt_ts->dts = task->ts_cur.dts;
+        INIT_LIST_HEAD(&pkt_ts->link);
+        mpp_spinlock_lock(&dec->ts_lock);
+        list_add_tail(&pkt_ts->link, &dec->ts_link);
+        list_sort(NULL, &dec->ts_link, ts_cmp);
+        mpp_spinlock_unlock(&dec->ts_lock);
+    }
 
     /* generating registers table */
     mpp_clock_start(dec->clocks[DEC_HAL_GEN_REG]);

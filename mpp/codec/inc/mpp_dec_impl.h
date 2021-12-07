@@ -130,12 +130,6 @@ typedef struct MppDecImpl_t {
     spinlock_t          ts_lock;
 } MppDecImpl;
 
-typedef struct MppPktTimestamp_t {
-    struct list_head link;
-    RK_S32  pts;
-    RK_S32  dts;
-} MppPktTs;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
