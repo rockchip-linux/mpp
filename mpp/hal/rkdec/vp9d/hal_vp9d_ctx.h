@@ -44,6 +44,7 @@ typedef struct Vp9dRegBuf_t {
     MppBuffer   segid_cur_base;
     MppBuffer   segid_last_base;
     void        *hw_regs;
+    MppBuffer   rcb_buf;
 } Vp9dRegBuf;
 
 typedef struct HalVp9dCtx_t {
