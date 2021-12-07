@@ -265,22 +265,22 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     RK_U32 hor_stride_pixel;
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
-        case MPP_FMT_YUV420SP_10BIT: {
-            hor_stride_pixel = hal_hor_stride * 8 / 10;
-        } break;
-        case MPP_FMT_YUV422_YVYU:
-        case MPP_FMT_YUV422_YUYV:
-        case MPP_FMT_RGB565:
-        case MPP_FMT_BGR565: {
-            hor_stride_pixel = hal_hor_stride / 2;
-        } break;
-        case MPP_FMT_RGB888:
-        case MPP_FMT_BGR888: {
-            hor_stride_pixel = hal_hor_stride / 3;
-        } break;
-        default : {
-            hor_stride_pixel = hal_hor_stride;
-        } break;
+    case MPP_FMT_YUV420SP_10BIT: {
+        hor_stride_pixel = hal_hor_stride * 8 / 10;
+    } break;
+    case MPP_FMT_YUV422_YVYU:
+    case MPP_FMT_YUV422_YUYV:
+    case MPP_FMT_RGB565:
+    case MPP_FMT_BGR565: {
+        hor_stride_pixel = hal_hor_stride / 2;
+    } break;
+    case MPP_FMT_RGB888:
+    case MPP_FMT_BGR888: {
+        hor_stride_pixel = hal_hor_stride / 3;
+    } break;
+    default : {
+        hor_stride_pixel = hal_hor_stride;
+    } break;
     }
 
     hal_hor_stride = (force_default_align && codec_hor_stride) ? codec_hor_stride : hal_hor_stride;
