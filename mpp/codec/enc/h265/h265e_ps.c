@@ -203,6 +203,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     init_raster2zscan(codec->max_cu_size, maxCUDepth + 1, &sps->raster2zscan[0], &sps->zscan2raster[0]);
     init_raster2pelxy(codec->max_cu_size, maxCUDepth + 1, &sps->raster2pelx[0], &sps->raster2pely[0]);
 
+    memset(&sps->m_conformanceWindow, 0, sizeof(H265eCropInfo));
     if ((prep->width % minCUDepth) != 0) {
         RK_U32 padsize = 0;
         RK_U32 rem = prep->width % minCUDepth;
