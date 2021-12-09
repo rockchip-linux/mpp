@@ -305,8 +305,8 @@ static RK_S32 tone_mapping_info(HEVCContext *s)
             READ_ONEBIT(gb, &value); //exposure_compensation_value_sign_flag
             READ_BITS(gb, 16, &value); //exposure_compensation_value_numerator
             READ_BITS(gb, 16, &value); //exposure_compensation_value_denom_idc
-            READ_BITS(gb, 32, &value); //ref_screen_luminance_white
-            READ_BITS(gb, 32, &value); //extended_range_white_level
+            READ_BITS_LONG(gb, 32, &value); //ref_screen_luminance_white
+            READ_BITS_LONG(gb, 32, &value); //extended_range_white_level
             READ_BITS(gb, 16, &value); //nominal_black_level_code_value
             READ_BITS(gb, 16, &value); //nominal_white_level_code_value
             READ_BITS(gb, 16, &value); //extended_white_level_code_value
