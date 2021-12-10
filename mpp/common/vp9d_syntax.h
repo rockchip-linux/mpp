@@ -104,7 +104,7 @@ typedef struct _DXVA_PicParams_VP9 {
             USHORT reset_frame_context : 2;
             USHORT allow_high_precision_mv : 1;
             USHORT parallelmode            : 1;
-            USHORT ReservedFormatInfo2Bits : 1;
+            USHORT show_existing_frame : 1;
         };
         USHORT wFormatAndPictureInfoFlags;
     };

@@ -219,9 +219,27 @@ typedef struct Vdpu34xRegCommon_t {
         RK_U32      reserve                 : 11;
         RK_U32      reg_cfg_gating_en       : 1;
     } reg026;
+    RK_U32 reg027;
+    struct SWREG28_MULTIPLY_CORE_CTRL {
+        RK_U32      swreg_vp9_wr_prob_idx   : 3;
+        RK_U32      reserve0                : 1;
+        RK_U32      swreg_vp9_rd_prob_idx   : 3;
+        RK_U32      reserve1                : 1;
 
+        RK_U32      swreg_ref_req_advance_flag  : 1;
+        RK_U32      sw_colmv_req_advance_flag   : 1;
+        RK_U32      sw_poc_only_highbit_flag    : 1;
+        RK_U32      sw_poc_arb_flag             : 1;
+
+        RK_U32      reserve2                : 4;
+        RK_U32      sw_film_idx             : 10;
+        RK_U32      reserve3                : 2;
+        RK_U32      sw_pu_req_mismatch_dis  : 1;
+        RK_U32      sw_colmv_req_mismatch_dis   : 1;
+        RK_U32      reserve4                : 2;
+    } reg028;
     /* NOTE: reg027 ~ reg032 are added in vdpu38x at rk3588 */
-    RK_U32  reg027_031[5];
+    RK_U32  reg029_031[3];
     /* NOTE: timeout must be config in vdpu38x */
     RK_U32  reg032_timeout_threshold;
 } Vdpu34xRegCommon;
