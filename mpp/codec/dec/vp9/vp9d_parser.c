@@ -393,6 +393,9 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     mpp_frame_set_errinfo(frame->f, 0);
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
+    // set current poc
+    s->cur_poc++;
+    mpp_frame_set_poc(frame->f, s->cur_poc);
 
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
         mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
@@ -635,8 +638,9 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
         return MPP_ERR_STREAM;
     }
     vp9d_dbg(VP9D_DBG_HEADER, "profile %d", ctx->profile);
-    if (mpp_get_bit1(&s->gb)) {
-        vp9d_dbg(VP9D_DBG_HEADER, "show_existing_frame 1");
+    s->show_existing_frame = mpp_get_bit1(&s->gb);
+    vp9d_dbg(VP9D_DBG_HEADER, "show_existing_frame %d", s->show_existing_frame);
+    if (s->show_existing_frame) {
         *refo = mpp_get_bits(&s->gb, 3);
         vp9d_dbg(VP9D_DBG_HEADER, "frame_to_show %d", *refo);
         return 0;
@@ -1732,6 +1736,7 @@ MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx)
     VP9ParseContext *pc = (VP9ParseContext *)ps->priv_data;
 
     s->got_keyframes = 0;
+    s->cur_poc = 0;
     for (i = 0; i < 3; i++) {
         if (s->frames[i].ref) {
             vp9_unref_frame(s, &s->frames[i]);

@@ -28,12 +28,10 @@ typedef struct Vdpu34xRegVp9dParam_t {
     } reg64;
 
     struct SWREG65_CUR_POC {
-        RK_U32      cur_top_poc : 32;
+        RK_U32      cur_poc : 32;
     } reg65;
 
-    struct SWREG66_H264_CUR_POC1 {
-        RK_U32      cur_bot_poc : 32;
-    } reg66;
+    RK_U32 reg66;
 
     struct SWREG67_74_VP9_SEGID_GRP {
         RK_U32      segid_abs_delta                 : 1;
@@ -49,7 +47,8 @@ typedef struct Vdpu34xRegVp9dParam_t {
 
     struct SWREG75_VP9_INFO_LASTFRAME {
         RK_U32      mode_deltas_lastframe           : 14;
-        RK_U32      reserve0                        : 2;
+        RK_U32      vp9_segment_id_clear            : 1;
+        RK_U32      vp9_segment_id_update           : 1;
         RK_U32      segmentation_enable_lstframe    : 1;
         RK_U32      last_show_frame                 : 1;
         RK_U32      last_intra_only                 : 1;
@@ -154,7 +153,31 @@ typedef struct Vdpu34xRegVp9dParam_t {
         RK_U32      reserve                 : 4;
     } reg94;
 
-    RK_U32  reg95_102_no_use[8];
+    struct SWREG95_LAST_POC {
+        RK_U32      last_poc : 32;
+    } reg95;
+
+    struct SWREG96_GOLDEN_POC {
+        RK_U32      golden_poc : 32;
+    } reg96;
+
+    struct SWREG97_ALTREF_POC {
+        RK_U32      altref_poc : 32;
+    } reg97;
+
+    struct SWREG98_COF_REF_POC {
+        RK_U32      col_ref_poc : 32;
+    } reg98;
+
+    struct SWREG99_PROB_REF_POC {
+        RK_U32      prob_ref_poc : 32;
+    } reg99;
+
+    struct SWREG100_SEGID_REF_POC {
+        RK_U32      segid_ref_poc : 32;
+    } reg100;
+
+    RK_U32  reg101_102_no_use[2];
 
     struct SWREG103_VP9_PROB_EN {
         RK_U32      reserve                 : 20;

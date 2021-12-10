@@ -119,6 +119,7 @@ typedef struct VP9Context {
     RK_S32 y_stride, uv_stride;
 
     // bitstream header
+    RK_U8 show_existing_frame;
     RK_U8 keyframe, last_keyframe;
     RK_U8 last_bpp, bpp, bpp_index, bytesperpixel;
     RK_U8 invisible;
@@ -259,6 +260,7 @@ typedef struct VP9Context {
     RK_S64 pts;
     RK_S32 upprobe_num;
     RK_S32 outframe_num;
+    RK_U32 cur_poc;
 } VP9Context;
 
 #ifdef  __cplusplus

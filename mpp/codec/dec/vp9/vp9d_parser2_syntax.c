@@ -79,6 +79,7 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
     int i;
 
     pic->profile = ctx->profile;
+    pic->show_existing_frame = s->show_existing_frame;
     pic->frame_type = !s->keyframe;
     pic->show_frame = !s->invisible;
     pic->error_resilient_mode =  s->errorres;

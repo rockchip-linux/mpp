@@ -69,6 +69,9 @@ typedef struct Vdpu34xVp9dCtx_t {
     RK_S32          mv_count;
     RK_U32          prob_ctx_valid[VP9_CONTEXT];
     MppBuffer       prob_loop_base[VP9_CONTEXT];
+    RK_U32          prob_ref_poc[VP9_CONTEXT];
+    RK_U32          col_ref_poc;
+    RK_U32          segid_ref_poc;
 } Vdpu34xVp9dCtx;
 
 static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
@@ -529,6 +532,51 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->vp9d_param.reg103.allow_high_precision_mv  = pic_param->allow_high_precision_mv;
     vp9_hw_regs->vp9d_param.reg103.last_key_frame_flag      = hw_ctx->ls_info.last_intra_only;
 
+    /* set info for multi core */
+    {
+        MppFrame mframe = NULL;
+        RK_U8 ref_frame_idx = 0;
+
+        vp9_hw_regs->common.reg028.sw_poc_arb_flag = 1;
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME, &mframe);
+
+        vp9_hw_regs->vp9d_param.reg65.cur_poc = mpp_frame_get_poc(mframe);
+        // last poc
+        ref_idx = pic_param->frame_refs[0].Index7Bits;
+        ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
+        if (ref_frame_idx < 0x7f) {
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            vp9_hw_regs->vp9d_param.reg95.last_poc = mpp_frame_get_poc(mframe);
+        }
+        // golden poc
+        ref_idx = pic_param->frame_refs[1].Index7Bits;
+        ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
+        if (ref_frame_idx < 0x7f) {
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            vp9_hw_regs->vp9d_param.reg96.golden_poc = mpp_frame_get_poc(mframe);
+        }
+        // altref poc
+        ref_idx = pic_param->frame_refs[2].Index7Bits;
+        ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
+        if (ref_frame_idx < 0x7f) {
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            vp9_hw_regs->vp9d_param.reg97.altref_poc = mpp_frame_get_poc(mframe);
+        }
+        // colref poc
+        vp9_hw_regs->vp9d_param.reg98.col_ref_poc =
+            hw_ctx->col_ref_poc ? hw_ctx->col_ref_poc : vp9_hw_regs->vp9d_param.reg65.cur_poc;
+        if (pic_param->show_frame && !pic_param->show_existing_frame)
+            hw_ctx->col_ref_poc = vp9_hw_regs->vp9d_param.reg65.cur_poc;
+        // segment id ref poc
+        vp9_hw_regs->vp9d_param.reg100.segid_ref_poc = hw_ctx->segid_ref_poc;
+
+        if ((pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) ||
+            (hw_ctx->ls_info.last_width != pic_param->width) ||
+            (hw_ctx->ls_info.last_height != pic_param->height) ||
+            intraFlag || pic_param->error_resilient_mode) {
+            hw_ctx->segid_ref_poc = vp9_hw_regs->vp9d_param.reg65.cur_poc;
+        }
+    }
 
     /* config last prob base and update write base */
     {
@@ -564,15 +612,24 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
             fclose(fp);
         }
 #endif
+
         if (hw_ctx->prob_ctx_valid[frame_ctx_id]) {
             vp9_hw_regs->vp9d_addr.reg162_last_prob_base =
                 mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
+            vp9_hw_regs->common.reg028.swreg_vp9_rd_prob_idx = frame_ctx_id + 1;
+            vp9_hw_regs->vp9d_param.reg99.prob_ref_poc = hw_ctx->prob_ref_poc[frame_ctx_id];
         } else {
             vp9_hw_regs->vp9d_addr.reg162_last_prob_base = mpp_buffer_get_fd(hw_ctx->prob_default_base);
             hw_ctx->prob_ctx_valid[frame_ctx_id] |= pic_param->refresh_frame_context;
+            vp9_hw_regs->common.reg028.swreg_vp9_rd_prob_idx = 0;
+            vp9_hw_regs->vp9d_param.reg99.prob_ref_poc = 0;
+            if (pic_param->refresh_frame_context)
+                hw_ctx->prob_ref_poc[frame_ctx_id] = vp9_hw_regs->vp9d_param.reg65.cur_poc;
         }
         vp9_hw_regs->vp9d_addr.reg172_update_prob_wr_base =
             mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
+        vp9_hw_regs->common.reg028.swreg_vp9_wr_prob_idx = frame_ctx_id + 1;
+
     }
     vp9_hw_regs->vp9d_addr.reg160_delta_prob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
 #else
