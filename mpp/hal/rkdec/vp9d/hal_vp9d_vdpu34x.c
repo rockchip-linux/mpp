@@ -820,6 +820,9 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common.reg011.dec_timeout_e    = 1;
     vp9_hw_regs->common.reg011.buf_empty_en     = 1;
     vp9_hw_regs->common.reg013.timeout_mode     = 1;
+
+    vp9_hw_regs->common.reg026.swreg_block_gating_e = 0xfffff;
+    vp9_hw_regs->common.reg026.reg_cfg_gating_en = 1;
     vp9_hw_regs->common.reg032_timeout_threshold = 0x0fffffff;
 
     //last info  update

@@ -214,8 +214,7 @@ typedef struct Vdpu34xRegCommon_t {
     } reg025;
 
     struct SWREG26_BLOCK_GATING_EN {
-        RK_U32      swreg_block_gating_e    : 16;
-        RK_U32      block_gating_en_l2      : 4;
+        RK_U32      swreg_block_gating_e    : 20;
         RK_U32      reserve                 : 11;
         RK_U32      reg_cfg_gating_en       : 1;
     } reg026;
