@@ -13,6 +13,7 @@ set(HAL_H265E_HDR
 set(HAL_H265E_SRC
     hal_h265e_vepu541.c
     hal_h265e_vepu580.c
+    hal_h265e_vepu540c.c
     )
 
 add_library(hal_h265e_vepu541 STATIC
