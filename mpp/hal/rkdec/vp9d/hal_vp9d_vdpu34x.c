@@ -1067,6 +1067,9 @@ static MPP_RET hal_vp9d_vdpu34x_reset(void *hal)
     hw_ctx->mv_base_addr = -1;
     hw_ctx->pre_mv_base_addr = -1;
     hw_ctx->last_segid_flag = 1;
+    memset(&hw_ctx->prob_ref_poc, 0, sizeof(hw_ctx->prob_ref_poc));
+    hw_ctx->col_ref_poc = 0;
+    hw_ctx->segid_ref_poc = 0;
 
     hal_vp9d_leave();
 
