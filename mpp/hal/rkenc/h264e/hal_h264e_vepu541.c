@@ -1630,7 +1630,7 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
     rc_info->madi = (!ctx->regs_ret.st_mb_num) ? 0 :
                     ctx->regs_ret.st_madi /  ctx->regs_ret.st_mb_num;
     rc_info->madp = (!ctx->regs_ret.st_ctu_num) ? 0 :
-                    ctx->regs_ret.st_madi / ctx->regs_ret.st_ctu_num;
+                    ctx->regs_ret.st_madp / ctx->regs_ret.st_ctu_num;
     rc_info->iblk4_prop = (ctx->regs_ret.st_lvl4_intra_num +
                            ctx->regs_ret.st_lvl8_intra_num +
                            ctx->regs_ret.st_lvl16_intra_num) * 256 / mbs;
