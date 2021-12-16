@@ -30,19 +30,22 @@ typedef struct MpiEncTestArgs_t {
 
     MppCodingType       type;
     MppFrameFormat      format;
-    RK_S32              num_frames;
+    RK_S32              frame_num;
     RK_S32              loop_cnt;
+    RK_S32              nthreads;
 
     RK_S32              width;
     RK_S32              height;
     RK_S32              hor_stride;
     RK_S32              ver_stride;
 
+    /* -bps */
     RK_S32              bps_target;
     RK_S32              bps_max;
     RK_S32              bps_min;
     RK_S32              rc_mode;
 
+    /* -fps */
     RK_S32              fps_in_flex;
     RK_S32              fps_in_num;
     RK_S32              fps_in_den;
@@ -50,13 +53,16 @@ typedef struct MpiEncTestArgs_t {
     RK_S32              fps_out_num;
     RK_S32              fps_out_den;
 
+    /* -g gop mode */
     RK_S32              gop_mode;
     RK_S32              gop_len;
     RK_S32              vi_len;
 
-    MppEncHeaderMode    header_mode;
-
-    MppEncSliceSplit    split;
+    /* -v q runtime log disable flag */
+    RK_U32              quiet;
+    /* -v f runtime fps log flag */
+    RK_U32              trace_fps;
+    FpsCalc             fps;
 } MpiEncTestArgs;
 
 #ifdef __cplusplus

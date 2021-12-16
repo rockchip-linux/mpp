@@ -61,7 +61,6 @@ typedef struct MpiDecTestCmd_t {
     FpsCalc         fps;
 
     /* runtime log flag */
-    RK_U32          debug;
     RK_U32          quiet;
     RK_U32          trace_fps;
 } MpiDecTestCmd;
@@ -71,7 +70,6 @@ extern OptionInfo mpi_dec_cmd[];
 RK_S32  mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv);
 RK_S32  mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd);
 void    mpi_dec_test_cmd_options(MpiDecTestCmd* cmd);
-void    mpi_dec_test_cmd_help();
 
 void    reader_init(FileReader* reader, char* file_in);
 void    reader_deinit(FileReader reader);

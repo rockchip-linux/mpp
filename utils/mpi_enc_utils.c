@@ -25,6 +25,8 @@
 #include "rk_mpi.h"
 #include "utils.h"
 #include "mpp_common.h"
+
+#include "mpp_opt.h"
 #include "mpi_enc_utils.h"
 
 #define MAX_FILE_NAME_LENGTH        256
@@ -91,244 +93,414 @@ MpiEncTestArgs *mpi_enc_test_cmd_get(void)
 {
     MpiEncTestArgs *args = mpp_calloc(MpiEncTestArgs, 1);
 
+    if (args)
+        args->nthreads = 1;
+
     return args;
+}
+
+RK_S32 mpi_enc_opt_i(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+        if (len) {
+            cmd->file_input = mpp_calloc(char, len + 1);
+            strcpy(cmd->file_input, next);
+            name_to_frame_format(cmd->file_input, &cmd->format);
+        }
+
+        return 1;
+    }
+
+    mpp_err("input file is invalid\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_o(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+        if (len) {
+            cmd->file_output = mpp_calloc(char, len + 1);
+            strcpy(cmd->file_output, next);
+            name_to_coding_type(cmd->file_output, &cmd->type);
+        }
+
+        return 1;
+    }
+
+    mpp_log("output file is invalid\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_w(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->width = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input width\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_h(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->height = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input height\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_hstride(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->hor_stride = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input horizontal stride\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_vstride(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->ver_stride = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input vertical stride\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_f(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppFrameFormat format = MPP_FMT_BUTT;
+
+    if (next) {
+        if (strstr(next, "x") || strstr(next, "X")) {
+            /* hex value with 0x prefix, use sscanf */
+            sscanf(next, "0x%x", &format);
+        } else if (strstr(next, "a") || strstr(next, "A") ||
+                   strstr(next, "b") || strstr(next, "B") ||
+                   strstr(next, "c") || strstr(next, "C") ||
+                   strstr(next, "d") || strstr(next, "D") ||
+                   strstr(next, "e") || strstr(next, "E") ||
+                   strstr(next, "f") || strstr(next, "F")) {
+            /* hex value without 0x prefix, use sscanf */
+            sscanf(next, "%x", &format);
+        } else {
+            /* decimal value, use atoi */
+            format = (MppFrameFormat)atoi(next);
+        }
+        if (MPP_FRAME_FMT_IS_LE(format) &&
+            (MPP_FRAME_FMT_IS_YUV(format) || MPP_FRAME_FMT_IS_RGB(format))) {
+            cmd->format = format;
+            return 1;
+        }
+    }
+
+    mpp_err("invalid input format %x\n", format);
+    cmd->format = MPP_FMT_YUV420SP;
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_t(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppCodingType type = MPP_VIDEO_CodingUnused;
+
+    if (next) {
+        type = (MppCodingType)atoi(next);
+        if (!mpp_check_support_format(MPP_CTX_ENC, type))
+            cmd->type = type;
+        return 1;
+    }
+
+    mpp_err("invalid input coding type %d\n", type);
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_n(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->frame_num = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input max number of frames\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_g(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    RK_S32 cnt = 0;
+
+    if (next) {
+        cnt = sscanf(next, "%d:%d:%d",
+                     &cmd->gop_mode, &cmd->gop_len, &cmd->vi_len);
+        if (cnt)
+            return 1;
+    }
+
+    mpp_err("invalid gop mode use -g gop_mode:gop_len:vi_len\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_bps(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    RK_S32 cnt = 0;
+
+    if (next) {
+        cnt = sscanf(next, "%d:%d:%d:%d",
+                     &cmd->bps_target, &cmd->bps_min, &cmd->bps_max,
+                     &cmd->rc_mode);
+        if (cnt)
+            return 1;
+    }
+
+    mpp_err("invalid bit rate usage -b bps_target:bps_min:bps_max:rc_mode\n");
+    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        RK_U32 num = sscanf(next, "%d:%d:%d/%d:%d:%d",
+                            &cmd->fps_in_num, &cmd->fps_in_den, &cmd->fps_in_flex,
+                            &cmd->fps_out_num, &cmd->fps_out_den, &cmd->fps_out_flex);
+        switch (num) {
+        case 1 : {
+            cmd->fps_out_num = cmd->fps_in_num;
+            cmd->fps_out_den = cmd->fps_in_den = 1;
+            cmd->fps_out_flex = cmd->fps_in_flex = 0;
+        } break;
+        case 2 : {
+            cmd->fps_out_num = cmd->fps_in_num;
+            cmd->fps_out_den = cmd->fps_in_den;
+            cmd->fps_out_flex = cmd->fps_in_flex = 0;
+        } break;
+        case 3 : {
+            cmd->fps_out_num = cmd->fps_in_num;
+            cmd->fps_out_den = cmd->fps_in_den;
+            cmd->fps_out_flex = cmd->fps_in_flex;
+        } break;
+        case 4 : {
+            cmd->fps_out_den = 1;
+            cmd->fps_out_flex = 0;
+        } break;
+        case 5 : {
+            cmd->fps_out_flex = 0;
+        } break;
+        case 6 : {
+        } break;
+        default : {
+            mpp_err("invalid in/out frame rate,"
+                    " use \"-r numerator:denominator:flex\""
+                    " for set the input to the same fps as the output, such as 50:1:1\n"
+                    " or \"-r numerator:denominator/flex-numerator:denominator:flex\""
+                    " for set input and output separately, such as 40:1:1/30:1:0\n");
+        } break;
+        }
+
+        return (num && num <= 6);
+    }
+
+    mpp_err("invalid output frame rate\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_s(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    cmd->nthreads = -1;
+    if (next) {
+        cmd->nthreads = atoi(next);
+        if (cmd->nthreads >= 1)
+            return 1;
+    }
+
+    mpp_err("invalid nthreads %d\n", cmd->nthreads);
+    cmd->nthreads = 1;
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_l(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->loop_cnt = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid loop count\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_v(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        if (strstr(next, "q"))
+            cmd->quiet = 1;
+        if (strstr(next, "f"))
+            cmd->trace_fps = 1;
+
+        return 1;
+    }
+
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_ini(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+        if (len) {
+            cmd->file_cfg = mpp_calloc(char, len + 1);
+            strncpy(cmd->file_cfg, next, len);
+            cmd->cfg_ini = iniparser_load(cmd->file_cfg);
+
+            return 1;
+        }
+    }
+
+    mpp_err("input ini file is invalid\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
+{
+    (void)ctx;
+    (void)next;
+    return -1;
+}
+
+static MppOptInfo enc_opts[] = {
+    {"i",       "input_file",           "input frame file",                         mpi_enc_opt_i},
+    {"o",       "output_file",          "output encoded bitstream file",            mpi_enc_opt_o},
+    {"w",       "width",                "the width of input picture",               mpi_enc_opt_w},
+    {"h",       "height",               "the height of input picture",              mpi_enc_opt_h},
+    {"hstride", "hor_stride",           "the horizontal stride of input picture",   mpi_enc_opt_hstride},
+    {"vstride", "ver_stride",           "the vertical stride of input picture",     mpi_enc_opt_vstride},
+    {"f",       "format",               "the format of input picture",              mpi_enc_opt_f},
+    {"t",       "type",                 "output stream coding type",                mpi_enc_opt_t},
+    {"n",       "max frame number",     "max encoding frame number",                mpi_enc_opt_n},
+    {"g",       "gop reference mode",   "gop_mode:gop_len:vi_len",                  mpi_enc_opt_g},
+    {"bps",     "bps target:min:max",   "set tareget/min/max bps and rc_mode",      mpi_enc_opt_bps},
+    {"fps",     "in/output fps",        "set input and output frame rate",          mpi_enc_opt_fps},
+    {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
+    {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
+    {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
+    {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
+};
+
+static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);
+
+RK_S32 mpi_enc_show_help(const char *name)
+{
+    RK_U32 max_name = 1;
+    RK_U32 max_full_name = 1;
+    RK_U32 max_help = 1;
+    char logs[256];
+    RK_U32 len;
+    RK_U32 i;
+
+    mpp_log("usage: %s [options]\n", name);
+
+    for (i = 0; i < enc_opt_cnt; i++) {
+        MppOptInfo *opt = &enc_opts[i];
+
+        if (opt->name) {
+            len = strlen(opt->name);
+            if (len > max_name)
+                max_name = len;
+        }
+
+        if (opt->full_name) {
+            len = strlen(opt->full_name);
+            if (len > max_full_name)
+                max_full_name = len;
+        }
+
+        if (opt->help) {
+            len = strlen(opt->help);
+            if (len > max_help)
+                max_help = len;
+        }
+    }
+
+    snprintf(logs, sizeof(logs) - 1, "-%%-%ds %%-%ds %%-%ds\n", max_name, max_full_name, max_help);
+
+    for (i = 0; i < enc_opt_cnt; i++) {
+        MppOptInfo *opt = &enc_opts[i];
+
+        mpp_log(logs, opt->name, opt->full_name, opt->help);
+    }
+    mpp_show_support_format();
+    mpp_show_color_format();
+
+    return -1;
+}
+
+void show_enc_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S64 last_count)
+{
+    float avg_fps = (float)total_count * 1000000 / total_time;
+    float ins_fps = (float)last_count * 1000000 / last_time;
+
+    mpp_log("encoded %10lld frame fps avg %7.2f ins %7.2f\n",
+            total_count, avg_fps, ins_fps);
 }
 
 MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **argv)
 {
-    const char *opt;
-    const char *next;
-    RK_S32 optindex = 1;
-    RK_S32 handleoptions = 1;
-    MPP_RET ret = MPP_NOK;
+    MppOpt opts = NULL;
+    RK_S32 ret = -1;
+    RK_U32 i;
 
-    if ((argc < 2) || (cmd == NULL))
-        return ret;
+    if ((argc < 2) || NULL == cmd || NULL == argv)
+        goto done;
 
-    /* parse options */
-    while (optindex < argc) {
-        opt  = (const char*)argv[optindex++];
-        next = (const char*)argv[optindex];
+    mpp_opt_init(&opts);
+    /* should change node count when option increases */
+    mpp_opt_setup(opts, cmd, 50, enc_opt_cnt);
 
-        if (handleoptions && opt[0] == '-' && opt[1] != '\0') {
-            if (opt[1] == '-') {
-                if (opt[2] != '\0') {
-                    opt++;
-                } else {
-                    handleoptions = 0;
-                    continue;
-                }
-            }
+    for (i = 0; i < enc_opt_cnt; i++)
+        mpp_opt_add(opts, &enc_opts[i]);
 
-            opt++;
+    /* mark option end */
+    mpp_opt_add(opts, NULL);
 
-            switch (*opt) {
-            case 'i' : {
-                if (next) {
-                    size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
-                    if (len) {
-                        cmd->file_input = mpp_calloc(char, len + 1);
-                        strcpy(cmd->file_input, next);
-                        name_to_frame_format(cmd->file_input, &cmd->format);
-                    }
-                } else {
-                    mpp_err("input file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'o' : {
-                if (next) {
-                    size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
-                    if (len) {
-                        cmd->file_output = mpp_calloc(char, len + 1);
-                        strcpy(cmd->file_output, next);
-                        name_to_coding_type(cmd->file_output, &cmd->type);
-                    }
-                } else {
-                    mpp_log("output file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'w' : {
-                if (next) {
-                    cmd->width = atoi(next);
-                } else {
-                    mpp_err("invalid input width\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'h' : {
-                if (!next)
-                    goto PARSE_OPINIONS_OUT;
-
-                if ((*(opt + 1) != '\0') && !strncmp(opt, "help", 4)) {
-                    goto PARSE_OPINIONS_OUT;
-                } else if (next) {
-                    cmd->height = atoi(next);
-                }
-            } break;
-            case 'u' : {
-                if (next) {
-                    cmd->hor_stride = atoi(next);
-                } else {
-                    mpp_err("invalid input width\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'v' : {
-                if (next) {
-                    cmd->ver_stride = atoi(next);
-                } else {
-                    mpp_log("input height is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'f' : {
-                if (next) {
-                    if (strstr(next, "x") || strstr(next, "X")) {
-                        /* hex value with 0x prefix, use sscanf */
-                        sscanf(next, "0x%x", &cmd->format);
-                    } else if (strstr(next, "a") || strstr(next, "A") ||
-                               strstr(next, "b") || strstr(next, "B") ||
-                               strstr(next, "c") || strstr(next, "C") ||
-                               strstr(next, "d") || strstr(next, "D") ||
-                               strstr(next, "e") || strstr(next, "E") ||
-                               strstr(next, "f") || strstr(next, "F")) {
-                        /* hex value without 0x prefix, use sscanf */
-                        sscanf(next, "%x", &cmd->format);
-                    } else {
-                        /* decimal value, use atoi */
-                        cmd->format = (MppFrameFormat)atoi(next);
-                    }
-                    ret = (!MPP_FRAME_FMT_IS_LE(cmd->format)) && ((cmd->format >= MPP_FMT_YUV_BUTT && cmd->format < MPP_FRAME_FMT_RGB) ||
-                                                                  cmd->format >= MPP_FMT_RGB_BUTT);
-                }
-
-                if (!next || ret) {
-                    mpp_err("invalid input format %d\n", cmd->format);
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 't' : {
-                if (next) {
-                    cmd->type = (MppCodingType)atoi(next);
-                    ret = mpp_check_support_format(MPP_CTX_ENC, cmd->type);
-                }
-
-                if (!next || ret) {
-                    mpp_err("invalid input coding type\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'n' : {
-                if (next) {
-                    cmd->num_frames = atoi(next);
-                } else {
-                    mpp_err("invalid input max number of frames\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'g' : {
-                RK_S32 cnt = 0;
-
-                if (next)
-                    cnt = sscanf(next, "%d:%d:%d",
-                                 &cmd->gop_mode, &cmd->gop_len, &cmd->vi_len);
-
-                if (!cnt) {
-                    mpp_err("invalid gop mode use -g gop_mode:gop_len:vi_len\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'b' : {
-                RK_S32 cnt = 0;
-
-                if (next)
-                    cnt = sscanf(next, "%d:%d:%d:%d",
-                                 &cmd->bps_target, &cmd->bps_min, &cmd->bps_max,
-                                 &cmd->rc_mode);
-
-                if (!cnt) {
-                    mpp_err("invalid bit rate usage -b bps_target:bps_min:bps_max:rc_mode\n");
-                    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'r' : {
-                if (next) {
-                    RK_S32 num = sscanf(next, "%d:%d:%d/%d:%d:%d",
-                                        &cmd->fps_in_num, &cmd->fps_in_den, &cmd->fps_in_flex,
-                                        &cmd->fps_out_num, &cmd->fps_out_den, &cmd->fps_out_flex);
-                    switch (num) {
-                    case 1 : {
-                        cmd->fps_out_num = cmd->fps_in_num;
-                        cmd->fps_out_den = cmd->fps_in_den = 1;
-                        cmd->fps_out_flex = cmd->fps_in_flex = 0;
-                    } break;
-                    case 2 : {
-                        cmd->fps_out_num = cmd->fps_in_num;
-                        cmd->fps_out_den = cmd->fps_in_den;
-                        cmd->fps_out_flex = cmd->fps_in_flex = 0;
-                    } break;
-                    case 3 : {
-                        cmd->fps_out_num = cmd->fps_in_num;
-                        cmd->fps_out_den = cmd->fps_in_den;
-                        cmd->fps_out_flex = cmd->fps_in_flex;
-                    } break;
-                    case 4 : {
-                        cmd->fps_out_den = 1;
-                        cmd->fps_out_flex = 0;
-                    } break;
-                    case 5 : {
-                        cmd->fps_out_flex = 0;
-                    } break;
-                    case 6 : {
-                    } break;
-                    default : {
-                        mpp_err("invalid in/out frame rate,"
-                                " use \"-r numerator:denominator:flex\""
-                                " for set the input to the same fps as the output, such as 50:1:1\n"
-                                " or \"-r numerator:denominator/flex-numerator:denominator:flex\""
-                                " for set input and output separately, such as 40:1:1/30:1:0\n");
-                        goto PARSE_OPINIONS_OUT;
-                    } break;
-                    }
-                } else {
-                    mpp_err("invalid output frame rate\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'l' : {
-                if (next) {
-                    cmd->loop_cnt = atoi(next);
-                } else {
-                    mpp_err("invalid loop count\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            case 'x': {
-                if (next) {
-                    size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
-                    if (len) {
-                        cmd->file_cfg = mpp_calloc(char, len + 1);
-                        strncpy(cmd->file_cfg, next, len);
-                        cmd->cfg_ini = iniparser_load(cmd->file_cfg);
-                    }
-                } else {
-                    mpp_err("input file is invalid\n");
-                    goto PARSE_OPINIONS_OUT;
-                }
-            } break;
-            default : {
-                mpp_err("skip invalid opt %c\n", *opt);
-            } break;
-            }
-
-            optindex++;
-        }
-    }
-
-    ret = MPP_OK;
+    ret = mpp_opt_parse(opts, argc, argv);
 
     /* check essential parameter */
     if (cmd->type <= MPP_VIDEO_CodingAutoDetect) {
@@ -347,8 +519,20 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
                 cmd->width, cmd->height, cmd->hor_stride, cmd->ver_stride);
         ret = MPP_NOK;
     }
+    if (cmd->trace_fps) {
+        fps_calc_init(&cmd->fps);
+        mpp_assert(cmd->fps);
+        fps_calc_set_cb(cmd->fps, show_enc_fps);
+    }
 
-PARSE_OPINIONS_OUT:
+done:
+    if (opts) {
+        mpp_opt_deinit(opts);
+        opts = NULL;
+    }
+    if (ret)
+        mpi_enc_show_help(argv[0]);
+
     return ret;
 }
 
@@ -360,6 +544,11 @@ MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
     if (cmd->cfg_ini) {
         iniparser_freedict(cmd->cfg_ini);
         cmd->cfg_ini = NULL;
+    }
+
+    if (cmd->fps) {
+        fps_calc_deinit(cmd->fps);
+        cmd->fps = NULL;
     }
 
     MPP_FREE(cmd->file_input);
