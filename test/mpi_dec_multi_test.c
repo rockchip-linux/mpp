@@ -595,14 +595,8 @@ int main(int argc, char **argv)
 
     // parse the cmd option
     ret = mpi_dec_test_cmd_init(cmd, argc, argv);
-    if (ret) {
-        if (ret < 0) {
-            mpp_err("mpi_dec_multi_test_parse_options: input parameter invalid\n");
-        }
-
-        mpi_dec_test_cmd_help();
+    if (ret)
         goto RET;
-    }
 
     mpi_dec_test_cmd_options(cmd);
 

@@ -35,24 +35,30 @@
 #include "mpp_enc_roi_utils.h"
 
 typedef struct {
+    // base flow context
+    MppCtx ctx;
+    MppApi *mpi;
+    RK_S32 chn;
+
     // global flow control flag
     RK_U32 frm_eos;
     RK_U32 pkt_eos;
     RK_U32 frm_pkt_cnt;
+    RK_S32 frame_num;
     RK_S32 frame_count;
     RK_U64 stream_size;
+    /* end of encoding flag when set quit the loop */
+    volatile RK_U32 loop_end;
 
     // src and dst
     FILE *fp_input;
     FILE *fp_output;
 
-    // base flow context
-    MppCtx ctx;
-    MppApi *mpi;
-    MppEncCfg cfg;
-    MppEncPrepCfg prep_cfg;
-    MppEncRcCfg rc_cfg;
-    MppEncCodecCfg codec_cfg;
+    /* encoder config set */
+    MppEncCfg       cfg;
+    MppEncPrepCfg   prep_cfg;
+    MppEncRcCfg     rc_cfg;
+    MppEncCodecCfg  codec_cfg;
     MppEncSliceSplit split_cfg;
     MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
@@ -74,7 +80,6 @@ typedef struct {
     RK_U32 ver_stride;
     MppFrameFormat fmt;
     MppCodingType type;
-    RK_S32 num_frames;
     RK_S32 loop_times;
     CamSource *cam_ctx;
     MppEncRoiCtx roi_ctx;
@@ -94,7 +99,6 @@ typedef struct {
     RK_U32 roi_enable;
 
     // rate control runtime parameter
-
     RK_S32 fps_in_flex;
     RK_S32 fps_in_den;
     RK_S32 fps_in_num;
@@ -108,24 +112,36 @@ typedef struct {
     RK_S32 gop_mode;
     RK_S32 gop_len;
     RK_S32 vi_len;
+
+    RK_S64 first_frm;
+    RK_S64 first_pkt;
 } MpiEncTestData;
 
-MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
+/* For each instance thread return value */
+typedef struct {
+    float           frame_rate;
+    RK_U64          bit_rate;
+    RK_S64          elapsed_time;
+    RK_S32          frame_count;
+    RK_S64          stream_size;
+    RK_S64          delay;
+} MpiEncMultiCtxRet;
+
+typedef struct {
+    MpiEncTestArgs      *cmd;       // pointer to global command line info
+    const char          *name;
+    RK_S32              chn;
+
+    pthread_t           thd;        // thread for for each instance
+    MpiEncTestData      ctx;        // context of encoder
+    MpiEncMultiCtxRet   ret;        // return of encoder
+} MpiEncMultiCtxInfo;
+
+MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
 {
-    MpiEncTestData *p = NULL;
+    MpiEncTestArgs *cmd = info->cmd;
+    MpiEncTestData *p = &info->ctx;
     MPP_RET ret = MPP_OK;
-
-    if (!data || !cmd) {
-        mpp_err_f("invalid input data %p cmd %p\n", data, cmd);
-        return MPP_ERR_NULL_PTR;
-    }
-
-    p = mpp_calloc(MpiEncTestData, 1);
-    if (!p) {
-        mpp_err_f("create MpiEncTestData failed\n");
-        ret = MPP_ERR_MALLOC;
-        goto RET;
-    }
 
     // get paramter from cmd
     p->width        = cmd->width;
@@ -140,10 +156,10 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     p->bps_min      = cmd->bps_min;
     p->bps_max      = cmd->bps_max;
     p->rc_mode      = cmd->rc_mode;
-    p->num_frames   = cmd->num_frames;
-    if (cmd->type == MPP_VIDEO_CodingMJPEG && p->num_frames == 0) {
+    p->frame_num    = cmd->frame_num;
+    if (cmd->type == MPP_VIDEO_CodingMJPEG && p->frame_num == 0) {
         mpp_log("jpege default encode only one frame. Use -n [num] for rc case\n");
-        p->num_frames   = 1;
+        p->frame_num = 1;
     }
     p->gop_mode     = cmd->gop_mode;
     p->gop_len      = cmd->gop_len;
@@ -212,20 +228,11 @@ MPP_RET test_ctx_init(MpiEncTestData **data, MpiEncTestArgs *cmd)
     else
         p->header_size = 0;
 
-RET:
-    *data = p;
     return ret;
 }
 
-MPP_RET test_ctx_deinit(MpiEncTestData **data)
+MPP_RET test_ctx_deinit(MpiEncTestData *p)
 {
-    MpiEncTestData *p = NULL;
-
-    if (!data) {
-        mpp_err_f("invalid input data %p\n", data);
-        return MPP_ERR_NULL_PTR;
-    }
-    p = *data;
     if (p) {
         if (p->cam_ctx) {
             camera_source_deinit(p->cam_ctx);
@@ -239,25 +246,19 @@ MPP_RET test_ctx_deinit(MpiEncTestData **data)
             fclose(p->fp_output);
             p->fp_output = NULL;
         }
-        MPP_FREE(p);
-        *data = NULL;
     }
     return MPP_OK;
 }
 
-MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
+MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 {
+    MpiEncTestArgs *cmd = info->cmd;
+    MpiEncTestData *p = &info->ctx;
+    MppApi *mpi = p->mpi;
+    MppCtx ctx = p->ctx;
+    MppEncCfg cfg = p->cfg;
+    RK_U32 quiet = cmd->quiet;
     MPP_RET ret;
-    MppApi *mpi;
-    MppCtx ctx;
-    MppEncCfg cfg;
-
-    if (NULL == p)
-        return MPP_ERR_NULL_PTR;
-
-    mpi = p->mpi;
-    ctx = p->ctx;
-    cfg = p->cfg;
 
     /* setup default parameter */
     if (p->fps_in_den == 0)
@@ -405,7 +406,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncTestData *p)
     mpp_env_get_u32("split_arg", &p->split_arg, 0);
 
     if (p->split_mode) {
-        mpp_log("%p split_mode %d split_arg %d\n", ctx, p->split_mode, p->split_arg);
+        mpp_log_q(quiet, "%p split_mode %d split_arg %d\n", ctx, p->split_mode, p->split_arg);
         mpp_enc_cfg_set_s32(cfg, "split:mode", p->split_mode);
         mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
     }
@@ -469,18 +470,16 @@ RET:
     return ret;
 }
 
-MPP_RET test_mpp_run(MpiEncTestData *p)
+MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
 {
-    MPP_RET ret = MPP_OK;
-    MppApi *mpi;
-    MppCtx ctx;
+    MpiEncTestArgs *cmd = info->cmd;
+    MpiEncTestData *p = &info->ctx;
+    MppApi *mpi = p->mpi;
+    MppCtx ctx = p->ctx;
+    RK_U32 quiet = cmd->quiet;
+    RK_S32 chn = info->chn;
     RK_U32 cap_num = 0;
-
-    if (NULL == p)
-        return MPP_ERR_NULL_PTR;
-
-    mpi = p->mpi;
-    ctx = p->ctx;
+    MPP_RET ret = MPP_OK;
 
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         MppPacket packet = NULL;
@@ -525,14 +524,14 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             if (ret == MPP_NOK || feof(p->fp_input)) {
                 p->frm_eos = 1;
 
-                if (p->num_frames < 0 || p->frame_count < p->num_frames) {
+                if (p->frame_num < 0 || p->frame_count < p->frame_num) {
                     clearerr(p->fp_input);
                     rewind(p->fp_input);
                     p->frm_eos = 0;
-                    mpp_log("%p loop times %d\n", ctx, ++p->loop_times);
+                    mpp_log_q(quiet, "chn %d loop times %d\n", chn, ++p->loop_times);
                     continue;
                 }
-                mpp_log("%p found last frame. feof %d\n", ctx, feof(p->fp_input));
+                mpp_log_q(quiet, "chn %d found last frame. feof %d\n", chn, feof(p->fp_input));
             } else if (ret == MPP_ERR_VALUE)
                 goto RET;
         } else {
@@ -664,6 +663,8 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
             }
         }
 
+        if (!p->first_frm)
+            p->first_frm = mpp_time();
         /*
          * NOTE: in non-block mode the frame can be resent.
          * The default input timeout mode is block.
@@ -673,16 +674,17 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
          */
         ret = mpi->encode_put_frame(ctx, frame);
         if (ret) {
-            mpp_err("mpp encode put frame failed\n");
+            mpp_err("chn %d encode put frame failed\n", chn);
             mpp_frame_deinit(&frame);
             goto RET;
         }
+
         mpp_frame_deinit(&frame);
 
         do {
             ret = mpi->encode_get_packet(ctx, &packet);
             if (ret) {
-                mpp_err("mpp encode get packet failed\n");
+                mpp_err("chn %d encode get packet failed\n", chn);
                 goto RET;
             }
 
@@ -695,6 +697,9 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                 char log_buf[256];
                 RK_S32 log_size = sizeof(log_buf) - 1;
                 RK_S32 log_len = 0;
+
+                if (!p->first_pkt)
+                    p->first_pkt = mpp_time();
 
                 p->pkt_eos = mpp_packet_get_eos(packet);
 
@@ -735,15 +740,16 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
                                             " qp %d", avg_qp);
                 }
 
-                mpp_log("%p %s\n", ctx, log_buf);
+                mpp_log_q(quiet, "chn %d %s\n", chn, log_buf);
 
                 mpp_packet_deinit(&packet);
+                fps_calc_inc(cmd->fps);
 
                 p->stream_size += len;
                 p->frame_count += eoi;
 
                 if (p->pkt_eos) {
-                    mpp_log("%p found last packet\n", ctx);
+                    mpp_log_q(quiet, "chn %d found last packet\n", chn);
                     mpp_assert(p->frm_eos);
                 }
             }
@@ -752,10 +758,11 @@ MPP_RET test_mpp_run(MpiEncTestData *p)
         if (cam_frm_idx >= 0)
             camera_source_put_frame(p->cam_ctx, cam_frm_idx);
 
-        if (p->num_frames > 0 && p->frame_count >= p->num_frames) {
-            mpp_log("%p encode max %d frames", ctx, p->frame_count);
+        if (p->frame_num > 0 && p->frame_count >= p->frame_num)
             break;
-        }
+
+        if (p->loop_end)
+            break;
 
         if (p->frm_eos && p->pkt_eos)
             break;
@@ -764,15 +771,21 @@ RET:
     return ret;
 }
 
-int mpi_enc_test(MpiEncTestArgs *cmd)
+void *enc_test(void *arg)
 {
-    MPP_RET ret = MPP_OK;
-    MpiEncTestData *p = NULL;
+    MpiEncMultiCtxInfo *info = (MpiEncMultiCtxInfo *)arg;
+    MpiEncTestArgs *cmd = info->cmd;
+    MpiEncTestData *p = &info->ctx;
+    MpiEncMultiCtxRet *enc_ret = &info->ret;
     MppPollType timeout = MPP_POLL_BLOCK;
+    RK_U32 quiet = cmd->quiet;
+    MPP_RET ret = MPP_OK;
+    RK_S64 t_s = 0;
+    RK_S64 t_e = 0;
 
-    mpp_log("mpi_enc_test start\n");
+    mpp_log_q(quiet, "%s start\n", info->name);
 
-    ret = test_ctx_init(&p, cmd);
+    ret = test_ctx_init(info);
     if (ret) {
         mpp_err_f("test data init failed ret %d\n", ret);
         goto MPP_TEST_OUT;
@@ -803,8 +816,8 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    mpp_log("%p mpi_enc_test encoder test start w %d h %d type %d\n",
-            p->ctx, p->width, p->height, p->type);
+    mpp_log_q(quiet, "%p encoder test start w %d h %d type %d\n",
+              p->ctx, p->width, p->height, p->type);
 
     ret = p->mpi->control(p->ctx, MPP_SET_OUTPUT_TIMEOUT, &timeout);
     if (MPP_OK != ret) {
@@ -824,13 +837,15 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-    ret = test_mpp_enc_cfg_setup(p);
+    ret = test_mpp_enc_cfg_setup(info);
     if (ret) {
         mpp_err_f("test mpp setup failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 
-    ret = test_mpp_run(p);
+    t_s = mpp_time();
+    ret = test_mpp_run(info);
+    t_e = mpp_time();
     if (ret) {
         mpp_err_f("test mpp run failed ret %d\n", ret);
         goto MPP_TEST_OUT;
@@ -842,14 +857,14 @@ int mpi_enc_test(MpiEncTestArgs *cmd)
         goto MPP_TEST_OUT;
     }
 
-MPP_TEST_OUT:
-    if (MPP_OK == ret)
-        mpp_log("%p mpi_enc_test success total frame %d bps %lld\n",
-                p->ctx, p->frame_count,
-                (RK_U64)((p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frame_count));
-    else
-        mpp_err("%p mpi_enc_test failed ret %d\n", p->ctx, ret);
+    enc_ret->elapsed_time = t_e - t_s;
+    enc_ret->frame_count = p->frame_count;
+    enc_ret->stream_size = p->stream_size;
+    enc_ret->frame_rate = (float)p->frame_count * 1000000 / enc_ret->elapsed_time;
+    enc_ret->bit_rate = (p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frame_count;
+    enc_ret->delay = p->first_pkt - p->first_frm;
 
+MPP_TEST_OUT:
     if (p->ctx) {
         mpp_destroy(p->ctx);
         p->ctx = NULL;
@@ -885,7 +900,64 @@ MPP_TEST_OUT:
         p->roi_ctx = NULL;
     }
 
-    test_ctx_deinit(&p);
+    test_ctx_deinit(p);
+
+    return NULL;
+}
+
+int enc_test_multi(MpiEncTestArgs* cmd, const char *name)
+{
+    MpiEncMultiCtxInfo *ctxs = NULL;
+    float total_rate = 0.0;
+    RK_S32 ret = MPP_NOK;
+    RK_S32 i = 0;
+
+    ctxs = mpp_calloc(MpiEncMultiCtxInfo, cmd->nthreads);
+    if (NULL == ctxs) {
+        mpp_err("failed to alloc context for instances\n");
+        return -1;
+    }
+
+    for (i = 0; i < cmd->nthreads; i++) {
+        ctxs[i].cmd = cmd;
+        ctxs[i].name = name;
+        ctxs[i].chn = i;
+
+        ret = pthread_create(&ctxs[i].thd, NULL, enc_test, &ctxs[i]);
+        if (ret) {
+            mpp_err("failed to create thread %d\n", i);
+            return ret;
+        }
+    }
+
+    if (cmd->frame_num < 0) {
+        // wait for input then quit encoding
+        mpp_log("*******************************************\n");
+        mpp_log("**** Press Enter to stop loop encoding ****\n");
+        mpp_log("*******************************************\n");
+
+        getc(stdin);
+        for (i = 0; i < cmd->nthreads; i++)
+            ctxs[i].ctx.loop_end = 1;
+    }
+
+    for (i = 0; i < cmd->nthreads; i++)
+        pthread_join(ctxs[i].thd, NULL);
+
+    for (i = 0; i < cmd->nthreads; i++) {
+        MpiEncMultiCtxRet *enc_ret = &ctxs[i].ret;
+
+        mpp_log("chn %d encode %d frames time %lld ms delay %3d ms fps %3.2f bps %lld\n",
+                i, enc_ret->frame_count, (RK_S64)(enc_ret->elapsed_time / 1000),
+                (RK_S32)(enc_ret->delay / 1000), enc_ret->frame_rate, enc_ret->bit_rate);
+
+        total_rate += enc_ret->frame_rate;
+    }
+
+    MPP_FREE(ctxs);
+
+    total_rate /= cmd->nthreads;
+    mpp_log("%s average frame rate %.2f\n", name, total_rate);
 
     return ret;
 }
@@ -895,20 +967,14 @@ int main(int argc, char **argv)
     RK_S32 ret = MPP_NOK;
     MpiEncTestArgs* cmd = mpi_enc_test_cmd_get();
 
-    memset((void*)cmd, 0, sizeof(*cmd));
-
     // parse the cmd option
-    if (argc > 1)
-        ret = mpi_enc_test_cmd_update_by_args(cmd, argc, argv);
-
-    if (ret) {
-        mpi_enc_test_help();
+    ret = mpi_enc_test_cmd_update_by_args(cmd, argc, argv);
+    if (ret)
         goto DONE;
-    }
 
     mpi_enc_test_cmd_show_opt(cmd);
 
-    ret = mpi_enc_test(cmd);
+    ret = enc_test_multi(cmd, argv[0]);
 
 DONE:
     mpi_enc_test_cmd_put(cmd);

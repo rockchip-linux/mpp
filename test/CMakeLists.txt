@@ -32,14 +32,8 @@ add_mpp_test(mpi_dec_mt)
 # mpi encoder unit test
 add_mpp_test(mpi_enc)
 
-# mpi rc unit test
-add_mpp_test(mpi_rc)
-
 # new mpi rc unit test
 add_mpp_test(mpi_rc2)
-
-# new enc multi unit test
-add_mpp_test(mpi_enc_multi)
 
 # new dec multi unit test
 add_mpp_test(mpi_dec_multi)
