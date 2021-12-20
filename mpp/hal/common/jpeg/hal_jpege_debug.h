@@ -34,6 +34,10 @@
 #define hal_jpege_dbg_input(fmt, ...)   hal_jpege_dbg(HAL_JPEGE_DBG_INPUT, fmt, ## __VA_ARGS__)
 #define hal_jpege_dbg_output(fmt, ...)  hal_jpege_dbg(HAL_JPEGE_DBG_OUTPUT, fmt, ## __VA_ARGS__)
 
+#define hal_jpege_enter()               hal_jpege_dbg_func("(%d) enter\n", __LINE__);
+#define hal_jpege_leave()               hal_jpege_dbg_func("(%d) leave\n", __LINE__);
+
+
 extern RK_U32 hal_jpege_debug;
 
 #endif /* __HAL_JPEGE_DEBUG_H__ */
