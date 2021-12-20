@@ -534,10 +534,10 @@ typedef struct Vepu540cJpegReg_t {
     RK_U32  reg0257_adr_bsbb;
 
     /* 0x00000408 reg258 */
-    RK_U32 reg0258_adr_bsbr;
+    RK_U32 reg0258_adr_bsbs;
 
     /* 0x0000040c reg259 */
-    RK_U32 reg0259_adr_bsbs;
+    RK_U32 reg0259_adr_bsbr;
 
     /* 0x00000410 reg260 */
     RK_U32 reg0260_adr_vsy_b;

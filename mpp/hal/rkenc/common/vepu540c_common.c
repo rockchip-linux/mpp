@@ -175,10 +175,10 @@ MPP_RET vepu540c_set_jpeg_reg(Vepu540cJpegCfg *cfg)
 
     regs->reg0256_adr_bsbt = mpp_buffer_get_fd(task->output);
     regs->reg0257_adr_bsbb = regs->reg0256_adr_bsbt;
-    regs->reg0258_adr_bsbr = regs->reg0256_adr_bsbt;
-    regs->reg0259_adr_bsbs = regs->reg0256_adr_bsbt;
+    regs->reg0258_adr_bsbs = regs->reg0256_adr_bsbt;
+    regs->reg0259_adr_bsbr = regs->reg0256_adr_bsbt;
 
-    mpp_dev_set_reg_offset(cfg->dev, 259, mpp_packet_get_length(task->packet));
+    mpp_dev_set_reg_offset(cfg->dev, 258, mpp_packet_get_length(task->packet));
     mpp_dev_set_reg_offset(cfg->dev, 256, mpp_buffer_get_size(task->output));
 
     regs->reg0272_enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
