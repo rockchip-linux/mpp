@@ -1450,6 +1450,16 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
         mpp_buf_slot_get_prop(p->frame_slots, p->cur_slot_index, SLOT_FRAME_PTR, &frame);
         mpp_frame_set_poc(frame, p->pic_head.temporal_reference);
 
+        if (p->dxva_ctx->seq_disp_ext.color_description) {
+            mpp_frame_set_color_primaries(frame, p->dxva_ctx->seq_disp_ext.color_primaries);
+            mpp_frame_set_color_trc(frame, p->dxva_ctx->seq_disp_ext.transfer_characteristics);
+            mpp_frame_set_colorspace(frame, p->dxva_ctx->seq_disp_ext.matrix_coefficients);
+        } else {
+            mpp_frame_set_color_primaries(frame, MPP_FRAME_SPC_UNSPECIFIED);
+            mpp_frame_set_color_trc(frame, MPP_FRAME_SPC_UNSPECIFIED);
+            mpp_frame_set_colorspace(frame, MPP_FRAME_SPC_UNSPECIFIED);
+        }
+
         in_task->valid = 1;
         m2v_update_ref_frame(p);
     }
