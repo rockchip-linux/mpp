@@ -326,6 +326,10 @@ MPP_RET m2vd_parser_reset(void *ctx)
         mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index,
                               SLOT_CODEC_USE);
 
+    if (p->input_packet) {
+        mpp_packet_clr_eos(p->input_packet);
+    }
+
     p->frame_cur->slot_index = 0xff;
     p->frame_ref0->slot_index = 0xff;
     p->frame_ref1->slot_index = 0xff;
