@@ -125,8 +125,8 @@ extern "C" {
 
 extern RK_U32 mpp_debug;
 
-void mpp_log_set_flag(RK_U32 flag);
-RK_U32 mpp_log_get_flag(void);
+void mpp_log_enable(RK_S32 id);
+void mpp_log_disable(RK_S32 id);
 
 void _mpp_log(const char *tag, const char *fmt, const char *func, ...);
 void _mpp_err(const char *tag, const char *fmt, const char *func, ...);

@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 RK_U32 mpp_debug = 0;
-static RK_U32 mpp_log_flag = 0;
+static RK_U32 mpp_log_enabled = 1;
 
 // TODO: add log timing information and switch flag
 static const char *msg_log_warning = "log message is long\n";
@@ -82,6 +82,10 @@ static void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt,
 void _mpp_log(const char *tag, const char *fmt, const char *fname, ...)
 {
     va_list args;
+
+    if (!mpp_log_enabled)
+        return;
+
     va_start(args, fname);
     __mpp_log(os_log, tag, fmt, fname, args);
     va_end(args);
@@ -95,15 +99,16 @@ void _mpp_err(const char *tag, const char *fmt, const char *fname, ...)
     va_end(args);
 }
 
-void mpp_log_set_flag(RK_U32 flag)
+void mpp_log_enable(RK_S32 id)
 {
-    mpp_log_flag = flag;
-    return ;
+    (void)id;
+    mpp_log_enabled = 1;
 }
 
-RK_U32 mpp_log_get_flag()
+void mpp_log_disable(RK_S32 id)
 {
-    return mpp_log_flag;
+    (void)id;
+    mpp_log_enabled = 0;
 }
 
 #ifdef __cplusplus
