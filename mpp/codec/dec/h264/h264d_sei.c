@@ -175,7 +175,7 @@ static MPP_RET interpret_buffering_period_info(
     vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id]->vui_seq_parameters);
 
     if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
-        for (i = 0; i < vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
+        for (i = 0; i <= vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
             SKIP_BITS(p_bitctx,
                       vui_seq_parameters->nal_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
             SKIP_BITS(p_bitctx,
@@ -184,7 +184,7 @@ static MPP_RET interpret_buffering_period_info(
     }
 
     if (vui_seq_parameters->vcl_hrd_parameters_present_flag) {
-        for (i = 0; i < vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
+        for (i = 0; i <= vui_seq_parameters->vcl_hrd_parameters.cpb_cnt_minus1; i++) {
             SKIP_BITS(p_bitctx,
                       vui_seq_parameters->vcl_hrd_parameters.initial_cpb_removal_delay_length_minus1); //initial_cpb_removal_delay
             SKIP_BITS(p_bitctx,
