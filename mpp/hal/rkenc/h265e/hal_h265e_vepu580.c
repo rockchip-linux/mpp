@@ -1647,6 +1647,9 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     regs->reg0175_adr_bsbs    = regs->reg0172_bsbt_addr;
 
     mpp_dev_set_reg_offset(ctx->dev, 175, mpp_packet_get_length(task->packet));
+
+    regs->reg0204_pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
+    regs->reg0204_pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 }
 MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
 {
