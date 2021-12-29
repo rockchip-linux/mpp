@@ -48,6 +48,10 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
         /* NOTE: 422 need to align to 8 so chroma can align to 16 */
         stride = MPP_ALIGN(width, 8);
     } break;
+    case MPP_FMT_YUV444SP :
+    case MPP_FMT_YUV444P : {
+        stride = MPP_ALIGN(width, 8);
+    } break;
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR565:
     case MPP_FMT_RGB555:

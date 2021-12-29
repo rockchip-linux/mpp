@@ -459,9 +459,36 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
     regs->reg_base.src_fmt.src_range  = cfg.src_range;
     regs->reg_base.src_fmt.out_fmt    = 1;
 
-    y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
-    c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
-               y_stride : y_stride / 2;
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        y_stride = MPP_ALIGN(prep->width, 16);
+    } else if (prep->hor_stride) {
+        y_stride = prep->hor_stride;
+    } else {
+        if (hw_fmt == VEPU541_FMT_BGRA8888 )
+            y_stride = prep->width * 4;
+        else if (hw_fmt == VEPU541_FMT_BGR888 )
+            y_stride = prep->width * 3;
+        else if (hw_fmt == VEPU541_FMT_BGR565 ||
+                 hw_fmt == VEPU541_FMT_YUYV422 ||
+                 hw_fmt == VEPU541_FMT_UYVY422)
+            y_stride = prep->width * 2;
+        else
+            y_stride = prep->width;
+    }
+
+    switch (hw_fmt) {
+    case VEPU580_FMT_YUV444SP : {
+        c_stride = y_stride * 2;
+    } break;
+    case VEPU541_FMT_YUV422SP :
+    case VEPU541_FMT_YUV420SP :
+    case VEPU580_FMT_YUV444P : {
+        c_stride = y_stride;
+    } break;
+    default : {
+        c_stride = y_stride / 2;
+    } break;
+    }
 
     if (hw_fmt < VEPU541_FMT_NONE) {
         regs->reg_base.src_udfy.csc_wgt_b2y    = 25;
@@ -501,14 +528,14 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
     }
 
     regs->reg_base.src_proc.afbcd_en   = MPP_FRAME_FMT_IS_FBC(fmt) ? 1 : 0;
-    regs->reg_base.src_strd0.src_strd0  = y_stride;
-    regs->reg_base.src_strd1.src_strd1  = c_stride;
+    regs->reg_base.src_strd0.src_strd0 = y_stride;
+    regs->reg_base.src_strd1.src_strd1 = c_stride;
 
     regs->reg_base.src_proc.src_mirr   = prep->mirroring > 0;
     regs->reg_base.src_proc.src_rot    = prep->rotation;
     regs->reg_base.src_proc.txa_en     = 0;
 
-    regs->reg_base.sli_cfg.sli_crs_en = 1;
+    regs->reg_base.sli_cfg.sli_crs_en  = 1;
 
     regs->reg_base.pic_ofst.pic_ofst_y = 0;
     regs->reg_base.pic_ofst.pic_ofst_x = 0;
@@ -1074,6 +1101,14 @@ static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDev dev,
         case VEPU541_FMT_UYVY422 : {
             off_in[0] = 0;
             off_in[1] = 0;
+        } break;
+        case VEPU580_FMT_YUV444SP : {
+            off_in[0] = hor_stride * ver_stride;
+            off_in[1] = hor_stride * ver_stride;
+        } break;
+        case VEPU580_FMT_YUV444P : {
+            off_in[0] = hor_stride * ver_stride;
+            off_in[1] = hor_stride * ver_stride * 2;
         } break;
         case VEPU541_FMT_NONE :
         default : {
