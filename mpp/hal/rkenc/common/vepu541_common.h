@@ -42,6 +42,11 @@ typedef enum Vepu541Fmt_e {
     /* vepu540 add YUV400 support */
     VEPU540_FMT_YUV400      = VEPU541_FMT_BUTT,     // 10
     VEPU540_FMT_BUTT,       // 11
+
+    /* vepu580 add YUV444 support */
+    VEPU580_FMT_YUV444SP    = 12,
+    VEPU580_FMT_YUV444P     = 13,
+    VEPU580_FMT_BUTT,       // 14
 } Vepu541Fmt;
 
 typedef struct VepuFmtCfg_t {

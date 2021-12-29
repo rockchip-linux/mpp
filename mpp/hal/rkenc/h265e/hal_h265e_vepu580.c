@@ -262,7 +262,6 @@ static MPP_RET vepu580_h265_setup_hal_bufs(H265eV580HalContext *ctx)
     MPP_RET ret = MPP_OK;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
     RK_U32 frame_size;
-    Vepu541Fmt input_fmt = VEPU541_FMT_YUV420P;
     RK_S32 mb_wd64, mb_h64;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
@@ -276,30 +275,6 @@ static MPP_RET vepu580_h265_setup_hal_bufs(H265eV580HalContext *ctx)
 
     frame_size = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16);
     vepu541_set_fmt(fmt, ctx->cfg->prep.format);
-    input_fmt = (Vepu541Fmt)fmt->format;
-    switch (input_fmt) {
-    case VEPU541_FMT_YUV420P:
-    case VEPU541_FMT_YUV420SP: {
-        frame_size = frame_size * 3 / 2;
-    } break;
-    case VEPU541_FMT_YUV422P:
-    case VEPU541_FMT_YUV422SP:
-    case VEPU541_FMT_YUYV422:
-    case VEPU541_FMT_UYVY422:
-    case VEPU541_FMT_BGR565: {
-        frame_size *= 2;
-    } break;
-    case VEPU541_FMT_BGR888: {
-        frame_size *= 3;
-    } break;
-    case VEPU541_FMT_BGRA8888: {
-        frame_size *= 4;
-    } break;
-    default: {
-        hal_h265e_err("invalid src color space: %d\n", input_fmt);
-        return MPP_NOK;
-    }
-    }
 
     if (ref_cfg) {
         MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
@@ -1173,6 +1148,14 @@ vepu580_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_f
             u_offset = 0;
             v_offset = 0;
         } break;
+        case VEPU580_FMT_YUV444SP : {
+            u_offset = hor_stride * ver_stride;
+            v_offset = hor_stride * ver_stride;
+        } break;
+        case VEPU580_FMT_YUV444P : {
+            u_offset = hor_stride * ver_stride;
+            v_offset = hor_stride * ver_stride * 2;
+        } break;
         case VEPU541_FMT_BGR565:
         case VEPU541_FMT_BGR888:
         case VEPU541_FMT_BGRA8888: {
@@ -1347,19 +1330,31 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt, 
     if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
-        if (reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
+        if (fmt->format == VEPU541_FMT_BGRA8888 )
             stridey = prep_cfg->width * 4;
-        else if (reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
+        else if (fmt->format == VEPU541_FMT_BGR888 )
             stridey = prep_cfg->width * 3;
-        else if (reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
-                 reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
-                 reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
+        else if (fmt->format == VEPU541_FMT_BGR565 ||
+                 fmt->format == VEPU541_FMT_YUYV422 ||
+                 fmt->format == VEPU541_FMT_UYVY422)
             stridey = prep_cfg->width * 2;
+        else
+            stridey = prep_cfg->width;
     }
 
-    stridec = (reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_YUV422SP ||
-               reg_base->reg0198_src_fmt.src_cfmt == VEPU541_FMT_YUV420SP) ?
-              stridey : stridey / 2;
+    switch (fmt->format) {
+    case VEPU580_FMT_YUV444SP : {
+        stridec = stridey * 2;
+    } break;
+    case VEPU541_FMT_YUV422SP :
+    case VEPU541_FMT_YUV420SP :
+    case VEPU580_FMT_YUV444P : {
+        stridec = stridey;
+    } break;
+    default : {
+        stridec = stridey / 2;
+    } break;
+    }
 
     if (reg_base->reg0198_src_fmt.src_cfmt < VEPU541_FMT_NONE) {
         reg_base->reg0199_src_udfy.csc_wgt_r2y = 66;

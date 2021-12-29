@@ -566,6 +566,8 @@ static MppFrameFormatInfo color_list[] = {
     { MPP_FMT_YUV422_YUYV,      "YUV422-YUYV,   YUY2"   },
     { MPP_FMT_YUV422_UYVY,      "YUV422-UYVY,   UYVY"   },
     { MPP_FMT_YUV400,           "YUV400-Y8,     Y800"   },
+    { MPP_FMT_YUV444SP,         "YUV444SP"              },
+    { MPP_FMT_YUV444P,          "YUV444P"               },
 
     { MPP_FMT_RGB565,           "RGB565"                },
     { MPP_FMT_BGR565,           "BGR565"                },
