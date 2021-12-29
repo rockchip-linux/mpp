@@ -291,7 +291,7 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         "unchanged",
         "codec/prep cfg change",
         "rc cfg change rc_mode/fps/gop",
-        "set cfg change input/format ",
+        "set cfg change input/format/color",
         "set cfg change rc_mode/fps/gop",
         "set cfg change codec",
     };
@@ -325,7 +325,11 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
             RK_U32 change = cfg->prep.change;
             RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
                                 MPP_ENC_PREP_CFG_CHANGE_FORMAT |
-                                MPP_ENC_PREP_CFG_CHANGE_ROTATION;
+                                MPP_ENC_PREP_CFG_CHANGE_ROTATION |
+                                MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE |
+                                MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE |
+                                MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME |
+                                MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC;
 
             if (change & check_flag) {
                 resend = 3;
