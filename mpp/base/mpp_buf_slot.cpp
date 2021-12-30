@@ -246,6 +246,30 @@ static RK_U32 default_align_16(RK_U32 val)
     return MPP_ALIGN(val, 16);
 }
 
+/* Based on drm_gem_framebuffer_helper.c drm_gem_afbc_min_size() */
+static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
+{
+#define AFBC_HEADER_SIZE 16
+#define AFBC_HDR_ALIGN 64
+#define AFBC_SUPERBLOCK_PIXELS 256
+#define AFBC_SUPERBLOCK_ALIGNMENT 128
+
+    RK_S32 n_blocks, hdr_alignment, size;
+
+    /* AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 and !AFBC_FORMAT_MOD_TILED */
+    width = MPP_ALIGN(width, 16);
+    /* NOTE: Add extra 16 line for deblock output */
+    height = MPP_ALIGN(height, 16) + 16;
+    hdr_alignment = AFBC_HDR_ALIGN;
+
+    n_blocks = (width * height) / AFBC_SUPERBLOCK_PIXELS;
+
+    size = MPP_ALIGN(n_blocks * AFBC_HEADER_SIZE, hdr_alignment);
+    size += n_blocks * MPP_ALIGN(bpp * AFBC_SUPERBLOCK_PIXELS / 8,
+                                 AFBC_SUPERBLOCK_ALIGNMENT);
+    return size;
+}
+
 static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 force_default_align)
 {
     RK_U32 width  = mpp_frame_get_width(frame);
@@ -286,21 +310,15 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     hal_hor_stride = (force_default_align && codec_hor_stride) ? codec_hor_stride : hal_hor_stride;
     hal_ver_stride = (force_default_align && codec_ver_stride) ? codec_ver_stride : hal_ver_stride;
 
-    RK_U32 size = hal_hor_stride * hal_ver_stride;
+    RK_S32 size = hal_hor_stride * hal_ver_stride;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-        /*fbc stride default 64 align*/
-        hal_hor_stride = MPP_ALIGN(width, 64) * depth >> 3;
-        hor_stride_pixel = MPP_ALIGN(hor_stride_pixel,  64);
-
         switch ((fmt & MPP_FRAME_FMT_MASK)) {
-        case MPP_FMT_YUV420SP_10BIT :
-        case MPP_FMT_YUV420SP : {
-            size = hal_hor_stride * hal_ver_stride * 3 / 2;
+        case MPP_FMT_YUV420SP_10BIT : {
+            size = get_afbc_min_size(hal_hor_stride, hal_ver_stride, 15);
         } break;
-        case MPP_FMT_YUV422SP_10BIT :
-        case MPP_FMT_YUV422SP : {
-            size = hal_hor_stride * hal_ver_stride * 2;
+        case MPP_FMT_YUV420SP : {
+            size = get_afbc_min_size(hal_hor_stride, hal_ver_stride, 12);
         } break;
         default : {
             size = hal_hor_stride * hal_ver_stride * 3 / 2;
