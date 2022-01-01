@@ -263,7 +263,7 @@ static RK_S32 vp9_ref_frame(Vp9CodecContext *ctx, VP9Frame *dst, VP9Frame *src)
     dst->ref->invisible = src->ref->invisible;
     dst->ref->ref_count++;
     vp9d_dbg(VP9D_DBG_REF, "get prop slot frame %p  count %d", dst->f, dst->ref->ref_count);
-    mpp_buf_slot_get_prop(s->slots, src->slot_index, SLOT_FRAME, &dst->f);
+    mpp_buf_slot_get_prop(s->slots, src->slot_index, SLOT_FRAME_PTR, &dst->f);
 
     vp9d_dbg(VP9D_DBG_REF, "get prop slot frame after %p", dst->f);
     return 0;

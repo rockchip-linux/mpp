@@ -538,14 +538,14 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         RK_U8 ref_frame_idx = 0;
 
         vp9_hw_regs->common.reg028.sw_poc_arb_flag = 1;
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME, &mframe);
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         vp9_hw_regs->vp9d_param.reg65.cur_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         // last poc
         ref_idx = pic_param->frame_refs[0].Index7Bits;
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg95.last_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // golden poc
@@ -553,7 +553,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg96.golden_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // altref poc
@@ -561,7 +561,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME, &mframe);
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg97.altref_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // colref poc
