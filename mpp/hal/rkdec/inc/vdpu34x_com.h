@@ -109,7 +109,8 @@ typedef struct Vdpu34xRegCommon_t {
 
     struct SWREG13_EN_MODE_SET {
         RK_U32      timeout_mode                : 1;
-        RK_U32      reserve0                    : 2;
+        RK_U32      req_timeout_rst_sel         : 1;
+        RK_U32      reserve0                    : 1;
         RK_U32      dec_commonirq_mode          : 1;
         RK_U32      reserve1                    : 2;
         RK_U32      stmerror_waitdecfifo_empty  : 1;
@@ -117,7 +118,8 @@ typedef struct Vdpu34xRegCommon_t {
         RK_U32      h26x_streamd_error_mode     : 1;
         RK_U32      reserve3                    : 2;
         RK_U32      allow_not_wr_unref_bframe   : 1;
-        RK_U32      reserve4                    : 2;
+        RK_U32      fbc_output_wr_disable       : 1;
+        RK_U32      reserve4                    : 1;
         RK_U32      colmv_error_mode            : 1;
 
         RK_U32      reserve5            : 2;
@@ -126,7 +128,13 @@ typedef struct Vdpu34xRegCommon_t {
         RK_U32      ycacherd_prior      : 1;
         RK_U32      reserve7            : 2;
         RK_U32      cur_pic_is_idr      : 1;
-        RK_U32      reserve8            : 7;
+        RK_U32      reserve8            : 1;
+        RK_U32      right_auto_rst_disable  : 1;
+        RK_U32      frame_end_err_rst_flag  : 1;
+        RK_U32      rd_prior_mode       : 1;
+        RK_U32      rd_ctrl_prior_mode  : 1;
+        RK_U32      reserve9            : 1;
+        RK_U32      filter_outbuf_mode  : 1;
     } reg013;
 
     struct SWREG14_FBC_PARAM_SET {
