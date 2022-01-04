@@ -824,6 +824,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common.reg011.dec_clkgate_e    = 1;
     vp9_hw_regs->common.reg011.dec_e_strmd_clkgate_dis = 0;
 
+    vp9_hw_regs->common.reg012.wait_reset_en    = 1;
     vp9_hw_regs->common.reg013.timeout_mode     = 1;
 
     vp9_hw_regs->common.reg026.swreg_block_gating_e =
