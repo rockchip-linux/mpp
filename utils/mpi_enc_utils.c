@@ -213,7 +213,7 @@ RK_S32 mpi_enc_opt_f(void *ctx, const char *next)
             /* decimal value, use atoi */
             format = (MppFrameFormat)atoi(next);
         }
-        if (MPP_FRAME_FMT_IS_LE(format) &&
+        if (MPP_FRAME_FMT_IS_BE(format) &&
             (MPP_FRAME_FMT_IS_YUV(format) || MPP_FRAME_FMT_IS_RGB(format))) {
             cmd->format = format;
             return 1;
