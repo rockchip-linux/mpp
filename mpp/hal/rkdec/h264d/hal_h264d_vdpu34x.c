@@ -674,7 +674,7 @@ static MPP_RET init_common_regs(Vdpu34xH264dRegSet *regs)
     common->reg010.dec_e = 1;
     common->reg017.slice_num = 0x3fff;
 
-
+    common->reg012.wait_reset_en = 1;
     common->reg013.h26x_error_mode = 1;
     common->reg013.colmv_error_mode = 1;
     common->reg013.h26x_streamd_error_mode = 1;
