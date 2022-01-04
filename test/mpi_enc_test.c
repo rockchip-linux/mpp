@@ -208,14 +208,24 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     case MPP_FMT_YUV422_UYVY :
     case MPP_FMT_YUV422_VYUY :
     case MPP_FMT_YUV422P :
-    case MPP_FMT_YUV422SP :
+    case MPP_FMT_YUV422SP : {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 2;
+    } break;
     case MPP_FMT_RGB444 :
     case MPP_FMT_BGR444 :
     case MPP_FMT_RGB555 :
     case MPP_FMT_BGR555 :
     case MPP_FMT_RGB565 :
-    case MPP_FMT_BGR565 : {
-        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 2;
+    case MPP_FMT_BGR565 :
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 :
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 :
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 : {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64);
     } break;
 
     default: {
