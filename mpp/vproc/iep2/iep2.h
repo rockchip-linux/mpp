@@ -29,7 +29,7 @@
 #define MVL                     28
 #define MVR                     27
 
-#define TEST_DBG    printf
+#define TEST_DBG                //printf
 #define FLOOR(v, r)             (((v) / (r)) * (r))
 
 #define RKCLIP(a, min, max)     ((a < min) ? (min) : ((a > max) ? max : a))

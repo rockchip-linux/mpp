@@ -160,19 +160,19 @@ void iep2_set_osd(struct iep2_api_ctx *ctx, struct mv_list *ls)
         ls->mv[idx] = mvx;
         ls->vld[idx] = 1;
 
-        TEST_DBG("[%d] from [%d,%d][%d,%d] to [%d,%d][%d,%d] mv %d\n", i,
-                 sx[i], ex[i], sy[i], ey[i],
-                 ctx->params.osd_x_sta[idx], ctx->params.osd_x_end[idx],
-                 ctx->params.osd_y_sta[idx], ctx->params.osd_y_end[idx],
-                 ls->mv[idx]);
+        iep_dbg_trace("[%d] from [%d,%d][%d,%d] to [%d,%d][%d,%d] mv %d\n", i,
+                      sx[i], ex[i], sy[i], ey[i],
+                      ctx->params.osd_x_sta[idx], ctx->params.osd_x_end[idx],
+                      ctx->params.osd_y_sta[idx], ctx->params.osd_y_end[idx],
+                      ls->mv[idx]);
         idx++;
     }
 
     ctx->params.osd_area_num = idx;
     ls->idx = idx;
 
-    TEST_DBG("osd tile count %d comb %d\n",
-             osd_tile_cnt, ctx->output.out_osd_comb_cnt);
+    iep_dbg_trace("osd tile count %d comb %d\n",
+                  osd_tile_cnt, ctx->output.out_osd_comb_cnt);
     if (osd_tile_cnt * 2 > ctx->output.out_osd_comb_cnt * 3) {
         memset(ctx->params.comb_osd_vld, 0, sizeof(ctx->params.comb_osd_vld));
     } else {
