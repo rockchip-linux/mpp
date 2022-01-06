@@ -844,6 +844,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
+    RK_U32 fbc_flag = 0;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -952,6 +953,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
 
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
+            fbc_flag = 1;
             RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
             RK_U32 fbd_offset = MPP_ALIGN(pixel_width * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
                                           SZ_4K);
@@ -1006,14 +1008,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->h265d_addr.reg197_cabactbl_base    = reg_cxt->bufs_fd;
     /* pps */
     hw_regs->h265d_addr.reg161_pps_base         = reg_cxt->bufs_fd;
-    trans_cfg.reg_idx = 161;
-    trans_cfg.offset = reg_cxt->spspps_offset;
-    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    /* rps */
     hw_regs->h265d_addr.reg163_rps_base         = reg_cxt->bufs_fd;
-    trans_cfg.reg_idx = 163;
-    trans_cfg.offset = reg_cxt->rps_offset;
-    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
     hw_regs->common_addr.reg128_rlc_base        = mpp_buffer_get_fd(streambuf);
     hw_regs->common_addr.reg129_rlcwrite_base   = mpp_buffer_get_fd(streambuf);
@@ -1057,8 +1052,8 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             if (framebuf != NULL) {
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 valid_ref = hw_regs->h265d_addr.reg164_179_ref_base[i];
-                if ((dxva_cxt->pp.PicOrderCntValList[i] <= max_poc) &&
-                    (dxva_cxt->pp.PicOrderCntValList[i] > min_poc)
+                if ((dxva_cxt->pp.PicOrderCntValList[i] < max_poc) &&
+                    (dxva_cxt->pp.PicOrderCntValList[i] >= min_poc)
                     && (!mpp_frame_get_errinfo(mframe))) {
 
                     min_poc = dxva_cxt->pp.PicOrderCntValList[i];
@@ -1078,10 +1073,31 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             SET_REF_VALID(hw_regs->h265d_param, i, 1);
         }
     }
+
+    if ((reg_cxt->error_index == dxva_cxt->pp.CurrPic.Index7Bits) &&
+        !dxva_cxt->pp.IntraPicFlag && fbc_flag) {
+        syn->dec.flags.ref_err = 1;
+        return MPP_OK;
+    }
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
+
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
-            ;
+            MppFrame mframe = NULL;
+
+            mpp_buf_slot_get_prop(reg_cxt->slots,
+                                  dxva_cxt->pp.RefPicList[i].Index7Bits,
+                                  SLOT_BUFFER, &framebuf);
+
+            mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits,
+                                  SLOT_FRAME_PTR, &mframe);
+
+            if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
+                mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
+                hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
+                hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+            }
         } else {
             mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
             hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
@@ -1091,6 +1107,14 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
                 SET_POC_HIGNBIT_INFO(hw_regs->highpoc, i, poc_highbit, 3);
         }
     }
+
+    trans_cfg.reg_idx = 161;
+    trans_cfg.offset = reg_cxt->spspps_offset;
+    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    /* rps */
+    trans_cfg.reg_idx = 163;
+    trans_cfg.offset = reg_cxt->rps_offset;
+    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
 
     hw_regs->common.reg013.timeout_mode = 1;
     hw_regs->common.reg013.cur_pic_is_idr = dxva_cxt->pp.IdrPicFlag;//p_hal->slice_long->idr_flag;
