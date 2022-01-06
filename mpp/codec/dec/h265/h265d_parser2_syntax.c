@@ -136,11 +136,11 @@ static void fill_picture_parameters(const HEVCContext *h,
                                               (pps->disable_dbf                                   << 13) |
                                               (pps->lists_modification_present_flag               << 14) |
                                               (pps->slice_header_extension_present_flag           << 15) |
-                                              (IS_IRAP(h)                                         << 16) |
-                                              (IS_IDR(h)                                          << 17) |
-                                              /* IntraPicFlag */
-                                              (IS_IRAP(h)                                         << 18) |
                                               (0                                                  << 19);
+
+    pp->IdrPicFlag = (h->first_nal_type == 19 || h->first_nal_type == 20);
+    pp->IrapPicFlag = (h->first_nal_type >= 16 && h->first_nal_type <= 23);
+    pp->IntraPicFlag =  (h->first_nal_type >= 16 && h->first_nal_type <= 23);
     pp->pps_cb_qp_offset            = pps->cb_qp_offset;
     pp->pps_cr_qp_offset            = pps->cr_qp_offset;
     if (pps->tiles_enabled_flag) {
