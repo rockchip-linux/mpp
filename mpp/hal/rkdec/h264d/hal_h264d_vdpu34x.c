@@ -84,6 +84,44 @@
         default: break;}\
     }while(0)
 
+#define SET_POC_HIGNBIT_INFO(regs, index, field, value)\
+    do{ \
+        switch(index){\
+        case 0: regs.reg200.ref0_##field = value; break;\
+        case 1: regs.reg200.ref1_##field = value; break;\
+        case 2: regs.reg200.ref2_##field = value; break;\
+        case 3: regs.reg200.ref3_##field = value; break;\
+        case 4: regs.reg200.ref4_##field = value; break;\
+        case 5: regs.reg200.ref5_##field = value; break;\
+        case 6: regs.reg200.ref6_##field = value; break;\
+        case 7: regs.reg200.ref7_##field = value; break;\
+        case 8: regs.reg201.ref8_##field = value; break;\
+        case 9: regs.reg201.ref9_##field = value; break;\
+        case 10: regs.reg201.ref10_##field = value; break;\
+        case 11: regs.reg201.ref11_##field = value; break;\
+        case 12: regs.reg201.ref12_##field = value; break;\
+        case 13: regs.reg201.ref13_##field = value; break;\
+        case 14: regs.reg201.ref14_##field = value; break;\
+        case 15: regs.reg201.ref15_##field = value; break;\
+        case 16: regs.reg202.ref16_##field = value; break;\
+        case 17: regs.reg202.ref17_##field = value; break;\
+        case 18: regs.reg202.ref18_##field = value; break;\
+        case 19: regs.reg202.ref19_##field = value; break;\
+        case 20: regs.reg202.ref20_##field = value; break;\
+        case 21: regs.reg202.ref21_##field = value; break;\
+        case 22: regs.reg202.ref22_##field = value; break;\
+        case 23: regs.reg202.ref23_##field = value; break;\
+        case 24: regs.reg203.ref24_##field = value; break;\
+        case 25: regs.reg203.ref25_##field = value; break;\
+        case 26: regs.reg203.ref26_##field = value; break;\
+        case 27: regs.reg203.ref27_##field = value; break;\
+        case 28: regs.reg203.ref28_##field = value; break;\
+        case 29: regs.reg203.ref29_##field = value; break;\
+        case 30: regs.reg203.ref30_##field = value; break;\
+        case 31: regs.reg203.ref31_##field = value; break;\
+        default: break;}\
+    }while(0)
+
 #define VDPU34X_FAST_REG_SET_CNT    3
 
 typedef struct h264d_rkv_buf_t {
@@ -542,6 +580,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, pp->CurrPic.Index7Bits);
         regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
         regs->common_addr.reg132_error_ref_base = fd;
+        regs->h264d_highpoc.reg204.cur_bot_field_flag = pp->CurrPic.AssociatedFlag;
     }
     //!< set reference
     {
@@ -561,6 +600,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
             SET_REF_INFO(regs->h264d_param, i, topfield_used, (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01);
             SET_REF_INFO(regs->h264d_param, i, botfield_used, (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01);
             SET_REF_INFO(regs->h264d_param, i, colmv_use_flag, (pp->RefPicColmvUsedFlags >> i) & 0x01);
+            SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i, bot_field_flag, 0);
+            SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i + 1, bot_field_flag, (pp->RefPicFiledFlags >> i) & 0x01);
 
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
                 ref_index = pp->RefFrameList[i].Index7Bits;
@@ -591,6 +632,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         regs->h264d_param.reg102.ref15_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
         regs->h264d_param.reg102.ref15_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
         regs->h264d_param.reg102.ref15_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
+        regs->h264d_highpoc.reg203.ref30_bot_field_flag = 0;
+        regs->h264d_highpoc.reg203.ref31_bot_field_flag = (pp->RefPicFiledFlags >> 15) & 0x01;
 
         if (pp->RefFrameList[15].bPicEntry != 0xff) {
             ref_index = pp->RefFrameList[15].Index7Bits;
@@ -1009,6 +1052,17 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
+        }
+
+        if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) {
+            wr_cfg.reg = &regs->h264d_highpoc;
+            wr_cfg.size = sizeof(regs->h264d_highpoc);
+            wr_cfg.offset = OFFSET_POC_HIGHBIT_REGS;
+            ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
+            if (ret) {
+                mpp_err_f("set register write failed %d\n", ret);
+                break;
+            }
         }
 
         wr_cfg.reg = &regs->statistic;
