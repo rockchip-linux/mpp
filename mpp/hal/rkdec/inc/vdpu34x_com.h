@@ -24,6 +24,7 @@
 #define OFFSET_CODEC_PARAMS_REGS    (64 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
 #define OFFSET_CODEC_ADDR_REGS      (160 * sizeof(RK_U32))
+#define OFFSET_POC_HIGHBIT_REGS     (200 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
 #define OFFSET_STATISTIC_REGS       (256 * sizeof(RK_U32))
 
