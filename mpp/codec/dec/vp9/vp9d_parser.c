@@ -28,6 +28,7 @@
 #include "vp9data.h"
 #include "vp9d_codec.h"
 #include "vp9d_parser.h"
+#include "mpp_frame_impl.h"
 
 /**
  * Clip a signed integer into the -(2^p),(2^p-1) range.
@@ -254,6 +255,8 @@ MPP_RET vp9d_split_deinit(Vp9CodecContext *vp9_ctx)
 static RK_S32 vp9_ref_frame(Vp9CodecContext *ctx, VP9Frame *dst, VP9Frame *src)
 {
     VP9Context *s = ctx->priv_data;
+    MppFrameImpl *impl_frm = (MppFrameImpl *)dst->f;
+
     if (src->ref == NULL || src->slot_index >= 0x7f) {
         mpp_err("vp9_ref_frame is vaild");
         return -1;
@@ -263,8 +266,8 @@ static RK_S32 vp9_ref_frame(Vp9CodecContext *ctx, VP9Frame *dst, VP9Frame *src)
     dst->ref->invisible = src->ref->invisible;
     dst->ref->ref_count++;
     vp9d_dbg(VP9D_DBG_REF, "get prop slot frame %p  count %d", dst->f, dst->ref->ref_count);
-    mpp_buf_slot_get_prop(s->slots, src->slot_index, SLOT_FRAME_PTR, &dst->f);
-
+    mpp_buf_slot_get_prop(s->slots, src->slot_index, SLOT_FRAME, &dst->f);
+    impl_frm->buffer = NULL; //parser no need process hal buf
     vp9d_dbg(VP9D_DBG_REF, "get prop slot frame after %p", dst->f);
     return 0;
 }
