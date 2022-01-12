@@ -74,9 +74,14 @@ typedef struct HalH264eVepu580Ctx_t {
     /* osd */
     Vepu541OsdCfg           osd_cfg;
 
+    /* finetune */
+    void                    *tune;
+
     /* register */
     HalVepu580RegSet        regs_set;
 } HalH264eVepu580Ctx;
+
+#include "hal_h264e_vepu580_tune.c"
 
 #define CHROMA_KLUT_TAB_SIZE    (24 * sizeof(RK_U32))
 
@@ -141,6 +146,11 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
         p->hw_recn = NULL;
     }
 
+    if (p->tune) {
+        vepu580_h264e_tune_deinit(p->tune);
+        p->tune = NULL;
+    }
+
     hal_h264e_dbg_func("leave %p\n", p);
 
     return MPP_OK;
@@ -187,6 +197,8 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         memcpy(hw->aq_step_i, h264_I_aq_step_default, sizeof(hw->aq_step_i));
         memcpy(hw->aq_step_p, h264_P_aq_step_default, sizeof(hw->aq_step_p));
     }
+
+    p->tune = vepu580_h264e_tune_init(p);
 
 DONE:
     if (ret)
@@ -1665,6 +1677,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     vepu580_set_osd(&ctx->osd_cfg);
     setup_vepu580_l2(&ctx->regs_set, slice, &cfg->hw);
     setup_vepu580_ext_line_buf(regs, ctx);
+    vepu580_h264e_tune_reg_patch(ctx->tune);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
@@ -1884,6 +1897,8 @@ static MPP_RET hal_h264e_vepu580_ret_task(void *hal, HalEncTask *task)
 
     task->hal_ret.data   = &ctx->hal_rc_cfg;
     task->hal_ret.number = 1;
+
+    vepu580_h264e_tune_stat_update(ctx->tune);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
