@@ -151,7 +151,6 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
         impl->caller = caller;
         impl->meta_id = MPP_FETCH_ADD(&meta_id, 1);
         INIT_LIST_HEAD(&impl->list_meta);
-        INIT_LIST_HEAD(&impl->list_node);
         impl->ref_count = 1;
         impl->node_count = 0;
 
@@ -241,6 +240,33 @@ RK_S32 mpp_meta_size(MppMeta meta)
     MppMetaImpl *impl = (MppMetaImpl *)meta;
 
     return MPP_FETCH_ADD(&impl->node_count, 0);
+}
+
+MPP_RET mpp_meta_dump(MppMeta meta)
+{
+    if (NULL == meta) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    RK_U32 i;
+
+    mpp_log("dumping meta %d node count %d\n", impl->meta_id, impl->node_count);
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(meta_defs); i++) {
+        if (!impl->vals[i].state)
+            continue;
+
+        const char *key = (const char *)&meta_defs[i].key;
+        const char *type = (const char *)&meta_defs[i].type;
+
+        mpp_log("key %c%c%c%c type %c%c%c%c\n",
+                key[3], key[2], key[1], key[0],
+                type[3], type[2], type[1], type[0]);
+    }
+
+    return MPP_OK;
 }
 
 #define MPP_META_ACCESSOR(func_type, arg_type, key_type, key_field)  \
