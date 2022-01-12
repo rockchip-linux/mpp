@@ -96,7 +96,12 @@ typedef struct H265eV580HalContext_t {
     HalBufs             dpb_bufs;
     RK_S32              fbc_header_len;
     RK_U32              title_num;
+
+    /* finetune */
+    void                *tune;
 } H265eV580HalContext;
+
+#include "hal_h265e_vepu580_tune.c"
 
 #define TILE_BUF_SIZE  MPP_ALIGN(128 * 1024, 256)
 
@@ -1050,6 +1055,8 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
         memcpy(hw->aq_step_p, aq_qp_dealt_default, sizeof(hw->aq_step_p));
     }
 
+    ctx->tune = vepu580_h265e_tune_init(ctx);
+
     hal_h265e_leave();
     return ret;
 }
@@ -1087,6 +1094,11 @@ MPP_RET hal_h265e_v580_deinit(void *hal)
     if (ctx->dev) {
         mpp_dev_deinit(ctx->dev);
         ctx->dev = NULL;
+    }
+
+    if (ctx->tune) {
+        vepu580_h265e_tune_deinit(ctx->tune);
+        ctx->tune = NULL;
     }
     hal_h265e_leave();
     return MPP_OK;
@@ -1781,6 +1793,8 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     /*paramet cfg*/
     vepu580_h265_global_cfg_set(ctx, regs);
 
+    vepu580_h265e_tune_reg_patch(ctx->tune);
+
     ctx->frame_num++;
 
     hal_h265e_leave();
@@ -2251,6 +2265,8 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
 
     enc_task->hw_length = fb->out_strm_size;
     enc_task->length += fb->out_strm_size;
+
+    vepu580_h265e_tune_stat_update(ctx->tune);
 
     hal_h265e_dbg_detail("output stream size %d\n", fb->out_strm_size);
 
