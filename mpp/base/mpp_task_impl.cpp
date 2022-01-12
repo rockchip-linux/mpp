@@ -467,9 +467,10 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
 
             /* we must ensure that all task return to init status */
             if (mpp_meta_size(meta)) {
-                mpp_err_f("idx %d task %p status %d meta size %d\n", i,
-                          &p->tasks[i], p->tasks[i].status,
+                mpp_err_f("%s queue idx %d task %p status %d meta size %d\n",
+                          p->name, i, &p->tasks[i], p->tasks[i].status,
                           mpp_meta_size(meta));
+                mpp_meta_dump(meta);
             }
             mpp_meta_put(p->tasks[i].meta);
         }

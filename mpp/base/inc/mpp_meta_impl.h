@@ -46,7 +46,6 @@ typedef struct MppMetaImpl_t {
     RK_S32              ref_count;
 
     struct list_head    list_meta;
-    struct list_head    list_node;
     RK_S32              node_count;
     MppMetaVal          vals[];
 } MppMetaImpl;
@@ -56,6 +55,7 @@ extern "C" {
 #endif
 
 RK_S32 mpp_meta_size(MppMeta meta);
+MPP_RET mpp_meta_dump(MppMeta meta);
 MPP_RET mpp_meta_inc_ref(MppMeta meta);
 
 #ifdef __cplusplus
