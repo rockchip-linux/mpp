@@ -81,8 +81,6 @@ typedef struct HalH264eVepu580Ctx_t {
     HalVepu580RegSet        regs_set;
 } HalH264eVepu580Ctx;
 
-#include "hal_h264e_vepu580_tune.c"
-
 #define CHROMA_KLUT_TAB_SIZE    (24 * sizeof(RK_U32))
 
 static RK_U32 h264e_klut_weight[30] = {
@@ -119,6 +117,8 @@ static RK_S32 h264_I_aq_step_default[16] = {
     0,  1,  2,  3,
     4,  5,  6,  8,
 };
+
+#include "hal_h264e_vepu580_tune.c"
 
 static MPP_RET hal_h264e_vepu580_deinit(void *hal)
 {
@@ -827,15 +827,15 @@ static void setup_vepu580_rdo_cfg(Vepu580RdoCfg *regs)
     regs->rdo_intra_var_thd3.atf_rdo_intra_var_thd31 = 100;
 
     /* 0x20E4 ~ 0x20F0 */
-    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt00 = 80;
-    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt01 = 64;
-    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt02 = 48;
-    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt10 = 33;
-    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt11 = 32;
-    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt12 = 30;
-    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt20 = 28;
-    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt21 = 27;
-    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt22 = 26;
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt00 = 24;
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt01 = 22;
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt02 = 21;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt10 = 22;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt11 = 21;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt12 = 20;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt20 = 20;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt21 = 19;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt22 = 18;
     regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt30 = 16;
     regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt31 = 16;
     regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt32 = 16;
@@ -1043,13 +1043,13 @@ static void setup_vepu580_rc_base(HalVepu580RegSet *regs, H264eSps *sps,
 
     {
         /* 0x1070 ~ 0x1074 */
-        regs->reg_rc_klut.md_sad_thd.md_sad_thd0 = 25;
-        regs->reg_rc_klut.md_sad_thd.md_sad_thd1 = 25;
-        regs->reg_rc_klut.md_sad_thd.md_sad_thd2 = 25;
+        regs->reg_rc_klut.md_sad_thd.md_sad_thd0 = 4;
+        regs->reg_rc_klut.md_sad_thd.md_sad_thd1 = 9;
+        regs->reg_rc_klut.md_sad_thd.md_sad_thd2 = 15;
 
-        regs->reg_rc_klut.madi_thd.madi_thd0 = 25;
-        regs->reg_rc_klut.madi_thd.madi_thd1 = 25;
-        regs->reg_rc_klut.madi_thd.madi_thd2 = 25;
+        regs->reg_rc_klut.madi_thd.madi_thd0 = 4;
+        regs->reg_rc_klut.madi_thd.madi_thd1 = 9;
+        regs->reg_rc_klut.madi_thd.madi_thd2 = 15;
     }
 
     hal_h264e_dbg_func("leave\n");
