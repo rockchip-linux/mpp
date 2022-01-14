@@ -101,8 +101,6 @@ typedef struct H265eV580HalContext_t {
     void                *tune;
 } H265eV580HalContext;
 
-#include "hal_h265e_vepu580_tune.c"
-
 #define TILE_BUF_SIZE  MPP_ALIGN(128 * 1024, 256)
 
 static RK_U32 klut_weight[24] = {
@@ -163,6 +161,8 @@ static RK_U32 lamd_modb_qp[52] = {
     0x00112000, 0x00160000, 0x001c0000, 0x00224000, 0x002c0000, 0x00380000, 0x00448000, 0x00580000,
     0x00700000, 0x00890000, 0x00b00000, 0x00e00000
 };
+
+#include "hal_h265e_vepu580_tune.c"
 
 static void vepu580_h265_set_me_ram(H265eSyntax_new *syn, hevc_vepu580_base *regs, RK_U32 index)
 {
