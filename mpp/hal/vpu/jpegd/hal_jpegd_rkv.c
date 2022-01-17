@@ -357,6 +357,7 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
         }
     } else {    //keep original format
         regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_NO_TRANS;
+        ctx->output_fmt = s->output_fmt;
     }
 
     jpegd_dbg_hal("convert format %d to format %d\n", s->output_fmt, ctx->output_fmt);
