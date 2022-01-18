@@ -581,6 +581,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
         regs->common_addr.reg132_error_ref_base = fd;
         regs->h264d_highpoc.reg204.cur_bot_field_flag = pp->CurrPic.AssociatedFlag;
+        regs->h264d_highpoc.reg204.cur_decout_flag = 1;
     }
     //!< set reference
     {

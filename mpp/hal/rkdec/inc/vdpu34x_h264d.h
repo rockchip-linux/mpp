@@ -263,8 +263,9 @@ typedef struct Vdpu34xH264dHighPoc_t {
         RK_U32      ref31_poc_highbit       : 3;
     } reg203;
     struct SWREG200_CUR_POC_HIGHBIT {
+        RK_U32      cur_decout_flag         : 1;
         RK_U32      cur_bot_field_flag      : 1;
-        RK_U32      cur_poc_highbit         : 3;
+        RK_U32      cur_poc_highbit         : 2;
         RK_U32      reserver                : 28;
     } reg204;
 } Vdpu34xH264dHighPoc_t;
