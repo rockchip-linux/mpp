@@ -957,7 +957,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     fd =  mpp_buffer_get_fd(framebuf);
     hw_regs->common_addr.reg130_decout_base = fd;
-
+    hw_regs->highpoc.reg204.cur_decout_flag = 1;
     mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, dxva_cxt->pp.CurrPic.Index7Bits);
     hw_regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
 
@@ -1170,6 +1170,18 @@ static MPP_RET hal_h265d_vdpu34x_start(void *hal, HalTaskInfo *task)
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
+        }
+
+        if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) {
+            wr_cfg.reg = &hw_regs->highpoc;
+            wr_cfg.size = sizeof(hw_regs->highpoc);
+            wr_cfg.offset = OFFSET_POC_HIGHBIT_REGS;
+
+            ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_REG_WR, &wr_cfg);
+            if (ret) {
+                mpp_err_f("set register write failed %d\n", ret);
+                break;
+            }
         }
 
         rd_cfg.reg = &hw_regs->irq_status;

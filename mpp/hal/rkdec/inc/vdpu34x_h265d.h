@@ -127,11 +127,21 @@ typedef struct Vdpu34xRegH265dAddr_t {
     RK_U32  reg197_cabactbl_base;
 } Vdpu34xRegH265dAddr;
 
+typedef struct Vdpu34xH265dHighPoc_t {
+    RK_U32 reg200_203[4];
+    struct SWREG200_CUR_POC_HIGHBIT {
+        RK_U32      cur_decout_flag         : 1;
+        RK_U32      cur_poc_highbit         : 3;
+        RK_U32      reserver                : 28;
+    } reg204;
+} Vdpu34xH2645HighPoc_t;
+
 typedef struct Vdpu34xH265dRegSet_t {
     Vdpu34xRegCommon        common;
     Vdpu34xRegH265d         h265d_param;
     Vdpu34xRegCommonAddr    common_addr;
     Vdpu34xRegH265dAddr     h265d_addr;
+    Vdpu34xH2645HighPoc_t   highpoc;
     Vdpu34xRegIrqStatus     irq_status;
     Vdpu34xRegStatistic     statistic;
 } Vdpu34xH265dRegSet;
