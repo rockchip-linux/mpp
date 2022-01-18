@@ -37,17 +37,9 @@
 #define trie_dbg_get(fmt, ...)          trie_dbg(MPP_TRIE_DBG_GET, fmt, ## __VA_ARGS__)
 #define trie_dbg_cnt(fmt, ...)          trie_dbg(MPP_TRIE_DBG_CNT, fmt, ## __VA_ARGS__)
 
-/* ascii 32 is ' ', char after space is valid data */
-#define MAX_NEXT                        (128 - 32)
 #define DEFAULT_NODE_COUNT              900
 #define DEFAULT_INFO_COUNT              80
-
-/* spatial optimized tire tree */
-typedef struct MppAcNode_t {
-    RK_S32          idx;
-    RK_S32          info_id;
-    RK_S16          next[16];
-} MppTrieNode;
+#define INVALID_NODE_ID                 (-1)
 
 typedef struct MppAcImpl_t {
     RK_S32          info_count;
@@ -81,7 +73,7 @@ static RK_S32 trie_get_node(MppTrieImpl *trie)
     MppTrieNode *n = &trie->nodes[idx];
 
     n->idx = idx;
-    n->info_id = -1;
+    n->id = INVALID_NODE_ID;
 
     trie_dbg_cnt("get node %d\n", idx);
 
@@ -227,49 +219,13 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     }
 
     RK_S32 act_id = p->info_used++;
-    p->nodes[idx].info_id = act_id;
+    p->nodes[idx].id = act_id;
     p->info[act_id] = info;
 
     trie_dbg_set("trie %p add %d info %s at node %d pos %d action %p done\n",
                  trie, i, s, idx, act_id, info);
 
     return MPP_OK;
-}
-
-const char **mpp_trie_get_info(MppTrie trie, const char *name)
-{
-    if (NULL == trie || NULL == name) {
-        mpp_err_f("invalid trie %p name %p\n", trie, name);
-        return NULL;
-    }
-
-    MppTrieImpl *p = (MppTrieImpl *)trie;
-    MppTrieNode *nodes = p->nodes;
-    MppTrieNode *node = nodes;
-    const char *s = name;
-    RK_S32 len = strlen(name);
-    RK_S16 idx = 0;
-    RK_S32 i;
-
-    trie_dbg_get("trie %p search %s len %2d start\n", trie, name, len);
-
-    for (i = 0; i < len; i++, s++) {
-        idx = node->next[(s[0] >> 4) & 0xf];
-        if (!idx)
-            break;
-
-        node = &nodes[idx];
-
-        idx = node->next[(s[0] >> 0) & 0xf];
-        if (!idx)
-            break;
-
-        node = &nodes[idx];
-    }
-
-    trie_dbg_get("idx %d node %p info_id %d\n", idx, node, node->info_id);
-
-    return (idx && node && node->info_id >= 0) ? p->info[node->info_id] : NULL;
 }
 
 RK_S32 mpp_trie_get_node_count(MppTrie trie)
@@ -292,4 +248,69 @@ RK_S32 mpp_trie_get_info_count(MppTrie trie)
 
     MppTrieImpl *p = (MppTrieImpl *)trie;
     return p->info_used;
+}
+
+MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name)
+{
+    MppTrieNode *node = root;
+    const char *s = name;
+    RK_S32 len = 0;
+    RK_S16 idx = 0;
+    RK_S32 i;
+
+    if (NULL == root || NULL == name) {
+        mpp_err_f("invalid root %p name %p\n", root, name);
+        return NULL;
+    }
+
+    len = strlen(name);
+
+    trie_dbg_get("root %p search %s len %2d start\n", root, name, len);
+
+    for (i = 0; i < len; i++, s++) {
+        idx = node->next[(s[0] >> 4) & 0xf];
+        if (!idx)
+            break;
+
+        node = &root[idx];
+
+        idx = node->next[(s[0] >> 0) & 0xf];
+        if (!idx)
+            break;
+
+        node = &root[idx];
+    }
+
+    trie_dbg_get("idx %d node %p id %d\n", idx, node, node->id);
+
+    if (!idx || node->id == INVALID_NODE_ID)
+        node = NULL;
+
+    return node;
+}
+
+MppTrieNode *mpp_trie_node_root(MppTrie trie)
+{
+    if (NULL == trie) {
+        mpp_err_f("invalid NULL trie\n");
+        return NULL;
+    }
+
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+    return p->nodes;
+}
+
+const char **mpp_trie_get_info(MppTrie trie, const char *name)
+{
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+    MppTrieNode *node;
+
+    if (NULL == trie || NULL == name) {
+        mpp_err_f("invalid trie %p name %p\n", trie, name);
+        return NULL;
+    }
+
+    node = mpp_trie_get_node(p->nodes, name);
+
+    return (node && node->id >= 0) ? p->info[node->id] : NULL;
 }
