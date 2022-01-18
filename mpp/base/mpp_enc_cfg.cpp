@@ -44,72 +44,83 @@
 
 RK_U32 mpp_enc_cfg_debug = 0;
 
-#define EXPAND_AS_FUNC(base, name, cfg_type, in_type, flag, field_change, field_data) \
-    MPP_RET set_##base##_##name(void *cfg, MppCfgApi *api, in_type name) \
-    { \
-        char *base = (char *)cfg; \
-        CfgDataInfo *info = &api->info; \
-        CfgDataInfo *update = &api->update; \
-        \
-        mpp_enc_cfg_dbg_func("enter\n"); \
-        switch (CFG_FUNC_TYPE_##cfg_type) { \
-        case CFG_FUNC_TYPE_S32 : \
-        case CFG_FUNC_TYPE_U32 : \
-        case CFG_FUNC_TYPE_S64 : \
-        case CFG_FUNC_TYPE_U64 : { \
-            if (memcmp(base + info->offset, &name, info->size)) { \
-                memcpy(base + info->offset, &name, info->size); \
-                *((RK_U32 *)(base + update->offset)) |= flag; \
-            } \
-        } break; \
-        case CFG_FUNC_TYPE_Ptr : { \
-            memcpy(base + info->offset, &name, info->size); \
-            *((RK_U32 *)(base + update->offset)) |= flag; \
-        } break; \
-        case CFG_FUNC_TYPE_St  : { \
-            if (memcmp(base + info->offset, (void *)((long)name), info->size)) { \
-                memcpy(base + info->offset, (void *)((long)name), info->size); \
-                *((RK_U32 *)(base + update->offset)) |= flag; \
-            } \
-        } break; \
-        default : { \
-        } break; \
-        } \
-        return MPP_OK; \
-    } \
-    MPP_RET get_##base##_##name(void *cfg, MppCfgApi *api, in_type *name) \
-    { \
-        char *base = (char *)cfg; \
-        CfgDataInfo *info = &api->info; \
-        \
-        mpp_enc_cfg_dbg_func("enter\n"); \
-        memcpy(name, base + info->offset, info->size); \
-        return MPP_OK; \
+/*
+ * MppEncCfgInfo data struct
+ *
+ *   +----------+
+ *   |   head   |
+ *   +----------+
+ *   |   trie   |
+ *   |   node   |
+ *   |   ....   |
+ *   +----------+
+ *   |   info   |
+ *   |   node   |
+ *   |   ....   |
+ *   +----------+
+ */
+typedef struct MppEncCfgInfo_t {
+    MppCfgInfoHead      head;
+    MppTrieNode         trie_node[];
+    /* MppCfgInfoNode is following trie_node */
+} MppEncCfgInfo;
+
+static MppCfgInfoNode *mpp_enc_cfg_find(MppEncCfgInfo *info, const char *name)
+{
+    MppTrieNode *node;
+
+    if (NULL == info || NULL == name)
+        return NULL;
+
+    node = mpp_trie_get_node(info->trie_node, name);
+    if (NULL == node)
+        return NULL;
+
+    return (MppCfgInfoNode *)(((char *)info->trie_node) + node->id);
+}
+
+class MppEncCfgService
+{
+private:
+    MppEncCfgService();
+    ~MppEncCfgService();
+    MppEncCfgService(const MppEncCfgService &);
+    MppEncCfgService &operator=(const MppEncCfgService &);
+
+    MppEncCfgInfo *mInfo;
+    RK_S32 mCfgSize;
+
+public:
+    static MppEncCfgService *get() {
+        static Mutex lock;
+        static MppEncCfgService instance;
+
+        AutoMutex auto_lock(&lock);
+        return &instance;
     }
 
+    MppCfgInfoNode *get_info(const char *name) { return mpp_enc_cfg_find(mInfo, name); };
+    MppCfgInfoNode *get_info_root();
+
+    RK_S32 get_node_count() { return mInfo ? mInfo->head.node_count : 0; };
+    RK_S32 get_info_count() { return mInfo ? mInfo->head.info_count : 0; };
+    RK_S32 get_info_size() { return mInfo ? mInfo->head.info_size : 0; };
+    RK_S32 get_cfg_size() { return mCfgSize; };
+};
+
 #define EXPAND_AS_API(base, name, cfg_type, in_type, flag, field_change, field_data) \
-    static MppCfgApi api_##base##_##name = \
+    MppCfgApi api_##base##_##name = \
     { \
         #base":"#name, \
-        { \
-            CFG_FUNC_TYPE_##cfg_type, \
-            sizeof((((MppEncCfgSet *)0)->field_change.field_data)), \
-            (RK_U32)((long)&(((MppEncCfgSet *)0)->field_change.field_data)), \
-        }, \
-        { \
-            CFG_FUNC_TYPE_U32, \
-            sizeof((((MppEncCfgSet *)0)->field_change.change)), \
-            (RK_U32)((long)&(((MppEncCfgSet *)0)->field_change.change)), \
-        }, \
-        (void *)set_##base##_##name, \
-        (void *)get_##base##_##name, \
+        CFG_FUNC_TYPE_##cfg_type, \
+        (RK_U32)((long)&(((MppEncCfgSet *)0)->field_change.change)), \
+        flag, \
+        (RK_U32)((long)&(((MppEncCfgSet *)0)->field_change.field_data)), \
+        sizeof((((MppEncCfgSet *)0)->field_change.field_data)), \
     };
 
 #define EXPAND_AS_ARRAY(base, name, cfg_type, in_type, flag, field_change, field_data) \
     &api_##base##_##name,
-
-#define EXPAND_AS_STRLEN(base, name, cfg_type, in_type, flag, field_change, field_data) \
-    const_strlen( #base":"#name ) +
 
 #define ENTRY_TABLE(ENTRY)  \
     /* base config */ \
@@ -242,72 +253,129 @@ RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
     ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable)
 
-ENTRY_TABLE(EXPAND_AS_FUNC)
-ENTRY_TABLE(EXPAND_AS_API)
-
-static MppCfgApi *cfg_apis[] = {
-    ENTRY_TABLE(EXPAND_AS_ARRAY)
-};
-
-RK_S32 const_strlen(const char* str)
+static MppEncCfgInfo *mpp_enc_cfg_flaten(MppTrie trie, MppCfgApi **cfgs)
 {
-    return *str ? 1 + const_strlen(str + 1) : 0;
+    MppEncCfgInfo *info = NULL;
+    MppTrieNode *node_root = mpp_trie_node_root(trie);
+    RK_S32 node_count = mpp_trie_get_node_count(trie);
+    RK_S32 info_count = mpp_trie_get_info_count(trie);
+    MppTrieNode *node_trie;
+    char *buf = NULL;
+    RK_S32 pos = 0;
+    RK_S32 len = 0;
+    RK_S32 i;
+
+    pos += node_count * sizeof(*node_root);
+
+    mpp_enc_cfg_dbg_info("info node offset %d\n", pos);
+
+    /* update info size and string name size */
+    for (i = 0; i < info_count; i++) {
+        const char *name = cfgs[i]->name;
+        const char **info_trie = mpp_trie_get_info(trie, name);
+
+        mpp_assert(*info_trie == name);
+        len = strlen(name);
+        pos += sizeof(MppCfgInfoNode) + MPP_ALIGN(len + 1, sizeof(RK_U64));
+    }
+
+    len = pos + sizeof(*info);
+    mpp_enc_cfg_dbg_info("tire + info size %d total %d\n", pos, len);
+
+    info = mpp_malloc_size(MppEncCfgInfo, len);
+    if (NULL == info)
+        return NULL;
+
+    memcpy(info->trie_node, node_root, sizeof(*node_root) * node_count);
+
+    node_root = info->trie_node;
+    pos = node_count * sizeof(*node_root);
+    buf = (char *)node_root + pos;
+
+    for (i = 0; i < info_count; i++) {
+        MppCfgInfoNode *node_info = (MppCfgInfoNode *)buf;
+        MppCfgApi *api = cfgs[i];
+        const char *name = api->name;
+        RK_S32 node_size;
+
+        node_trie = mpp_trie_get_node(node_root, name);
+        node_trie->id = pos;
+
+        node_info->name_len     = MPP_ALIGN(strlen(name) + 1, sizeof(RK_U64));
+        node_info->data_type    = api->data_type;
+        node_info->flag_offset  = api->flag_offset;
+        node_info->flag_value   = api->flag_value;
+        node_info->data_offset  = api->data_offset;
+        node_info->data_size    = api->data_size;
+        node_info->node_next    = 0;
+
+        node_size = node_info->name_len + sizeof(*node_info);
+        node_info->node_size    = node_size;
+
+        mpp_cfg_node_fixup_func(node_info);
+
+        strcpy(node_info->name, name);
+
+        mpp_enc_cfg_dbg_info("cfg %s offset %d size %d update %d flag %x\n",
+                             node_info->name,
+                             node_info->data_offset, node_info->data_size,
+                             node_info->flag_offset, node_info->flag_value);
+
+        pos += node_size;
+        buf += node_size;
+    }
+
+    mpp_enc_cfg_dbg_info("total size %d +H %d\n", pos, pos + sizeof(info->head));
+
+    info->head.info_size  = pos;
+    info->head.info_count = info_count;
+    info->head.node_count = node_count;
+    info->head.cfg_size   = sizeof(MppEncCfgSet);
+
+    return info;
 }
 
-static RK_S32 node_len = ENTRY_TABLE(EXPAND_AS_STRLEN) - 52;
-
-class MppEncCfgService
-{
-private:
-    MppEncCfgService();
-    ~MppEncCfgService();
-    MppEncCfgService(const MppEncCfgService &);
-    MppEncCfgService &operator=(const MppEncCfgService &);
-
-    MppTrie mCfgApi;
-
-public:
-    static MppEncCfgService *get() {
-        static Mutex lock;
-        static MppEncCfgService instance;
-
-        AutoMutex auto_lock(&lock);
-        return &instance;
-    }
-
-    MppTrie get_api() { return mCfgApi; };
-};
-
 MppEncCfgService::MppEncCfgService() :
-    mCfgApi(NULL)
+    mInfo(NULL),
+    mCfgSize(0)
 {
+    ENTRY_TABLE(EXPAND_AS_API);
+
+    MppCfgApi *cfgs[] = {
+        ENTRY_TABLE(EXPAND_AS_ARRAY)
+    };
+
+    RK_S32 cfg_cnt = MPP_ARRAY_ELEMS(cfgs);
+    MppTrie trie;
     MPP_RET ret;
     RK_S32 i;
-    RK_S32 api_cnt = MPP_ARRAY_ELEMS(cfg_apis);
 
-    /*
-     * NOTE: The node_len is not the real node count should be allocated
-     * The max node count should be stream lengthg * 2 if each word is different.
-     */
-    ret = mpp_trie_init(&mCfgApi, node_len, api_cnt);
+    ret = mpp_trie_init(&trie, 1526, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
-    } else {
-        for (i = 0; i < api_cnt; i++)
-            mpp_trie_add_info(mCfgApi, &cfg_apis[i]->name);
+        return ;
     }
 
-    if (node_len < mpp_trie_get_node_count(mCfgApi))
-        mpp_err_f("create info %d with not enough node %d -> %d info\n",
-                  api_cnt, node_len, mpp_trie_get_node_count(mCfgApi));
+    for (i = 0; i < cfg_cnt; i++)
+        mpp_trie_add_info(trie, &cfgs[i]->name);
+
+    mInfo = mpp_enc_cfg_flaten(trie, cfgs);
+    mCfgSize = mInfo->head.cfg_size;
+
+    mpp_trie_deinit(trie);
 }
 
 MppEncCfgService::~MppEncCfgService()
 {
-    if (mCfgApi) {
-        mpp_trie_deinit(mCfgApi);
-        mCfgApi = NULL;
-    }
+    MPP_FREE(mInfo);
+}
+
+MppCfgInfoNode *MppEncCfgService::get_info_root()
+{
+    if (NULL == mInfo)
+        return NULL;
+
+    return (MppCfgInfoNode *)(mInfo->trie_node + mInfo->head.node_count);
 }
 
 static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
@@ -320,21 +388,23 @@ static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
 MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
 {
     MppEncCfgImpl *p = NULL;
+    RK_S32 cfg_size;
 
     if (NULL == cfg) {
         mpp_err_f("invalid NULL input config\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_calloc(MppEncCfgImpl, 1);
+    cfg_size = MppEncCfgService::get()->get_cfg_size();
+    p = mpp_calloc_size(MppEncCfgImpl, cfg_size + sizeof(p->size));
     if (NULL == p) {
         mpp_err_f("create encoder config failed %p\n", p);
         *cfg = NULL;
         return MPP_ERR_NOMEM;
     }
 
-    p->size = sizeof(*p);
-    p->api = MppEncCfgService::get()->get_api();
+    mpp_assert(cfg_size == sizeof(p->cfg));
+    p->size = cfg_size;
     mpp_enc_cfg_set_default(&p->cfg);
 
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
@@ -364,17 +434,12 @@ MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
             return MPP_ERR_NULL_PTR; \
         } \
         MppEncCfgImpl *p = (MppEncCfgImpl *)cfg; \
-        const char **info = mpp_trie_get_info(p->api, name); \
-        if (NULL == info) { \
-            mpp_err_f("failed to set %s to %d\n", name, val); \
+        MppCfgInfoNode *info = MppEncCfgService::get()->get_info(name); \
+        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        MppCfgApi *api = (MppCfgApi *)info; \
-        if (check_cfg_api_info(api, CFG_FUNC_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
-        } \
-        mpp_enc_cfg_dbg_set("name %s type %s\n", api->name, cfg_type_names[api->info.type]); \
-        MPP_RET ret = ((CfgSet##cfg_type)api->api_set)(&p->cfg, api, val); \
+        mpp_enc_cfg_dbg_set("name %s type %s\n", info->name, cfg_type_names[info->data_type]); \
+        MPP_RET ret = MPP_CFG_SET_##cfg_type(info, &p->cfg, val); \
         return ret; \
     }
 
@@ -393,17 +458,12 @@ ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_st,  void *, St);
             return MPP_ERR_NULL_PTR; \
         } \
         MppEncCfgImpl *p = (MppEncCfgImpl *)cfg; \
-        const char **info = mpp_trie_get_info(p->api, name); \
-        if (NULL == info) { \
-            mpp_err_f("failed to set %s to %d\n", name, val); \
+        MppCfgInfoNode *info = MppEncCfgService::get()->get_info(name); \
+        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        MppCfgApi *api = (MppCfgApi *)info; \
-        if (check_cfg_api_info(api, CFG_FUNC_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
-        } \
-        mpp_enc_cfg_dbg_get("name %s type %s\n", api->name, cfg_type_names[api->info.type]); \
-        MPP_RET ret = ((CfgGet##cfg_type)api->api_get)(&p->cfg, api, val); \
+        mpp_enc_cfg_dbg_set("name %s type %s\n", info->name, cfg_type_names[info->data_type]); \
+        MPP_RET ret = MPP_CFG_GET_##cfg_type(info, &p->cfg, val); \
         return ret; \
     }
 
@@ -416,17 +476,28 @@ ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_st,  void  , St);
 
 void mpp_enc_cfg_show(void)
 {
-    RK_U32 i;
+    RK_S32 node_count = MppEncCfgService::get()->get_node_count();
+    RK_S32 info_count = MppEncCfgService::get()->get_info_count();
+    MppCfgInfoNode *info = MppEncCfgService::get()->get_info_root();
 
     mpp_log("dumping valid configure string start\n");
 
-    for (i = 0; i < MPP_ARRAY_ELEMS(cfg_apis); i++)
-        mpp_log("%-25s type %s\n", cfg_apis[i]->name,
-                cfg_type_names[cfg_apis[i]->info.type]);
+    if (info) {
+        char *p = (char *)info;
+        RK_S32 i;
 
+        for (i = 0; i < info_count; i++) {
+            info = (MppCfgInfoNode *)p;
+
+            mpp_log("%-25s type %s\n", info->name,
+                    cfg_type_names[info->data_type]);
+
+            p += info->node_size;
+        }
+    }
     mpp_log("dumping valid configure string done\n");
 
-    mpp_log("total api count %d with node %d -> %d info\n",
-            MPP_ARRAY_ELEMS(cfg_apis), node_len,
-            mpp_trie_get_node_count(MppEncCfgService::get()->get_api()));
+    mpp_log("total cfg count %d with %d node size %d\n",
+            info_count, node_count,
+            MppEncCfgService::get()->get_info_size());
 }
