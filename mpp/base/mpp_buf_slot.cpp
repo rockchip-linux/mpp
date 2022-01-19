@@ -315,13 +315,13 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         switch ((fmt & MPP_FRAME_FMT_MASK)) {
         case MPP_FMT_YUV420SP_10BIT : {
-            size = get_afbc_min_size(hal_hor_stride, hal_ver_stride, 15);
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 15);
         } break;
         case MPP_FMT_YUV420SP : {
-            size = get_afbc_min_size(hal_hor_stride, hal_ver_stride, 12);
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 12);
         } break;
         case MPP_FMT_YUV422SP : {
-            size = get_afbc_min_size(hal_hor_stride, hal_ver_stride, 16);
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 16);
         } break;
         default : {
             size = hal_hor_stride * hal_ver_stride * 3 / 2;
