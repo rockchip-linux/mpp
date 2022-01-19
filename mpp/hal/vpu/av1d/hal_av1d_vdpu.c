@@ -1817,10 +1817,10 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     memset(regs, 0, sizeof(*regs));
 
     if (!ctx->tile_out_bufs) {
-        RK_U32 out_w = MPP_ALIGN(4 * width * dxva->bitdepth, 16 * 8) / 8;
+        RK_U32 out_w = MPP_ALIGN(width * dxva->bitdepth, 16 * 8) / 8;
         RK_U32 num_sbs = ((width + 63) / 64 + 1) * ((height + 63) / 64  + 1);
         RK_U32 dir_mvs_size = MPP_ALIGN(num_sbs * 24 * 128 / 8, 16);
-        RK_U32 out_h = height / 4;
+        RK_U32 out_h = MPP_ALIGN(height, 16);
         RK_U32 luma_size = out_w * out_h;
         RK_U32 chroma_size = luma_size / 2;
 
@@ -2006,12 +2006,12 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg8.sw_bit_depth_y_minus8  = dxva->bitdepth - 8;
     regs->swreg8.sw_bit_depth_c_minus8  = dxva->bitdepth - 8;
 
-    regs->swreg11.sw_mcomp_filt_type        = dxva->interp_filter;
-    regs->swreg11.sw_high_prec_mv_e         = dxva->coding.high_precision_mv;
-    regs->swreg11.sw_comp_pred_mode         =  dxva->coding.reference_mode ? 2 : 0;
-    regs->swreg11.sw_transform_mode         = dxva->coding.tx_mode;
-    regs->swreg12.sw_max_cb_size                = dxva->coding.use_128x128_superblock ? 7 : 6;;
-    regs->swreg12.sw_min_cb_size                = 3;
+    regs->swreg11.sw_mcomp_filt_type    = dxva->interp_filter;
+    regs->swreg11.sw_high_prec_mv_e     = dxva->coding.high_precision_mv;
+    regs->swreg11.sw_comp_pred_mode     =  dxva->coding.reference_mode ? 2 : 0;
+    regs->swreg11.sw_transform_mode     = dxva->coding.tx_mode;
+    regs->swreg12.sw_max_cb_size        = dxva->coding.use_128x128_superblock ? 7 : 6;;
+    regs->swreg12.sw_min_cb_size        = 3;
 
     /* unused in comdel */
     regs->swreg12.sw_av1_comp_pred_fixed_ref    = 0;
@@ -2079,20 +2079,8 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     }
     regs->swreg314.sw_dec_alignment = 64;
 
-    // regs->addr_cfg.swreg86.sw_cdef_left_colbuf_base_msb = 0;// TODO:
-    // regs->addr_cfg.swreg87.sw_cdef_left_colbuf_base_lsb = 0;// TODO:
-    // regs->addr_cfg.swreg92.sw_superres_left_colbuf_base_msb = 0;// TODO:
-    // regs->addr_cfg.swreg93.sw_superres_left_colbuf_base_lsb = 0;// TODO:
-    // regs->addr_cfg.swreg96.sw_lr_left_colbuf_base_msb = 0;// TODO:
-    // regs->addr_cfg.swreg97.sw_lr_left_colbuf_base_lsb = 0;// TODO:
-    // regs->addr_cfg.swreg174.sw_mc_sync_curr_base_msb = 0;// TODO:
-    regs->addr_cfg.swreg175.sw_mc_sync_curr_base_lsb = mpp_buffer_get_fd(ctx->tile_buf);// TODO:
-    // regs->addr_cfg.swreg176.sw_mc_sync_left_base_msb = 0;// TODO:
-    regs->addr_cfg.swreg177.sw_mc_sync_left_base_lsb = mpp_buffer_get_fd(ctx->tile_buf);// TODO:
-    // regs->addr_cfg.swreg114.sw_dec_left_vert_filt_base_msb = 0;// TODO:
-    // regs->addr_cfg.swreg115.sw_dec_left_vert_filt_base_lsb = 0;// TODO:
-    // regs->addr_cfg.swreg116.sw_dec_left_bsd_ctrl_base_msb = 0;// TODO:
-    // regs->addr_cfg.swreg117.sw_dec_left_bsd_ctrl_base_lsb = 0;// TODO:
+    regs->addr_cfg.swreg175.sw_mc_sync_curr_base_lsb = mpp_buffer_get_fd(ctx->tile_buf);
+    regs->addr_cfg.swreg177.sw_mc_sync_left_base_lsb = mpp_buffer_get_fd(ctx->tile_buf);
 
     regs->swreg55.sw_apf_disable = 0;
     regs->swreg55.sw_apf_threshold = 8;
@@ -2162,8 +2150,6 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     for (i = 0; i < sizeof(VdpuAv1dRegSet) / sizeof(RK_U32); i++)
                 mpp_log("regs[%04d]=%08X\n", i, ((RK_U32 *)regs)[i]);*/
 
-
-    //TODO:
 
 __RETURN:
     return ret = MPP_OK;
