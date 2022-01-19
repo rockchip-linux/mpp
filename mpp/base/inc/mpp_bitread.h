@@ -159,6 +159,10 @@ RK_U32  mpp_has_more_rbsp_data(BitReadCtx_t * bitctx);
 //!< align bits and get current pointer
 RK_U8  *mpp_align_get_bits(BitReadCtx_t *bitctx);
 
+RK_S32 mpp_get_bits_left(BitReadCtx_t *bitctx);
+
+RK_S32 mpp_get_bits_count(BitReadCtx_t *bitctx);
+
 #ifdef  __cplusplus
 }
 #endif
