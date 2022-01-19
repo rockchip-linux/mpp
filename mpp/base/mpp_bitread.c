@@ -21,7 +21,6 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-
 static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
 {
     if (bitctx->bytes_left_ < 1)
@@ -297,4 +296,14 @@ RK_U8 *mpp_align_get_bits(BitReadCtx_t *bitctx)
     if (n)
         mpp_skip_bits(bitctx, n);
     return bitctx->data_;
+}
+
+RK_S32 mpp_get_bits_left(BitReadCtx_t *bitctx)
+{
+    return  bitctx->bytes_left_ * 8 + bitctx->num_remaining_bits_in_curr_byte_;
+}
+
+RK_S32 mpp_get_bits_count(BitReadCtx_t *bitctx)
+{
+    return bitctx->used_bits;
 }
