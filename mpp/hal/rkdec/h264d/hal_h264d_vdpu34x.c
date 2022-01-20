@@ -688,7 +688,7 @@ static MPP_RET init_common_regs(Vdpu34xH264dRegSet *regs)
     common->reg026.swreg_block_gating_e =
         (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) ? 0xfffef : 0xfffff;
     common->reg026.reg_cfg_gating_en = 1;
-    common->reg032_timeout_threshold = 0x0fffffff;
+    common->reg032_timeout_threshold = 0x3ffff;
 
     common->reg011.dec_clkgate_e = 1;
     common->reg011.dec_e_strmd_clkgate_dis = 0;

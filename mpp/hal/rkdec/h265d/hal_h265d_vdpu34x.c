@@ -1018,7 +1018,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg026.swreg_block_gating_e =
         (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) ? 0xfffef : 0xfffff;
     hw_regs->common.reg026.reg_cfg_gating_en = 1;
-    hw_regs->common.reg032_timeout_threshold = 0x0fffffff;
+    hw_regs->common.reg032_timeout_threshold = 0x3ffff;
 
     valid_ref = hw_regs->common_addr.reg130_decout_base;
     reg_cxt->error_index = dxva_cxt->pp.CurrPic.Index7Bits;
