@@ -1126,7 +1126,7 @@ MPP_TEST_OUT:
 int main(int argc, char **argv)
 {
     MpiEncTestArgs* enc_cmd = mpi_enc_test_cmd_get();
-    MpiRc2TestCtx ctx;
+    MpiRc2TestCtx *ctx = NULL;
     MPP_RET ret = MPP_OK;
 
     ret = mpi_enc_test_cmd_update_by_args(enc_cmd, argc, argv);
@@ -1135,21 +1135,29 @@ int main(int argc, char **argv)
 
     mpi_enc_test_cmd_show_opt(enc_cmd);
 
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.enc_cmd = enc_cmd;
+    ctx = mpp_calloc(MpiRc2TestCtx, 1);
+    if (NULL == ctx) {
+        ret = MPP_ERR_MALLOC;
+        goto DONE;
+    }
 
-    ret = mpi_rc_init(&ctx);
+    ctx->enc_cmd = enc_cmd;
+
+    ret = mpi_rc_init(ctx);
     if (ret) {
         mpp_err("mpi_rc_init failded ret %d", ret);
         goto DONE;
     }
 
-    ret = mpi_rc_codec(&ctx);
+    ret = mpi_rc_codec(ctx);
     if (ret)
         mpp_err("mpi_rc_codec failded ret %d", ret);
 
 DONE:
-    mpi_rc_deinit(&ctx);
+    if (ctx) {
+        mpi_rc_deinit(ctx);
+        ctx = NULL;
+    }
 
     mpi_enc_test_cmd_put(enc_cmd);
 
