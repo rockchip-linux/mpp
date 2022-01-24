@@ -53,6 +53,7 @@ typedef struct {
     // src and dst
     FILE *fp_input;
     FILE *fp_output;
+    FILE *fp_verify;
 
     /* encoder config set */
     MppEncCfg       cfg;
@@ -195,6 +196,10 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
             ret = MPP_ERR_OPEN_FILE;
         }
     }
+
+    p->fp_verify = fopen(cmd->file_slt, "wt");
+    if (!p->fp_verify)
+        mpp_err("failed to open verify file %s\n", cmd->file_slt);
 
     // update resource parameter
     switch (p->fmt & MPP_FRAME_FMT_MASK) {
@@ -489,7 +494,11 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
     RK_U32 quiet = cmd->quiet;
     RK_S32 chn = info->chn;
     RK_U32 cap_num = 0;
+    DataCrc checkcrc;
     MPP_RET ret = MPP_OK;
+
+    memset(&checkcrc, 0, sizeof(checkcrc));
+    checkcrc.sum = mpp_malloc(RK_ULONG, 512);
 
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
         MppPacket packet = NULL;
@@ -716,6 +725,12 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                 if (p->fp_output)
                     fwrite(ptr, 1, len, p->fp_output);
 
+                if (p->fp_verify && !p->pkt_eos) {
+                    calc_data_crc((RK_U8 *)ptr, (RK_U32)len, &checkcrc);
+                    mpp_log("p->frame_count=%d, len=%d\n", p->frame_count, len);
+                    write_data_crc(p->fp_verify, &checkcrc);
+                }
+
                 log_len += snprintf(log_buf + log_len, log_size - log_len,
                                     "encoded frame %-4d", p->frame_count);
 
@@ -778,6 +793,8 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
             break;
     }
 RET:
+    MPP_FREE(checkcrc.sum);
+
     return ret;
 }
 

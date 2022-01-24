@@ -66,6 +66,7 @@ typedef struct MpiEncTestArgs_t {
     FpsCalc             fps;
     RK_U32              psnr_en;
     RK_U32              ssim_en;
+    char                *file_slt;
 } MpiEncTestArgs;
 
 #ifdef __cplusplus

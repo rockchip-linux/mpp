@@ -418,6 +418,24 @@ RK_S32 mpi_enc_opt_ini(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_slt(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+        if (len) {
+            cmd->file_slt = mpp_calloc(char, len + 1);
+            strncpy(cmd->file_slt, next, len);
+
+            return 1;
+        }
+    }
+
+    mpp_err("input slt verify file is invalid\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
@@ -443,6 +461,7 @@ static MppOptInfo enc_opts[] = {
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
     {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
+    {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);
@@ -578,6 +597,7 @@ MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
     MPP_FREE(cmd->file_input);
     MPP_FREE(cmd->file_output);
     MPP_FREE(cmd->file_cfg);
+    MPP_FREE(cmd->file_slt);
     MPP_FREE(cmd);
 
     return MPP_OK;
@@ -932,6 +952,7 @@ MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
     mpp_log("height     : %d\n", cmd->height);
     mpp_log("format     : %d\n", cmd->format);
     mpp_log("type       : %d\n", cmd->type);
+    mpp_log("verify     : %s\n", cmd->file_slt);
 
     return MPP_OK;
 }

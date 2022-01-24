@@ -86,6 +86,7 @@ OptionInfo mpi_dec_cmd[] = {
     {"n",               "frame_number",         "max output frame number"},
     {"s",               "instance_nb",          "number of instances"},
     {"v",               "trace",                "q - quiet f - show fps"},
+    {"c",               "verify_file",          "verify file for slt check"},
     {NULL},
 };
 
@@ -573,6 +574,24 @@ RK_S32 mpi_dec_opt_v(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_dec_opt_slt(void *ctx, const char *next)
+{
+    MpiDecTestCmd *cmd = (MpiDecTestCmd *)ctx;
+
+    if (next) {
+        size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
+        if (len) {
+            cmd->file_slt = mpp_calloc(char, len + 1);
+            strncpy(cmd->file_slt, next, len);
+
+            return 1;
+        }
+    }
+
+    mpp_err("input slt verify file is invalid\n");
+    return 0;
+}
+
 RK_S32 mpi_dec_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
@@ -591,6 +610,7 @@ static MppOptInfo dec_opts[] = {
     {"n",       "frame_number", "max output frame number",          mpi_dec_opt_n},
     {"s",       "instance_nb",  "number of instances",              mpi_dec_opt_s},
     {"v",       "trace option", "q - quiet f - show fps",           mpi_dec_opt_v},
+    {"slt",     "slt file",     "slt verify data file",             mpi_dec_opt_slt},
     {"help",    "help",         "show help",                        mpi_dec_opt_help},
 };
 
@@ -695,6 +715,8 @@ RK_S32 mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd)
         cmd->reader = NULL;
     }
 
+    MPP_FREE(cmd->file_slt);
+
     if (cmd->fps) {
         fps_calc_deinit(cmd->fps);
         cmd->fps = NULL;
@@ -715,4 +737,5 @@ void mpi_dec_test_cmd_options(MpiDecTestCmd* cmd)
     mpp_log("height     : %4d\n", cmd->height);
     mpp_log("type       : %4d\n", cmd->type);
     mpp_log("max frames : %4d\n", cmd->frame_num);
+    mpp_log("verify     : %s\n", cmd->file_slt);
 }
