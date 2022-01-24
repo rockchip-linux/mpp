@@ -212,6 +212,7 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
         p->support_set_rcb_info = 1;
 
     /* default server fd is the opened client fd */
+    p->client_type = type;
     p->server = p->client;
     p->batch_io = 0;
     p->serv_ctx = NULL;
@@ -403,7 +404,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
             mpp_req.size = p->info_count * sizeof(p->info[0]);
             mpp_req.offset = 0;
             mpp_req.data_ptr = REQ_DATA_PTR(p->info);
-            ret = mpp_service_ioctl_request(p->server, &mpp_req);
+            ret = mpp_service_ioctl_request(p->client, &mpp_req);
             if (ret)
                 p->support_set_info = 0;
         }
