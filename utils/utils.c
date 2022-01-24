@@ -26,6 +26,10 @@
 #include "mpp_common.h"
 #include "utils.h"
 
+#define MAX_HALF_WORD_SUM_CNT \
+    ((RK_ULONG)((0-1) / ((1UL << ((__SIZEOF_POINTER__ * 8) / 2)) - 1)))
+#define CAL_BYTE (__SIZEOF_POINTER__ >> 1)
+
 void _show_options(int count, OptionInfo *options)
 {
     int i;
@@ -187,17 +191,45 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
     }
 }
 
+void wide_bit_sum(RK_U8 *data, RK_U32 len, RK_ULONG *sum)
+{
+    RK_U8   *data8 = NULL;
+    RK_U32  loop;
+    data8 = data;
+#if __WORDSIZE == 32
+    RK_U16 *data_rk = NULL;
+    data_rk = (RK_U16 *)data;
+#elif __WORDSIZE == 64
+    RK_U32 *data_rk = NULL;
+    data_rk = (RK_U32 *)data;
+#endif
+
+    for (loop = 0; loop < len / CAL_BYTE; loop++) {
+        *sum += data_rk[loop];
+    }
+    for (loop = len / CAL_BYTE * CAL_BYTE; loop < len; loop++) {
+        *sum += data8[loop];
+    }
+
+    return;
+}
+
 void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc)
 {
-    RK_U32 i = 0;
+    RK_ULONG data_grp_byte_cnt = MAX_HALF_WORD_SUM_CNT * CAL_BYTE;
+    RK_U32 i = 0, grp_loop = 0;
     RK_U8 *dat8 = NULL;
     RK_U32 *dat32 = NULL;
-    RK_U32 sum = 0, xor = 0;
+    RK_U32 xor = 0;
 
     /*calc sum */
-    dat8 = dat;
-    for (i = 0; i < len; i++)
-        sum += dat8[i];
+    crc->sum_cnt = (len + data_grp_byte_cnt - 1) / data_grp_byte_cnt;
+    for (grp_loop = 0; grp_loop < len / data_grp_byte_cnt; grp_loop++) {
+        wide_bit_sum(&dat[grp_loop * data_grp_byte_cnt], data_grp_byte_cnt, &crc->sum[grp_loop]);
+    }
+    if (len % data_grp_byte_cnt) {
+        wide_bit_sum(&dat[grp_loop * data_grp_byte_cnt], len % data_grp_byte_cnt, &crc->sum[grp_loop]);
+    }
 
     /*calc xor */
     dat32 = (RK_U32 *)dat;
@@ -213,23 +245,34 @@ void calc_data_crc(RK_U8 *dat, RK_U32 len, DataCrc *crc)
     }
 
     crc->len = len;
-    crc->sum = sum;
     crc->vor = xor;
 }
 
 void write_data_crc(FILE *fp, DataCrc *crc)
 {
+    RK_U32 loop = 0;
+
     if (fp) {
-        fprintf(fp, "%d, %08x, %08x\n", crc->len, crc->sum, crc->vor);
+        fprintf(fp, "%08d,", crc->len);
+        for (loop = 0; loop < crc->sum_cnt; loop++) {
+            fprintf(fp, " %lx,", crc->sum[loop]);
+        }
+        fprintf(fp, " %08x\n", crc->vor);
         fflush(fp);
     }
 }
 
 void read_data_crc(FILE *fp, DataCrc *crc)
 {
+    RK_U32 loop = 0;
+
     if (fp) {
         RK_S32 ret = 0;
-        ret = fscanf(fp, "%d, %08x, %08x\n", &crc->len, &crc->sum, &crc->vor);
+        ret = fscanf(fp, "%8d", &crc->len);
+        for (loop = 0; loop < crc->sum_cnt; loop++) {
+            ret |= fscanf(fp, "%lx", &crc->sum[loop]);
+        }
+        ret |= fscanf(fp, "%08x", &crc->vor);
         if (ret == EOF)
             mpp_err_f("unexpected EOF found\n");
     }
@@ -237,64 +280,111 @@ void read_data_crc(FILE *fp, DataCrc *crc)
 
 void calc_frm_crc(MppFrame frame, FrmCrc *crc)
 {
+    RK_ULONG data_grp_byte_cnt = MAX_HALF_WORD_SUM_CNT * CAL_BYTE;
+    RK_U32 grp_line_cnt = 0;
+    RK_U32 grp_cnt = 0;
+
     RK_U32 y = 0, x = 0;
     RK_U8 *dat8 = NULL;
     RK_U32 *dat32 = NULL;
-    RK_U32 sum = 0, xor = 0;
+    RK_U32 xor = 0;
 
     RK_U32 width  = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
     RK_U32 stride = mpp_frame_get_hor_stride(frame);
     RK_U8 *buf = (RK_U8 *)mpp_buffer_get_ptr(mpp_frame_get_buffer(frame));
 
-    /* luma */
-    dat8 = buf;
-    for (y = 0; y < height; y++)
-        for (x = 0; x < width; x++)
-            sum += dat8[y * stride + x];
+    grp_line_cnt = data_grp_byte_cnt / ((width + CAL_BYTE - 1) / CAL_BYTE * CAL_BYTE);
 
+    /* luma */
+    grp_cnt = (height + grp_line_cnt - 1) / grp_line_cnt;
+    crc->luma.sum_cnt = grp_cnt;
+
+    dat8 = buf;
+    for (y = 0; y <  height / grp_line_cnt * grp_line_cnt; y++) {
+        wide_bit_sum(&dat8[y * stride], width, &crc->luma.sum[y / grp_line_cnt]);
+    }
+    if (height % grp_line_cnt) {
+        for (y = height / grp_line_cnt * grp_line_cnt; y < height; y++) {
+            wide_bit_sum(&dat8[y * stride], width, &crc->luma.sum[y / grp_line_cnt]);
+        }
+    }
+
+    dat8 = buf;
     for (y = 0; y < height; y++) {
         dat32 = (RK_U32 *)&dat8[y * stride];
         for (x = 0; x < width / 4; x++)
             xor ^= dat32[x];
     }
     crc->luma.len = height * width;
-    crc->luma.sum = sum;
     crc->luma.vor = xor;
 
     /* chroma */
-    dat8 = buf + height * stride;
-    for (y = 0; y < height / 2; y++)
-        for (x = 0; x < width; x++)
-            sum += dat8[y * stride + x];
+    grp_cnt = (height / 2 + grp_line_cnt - 1) / grp_line_cnt;
+    crc->chroma.sum_cnt = grp_cnt;
 
+    dat8 = buf + height * stride;
+    for (y = 0; y <  height / 2 / grp_line_cnt * grp_line_cnt; y++) {
+        wide_bit_sum(&dat8[y * stride], width, &crc->chroma.sum[y / grp_line_cnt]);
+    }
+    if (height / 2 % grp_line_cnt) {
+        for (y = height / 2 / grp_line_cnt * grp_line_cnt; y < height / 2; y++) {
+            wide_bit_sum(&dat8[y * stride], width, &crc->chroma.sum[y / grp_line_cnt]);
+        }
+    }
+
+    dat8 = buf + height * stride;
     for (y = 0; y < height / 2; y++) {
         dat32 = (RK_U32 *)&dat8[y * stride];
         for (x = 0; x < width / 4; x++)
             xor ^= dat32[x];
     }
     crc->chroma.len = height * width / 2;
-    crc->chroma.sum = sum;
     crc->chroma.vor = xor;
 }
 
 void write_frm_crc(FILE *fp, FrmCrc *crc)
 {
+    RK_U32 loop = 0;
+
     if (fp) {
-        fprintf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
-                crc->luma.len, crc->luma.sum, crc->luma.vor,
-                crc->chroma.len, crc->chroma.sum, crc->chroma.vor);
+        // luma
+        fprintf(fp, "%d,", crc->luma.len);
+        for (loop = 0; loop < crc->luma.sum_cnt; loop++) {
+            fprintf(fp, " %lx,", crc->luma.sum[loop]);
+        }
+        fprintf(fp, " %08x,", crc->luma.vor);
+
+        // chroma
+        fprintf(fp, " %d,", crc->chroma.len);
+        for (loop = 0; loop < crc->chroma.sum_cnt; loop++) {
+            fprintf(fp, " %lx,", crc->chroma.sum[loop]);
+        }
+        fprintf(fp, " %08x\n", crc->chroma.vor);
+
         fflush(fp);
     }
 }
 
 void read_frm_crc(FILE *fp, FrmCrc *crc)
 {
+    RK_U32 loop = 0;
+
     if (fp) {
         RK_S32 ret = 0;
-        ret = fscanf(fp, "%d, %08x, %08x, %d, %08x, %08x\n",
-                     &crc->luma.len, &crc->luma.sum, &crc->luma.vor,
-                     &crc->chroma.len, &crc->chroma.sum, &crc->chroma.vor);
+        // luma
+        ret = fscanf(fp, "%d", &crc->luma.len);
+        for (loop = 0; loop < crc->luma.sum_cnt; loop++) {
+            ret |= fscanf(fp, "%lx", &crc->luma.sum[loop]);
+        }
+        ret |= fscanf(fp, "%08x", &crc->luma.vor);
+
+        // chroma
+        ret |= fscanf(fp, "%d", &crc->chroma.len);
+        for (loop = 0; loop < crc->chroma.sum_cnt; loop++) {
+            ret |= fscanf(fp, "%lx", &crc->chroma.sum[loop]);
+        }
+        ret |= fscanf(fp, "%08x", &crc->chroma.vor);
         if (ret == EOF)
             mpp_err_f("unexpected EOF found\n");
     }

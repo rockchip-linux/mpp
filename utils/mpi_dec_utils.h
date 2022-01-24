@@ -63,6 +63,7 @@ typedef struct MpiDecTestCmd_t {
     /* runtime log flag */
     RK_U32          quiet;
     RK_U32          trace_fps;
+    char            *file_slt;
 } MpiDecTestCmd;
 
 extern OptionInfo mpi_dec_cmd[];
