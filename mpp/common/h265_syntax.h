@@ -110,6 +110,14 @@
 #define MPP_PROFILE_HEVC_MAIN_10                     2
 #define MPP_PROFILE_HEVC_MAIN_STILL_PICTURE          3
 
+#define LOG2_MAX_CTB_SIZE   6
+#define LOG2_MIN_CTB_SIZE   4
+#define LOG2_MAX_PU_SIZE    6
+#define LOG2_MIN_PU_SIZE    2
+#define LOG2_MAX_TU_SIZE    5
+#define LOG2_MIN_TU_SIZE    2
+#define LOG2_MAX_CU_SIZE    6
+#define LOG2_MIN_CU_SIZE    3
 
 /**
  * Value of the luma sample at position (x, y) in the 2D array tab.
