@@ -1274,14 +1274,14 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     switch (s->nal_unit_type) {
     case NAL_VPS:
         ret = mpp_hevc_decode_nal_vps(s);
-        if (ret < 0) {
+        if (ret < 0 && !s->is_decoded) {
             mpp_err("mpp_hevc_decode_nal_vps error ret = %d", ret);
             goto fail;
         }
         break;
     case NAL_SPS:
         ret = mpp_hevc_decode_nal_sps(s);
-        if (ret < 0) {
+        if (ret < 0 && !s->is_decoded) {
             mpp_err("mpp_hevc_decode_nal_sps error ret = %d", ret);
             goto fail;
         }
@@ -1309,7 +1309,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             s->ps_need_upate = 1;
         }
         ret = mpp_hevc_decode_nal_pps(s);
-        if (ret < 0) {
+        if (ret < 0 && !s->is_decoded) {
             mpp_err("mpp_hevc_decode_nal_pps error ret = %d", ret);
             goto fail;
         }
