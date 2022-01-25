@@ -34,6 +34,8 @@
 #include "hal_h265e_vepu580.h"
 #include "hal_h265e_vepu580_reg.h"
 
+#include "mpp_service.h"
+
 #define MAX_TILE_NUM 2
 
 #define hal_h265e_err(fmt, ...) \
@@ -65,7 +67,7 @@ typedef struct vepu580_h265_fbk_t {
 typedef struct H265eV580HalContext_t {
     MppEncHalApi        api;
     MppDev              dev;
-    void                *regs;
+    void                *regs[MAX_TILE_NUM];
     void                *reg_out[MAX_TILE_NUM];
 
     vepu580_h265_fbk    feedback;
@@ -1119,10 +1121,10 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
     hal_h265e_enter();
 
     for (i = 0; i < MAX_TILE_NUM; i++) {
+        ctx->regs[i]     = mpp_calloc(H265eV580RegSet, 1);
         ctx->reg_out[i]  = mpp_calloc(H265eV580StatusElem, 1);
     }
 
-    ctx->regs           = mpp_calloc(H265eV580RegSet, 1);
     ctx->input_fmt      = mpp_calloc(VepuFmtCfg, 1);
     ctx->cfg            = cfg->cfg;
     hal_bufs_init(&ctx->dpb_bufs);
@@ -1136,7 +1138,7 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
-    regs = (H265eV580RegSet *)ctx->regs;
+    regs = (H265eV580RegSet *)ctx->regs[0];
     ctx->dev = cfg->dev;
     ctx->osd_cfg.reg_base = (void *)&regs->reg_osd_cfg;
     ctx->osd_cfg.dev = ctx->dev;
@@ -1160,7 +1162,12 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
 
     ctx->tune = vepu580_h265e_tune_init(ctx);
 
-    ctx->tile_parall_en = 0;
+    {
+        // check parall tile ability
+        const MppServiceCmdCap *cap = mpp_get_mpp_service_cmd_cap();
+
+        ctx->tile_parall_en = cap->send_cmd > MPP_CMD_SET_SESSION_FD;
+    }
     hal_h265e_leave();
     return ret;
 }
@@ -1171,9 +1178,9 @@ MPP_RET hal_h265e_v580_deinit(void *hal)
     RK_U32 i = 0;
 
     hal_h265e_enter();
-    MPP_FREE(ctx->regs);
 
     for (i = 0; i < MAX_TILE_NUM; i++) {
+        MPP_FREE(ctx->regs[i]);
         MPP_FREE(ctx->reg_out[i]);
     }
 
@@ -1897,7 +1904,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     H265eV580HalContext *ctx = (H265eV580HalContext *)hal;
     HalEncTask *enc_task = task;
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
-    H265eV580RegSet *regs = ctx->regs;
+    H265eV580RegSet *regs = (H265eV580RegSet *)ctx->regs[0];
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 pic_wd64, pic_h64;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
@@ -2104,9 +2111,12 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
     }
 
     for (k = 0; k < tile_num; k++) {
-        H265eV580RegSet *hw_regs = ctx->regs;
+        H265eV580RegSet *hw_regs = (H265eV580RegSet *)ctx->regs[k];
         hevc_vepu580_base *reg_base = &hw_regs->reg_base;
         H265eV580StatusElem *reg_out = (H265eV580StatusElem *)ctx->reg_out[k];
+
+        if (k)
+            memcpy(hw_regs, ctx->regs[0], sizeof(*hw_regs));
 
         vepu580_h265_set_me_ram(syn, &hw_regs->reg_base, k);
 
@@ -2135,34 +2145,32 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
             mpp_dev_set_reg_offset(ctx->dev, 166, ctx->fbc_header_len);
         }
         hal_h265e_v580_send_regs(ctx->dev, hw_regs, reg_out);
-        if (k < tile_num - 1) {
-            vepu580_h265_fbk *fb = &ctx->feedback;
-            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
-            if (ret) {
-                mpp_err_f("send cmd failed %d\n", ret);
-                break;
-            }
 
+        if (k < tile_num - 1) {
             if (!ctx->tile_parall_en) {
+                vepu580_h265_fbk *fb = &ctx->feedback;
+
+                ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+                if (ret) {
+                    mpp_err_f("send cmd failed %d\n", ret);
+                }
+
                 ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
                 if (ret) {
                     mpp_err_f("poll cmd failed %d\n", ret);
                     ret = MPP_ERR_VPUHW;
                 }
                 stream_len += reg_out->st.bs_lgth_l32;
-
                 fb->qp_sum += reg_out->st.qp_sum;
-
                 fb->out_strm_size += reg_out->st.bs_lgth_l32;
-
                 fb->sse_sum += (RK_S64)(reg_out->st.sse_h32 << 16) +
                                ((reg_out->st.st_sse_bsl.sse_l16 >> 16) & 0xffff);
-
                 fb->st_madi += reg_out->st.madi;
                 fb->st_madp += reg_out->st.madp;
                 fb->st_mb_num += reg_out->st.st_bnum_b16.num_b16;
                 fb->st_ctu_num += reg_out->st.st_bnum_cme.num_ctu;
-            }
+            } else
+                mpp_dev_ioctl(ctx->dev, MPP_DEV_DELIMIT, NULL);
         }
     }
 
