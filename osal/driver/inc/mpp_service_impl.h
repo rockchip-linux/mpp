@@ -42,12 +42,21 @@ typedef struct MppDevMppService_t {
     RK_S32          batch_io;
     MppCbCtx        *dev_cb;
 
+    MppReqV1        *reqs;
+    RK_S32          req_max;
     RK_S32          req_cnt;
+
+    RegOffsetInfo   *reg_offset_info;
+    RK_S32          reg_offset_max;
     RK_S32          reg_offset_count;
-    MppReqV1        reqs[MAX_REQ_NUM];
-    RegOffsetInfo   reg_offset_info[MAX_REG_OFFSET];
+    RK_S32          reg_offset_pos;
+
+    RcbInfo         *rcb_info;
+    RK_S32          rcb_max;
     RK_S32          rcb_count;
-    RcbInfo         rcb_info[MAX_RCB_OFFSET];
+    RK_S32          rcb_pos;
+
+    MppDevBatCmd    bat_cmd;
 
     RK_S32          info_count;
     MppDevInfoCfg   info[MAX_INFO_COUNT];

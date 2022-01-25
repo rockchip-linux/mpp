@@ -23,6 +23,7 @@
 
 #include "mpp_log.h"
 #include "mpp_env.h"
+#include "mpp_mem.h"
 #include "mpp_common.h"
 #include "osal_2str.h"
 
@@ -188,6 +189,74 @@ void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap 
     }
 }
 
+MppReqV1 *mpp_service_next_req(MppDevMppService *p)
+{
+    MppReqV1 *mpp_req = NULL;
+
+    if (p->req_cnt >= p->req_max) {
+        mpp_dev_dbg_msg("enlarge request count %d -> %d\n",
+                        p->req_max, p->req_max * 2);
+        p->reqs = mpp_realloc(p->reqs, MppReqV1, p->req_max * 2);
+        if (NULL == p->reqs) {
+            mpp_err_f("failed to enlarge request buffer\n");
+            return NULL;
+        }
+
+        p->req_max *= 2;
+    }
+
+    mpp_req = &p->reqs[p->req_cnt++];
+
+    return mpp_req;
+}
+
+RegOffsetInfo *mpp_service_next_reg_offset(MppDevMppService *p)
+{
+    RegOffsetInfo *info = NULL;
+
+    if (p->reg_offset_count + p->reg_offset_pos >= p->reg_offset_max) {
+        mpp_dev_dbg_msg("enlarge reg offset count %d -> %d\n",
+                        p->reg_offset_max, p->reg_offset_max * 2);
+        p->reg_offset_info = mpp_realloc(p->reg_offset_info, RegOffsetInfo, p->reg_offset_max * 2);
+        if (NULL == p->reg_offset_info) {
+            mpp_err_f("failed to enlarge request buffer\n");
+            return NULL;
+        }
+
+        p->reg_offset_max *= 2;
+    }
+
+    info = &p->reg_offset_info[p->reg_offset_count + p->reg_offset_pos];
+    mpp_dev_dbg_msg("reg offset %d : %d\n", p->reg_offset_pos, p->reg_offset_count);
+    p->reg_offset_count++;
+
+    return info;
+}
+
+
+RcbInfo *mpp_service_next_rcb_info(MppDevMppService *p)
+{
+    RcbInfo *info = NULL;
+
+    if (p->rcb_count + p->rcb_pos >= p->rcb_max) {
+        mpp_dev_dbg_msg("enlarge rcb info count %d -> %d\n",
+                        p->rcb_max, p->rcb_max * 2);
+        p->rcb_info = mpp_realloc(p->rcb_info, RcbInfo, p->rcb_max * 2);
+        if (NULL == p->rcb_info) {
+            mpp_err_f("failed to enlarge request buffer\n");
+            return NULL;
+        }
+
+        p->rcb_max *= 2;
+    }
+
+    info = &p->rcb_info[p->rcb_count + p->rcb_pos];
+    mpp_dev_dbg_msg("rcb info %d : %d\n", p->rcb_pos, p->rcb_count);
+    p->rcb_count++;
+
+    return info;
+}
+
 MPP_RET mpp_service_init(void *ctx, MppClientType type)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
@@ -218,6 +287,35 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     p->serv_ctx = NULL;
     p->dev_cb   = NULL;
 
+    p->bat_cmd.flag = 0;
+    p->bat_cmd.client = p->client;
+    p->bat_cmd.ret = 0;
+
+    p->req_max = MAX_REQ_NUM;
+    p->reqs = mpp_malloc(MppReqV1, p->req_max);
+    if (NULL == p->reqs) {
+        mpp_err("create request buffer failed\n");
+        ret = MPP_ERR_MALLOC;
+    }
+
+    p->reg_offset_max = MAX_REG_OFFSET;
+    p->reg_offset_info = mpp_malloc(RegOffsetInfo, p->reg_offset_max);
+    if (NULL == p->reg_offset_info) {
+        mpp_err("create register offset buffer failed\n");
+        ret = MPP_ERR_MALLOC;
+    }
+    p->reg_offset_pos = 0;
+    p->reg_offset_count = 0;
+
+    p->rcb_max = MAX_RCB_OFFSET;
+    p->rcb_info = mpp_malloc(RcbInfo, p->rcb_max);
+    if (NULL == p->rcb_info) {
+        mpp_err("create rcb info buffer failed\n");
+        ret = MPP_ERR_MALLOC;
+    }
+    p->rcb_pos = 0;
+    p->rcb_count = 0;
+
     return ret;
 }
 
@@ -230,6 +328,10 @@ MPP_RET mpp_service_deinit(void *ctx)
 
     if (p->client)
         close(p->client);
+
+    MPP_FREE(p->reqs);
+    MPP_FREE(p->reg_offset_info);
+    MPP_FREE(p->rcb_info);
 
     return MPP_OK;
 }
@@ -264,6 +366,47 @@ MPP_RET mpp_service_detach(void *ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_service_delimit(void *ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+    MppReqV1 *mpp_req = NULL;
+
+    /* set fd trans info if needed */
+    if (p->reg_offset_count) {
+        mpp_req = mpp_service_next_req(p);
+
+        mpp_req->cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
+        mpp_req->flag = MPP_FLAGS_REG_OFFSET_ALONE;
+        mpp_req->size = (p->reg_offset_count) * sizeof(RegOffsetInfo);
+        mpp_req->offset = 0;
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[p->reg_offset_pos]);
+        p->reg_offset_pos += p->reg_offset_count;
+        p->reg_offset_count = 0;
+    }
+
+    /* set rcb offst info if needed */
+    if (p->rcb_count) {
+        mpp_req = mpp_service_next_req(p);
+
+        mpp_req->cmd = MPP_CMD_SET_RCB_INFO;
+        mpp_req->flag = 0;
+        mpp_req->size = p->rcb_count * sizeof(RcbInfo);
+        mpp_req->offset = 0;
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->rcb_info[p->rcb_pos]);
+        p->rcb_pos += p->rcb_count;
+        p->rcb_count = 0;
+    }
+
+    mpp_req = mpp_service_next_req(p);
+    mpp_req->cmd = MPP_CMD_SET_SESSION_FD;
+    mpp_req->flag = MPP_FLAGS_MULTI_MSG;
+    mpp_req->offset = 0;
+    mpp_req->size = sizeof(p->bat_cmd);
+    mpp_req->data_ptr = REQ_DATA_PTR(&p->bat_cmd);
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_service_set_cb_ctx(void *ctx, MppCbCtx *cb_ctx)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
@@ -276,18 +419,13 @@ MPP_RET mpp_service_set_cb_ctx(void *ctx, MppCbCtx *cb_ctx)
 MPP_RET mpp_service_reg_wr(void *ctx, MppDevRegWrCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
-
-    if (!p->req_cnt)
-        memset(p->reqs, 0, sizeof(p->reqs));
-
-    MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+    MppReqV1 *mpp_req = mpp_service_next_req(p);
 
     mpp_req->cmd = MPP_CMD_SET_REG_WRITE;
     mpp_req->flag = 0;
     mpp_req->size = cfg->size;
     mpp_req->offset = cfg->offset;
     mpp_req->data_ptr = REQ_DATA_PTR(cfg->reg);
-    p->req_cnt++;
 
     return MPP_OK;
 }
@@ -295,18 +433,13 @@ MPP_RET mpp_service_reg_wr(void *ctx, MppDevRegWrCfg *cfg)
 MPP_RET mpp_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
-
-    if (!p->req_cnt)
-        memset(p->reqs, 0, sizeof(p->reqs));
-
-    MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+    MppReqV1 *mpp_req = mpp_service_next_req(p);
 
     mpp_req->cmd = MPP_CMD_SET_REG_READ;
     mpp_req->flag = 0;
     mpp_req->size = cfg->size;
     mpp_req->offset = cfg->offset;
     mpp_req->data_ptr = REQ_DATA_PTR(cfg->reg);
-    p->req_cnt++;
 
     return MPP_OK;
 }
@@ -314,8 +447,8 @@ MPP_RET mpp_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
 MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
-    RK_S32 i;
     RegOffsetInfo *info;
+    RK_S32 i;
 
     if (!cfg->offset)
         return MPP_OK;
@@ -326,7 +459,7 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
     }
 
     for (i = 0; i < p->reg_offset_count; i++) {
-        info = &p->reg_offset_info[i];
+        info = &p->reg_offset_info[p->reg_offset_pos + i];
 
         if (info->reg_idx == cfg->reg_idx) {
             mpp_err_f("reg[%d] offset has been set, cover old %d -> %d\n",
@@ -336,10 +469,10 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
         }
     }
 
-    info = &p->reg_offset_info[p->reg_offset_count++];
-
+    info = mpp_service_next_reg_offset(p);;
     info->reg_idx = cfg->reg_idx;
     info->offset = cfg->offset;
+    p->reg_offset_count++;
 
     return MPP_OK;
 }
@@ -361,7 +494,7 @@ MPP_RET mpp_service_rcb_info(void *ctx, MppDevRcbInfoCfg *cfg)
         return MPP_NOK;
     }
 
-    RcbInfo *info = &p->rcb_info[p->rcb_count++];
+    RcbInfo *info = mpp_service_next_rcb_info(p);
 
     info->reg_idx = cfg->reg_idx;
     info->size = cfg->size;
@@ -390,7 +523,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     MPP_RET ret = MPP_OK;
     MppDevMppService *p = (MppDevMppService *)ctx;
 
-    if (p->req_cnt <= 0 || p->req_cnt > MAX_REQ_NUM) {
+    if (p->req_cnt <= 0 || p->req_cnt > p->req_max) {
         mpp_err_f("ctx %p invalid request count %d\n", ctx, p->req_cnt);
         return MPP_ERR_VALUE;
     }
@@ -404,6 +537,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
             mpp_req.size = p->info_count * sizeof(p->info[0]);
             mpp_req.offset = 0;
             mpp_req.data_ptr = REQ_DATA_PTR(p->info);
+
             ret = mpp_service_ioctl_request(p->client, &mpp_req);
             if (ret)
                 p->support_set_info = 0;
@@ -413,26 +547,26 @@ MPP_RET mpp_service_cmd_send(void *ctx)
 
     /* set fd trans info if needed */
     if (p->reg_offset_count) {
-        MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+        MppReqV1 *mpp_req = mpp_service_next_req(p);
 
         mpp_req->cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
         mpp_req->flag = MPP_FLAGS_REG_OFFSET_ALONE;
-        mpp_req->size = p->reg_offset_count * sizeof(p->reg_offset_info[0]);
+        mpp_req->size = (p->reg_offset_count) * sizeof(RegOffsetInfo);
         mpp_req->offset = 0;
-        mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[0]);
-        p->req_cnt++;
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->reg_offset_info[p->reg_offset_pos]);
+        p->reg_offset_pos += p->reg_offset_count;
     }
 
     /* set rcb offst info if needed */
     if (p->rcb_count) {
-        MppReqV1 *mpp_req = &p->reqs[p->req_cnt];
+        MppReqV1 *mpp_req = mpp_service_next_req(p);
 
         mpp_req->cmd = MPP_CMD_SET_RCB_INFO;
         mpp_req->flag = 0;
-        mpp_req->size = p->rcb_count * sizeof(p->rcb_info[0]);
+        mpp_req->size = p->rcb_count * sizeof(RcbInfo);
         mpp_req->offset = 0;
-        mpp_req->data_ptr = REQ_DATA_PTR(&p->rcb_info[0]);
-        p->req_cnt++;
+        mpp_req->data_ptr = REQ_DATA_PTR(&p->rcb_info[p->rcb_pos]);
+        p->rcb_pos += p->rcb_count;
     }
 
     /* setup flag for multi message request */
@@ -459,6 +593,9 @@ MPP_RET mpp_service_cmd_send(void *ctx)
 
     p->req_cnt = 0;
     p->reg_offset_count = 0;
+    p->reg_offset_pos = 0;
+    p->rcb_count = 0;
+    p->rcb_pos = 0;
     p->rcb_count = 0;
     return ret;
 }
@@ -494,6 +631,7 @@ const MppDevApi mpp_service_api = {
     mpp_service_deinit,
     mpp_service_attach,
     mpp_service_detach,
+    mpp_service_delimit,
     mpp_service_set_cb_ctx,
     mpp_service_reg_wr,
     mpp_service_reg_rd,

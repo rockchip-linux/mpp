@@ -110,6 +110,12 @@ typedef struct MppServiceCmdCap_t {
     RK_U32 ctrl_cmd;
 } MppServiceCmdCap;
 
+typedef struct MppDevBatCmd_t {
+    RK_U64 flag;
+    RK_S32 client;
+    RK_S32 ret;
+} MppDevBatCmd;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif

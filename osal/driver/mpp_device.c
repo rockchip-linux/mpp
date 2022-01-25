@@ -131,6 +131,10 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
         if (api->detach)
             ret = api->detach(impl_ctx);
     } break;
+    case MPP_DEV_DELIMIT : {
+        if (api->delimit)
+            ret = api->delimit(impl_ctx);
+    } break;
     case MPP_DEV_SET_CB_CTX: {
         if (api->set_cb_ctx)
             ret = api->set_cb_ctx(impl_ctx, param);
