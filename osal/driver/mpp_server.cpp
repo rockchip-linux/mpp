@@ -66,12 +66,6 @@ typedef struct MppDevBatTask_t  MppDevBatTask;
 typedef struct MppDevSession_t  MppDevSession;
 typedef struct MppDevBatServ_t  MppDevBatServ;
 
-typedef struct MppDevBatCmd_t {
-    RK_U64              flag;
-    RK_S32              client;
-    RK_S32              ret;
-} MppDevBatCmd;
-
 struct MppDevTask_t {
     /* link to server */
     struct list_head    link_server;
@@ -107,8 +101,6 @@ struct MppDevBatTask_t {
     MppDevBatCmd        *bat_cmd;
     MppReqV1            *send_reqs;
     MppReqV1            *wait_reqs;
-    MppReqV1            send_req;
-    MppReqV1            wait_req;
 
     /* lock and clean by server */
     RK_S32              send_req_cnt;
@@ -202,16 +194,6 @@ MppDevBatTask *batch_add(MppDevBatServ *server)
     batch->bat_cmd = (MppDevBatCmd *)(batch->wait_reqs +
                                       (server->max_task_in_batch * MAX_REQ_WAIT_CNT));
 
-    batch->send_req.cmd = MPP_CMD_BAT_CMD;
-    batch->send_req.flag = 0;
-    batch->send_req.offset = 0;
-    batch->send_req.data_ptr = REQ_DATA_PTR(batch->send_reqs);
-
-    batch->wait_req.cmd = MPP_CMD_BAT_CMD;
-    batch->wait_req.flag = MPP_FLAGS_LAST_MSG;
-    batch->wait_req.offset = 0;
-    batch->wait_req.data_ptr = REQ_DATA_PTR(batch->wait_reqs);
-
     batch_reset(batch);
     list_add_tail(&batch->link_server, &server->list_batch_free);
     server->batch_free++;
@@ -238,8 +220,8 @@ void batch_send(MppDevBatServ *server, MppDevBatTask *batch)
     RK_S32 ret = 0;
 
     mpp_assert(batch->send_req_cnt);
-    batch->send_req.size = batch->send_req_cnt * sizeof(batch->send_req);
-    ret = mpp_service_ioctl_request(server->server_fd, &batch->send_req);
+
+    ret = mpp_service_ioctl_request(server->server_fd, batch->send_reqs);
     if (ret) {
         mpp_err_f("ioctl batch cmd failed ret %d errno %d %s\n",
                   ret, errno, strerror(errno));
@@ -276,8 +258,7 @@ void process_task(void *p)
             break;
 
         mpp_assert(batch->wait_req_cnt);
-        batch->wait_req.size = batch->wait_req_cnt * sizeof(batch->wait_req);
-        ret = mpp_service_ioctl_request(server->server_fd, &batch->wait_req);
+        ret = mpp_service_ioctl_request(server->server_fd, batch->wait_reqs);
         if (!ret) {
             MppDevTask *n;
 
@@ -430,7 +411,7 @@ try_proc_pending_task:
     /* add session info before each session task and then copy session request */
     req = &batch->send_reqs[batch->send_req_cnt++];
     req->cmd = MPP_CMD_SET_SESSION_FD;
-    req->flag = 0;
+    req->flag = MPP_FLAGS_MULTI_MSG;
     req->offset = 0;
     req->size = sizeof(*bat_cmd);
     req->data_ptr = REQ_DATA_PTR(bat_cmd);
@@ -447,14 +428,14 @@ try_proc_pending_task:
     /* setup poll request */
     req = &batch->wait_reqs[batch->wait_req_cnt++];
     req->cmd = MPP_CMD_SET_SESSION_FD;
-    req->flag = 0;
+    req->flag = MPP_FLAGS_MULTI_MSG;
     req->offset = 0;
     req->size = sizeof(*bat_cmd);
     req->data_ptr = REQ_DATA_PTR(bat_cmd);
 
     req = &batch->wait_reqs[batch->wait_req_cnt++];
     req->cmd = MPP_CMD_POLL_HW_FINISH;
-    req->flag = MPP_FLAGS_POLL_NON_BLOCK | MPP_FLAGS_LAST_MSG;
+    req->flag = MPP_FLAGS_POLL_NON_BLOCK | MPP_FLAGS_MULTI_MSG | MPP_FLAGS_LAST_MSG;
     req->offset = 0;
     req->size = 0;
     req->data_ptr = 0;
@@ -617,8 +598,7 @@ MppDevServer::MppDevServer() :
                        sizeof(MppDevBatCmd));
 
     mCmdCap = mpp_get_mpp_service_cmd_cap();
-    if (MPP_OK != mpp_service_check_cmd_valid(MPP_CMD_BAT_CMD, mCmdCap) ||
-        MPP_OK != mpp_service_check_cmd_valid(MPP_CMD_SET_SESSION_FD, mCmdCap)) {
+    if (MPP_OK != mpp_service_check_cmd_valid(MPP_CMD_SET_SESSION_FD, mCmdCap)) {
         mServerError = "mpp_service cmd not support";
         return;
     }
@@ -768,17 +748,18 @@ MPP_RET MppDevServer::bat_server_put(MppClientType client_type)
     mpp_assert(list_empty(&server->list_batch));
     mpp_assert(server->pending_count == 0);
 
+    /* stop thread first */
+    if (server->timer) {
+        mpp_timer_put(server->timer);
+        server->timer = NULL;
+    }
+
     if (server->batch_free) {
         list_for_each_entry_safe(batch, n, &server->list_batch_free, MppDevBatTask, link_server) {
             batch_del(server, batch);
         }
     } else {
         mpp_assert(list_empty(&server->list_batch_free));
-    }
-
-    if (server->timer) {
-        mpp_timer_put(server->timer);
-        server->timer = NULL;
     }
 
     if (server->server_fd >= 0) {

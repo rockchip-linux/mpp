@@ -25,6 +25,7 @@ typedef enum MppDevIoctlCmd_e {
     /* device batch mode config */
     MPP_DEV_BATCH_ON,
     MPP_DEV_BATCH_OFF,
+    MPP_DEV_DELIMIT,
     MPP_DEV_SET_CB_CTX,
 
     /* hardware operation setup config */
@@ -82,6 +83,7 @@ typedef struct MppDevApi_t {
     /* bat mode function */
     MPP_RET     (*attach)(void *ctx);
     MPP_RET     (*detach)(void *ctx);
+    MPP_RET     (*delimit)(void *ctx);
     MPP_RET     (*set_cb_ctx)(void *ctx, MppCbCtx *cb);
 
     /* config the cmd on preparing */
