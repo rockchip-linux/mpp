@@ -190,6 +190,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
 
         if (!next) {
             next = trie_get_node(p);
+            /* realloc may cause memory address change */
+            node = p->nodes + idx;
             node->next[key0] = next;
 
             trie_dbg_set("trie %p add %s at %2d char %c:%3d node %d -> %d as new key0\n",
@@ -205,6 +207,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
 
         if (!next) {
             next = trie_get_node(p);
+            /* realloc may cause memory address change */
+            node = p->nodes + idx;
             node->next[key1] = next;
 
             trie_dbg_set("trie %p add %s at %2d char %c:%3d node %d -> %d as new child\n",
@@ -212,7 +216,6 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
         }
 
         idx = next;
-        node = p->nodes + idx;
 
         trie_dbg_set("trie %p add %s at %2d char %c:%3d:%x:%x node %d -> %d as key1\n",
                      trie, s, i, key, key, key0, key1, idx, next);
