@@ -337,7 +337,6 @@ MPP_RET m2vd_parser_reset(void *ctx)
     p->resetFlag = 1;
     p->eos = 0;
     p->left_length = 0;
-    p->need_split = 0;
     p->vop_header_found = 0;
     m2vd_dbg_func("FUN_O");
     return ret;
