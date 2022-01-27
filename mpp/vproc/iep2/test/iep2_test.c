@@ -42,9 +42,12 @@ typedef struct iep2_test_cfg_t {
 
     char        src_url[MAX_URL_LEN];
     char        dst_url[MAX_URL_LEN];
+    char        slt_url[MAX_URL_LEN];
 
     FILE        *fp_src;
     FILE        *fp_dst;
+    FILE        *fp_slt;
+    RK_U32      field_order;
 } iep2_test_cfg;
 
 static OptionInfo iep2_test_cmd[] = {
@@ -53,7 +56,8 @@ static OptionInfo iep2_test_cmd[] = {
     {"c",   "format",           "input image format in ASCII string"},
     {"i",   "src_file",         "input  image file name"},
     {"C",   "dst_format",       "output image format in ASCII string"},
-    {"o",   "dst_file",         "output image file name"}
+    {"o",   "dst_file",         "output image file name"},
+    {"v",   "slt_file",         "slt verify data file"}
 };
 
 static void iep2_test_help()
@@ -205,6 +209,7 @@ void iep2_test(iep2_test_cfg *cfg)
     RK_U32 i;
     RK_S32 field_order = IEP2_FIELD_ORDER_TFF;
     RK_S32 out_order = field_order == IEP2_FIELD_ORDER_TFF ? 0 : 1;
+    DataCrc checkcrc;
 
     // NOTISE, used IepImg structure for version compatibility consideration,
     // only addresses in this structure are useful in iep2
@@ -214,6 +219,9 @@ void iep2_test(iep2_test_cfg *cfg)
     int idx = 0;
 
     mpp_assert(iep2);
+
+    memset(&checkcrc, 0, sizeof(checkcrc));
+    checkcrc.sum = mpp_malloc(RK_ULONG, 512);
 
     mpp_buffer_get(NULL, &srcbuf[0], srcfrmsize);
     mpp_buffer_get(NULL, &srcbuf[1], srcfrmsize);
@@ -262,7 +270,7 @@ void iep2_test(iep2_test_cfg *cfg)
     params.ptype = IEP2_PARAM_TYPE_MODE;
     params.param.mode.dil_mode = IEP2_DIL_MODE_I5O2;
     params.param.mode.out_mode = IEP2_OUT_MODE_LINE;
-    params.param.mode.dil_order = IEP2_FIELD_ORDER_BFF;
+    params.param.mode.dil_order = cfg->field_order;
 
     iep2->ops->control(iep2->priv, IEP_CMD_SET_DEI_CFG, &params);
 
@@ -308,6 +316,13 @@ void iep2_test(iep2_test_cfg *cfg)
         memset(pdst[1], 0, dstfrmsize);
         iep2->ops->control(iep2->priv, IEP_CMD_RUN_SYNC, NULL);
 
+        if (cfg->fp_slt) {
+            calc_data_crc(pdst[out_order], dstfrmsize, &checkcrc);
+            write_data_crc(cfg->fp_slt, &checkcrc);
+            calc_data_crc(pdst[1 - out_order], dstfrmsize, &checkcrc);
+            write_data_crc(cfg->fp_slt, &checkcrc);
+        }
+
         if (dstfrmsize > fwrite(pdst[out_order], 1, dstfrmsize, cfg->fp_dst)) {
             mpp_err("destination dump failed\n");
             break;
@@ -329,6 +344,8 @@ ret:
 
     mpp_buffer_put(dstbuf[0]);
     mpp_buffer_put(dstbuf[1]);
+
+    MPP_FREE(checkcrc.sum);
 
     iep2->ops->deinit(iep2->priv);
 
@@ -353,7 +370,7 @@ int main(int argc, char **argv)
 
     /// get options
     opterr = 0;
-    while ((ch = getopt(argc, argv, "i:w:h:c:o:C:")) != -1) {
+    while ((ch = getopt(argc, argv, "i:w:h:c:o:C:v:f:")) != -1) {
         switch (ch) {
         case 'w': {
             cfg.w = atoi(optarg);
@@ -379,6 +396,17 @@ int main(int argc, char **argv)
             strncpy(cfg.dst_url, optarg, sizeof(cfg.dst_url));
             cfg.fp_dst = fopen(cfg.dst_url, "w+b");
         } break;
+        case 'v': {
+            mpp_log("verify file: %s\n", optarg);
+            strncpy(cfg.slt_url, optarg, sizeof(cfg.slt_url));
+            cfg.fp_slt = fopen(cfg.slt_url, "w+b");
+        } break;
+        case 'f': {
+            if (!strcmp(optarg, "TFF"))
+                cfg.field_order = IEP2_FIELD_ORDER_TFF;
+            else
+                cfg.field_order = IEP2_FIELD_ORDER_BFF;
+        } break;
         default: {
         } break;
         }
@@ -400,6 +428,11 @@ int main(int argc, char **argv)
     if (cfg.fp_dst) {
         fclose(cfg.fp_dst);
         cfg.fp_dst = NULL;
+    }
+
+    if (cfg.fp_slt) {
+        fclose(cfg.fp_slt);
+        cfg.fp_slt = NULL;
     }
 
     return 0;
