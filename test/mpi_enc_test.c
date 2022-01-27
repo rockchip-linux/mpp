@@ -197,9 +197,11 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
         }
     }
 
-    p->fp_verify = fopen(cmd->file_slt, "wt");
-    if (!p->fp_verify)
-        mpp_err("failed to open verify file %s\n", cmd->file_slt);
+    if (cmd->file_slt) {
+        p->fp_verify = fopen(cmd->file_slt, "wt");
+        if (!p->fp_verify)
+            mpp_err("failed to open verify file %s\n", cmd->file_slt);
+    }
 
     // update resource parameter
     switch (p->fmt & MPP_FRAME_FMT_MASK) {

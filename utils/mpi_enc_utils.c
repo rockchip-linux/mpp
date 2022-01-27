@@ -952,7 +952,8 @@ MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
     mpp_log("height     : %d\n", cmd->height);
     mpp_log("format     : %d\n", cmd->format);
     mpp_log("type       : %d\n", cmd->type);
-    mpp_log("verify     : %s\n", cmd->file_slt);
+    if (cmd->file_slt)
+        mpp_log("verify     : %s\n", cmd->file_slt);
 
     return MPP_OK;
 }
