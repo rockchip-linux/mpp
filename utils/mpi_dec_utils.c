@@ -737,5 +737,6 @@ void mpi_dec_test_cmd_options(MpiDecTestCmd* cmd)
     mpp_log("height     : %4d\n", cmd->height);
     mpp_log("type       : %4d\n", cmd->type);
     mpp_log("max frames : %4d\n", cmd->frame_num);
-    mpp_log("verify     : %s\n", cmd->file_slt);
+    if (cmd->file_slt)
+        mpp_log("verify     : %s\n", cmd->file_slt);
 }
