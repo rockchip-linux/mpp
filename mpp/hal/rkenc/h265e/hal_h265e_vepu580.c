@@ -60,6 +60,14 @@ typedef struct vepu580_h265_fbk_t {
     RK_U32 st_cu_num_qp[52];
     RK_U32 st_madp;
     RK_U32 st_madi;
+    RK_U32 st_md_sad_b16num0;
+    RK_U32 st_md_sad_b16num1;
+    RK_U32 st_md_sad_b16num2;
+    RK_U32 st_md_sad_b16num3;
+    RK_U32 st_madi_b16num0;
+    RK_U32 st_madi_b16num1;
+    RK_U32 st_madi_b16num2;
+    RK_U32 st_madi_b16num3;
     RK_U32 st_mb_num;
     RK_U32 st_ctu_num;
 } vepu580_h265_fbk;
@@ -923,19 +931,19 @@ static void vepu580_h265_rdo_cfg (vepu580_rdo_cfg *reg)
     reg->rdo_b16_smear_thd1.rdo_smear_cu16_cime_sad_th3 = 64 ;
 
 
-    reg->preintra_b32_cst_var_thd.pre_intra32_cst_var_th00 = 0;
-    reg->preintra_b32_cst_var_thd.pre_intra32_cst_var_th01 = 6;
+    reg->preintra_b32_cst_var_thd.pre_intra32_cst_var_th00 = 9;
+    reg->preintra_b32_cst_var_thd.pre_intra32_cst_var_th01 = 4;
     reg->preintra_b32_cst_var_thd.pre_intra32_mode_th = 5;
 
     reg->preintra_b32_cst_wgt.pre_intra32_cst_wgt00 = 31;
-    reg->preintra_b32_cst_wgt.pre_intra32_cst_wgt01 = 30;
+    reg->preintra_b32_cst_wgt.pre_intra32_cst_wgt01 = 25;
 
-    reg->preintra_b16_cst_var_thd.pre_intra16_cst_var_th00 = 31;
-    reg->preintra_b16_cst_var_thd.pre_intra16_cst_var_th01 = 29;
+    reg->preintra_b16_cst_var_thd.pre_intra16_cst_var_th00 = 9;
+    reg->preintra_b16_cst_var_thd.pre_intra16_cst_var_th01 = 4;
     reg->preintra_b16_cst_var_thd.pre_intra16_mode_th = 5;
 
-    reg->preintra_b16_cst_wgt.pre_intra16_cst_wgt00 = 0;
-    reg->preintra_b16_cst_wgt.pre_intra16_cst_wgt01 = 6;
+    reg->preintra_b16_cst_wgt.pre_intra16_cst_wgt00 = 31;
+    reg->preintra_b16_cst_wgt.pre_intra16_cst_wgt01 = 25;
 }
 
 static void vepu580_h265_scl_cfg(vepu580_rdo_cfg *reg)

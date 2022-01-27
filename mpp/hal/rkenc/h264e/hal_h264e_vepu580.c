@@ -2052,7 +2052,7 @@ static MPP_RET hal_h264e_vepu580_ret_task(void *hal, HalEncTask *task)
     task->hal_ret.data   = &ctx->hal_rc_cfg;
     task->hal_ret.number = 1;
 
-    vepu580_h264e_tune_stat_update(ctx->tune);
+    vepu580_h264e_tune_stat_update(ctx->tune, task);
 
     mpp_dev_multi_offset_reset(ctx->offsets);
 
