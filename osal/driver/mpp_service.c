@@ -477,6 +477,45 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
     return MPP_OK;
 }
 
+MPP_RET mpp_service_reg_offsets(void *ctx, MppDevRegOffCfgs *cfgs)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+    RegOffsetInfo *info;
+    RK_S32 i;
+
+    if (cfgs->count <= 0)
+        return MPP_OK;
+
+    if (p->reg_offset_count >= MAX_REG_OFFSET ||
+        p->reg_offset_count + cfgs->count >= MAX_REG_OFFSET) {
+        mpp_err_f("reach max offset definition\n", MAX_REG_OFFSET);
+        return MPP_NOK;
+    }
+
+    for (i = 0; i < cfgs->count; i++) {
+        MppDevRegOffsetCfg *cfg = &cfgs->cfgs[i];
+        RK_S32 j;
+
+        for (j = 0; j < p->reg_offset_count; j++) {
+            info = &p->reg_offset_info[p->reg_offset_pos + j];
+
+            if (info->reg_idx == cfg->reg_idx) {
+                mpp_err_f("reg[%d] offset has been set, cover old %d -> %d\n",
+                          info->reg_idx, info->offset, cfg->offset);
+                info->offset = cfg->offset;
+                continue;
+            }
+        }
+
+        info = mpp_service_next_reg_offset(p);;
+        info->reg_idx = cfg->reg_idx;
+        info->offset = cfg->offset;
+        p->reg_offset_count++;
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_service_rcb_info(void *ctx, MppDevRcbInfoCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
@@ -636,6 +675,7 @@ const MppDevApi mpp_service_api = {
     mpp_service_reg_wr,
     mpp_service_reg_rd,
     mpp_service_reg_offset,
+    mpp_service_reg_offsets,
     mpp_service_rcb_info,
     mpp_service_set_info,
     mpp_service_cmd_send,
