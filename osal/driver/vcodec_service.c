@@ -707,6 +707,7 @@ const MppDevApi vcodec_service_api = {
     vcodec_service_reg_rd,
     vcodec_service_fd_trans,
     NULL,
+    NULL,
     vcodec_service_set_info,
     vcodec_service_cmd_send,
     vcodec_service_cmd_poll,
