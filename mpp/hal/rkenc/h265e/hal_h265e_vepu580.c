@@ -80,6 +80,7 @@ typedef struct H265eV580HalContext_t {
     /* @frame_cnt starts from ZERO */
     RK_U32              frame_cnt;
     Vepu541OsdCfg       osd_cfg;
+    MppDevRegOffCfgs    *reg_cfg;
     void                *roi_data;
     MppEncCfgSet        *cfg;
 
@@ -1146,6 +1147,9 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
     ctx->osd_cfg.osd_data = NULL;
     ctx->osd_cfg.osd_data2 = NULL;
 
+    mpp_dev_multi_offset_init(&ctx->reg_cfg, 24);
+    ctx->osd_cfg.reg_cfg = ctx->reg_cfg;
+
     ctx->frame_type = INTRA_FRAME;
 
     {   /* setup default hardware config */
@@ -1212,6 +1216,11 @@ MPP_RET hal_h265e_v580_deinit(void *hal)
         ctx->dev = NULL;
     }
 
+    if (ctx->reg_cfg) {
+        mpp_dev_multi_offset_deinit(ctx->reg_cfg);
+        ctx->reg_cfg = NULL;
+    }
+
     if (ctx->tune) {
         vepu580_h265e_tune_deinit(ctx->tune);
         ctx->tune = NULL;
@@ -1244,9 +1253,9 @@ static MPP_RET hal_h265e_vepu580_prepare(void *hal)
 }
 
 static MPP_RET
-vepu580_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_fmt, HalEncTask *task)
+vepu580_h265_set_patch_info(MppDevRegOffCfgs *cfgs, H265eSyntax_new *syn,
+                            Vepu541Fmt input_fmt, HalEncTask *task)
 {
-    MppDevRegOffsetCfg cfg_fd;
     RK_U32 hor_stride = syn->pp.hor_stride;
     RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
@@ -1300,18 +1309,14 @@ vepu580_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_f
 
     /* input cb addr */
     if (u_offset) {
-        cfg_fd.reg_idx = 161;
-        cfg_fd.offset = u_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        ret = mpp_dev_multi_offset_update(cfgs, 161, u_offset);
         if (ret)
             mpp_err_f("set input cb addr offset failed %d\n", ret);
     }
 
     /* input cr addr */
     if (v_offset) {
-        cfg_fd.reg_idx = 162;
-        cfg_fd.offset = v_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        ret = mpp_dev_multi_offset_update(cfgs, 162, v_offset);
         if (ret)
             mpp_err_f("set input cr addr offset failed %d\n", ret);
     }
@@ -1845,7 +1850,7 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     if (!syn->sp.non_reference_flag) {
         regs->reg0163_rfpw_h_addr  = mpp_buffer_get_fd(recon_buf->buf[0]);
         regs->reg0164_rfpw_b_addr  = regs->reg0163_rfpw_h_addr;
-        mpp_dev_set_reg_offset(ctx->dev, 164, ctx->fbc_header_len);
+        mpp_dev_multi_offset_update(ctx->reg_cfg, 164, ctx->fbc_header_len);
     }
     regs->reg0165_rfpr_h_addr = mpp_buffer_get_fd(ref_buf->buf[0]);
     regs->reg0166_rfpr_b_addr = regs->reg0165_rfpr_h_addr;
@@ -1854,7 +1859,7 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     regs->reg0169_dspw_addr = mpp_buffer_get_fd(recon_buf->buf[1]);
     regs->reg0170_dspr_addr = mpp_buffer_get_fd(ref_buf->buf[1]);
 
-    mpp_dev_set_reg_offset(ctx->dev, 166, ctx->fbc_header_len);
+    mpp_dev_multi_offset_update(ctx->reg_cfg, 166, ctx->fbc_header_len);
 
     if (syn->pp.tiles_enabled_flag) {
         if (NULL == ctx->tile_grp)
@@ -1889,11 +1894,11 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     regs->reg0172_bsbt_addr = mpp_buffer_get_fd(enc_task->output);
     /* TODO: stream size relative with syntax */
     regs->reg0173_bsbb_addr = regs->reg0172_bsbt_addr;
-    regs->reg0174_bsbr_addr    = regs->reg0172_bsbt_addr;
-    regs->reg0175_adr_bsbs    = regs->reg0172_bsbt_addr;
+    regs->reg0174_bsbr_addr = regs->reg0172_bsbt_addr;
+    regs->reg0175_adr_bsbs  = regs->reg0172_bsbt_addr;
 
-    mpp_dev_set_reg_offset(ctx->dev, 175, mpp_packet_get_length(task->packet));
-    mpp_dev_set_reg_offset(ctx->dev, 172, mpp_buffer_get_size(enc_task->output));
+    mpp_dev_multi_offset_update(ctx->reg_cfg, 175, mpp_packet_get_length(task->packet));
+    mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(enc_task->output));
 
     regs->reg0204_pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->reg0204_pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
@@ -2121,7 +2126,7 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
         vepu580_h265_set_me_ram(syn, &hw_regs->reg_base, k);
 
         /* set input info */
-        vepu580_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
+        vepu580_h265_set_patch_info(ctx->reg_cfg, syn, (Vepu541Fmt)fmt->format, enc_task);
         if (tile_num > 1)
             hal_h265e_v580_set_uniform_tile(&hw_regs->reg_base, syn, k);
 
@@ -2131,20 +2136,23 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
 
                 offset += stream_len;
                 reg_base->reg0173_bsbb_addr = mpp_buffer_get_fd(enc_task->output);
-                mpp_dev_set_reg_offset(ctx->dev, 175, offset);
-                mpp_dev_set_reg_offset(ctx->dev, 172, mpp_buffer_get_size(enc_task->output));
+                mpp_dev_multi_offset_update(ctx->reg_cfg, 175, offset);
+                mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(enc_task->output));
             } else {
                 reg_base->reg0172_bsbt_addr = mpp_buffer_get_fd(ctx->hw_tile_stream);
                 /* TODO: stream size relative with syntax */
                 reg_base->reg0173_bsbb_addr = reg_base->reg0172_bsbt_addr;
                 reg_base->reg0174_bsbr_addr = reg_base->reg0172_bsbt_addr;
                 reg_base->reg0175_adr_bsbs  = reg_base->reg0172_bsbt_addr;
-                mpp_dev_set_reg_offset(ctx->dev, 172, mpp_buffer_get_size(ctx->hw_tile_stream));
+                mpp_dev_multi_offset_update(ctx->reg_cfg, 175, 0);
+                mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(ctx->hw_tile_stream));
             }
-            mpp_dev_set_reg_offset(ctx->dev, 164, ctx->fbc_header_len);
-            mpp_dev_set_reg_offset(ctx->dev, 166, ctx->fbc_header_len);
+            mpp_dev_multi_offset_update(ctx->reg_cfg, 164, ctx->fbc_header_len);
+            mpp_dev_multi_offset_update(ctx->reg_cfg, 166, ctx->fbc_header_len);
         }
         hal_h265e_v580_send_regs(ctx->dev, hw_regs, reg_out);
+
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFS, ctx->reg_cfg);
 
         if (k < tile_num - 1) {
             if (!ctx->tile_parall_en) {
@@ -2400,6 +2408,8 @@ MPP_RET hal_h265e_v580_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
     }
     memset(&ctx->feedback, 0, sizeof(vepu580_h265_fbk));
+
+    mpp_dev_multi_offset_reset(ctx->reg_cfg);
 
     hal_h265e_leave();
     return MPP_OK;

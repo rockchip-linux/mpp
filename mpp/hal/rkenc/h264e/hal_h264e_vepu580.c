@@ -182,6 +182,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 
     p->osd_cfg.reg_base = &p->regs_set.reg_osd;
     p->osd_cfg.dev = p->dev;
+    p->osd_cfg.reg_cfg = NULL;
     p->osd_cfg.plt_cfg = &p->cfg->plt_cfg;
     p->osd_cfg.osd_data = NULL;
     p->osd_cfg.osd_data2 = NULL;

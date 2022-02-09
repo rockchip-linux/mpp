@@ -656,6 +656,7 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
 
     ctx->osd_cfg.reg_base = ctx->regs;
     ctx->osd_cfg.dev = ctx->dev;
+    ctx->osd_cfg.reg_cfg = NULL;
     ctx->osd_cfg.plt_cfg = &ctx->cfg->plt_cfg;
     ctx->osd_cfg.osd_data = NULL;
     ctx->osd_cfg.osd_data2 = NULL;
