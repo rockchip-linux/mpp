@@ -904,11 +904,6 @@ MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 frame_cnt)
     return MPP_OK;
 }
 
-#define STEP_X  3
-#define STEP_Y  2
-#define STEP_W  2
-#define STEP_H  2
-
 MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
                              RK_U32 width, RK_U32 height, RK_U32 frame_cnt)
 {
@@ -919,10 +914,12 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
     RK_U32 buf_size = 0;
     RK_U32 mb_w_max = MPP_ALIGN(width, 16) / 16;
     RK_U32 mb_h_max = MPP_ALIGN(height, 16) / 16;
-    RK_U32 mb_x = (frame_cnt * STEP_X) % mb_w_max;
-    RK_U32 mb_y = (frame_cnt * STEP_Y) % mb_h_max;
-    RK_U32 mb_w = STEP_W;
-    RK_U32 mb_h = STEP_H;
+    RK_U32 step_x = MPP_ALIGN(mb_w_max, 8) / 8;
+    RK_U32 step_y = MPP_ALIGN(mb_h_max, 16) / 16;
+    RK_U32 mb_x = (frame_cnt * step_x) % mb_w_max;
+    RK_U32 mb_y = (frame_cnt * step_y) % mb_h_max;
+    RK_U32 mb_w = step_x;
+    RK_U32 mb_h = step_y;
     MppBuffer buf = osd_data->buf;
 
     if (buf)
@@ -947,8 +944,8 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
 
         buf_offset += region_size;
 
-        mb_x += STEP_X;
-        mb_y += STEP_Y;
+        mb_x += step_x;
+        mb_y += step_y;
         if (mb_x >= mb_w_max)
             mb_x -= mb_w_max;
         if (mb_y >= mb_h_max)
