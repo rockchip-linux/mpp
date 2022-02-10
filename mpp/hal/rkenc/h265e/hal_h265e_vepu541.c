@@ -1892,7 +1892,9 @@ MPP_RET hal_h265e_v541_get_task(void *hal, HalEncTask *task)
         return MPP_ERR_MALLOC;
     }
 
-    ctx->last_frame_type = ctx->frame_type;
+    if (!frm_status->reencode)
+        ctx->last_frame_type = ctx->frame_type;
+
     if (frm_status->is_intra) {
         ctx->frame_type = INTRA_FRAME;
     } else {
