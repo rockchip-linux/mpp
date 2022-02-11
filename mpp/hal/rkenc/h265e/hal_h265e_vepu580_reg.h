@@ -2199,13 +2199,13 @@ typedef struct Vepu580RdoCfg_t {
         RK_U32 pre_intra16_cst_wgt01    : 8;
         RK_U32 reserved1                : 8;
     } preintra_b16_cst_wgt;
-#if 0
+
+    RK_U32 reserved_0x21e8_0x21fc[6];
+
+    // 0x2200 ~ 0x2c94
     RK_U32 scaling_list_reg[678]; /* total number really: 678 */
     // 0x2c98
     RK_U32 scal_cfg_reg;
-    /* 0x21e8 - 0x21fc */
-    RK_U32 reserved2170_2175[6];
-#endif
 } vepu580_rdo_cfg;
 
 /* class: osd */
