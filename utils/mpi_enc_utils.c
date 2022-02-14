@@ -287,21 +287,35 @@ RK_S32 mpi_enc_opt_g(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_rc(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    RK_S32 cnt = 0;
+
+    if (next) {
+        cnt = sscanf(next, "%d", &cmd->rc_mode);
+        if (cnt)
+            return 1;
+    }
+
+    mpp_err("invalid rate control usage -rc rc_mode\n");
+    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_bps(void *ctx, const char *next)
 {
     MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
     RK_S32 cnt = 0;
 
     if (next) {
-        cnt = sscanf(next, "%d:%d:%d:%d",
-                     &cmd->bps_target, &cmd->bps_min, &cmd->bps_max,
-                     &cmd->rc_mode);
+        cnt = sscanf(next, "%d:%d:%d",
+                     &cmd->bps_target, &cmd->bps_min, &cmd->bps_max);
         if (cnt)
             return 1;
     }
 
-    mpp_err("invalid bit rate usage -b bps_target:bps_min:bps_max:rc_mode\n");
-    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
+    mpp_err("invalid bit rate usage -bps bps_target:bps_min:bps_max\n");
     return 0;
 }
 
@@ -351,6 +365,22 @@ RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
     }
 
     mpp_err("invalid output frame rate\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_qc(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    RK_S32 cnt = 0;
+
+    if (next) {
+        cnt = sscanf(next, "%d:%d:%d:%d:%d", &cmd->qp_init,
+                     &cmd->qp_min, &cmd->qp_max, &cmd->qp_min_i, &cmd->qp_max_i);
+        if (cnt)
+            return 1;
+    }
+
+    mpp_err("invalid quality control usage -qc qp_init/min/max/min_i/max_i\n");
     return 0;
 }
 
@@ -455,8 +485,10 @@ static MppOptInfo enc_opts[] = {
     {"tsrc",    "source type",          "input file source coding type",            mpi_enc_opt_tsrc},
     {"n",       "max frame number",     "max encoding frame number",                mpi_enc_opt_n},
     {"g",       "gop reference mode",   "gop_mode:gop_len:vi_len",                  mpi_enc_opt_g},
+    {"rc",      "rate control mode",    "set rc_mode",                              mpi_enc_opt_rc},
     {"bps",     "bps target:min:max",   "set tareget/min/max bps and rc_mode",      mpi_enc_opt_bps},
     {"fps",     "in/output fps",        "set input and output frame rate",          mpi_enc_opt_fps},
+    {"qc",      "quality control",      "set qp_init/min/max/min_i/max_i",          mpi_enc_opt_qc},
     {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
@@ -559,6 +591,14 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
             mpp_err("invalid w:h [%d:%d] stride [%d:%d]\n",
                     cmd->width, cmd->height, cmd->hor_stride, cmd->ver_stride);
             ret = MPP_NOK;
+        }
+    }
+
+    if (cmd->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        if (!cmd->qp_init) {
+            if (cmd->type == MPP_VIDEO_CodingAVC ||
+                cmd->type == MPP_VIDEO_CodingHEVC)
+                cmd->qp_init = 26;
         }
     }
 

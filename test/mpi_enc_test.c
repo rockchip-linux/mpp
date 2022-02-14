@@ -342,12 +342,14 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     case MPP_VIDEO_CodingHEVC : {
         switch (p->rc_mode) {
         case MPP_ENC_RC_MODE_FIXQP : {
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", 20);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
+            RK_S32 fix_qp = cmd->qp_init;
+
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 0);
         } break;
         case MPP_ENC_RC_MODE_CBR :
         case MPP_ENC_RC_MODE_VBR :
