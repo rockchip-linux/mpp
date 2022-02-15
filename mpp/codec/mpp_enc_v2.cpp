@@ -217,6 +217,24 @@ MPP_RET mpp_enc_start_v2(MppEnc ctx)
     return MPP_OK;
 }
 
+MPP_RET mpp_enc_start_async(MppEnc ctx)
+{
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+    char name[16];
+
+    enc_dbg_func("%p in\n", enc);
+
+    snprintf(name, sizeof(name) - 1, "mpp_%se_%d",
+             strof_coding_type(enc->coding), getpid());
+
+    enc->thread_enc = new MppThread(mpp_enc_async_thread, enc->mpp, name);
+    enc->thread_enc->start();
+
+    enc_dbg_func("%p out\n", enc);
+
+    return MPP_OK;
+}
+
 MPP_RET mpp_enc_stop_v2(MppEnc ctx)
 {
     MPP_RET ret = MPP_OK;

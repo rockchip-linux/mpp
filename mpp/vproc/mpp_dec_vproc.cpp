@@ -74,7 +74,7 @@ typedef struct MppDecVprocCtxImpl_t {
 
 static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts, RK_U32 err)
 {
-    mpp_list *list = mpp->mFrames;
+    mpp_list *list = mpp->mFrmOut;
     MppFrame out = NULL;
     MppFrameImpl *impl = NULL;
 

@@ -138,6 +138,7 @@ extern "C" {
 #endif
 
 void *mpp_enc_thread(void *data);
+void *mpp_enc_async_thread(void *data);
 
 #ifdef __cplusplus
 }

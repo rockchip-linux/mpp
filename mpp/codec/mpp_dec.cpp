@@ -631,7 +631,7 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         dec_vproc_signal(dec->vproc);
     } else {
         // direct output -> copy a new MppFrame and output
-        mpp_list *list = mpp->mFrames;
+        mpp_list *list = mpp->mFrmOut;
         MppFrame out = NULL;
 
         mpp_frame_init(&out);
@@ -954,8 +954,8 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     dec_dbg_detail("detail: %p check prev task pass\n", dec);
 
     /* too many frame delay in dispaly queue */
-    if (mpp->mFrames) {
-        task->wait.dis_que_full = (mpp->mFrames->list_size() > 4) ? 1 : 0;
+    if (mpp->mFrmOut) {
+        task->wait.dis_que_full = (mpp->mFrmOut->list_size() > 4) ? 1 : 0;
         if (task->wait.dis_que_full)
             return MPP_ERR_DISPLAY_FULL;
     }
