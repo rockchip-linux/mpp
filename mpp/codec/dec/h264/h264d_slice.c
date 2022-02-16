@@ -180,13 +180,16 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
 
         if (pSlice->adaptive_ref_pic_buffering_flag) {
             RK_U32 i = 0;
-            do { //!< read Memory Management Control Operation
+
+            for (i = 0; i < MAX_MARKING_TIMES; i++) {
                 if (!pSlice->p_Cur->dec_ref_pic_marking_buffer[i])
                     pSlice->p_Cur->dec_ref_pic_marking_buffer[i] = mpp_calloc(H264_DRPM_t, 1);
                 tmp_drpm = pSlice->p_Cur->dec_ref_pic_marking_buffer[i];
                 tmp_drpm->Next = NULL;
                 READ_UE(p_bitctx, &val); //!< mmco
                 tmp_drpm->memory_management_control_operation = val;
+                if (val == 0)
+                    break;
 
                 if ((val == 1) || (val == 3)) {
                     READ_UE(p_bitctx, &tmp_drpm->difference_of_pic_nums_minus1);
@@ -210,8 +213,11 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
                     }
                     tmp_drpm2->Next = tmp_drpm;
                 }
-                i++;
-            } while (val != 0);
+            }
+            if (i >= MAX_MARKING_TIMES) {
+                H264D_ERR("Too many memory management control operations.");
+                goto __BITREAD_ERR;
+            }
         }
     }
     pSlice->drpm_used_bitlen = p_bitctx->used_bits - drpm_used_bits;
