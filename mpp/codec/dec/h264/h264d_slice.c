@@ -258,7 +258,7 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
 {
     RK_U32 ret = 0;
     RK_S32 max_mb_width  = MAX_MBW_1080P;
-    RK_S32 max_mb_height = MAX_MBH_1080P;
+
     ret |= (sps->seq_parameter_set_id > 63);
     ret |= (sps->separate_colour_plane_flag == 1);
     ret |= (sps->chroma_format_idc == 3);
@@ -270,16 +270,12 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
     ret |= (sps->num_ref_frames_in_pic_order_cnt_cycle > 255);
     ret |= (sps->max_num_ref_frames > 16);
 
-    if (hw_info && hw_info->cap_8k) {
+    if (hw_info && hw_info->cap_8k)
         max_mb_width  = MAX_MBW_8Kx4K;
-        max_mb_height = MAX_MBH_8Kx4K;
-    } else if (hw_info && hw_info->cap_4k) {
+    else if (hw_info && hw_info->cap_4k)
         max_mb_width  = MAX_MBW_4Kx2K;
-        max_mb_height = MAX_MBH_4Kx2K;
-    }
 
     ret |= (sps->pic_width_in_mbs_minus1 < 3 || sps->pic_width_in_mbs_minus1 > max_mb_width);
-    ret |= (sps->pic_height_in_map_units_minus1 < 3 || sps->pic_height_in_map_units_minus1 > max_mb_height);
 
     if (ret) {
         H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
