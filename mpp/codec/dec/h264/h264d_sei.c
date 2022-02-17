@@ -166,7 +166,7 @@ static MPP_RET interpret_buffering_period_info(
 
     READ_UE(p_bitctx, &seq_parameter_set_id);
 
-    if (seq_parameter_set_id > 31 || !p_videoctx->spsSet[seq_parameter_set_id]) {
+    if (seq_parameter_set_id >= MAXSPS || !p_videoctx->spsSet[seq_parameter_set_id]) {
         H264D_ERR("seq_parameter_set_id %d may be invalid\n", seq_parameter_set_id);
         goto __BITREAD_ERR;
     }

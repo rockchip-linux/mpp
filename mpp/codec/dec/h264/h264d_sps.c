@@ -200,7 +200,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     ASSERT(temp == 0);
     READ_BITS(p_bitctx, 8, &cur_sps->level_idc);
     READ_UE(p_bitctx, &cur_sps->seq_parameter_set_id);
-    if (cur_sps->seq_parameter_set_id < 0 || cur_sps->seq_parameter_set_id > 32) {
+    if (cur_sps->seq_parameter_set_id < 0 || cur_sps->seq_parameter_set_id >= MAXSPS) {
         cur_sps->seq_parameter_set_id = 0;
     }
     if (cur_sps->profile_idc == 100 || cur_sps->profile_idc == 110
