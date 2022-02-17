@@ -69,10 +69,10 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
     READ_UE(p_bitctx, &cur_pps->pic_parameter_set_id);
     READ_UE(p_bitctx, &cur_pps->seq_parameter_set_id);
     //VAL_CHECK(ret, cur_pps->seq_parameter_set_id < 32);
-    if (cur_pps->seq_parameter_set_id < 0 || cur_pps->seq_parameter_set_id > 32) {
+    if (cur_pps->seq_parameter_set_id < 0 || cur_pps->seq_parameter_set_id >= MAXSPS) {
         cur_pps->seq_parameter_set_id = 0;
     }
-    if (cur_pps->pic_parameter_set_id < 0 || cur_pps->pic_parameter_set_id > 256)    {
+    if (cur_pps->pic_parameter_set_id < 0 || cur_pps->pic_parameter_set_id >= MAXPPS)    {
         cur_pps->pic_parameter_set_id = 0;
     }
     READ_ONEBIT(p_bitctx, &cur_pps->entropy_coding_mode_flag);
