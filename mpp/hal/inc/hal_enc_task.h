@@ -20,7 +20,7 @@
 
 #include "mpp_time.h"
 
-#include "hal_task_defs.h"
+#include "hal_task.h"
 #include "mpp_rc_defs.h"
 #include "mpp_enc_refs.h"
 
@@ -34,6 +34,11 @@
 typedef struct HalEncTaskFlag_t {
     RK_U32          err;
 } HalEncTaskFlag;
+
+typedef struct MppSyntax_t {
+    RK_U32              number;
+    void                *data;
+} MppSyntax;
 
 typedef struct HalEncTask_t {
     RK_U32          valid;

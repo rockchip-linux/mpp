@@ -112,7 +112,8 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
                 break;
             }
 
-            ret = hal_task_group_init(&p->tasks, cfg->cfg->status.hal_task_count);
+            ret = hal_task_group_init(&p->tasks, cfg->cfg->status.hal_task_count,
+                                      sizeof(HalDecTask));
             if (ret) {
                 mpp_err_f("hal_task_group_init failed ret %d\n", ret);
                 break;

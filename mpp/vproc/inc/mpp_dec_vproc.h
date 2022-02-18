@@ -17,7 +17,7 @@
 #ifndef __MPP_DEC_VPROC_H__
 #define __MPP_DEC_VPROC_H__
 
-#include "hal_task.h"
+#include "hal_dec_task.h"
 
 typedef struct MppDecVprocCfg_t {
     void            *mpp;

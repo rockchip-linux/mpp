@@ -136,6 +136,22 @@ static RK_S32 ts_cmp(void *priv, const struct list_head *a, const struct list_he
     return ts1->pts - ts2->pts;
 }
 
+static MPP_RET dec_task_info_init(HalTaskInfo *task)
+{
+    HalDecTask *p = &task->dec;
+
+    p->valid  = 0;
+    p->flags.val = 0;
+    p->flags.eos = 0;
+    p->input_packet = NULL;
+    p->output = -1;
+    p->input = -1;
+    memset(&task->dec.syntax, 0, sizeof(task->dec.syntax));
+    memset(task->dec.refer, -1, sizeof(task->dec.refer));
+
+    return MPP_OK;
+}
+
 static void dec_task_init(DecTask *task)
 {
     task->hnd = NULL;
@@ -144,7 +160,7 @@ static void dec_task_init(DecTask *task)
     task->status.prev_task_rdy  = 1;
     INIT_LIST_HEAD(&task->ts_cur.link);
 
-    hal_task_info_init(&task->info, MPP_CTX_DEC);
+    dec_task_info_init(&task->info);
 }
 
 /*
@@ -991,7 +1007,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         }
         task->status.curr_task_rdy  = 0;
         task->status.task_parsed_rdy = 0;
-        hal_task_info_init(&task->info, MPP_CTX_DEC);
+        dec_task_info_init(&task->info);
         return MPP_NOK;
     }
     dec_dbg_detail("detail: %p check output index pass\n", dec);
@@ -1117,7 +1133,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     task->status.curr_task_rdy  = 0;
     task->status.task_parsed_rdy = 0;
     task->status.prev_task_rdy   = 0;
-    hal_task_info_init(&task->info, MPP_CTX_DEC);
+    dec_task_info_init(&task->info);
 
     dec_dbg_detail("detail: %p one task ready\n", dec);
 
@@ -1525,7 +1541,7 @@ void *mpp_dec_advanced_thread(void *data)
         packet = NULL;
         frame = NULL;
 
-        hal_task_info_init(&pTask->info, MPP_CTX_DEC);
+        dec_task_info_init(&pTask->info);
 
         task.status.mpp_pkt_in_rdy = 0;
     }

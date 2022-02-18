@@ -23,7 +23,7 @@
 #include "mpp_buf_slot.h"
 #include "mpp_device.h"
 
-#include "hal_task.h"
+#include "hal_dec_task.h"
 
 #include "vp8d_syntax.h"
 

@@ -18,10 +18,21 @@
 #ifndef __HAL_DEC_TASK__
 #define __HAL_DEC_TASK__
 
-#include "hal_task_defs.h"
+#include "hal_task.h"
 #include "mpp_callback.h"
 
 #define MAX_DEC_REF_NUM     17
+
+/*
+ * modified by parser and encoder
+ *
+ * number   : the number of the data pointer array element
+ * data     : the address of the pointer array, parser will add its data here
+ */
+typedef struct MppSyntax_t {
+    RK_U32              number;
+    void                *data;
+} MppSyntax;
 
 typedef union HalDecTaskFlag_t {
     RK_U32          val;
@@ -78,5 +89,26 @@ typedef struct HalDecTask_t {
     // current task reference slot index, -1 for unused
     RK_S32          refer[MAX_DEC_REF_NUM];
 } HalDecTask;
+
+typedef union HalDecVprocTaskFlag_t {
+    RK_U32          val;
+
+    struct {
+        RK_U32      eos              : 1;
+        RK_U32      info_change      : 1;
+    };
+} HalDecVprocTaskFlag;
+
+typedef struct HalDecVprocTask_t {
+    // input slot index for post-process
+    HalDecVprocTaskFlag     flags;
+
+    RK_S32                  input;
+} HalDecVprocTask;
+
+typedef union HalTask_u {
+    HalDecTask              dec;
+    HalDecVprocTask         dec_vproc;
+} HalTaskInfo;
 
 #endif /* __HAL_DEC_TASK__ */

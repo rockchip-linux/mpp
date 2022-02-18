@@ -26,7 +26,7 @@
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"
 
-#include "hal_task.h"
+#include "hal_dec_task.h"
 #include "jpegd_syntax.h"
 #include "jpegd_api.h"
 #include "hal_jpegd_common.h"
