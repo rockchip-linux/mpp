@@ -936,7 +936,7 @@ typedef struct h264d_curstrm_t {
 
 } H264dCurStream_t;
 
-#define MAX_REORDER_TIMES   17
+#define MAX_REORDER_TIMES   33      // MVC: 2 * H264_MAX_REFS + 1
 #define MAX_MARKING_TIMES   35
 //!< current parameters
 typedef struct h264d_cur_ctx_t {
