@@ -433,10 +433,10 @@ static MPP_RET gen_vepu580_roi_h264(MppEncRoiImpl *ctx)
     memset(dst_qp, 0, roi_qp_size);
 
     for (j = 0; j < mb_h; j++) {
-        for (k = 0; k < stride_v; k++) {
-            Vepu541RoiCfg *cu_cfg = &src[j * stride_v + k];
-            Vepu580RoiQpCfg *qp_cfg = &dst_qp[j * stride_v + k];
-            Vepu580RoiH264BsCfg *base_cfg = &dst_base[j * stride_v + k];
+        for (k = 0; k < stride_h; k++) {
+            Vepu541RoiCfg *cu_cfg = &src[j * stride_h + k];
+            Vepu580RoiQpCfg *qp_cfg = &dst_qp[j * stride_h + k];
+            Vepu580RoiH264BsCfg *base_cfg = &dst_base[j * stride_h + k];
 
             qp_cfg->qp_adj = cu_cfg->qp_adj;
             qp_cfg->qp_adj_mode = cu_cfg->qp_adj_mode;
