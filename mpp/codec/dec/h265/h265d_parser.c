@@ -1348,6 +1348,10 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
         if (ret < 0) {
             mpp_err("hls_slice_header error ret = %d", ret);
+
+            if (s->first_nal_type != s->nal_unit_type)
+                return 0;
+
             return ret;
         }
 
