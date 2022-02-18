@@ -19,28 +19,16 @@
 #define __HAL_TASK__
 
 #include "mpp_err.h"
-#include "hal_dec_task.h"
 
-typedef union HalDecVprocTaskFlag_t {
-    RK_U32          val;
+typedef void* HalTaskHnd;
+typedef void* HalTaskGroup;
 
-    struct {
-        RK_U32      eos              : 1;
-        RK_U32      info_change      : 1;
-    };
-} HalDecVprocTaskFlag;
-
-typedef struct HalDecVprocTask_t {
-    // input slot index for post-process
-    HalDecVprocTaskFlag     flags;
-
-    RK_S32                  input;
-} HalDecVprocTask;
-
-typedef union HalTask_u {
-    HalDecTask              dec;
-    HalDecVprocTask         dec_vproc;
-} HalTaskInfo;
+typedef enum HalTaskStatus_e {
+    TASK_IDLE,
+    TASK_PROCESSING,
+    TASK_PROC_DONE,
+    TASK_BUTT,
+} HalTaskStatus;
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,7 +40,7 @@ extern "C" {
  * NOTE: use mpp_list to implement
  *       the count means the max task waiting for process
  */
-MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count);
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count, RK_S32 size);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*
@@ -82,9 +70,8 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
 MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *hnd);
 MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *count);
 MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status);
-MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, HalTaskInfo *task);
-MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, HalTaskInfo *task);
-MPP_RET hal_task_info_init(HalTaskInfo *task, MppCtxType type);
+MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, void *task);
+MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, void *task);
 MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status);
 
 #ifdef __cplusplus
@@ -92,4 +79,3 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status);
 #endif
 
 #endif /*__HAL_TASK__*/
-

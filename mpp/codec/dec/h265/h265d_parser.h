@@ -37,7 +37,7 @@
 #include "mpp_buf_slot.h"
 #include "mpp_mem_pool.h"
 
-#include "hal_task.h"
+#include "hal_dec_task.h"
 #include "h265d_codec.h"
 #include "h265_syntax.h"
 

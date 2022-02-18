@@ -20,7 +20,7 @@
 
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
-#include "hal_task.h"
+#include "hal_dec_task.h"
 
 #define H263D_DBG_FUNCTION          (0x00000001)
 #define H263D_DBG_STARTCODE         (0x00000002)

@@ -21,7 +21,7 @@
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "mpp_dec_cfg.h"
-#include "hal_task.h"
+#include "hal_dec_task.h"
 #include "mpp_soc.h"
 
 /*

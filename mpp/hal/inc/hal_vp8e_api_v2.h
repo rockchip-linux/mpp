@@ -17,8 +17,7 @@
 #ifndef __HAL_VP8E_API_V2_H__
 #define __HAL_VP8E_API_V2_H__
 
-#include "mpp_hal.h"
-
+#include "mpp_enc_hal.h"
 
 extern const MppEncHalApi hal_api_vp8e_v2;
 
