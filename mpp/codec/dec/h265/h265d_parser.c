@@ -1872,7 +1872,9 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     h265d_dbg(H265D_DBG_GLOBAL, "decode poc = %d", s->poc);
     if (s->ref) {
         h265d_parser2_syntax(h265dctx);
-        s->ps_need_upate     = 0;
+        if (!task->flags.parse_err)
+            s->ps_need_upate = 0;
+
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
         s->task->valid = 1;
