@@ -2050,6 +2050,7 @@ void *mpp_enc_thread(void *data)
 
                 /* NOTE: here will clear change flag of rc and prep cfg */
                 mpp_enc_proc_rc_update(enc);
+                task.wait.val = 0;
                 continue;
             }
 
@@ -2065,6 +2066,7 @@ void *mpp_enc_thread(void *data)
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
                 enc_dbg_detail("thread reset done\n");
+                task.wait.val = 0;
                 continue;
             }
 
