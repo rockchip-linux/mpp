@@ -162,6 +162,7 @@ static const char *dec_cfg_func_names[] = {
     ENTRY(base, sort_pts,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_SORT_PTS,        base, sort_pts) \
     ENTRY(base, disable_error,  U32, RK_U32,            MPP_DEC_CFG_CHANGE_DISABLE_ERROR,   base, disable_error) \
     ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc) \
+    ENTRY(base, disable_fast_play, U32, RK_U32,         MPP_DEC_CFG_CHANGE_DISABLE_FAST_PLAY, base, disable_fast_play) \
     ENTRY(cb, pkt_rdy_cb,       PTR, MppExtCbFunc,      MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cb) \
     ENTRY(cb, pkt_rdy_ctx,      PTR, MppExtCbCtx,       MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_ctx) \
     ENTRY(cb, pkt_rdy_cmd,      S32, RK_S32,            MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cmd) \

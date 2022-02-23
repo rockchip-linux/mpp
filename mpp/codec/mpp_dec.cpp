@@ -438,7 +438,8 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_IMMEDIATE_OUT :
     case MPP_DEC_SET_OUTPUT_FORMAT :
     case MPP_DEC_SET_DISABLE_ERROR :
-    case MPP_DEC_SET_ENABLE_DEINTERLACE : {
+    case MPP_DEC_SET_ENABLE_DEINTERLACE :
+    case MPP_DEC_SET_DISABLE_FAST_PLAY : {
         ret = mpp_dec_set_cfg_by_cmd(&dec->cfg, cmd, param);
         dec->cfg.base.change = 0;
     } break;
@@ -1614,6 +1615,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_VPROC)
             dst_base->enable_vproc = src_base->enable_vproc;
 
+        if (change & MPP_DEC_CFG_CHANGE_DISABLE_FAST_PLAY)
+            dst_base->disable_fast_play = src_base->disable_fast_play;
+
         dst_base->change = change;
         src_base->change = 0;
     }
@@ -2097,6 +2101,11 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
         cfg->enable_vproc = (param) ? (*((RK_U32 *)param)) : (1);
         cfg->change |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
         dec_dbg_func("enable dec_vproc %d\n", cfg->enable_vproc);
+    } break;
+    case MPP_DEC_SET_DISABLE_FAST_PLAY : {
+        cfg->disable_fast_play = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_DISABLE_FAST_PLAY;
+        dec_dbg_func("disable idr immediately output %d\n", cfg->disable_fast_play);
     } break;
     default : {
         mpp_err_f("unsupported cfg update cmd %x\n", cmd);
