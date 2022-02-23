@@ -1066,7 +1066,8 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     case MPP_DEC_SET_PARSER_FAST_MODE :
     case MPP_DEC_SET_IMMEDIATE_OUT :
     case MPP_DEC_SET_DISABLE_ERROR :
-    case MPP_DEC_SET_ENABLE_DEINTERLACE : {
+    case MPP_DEC_SET_ENABLE_DEINTERLACE :
+    case MPP_DEC_SET_DISABLE_FAST_PLAY : {
         /*
          * These control may be set before mpp_init
          * When this case happen record the config and wait for decoder init

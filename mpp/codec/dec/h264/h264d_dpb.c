@@ -873,7 +873,8 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             }
         }
         //!<  discard less than first i frame poc
-        if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
+        if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc) &&
+            (!p_Vid->p_Dec->cfg->base.disable_fast_play)) {
             if (p_err->used_ref_flag) {
                 mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
@@ -1254,20 +1255,22 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     H264_FrameStore_t *fs = p_Dpb->fs[p_Dpb->used_size - 1];
 
     if (fs->is_used == 3) {
-        RK_S32 min_poc = 0, min_pos = 0;
-        RK_S32 poc_inc = fs->poc - p_Dpb->last_output_poc;
         H264dErrCtx_t *p_err = &p_Dpb->p_Vid->p_Dec->errctx;
-
-        if ((p_Dpb->last_output_poc > INT_MIN) && abs(poc_inc) & 0x1) {
-            p_Dpb->poc_interval = 1;
-        }
+        RK_S32 min_poc = 0;
+        RK_S32 min_pos = 0;
+        RK_S32 poc_inc = 0;
 
         if (p_Dpb->p_Vid->p_Dec->cfg->base.fast_out ||
-            (p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
+            (!p_Dpb->p_Vid->p_Dec->cfg->base.disable_fast_play &&
+             p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
             FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
         } else {
             while ((p_Dpb->last_output_poc > INT_MIN)
                    && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
+                poc_inc = min_poc - p_Dpb->last_output_poc;
+                if ((p_Dpb->last_output_poc > INT_MIN) && abs(poc_inc) & 0x1) {
+                    p_Dpb->poc_interval = 1;
+                }
                 if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
                     FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
                 } else {
