@@ -35,6 +35,9 @@ typedef struct HalEncTaskFlag_t {
     RK_U32          err;
     RK_S32          drop_by_fps;
     RK_S32          reg_idx;
+    /* hal buf index */
+    RK_S32          curr_idx;
+    RK_S32          refr_idx;
 } HalEncTaskFlag;
 
 typedef struct MppSyntax_t {

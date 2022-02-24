@@ -26,6 +26,7 @@
 
 #include "h264e_sps.h"
 #include "h264e_pps.h"
+#include "h264e_dpb.h"
 #include "h264e_slice.h"
 
 #include "hal_h264e_debug.h"
@@ -62,6 +63,7 @@ typedef struct HalH264eVepu580Ctx_t {
     RK_U32                  updated;
     H264eSps                *sps;
     H264ePps                *pps;
+    H264eDpb                *dpb;
     H264eSlice              *slice;
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
@@ -248,6 +250,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i  = 2;
         hw->qp_delta_row    = 2;
+        hw->extra_buf       = 1;
 
         memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
@@ -286,7 +289,7 @@ static void setup_hal_bufs(HalH264eVepu580Ctx *ctx)
     RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
     RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
-    RK_S32 new_max_cnt = 2;
+    RK_S32 new_max_cnt = 4;
     MppEncRefCfg ref_cfg = cfg->ref_cfg;
 
     if (ref_cfg) {
@@ -391,6 +394,10 @@ static RK_U32 update_vepu580_syntax(HalH264eVepu580Ctx *ctx, MppSyntax *syntax)
             hal_h264e_dbg_detail("update pps");
             ctx->pps = desc->p;
         } break;
+        case H264E_SYN_DPB : {
+            hal_h264e_dbg_detail("update dpb");
+            ctx->dpb = desc->p;
+        } break;
         case H264E_SYN_SLICE : {
             hal_h264e_dbg_detail("update slice");
             ctx->slice = desc->p;
@@ -419,6 +426,7 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     RK_U32 updated = update_vepu580_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
+    H264eFrmInfo *frms = ctx->frms;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
@@ -433,7 +441,15 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr_d(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2, NULL);
     }
 
+    if (ctx->dpb) {
+        h264e_dpb_hal_start(ctx->dpb, frms->curr_idx);
+        h264e_dpb_hal_start(ctx->dpb, frms->refr_idx);
+    }
+
     task->flags.reg_idx = ctx->task_idx;
+    task->flags.curr_idx = frms->curr_idx;
+    task->flags.refr_idx = frms->refr_idx;
+
     ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
     ctx->regs_set = &ctx->regs_sets[ctx->task_idx];
     ctx->osd_cfg.reg_base = &ctx->regs_set->reg_osd;
@@ -2071,6 +2087,11 @@ static MPP_RET hal_h264e_vepu580_ret_task(void *hal, HalEncTask *task)
     vepu580_h264e_tune_stat_update(ctx->tune, task);
 
     mpp_dev_multi_offset_reset(ctx->offsets);
+
+    if (ctx->dpb) {
+        h264e_dpb_hal_end(ctx->dpb, task->flags.curr_idx);
+        h264e_dpb_hal_end(ctx->dpb, task->flags.refr_idx);
+    }
 
     hal_h264e_dbg_func("leave %p\n", hal);
 

@@ -397,6 +397,9 @@ typedef struct MppEncHwCfg_t {
 
     /* vepu1/2 */
     RK_S32                  mb_rc_disable;
+
+    /* vepu580 */
+    RK_S32                  extra_buf;
 } MppEncHwCfg;
 
 /*
