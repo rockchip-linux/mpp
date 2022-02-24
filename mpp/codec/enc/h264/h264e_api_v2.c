@@ -644,6 +644,7 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
     h264e_add_syntax(p, H264E_SYN_CFG, p->cfg);
     h264e_add_syntax(p, H264E_SYN_SPS, &p->sps);
     h264e_add_syntax(p, H264E_SYN_PPS, &p->pps);
+    h264e_add_syntax(p, H264E_SYN_DPB, &p->dpb);
     h264e_add_syntax(p, H264E_SYN_SLICE, &p->slice);
     h264e_add_syntax(p, H264E_SYN_FRAME, &p->frms);
 

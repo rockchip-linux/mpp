@@ -54,7 +54,14 @@ typedef struct  H264eDpbFrm_t {
     RK_S32              slot_idx;
     // frame index in frames
     RK_S32              seq_idx;
-    RK_U32              on_used;
+
+    union {
+        RK_U32          on_used;
+        struct {
+            RK_U32      dpb_used    : 8;
+            RK_U32      hal_used    : 8;
+        };
+    };
 
     /* frame status */
     EncFrmStatus        status;
@@ -141,6 +148,13 @@ MPP_RET h264e_dpb_setup(H264eDpb *dpb, MppEncCfgSet* cfg, H264eSps *sps);
  * lt_ref   - current frame is marked as longterm reference
  */
 MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb);
+
+/*
+ * hal usage flag mark / unmark function
+ */
+MPP_RET h264e_dpb_hal_start(H264eDpb *dpb, RK_S32 slot_idx);
+MPP_RET h264e_dpb_hal_end(H264eDpb *dpb, RK_S32 slot_idx);
+
 void h264e_dpb_check(H264eDpb *dpb, EncCpbStatus *cpb);
 
 #define h264e_dpb_dump_frms(dpb) h264e_dpb_dump_frm(dpb, __FUNCTION__, __LINE__)
