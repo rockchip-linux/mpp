@@ -88,6 +88,8 @@ typedef struct HalH264eVepu580Ctx_t {
 
     /* frame parallel info */
     RK_S32                  task_idx;
+    RK_S32                  curr_idx;
+    RK_S32                  prev_idx;
     HalVepu580RegSet        *regs_set;
     MppBuffer               ext_line_buf;
 } HalH264eVepu580Ctx;
@@ -445,7 +447,7 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     /* reg000 VERSION is read only */
 
     /* reg001 ENC_STRT */
-    regs->reg_ctl.enc_strt.lkt_num            = 0;
+    regs->reg_ctl.enc_strt.lkt_num           = 0;
     regs->reg_ctl.enc_strt.vepu_cmd          = 1;
     regs->reg_ctl.func_en.cke                = 1;
     regs->reg_ctl.func_en.resetn_hw_en       = 1;
@@ -1744,6 +1746,34 @@ static void setup_vepu580_ext_line_buf(HalVepu580RegSet *regs, HalH264eVepu580Ct
     mpp_dev_multi_offset_update(ctx->offsets, 182, offset);
 }
 
+static MPP_RET setup_vepu580_dual_core(HalH264eVepu580Ctx *ctx, H264SliceType slice_type)
+{
+    Vepu580BaseCfg *reg_base = &ctx->regs_set->reg_base;
+    RK_U32 dchs_ofst = 9;
+    RK_U32 dchs_rxe  = 1;
+
+    if (ctx->task_cnt == 1)
+        return MPP_OK;
+
+    if (slice_type == H264_I_SLICE) {
+        ctx->curr_idx = 0;
+        ctx->prev_idx = 0;
+        dchs_rxe = 0;
+    }
+
+    reg_base->dual_core.dchs_txid = ctx->curr_idx;
+    reg_base->dual_core.dchs_rxid = ctx->prev_idx;
+    reg_base->dual_core.dchs_txe = 1;
+    reg_base->dual_core.dchs_rxe = dchs_rxe;
+    reg_base->dual_core.dchs_ofst = dchs_ofst;
+
+    ctx->prev_idx = ctx->curr_idx++;
+    if (ctx->curr_idx > 3)
+        ctx->curr_idx = 0;
+
+    return MPP_OK;
+}
+
 static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 {
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
@@ -1767,6 +1797,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     if (ret)
         return ret;
 
+    setup_vepu580_dual_core(ctx, slice->slice_type);
     setup_vepu580_codec(regs, sps, pps, slice);
     setup_vepu580_rdo_pred(regs, sps, pps, slice);
     setup_vepu580_rdo_cfg(&regs->reg_rdo);
