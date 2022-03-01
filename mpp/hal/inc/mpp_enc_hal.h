@@ -25,6 +25,7 @@ typedef struct MppEncHalCfg_t {
     // input for encoder
     MppCodingType   coding;
     MppEncCfgSet    *cfg;
+    RK_S32          task_cnt;
 
     // output from enc_impl
     MppClientType   type;
