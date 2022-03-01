@@ -66,6 +66,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     // create hal first
     enc_hal_cfg.coding = coding;
     enc_hal_cfg.cfg = &p->cfg;
+    enc_hal_cfg.task_cnt = cfg->task_cnt;
     enc_hal_cfg.type = VPU_CLIENT_BUTT;
     enc_hal_cfg.dev = NULL;
     enc_hal_cfg.cap_recn_out = 0;

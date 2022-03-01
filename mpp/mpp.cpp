@@ -193,6 +193,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
         MppEncInitCfg cfg = {
             coding,
+            (mInputTimeout) ? (1) : (2),
             this,
         };
 
