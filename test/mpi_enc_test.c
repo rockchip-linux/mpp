@@ -71,6 +71,7 @@ typedef struct {
     MppBufferGroup buf_grp;
     MppBuffer frm_buf;
     MppBuffer pkt_buf;
+    MppBuffer md_info;
     MppEncSeiMode sei_mode;
     MppEncHeaderMode header_mode;
 
@@ -88,6 +89,7 @@ typedef struct {
     // resources
     size_t header_size;
     size_t frame_size;
+    size_t mdinfo_size;
     /* NOTE: packet buffer may overflow */
     size_t packet_size;
 
@@ -172,6 +174,11 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_flex = cmd->fps_out_flex;
     p->fps_out_den  = cmd->fps_out_den;
     p->fps_out_num  = cmd->fps_out_num;
+    p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
+                      (MPP_ALIGN(p->hor_stride, 64) >> 6) *
+                      (MPP_ALIGN(p->ver_stride, 64) >> 6) * 32 :
+                      (MPP_ALIGN(p->hor_stride, 64) >> 6) *
+                      (MPP_ALIGN(p->ver_stride, 16) >> 4) * 8;
 
     if (cmd->file_input) {
         if (!strncmp(cmd->file_input, "/dev/video", 10)) {
@@ -603,6 +610,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
         /* NOTE: It is important to clear output packet length!! */
         mpp_packet_set_length(packet, 0);
         mpp_meta_set_packet(meta, KEY_OUTPUT_PACKET, packet);
+        mpp_meta_set_buffer(meta, KEY_MOTION_INFO, p->md_info);
 
         if (p->osd_enable || p->user_data_enable || p->roi_enable) {
             if (p->user_data_enable) {
@@ -840,6 +848,12 @@ void *enc_test(void *arg)
         goto MPP_TEST_OUT;
     }
 
+    ret = mpp_buffer_get(p->buf_grp, &p->md_info, p->mdinfo_size);
+    if (ret) {
+        mpp_err_f("failed to get buffer for motion info output packet ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
     // encoder demo
     ret = mpp_create(&p->ctx, &p->mpi);
     if (ret) {
@@ -914,6 +928,11 @@ MPP_TEST_OUT:
     if (p->pkt_buf) {
         mpp_buffer_put(p->pkt_buf);
         p->pkt_buf = NULL;
+    }
+
+    if (p->md_info) {
+        mpp_buffer_put(p->md_info);
+        p->md_info = NULL;
     }
 
     if (p->osd_data.buf) {

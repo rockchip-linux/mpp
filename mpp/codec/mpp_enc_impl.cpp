@@ -1580,7 +1580,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
          */
         mpp_task_meta_get_frame (enc->task_in, KEY_INPUT_FRAME,  &enc->frame);
         mpp_task_meta_get_packet(enc->task_in, KEY_OUTPUT_PACKET, &enc->packet);
-        mpp_task_meta_get_buffer(enc->task_in, KEY_MOTION_INFO, &hal_task->mv_info);
+        mpp_task_meta_get_buffer(enc->task_in, KEY_MOTION_INFO, &enc->md_info);
 
         enc_dbg_detail("task dequeue done frm %p pkt %p\n", enc->frame, enc->packet);
 
@@ -1609,6 +1609,7 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
         hal_task->input     = enc->frm_buf;
         hal_task->packet    = enc->packet;
         hal_task->output    = enc->pkt_buf;
+        hal_task->md_info   = enc->md_info;
         hal_task->stopwatch = stopwatch;
 
         frm->seq_idx = task->seq_idx++;
@@ -1974,8 +1975,8 @@ TASK_DONE:
     {
         MppMeta meta = mpp_packet_get_meta(enc->packet);
 
-        if (hal_task->mv_info)
-            mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->mv_info);
+        if (hal_task->md_info)
+            mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
 
         mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
         if (rc_task->info.quality_real)

@@ -1450,7 +1450,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     setup_vepu541_recn_refr(regs, ctx->dev, ctx->frms, ctx->hw_recn,
                             ctx->pixel_buf_fbc_hdr_size);
 
-    regs->reg082.meiw_addr = task->mv_info ? mpp_buffer_get_fd(task->mv_info) : 0;
+    regs->reg082.meiw_addr = task->md_info ? mpp_buffer_get_fd(task->md_info) : 0;
 
     regs->reg068.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->reg068.pic_ofst_x = mpp_frame_get_offset_x(task->frame);

@@ -1310,7 +1310,7 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
 {
     HalEncTask *enc_task = task;
     HalBuf *recon_buf, *ref_buf;
-    MppBuffer mv_info_buf = enc_task->mv_info;
+    MppBuffer md_info_buf = enc_task->md_info;
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
     MppDevRegOffsetCfg cfg_fd;
 
@@ -1360,9 +1360,9 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
         regs->lpfr_addr_hevc = mpp_buffer_get_fd(ctx->hw_tile_buf[1]);
     }
 
-    if (mv_info_buf) {
+    if (md_info_buf) {
         regs->enc_pic.mei_stor    = 1;
-        regs->meiw_addr_hevc = mpp_buffer_get_fd(mv_info_buf);
+        regs->meiw_addr_hevc = mpp_buffer_get_fd(md_info_buf);
     } else {
         regs->enc_pic.mei_stor    = 0;
         regs->meiw_addr_hevc = 0;
