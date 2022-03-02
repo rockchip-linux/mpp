@@ -1980,6 +1980,9 @@ TASK_DONE:
         mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
         if (rc_task->info.quality_real)
             mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP, rc_task->info.quality_real);
+
+        if (mpp->mEncAyncIo)
+            mpp_meta_set_frame(meta, KEY_INPUT_FRAME, enc->frame);
     }
 
     /*
