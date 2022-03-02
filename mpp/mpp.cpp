@@ -567,12 +567,22 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     if (mpp_frame_has_meta(frame)) {
         MppMeta meta = mpp_frame_get_meta(frame);
         MppPacket packet = NULL;
+        MppBuffer md_info_buf = NULL;
 
         mpp_meta_get_packet(meta, KEY_OUTPUT_PACKET, &packet);
         if (packet) {
             ret = mpp_task_meta_set_packet(mInputTask, KEY_OUTPUT_PACKET, packet);
             if (ret) {
                 mpp_log_f("set output packet to task ret %d\n", ret);
+                goto RET;
+            }
+        }
+
+        mpp_meta_get_buffer(meta, KEY_MOTION_INFO, &md_info_buf);
+        if (md_info_buf) {
+            ret = mpp_task_meta_set_buffer(mInputTask, KEY_MOTION_INFO, md_info_buf);
+            if (ret) {
+                mpp_log_f("set output motion dection info ret %d\n", ret);
                 goto RET;
             }
         }

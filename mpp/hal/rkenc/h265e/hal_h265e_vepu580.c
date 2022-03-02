@@ -1840,7 +1840,7 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
 {
     HalEncTask *enc_task = task;
     HalBuf *recon_buf, *ref_buf;
-    MppBuffer mv_info_buf = enc_task->mv_info;
+    MppBuffer md_info_buf = enc_task->md_info;
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
 
     hal_h265e_enter();
@@ -1889,9 +1889,9 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
         regs->reg0177_lpfr_addr  = mpp_buffer_get_fd(ctx->hw_tile_buf[1]);
     }
 
-    if (mv_info_buf) {
+    if (md_info_buf) {
         regs->reg0192_enc_pic.mei_stor    = 1;
-        regs->reg0171_meiw_addr = mpp_buffer_get_fd(mv_info_buf);
+        regs->reg0171_meiw_addr = mpp_buffer_get_fd(md_info_buf);
     } else {
         regs->reg0192_enc_pic.mei_stor    = 0;
         regs->reg0171_meiw_addr = 0;

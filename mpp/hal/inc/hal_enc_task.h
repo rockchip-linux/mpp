@@ -84,8 +84,8 @@ typedef struct HalEncTask_t {
     // task stopwatch for timing
     MppStopwatch    stopwatch;
 
-    // current mv info output buffer (not used)
-    MppBuffer       mv_info;
+    // current md info output buffer
+    MppBuffer       md_info;
 
     // low delay mode part output information
     RK_U32          part_first;

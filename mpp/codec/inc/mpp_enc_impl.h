@@ -85,6 +85,7 @@ typedef struct MppEncImpl_t {
     RK_S64              task_pts;
     MppBuffer           frm_buf;
     MppBuffer           pkt_buf;
+    MppBuffer           md_info;
 
     // internal status and protection
     Mutex               lock;
