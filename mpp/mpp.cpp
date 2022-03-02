@@ -62,6 +62,17 @@ static void *list_wraper_frame(void *arg)
     return NULL;
 }
 
+static MPP_RET check_frm_task_cnt_cap(MppCodingType coding)
+{
+    if (coding != MPP_VIDEO_CodingAVC ||
+        !strstr(mpp_get_soc_name(), "rk3588")) {
+        mpp_log("Only rk3588 h264 encoder can use frame parallel\n");
+        return MPP_NOK;
+    }
+
+    return MPP_OK;
+}
+
 Mpp::Mpp(MppCtx ctx = NULL)
     : mPktIn(NULL),
       mPktOut(NULL),
@@ -197,6 +208,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mMppInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_OUTPUT);
         mMppOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_INPUT);
 
+        if (mInputTimeout == MPP_POLL_NON_BLOCK) {
+            mEncAyncIo = 1;
+            if (check_frm_task_cnt_cap(coding))
+                mInputTimeout = MPP_POLL_BLOCK;
+        }
+
         MppEncInitCfg cfg = {
             coding,
             (mInputTimeout) ? (1) : (2),
@@ -208,7 +225,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             break;
 
         if (mInputTimeout == MPP_POLL_NON_BLOCK) {
-            mEncAyncIo = 1;
             ret = mpp_enc_start_async(mEnc);
         } else {
             ret = mpp_enc_start_v2(mEnc);
@@ -506,7 +522,7 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    if (mEncAyncIo)
+    if (mInputTimeout == MPP_POLL_NON_BLOCK)
         return put_frame_async(frame);
 
     MPP_RET ret = MPP_NOK;
@@ -610,7 +626,7 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    if (mEncAyncIo)
+    if (mInputTimeout == MPP_POLL_NON_BLOCK)
         return get_packet_async(packet);
 
     MPP_RET ret = MPP_OK;
