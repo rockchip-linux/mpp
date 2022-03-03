@@ -81,7 +81,7 @@ typedef struct {
     const RK_U32            vcodec_type;
 
     /* Max 4 decoder cap */
-    const MppDecHwCap       *dec_caps[5];
+    const MppDecHwCap       *dec_caps[6];
     /* Max 4 encoder cap */
     const MppEncHwCap       *enc_caps[4];
 } MppSocInfo;
