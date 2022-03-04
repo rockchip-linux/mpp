@@ -77,7 +77,7 @@ MPP_RET mpp_buffer_get_with_tag(MppBufferGroup group, MppBuffer *buffer, size_t 
 
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)group;
     // try unused buffer first
-    MppBufferImpl *buf = mpp_buffer_get_unused(p, size);
+    MppBufferImpl *buf = mpp_buffer_get_unused(p, size, caller);
     if (NULL == buf && MPP_BUFFER_INTERNAL == p->mode) {
         MppBufferInfo info = {
             p->type,
