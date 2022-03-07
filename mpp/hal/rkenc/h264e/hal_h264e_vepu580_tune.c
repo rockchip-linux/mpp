@@ -102,12 +102,14 @@ static RK_S32 rime_multi[4][3] = {
 static HalH264eVepu580Tune *vepu580_h264e_tune_init(HalH264eVepu580Ctx *ctx)
 {
     HalH264eVepu580Tune *tune = mpp_malloc(HalH264eVepu580Tune, 1);
+    RK_S32 scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+
     if (NULL == tune)
         return tune;
 
     tune->ctx = ctx;
     tune->curr_scene_motion_flag = 0;
-    tune->ap_motion_flag = 0;
+    tune->ap_motion_flag = scene_mode;
     memset(tune->md_madp, 0, sizeof(tune->md_madp));
     memset(tune->txtr_madi, 0, sizeof(tune->txtr_madi));
     memset(tune->md_flag_matrix, 0, sizeof(tune->md_flag_matrix));
@@ -127,13 +129,17 @@ static void vepu580_h264e_tune_reg_patch(void *p)
 {
     HalH264eVepu580Tune *tune = (HalH264eVepu580Tune *)p;
     HalH264eVepu580Ctx *ctx = NULL;
+    RK_S32 scene_mode = 0;
 
     if (NULL == tune)
         return;
 
     ctx = tune->ctx;
+    scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+
     H264eSlice *slice = ctx->slice;
     HalVepu580RegSet *regs = ctx->regs_set;
+    tune->ap_motion_flag = scene_mode;
     RK_U32 scene_motion_flag = tune->ap_motion_flag * 2 + tune->curr_scene_motion_flag;
 
     if (scene_motion_flag > 3) {
@@ -230,12 +236,14 @@ static void vepu580_h264e_tune_stat_update(void *p, HalEncTask *task)
     HalH264eVepu580Tune *tune = (HalH264eVepu580Tune *)p;
     HalH264eVepu580Ctx *ctx = NULL;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
+    RK_S32 scene_mode = 0;
 
     if (NULL == tune)
         return;
 
     ctx = tune->ctx;
-
+    scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+    tune->ap_motion_flag = scene_mode;
     /* update statistic info here */
     RK_S32 mb_num = 0;
     RK_S32 madp = 0;

@@ -141,12 +141,14 @@ static RK_S32 rime_multi[4][3] = {
 static HalH265eVepu580Tune *vepu580_h265e_tune_init(H265eV580HalContext *ctx)
 {
     HalH265eVepu580Tune *tune = mpp_malloc(HalH265eVepu580Tune, 1);
+    RK_S32 scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+
     if (NULL == tune)
         return tune;
 
     tune->ctx = ctx;
     tune->curr_scene_motion_flag = 0;
-    tune->ap_motion_flag = 0;
+    tune->ap_motion_flag = scene_mode;
     memset(tune->md_madp, 0, sizeof(tune->md_madp));
     memset(tune->txtr_madi, 0, sizeof(tune->txtr_madi));
     memset(tune->md_flag_matrix, 0, sizeof(tune->md_flag_matrix));
@@ -166,12 +168,14 @@ static void vepu580_h265e_tune_reg_patch(void *p)
 {
     HalH265eVepu580Tune *tune = (HalH265eVepu580Tune *)p;
     H265eV580HalContext *ctx = NULL;
+    RK_S32 scene_mode = 0;
 
     if (NULL == tune)
         return;
 
     ctx = tune->ctx;
-
+    scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+    tune->ap_motion_flag = scene_mode;
     /* modify register here */
     H265eV580RegSet *regs = (H265eV580RegSet *)ctx->regs[0];
     hevc_vepu580_rc_klut *rc_regs =  &regs->reg_rc_klut;
@@ -351,12 +355,14 @@ static void vepu580_h265e_tune_stat_update(void *p)
 {
     HalH265eVepu580Tune *tune = (HalH265eVepu580Tune *)p;
     H265eV580HalContext *ctx = NULL;
+    RK_S32 scene_mode = 0;
 
     if (NULL == tune)
         return;
 
     ctx = tune->ctx;
-
+    scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
+    tune->ap_motion_flag = scene_mode;
     /* update statistic info here */
     RK_S32 j;
     RK_S32 i = 0;
