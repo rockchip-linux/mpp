@@ -373,6 +373,10 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
             h265d_dbg(H265D_DBG_SEI, "tone_mapping_info in\n");
             tone_mapping_info(s);
             return 1;
+        } else if (payload_type == 6) {
+            h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
+            s->max_ra = INT_MIN;
+            return 1;
         } else {
             h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
             SKIP_BITS(gb, 8 * payload_size);
