@@ -503,7 +503,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3368",
         ROCKCHIP_SOC_RK3368,
         HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
+        {   &rk_hevc, &vdpu1_2160p, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
