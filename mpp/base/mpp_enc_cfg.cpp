@@ -251,7 +251,9 @@ public:
     ENTRY(hw,   aq_thrd_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P,        hw, aq_thrd_p) \
     ENTRY(hw,   aq_step_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I,        hw, aq_step_i) \
     ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
-    ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable)
+    ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable) \
+    /* quality fine tuning config */ \
+    ENTRY(tune, scene_mode,     S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode)
 
 static MppEncCfgInfo *mpp_enc_cfg_flaten(MppTrie trie, MppCfgApi **cfgs)
 {
@@ -350,7 +352,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1526, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1555, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;
