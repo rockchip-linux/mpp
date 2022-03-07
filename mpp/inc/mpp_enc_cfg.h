@@ -46,6 +46,9 @@ typedef struct MppEncCfgSet_t {
     MppEncROICfg        roi;
     MppEncOSDPltCfg     plt_cfg;
     MppEncOSDPlt        plt_data;
+
+    // quality fine tuning config
+    MppEncFineTuneCfg   tune;
 } MppEncCfgSet;
 
 #endif /*__MPP_ENC_CFG_H__*/

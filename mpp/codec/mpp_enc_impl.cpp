@@ -675,6 +675,28 @@ MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
     return ret;
 }
 
+MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change) {
+        MppEncFineTuneCfg bak = *dst;
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE)
+            dst->scene_mode = src->scene_mode;
+
+        dst->change |= change;
+
+        if (ret) {
+            mpp_err_f("failed to accept new tuning config\n");
+            *dst = bak;
+        }
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -705,6 +727,12 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         if (src->hw.change) {
             ret = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
             src->hw.change = 0;
+        }
+
+        /* process hardware cfg at mpp_enc module */
+        if (src->tune.change) {
+            ret = mpp_enc_proc_tune_cfg(&enc->cfg.tune, &src->tune);
+            src->tune.change = 0;
         }
 
         /* Then process the rest config */
