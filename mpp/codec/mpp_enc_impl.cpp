@@ -686,6 +686,13 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
         if (change & MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE)
             dst->scene_mode = src->scene_mode;
 
+        if (dst->scene_mode < MPP_ENC_SCENE_MODE_DEFAULT ||
+            dst->scene_mode >= MPP_ENC_SCENE_MODE_BUTT) {
+            mpp_err("invalid scene mode %d not in range [%d:%d]\n", dst->scene_mode,
+                    MPP_ENC_SCENE_MODE_DEFAULT, MPP_ENC_SCENE_MODE_BUTT - 1);
+            ret = MPP_ERR_VALUE;
+        }
+
         dst->change |= change;
 
         if (ret) {

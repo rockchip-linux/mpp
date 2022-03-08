@@ -1241,6 +1241,12 @@ typedef struct MppEncUserDataSet_t {
     MppEncUserDataFull  *datas;
 } MppEncUserDataSet;
 
+typedef enum MppEncSceneMode_e {
+    MPP_ENC_SCENE_MODE_DEFAULT,
+    MPP_ENC_SCENE_MODE_IPC,
+    MPP_ENC_SCENE_MODE_BUTT,
+} MppEncSceneMode;
+
 typedef enum MppEncFineTuneCfgChange_e {
     /* change on scene mode */
     MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE      = (1 << 0),
@@ -1249,7 +1255,7 @@ typedef enum MppEncFineTuneCfgChange_e {
 typedef struct MppEncFineTuneCfg_t {
     RK_U32              change;
 
-    RK_U32              scene_mode;
+    MppEncSceneMode     scene_mode;
 } MppEncFineTuneCfg;
 
 #endif /*__RK_VENC_CMD_H__*/

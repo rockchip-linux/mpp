@@ -253,7 +253,7 @@ public:
     ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
     ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable) \
     /* quality fine tuning config */ \
-    ENTRY(tune, scene_mode,     S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode)
+    ENTRY(tune, scene_mode,     S32, MppEncSceneMode,   MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode)
 
 static MppEncCfgInfo *mpp_enc_cfg_flaten(MppTrie trie, MppCfgApi **cfgs)
 {
