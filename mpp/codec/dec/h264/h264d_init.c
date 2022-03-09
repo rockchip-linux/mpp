@@ -432,8 +432,11 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             }
 
             if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
-                /* field mode can not use FBC */
-                if (p_Vid->frame_mbs_only_flag) {
+                /*
+                 * field mode can not use FBC, but VOP only support fbc fmt for 10bit source.
+                 * Generally, there is no 10bit field source.
+                 */
+                if (p_Vid->frame_mbs_only_flag || p_Vid->bit_depth_luma == 10) {
                     mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, hor_align_64);
                     impl->offset_x = 0;
                     impl->offset_y = 4;
