@@ -307,6 +307,28 @@ MPP_RET mpp_meta_dump(MppMeta meta)
             ret = MPP_OK; \
         } \
         return ret; \
+    } \
+    MPP_RET mpp_meta_get_##func_type##_d(MppMeta meta, MppMetaKey key, arg_type *val, arg_type def) \
+    { \
+        if (NULL == meta) { \
+            mpp_err_f("found NULL input\n"); \
+            return MPP_ERR_NULL_PTR; \
+        } \
+        MppMetaService *service = MppMetaService::get_inst(); \
+        RK_S32 index = service->get_index_of_key(key, key_type); \
+        if (index < 0) \
+            return MPP_NOK; \
+        MppMetaImpl *impl = (MppMetaImpl *)meta; \
+        MppMetaVal *meta_val = &impl->vals[index]; \
+        MPP_RET ret = MPP_NOK; \
+        if (MPP_BOOL_CAS(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
+            *val = meta_val->key_field; \
+            MPP_FETCH_SUB(&impl->node_count, 1); \
+            ret = MPP_OK; \
+        } else { \
+            *val = def; \
+        } \
+        return ret; \
     }
 
 MPP_META_ACCESSOR(s32, RK_S32, TYPE_S32, val_s32)
