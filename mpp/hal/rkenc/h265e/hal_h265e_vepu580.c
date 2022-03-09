@@ -2497,9 +2497,9 @@ MPP_RET hal_h265e_v580_get_task(void *hal, HalEncTask *task)
     if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
         MppMeta meta = mpp_frame_get_meta(frame);
 
-        mpp_meta_get_ptr(meta, KEY_ROI_DATA2, (void **)&ctx->roi_data);
-        mpp_meta_get_ptr(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data);
-        mpp_meta_get_ptr(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2);
+        mpp_meta_get_ptr_d(meta, KEY_ROI_DATA2, (void **)&ctx->roi_data, NULL);
+        mpp_meta_get_ptr_d(meta, KEY_OSD_DATA, (void **)&ctx->osd_cfg.osd_data, NULL);
+        mpp_meta_get_ptr_d(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2, NULL);
     }
     memset(&ctx->feedback, 0, sizeof(vepu580_h265_fbk));
 
