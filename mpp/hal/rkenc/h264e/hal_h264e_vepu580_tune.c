@@ -274,7 +274,7 @@ static void vepu580_h264e_tune_stat_update(void *p, HalEncTask *task)
              regs->reg_st.madi_b16num2 + regs->reg_st.madi_b16num3;
     mb_num = mb_num ? mb_num : 1;
     if (0 != tune->ap_motion_flag)
-        mvbit = 12;
+        mvbit = 15;
 
     madp = MOTION_LEVEL_STILL;
     if (0 != madp_cnt_statistics[4]) {

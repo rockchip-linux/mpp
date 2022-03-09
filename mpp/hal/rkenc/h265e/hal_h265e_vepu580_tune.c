@@ -72,7 +72,7 @@ static RK_S32 intra_b32_atf_wgt[4][12] = {
     {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
-    {18, 18, 18, 18, 18, 18, 18, 18, 18, 17, 17, 17},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b32_atf_wgt[4][13] = {
@@ -86,7 +86,7 @@ static RK_S32 intra_b16_atf_wgt[4][12] = {
     {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
-    {18, 18, 18, 18, 18, 18, 18, 18, 18, 17, 17, 17},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b16_atf_wgt[4][13] = {
@@ -100,7 +100,7 @@ static RK_S32 intra_b8_atf_wgt[4][12] = {
     {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
-    {18, 18, 18, 18, 18, 18, 18, 18, 18, 17, 17, 17},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b8_atf_wgt[4][13] = {
@@ -108,6 +108,69 @@ static RK_S32 skip_b8_atf_wgt[4][13] = {
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+};
+
+static RK_U32 intra_lvl16_sobel_a[4][9] = {
+    {32, 32, 32, 32, 32, 32, 32, 32, 32},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+};
+
+static RK_U32 intra_lvl16_sobel_c[4][9] = {
+    {13, 13, 13, 13, 13, 13, 13, 13, 13},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16, 16, 16, 16, 16},
+};
+
+static RK_U32 intra_lvl16_sobel_d[4][9] = {
+    {23750, 23750, 23750, 23750, 23750, 23750, 23750, 23750, 23750},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0},
+};
+
+static RK_U32 intra_lvl32_sobel_a[4][5] = {
+    {18, 18, 18, 18, 18},
+    {16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16},
+};
+
+static RK_U32 intra_lvl32_sobel_c[4][5] = {
+    {16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16},
+    {16, 16, 16, 16, 16},
+};
+
+static RK_U32 qnt_bias_i[4] = {
+    171, 171, 171, 171
+};
+
+static RK_U32 qnt_bias_p[4] = {
+    85, 85, 171, 171
+};
+
+static RK_U32 rime_sqi_cime_sad_th[4] = {
+    48, 0, 0, 0
+};
+
+static RK_U32 fme_sqi_cime_sad_pu16_th[4] = {
+    16, 0, 0, 0
+};
+
+static RK_U32 fme_sqi_cime_sad_pu32_th[4] = {
+    16, 0, 0, 0
+};
+
+static RK_U32 fme_sqi_cime_sad_pu64_th[4] = {
+    16, 0, 0, 0
+};
+
+static RK_U32 chrm_klut_ofst[4] = {
+    3, 0, 0, 0
 };
 
 static RK_S32 pre_intra_b32_cost[4][2] = {
@@ -128,14 +191,14 @@ static RK_S32 cime_multi[4][4] = {
     {4, 8, 24, 24},
     {4, 7, 20, 20},
     {4, 8, 24, 24},
-    {4, 7, 20, 20},
+    {4, 4, 4, 4},
 };
 
 static RK_S32 rime_multi[4][3] = {
     {4, 32, 128},
     {4, 16, 64},
     {4, 32, 128},
-    {4, 16, 64},
+    {4, 4, 4},
 };
 
 static HalH265eVepu580Tune *vepu580_h265e_tune_init(H265eV580HalContext *ctx)
@@ -349,6 +412,52 @@ static void vepu580_h265e_tune_reg_patch(void *p)
 
     reg_rdo->rdo_sqi_cfg.rdo_segment_en = !tune->curr_scene_motion_flag;
     reg_rdo->rdo_sqi_cfg.rdo_smear_en = !tune->curr_scene_motion_flag;
+
+    reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp0 = intra_lvl16_sobel_a[scene_motion_flag][0];
+    reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp1 = intra_lvl16_sobel_a[scene_motion_flag][1];
+    reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp2 = intra_lvl16_sobel_a[scene_motion_flag][2];
+    reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp3 = intra_lvl16_sobel_a[scene_motion_flag][3];
+    reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp4 = intra_lvl16_sobel_a[scene_motion_flag][4];
+    reg_wgt->i16_sobel_a_01.intra_l16_sobel_a0_qp5 = intra_lvl16_sobel_a[scene_motion_flag][5];
+    reg_wgt->i16_sobel_a_01.intra_l16_sobel_a0_qp6 = intra_lvl16_sobel_a[scene_motion_flag][6];
+    reg_wgt->i16_sobel_a_01.intra_l16_sobel_a0_qp7 = intra_lvl16_sobel_a[scene_motion_flag][7];
+    reg_wgt->i16_sobel_a_01.intra_l16_sobel_a0_qp8 = intra_lvl16_sobel_a[scene_motion_flag][8];
+    reg_wgt->i16_sobel_c_00.intra_l16_sobel_c0_qp0 = intra_lvl16_sobel_c[scene_motion_flag][0];
+    reg_wgt->i16_sobel_c_00.intra_l16_sobel_c0_qp1 = intra_lvl16_sobel_c[scene_motion_flag][1];
+    reg_wgt->i16_sobel_c_00.intra_l16_sobel_c0_qp2 = intra_lvl16_sobel_c[scene_motion_flag][2];
+    reg_wgt->i16_sobel_c_00.intra_l16_sobel_c0_qp3 = intra_lvl16_sobel_c[scene_motion_flag][3];
+    reg_wgt->i16_sobel_c_00.intra_l16_sobel_c0_qp4 = intra_lvl16_sobel_c[scene_motion_flag][4];
+    reg_wgt->i16_sobel_c_01.intra_l16_sobel_c0_qp5 = intra_lvl16_sobel_c[scene_motion_flag][5];
+    reg_wgt->i16_sobel_c_01.intra_l16_sobel_c0_qp6 = intra_lvl16_sobel_c[scene_motion_flag][6];
+    reg_wgt->i16_sobel_c_01.intra_l16_sobel_c0_qp7 = intra_lvl16_sobel_c[scene_motion_flag][7];
+    reg_wgt->i16_sobel_c_01.intra_l16_sobel_c0_qp8 = intra_lvl16_sobel_c[scene_motion_flag][8];
+    reg_wgt->i16_sobel_d_00.intra_l16_sobel_d0_qp0 = intra_lvl16_sobel_d[scene_motion_flag][0];
+    reg_wgt->i16_sobel_d_00.intra_l16_sobel_d0_qp1 = intra_lvl16_sobel_d[scene_motion_flag][1];
+    reg_wgt->i16_sobel_d_01.intra_l16_sobel_d0_qp2 = intra_lvl16_sobel_d[scene_motion_flag][2];
+    reg_wgt->i16_sobel_d_01.intra_l16_sobel_d0_qp3 = intra_lvl16_sobel_d[scene_motion_flag][3];
+    reg_wgt->i16_sobel_d_02.intra_l16_sobel_d0_qp4 = intra_lvl16_sobel_d[scene_motion_flag][4];
+    reg_wgt->i16_sobel_d_02.intra_l16_sobel_d0_qp5 = intra_lvl16_sobel_d[scene_motion_flag][5];
+    reg_wgt->i16_sobel_d_03.intra_l16_sobel_d0_qp6 = intra_lvl16_sobel_d[scene_motion_flag][6];
+    reg_wgt->i16_sobel_d_03.intra_l16_sobel_d0_qp7 = intra_lvl16_sobel_d[scene_motion_flag][7];
+    reg_wgt->i16_sobel_d_04.intra_l16_sobel_d0_qp8 = intra_lvl16_sobel_d[scene_motion_flag][8];
+    reg_wgt->i32_sobel_a.intra_l32_sobel_a1_qp0 = intra_lvl32_sobel_a[scene_motion_flag][0];
+    reg_wgt->i32_sobel_a.intra_l32_sobel_a1_qp1 = intra_lvl32_sobel_a[scene_motion_flag][1];
+    reg_wgt->i32_sobel_a.intra_l32_sobel_a1_qp2 = intra_lvl32_sobel_a[scene_motion_flag][2];
+    reg_wgt->i32_sobel_a.intra_l32_sobel_a1_qp3 = intra_lvl32_sobel_a[scene_motion_flag][3];
+    reg_wgt->i32_sobel_a.intra_l32_sobel_a1_qp4 = intra_lvl32_sobel_a[scene_motion_flag][4];
+    reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp0 = intra_lvl32_sobel_c[scene_motion_flag][0];
+    reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp1 = intra_lvl32_sobel_c[scene_motion_flag][1];
+    reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp2 = intra_lvl32_sobel_c[scene_motion_flag][2];
+    reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp3 = intra_lvl32_sobel_c[scene_motion_flag][3];
+    reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp4 = intra_lvl32_sobel_c[scene_motion_flag][4];
+
+    reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = qnt_bias_i[scene_motion_flag];
+    reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = qnt_bias_p[scene_motion_flag];
+    reg_wgt->rime_sqi_thd.cime_sad_th0 = rime_sqi_cime_sad_th[scene_motion_flag];
+    reg_wgt->fme_sqi_thd0.cime_sad_pu16_th = fme_sqi_cime_sad_pu16_th[scene_motion_flag];
+    reg_wgt->fme_sqi_thd0.cime_sad_pu32_th = fme_sqi_cime_sad_pu32_th[scene_motion_flag];
+    reg_wgt->fme_sqi_thd1.cime_sad_pu64_th = fme_sqi_cime_sad_pu64_th[scene_motion_flag];
+    rc_regs->klut_ofst.chrm_klut_ofst = chrm_klut_ofst[scene_motion_flag];
 }
 
 static void vepu580_h265e_tune_stat_update(void *p)
@@ -396,7 +505,7 @@ static void vepu580_h265e_tune_stat_update(void *p)
     tune->pre_madp[0] = fb->st_madp;
 
     if (0 != tune->ap_motion_flag)
-        mvbit = 12;
+        mvbit = 15;
 
     madp = MOTION_LEVEL_STILL;
     if (0 != madp_cnt_statistics[4]) {
