@@ -79,12 +79,43 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     // default sps
     // profile baseline
     sps->profile_idc = h264->profile;
-    sps->constraint_set0 = 1;
-    sps->constraint_set1 = 1;
-    sps->constraint_set2 = 0;
-    sps->constraint_set3 = 0;
-    sps->constraint_set4 = 0;
-    sps->constraint_set5 = 0;
+    switch (sps->profile_idc) {
+    case H264_PROFILE_BASELINE : {
+        sps->constraint_set0 = 1;
+        sps->constraint_set1 = 1;
+        sps->constraint_set2 = 0;
+        sps->constraint_set3 = 0;
+        sps->constraint_set4 = 0;
+        sps->constraint_set5 = 0;
+    } break;
+    case H264_PROFILE_MAIN : {
+        sps->constraint_set0 = 0;
+        sps->constraint_set1 = 1;
+        sps->constraint_set2 = 0;
+        sps->constraint_set3 = 0;
+        sps->constraint_set4 = 0;
+        sps->constraint_set5 = 0;
+    } break;
+    case H264_PROFILE_HIGH :
+    case H264_PROFILE_HIGH10 :
+    case H264_PROFILE_HIGH422 :
+    case H264_PROFILE_HIGH444 : {
+        sps->constraint_set0 = 0;
+        sps->constraint_set1 = 0;
+        sps->constraint_set2 = 0;
+        sps->constraint_set3 = 1;
+        sps->constraint_set4 = 0;
+        sps->constraint_set5 = 0;
+    } break;
+    default : {
+        sps->constraint_set0 = 0;
+        sps->constraint_set1 = 0;
+        sps->constraint_set2 = 0;
+        sps->constraint_set3 = 0;
+        sps->constraint_set4 = 0;
+        sps->constraint_set5 = 0;
+    } break;
+    }
 
     // level_idc is connected with frame size
     {
