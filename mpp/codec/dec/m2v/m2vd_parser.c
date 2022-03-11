@@ -1113,8 +1113,8 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             if ((pts > ctx->PreGetFrameTime) && (ctx->GroupFrameCnt > 0)) {
                 tmp_frame_period = (tmp_frame_period * 256) / ctx->GroupFrameCnt;
                 if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) &&
-                    (abs(ctx->frame_period - tmp_frame_period) > 128)) {
-                    if (abs(ctx->preframe_period - tmp_frame_period) > 128)
+                    (llabs(ctx->frame_period - tmp_frame_period) > 128)) {
+                    if (llabs(ctx->preframe_period - tmp_frame_period) > 128)
                         ctx->preframe_period = tmp_frame_period;
                     else
                         ctx->frame_period = tmp_frame_period;
@@ -1458,8 +1458,8 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
             mpp_frame_set_color_trc(frame, p->dxva_ctx->seq_disp_ext.transfer_characteristics);
             mpp_frame_set_colorspace(frame, p->dxva_ctx->seq_disp_ext.matrix_coefficients);
         } else {
-            mpp_frame_set_color_primaries(frame, MPP_FRAME_SPC_UNSPECIFIED);
-            mpp_frame_set_color_trc(frame, MPP_FRAME_SPC_UNSPECIFIED);
+            mpp_frame_set_color_primaries(frame, MPP_FRAME_PRI_UNSPECIFIED);
+            mpp_frame_set_color_trc(frame, MPP_FRAME_TRC_UNSPECIFIED);
             mpp_frame_set_colorspace(frame, MPP_FRAME_SPC_UNSPECIFIED);
         }
 

@@ -73,7 +73,7 @@ static MPP_RET check_frm_task_cnt_cap(MppCodingType coding)
     return MPP_OK;
 }
 
-Mpp::Mpp(MppCtx ctx = NULL)
+Mpp::Mpp(MppCtx ctx)
     : mPktIn(NULL),
       mPktOut(NULL),
       mFrmIn(NULL),

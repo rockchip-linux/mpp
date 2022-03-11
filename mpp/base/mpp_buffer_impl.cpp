@@ -121,8 +121,8 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "buf destroy",
 };
 
-static MppMemPool mpp_buffer_pool = mpp_mem_pool_init(sizeof(MppBufferImpl));
-static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init(sizeof(MppBufferGroupImpl));
+static MppMemPool mpp_buffer_pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppBufferImpl));
+static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init_f("mpp_buf_grp", sizeof(MppBufferGroupImpl));
 
 RK_U32 mpp_buffer_debug = 0;
 

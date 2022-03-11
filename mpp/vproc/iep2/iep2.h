@@ -33,7 +33,7 @@
 #define FLOOR(v, r)             (((v) / (r)) * (r))
 
 #define RKCLIP(a, min, max)     ((a < min) ? (min) : ((a > max) ? max : a))
-#define RKABS(a)                (((a) >= 0) ? (a) : -(a))
+#define RKABS(a)                (RK_U32)(((a) >= 0) ? (a) : -(a))
 #define RKMIN(a, b)             (((a) < (b)) ? (a) : (b))
 #define RKMAX(a, b)             (((a) > (b)) ? (a) : (b))
 

@@ -25,10 +25,6 @@
 #include "iep2_api.h"
 #include "iep2_ff.h"
 
-#define RKABS(a)                (((a) >= 0) ? (a) : -(a))
-#define RKMIN(a, b)             (((a) < (b)) ? (a) : (b))
-#define RKMAX(a, b)             (((a) > (b)) ? (a) : (b))
-
 void iep2_check_ffo(struct iep2_api_ctx *ctx)
 {
     RK_U32 tdiff = ctx->output.ff_gradt_tcnt + 1;

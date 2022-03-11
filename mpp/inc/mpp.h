@@ -96,7 +96,7 @@
 class Mpp
 {
 public:
-    Mpp(MppCtx ctx);
+    Mpp(MppCtx ctx = NULL);
     ~Mpp();
     MPP_RET init(MppCtxType type, MppCodingType coding);
 

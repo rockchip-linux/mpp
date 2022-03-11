@@ -33,9 +33,9 @@ typedef enum CfgType_e {
 typedef struct MppCfgApi_t {
     const char          *name;
     CfgType             data_type;
-    RK_S32              flag_offset;
+    RK_U32              flag_offset;
     RK_U32              flag_value;
-    RK_S32              data_offset;
+    RK_U32              data_offset;
     RK_S32              data_size;
 } MppCfgApi;
 
