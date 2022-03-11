@@ -807,6 +807,28 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
     }
 }
 
+#define SET_POC_HIGNBIT_INFO(regs, index, field, value)\
+    do{ \
+        switch(index){\
+        case 0: regs.reg200.ref0_##field = value; break;\
+        case 1: regs.reg200.ref1_##field = value; break;\
+        case 2: regs.reg200.ref2_##field = value; break;\
+        case 3: regs.reg200.ref3_##field = value; break;\
+        case 4: regs.reg200.ref4_##field = value; break;\
+        case 5: regs.reg200.ref5_##field = value; break;\
+        case 6: regs.reg200.ref6_##field = value; break;\
+        case 7: regs.reg200.ref7_##field = value; break;\
+        case 8: regs.reg201.ref8_##field = value; break;\
+        case 9: regs.reg201.ref9_##field = value; break;\
+        case 10: regs.reg201.ref10_##field = value; break;\
+        case 11: regs.reg201.ref11_##field = value; break;\
+        case 12: regs.reg201.ref12_##field = value; break;\
+        case 13: regs.reg201.ref13_##field = value; break;\
+        case 14: regs.reg201.ref14_##field = value; break;\
+        case 15: regs.reg201.ref15_##field = value; break;\
+        default: break;}\
+    }while(0)
+
 static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     RK_S32 i = 0;
@@ -957,7 +979,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     fd =  mpp_buffer_get_fd(framebuf);
     hw_regs->common_addr.reg130_decout_base = fd;
-    hw_regs->highpoc.reg204.cur_decout_flag = 1;
     mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, dxva_cxt->pp.CurrPic.Index7Bits);
     hw_regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
 
@@ -1066,6 +1087,9 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
             hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
             hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+            /* mark 3 to differ from current frame */
+            if (reg_cxt->error_index == dxva_cxt->pp.CurrPic.Index7Bits)
+                SET_POC_HIGNBIT_INFO(hw_regs->highpoc, i, poc_highbit, 3);
         }
     }
 
