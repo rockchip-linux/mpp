@@ -65,6 +65,7 @@ typedef struct MppDevMppService_t {
     const MppServiceCmdCap *cap;
     RK_U32          support_set_info;
     RK_U32          support_set_rcb_info;
+    RK_U32          support_hw_irq;
 } MppDevMppService;
 
 #ifdef  __cplusplus
