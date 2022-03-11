@@ -279,6 +279,8 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
         p->support_set_info = 1;
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SET_RCB_INFO, p->cap))
         p->support_set_rcb_info = 1;
+    if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_POLL_HW_IRQ, p->cap))
+        p->support_hw_irq = 1;
 
     /* default server fd is the opened client fd */
     p->client_type = type;
@@ -649,15 +651,24 @@ MPP_RET mpp_service_cmd_poll(void *ctx, MppDevPollCfg *cfg)
 
         memset(&dev_req, 0, sizeof(dev_req));
 
-        if (cfg) {
+        if (p->support_hw_irq && cfg) {
             dev_req.cmd = MPP_CMD_POLL_HW_IRQ;
             dev_req.flag |= MPP_FLAGS_LAST_MSG;
+
             dev_req.size = sizeof(*cfg) + cfg->count_max * sizeof(cfg->slice_len[0]);
             dev_req.offset = 0;
             dev_req.data_ptr = REQ_DATA_PTR(cfg);
         } else {
             dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
             dev_req.flag |= MPP_FLAGS_LAST_MSG;
+
+            if (cfg) {
+                mpp_assert(cfg->count_max);
+                if (cfg->count_max) {
+                    cfg->count_ret = 1;
+                    cfg->slice_len[0] = 0;
+                }
+            }
         }
 
         ret = mpp_service_ioctl_request(p->server, &dev_req);
