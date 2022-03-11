@@ -2321,7 +2321,7 @@ MPP_RET vdpu_av1d_control(void *hal, MpiCmd cmd_type, void *param)
         RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
 
         AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
-        if ((fmt & MPP_FRAME_FMT_COLOR_MASK) == MPP_FMT_YUV422SP) {
+        if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
         }
         break;

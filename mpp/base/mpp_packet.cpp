@@ -24,7 +24,7 @@
 #include "mpp_meta_impl.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_packet_pool = mpp_mem_pool_init(sizeof(MppPacketImpl));
+static MppMemPool mpp_packet_pool = mpp_mem_pool_init_f(module_name, sizeof(MppPacketImpl));
 
 #define setup_mpp_packet_name(packet) \
     ((MppPacketImpl*)packet)->name = module_name;

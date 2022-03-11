@@ -924,8 +924,6 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask *task)
                             delta_coef = 0.5;
                         else if (delta_coef >= 0.3)
                             delta_coef = 0.3;
-                        else
-                            delta_coef = delta_coef;
 
                         if (p->qp_prev_out > (frame_low_qp + 1))
                             delta_coef += 0.1;

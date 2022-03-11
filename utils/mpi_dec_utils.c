@@ -87,7 +87,7 @@ OptionInfo mpi_dec_cmd[] = {
     {"s",               "instance_nb",          "number of instances"},
     {"v",               "trace",                "q - quiet f - show fps"},
     {"c",               "verify_file",          "verify file for slt check"},
-    {NULL},
+    {NULL,              NULL,                   NULL},
 };
 
 static MPP_RET add_new_slot(FileReaderImpl* impl, FileBufSlot *slot)

@@ -117,7 +117,7 @@ RK_S64 mpp_stopwatch_elapsed_time(MppStopwatch stopwatch);
 class AutoTiming
 {
 public:
-    AutoTiming(const char *name = __FUNCTION__);
+    AutoTiming(const char *name = "AutoTiming");
     ~AutoTiming();
 private:
     const char  *mName;

@@ -26,7 +26,7 @@
 #include "mpp_mem_pool.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_frame_pool = mpp_mem_pool_init(sizeof(MppFrameImpl));
+static MppMemPool mpp_frame_pool = mpp_mem_pool_init_f(module_name, sizeof(MppFrameImpl));
 
 static void setup_mpp_frame_name(MppFrameImpl *frame)
 {

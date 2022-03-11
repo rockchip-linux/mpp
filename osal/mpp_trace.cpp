@@ -88,7 +88,7 @@ void MppTraceService::trace_write(const char *fmt, ...)
     len = vsnprintf(buf, sizeof(buf) - 1, fmt, ap);
     va_end(ap);
 
-    write(mTraceFd, buf, len);
+    (void)!write(mTraceFd, buf, len);
 }
 
 void MppTraceService::trace_begin(const char* name)
