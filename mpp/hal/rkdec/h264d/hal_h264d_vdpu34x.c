@@ -535,6 +535,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
     HalBuf *mv_buf = NULL;
 
     // memset(regs, 0, sizeof(Vdpu34xH264dRegSet));
+    memset(&regs->h264d_highpoc, 0, sizeof(regs->h264d_highpoc));
     common->reg016_str_len = p_hal->strm_len;
     common->reg013.cur_pic_is_idr = p_hal->slice_long->idr_flag;
     common->reg012.colmv_compress_en = (pp->frame_mbs_only_flag) ? 1 : 0;
@@ -580,8 +581,10 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, pp->CurrPic.Index7Bits);
         regs->common_addr.reg131_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
         regs->common_addr.reg132_error_ref_base = fd;
-        regs->h264d_highpoc.reg204.cur_bot_field_flag = pp->CurrPic.AssociatedFlag;
-        regs->h264d_highpoc.reg204.cur_decout_flag = 1;
+        if (pp->field_pic_flag)
+            regs->h264d_highpoc.reg204.cur_poc_highbit = 1 << pp->CurrPic.AssociatedFlag; // top:1 bot:2
+        else
+            regs->h264d_highpoc.reg204.cur_poc_highbit = 0; // frame
     }
     //!< set reference
     {
@@ -593,22 +596,27 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         MppFrame mframe = NULL;
 
         for (i = 0; i < 15; i++) {
-            regs->h264d_param.reg67_98_ref_poc[i] = (i & 1)
-                                                    ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
-            regs->h264d_param.reg67_98_ref_poc[15 + i] = (i & 1)
-                                                         ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
-            SET_REF_INFO(regs->h264d_param, i, field, (pp->RefPicFiledFlags >> i) & 0x01);
-            SET_REF_INFO(regs->h264d_param, i, topfield_used, (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01);
-            SET_REF_INFO(regs->h264d_param, i, botfield_used, (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01);
+            RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
+            RK_U32 top_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
+            RK_U32 bot_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
+
+            regs->h264d_param.reg67_98_ref_poc[2 * i] = pp->FieldOrderCntList[i][0];
+            regs->h264d_param.reg67_98_ref_poc[2 * i + 1] = pp->FieldOrderCntList[i][1];
+            SET_REF_INFO(regs->h264d_param, i, field, field_flag);
+            SET_REF_INFO(regs->h264d_param, i, topfield_used, top_used);
+            SET_REF_INFO(regs->h264d_param, i, botfield_used, bot_used);
             SET_REF_INFO(regs->h264d_param, i, colmv_use_flag, (pp->RefPicColmvUsedFlags >> i) & 0x01);
-            SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i, bot_field_flag, 0);
-            SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i + 1, bot_field_flag, (pp->RefPicFiledFlags >> i) & 0x01);
 
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
                 ref_index = pp->RefFrameList[i].Index7Bits;
                 near_index = pp->RefFrameList[i].Index7Bits;
             } else {
                 ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
+            }
+            /* mark 3 to differ from current frame */
+            if (ref_index == pp->CurrPic.Index7Bits) {
+                SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i, poc_highbit, 3);
+                SET_POC_HIGNBIT_INFO(regs->h264d_highpoc, 2 * i + 1, poc_highbit, 3);
             }
             mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
             mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_FRAME_PTR, &mframe);
@@ -633,13 +641,16 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
         regs->h264d_param.reg102.ref15_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
         regs->h264d_param.reg102.ref15_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
         regs->h264d_param.reg102.ref15_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
-        regs->h264d_highpoc.reg203.ref30_bot_field_flag = 0;
-        regs->h264d_highpoc.reg203.ref31_bot_field_flag = (pp->RefPicFiledFlags >> 15) & 0x01;
 
         if (pp->RefFrameList[15].bPicEntry != 0xff) {
             ref_index = pp->RefFrameList[15].Index7Bits;
         } else {
             ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
+        }
+        /* mark 3 to differ from current frame */
+        if (ref_index == pp->CurrPic.Index7Bits) {
+            regs->h264d_highpoc.reg203.ref30_poc_highbit = 3;
+            regs->h264d_highpoc.reg203.ref31_poc_highbit = 3;
         }
         mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
         RK_S32 fd = mpp_buffer_get_fd(mbuffer);
