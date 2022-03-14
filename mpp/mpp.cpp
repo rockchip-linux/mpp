@@ -920,6 +920,9 @@ MPP_RET Mpp::reset()
         mFrmOut->flush();
         mFrmOut->unlock();
     } else {
+        mFrmIn->lock();
+        mFrmIn->flush();
+        mFrmIn->unlock();
         mFrmOut->lock();
         mFrmOut->flush();
         mFrmOut->unlock();
@@ -929,6 +932,9 @@ MPP_RET Mpp::reset()
         mPktIn->lock();
         mPktIn->flush();
         mPktIn->unlock();
+        mPktOut->lock();
+        mPktOut->flush();
+        mPktOut->unlock();
     }
 
     return MPP_OK;
