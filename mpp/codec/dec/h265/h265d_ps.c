@@ -1576,6 +1576,13 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         }
     }
 
+    if ((s->picture_struct == MPP_PICTURE_STRUCTURE_TOP_FIELD) ||
+        (s->picture_struct == MPP_PICTURE_STRUCTURE_BOTTOM_FIELD)) {
+        for (i = 0; i < sps->max_sub_layers; i++) {
+            sps->temporal_layer[i].num_reorder_pics += 2;
+        }
+    }
+
     h265d_dbg(H265D_DBG_SPS, "2 read bit left %d", gb->num_remaining_bits_in_curr_byte_ + gb->bytes_left_ * 8);
     READ_UE(gb, &sps->log2_min_cb_size) ;
     if (sps->log2_min_cb_size > (LOG2_MAX_CU_SIZE - 3)) {
