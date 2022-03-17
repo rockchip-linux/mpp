@@ -361,7 +361,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         case MPP_ENC_RC_MODE_CBR :
         case MPP_ENC_RC_MODE_VBR :
         case MPP_ENC_RC_MODE_AVBR : {
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", 26);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", -1);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max", 51);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min", 10);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", 51);
