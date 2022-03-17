@@ -269,13 +269,18 @@ DONE:
     return ret;
 }
 
+/*
+ * NOTE: recon / refer buffer is FBC data buffer.
+ * And FBC data require extra 16 lines space for hardware io.
+ */
 static void setup_hal_bufs(HalH264eVepu580Ctx *ctx)
 {
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncPrepCfg *prep = &cfg->prep;
-    RK_S32 alignment = 64;
-    RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment);
-    RK_S32 aligned_h = MPP_ALIGN(prep->height, alignment);
+    RK_S32 alignment_w = 64;
+    RK_S32 alignment_h = 16;
+    RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment_w);
+    RK_S32 aligned_h = MPP_ALIGN(prep->height, alignment_h) + 16;
     RK_S32 pixel_buf_fbc_hdr_size = MPP_ALIGN(aligned_w * aligned_h / 64, SZ_8K);
     RK_S32 pixel_buf_fbc_bdy_size = aligned_w * aligned_h * 3 / 2;
     RK_S32 pixel_buf_size = pixel_buf_fbc_hdr_size + pixel_buf_fbc_bdy_size;
