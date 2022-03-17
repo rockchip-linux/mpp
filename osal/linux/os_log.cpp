@@ -38,7 +38,7 @@ static SyslogWrapper syslog_wrapper;
 
 SyslogWrapper::SyslogWrapper()
 {
-    openlog("mpp", LOG_PID | LOG_CONS | LOG_PERROR, LOG_USER);
+    openlog("mpp", LOG_PID | LOG_CONS, LOG_USER);
 }
 
 SyslogWrapper::~SyslogWrapper()
