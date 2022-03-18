@@ -1268,8 +1268,8 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             while ((p_Dpb->last_output_poc > INT_MIN)
                    && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
                 poc_inc = min_poc - p_Dpb->last_output_poc;
-                if ((p_Dpb->last_output_poc > INT_MIN) && abs(poc_inc) & 0x1) {
-                    p_Dpb->poc_interval = 1;
+                if (p_Dpb->last_output_poc > INT_MIN) {
+                    p_Dpb->poc_interval = (abs(poc_inc) & 0x1) ? 1 : 2;
                 }
                 if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
                     FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
