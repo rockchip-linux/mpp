@@ -924,6 +924,9 @@ MPP_RET Mpp::reset()
         mFrmOut->lock();
         mFrmOut->flush();
         mFrmOut->unlock();
+
+        mpp_port_awake(mUsrInPort);
+        mpp_port_awake(mUsrOutPort);
     } else {
         mpp_enc_reset_v2(mEnc);
     }
