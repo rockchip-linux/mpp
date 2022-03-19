@@ -82,6 +82,15 @@ typedef struct MppDevSetInfoCfg_t {
     RK_U64  data;
 } MppDevInfoCfg;
 
+/* for MPP_DEV_POLL */
+typedef struct MppDevPollCfg_t {
+    RK_S32  poll_type;
+    RK_S32  poll_ret;
+    RK_S32  count_max;
+    RK_S32  count_ret;
+    RK_S32  slice_len[];
+} MppDevPollCfg;
+
 typedef struct MppDevApi_t {
     const char  *name;
     RK_U32      ctx_size;
@@ -106,7 +115,7 @@ typedef struct MppDevApi_t {
     MPP_RET     (*cmd_send)(void *ctx);
 
     /* poll cmd from hardware */
-    MPP_RET     (*cmd_poll)(void *ctx);
+    MPP_RET     (*cmd_poll)(void *ctx, MppDevPollCfg *cfg);
 } MppDevApi;
 
 typedef void* MppDev;
