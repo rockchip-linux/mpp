@@ -80,6 +80,7 @@ typedef enum MppServiceCmdType_e {
 
     MPP_CMD_POLL_BASE               = 0x300,
     MPP_CMD_POLL_HW_FINISH          = MPP_CMD_POLL_BASE + 0,
+    MPP_CMD_POLL_HW_IRQ             = MPP_CMD_POLL_BASE + 1,
     MPP_CMD_POLL_BUTT,
 
     MPP_CMD_CONTROL_BASE            = 0x400,

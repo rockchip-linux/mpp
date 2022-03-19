@@ -169,7 +169,7 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
     } break;
     case MPP_DEV_CMD_POLL : {
         if (api->cmd_poll)
-            ret = api->cmd_poll(impl_ctx);
+            ret = api->cmd_poll(impl_ctx, param);
     } break;
     default : {
         mpp_err_f("invalid cmd %d\n", cmd);

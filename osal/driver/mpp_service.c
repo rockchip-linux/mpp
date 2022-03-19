@@ -637,18 +637,28 @@ MPP_RET mpp_service_cmd_send(void *ctx)
     return ret;
 }
 
-MPP_RET mpp_service_cmd_poll(void *ctx)
+MPP_RET mpp_service_cmd_poll(void *ctx, MppDevPollCfg *cfg)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
-    MppReqV1 dev_req;
     MPP_RET ret = MPP_OK;
 
     if (p->batch_io) {
         ret = mpp_server_wait_task(ctx, 0);
     } else {
+        MppReqV1 dev_req;
+
         memset(&dev_req, 0, sizeof(dev_req));
-        dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
-        dev_req.flag |= MPP_FLAGS_LAST_MSG;
+
+        if (cfg) {
+            dev_req.cmd = MPP_CMD_POLL_HW_IRQ;
+            dev_req.flag |= MPP_FLAGS_LAST_MSG;
+            dev_req.size = sizeof(*cfg) + cfg->count_max * sizeof(cfg->slice_len[0]);
+            dev_req.offset = 0;
+            dev_req.data_ptr = REQ_DATA_PTR(cfg);
+        } else {
+            dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
+            dev_req.flag |= MPP_FLAGS_LAST_MSG;
+        }
 
         ret = mpp_service_ioctl_request(p->server, &dev_req);
         if (ret) {

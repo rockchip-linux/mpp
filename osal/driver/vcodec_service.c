@@ -652,7 +652,7 @@ MPP_RET vcodec_service_cmd_send(void *ctx)
     return ret;
 }
 
-MPP_RET vcodec_service_cmd_poll(void *ctx)
+MPP_RET vcodec_service_cmd_poll(void *ctx, MppDevPollCfg *cfg)
 {
     MppDevVcodecService *p = (MppDevVcodecService *)ctx;
     VcodecRegCfg *poll_cfg = &p->regs[p->reg_poll_idx];
@@ -670,6 +670,7 @@ MPP_RET vcodec_service_cmd_poll(void *ctx)
     if (p->reg_poll_idx >= p->max_regs)
         p->reg_poll_idx = 0;
 
+    (void)cfg;
     return ret;
 }
 
