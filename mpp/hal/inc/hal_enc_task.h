@@ -33,6 +33,7 @@
 
 typedef struct HalEncTaskFlag_t {
     RK_U32          err;
+    RK_S32          drop_by_fps;
     RK_S32          reg_idx;
 } HalEncTaskFlag;
 

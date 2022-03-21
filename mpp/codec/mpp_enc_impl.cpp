@@ -1658,15 +1658,16 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
         status->rc_check_frm_drop = 1;
         enc_dbg_detail("task %d drop %d\n", frm->seq_idx, frm->drop);
 
+        hal_task->valid = 1;
         // when the frame should be dropped just return empty packet
         if (frm->drop) {
             mpp_stopwatch_record(stopwatch, "invalid on frame rate drop");
-            hal_task->valid = 0;
             hal_task->length = 0;
-            ret = MPP_NOK;
+            hal_task->flags.drop_by_fps = 1;
+            status->enc_start = 1;
+            ret = MPP_OK;
             goto TASK_DONE;
         }
-        hal_task->valid = 1;
     }
 
     // start encoder task process here
@@ -1748,6 +1749,9 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncTask *task)
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
+
+    if (hal_task->flags.drop_by_fps)
+        goto TASK_DONE;
 
     if (status->low_delay_again)
         goto GET_OUTPUT_TASK;
@@ -1964,6 +1968,9 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncTask *task)
     MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
     HalEncTask *hal_task = &task->info;
     MPP_RET ret = MPP_OK;
+
+    if (hal_task->flags.drop_by_fps)
+        goto TASK_DONE;
 
     // 17. normal encode
     ENC_RUN_FUNC2(mpp_enc_normal, mpp, task, mpp, ret);
@@ -2218,14 +2225,14 @@ typedef struct EncAsyncTask_t {
     EncAsyncTaskInfo    info;
 } EncAsyncTask;
 
-static void reset_async_task(EncAsyncTask *task)
+static void async_task_reset(EncAsyncTask *task)
 {
     memset(&task->info, 0, sizeof(task->info));
     task->info.task.rc_task = &task->info.rc;
     task->info.task.frm_cfg = &task->info.usr;
 }
 
-static void terminate_async_task(MppEncImpl *enc, EncAsyncTask *async)
+static void async_task_terminate(MppEncImpl *enc, EncAsyncTask *async)
 {
     HalEncTask *hal_task = &async->info.task;
     EncFrmStatus *frm = &enc->rc_task.frm;
@@ -2270,7 +2277,7 @@ static void terminate_async_task(MppEncImpl *enc, EncAsyncTask *async)
         }
     }
 
-    reset_async_task(async);
+    async_task_reset(async);
 }
 
 static MPP_RET check_async_frm_pkt(EncAsyncTask *async)
@@ -2363,7 +2370,7 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsync
             status->task_hnd_rdy = 1;
             wait->task_hnd = 0;
             enc_dbg_detail("get hnd success\n");
-            reset_async_task(async);
+            async_task_reset(async);
         } else {
             wait->task_hnd = 1;
             enc_dbg_detail("get hnd failed\n");
@@ -2454,14 +2461,14 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsync
         enc_dbg_detail("task %d drop %d\n", seq_idx, frm->drop);
 
         // when the frame should be dropped just return empty packet
+        hal_task->valid = 1;
         if (frm->drop) {
             mpp_stopwatch_record(stopwatch, "invalid on frame rate drop");
-            hal_task->valid = 0;
             hal_task->length = 0;
-            ret = MPP_NOK;
+            hal_task->flags.drop_by_fps = 1;
+            ret = MPP_OK;
             goto TASK_DONE;
         }
-        hal_task->valid = 1;
     }
 
     // start encoder task process here
@@ -2533,7 +2540,7 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsync
 TASK_DONE:
     if (ret) {
         enc_dbg_detail("task %d terminate\n", seq_idx);
-        terminate_async_task(enc, async);
+        async_task_terminate(enc, async);
     }
 
     return ret;
@@ -2553,6 +2560,11 @@ static MPP_RET proc_async_task(MppEncImpl *enc, EncAsyncTask *async)
     MppPacket packet = hal_task->packet;
     RK_U32 seq_idx = async->info.seq_idx;
     MPP_RET ret = MPP_OK;
+
+    mpp_assert(hal_task->valid);
+
+    if (hal_task->flags.drop_by_fps)
+        goto SEND_TASK_INFO;
 
     enc_dbg_detail("task %d enc proc dpb\n", seq_idx);
     mpp_enc_refs_get_cpb(enc->refs, cpb);
@@ -2623,12 +2635,13 @@ static MPP_RET proc_async_task(MppEncImpl *enc, EncAsyncTask *async)
     enc_dbg_detail("task %d hal start\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
 
+SEND_TASK_INFO:
     status->enc_done = 0;
     hal_task_hnd_set_info(async->hnd, &async->info);
     hal_task_hnd_set_status(async->hnd, TASK_PROCESSING);
     enc_dbg_detail("task %d on processing ret %d\n", frm->seq_idx, ret);
 
-    reset_async_task(async);
+    async_task_reset(async);
     async->hnd = NULL;
 
 TASK_DONE:
@@ -2684,6 +2697,9 @@ static MPP_RET enc_async_wait_task(MppEncImpl *enc, EncAsyncTaskInfo *info)
     MppMeta meta = mpp_packet_get_meta(pkt);
     MPP_RET ret = MPP_OK;
 
+    if (hal_task->flags.drop_by_fps)
+        goto TASK_DONE;
+
     enc_dbg_detail("task %d hal wait\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_wait, hal, hal_task, mpp, ret);
 
@@ -2735,7 +2751,7 @@ void *mpp_enc_async_thread(void *data)
 
     enc_dbg_func("thread start\n");
 
-    reset_async_task(&task);
+    async_task_reset(&task);
     task.hnd = NULL;
     wait.val = 0;
 
