@@ -1249,11 +1249,9 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
             p->calc_ratio(p, info);
     } else {
         bits_model_alloc(p, info, p->gop_total_bits);
-    }
-
-    /* quality determination */
-    if (p->first_frm_flg)
+        /* quality determination */
         info->quality_target = (usr_cfg->init_quality <= 0) ? -1 : usr_cfg->init_quality;
+    }
 
     if (frm->is_intra) {
         info->quality_max = usr_cfg->max_i_quality;
@@ -1274,32 +1272,31 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     return MPP_OK;
 }
 
-static RK_U32 mb_num[9] = {
-    0,      200,    700,    1200,
-    2000,   4000,   8000,   16000,
-    20000
-};
-
-static RK_U32 tab_bit[9] = {
-    3780,  3570,  3150,  2940,
-    2730,  3780,  2100,  1680,
-    2100
-};
-
-static RK_U8 qscale2qp[96] = {
-    15,  15,  15,  15,  15,  16, 18, 20, 21, 22, 23,
-    24,  25,  25,  26,  27,  28, 28, 29, 29, 30, 30,
-    30,  31,  31,  32,  32,  33, 33, 33, 34, 34, 34,
-    34,  35,  35,  35,  36,  36, 36, 36, 36, 37, 37,
-    37,  37,  38,  38,  38,  38, 38, 39, 39, 39, 39,
-    39,  39,  40,  40,  40,  40, 41, 41, 41, 41, 41,
-    41,  41,  42,  42,  42,  42, 42, 42, 42, 42, 43,
-    43,  43,  43,  43,  43,  43, 43, 44, 44, 44, 44,
-    44,  44,  44,  44,  45,  45, 45, 45,
-};
-
 static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
 {
+    static RK_U32 mb_num[9] = {
+        0,     200,   700,   1200,
+        2000,  4000,  8000,  16000,
+        20000
+    };
+
+    static RK_U32 tab_bit[9] = {
+        3780,  3570,  3150,  2940,
+        2730,  3780,  2100,  1680,
+        2100
+    };
+
+    static RK_U8 qscale2qp[96] = {
+        15,  15,  15,  15,  15,  16,  18,  20,  21,  22,  23,  24,
+        25,  25,  26,  27,  28,  28,  29,  29,  30,  30,  30,  31,
+        31,  32,  32,  33,  33,  33,  34,  34,  34,  34,  35,  35,
+        35,  36,  36,  36,  36,  36,  37,  37,  37,  37,  38,  38,
+        38,  38,  38,  39,  39,  39,  39,  39,  39,  40,  40,  40,
+        40,  41,  41,  41,  41,  41,  41,  41,  42,  42,  42,  42,
+        42,  42,  42,  42,  43,  43,  43,  43,  43,  43,  43,  43,
+        44,  44,  44,  44,  44,  44,  44,  44,  45,  45,  45,  45,
+    };
+
     RK_S32 cnt = 0;
     RK_S32 index;
     RK_S32 i;
