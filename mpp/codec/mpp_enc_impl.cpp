@@ -1994,7 +1994,7 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncTask *task)
 
         mpp_enc_reenc_simple(mpp, task);
     }
-    enc_dbg_detail("task %d rc enc->frame end\n", frm->seq_idx);
+    enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
     ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
     enc->time_end = mpp_time();
@@ -2766,6 +2766,9 @@ static MPP_RET enc_async_wait_task(MppEncImpl *enc, EncAsyncTaskInfo *info)
 
     enc_dbg_detail("task %d hal ret task\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_ret_task, hal, hal_task, mpp, ret);
+
+    enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
+    ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
 TASK_DONE:
     /* setup output packet and meta data */
