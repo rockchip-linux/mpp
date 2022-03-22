@@ -681,17 +681,22 @@ RET:
 
 MPP_RET Mpp::put_frame_async(MppFrame frame)
 {
-    if (mFrmIn) {
-        AutoMutex autoLock(mFrmIn->mutex());
+    if (NULL == mFrmIn)
+        return MPP_NOK;
 
-        if (mFrmIn->list_size())
-            return MPP_NOK;
+    if (mFrmIn->trylock())
+        return MPP_NOK;
 
-        mFrmIn->add_at_tail(&frame, sizeof(frame));
-        mFramePutCount++;
-
-        notify(MPP_INPUT_ENQUEUE);
+    if (mFrmIn->list_size()) {
+        mFrmIn->unlock();
+        return MPP_NOK;
     }
+
+    mFrmIn->add_at_tail(&frame, sizeof(frame));
+    mFramePutCount++;
+
+    notify(MPP_INPUT_ENQUEUE);
+    mFrmIn->unlock();
 
     return MPP_OK;
 }
@@ -920,21 +925,7 @@ MPP_RET Mpp::reset()
         mFrmOut->flush();
         mFrmOut->unlock();
     } else {
-        mFrmIn->lock();
-        mFrmIn->flush();
-        mFrmIn->unlock();
-        mFrmOut->lock();
-        mFrmOut->flush();
-        mFrmOut->unlock();
-
         mpp_enc_reset_v2(mEnc);
-
-        mPktIn->lock();
-        mPktIn->flush();
-        mPktIn->unlock();
-        mPktOut->lock();
-        mPktOut->flush();
-        mPktOut->unlock();
     }
 
     return MPP_OK;

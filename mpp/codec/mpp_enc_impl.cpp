@@ -2280,6 +2280,62 @@ static void async_task_terminate(MppEncImpl *enc, EncAsyncTask *async)
     async_task_reset(async);
 }
 
+static void async_task_skip(MppEncImpl *enc)
+{
+    Mpp *mpp = (Mpp*)enc->mpp;
+    MppStopwatch stopwatch = NULL;
+    MppMeta meta = NULL;
+    MppFrame frm = NULL;
+    MppPacket pkt = NULL;
+
+    mpp->mFrmIn->del_at_head(&frm, sizeof(frm));
+    mpp->mFrameGetCount++;
+
+    mpp_assert(frm);
+
+    enc_dbg_detail("skip input frame start\n");
+
+    stopwatch = mpp_frame_get_stopwatch(frm);
+    mpp_stopwatch_record(stopwatch, "skip task start");
+
+    if (mpp_frame_has_meta(frm)) {
+        meta = mpp_frame_get_meta(frm);
+        if (meta)
+            mpp_meta_get_packet(meta, KEY_OUTPUT_PACKET, &pkt);
+    }
+
+    if (NULL == pkt)
+        mpp_packet_new(&pkt);
+
+    mpp_assert(pkt);
+
+    mpp_packet_set_length(pkt, 0);
+    mpp_packet_set_pts(pkt, mpp_frame_get_pts(frm));
+
+    if (mpp_frame_get_eos(frm))
+        mpp_packet_set_eos(pkt);
+    else
+        mpp_packet_clr_eos(pkt);
+
+    meta = mpp_packet_get_meta(pkt);
+    mpp_assert(meta);
+
+    mpp_meta_set_frame(meta, KEY_INPUT_FRAME, frm);
+
+    if (mpp->mPktOut) {
+        mpp_list *pkt_out = mpp->mPktOut;
+
+        pkt_out->lock();
+        mpp_stopwatch_record(stopwatch, "skip task output");
+        pkt_out->add_at_tail(&pkt, sizeof(pkt));
+        mpp->mPacketPutCount++;
+        pkt_out->signal();
+        pkt_out->unlock();
+    }
+
+    enc_dbg_detail("packet skip ready\n");
+}
+
 static MPP_RET check_async_frm_pkt(EncAsyncTask *async)
 {
     HalEncTask *hal_task = &async->info.task;
@@ -2779,6 +2835,11 @@ void *mpp_enc_async_thread(void *data)
         // When encoder is not on encoding process external config and reset
         // 1. process user control and reset flag
         if (enc->cmd_send != enc->cmd_recv || enc->reset_flag) {
+            mpp_list *frm_in = mpp->mFrmIn;
+
+            /* when process cmd or reset hold frame input */
+            frm_in->lock();
+
             enc_dbg_detail("ctrl proc %d cmd %08x\n", enc->cmd_recv, enc->cmd);
 
             // wait all tasks done
@@ -2812,11 +2873,16 @@ void *mpp_enc_async_thread(void *data)
 
                 /* NOTE: here will clear change flag of rc and prep cfg */
                 mpp_enc_proc_rc_update(enc);
-                continue;
+                goto SYNC_DONE;
             }
 
             if (enc->reset_flag) {
                 enc_dbg_detail("thread reset start\n");
+
+                /* skip the frames in input queue */
+                while (frm_in->list_size())
+                    async_task_skip(enc);
+
                 {
                     AutoMutex autolock(thd_enc->mutex());
                     enc->status_flag = 0;
@@ -2826,8 +2892,11 @@ void *mpp_enc_async_thread(void *data)
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
                 enc_dbg_detail("thread reset done\n");
-                continue;
             }
+        SYNC_DONE:
+            frm_in->unlock();
+            wait.val = 0;
+            continue;
         }
 
         // 2. try get a task to encode
