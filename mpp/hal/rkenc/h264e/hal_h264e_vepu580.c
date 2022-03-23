@@ -1949,6 +1949,16 @@ static MPP_RET hal_h264e_vepu580_start(void *hal, HalEncTask *task)
             break;
         }
 
+        rd_cfg.reg = &regs->reg_ctl.int_sta;
+        rd_cfg.size = sizeof(RK_U32);
+        rd_cfg.offset = VEPU580_REG_BASE_HW_STATUS;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
         rd_cfg.reg = &regs->reg_st;
         rd_cfg.size = sizeof(regs->reg_st);
         rd_cfg.offset = VEPU580_STATUS_OFFSET;
