@@ -28,6 +28,7 @@
 #define VEPU580_OSD_OFFSET          (3072 * sizeof(RK_U32))
 #define VEPU580_STATUS_OFFSET       (4096 * sizeof(RK_U32))
 #define VEPU580_DBG_OFFSET          (5120 * sizeof(RK_U32))
+#define VEPU580_REG_BASE_HW_STATUS  0x2c
 
 typedef struct {
     RK_U32 lt_pos_x : 10;
