@@ -19,11 +19,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
 #include "mpp_runtime.h"
 
 #define MAX_DTS_PATH_LEN        256
+
+static RK_U32 mpp_rt_debug = 0;
 
 static const char *mpp_dts_base = "/proc/device-tree/";
 
@@ -37,6 +40,8 @@ static const char *mpp_vpu_names[] = {
     //"rkvenc",
     //"vpu_combo",
 };
+
+#define mpp_rt_dbg(fmt, ...)    do { if (mpp_rt_debug) mpp_log(fmt, ## __VA_ARGS__); } while (0)
 
 static const char *mpp_vpu_address[] = {
     "",                 /* old kernel   */
@@ -76,30 +81,31 @@ RK_U32 MppRuntimeService::get_allocator_valid(MppBufferType type)
 
 MppRuntimeService::MppRuntimeService()
 {
+    mpp_env_get_u32("mpp_rt_debug", &mpp_rt_debug, 0);
+
     allocator_valid[MPP_BUFFER_TYPE_NORMAL] = 1;
+    allocator_valid[MPP_BUFFER_TYPE_ION] = !access("/dev/ion", F_OK | R_OK | W_OK);
+    allocator_valid[MPP_BUFFER_TYPE_DRM] = !access("/dev/dri/card0", F_OK | R_OK | W_OK);
 
-    if (access("/dev/ion", F_OK | R_OK | W_OK)) {
-        allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
-        mpp_log("NOT found ion allocator\n");
-    } else {
-        allocator_valid[MPP_BUFFER_TYPE_ION] = 1;
-        mpp_log("found ion allocator\n");
+    if (!allocator_valid[MPP_BUFFER_TYPE_ION] && !allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+        mpp_err("can NOT found any allocator\n");
+        return;
     }
 
-    if (access("/dev/dri/card0", F_OK | R_OK | W_OK)) {
-        allocator_valid[MPP_BUFFER_TYPE_DRM] = 0;
-        mpp_log("NOT found drm allocator\n");
-    } else {
-        allocator_valid[MPP_BUFFER_TYPE_DRM] = 1;
-        mpp_log("found drm allocator\n");
+    if (allocator_valid[MPP_BUFFER_TYPE_ION] && !allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+        mpp_rt_dbg("use ion allocator\n");
+        return;
     }
 
-    if ((!access("/dev/mpp_service", F_OK | R_OK | W_OK)) &&
-        allocator_valid[MPP_BUFFER_TYPE_ION] &&
-        allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+    if (!allocator_valid[MPP_BUFFER_TYPE_ION] && allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+        mpp_rt_dbg("use drm allocator\n");
+        return;
+    }
+
+    if (!access("/dev/mpp_service", F_OK | R_OK | W_OK)) {
         allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
 
-        mpp_log("use drm allocator for mpp_service\n");
+        mpp_rt_dbg("use drm allocator for mpp_service\n");
         return;
     }
 
@@ -140,10 +146,10 @@ MppRuntimeService::MppRuntimeService()
 
                             if (val == 0) {
                                 allocator_valid[MPP_BUFFER_TYPE_DRM] = 0;
-                                mpp_log("found ion allocator in dts\n");
+                                mpp_rt_dbg("found ion allocator in dts\n");
                             } else {
                                 allocator_valid[MPP_BUFFER_TYPE_ION] = 0;
-                                mpp_log("found drm allocator in dts\n");
+                                mpp_rt_dbg("found drm allocator in dts\n");
                             }
                             allocator_found = 1;
                         }
