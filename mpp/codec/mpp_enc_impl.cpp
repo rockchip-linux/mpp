@@ -2701,6 +2701,10 @@ SEND_TASK_INFO:
     async->hnd = NULL;
 
 TASK_DONE:
+
+    /* NOTE: clear add_by flags */
+    enc->hdr_status.val = enc->hdr_status.ready;
+
     return ret;
 }
 
