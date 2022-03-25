@@ -1179,8 +1179,11 @@ static MPP_RET jpegd_deinit(void *ctx)
 
 static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
 {
-    jpegd_dbg_func("enter\n");
     JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
+    const MppDecHwCap *hw_info = parser_cfg->hw_info;
+
+    jpegd_dbg_func("enter\n");
+
     if (NULL == JpegCtx) {
         JpegCtx = (JpegdCtx *)mpp_calloc(JpegdCtx, 1);
         if (NULL == JpegCtx) {
@@ -1188,13 +1191,12 @@ static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
             return MPP_ERR_NULL_PTR;
         }
     }
+
     mpp_env_get_u32("jpegd_debug", &jpegd_debug, 0);
     // mpp only support baseline
     JpegCtx->scan_all_marker = 0;
 
-    const char* soc_name = NULL;
-    soc_name = mpp_get_soc_name();
-    if (soc_name && (strstr(soc_name, "1108") || strstr(soc_name, "356"))) {
+    if (hw_info && hw_info->cap_hw_jpg_fix) {
         /*
          * no need to copy stream when decoding jpeg;
          * just scan parts of markers to reduce CPU's occupancy
