@@ -310,7 +310,7 @@ static MPP_RET vepu580_h265_setup_hal_bufs(H265eV580HalContext *ctx)
         ctx->fbc_header_len = MPP_ALIGN(((mb_wd64 * mb_h64) << 6), SZ_8K);
         size[0] = ctx->fbc_header_len + ((mb_wd64 * mb_h64) << 12) * 3 / 2; //fbc_h + fbc_b
         size[1] = (mb_wd64 * mb_h64 << 8);
-        size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 4, 256) * 16;
+        size[2] = MPP_ALIGN(mb_wd64 * mb_h64 * 16 * 6, 256);
         new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
 
         hal_h265e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
