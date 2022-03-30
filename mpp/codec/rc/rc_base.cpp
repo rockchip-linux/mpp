@@ -58,10 +58,10 @@ MPP_RET mpp_data_init_v2(MppDataV2 **data, RK_S32 size, RK_S32 value)
         return MPP_ERR_MALLOC;
     }
     p->size = size;
-    p->len = 0;
-    p->val = (RK_S32 *)(p + 1);
     p->pos_r = 0;
+    p->pos_pw = 0;
     p->pos_w = 0;
+    p->pos_ahead = 0;
     p->sum = 0;
     *data = p;
 
@@ -79,16 +79,48 @@ void mpp_data_reset_v2(MppDataV2 *p, RK_S32 val)
     RK_S32 i;
     RK_S32 *data = p->val;
 
-    p->pos_r = p->size;
+    p->pos_pw = 0;
     p->pos_w = 0;
+    p->pos_r = p->size;
     p->sum = val * p->size;
 
     for (i = 0; i < p->size; i++)
         *data++ = val;
 }
 
+void mpp_data_preset_v2(MppDataV2 *p, RK_S32 val)
+{
+    mpp_assert(p);
+    if (p->pos_r == p->size) {
+        p->pos_r--;
+        p->sum -= p->val[p->pos_pw];
+    }
+    mpp_assert(p->pos_r < p->size);
+    p->val[p->pos_pw] = val;
+    p->sum += p->val[p->pos_pw];
+    p->pos_pw++;
+    p->pos_r++;
+    if (p->pos_pw >= p->size) {
+        p->pos_pw = 0;
+    }
+    p->pos_ahead++;
+}
+
 void mpp_data_update_v2(MppDataV2 *p, RK_S32 val)
 {
+    mpp_assert(p->pos_ahead >= 0 && p->pos_ahead <= 2);
+    if (p->pos_ahead) {
+        p->sum += val - p->val[p->pos_w];
+        p->val[p->pos_w] = val;
+        p->pos_w++;
+        if (p->pos_w >= p->size)
+            p->pos_w = 0;
+
+        p->pos_ahead--;
+
+        return;
+    }
+
     mpp_assert(p);
     if (p->pos_r == p->size) {
         p->pos_r--;
@@ -99,9 +131,8 @@ void mpp_data_update_v2(MppDataV2 *p, RK_S32 val)
     p->sum += p->val[p->pos_w];
     p->pos_w++;
     p->pos_r++;
-    if (p->pos_w >= p->size) {
+    if (p->pos_w >= p->size)
         p->pos_w = 0;
-    }
 }
 
 RK_S32 mpp_data_get_pre_val_v2(MppDataV2 *p, RK_S32 idx)
@@ -112,6 +143,7 @@ RK_S32 mpp_data_get_pre_val_v2(MppDataV2 *p, RK_S32 idx)
     mpp_assert(p->pos_w < p->size);
     mpp_assert(idx < p->size);
     RK_S32 pos = 0;
+
     pos = p->pos_w - 1;
     if (pos - idx < 0) {
         mpp_assert(p->pos_r == p->size);

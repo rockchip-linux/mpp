@@ -53,13 +53,6 @@ typedef struct {
     RK_S32  count;
 } MppPIDCtx;
 
-typedef enum ENC_FRAME_TYPE_E {
-    INTER_P_FRAME   = 0,
-    INTER_B_FRAME   = 1,
-    INTRA_FRAME     = 2,
-    INTER_VI_FRAME  = 3,
-} ENC_FRAME_TYPE;
-
 /*
  * MppRateControl has three steps work:
  *
@@ -98,7 +91,6 @@ typedef enum RC_PARAM_OPS {
 
 typedef struct RecordNode_t {
     struct list_head list;
-    ENC_FRAME_TYPE   frm_type;
     /* @frm_cnt starts from ONE */
     RK_U32           frm_cnt;
     RK_U32           bps;

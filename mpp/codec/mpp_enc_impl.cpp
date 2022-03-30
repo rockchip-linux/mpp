@@ -2917,6 +2917,11 @@ void *mpp_enc_async_thread(void *data)
                 hal_task_hnd_get_info(hnd, &info);
 
                 mpp_assert(!info.status.enc_done);
+
+                /* NOTE: update pointer in rc_task */
+                info.task.rc_task = &info.rc;
+                info.task.frm_cfg = &info.usr;
+
                 enc_async_wait_task(enc, &info);
                 hal_task_hnd_set_status(hnd, TASK_IDLE);
                 wait.task_hnd = 0;
