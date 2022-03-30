@@ -22,7 +22,6 @@
 typedef struct RcModelV2Ctx_t {
     RcCfg           usr_cfg;
 
-    RK_U32          frame_type;
     RK_U32          last_frame_type;
     RK_S64          gop_total_bits;
     RK_U32          bit_per_frame;
@@ -110,7 +109,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx);
 MPP_RET bits_model_deinit(RcModelV2Ctx *ctx);
 
 MPP_RET bits_model_alloc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg, RK_S64 total_bits);
-MPP_RET bits_model_update(RcModelV2Ctx *ctx, RK_S32 real_bit, RK_U32 madi);
+MPP_RET bits_model_update(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
 
 MPP_RET calc_next_i_ratio(RcModelV2Ctx *ctx);
 MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);

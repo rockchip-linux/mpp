@@ -27,11 +27,11 @@
 
 /*
  * 1. MppData - data statistic struct
- *    size  - max valid data number
- *    len   - valid data number
- *    pos_r - current data read position
- *    pos_w - current data write position
- *    val   - buffer array pointer
+ *    size    - max valid data number
+ *    pos_pw  - current data preset write position
+ *    pos_w   - current data write position
+ *    pos_r   - current data read position
+ *    val     - buffer array pointer
  *
  *    When statistic length is less than 8 use direct save mode which will move
  *    all the data on each update.
@@ -40,42 +40,13 @@
  */
 typedef struct MppDataV2_t {
     RK_S32  size;
-    RK_S32  len;
-    RK_S32  pos_w;
     RK_S32  pos_r;
-    RK_S32  *val;
+    RK_S32  pos_pw;
+    RK_S32  pos_w;
+    RK_S32  pos_ahead;
     RK_S64  sum;
+    RK_S32  val[];
 } MppDataV2;
-
-typedef struct RecordNodeV2_t {
-    struct list_head list;
-    ENC_FRAME_TYPE   frm_type;
-    /* @frm_cnt starts from ONE */
-    RK_U32           frm_cnt;
-    RK_U32           bps;
-    RK_U32           fps;
-    RK_S32           gop;
-    RK_S32           bits_per_pic;
-    RK_S32           bits_per_intra;
-    RK_S32           bits_per_inter;
-    RK_U32           tgt_bits;
-    RK_U32           bit_min;
-    RK_U32           bit_max;
-    RK_U32           real_bits;
-    RK_S32           acc_intra_bits_in_fps;
-    RK_S32           acc_inter_bits_in_fps;
-    RK_S32           last_fps_bits;
-    float            last_intra_percent;
-
-    /* hardware result */
-    RK_S32           qp_sum;
-    RK_S64           sse_sum;
-    RK_S32           set_qp;
-    RK_S32           qp_min;
-    RK_S32           qp_max;
-    RK_S32           real_qp;
-    RK_S32           wlen;
-} RecordNodeV2;
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,6 +55,7 @@ extern "C" {
 MPP_RET mpp_data_init_v2(MppDataV2 **p, RK_S32 len, RK_S32 value);
 void mpp_data_deinit_v2(MppDataV2 *p);
 void mpp_data_reset_v2(MppDataV2 *p, RK_S32 val);
+void mpp_data_preset_v2(MppDataV2 *p, RK_S32 val);
 void mpp_data_update_v2(MppDataV2 *p, RK_S32 val);
 RK_S32 mpp_data_sum_v2(MppDataV2 *p);
 RK_S32 mpp_data_mean_v2(MppDataV2 *p);

@@ -21,6 +21,13 @@
 
 #define MAX_CPB_REFS                    (8)
 
+typedef enum EncFrmType_e {
+    INTER_P_FRAME   = 0,
+    INTER_B_FRAME   = 1,
+    INTRA_FRAME     = 2,
+    INTER_VI_FRAME  = 3,
+} EncFrmType;
+
 /*
  * EncFrmStatus controls record the encoding frame status and also control
  * work flow of encoder. It is the communicat channel between encoder implement
@@ -163,6 +170,8 @@ typedef struct EncRcForceCfg_t {
  * hw   -> rc / hal bit_real / quality_real / madi / madp
  */
 typedef struct EncRcCommonInfo_t {
+    EncFrmType      frame_type;
+
     /* rc to hal */
     RK_S32          bit_target;
     RK_S32          bit_max;
