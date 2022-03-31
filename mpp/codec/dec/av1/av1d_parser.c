@@ -612,6 +612,7 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK))));
         mpp_frame_set_offset_x(frame->f, 0);
         mpp_frame_set_offset_y(frame->f, 8);
+        mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 16);
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
