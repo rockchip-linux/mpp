@@ -475,9 +475,6 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
                         return MPP_NOK;
                 }
             }
-        } else {
-            /* NOTE: in non-block mode the sleep is to avoid user's dead loop */
-            msleep(1);
         }
     }
 
