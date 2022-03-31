@@ -64,7 +64,6 @@ typedef struct MppEncImpl_t {
     RK_S32              rc_cfg_updated;
     RcApiBrief          rc_brief;
     RcCtx               rc_ctx;
-    EncRcTask           rc_task;
 
     /*
      * thread input / output context

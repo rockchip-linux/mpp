@@ -31,7 +31,7 @@
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
 
-typedef union EncTaskWait_u {
+typedef union EncAsyncWait_u {
     RK_U32          val;
     struct {
         RK_U32      enc_frm_in      : 1;   // 0x0001 MPP_ENC_NOTIFY_FRAME_ENQUEUE
@@ -39,7 +39,7 @@ typedef union EncTaskWait_u {
         RK_U32      reserv0004      : 1;   // 0x0004
         RK_U32      enc_pkt_out     : 1;   // 0x0008 MPP_ENC_NOTIFY_PACKET_ENQUEUE
 
-        RK_U32      reserv0010      : 1;   // 0x0010
+        RK_U32      task_hnd        : 1;   // 0x0010
         RK_U32      reserv0020      : 1;   // 0x0020
         RK_U32      reserv0040      : 1;   // 0x0040
         RK_U32      reserv0080      : 1;   // 0x0080
@@ -54,12 +54,13 @@ typedef union EncTaskWait_u {
         RK_U32      reserv4000      : 1;   // 0x4000
         RK_U32      reserv8000      : 1;   // 0x8000
     };
-} EncTaskWait;
+} EncAsyncWait;
 
 /* encoder internal work flow */
-typedef union EncTaskStatus_u {
+typedef union EncAsyncStatus_u {
     RK_U32          val;
     struct {
+        RK_U32      task_hnd_rdy        : 1;
         RK_U32      task_in_rdy         : 1;
         RK_U32      task_out_rdy        : 1;
 
@@ -89,15 +90,27 @@ typedef union EncTaskStatus_u {
         RK_U32      enc_update_hal      : 1;    // enc stage
         RK_U32      rc_frm_end          : 1;    // rc  stage
         RK_U32      check_rc_reenc      : 1;    // flow checkpoint if reenc -> enc_restore
+        RK_U32      enc_done            : 1;    // done stage
+        RK_U32      slice_out_done      : 1;
     };
-} EncTaskStatus;
+} EncAsyncStatus;
 
-typedef struct EncTask_t {
-    RK_S32          seq_idx;
-    EncTaskStatus   status;
-    EncTaskWait     wait;
-    HalEncTask      info;
-} EncTask;
+typedef struct EncAsyncTaskInfo_t {
+    RK_S32              seq_idx;
+    EncAsyncStatus      status;
+    RK_S64              pts;
+
+    HalEncTask          task;
+    EncRcTask           rc;
+    MppEncRefFrmUsrCfg  usr;
+} EncAsyncTaskInfo;
+
+typedef struct EncAsyncTask_t {
+    HalTaskGroup        tasks;
+    HalTaskHnd          hnd;
+
+    EncAsyncTaskInfo    info;
+} EncAsyncTask;
 
 static RK_U8 uuid_version[16] = {
     0x3d, 0x07, 0x6d, 0x45, 0x73, 0x0f, 0x41, 0xa8,
@@ -227,12 +240,12 @@ static void check_hal_task_pkt_len(HalEncTask *task, const char *reason)
     }
 }
 
-static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
+static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncAsyncWait *wait)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 notify = enc->notify_flag;
     RK_U32 last_wait = enc->status_flag;
-    RK_U32 curr_wait = task->wait.val;
+    RK_U32 curr_wait = wait->val;
     RK_U32 wait_chg  = last_wait & (~curr_wait);
 
     do {
@@ -253,7 +266,7 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncTask *task)
     enc_dbg_status("%p %08x -> %08x [%08x] notify %08x -> %s\n", enc,
                    last_wait, curr_wait, wait_chg, notify, (ret) ? ("wait") : ("work"));
 
-    enc->status_flag = task->wait.val;
+    enc->status_flag = wait->val;
     enc->notify_flag = 0;
 
     if (ret) {
@@ -1236,18 +1249,18 @@ static MPP_RET mpp_enc_check_pkt_buf(MppEncImpl *enc)
     return MPP_OK;
 }
 
-static MPP_RET mpp_enc_proc_two_pass(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_proc_two_pass(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MPP_RET ret = MPP_OK;
 
     if (mpp_enc_refs_next_frm_is_intra(enc->refs)) {
-        EncRcTask *rc_task = &enc->rc_task;
+        EncRcTask *rc_task = &task->rc;
         EncFrmStatus frm_bak = rc_task->frm;
         EncRcTaskInfo rc_info = rc_task->info;
         EncCpbStatus *cpb = &rc_task->cpb;
         EncFrmStatus *frm = &rc_task->frm;
-        HalEncTask *hal_task = &task->info;
+        HalEncTask *hal_task = &task->task;
         EncImpl impl = enc->impl;
         MppEncHal hal = enc->enc_hal;
         MppPacket packet = hal_task->packet;
@@ -1296,24 +1309,24 @@ TASK_DONE:
     return ret;
 }
 
-static void mpp_enc_rc_info_backup(MppEncImpl *enc)
+static void mpp_enc_rc_info_backup(MppEncImpl *enc, EncAsyncTaskInfo *task)
 {
     if (!enc->support_hw_deflicker || !enc->cfg.rc.debreath_en)
         return;
 
-    enc->rc_info_prev = enc->rc_task.info;
+    enc->rc_info_prev = task->rc.info;
 }
 
-static MPP_RET mpp_enc_normal(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info;
+    HalEncTask *hal_task = &task->task;
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
@@ -1421,13 +1434,13 @@ TASK_DONE:
     return ret;
 }
 
-static MPP_RET mpp_enc_reenc_simple(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_simple(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MppEncHal hal = enc->enc_hal;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info;
+    HalEncTask *hal_task = &task->task;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1466,13 +1479,13 @@ TASK_DONE:
     return ret;
 }
 
-static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     EncRcTaskInfo *info = &rc_task->info;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info;
+    HalEncTask *hal_task = &task->task;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1489,15 +1502,15 @@ TASK_DONE:
     return ret;
 }
 
-static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncTask *task)
+static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
-    MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
-    EncRcTask *rc_task = &enc->rc_task;
+    MppEncRefFrmUsrCfg *frm_cfg = &task->usr;
+    EncRcTask *rc_task = &task->rc;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    HalEncTask *hal_task = &task->info;
+    HalEncTask *hal_task = &task->task;
     MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
@@ -1527,10 +1540,10 @@ TASK_DONE:
     return ret;
 }
 
-static void mpp_enc_terminate_task(MppEncImpl *enc, EncTask *task)
+static void mpp_enc_terminate_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
 {
-    HalEncTask *hal_task = &task->info;
-    EncFrmStatus *frm = &enc->rc_task.frm;
+    HalEncTask *hal_task = &task->task;
+    EncFrmStatus *frm = &task->rc.frm;
 
     mpp_stopwatch_record(hal_task->stopwatch, "encode task done");
 
@@ -1560,15 +1573,14 @@ static void mpp_enc_terminate_task(MppEncImpl *enc, EncTask *task)
     task->status.val = 0;
 }
 
-static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
+static MPP_RET try_get_enc_task(MppEncImpl *enc, EncAsyncTaskInfo *task, EncAsyncWait *wait)
 {
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     EncFrmStatus *frm = &rc_task->frm;
-    MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
+    MppEncRefFrmUsrCfg *frm_cfg = &task->usr;
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
-    EncTaskStatus *status = &task->status;
-    EncTaskWait *wait = &task->wait;
-    HalEncTask *hal_task = &task->info;
+    EncAsyncStatus *status = &task->status;
+    HalEncTask *hal_task = &task->task;
     MppStopwatch stopwatch = NULL;
     MPP_RET ret = MPP_OK;
 
@@ -1637,6 +1649,8 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncTask *task)
     if (!status->hal_task_reset_rdy) {
         reset_hal_enc_task(hal_task);
         reset_enc_rc_task(rc_task);
+        task->usr = enc->frm_cfg;
+        enc->frm_cfg.force_flag = 0;
 
         hal_task->rc_task   = rc_task;
         hal_task->frm_cfg   = frm_cfg;
@@ -1734,18 +1748,17 @@ TASK_DONE:
     return ret;
 }
 
-static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncTask *task)
+static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncAsyncTaskInfo *task, EncAsyncWait *wait)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    EncTaskStatus *status = &task->status;
-    EncTaskWait *wait = &task->wait;
-    HalEncTask *hal_task = &task->info;
+    EncAsyncStatus *status = &task->status;
+    HalEncTask *hal_task = &task->task;
     MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
@@ -1955,18 +1968,18 @@ TASK_DONE:
 
     reset_enc_task(enc);
     status->val = 0;
-    enc->frm_cfg.force_flag = 0;
+    task->usr.force_flag = 0;
 
     return ret;
 }
 
-static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncTask *task)
+static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
 {
     Mpp *mpp = (Mpp*)enc->mpp;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &task->rc;
     EncFrmStatus *frm = &rc_task->frm;
-    MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
-    HalEncTask *hal_task = &task->info;
+    MppEncRefFrmUsrCfg *frm_cfg = &task->usr;
+    HalEncTask *hal_task = &task->task;
     MPP_RET ret = MPP_OK;
 
     if (hal_task->flags.drop_by_fps)
@@ -2043,7 +2056,7 @@ TASK_DONE:
     mpp_task_meta_set_frame(enc->task_in, KEY_INPUT_FRAME, enc->frame);
     mpp_port_enqueue(enc->input, enc->task_in);
 
-    mpp_enc_rc_info_backup(enc);
+    mpp_enc_rc_info_backup(enc, task);
     reset_enc_task(enc);
     task->status.val = 0;
 
@@ -2055,11 +2068,13 @@ void *mpp_enc_thread(void *data)
     Mpp *mpp = (Mpp*)data;
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     MppThread *thd_enc  = enc->thread_enc;
-    EncTask task;
-    EncTaskStatus *status = &task.status;
+    EncAsyncTaskInfo task;
+    EncAsyncWait wait;
+    EncAsyncStatus *status = &task.status;
     MPP_RET ret = MPP_OK;
 
     memset(&task, 0, sizeof(task));
+    wait.val = 0;
 
     enc->time_base = mpp_time();
 
@@ -2069,7 +2084,7 @@ void *mpp_enc_thread(void *data)
             if (MPP_THREAD_RUNNING != thd_enc->get_status())
                 break;
 
-            if (check_enc_task_wait(enc, &task))
+            if (check_enc_task_wait(enc, &wait))
                 thd_enc->wait();
         }
 
@@ -2096,7 +2111,7 @@ void *mpp_enc_thread(void *data)
 
                 /* NOTE: here will clear change flag of rc and prep cfg */
                 mpp_enc_proc_rc_update(enc);
-                task.wait.val = 0;
+                wait.val = 0;
                 continue;
             }
 
@@ -2112,12 +2127,12 @@ void *mpp_enc_thread(void *data)
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
                 enc_dbg_detail("thread reset done\n");
-                task.wait.val = 0;
+                wait.val = 0;
                 continue;
             }
 
             // 3. try get a task to encode
-            ret = try_get_enc_task(enc, &task);
+            ret = try_get_enc_task(enc, &task, &wait);
             if (ret)
                 continue;
         }
@@ -2132,7 +2147,7 @@ void *mpp_enc_thread(void *data)
          *       use special low delay path
          */
         if (enc->low_delay_part_mode)
-            try_proc_low_deley_task(mpp, &task);
+            try_proc_low_deley_task(mpp, &task, &wait);
         else
             try_proc_normal_task(enc, &task);
     }
@@ -2144,98 +2159,18 @@ void *mpp_enc_thread(void *data)
     return NULL;
 }
 
-/* encoder internal work flow */
-typedef union EncAsyncStatus_u {
-    RK_U32          val;
-    struct {
-        RK_U32      task_hnd_rdy        : 1;
-        RK_U32      task_in_rdy         : 1;
-        RK_U32      task_out_rdy        : 1;
-
-        RK_U32      frm_pkt_rdy         : 1;
-
-        RK_U32      hal_task_reset_rdy  : 1;    // reset hal task to start
-        RK_U32      rc_check_frm_drop   : 1;    // rc  stage
-        RK_U32      pkt_buf_rdy         : 1;    // prepare pkt buf
-
-        RK_U32      enc_start           : 1;    // enc stage
-        RK_U32      refs_force_update   : 1;    // enc stage
-        RK_U32      low_delay_again     : 1;    // enc stage low delay output again
-
-        RK_U32      enc_backup          : 1;    // enc stage
-        RK_U32      enc_restore         : 1;    // reenc flow start point
-        RK_U32      enc_proc_dpb        : 1;    // enc stage
-        RK_U32      rc_frm_start        : 1;    // rc  stage
-        RK_U32      check_type_reenc    : 1;    // flow checkpoint if reenc -> enc_restore
-        RK_U32      enc_proc_hal        : 1;    // enc stage
-        RK_U32      hal_get_task        : 1;    // hal stage
-        RK_U32      rc_hal_start        : 1;    // rc  stage
-        RK_U32      hal_gen_reg         : 1;    // hal stage
-        RK_U32      hal_start           : 1;    // hal stage
-        RK_U32      hal_wait            : 1;    // hal stage NOTE: special in low delay mode
-        RK_U32      rc_hal_end          : 1;    // rc  stage
-        RK_U32      hal_ret_task        : 1;    // hal stage
-        RK_U32      enc_update_hal      : 1;    // enc stage
-        RK_U32      rc_frm_end          : 1;    // rc  stage
-        RK_U32      check_rc_reenc      : 1;    // flow checkpoint if reenc -> enc_restore
-        RK_U32      enc_done            : 1;    // done stage
-        RK_U32      slice_out_done      : 1;
-    };
-} EncAsyncStatus;
-
-typedef union EncAsyncWait_u {
-    RK_U32          val;
-    struct {
-        RK_U32      enc_frm_in      : 1;   // 0x0001 MPP_ENC_NOTIFY_FRAME_ENQUEUE
-        RK_U32      reserv0002      : 1;   // 0x0002
-        RK_U32      reserv0004      : 1;   // 0x0004
-        RK_U32      enc_pkt_out     : 1;   // 0x0008 MPP_ENC_NOTIFY_PACKET_ENQUEUE
-
-        RK_U32      task_hnd        : 1;   // 0x0010
-        RK_U32      reserv0020      : 1;   // 0x0020
-        RK_U32      reserv0040      : 1;   // 0x0040
-        RK_U32      reserv0080      : 1;   // 0x0080
-
-        RK_U32      reserv0100      : 1;   // 0x0100
-        RK_U32      reserv0200      : 1;   // 0x0200
-        RK_U32      reserv0400      : 1;   // 0x0400
-        RK_U32      reserv0800      : 1;   // 0x0800
-
-        RK_U32      reserv1000      : 1;   // 0x1000
-        RK_U32      reserv2000      : 1;   // 0x2000
-        RK_U32      reserv4000      : 1;   // 0x4000
-        RK_U32      reserv8000      : 1;   // 0x8000
-    };
-} EncAsyncWait;
-
-typedef struct EncAsyncTaskInfo_t {
-    RK_S32              seq_idx;
-    EncAsyncStatus      status;
-    RK_S64              pts;
-
-    HalEncTask          task;
-    EncRcTask           rc;
-    MppEncRefFrmUsrCfg  usr;
-} EncAsyncTaskInfo;
-
-typedef struct EncAsyncTask_t {
-    HalTaskGroup        tasks;
-    HalTaskHnd          hnd;
-
-    EncAsyncTaskInfo    info;
-} EncAsyncTask;
-
 static void async_task_reset(EncAsyncTask *task)
 {
     memset(&task->info, 0, sizeof(task->info));
     task->info.task.rc_task = &task->info.rc;
     task->info.task.frm_cfg = &task->info.usr;
+    task->info.usr.force_flag = 0;
 }
 
 static void async_task_terminate(MppEncImpl *enc, EncAsyncTask *async)
 {
     HalEncTask *hal_task = &async->info.task;
-    EncFrmStatus *frm = &enc->rc_task.frm;
+    EncFrmStatus *frm = &async->info.rc.frm;
     Mpp *mpp = (Mpp *)enc->mpp;
 
     mpp_stopwatch_record(hal_task->stopwatch, "encode task done");
@@ -2409,7 +2344,7 @@ static MPP_RET check_async_pkt_buf(MppEncImpl *enc, EncAsyncTask *async)
 static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsyncWait *wait)
 {
     Mpp *mpp = (Mpp *)enc->mpp;
-    EncRcTask *rc_task = &enc->rc_task;
+    EncRcTask *rc_task = &async->info.rc;
     EncFrmStatus *frm = &rc_task->frm;
     MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     HalEncTask *hal_task = &async->info.task;
@@ -2525,6 +2460,9 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsync
             ret = MPP_OK;
             goto TASK_DONE;
         }
+
+        *hal_task->frm_cfg = enc->frm_cfg;
+        enc->frm_cfg.force_flag = 0;
     }
 
     // start encoder task process here
@@ -2575,7 +2513,7 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncTask *async, EncAsync
 
     // 14. setup user_cfg to dpb
     if (!status->refs_force_update) {
-        MppEncRefFrmUsrCfg *frm_cfg = &enc->frm_cfg;
+        MppEncRefFrmUsrCfg *frm_cfg = &async->info.usr;
 
         if (frm_cfg->force_flag) {
             mpp_enc_refs_set_usr_cfg(enc->refs, frm_cfg);
