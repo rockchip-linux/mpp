@@ -2168,6 +2168,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     }
 
     s->pps_list[pps_id] = (RK_U8 *)pps;
+    s->ps_need_upate = 1;
 
     if (s->pps_list[pps_id])
         s->pps_list_of_updated[pps_id] = 1;
