@@ -106,6 +106,7 @@ struct MppFrameImpl_t {
     /*
      * meta data information
      */
+    MppTask         task;
     MppMeta         meta;
     MppStopwatch    stopwatch;
 
@@ -123,22 +124,19 @@ struct MppFrameImpl_t {
      *    stride = aligned(width, 16)
      */
     RK_U32          fbc_offset;
-
-    /*
-     * pointer for multiple frame output at one time
-     */
-    MppFrameImpl    *next;
 };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
 RK_U32  mpp_frame_get_fbc_offset(MppFrame frame);
 RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);
+
+void    mpp_frame_set_task(MppFrame frame, MppTask task);
+MppTask mpp_frame_get_task(MppFrame frame);
 
 /*
  * Debug for frame process timing

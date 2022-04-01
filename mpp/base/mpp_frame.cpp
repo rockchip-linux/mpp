@@ -84,25 +84,6 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     return MPP_OK;
 }
 
-MppFrame mpp_frame_get_next(MppFrame frame)
-{
-    if (check_is_mpp_frame(frame))
-        return NULL;
-
-    MppFrameImpl *p = (MppFrameImpl *)frame;
-    return (MppFrame)p->next;
-}
-
-MPP_RET mpp_frame_set_next(MppFrame frame, MppFrame next)
-{
-    if (check_is_mpp_frame(frame))
-        return MPP_ERR_UNKNOW;
-
-    MppFrameImpl *p = (MppFrameImpl *)frame;
-    p->next = (MppFrameImpl *)next;
-    return MPP_OK;
-}
-
 MppBuffer mpp_frame_get_buffer(MppFrame frame)
 {
     if (check_is_mpp_frame(frame))
@@ -302,3 +283,4 @@ MPP_FRAME_ACCESSORS(MppFrameMasteringDisplayMetadata, mastering_display)
 MPP_FRAME_ACCESSORS(MppFrameContentLightMetadata, content_light)
 MPP_FRAME_ACCESSORS(size_t, buf_size)
 MPP_FRAME_ACCESSORS(RK_U32, errinfo)
+MPP_FRAME_ACCESSORS(MppTask, task)

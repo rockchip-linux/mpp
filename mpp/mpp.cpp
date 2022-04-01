@@ -104,7 +104,6 @@ Mpp::Mpp(MppCtx ctx)
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
-      mMultiFrame(0),
       mStatus(0),
       mExtraPacket(NULL),
       mDump(NULL)
@@ -459,7 +458,7 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         return MPP_ERR_INIT;
 
     AutoMutex autoFrameLock(mFrmOut->mutex());
-    MppFrame first = NULL;
+    MppFrame frm = NULL;
 
     if (0 == mFrmOut->list_size()) {
         if (mOutputTimeout) {
@@ -479,21 +478,9 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
     }
 
     if (mFrmOut->list_size()) {
-        mFrmOut->del_at_head(&first, sizeof(frame));
+        mFrmOut->del_at_head(&frm, sizeof(frame));
         mFrameGetCount++;
         notify(MPP_OUTPUT_DEQUEUE);
-
-        if (mMultiFrame) {
-            MppFrame prev = first;
-            MppFrame next = NULL;
-            while (mFrmOut->list_size()) {
-                mFrmOut->del_at_head(&next, sizeof(frame));
-                mFrameGetCount++;
-                notify(MPP_OUTPUT_DEQUEUE);
-                mpp_frame_set_next(prev, next);
-                prev = next;
-            }
-        }
     } else {
         // NOTE: Add signal here is not efficient
         // This is for fix bug of stucking on decoder parser thread
@@ -506,10 +493,10 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
             notify(MPP_INPUT_ENQUEUE);
     }
 
-    *frame = first;
+    *frame = frm;
 
     // dump output
-    mpp_ops_dec_get_frm(mDump, first);
+    mpp_ops_dec_get_frm(mDump, frm);
 
     return MPP_OK;
 }
