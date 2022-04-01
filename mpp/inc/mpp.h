@@ -187,7 +187,6 @@ private:
     MppCodingType   mCoding;
 
     RK_U32          mInitDone;
-    RK_U32          mMultiFrame;
 
     RK_U32          mStatus;
 
