@@ -18,6 +18,7 @@
 #define __MPP_LIST_H__
 
 #include "rk_type.h"
+#include "mpp_err.h"
 
 #include "mpp_thread.h"
 
@@ -63,6 +64,10 @@ public:
     RK_S32 show_by_key(void *data, RK_U32 key);
 
     RK_S32 flush();
+
+    // for list wait
+    MPP_RET wait_lt(RK_S64 timeout, RK_S32 val);
+    MPP_RET wait_gt(RK_S64 timeout, RK_S32 val);
 
 private:
     node_destructor         destroy;
