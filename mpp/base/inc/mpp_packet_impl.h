@@ -65,6 +65,7 @@ typedef struct MppPacketImpl_t {
 
     MppBuffer       buffer;
     MppMeta         meta;
+    MppTask         task;
 } MppPacketImpl;
 
 #ifdef __cplusplus
@@ -78,6 +79,8 @@ MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src);
 MPP_RET mpp_packet_append(MppPacket dst, MppPacket src);
 MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status);
 MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status);
+void    mpp_packet_set_task(MppPacket packet, MppTask task);
+MppTask mpp_packet_get_task(MppPacket packet);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
