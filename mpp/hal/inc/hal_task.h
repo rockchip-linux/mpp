@@ -1,19 +1,18 @@
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef __HAL_TASK__
 #define __HAL_TASK__
@@ -36,9 +35,7 @@ extern "C" {
 
 /*
  * group init / deinit will be called by hal
- *
- * NOTE: use mpp_list to implement
- *       the count means the max task waiting for process
+ * HalTaskGroup is a group of task list with status
  */
 MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count, RK_S32 size);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
@@ -72,6 +69,7 @@ MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *cou
 MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status);
 MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, void *task);
 MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, void *task);
+void   *hal_task_hnd_get_data(HalTaskHnd hnd);
 MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status);
 
 #ifdef __cplusplus

@@ -226,3 +226,18 @@ MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, void *info)
 
     return MPP_OK;
 }
+
+void *hal_task_hnd_get_data(HalTaskHnd hnd)
+{
+    if (NULL == hnd) {
+        mpp_err_f("found invaid input hnd %p\n", hnd);
+        return NULL;
+    }
+
+    HalTaskImpl *impl = (HalTaskImpl *)hnd;
+    HalTaskGroupImpl *group = impl->group;
+
+    mpp_assert(impl->index < group->task_count);
+
+    return impl->data;
+}
