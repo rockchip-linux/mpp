@@ -164,6 +164,9 @@ static RK_U32 update_vepu2_syntax(HalH264eVepu2Ctx *ctx, MppSyntax *syntax)
             hal_h264e_dbg_detail("update pps");
             ctx->pps = desc->p;
         } break;
+        case H264E_SYN_DPB : {
+            hal_h264e_dbg_detail("update dpb");
+        } break;
         case H264E_SYN_SLICE : {
             hal_h264e_dbg_detail("update slice");
             ctx->slice = desc->p;
