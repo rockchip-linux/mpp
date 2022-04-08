@@ -149,20 +149,22 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status)
 
     return ret;
 }
-MPP_RET hal_task_get_count(HalTaskGroup group, HalTaskStatus status, RK_U32 *count)
+
+RK_S32 hal_task_get_count(HalTaskGroup group, HalTaskStatus status)
 {
-    if (NULL == group || status >= TASK_BUTT || NULL == count) {
-        mpp_err_f("found invaid input group %p status %d count %p\n", group, status, count);
-        return MPP_ERR_UNKNOW;
+    if (NULL == group || status >= TASK_BUTT) {
+        mpp_err_f("found invaid input group %p status %d\n", group, status);
+        return -1;
     }
 
     HalTaskGroupImpl *p = (HalTaskGroupImpl *)group;
+    RK_S32 count;
 
     mpp_spinlock_lock(&p->lock);
-    *count = p->count[status];
+    count = p->count[status];
     mpp_spinlock_unlock(&p->lock);
 
-    return MPP_OK;
+    return count;
 }
 
 MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status)
