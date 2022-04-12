@@ -484,6 +484,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, H264dRkvRegs_t *p_regs, HalTa
         RK_S32 i = 0;
         RK_S32 ref_index = -1;
         RK_S32 near_index = -1;
+        RK_U32 sw10_24_offset = 0;
+        RK_U32 sw48_offset = 0;
         MppBuffer mbuffer = NULL;
 
         for (i = 0; i < 15; i++) {
@@ -491,10 +493,11 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, H264dRkvRegs_t *p_regs, HalTa
                                              ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
             p_regs->sw49_63[i].ref15_29_poc = (i & 1)
                                               ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
-            p_regs->sw10_24[i].ref0_14_field = (pp->RefPicFiledFlags >> i) & 0x01;
-            p_regs->sw10_24[i].ref0_14_topfield_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
-            p_regs->sw10_24[i].ref0_14_botfield_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
-            p_regs->sw10_24[i].ref0_14_colmv_use_flag = (pp->RefPicColmvUsedFlags >> i) & 0x01;
+            sw10_24_offset = ((pp->RefPicFiledFlags >> i) & 0x01) |
+                             ((pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01) << 0x01 |
+                             ((pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01) << 0x02 |
+                             ((pp->RefPicColmvUsedFlags >> i) & 0x01) << 0x03;
+            mpp_dev_set_reg_offset(p_hal->dev, 10 + i, sw10_24_offset);
 
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
                 ref_index = pp->RefFrameList[i].Index7Bits;
@@ -507,10 +510,11 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, H264dRkvRegs_t *p_regs, HalTa
         }
         p_regs->sw72.ref30_poc = pp->FieldOrderCntList[15][0];
         p_regs->sw73.ref31_poc = pp->FieldOrderCntList[15][1];
-        p_regs->sw48.ref15_field = (pp->RefPicFiledFlags >> 15) & 0x01;
-        p_regs->sw48.ref15_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
-        p_regs->sw48.ref15_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
-        p_regs->sw48.ref15_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
+        sw48_offset = ((pp->RefPicFiledFlags >> 15) & 0x01) |
+                      ((pp->UsedForReferenceFlags >> 30) & 0x01) << 0x01 |
+                      ((pp->UsedForReferenceFlags >> 31) & 0x01) << 0x02 |
+                      ((pp->RefPicColmvUsedFlags >> 15) & 0x01) << 0x03;
+        mpp_dev_set_reg_offset(p_hal->dev, 48, sw48_offset);
 
         if (pp->RefFrameList[15].bPicEntry != 0xff) {
             ref_index = pp->RefFrameList[15].Index7Bits;
