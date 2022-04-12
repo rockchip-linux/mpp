@@ -111,11 +111,12 @@ typedef struct h264d_rkv_regs_t {
         RK_U32    reverse0 : 11;
     } sw09;
     struct {
-        RK_U32    ref0_14_base : 10;
-        RK_U32    ref0_14_field : 1;
-        RK_U32    ref0_14_topfield_used : 1;
-        RK_U32    ref0_14_botfield_used : 1;
-        RK_U32    ref0_14_colmv_use_flag : 1;
+        /* bit0: ref0_14_field
+         * bit1: ref0_14_topfield_used
+         * bit2: ref0_14_botfield_used
+         * bit3: ref0_14_colmv_use_flag
+         */
+        RK_U32    ref0_14_base; /* bit4-bit31 */
     } sw10_24[15];
     struct {
         RK_U32    ref0_14_poc : 32;
@@ -155,12 +156,12 @@ typedef struct h264d_rkv_regs_t {
         RK_U32    reverse1 : 6;
     } sw47;
     struct {
-        RK_U32    ref15_base : 10;
-        RK_U32    ref15_field : 1;
-        RK_U32    ref15_topfield_used : 1;
-        RK_U32    ref15_botfield_used : 1;
-        RK_U32    ref15_colmv_use_flag : 1;
-        RK_U32    reverse0 : 18;
+        /* bit0: ref15_field
+         * bit1: ref15_topfield_used
+         * bit2: ref15_botfield_used
+         * bit3: ref15_colmv_use_flag
+         */
+        RK_U32    ref15_base; /* bit4-bit31 */
     } sw48;
     struct {
         RK_U32    ref15_29_poc : 32;
