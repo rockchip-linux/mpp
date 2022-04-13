@@ -150,6 +150,49 @@
  */
 
 /*
+ * encoder query interface is only for debug usage
+ */
+#define MPP_ENC_QUERY_STATUS        (0x00000001)
+#define MPP_ENC_QUERY_WAIT          (0x00000002)
+#define MPP_ENC_QUERY_FPS           (0x00000004)
+#define MPP_ENC_QUERY_BPS           (0x00000008)
+#define MPP_ENC_QUERY_ENC_IN_FRM    (0x00000010)
+#define MPP_ENC_QUERY_ENC_WORK      (0x00000020)
+#define MPP_ENC_QUERY_ENC_OUT_PKT   (0x00000040)
+
+#define MPP_ENC_QUERY_ALL           (MPP_ENC_QUERY_STATUS       | \
+                                     MPP_ENC_QUERY_WAIT         | \
+                                     MPP_ENC_QUERY_FPS          | \
+                                     MPP_ENC_QUERY_BPS          | \
+                                     MPP_ENC_QUERY_ENC_IN_FRM   | \
+                                     MPP_ENC_QUERY_ENC_WORK     | \
+                                     MPP_ENC_QUERY_ENC_OUT_PKT)
+
+typedef struct MppEncQueryCfg_t {
+    /*
+     * 32 bit query flag for query data check
+     * Each bit represent a query data switch.
+     * bit 0 - for querying encoder runtime status
+     * bit 1 - for querying encoder runtime waiting status
+     * bit 2 - for querying encoder realtime encode fps
+     * bit 3 - for querying encoder realtime output bps
+     * bit 4 - for querying encoder input frame count
+     * bit 5 - for querying encoder start hardware times
+     * bit 6 - for querying encoder output packet count
+     */
+    RK_U32      query_flag;
+
+    /* 64 bit query data output */
+    RK_U32      rt_status;
+    RK_U32      rt_wait;
+    RK_U32      rt_fps;
+    RK_U32      rt_bps;
+    RK_U32      enc_in_frm_cnt;
+    RK_U32      enc_hw_run_cnt;
+    RK_U32      enc_out_pkt_cnt;
+} MppEncQueryCfg;
+
+/*
  * base working mode parameter
  */
 typedef enum MppEncBaseCfgChange_e {
