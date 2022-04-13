@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
+ * Copyright 2021 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,12 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "mpp_info_test"
+#ifndef __MPP_COMPAT_IMPL_H__
+#define __MPP_COMPAT_IMPL_H__
 
-#include "mpp_log.h"
-#include "mpp_env.h"
-#include "mpp_info.h"
-#include "mpp_compat.h"
+#include "rk_type.h"
 
-int main()
-{
-    mpp_env_set_u32("mpp_show_history", 0);
+extern RK_S32 *compat_ext_fbc_buf_size;
+extern RK_S32 *compat_ext_async_input;
 
-    mpp_log("normal version log:\n");
-    show_mpp_version();
-
-    mpp_env_set_u32("mpp_show_history", 1);
-    mpp_log("history version log:\n");
-
-    show_mpp_version();
-    mpp_env_set_u32("mpp_show_history", 0);
-
-    mpp_compat_show();
-
-    return 0;
-}
-
+#endif /*__MPP_COMPAT_IMPL_H__*/

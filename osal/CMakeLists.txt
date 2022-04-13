@@ -41,6 +41,7 @@ add_library(osal STATIC
     mpp_callback.cpp
     mpp_eventfd.cpp
     mpp_thread.cpp
+    mpp_compat.cpp
     mpp_common.cpp
     mpp_queue.cpp
     mpp_trace.cpp
