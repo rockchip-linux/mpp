@@ -23,6 +23,7 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+#include "mpp_compat_impl.h"
 
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
@@ -612,7 +613,8 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK))));
         mpp_frame_set_offset_x(frame->f, 0);
         mpp_frame_set_offset_y(frame->f, 8);
-        mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 16);
+        if (*compat_ext_fbc_buf_size)
+            mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 16);
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
