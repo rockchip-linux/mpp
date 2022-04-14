@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_compat_impl.h"
 #include "mpp_frame_impl.h"
 
 #include "h264d_global.h"
@@ -453,7 +454,9 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
                 impl->offset_x = 0;
                 impl->offset_y = 4;
-                impl->ver_stride += 16;
+
+                if (*compat_ext_fbc_buf_size)
+                    impl->ver_stride += 16;
             }
 
             /* After cropped */
