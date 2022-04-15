@@ -672,7 +672,7 @@ RK_S32 mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv)
 
     mpp_opt_init(&opts);
     /* should change node count when option increases */
-    mpp_opt_setup(opts, cmd, 18, dec_opt_cnt);
+    mpp_opt_setup(opts, cmd, 22, dec_opt_cnt);
 
     for (i = 0; i < dec_opt_cnt; i++)
         mpp_opt_add(opts, &dec_opts[i]);
