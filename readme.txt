@@ -343,7 +343,7 @@ Advantage:
 Easy to use and get a demo quickly
 Disadvantage:
 1. The buffer from decoder may not be return before decoder is close.
-   So memroy leak or crash may happen.
+   So memory leak or crash may happen.
 2. The decoder memory usage can not be control. Decoder is on a free-to-run
    status and consume all memory it can get.
 3. Difficult to implement zero-copy display path.
