@@ -193,7 +193,7 @@ static MPP_RET vepu54x_h265_setup_hal_bufs(H265eV541HalContext *ctx)
     hal_h265e_enter();
 
     mb_wd64 = (prep->width + 63) / 64;
-    mb_h64 = (prep->height + 63) / 64;
+    mb_h64 = (prep->height + 63) / 64 + 1;
 
     frame_size = MPP_ALIGN(prep->width, 16) * MPP_ALIGN(prep->height, 16);
     vepu541_set_fmt(fmt, ctx->cfg->prep.format);
