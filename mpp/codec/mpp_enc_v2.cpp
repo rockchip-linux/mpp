@@ -101,6 +101,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     p->enc_hal  = enc_hal;
     p->dev      = enc_hal_cfg.dev;
     p->mpp      = cfg->mpp;
+    p->tasks    = enc_hal_cfg.tasks;
     p->sei_mode = MPP_ENC_SEI_MODE_ONE_SEQ;
     p->version_info = get_mpp_version();
     p->version_length = strlen(p->version_info);

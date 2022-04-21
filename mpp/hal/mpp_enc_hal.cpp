@@ -49,6 +49,8 @@ typedef struct MppEncHalImpl_t {
 
     void                *ctx;
     const MppEncHalApi  *api;
+
+    HalTaskGroup        tasks;
 } MppEncHalImpl;
 
 MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg)
@@ -78,6 +80,14 @@ MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg)
                 break;
             }
 
+            ret = hal_task_group_init(&p->tasks, cfg->task_cnt,
+                                      sizeof(EncAsyncTaskInfo));
+            if (ret) {
+                mpp_err_f("hal_task_group_init failed ret %d\n", ret);
+                break;
+            }
+
+            cfg->tasks = p->tasks;
             *ctx = p;
             return MPP_OK;
         }
@@ -100,6 +110,8 @@ MPP_RET mpp_enc_hal_deinit(MppEncHal ctx)
     MppEncHalImpl *p = (MppEncHalImpl*)ctx;
     p->api->deinit(p->ctx);
     mpp_free(p->ctx);
+    if (p->tasks)
+        hal_task_group_deinit(p->tasks);
     mpp_free(p);
     return MPP_OK;
 }

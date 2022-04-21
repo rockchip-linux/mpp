@@ -31,6 +31,7 @@ typedef struct MppEncHalCfg_t {
     MppClientType   type;
     MppDev          dev;
     RK_S32          cap_recn_out;
+    HalTaskGroup    tasks;
 } MppEncHalCfg;
 
 typedef struct MppEncHalApi_t {
