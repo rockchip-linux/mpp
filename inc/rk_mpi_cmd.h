@@ -101,7 +101,7 @@ typedef enum {
     MPP_DEC_SET_DISABLE_ERROR,          /* When set it will disable sw/hw error (H.264 / H.265) */
     MPP_DEC_SET_IMMEDIATE_OUT,
     MPP_DEC_SET_ENABLE_DEINTERLACE,     /* MPP enable deinterlace by default. Vpuapi can disable it */
-    MPP_DEC_SET_DISABLE_FAST_PLAY,      /* disable idr output immediately */
+    MPP_DEC_SET_ENABLE_FAST_PLAY,       /* enable idr output immediately */
 
     MPP_DEC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_QUERY,
     /* query decoder runtime information for decode stage */
