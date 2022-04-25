@@ -1444,8 +1444,11 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                           usr_cfg->i_quality_delta, max_ip_delta,
                           start_qp - i_quality_delta, p->reenc_cnt);
 
-                start_qp -= i_quality_delta;
+                if (!p->reenc_cnt) {
+                    start_qp -= i_quality_delta;
+                }
             }
+
             start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
             p->start_qp = start_qp;
 
@@ -1454,6 +1457,8 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 if (p->usr_cfg.debreath_cfg.enable) {
                     calc_debreath_qp(ctx);
                 }
+            } else {
+                p->cur_scale_qp = qp_scale;
             }
 
             p->gop_frm_cnt = 0;
