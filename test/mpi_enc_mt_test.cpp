@@ -282,6 +282,10 @@ MPP_RET mt_test_ctx_deinit(MpiEncMtCtxInfo *info)
         fclose(p->fp_output);
         p->fp_output = NULL;
     }
+    if (p->fp_verify) {
+        fclose(p->fp_verify);
+        p->fp_verify = NULL;
+    }
 
     return MPP_OK;
 }

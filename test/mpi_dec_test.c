@@ -721,6 +721,11 @@ MPP_TEST_OUT:
         data.fp_output = NULL;
     }
 
+    if (data.fp_verify) {
+        fclose(data.fp_verify);
+        data.fp_verify = NULL;
+    }
+
     if (cfg) {
         mpp_dec_cfg_deinit(cfg);
         cfg = NULL;
