@@ -270,6 +270,10 @@ MPP_RET test_ctx_deinit(MpiEncTestData *p)
             fclose(p->fp_output);
             p->fp_output = NULL;
         }
+        if (p->fp_verify) {
+            fclose(p->fp_verify);
+            p->fp_verify = NULL;
+        }
     }
     return MPP_OK;
 }
