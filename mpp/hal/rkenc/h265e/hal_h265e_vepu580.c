@@ -1273,13 +1273,17 @@ static MPP_RET
 vepu580_h265_set_patch_info(MppDevRegOffCfgs *cfgs, H265eSyntax_new *syn,
                             Vepu541Fmt input_fmt, HalEncTask *task)
 {
+    MppFrameFormat fmt = mpp_frame_get_fmt(task->frame);
     RK_U32 hor_stride = syn->pp.hor_stride;
     RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
     MPP_RET ret = MPP_OK;
 
-    if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(task->frame))) {
+    if (task->rc_task->frm.use_pass1)
+        fmt = MPP_FMT_YUV420SP;
+
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         u_offset = mpp_frame_get_fbc_offset(task->frame);
         v_offset = 0;
     } else {
@@ -1919,8 +1923,10 @@ static MPP_RET vepu580_h265e_save_pass1_patch(H265eV580RegSet *regs, H265eV580Ha
                                               RK_S32 tiles_enabled_flag)
 {
     hevc_vepu580_base *reg_base = &regs->reg_base;
-    RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 64);
-    RK_S32 height_align = MPP_ALIGN(ctx->cfg->prep.height, 64);
+    RK_S32 width = ctx->cfg->prep.width;
+    RK_S32 height = ctx->cfg->prep.height;
+    RK_S32 width_align = MPP_ALIGN(width, 64);
+    RK_S32 height_align = MPP_ALIGN(height, 16);
 
     if (NULL == ctx->buf_pass1) {
         mpp_buffer_get(NULL, &ctx->buf_pass1, width_align * height_align * 3 / 2);
@@ -1938,20 +1944,18 @@ static MPP_RET vepu580_h265e_save_pass1_patch(H265eV580RegSet *regs, H265eV580Ha
     if (tiles_enabled_flag)
         reg_base->reg0238_synt_pps.lpf_fltr_acrs_til = 0;
 
-    mpp_dev_multi_offset_update(ctx->reg_cfg, 164, width_align * height_align);
+    mpp_dev_multi_offset_update(ctx->reg_cfg, 164, width_align * height);
 
     return MPP_OK;
 }
 
-static MPP_RET vepu580_h265e_use_pass1_patch(H265eV580RegSet *regs, H265eV580HalContext *ctx,
-                                             H265eSyntax_new *syn)
+static MPP_RET vepu580_h265e_use_pass1_patch(H265eV580RegSet *regs, H265eV580HalContext *ctx)
 {
     hevc_vepu580_control_cfg *reg_ctl = &regs->reg_ctl;
     hevc_vepu580_base *reg_base = &regs->reg_base;
-    RK_U32 hor_stride = MPP_ALIGN(syn->pp.pic_width, 64);
-    RK_U32 ver_stride = MPP_ALIGN(syn->pp.pic_height, 64);
+    RK_U32 hor_stride = MPP_ALIGN(ctx->cfg->prep.width, 64);
+    RK_U32 ver_stride = MPP_ALIGN(ctx->cfg->prep.height, 16);
     RK_U32 frame_size = hor_stride * ver_stride;
-    RK_S32 stridey = MPP_ALIGN(syn->pp.pic_width, 64);
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
     MPP_RET ret = MPP_OK;
 
@@ -1959,8 +1963,8 @@ static MPP_RET vepu580_h265e_use_pass1_patch(H265eV580RegSet *regs, H265eV580Hal
     reg_base->reg0198_src_fmt.src_cfmt = VEPU541_FMT_YUV420SP;
     reg_base->reg0198_src_fmt.out_fmt = 1;
     reg_base->reg0203_src_proc.afbcd_en = 0;
-    reg_base->reg0205_src_strd0.src_strd0 = stridey;
-    reg_base->reg0206_src_strd1.src_strd1 = stridey;
+    reg_base->reg0205_src_strd0.src_strd0 = hor_stride;
+    reg_base->reg0206_src_strd1.src_strd1 = hor_stride;
     reg_base->reg0160_adr_src0 = mpp_buffer_get_fd(ctx->buf_pass1);
     reg_base->reg0161_adr_src1 = reg_base->reg0160_adr_src0;
     reg_base->reg0162_adr_src2 = reg_base->reg0160_adr_src0;
@@ -2122,7 +2126,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
         vepu580_h265e_save_pass1_patch(regs, ctx, syn->pp.tiles_enabled_flag);
 
     if (frm->use_pass1)
-        vepu580_h265e_use_pass1_patch(regs, ctx, syn);
+        vepu580_h265e_use_pass1_patch(regs, ctx);
 
     ctx->frame_num++;
 
@@ -2243,7 +2247,7 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
                 vepu580_h265e_save_pass1_patch(hw_regs, ctx, syn->pp.tiles_enabled_flag);
 
             if (enc_task->rc_task->frm.use_pass1)
-                vepu580_h265e_use_pass1_patch(hw_regs, ctx, syn);
+                vepu580_h265e_use_pass1_patch(hw_regs, ctx);
         }
         hal_h265e_v580_send_regs(ctx->dev, hw_regs, reg_out);
 
