@@ -2067,6 +2067,9 @@ void *mpp_enc_thread(void *data)
                     enc->status_flag = 0;
                 }
 
+                enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+                enc->frm_cfg.force_idr++;
+
                 AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
@@ -2778,6 +2781,9 @@ void *mpp_enc_async_thread(void *data)
                     AutoMutex autolock(thd_enc->mutex());
                     enc->status_flag = 0;
                 }
+
+                enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+                enc->frm_cfg.force_idr++;
 
                 AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
                 enc->reset_flag = 0;
