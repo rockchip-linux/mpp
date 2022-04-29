@@ -112,11 +112,15 @@ MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type);
 #define mpp_port_dequeue(port, task) _mpp_port_dequeue(__FUNCTION__, port, task)
 #define mpp_port_enqueue(port, task) _mpp_port_enqueue(__FUNCTION__, port, task)
 #define mpp_port_awake(port) _mpp_port_awake(__FUNCTION__, port)
+#define mpp_port_move(port, task, status) _mpp_port_move(__FUNCTION__, port, task, status)
 
 MPP_RET _mpp_port_poll(const char *caller, MppPort port, MppPollType timeout);
 MPP_RET _mpp_port_dequeue(const char *caller, MppPort port, MppTask *task);
 MPP_RET _mpp_port_enqueue(const char *caller, MppPort port, MppTask task);
 MPP_RET _mpp_port_awake(const char *caller, MppPort port);
+MPP_RET _mpp_port_move(const char *caller, MppPort port, MppTask task, MppTaskStatus status);
+
+MppMeta mpp_task_get_meta(MppTask task);
 
 #ifdef __cplusplus
 }
