@@ -101,6 +101,7 @@ Mpp::Mpp(MppCtx ctx)
       mDec(NULL),
       mEnc(NULL),
       mEncAyncIo(0),
+      mIoMode(MPP_IO_MODE_DEFAULT),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
@@ -506,8 +507,10 @@ MPP_RET Mpp::put_frame(MppFrame frame)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    if (mInputTimeout == MPP_POLL_NON_BLOCK)
+    if (mInputTimeout == MPP_POLL_NON_BLOCK) {
+        set_io_mode(MPP_IO_MODE_NORMAL);
         return put_frame_async(frame);
+    }
 
     MPP_RET ret = MPP_NOK;
     MppStopwatch stopwatch = NULL;
@@ -620,8 +623,10 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    if (mInputTimeout == MPP_POLL_NON_BLOCK)
+    if (mInputTimeout == MPP_POLL_NON_BLOCK) {
+        set_io_mode(MPP_IO_MODE_NORMAL);
         return get_packet_async(packet);
+    }
 
     MPP_RET ret = MPP_OK;
     MppTask task = NULL;
@@ -735,6 +740,8 @@ MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
 
+    set_io_mode(MPP_IO_MODE_TASK);
+
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mUsrInPort;
@@ -760,6 +767,8 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
     MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
     RK_U32 notify_flag = 0;
+
+    set_io_mode(MPP_IO_MODE_TASK);
 
     switch (type) {
     case MPP_PORT_INPUT : {
@@ -792,6 +801,8 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
     MppTaskQueue port = NULL;
     RK_U32 notify_flag = 0;
 
+    set_io_mode(MPP_IO_MODE_TASK);
+
     switch (type) {
     case MPP_PORT_INPUT : {
         port = mUsrInPort;
@@ -813,6 +824,25 @@ MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
     }
 
     return ret;
+}
+
+void Mpp::set_io_mode(MppIoMode mode)
+{
+    mpp_assert(mode == MPP_IO_MODE_NORMAL || mode == MPP_IO_MODE_TASK);
+
+    if (mIoMode == MPP_IO_MODE_DEFAULT)
+        mIoMode = mode;
+    else if (mIoMode != mode) {
+        static const char *iomode_2str[] = {
+            "normal",
+            "task queue",
+        };
+
+        mpp_assert(mIoMode < MPP_IO_MODE_BUTT);
+        mpp_assert(mode < MPP_IO_MODE_BUTT);
+        mpp_err("can not reset io mode from %s to %s\n",
+                iomode_2str[!!mIoMode], iomode_2str[!!mode]);
+    }
 }
 
 MPP_RET Mpp::control(MpiCmd cmd, MppParam param)

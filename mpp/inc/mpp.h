@@ -61,6 +61,13 @@
 #define MPP_ENC_CONTROL                     (0x00000010)
 #define MPP_ENC_RESET                       (MPP_RESET)
 
+typedef enum MppIOMode_e {
+    MPP_IO_MODE_DEFAULT                     = -1,
+    MPP_IO_MODE_NORMAL                      = 0,
+    MPP_IO_MODE_TASK                        = 1,
+    MPP_IO_MODE_BUTT,
+} MppIoMode;
+
 /*
  * mpp hierarchy
  *
@@ -179,6 +186,7 @@ public:
     MppEnc          mEnc;
 
     RK_U32          mEncAyncIo;
+    MppIoMode       mIoMode;
 
 private:
     void clear();
@@ -212,6 +220,8 @@ private:
     /* for special encoder async io mode */
     MPP_RET put_frame_async(MppFrame frame);
     MPP_RET get_packet_async(MppPacket *packet);
+
+    void set_io_mode(MppIoMode mode);
 
     Mpp(const Mpp &);
     Mpp &operator=(const Mpp &);
