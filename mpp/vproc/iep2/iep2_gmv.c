@@ -121,7 +121,7 @@ void iep2_update_gmv(struct iep2_api_ctx *ctx, struct mv_list *mv_ls)
     }
 
     for (i = 0; i < 8; ++i)
-        iep_dbg_trace("new mv candidates list[%d] (%d,%d)\n",
-                      i, ctx->params.mv_tru_list[i], 0);
+        iep_dbg_trace("new mv candidates list[%d] (%d,%d) %d\n",
+                      i, ctx->params.mv_tru_list[i], 0, ctx->params.mv_tru_vld[i]);
 }
 

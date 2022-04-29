@@ -43,7 +43,21 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
     RK_U32 ffi = RKMAX(ff00, ff11);
     RK_U32 thr = ffx / 10;
 
-    if (ff00t > 100 || ff00b > 100)
+    int tff_score = 0;
+    int bff_score = 0;
+    int coef = 0;
+    int frm_score = 0;
+    int fie_score = 0;
+
+    iep_dbg_trace("deinterlace cur %u, %u, nxt %u, %u, ble %u, %u, diff %u, %u, nz %u, f %u, comb %u\n",
+                  ctx->output.dect_ff_cur_tcnt, ctx->output.dect_ff_cur_bcnt,
+                  ctx->output.dect_ff_nxt_tcnt, ctx->output.dect_ff_nxt_bcnt,
+                  ctx->output.dect_ff_ble_tcnt, ctx->output.dect_ff_ble_bcnt,
+                  tdiff, bdiff,
+                  ctx->output.dect_ff_nz, ctx->output.dect_ff_comb_f,
+                  ctx->output.out_comb_cnt);
+
+    if (ff00t > 120 || ff00b > 120)
         return;
 
     if (RKABS(ff0t1b - ff0b1t) > thr) {
@@ -56,11 +70,11 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
         }
     }
 
-    ctx->ff_inf.tff_score += ctx->ff_inf.tff_offset;
-    ctx->ff_inf.bff_score += ctx->ff_inf.bff_offset;
+    tff_score = ctx->ff_inf.tff_score + ctx->ff_inf.tff_offset;
+    bff_score = ctx->ff_inf.bff_score + ctx->ff_inf.bff_offset;
 
-    if (RKABS(ctx->ff_inf.tff_score - ctx->ff_inf.bff_score) > 5) {
-        if (ctx->ff_inf.tff_score > ctx->ff_inf.bff_score) {
+    if (RKABS(tff_score - bff_score) > 5) {
+        if (tff_score > bff_score) {
             iep_dbg_trace("deinterlace field order tff\n");
             ctx->params.dil_field_order = 0;
         } else {
@@ -73,16 +87,29 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
     }
 
     iep_dbg_trace("deinterlace ffi %u ffx %u\n", ffi, ffx);
-    if (ffi > ffx * 2) {
-        ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score + 1, 0, 10);
-        ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score - 1, 0, 10);
+    if (ffi <= 3 && ffx <= 3)
+        return;
+
+    coef = 2;
+
+    if (ffi * coef <= ffx) {
+        ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score + 1, 0, 20);
+        ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score - 1, 0, 20);
     } else {
-        ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score - 1, 0, 10);
-        ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score + 1, 0, 10);
+        ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score - 1, 0, 20);
+        ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score + 1, 0, 20);
     }
 
-    if (RKABS(ctx->ff_inf.frm_score - ctx->ff_inf.fie_score) > 5) {
-        if (ctx->ff_inf.frm_score > ctx->ff_inf.fie_score) {
+    iep_dbg_trace("deinterlace (frm,fie) offset %d, %d, score %d, %d\n",
+                  ctx->ff_inf.frm_offset, ctx->ff_inf.fie_offset,
+                  ctx->ff_inf.frm_score, ctx->ff_inf.fie_score);
+
+    frm_score = ctx->ff_inf.frm_score + ctx->ff_inf.frm_offset;
+    fie_score = ctx->ff_inf.fie_score + ctx->ff_inf.fie_offset;
+
+
+    if (RKABS(frm_score - fie_score) > 10) {
+        if (frm_score > fie_score) {
             ctx->ff_inf.is_frm = 1;
             iep_dbg_trace("deinterlace frame mode\n");
         } else {

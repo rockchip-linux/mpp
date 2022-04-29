@@ -81,7 +81,7 @@ static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     mpp_packet_set_pos(task_pkt, stream);
     mpp_packet_set_length(task_pkt, 0);
 
-    ret = mpp_mpg4_parser_init(&parser, cfg->frame_slots);
+    ret = mpp_mpg4_parser_init(&parser, cfg);
     if (ret) {
         mpp_err_f("failed to init parser\n");
         goto ERR_RET;

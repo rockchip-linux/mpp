@@ -268,26 +268,27 @@ typedef struct M2VDParserContext_t {
     RK_U32          ref_frame_cnt;
     long long       top_first_cnt;
     long long       bottom_first_cnt;
-    RK_S32            mHeaderDecFlag;
-    RK_S32            mExtraHeaderDecFlag;
-    M2VDFrameHead     Framehead[3];
-    M2VDFrameHead    *frame_ref0;
-    M2VDFrameHead    *frame_ref1;
-    M2VDFrameHead    *frame_cur;
+    RK_S32          mHeaderDecFlag;
+    RK_S32          mExtraHeaderDecFlag;
+    M2VDFrameHead   Framehead[3];
+    M2VDFrameHead   *frame_ref0;
+    M2VDFrameHead   *frame_ref1;
+    M2VDFrameHead   *frame_cur;
 #if M2VD_SKIP_ERROR_FRAME_EN
     RK_S32           mHwDecStatus;
 #endif
     RK_S32           flush_dpb_eos;
 
     MppPacket       input_packet;
-    RK_U32       eos;
+    RK_U32          eos;
 
-    RK_S32 initFlag;
-    RK_S32 decoder_err;
+    RK_S32          initFlag;
+    RK_S32          decoder_err;
 
-    MppBufSlots packet_slots;
-    MppBufSlots frame_slots;
-    RK_U32  cur_slot_index;
+    MppBufSlots     packet_slots;
+    MppBufSlots     frame_slots;
+    RK_U32          cur_slot_index;
+    MppDecCfgSet    *dec_cfg;
 
     RK_U64 pts;
 

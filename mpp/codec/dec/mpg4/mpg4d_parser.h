@@ -21,6 +21,7 @@
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
 #include "hal_dec_task.h"
+#include "parser_api.h"
 
 #define MPG4D_DBG_FUNCTION          (0x00000001)
 #define MPG4D_DBG_STARTCODE         (0x00000002)
@@ -34,7 +35,7 @@ typedef void* Mpg4dParser;
 extern "C" {
 #endif
 
-MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots);
+MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, ParserCfg *cfg);
 MPP_RET mpp_mpg4_parser_deinit(Mpg4dParser ctx);
 MPP_RET mpp_mpg4_parser_flush(Mpg4dParser ctx);
 MPP_RET mpp_mpg4_parser_reset(Mpg4dParser ctx);

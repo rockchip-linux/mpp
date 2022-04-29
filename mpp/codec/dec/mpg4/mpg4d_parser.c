@@ -196,6 +196,7 @@ typedef struct {
     RK_S64          pts_inc;
     RK_S64          pts;
     RK_U32          frame_num;
+    MppDecCfgSet    *dec_cfg;
 
     // syntax for hal
     mpeg4d_dxva2_picture_context_t *syntax;
@@ -1046,11 +1047,14 @@ static void mpg4_syntax_init(mpeg4d_dxva2_picture_context_t *syntax)
     syntax->data[2] = data;
 }
 
-MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, MppBufSlots frame_slots)
+MPP_RET mpp_mpg4_parser_init(Mpg4dParser *ctx, ParserCfg *cfg)
 {
     BitReadCtx_t *bit_ctx = mpp_calloc(BitReadCtx_t, 1);
     Mpg4dParserImpl *p = mpp_calloc(Mpg4dParserImpl, 1);
     mpeg4d_dxva2_picture_context_t *syntax = mpp_calloc(mpeg4d_dxva2_picture_context_t, 1);
+    MppBufSlots frame_slots = cfg->frame_slots;
+
+    p->dec_cfg = cfg->cfg;
 
     if (NULL == p || NULL == bit_ctx || NULL == syntax) {
         mpp_err_f("malloc context failed\n");
@@ -1433,6 +1437,11 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
             else
                 frame_mode |= MPP_FRAME_FLAG_BOT_FIRST;
         }
+
+        if ((p->dec_cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
+            frame_mode == MPP_FRAME_FLAG_FRAME)
+            frame_mode = MPP_FRAME_FLAG_DEINTERLACED;
+
         mpp_frame_set_mode(frame, frame_mode);
 
         mpp_buf_slot_set_prop(slots, index, SLOT_FRAME, frame);

@@ -1253,6 +1253,10 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             else
                 frametype |= MPP_FRAME_FLAG_BOT_FIRST;
         }
+        if ((ctx->cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
+            frametype == MPP_FRAME_FLAG_FRAME)
+            frametype = MPP_FRAME_FLAG_DEINTERLACED;
+
         mpp_frame_set_mode(ctx->frame_cur->f, frametype);
 
         if (ctx->seq_head.aspect_ratio_information >= 0 && ctx->seq_head.aspect_ratio_information < 16)

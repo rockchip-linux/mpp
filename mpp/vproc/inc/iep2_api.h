@@ -24,7 +24,13 @@
 
 enum IEP2_FIELD_ORDER {
     IEP2_FIELD_ORDER_TFF,
-    IEP2_FIELD_ORDER_BFF
+    IEP2_FIELD_ORDER_BFF,
+    IEP2_FIELD_ORDER_UND
+};
+
+enum IEP2_FF_MODE {
+    IEP2_FF_MODE_FRAME,
+    IEP2_FF_MODE_FIELD
 };
 
 enum IEP2_FMT {
@@ -93,12 +99,14 @@ union iep2_api_content {
         enum IEP2_YUV_SWAP dswap;
         int width;
         int height;
+        int hor_stride;
     } com;
 
     struct {
         enum IEP2_DIL_MODE dil_mode;
         enum IEP2_OUT_MODE out_mode;
         enum IEP2_FIELD_ORDER dil_order;
+        enum IEP2_FF_MODE ff_mode;
     } mode;
 
     struct {

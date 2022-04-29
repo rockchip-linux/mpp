@@ -39,6 +39,12 @@ typedef enum MppDecCfgChange_e {
     MPP_DEC_CFG_CHANGE_ALL              = (0xFFFFFFFF),
 } MppDecCfgChange;
 
+typedef enum MppVprocMode_e {
+    MPP_VPROC_MODE_DEINTELACE           = (1 << 0),
+    MPP_VPROC_MODE_DETECTION            = (1 << 1),
+    MPP_VPROC_MODE_ALL                  = (0xFFFFFFFF),
+} MppVprocMode;
+
 typedef struct MppDecBaseCfg_t {
     RK_U64              change;
 
@@ -54,7 +60,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              internal_pts;
     RK_U32              sort_pts;
     RK_U32              disable_error;
-    RK_U32              enable_vproc;
+    RK_U32              enable_vproc;   /* MppVprocMode */
     RK_U32              enable_fast_play;
 } MppDecBaseCfg;
 
