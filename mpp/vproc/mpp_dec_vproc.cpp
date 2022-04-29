@@ -656,7 +656,7 @@ static void *dec_vproc_thread(void *data)
                 continue;
             }
             vproc_dbg_status("vproc get buf in");
-            if (!ctx->task_status.buf_rdy && !dec->reset_flag) {
+            if (!ctx->task_status.buf_rdy && !ctx->reset) {
                 MppBuffer buf = mpp_frame_get_buffer(frm);
                 size_t buf_size = mpp_buffer_get_size(buf);
                 if (!ctx->out_buf0) {
@@ -681,7 +681,7 @@ static void *dec_vproc_thread(void *data)
             mpp_assert(tmp == index);
 
             vproc_dbg_status("vproc get buf ready & start process ");
-            if (!dec->reset_flag && ctx->iep_ctx) {
+            if (!ctx->reset && ctx->iep_ctx) {
                 if (ctx->com_ctx->ver == 1) {
                     dec_vproc_set_dei_v1(ctx, frm);
                 } else {
