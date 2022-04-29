@@ -443,14 +443,25 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             }
 
             if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
-                /*
-                 * field mode can not use FBC, but VOP only support fbc fmt for 10bit source.
-                 * Generally, there is no 10bit field source.
-                 */
-                if (p_Vid->frame_mbs_only_flag || p_Vid->bit_depth_luma == 10) {
+                do {
+                    /*
+                     * field mode can not use FBC, but VOP only support fbc fmt for 10bit source.
+                     * Generally, there is no 10bit field source.
+                     */
+                    if (!p_Vid->frame_mbs_only_flag)
+                        break;
+
+                    /*
+                     * When iep working on detection mode disable fbc output mode
+                     */
+                    if ((p_Dec->cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
+                        p_Vid->width <= 1920 && p_Vid->height <= 1088 && p_Vid->bit_depth_luma == 8)
+                        break;
+
                     mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, hor_align_64);
                     fmt |= (out_fmt & MPP_FRAME_FBC_MASK);
-                }
+                } while (0);
+
                 p_Dec->cfg->base.out_fmt = fmt;
                 out_fmt = fmt;
             }
@@ -481,6 +492,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             switch (structure) {
             case FRAME:
                 impl->mode = MPP_FRAME_FLAG_FRAME;
+                /* When vproc detection is enabled set frame to field mode */
+                if ((p_Dec->cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
+                    p_Vid->width <= 1920 && p_Vid->height <= 1088 && p_Vid->bit_depth_luma == 8)
+                    impl->mode = MPP_FRAME_FLAG_DEINTERLACED;
                 break;
             case TOP_FIELD:
                 impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_TOP_FIRST;

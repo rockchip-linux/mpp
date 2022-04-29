@@ -114,7 +114,7 @@ Mpp::Mpp(MppCtx ctx)
 
     memset(&mDecInitcfg, 0, sizeof(mDecInitcfg));
     mpp_dec_cfg_set_default(&mDecInitcfg);
-    mDecInitcfg.base.enable_vproc = 1;
+    mDecInitcfg.base.enable_vproc = MPP_VPROC_MODE_DEINTELACE;
     mDecInitcfg.base.change  |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
 
     mpp_dump_init(&mDump);

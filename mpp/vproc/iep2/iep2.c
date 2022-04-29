@@ -88,7 +88,7 @@ static MPP_RET iep2_init(IepCtx *ictx)
     ctx->params.dil_field_order = IEP2_FIELD_ORDER_TFF;
 
     ctx->params.md_theta = 1;
-    ctx->params.md_r = 4;
+    ctx->params.md_r = 6;
     ctx->params.md_lambda = 4;
 
     ctx->params.dect_resi_thr = 30;
@@ -102,7 +102,7 @@ static MPP_RET iep2_init(IepCtx *ictx)
     ctx->params.osd_pec_thr = 20;
     ctx->params.osd_line_num = 2;
 
-    ctx->params.me_pena = 4;
+    ctx->params.me_pena = 5;
     ctx->params.mv_similar_thr = 4;
     ctx->params.mv_similar_num_thr0 = 4;
     ctx->params.mv_bonus = 10;
@@ -198,7 +198,6 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
         ctx->params.dil_mode == IEP2_DIL_MODE_I5O1B) {
         struct mv_list ls;
 
-        iep2_set_osd(ctx, &ls);
         iep2_update_gmv(ctx, &ls);
         iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
@@ -250,13 +249,13 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
         ctx->params.src_yuv_swap = param->com.sswap;
         ctx->params.dst_fmt = param->com.dfmt;
         ctx->params.dst_yuv_swap = param->com.dswap;
-        ctx->params.src_y_stride = param->com.width;
+        ctx->params.src_y_stride = param->com.hor_stride;
         ctx->params.src_y_stride /= 4;
         ctx->params.src_uv_stride =
             param->com.sswap == IEP2_YUV_SWAP_P ?
-            (param->com.width / 2 + 15) / 16 * 16 : param->com.width;
+            (param->com.hor_stride / 2 + 15) / 16 * 16 : param->com.hor_stride;
         ctx->params.src_uv_stride /= 4;
-        ctx->params.dst_y_stride = param->com.width;
+        ctx->params.dst_y_stride = param->com.hor_stride;
         ctx->params.dst_y_stride /= 4;
         ctx->params.tile_cols = (param->com.width + 15) / 16;
         ctx->params.tile_rows = (param->com.height + 3) / 4;
@@ -270,12 +269,20 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
             ctx->params.dil_field_order = param->mode.dil_order;
         }
 
+        if (param->mode.dil_order == IEP2_FIELD_ORDER_UND) {
+            ctx->ff_inf.frm_offset = 6;
+            ctx->ff_inf.fie_offset = 0;
+        } else {
+            ctx->ff_inf.frm_offset = 0;
+            ctx->ff_inf.fie_offset = 10;
+        }
+
         if (param->mode.dil_order == 0) {
-            ctx->ff_inf.tff_offset = 5;
+            ctx->ff_inf.tff_offset = 3;
             ctx->ff_inf.bff_offset = 0;
         } else {
             ctx->ff_inf.tff_offset = 0;
-            ctx->ff_inf.bff_offset = 5;
+            ctx->ff_inf.bff_offset = 3;
         }
         break;
     case IEP2_PARAM_TYPE_MD:
@@ -397,6 +404,15 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
         if (0 > iep2_start(ctx))
             return MPP_NOK;
         iep2_wait(ctx);
+
+        if (ctx->params.dil_mode == IEP2_DIL_MODE_PD) {
+            ctx->params.dil_mode = IEP2_DIL_MODE_DECT;
+            if (0 > iep2_start(ctx))
+                return MPP_NOK;
+            iep2_wait(ctx);
+        }
+
+        // store current pd mode;
         if (inf)
             inf->pd_flag = ctx->params.pd_mode;
         iep2_done(ctx);
