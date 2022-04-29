@@ -559,6 +559,22 @@ static void dec_vproc_update_ref(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 i
     return;
 }
 
+static void dev_vproc_reset(MppThread *thd, MppDecVprocCtxImpl *ctx)
+{
+    AutoMutex autolock_reset(thd->mutex(THREAD_CONTROL));
+
+    if (ctx->reset) {
+        vproc_dbg_reset("reset start\n");
+        dec_vproc_clr_prev(ctx);
+
+        ctx->reset = 0;
+        sem_post(&ctx->reset_sem);
+        ctx->task_status.val = 0;
+        ctx->task_wait.val = 0;
+        vproc_dbg_reset("reset done\n");
+    }
+}
+
 static void *dec_vproc_thread(void *data)
 {
     MppDecVprocCtxImpl *ctx = (MppDecVprocCtxImpl *)data;
@@ -584,17 +600,8 @@ static void *dec_vproc_thread(void *data)
                 break;
 
             if (ctx->task_wait.task_in) {
-                AutoMutex autolock_reset(thd->mutex(THREAD_CONTROL));
                 if (ctx->reset) {
-                    vproc_dbg_reset("reset start\n");
-                    dec_vproc_clr_prev(ctx);
-
-                    ctx->reset = 0;
-                    sem_post(&ctx->reset_sem);
-                    ctx->task_status.val = 0;
-                    ctx->task_wait.val = 0;
-                    vproc_dbg_reset("reset done\n");
-                    continue;
+                    goto RESET;
                 }
             }
 
@@ -688,6 +695,8 @@ static void *dec_vproc_thread(void *data)
 
             vproc_dbg_status("vproc task done");
         }
+    RESET:
+        dev_vproc_reset(thd, ctx);
     }
     mpp_dbg_info("mpp_dec_post_proc_thread exited\n");
 
