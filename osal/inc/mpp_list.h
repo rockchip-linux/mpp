@@ -67,7 +67,9 @@ public:
 
     // for list wait
     MPP_RET wait_lt(RK_S64 timeout, RK_S32 val);
+    MPP_RET wait_le(RK_S64 timeout, RK_S32 val);
     MPP_RET wait_gt(RK_S64 timeout, RK_S32 val);
+    MPP_RET wait_ge(RK_S64 timeout, RK_S32 val);
 
 private:
     node_destructor         destroy;
