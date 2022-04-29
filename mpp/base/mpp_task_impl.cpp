@@ -203,6 +203,54 @@ RET:
     return ret;
 }
 
+MPP_RET _mpp_port_move(const char *caller, MppPort port, MppTask task,
+                       MppTaskStatus status)
+{
+    MppTaskImpl *task_impl = (MppTaskImpl *)task;
+    MppPortImpl *port_impl = (MppPortImpl *)port;
+    MppTaskQueueImpl *queue = port_impl->queue;
+    MppTaskStatusInfo *curr = NULL;
+    MppTaskStatusInfo *next = NULL;
+
+    AutoMutex auto_lock(queue->lock);
+    MPP_RET ret = MPP_NOK;
+
+    mpp_task_dbg_func("caller %s enter port %p task %p\n", caller, port, task);
+
+    if (!queue->ready) {
+        mpp_err("try to move task when %s queue is not ready\n",
+                port_type_str[port_impl->type]);
+        goto RET;
+    }
+
+    check_mpp_task_name(task);
+
+    mpp_assert(task_impl->queue == (MppTaskQueue)queue);
+
+    curr = &queue->info[task_impl->status];
+    next = &queue->info[status];
+
+    list_del_init(&task_impl->list);
+    curr->count--;
+    list_add_tail(&task_impl->list, &next->list);
+    next->count++;
+
+    mpp_task_dbg_flow("mpp %p %s from %s move %s port task %p %s -> %s done\n",
+                      queue->mpp, queue->name, caller,
+                      port_type_str[port_impl->type], task_impl,
+                      task_status_str[task_impl->status],
+                      task_status_str[status]);
+    task_impl->status = status;
+
+    next->cond->signal();
+    mpp_task_dbg_func("signal port %p\n", next);
+    ret = MPP_OK;
+RET:
+    mpp_task_dbg_func("caller %s leave port %p task %p ret %d\n", caller, port, task, ret);
+
+    return ret;
+}
+
 MPP_RET _mpp_port_dequeue(const char *caller, MppPort port, MppTask *task)
 {
     MppPortImpl *port_impl = (MppPortImpl *)port;
@@ -511,3 +559,12 @@ MppPort mpp_task_queue_get_port(MppTaskQueue queue, MppPortType type)
     return (type == MPP_PORT_INPUT) ? (impl->input) : (impl->output);
 }
 
+MppMeta mpp_task_get_meta(MppTask task)
+{
+    MppMeta meta = NULL;
+
+    if (task)
+        meta = ((MppTaskImpl *)task)->meta;
+
+    return meta;
+}
