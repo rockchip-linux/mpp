@@ -556,12 +556,17 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
             do {
                 ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
                 if (ret) {
-                    msleep(10);
+                    if (dec->reset_flag) {
+                        MppBuffer buffer = NULL;
+                        mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
+                        if (buffer)
+                            mpp_buffer_put(buffer);
+                        return;
+                    } else {
+                        msleep(10);
+                    }
                 }
             } while (ret);
-
-            mpp_assert(ret == MPP_OK);
-
             vproc_task->flags.val = 0;
             vproc_task->flags.eos = eos;
             vproc_task->input = index;
@@ -632,7 +637,15 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         do {
             ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
             if (ret) {
-                msleep(10);
+                if (dec->reset_flag) {
+                    MppBuffer buffer = NULL;
+                    mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
+                    if (buffer)
+                        mpp_buffer_put(buffer);
+                    return;
+                } else {
+                    msleep(10);
+                }
             }
         } while (ret);
 
@@ -2049,6 +2062,9 @@ MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag)
             (dec->parser_notify_flag & dec->parser_wait_flag))
             notify = 1;
     }
+
+    if (dec->vproc && (flag & MPP_DEC_NOTIFY_BUFFER_MATCH))
+        dec_vproc_signal(dec->vproc);
 
     if (notify) {
         dec_dbg_notify("%p status %08x notify control signal\n", dec,
