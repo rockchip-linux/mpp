@@ -1332,6 +1332,7 @@ static int scaling_list_data(HEVCContext *s, ScalingList *sl, HEVCSPS *sps)
                  * which should already be in the arrays. */
                 if (delta) {
                     // Copy from previous array.
+                    delta *= (size_id == 3) ? 3 : 1;
                     if (matrix_id < delta) {
                         mpp_err(
                             "Invalid delta in scaling list data: %d.\n", delta);
