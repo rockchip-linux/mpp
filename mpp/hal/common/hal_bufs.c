@@ -43,6 +43,7 @@ typedef struct HalBufsImpl_t {
     RK_S32          max_cnt;
     RK_S32          size_cnt;
     RK_S32          size_sum;
+    RK_S32          slot_sum;
     RK_S32          elem_size;
 
     RK_U32          valid;
@@ -75,6 +76,7 @@ static MPP_RET hal_bufs_clear(HalBufsImpl *impl)
 
                 for (j = 0; j < impl->size_cnt; j++) {
                     if (buf->buf[j]) {
+                        impl->size_sum -= impl->sizes[j];
                         ret |= mpp_buffer_put(buf->buf[j]);
                         buf->buf[j] = NULL;
                     }
@@ -84,11 +86,13 @@ static MPP_RET hal_bufs_clear(HalBufsImpl *impl)
         }
 
         mpp_assert(impl->valid == 0);
+        mpp_assert(impl->size_sum == 0);
     }
 
     impl->max_cnt = 0;
     impl->size_cnt = 0;
     impl->size_sum = 0;
+    impl->slot_sum = 0;
     impl->valid = 0;
     memset(impl->sizes, 0, sizeof(impl->sizes));
     MPP_FREE(impl->bufs);
@@ -186,15 +190,15 @@ MPP_RET hal_bufs_setup(HalBufs bufs, RK_S32 max_cnt, RK_S32 size_cnt, size_t siz
     impl->elem_size = elem_size;
     impl->bufs = mpp_calloc_size(void, impl_size);
     if (impl->bufs) {
-        RK_S32 size_sum = 0;
+        RK_S32 slot_sum = 0;
         RK_S32 i;
 
         for (i = 0; i < size_cnt; i++) {
-            size_sum += sizes[i];
+            slot_sum += sizes[i];
             impl->sizes[i] = sizes[i];
         }
 
-        impl->size_sum = size_sum;
+        impl->slot_sum = slot_sum;
 
         for (i = 0; i < max_cnt; i++) {
             HalBuf *buf = hal_bufs_pos(impl, i);
@@ -237,8 +241,10 @@ HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
             size_t size = impl->sizes[i];
             MppBuffer buf = hal_buf->buf[i];
 
-            if (size && NULL == buf)
+            if (size && NULL == buf) {
                 mpp_buffer_get(group, &buf, size);
+                impl->size_sum += size;
+            }
 
             mpp_assert(buf);
             hal_buf->buf[i] = buf;
