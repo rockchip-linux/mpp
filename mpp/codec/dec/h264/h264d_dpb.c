@@ -873,12 +873,12 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             }
         }
         //!<  discard less than first i frame poc
-        if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc) &&
-            (p_Vid->p_Dec->cfg->base.enable_fast_play)) {
+        if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
             if (p_err->used_ref_flag) {
                 mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
-                mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
+                if (p_Vid->p_Dec->cfg->base.enable_fast_play)
+                    mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
