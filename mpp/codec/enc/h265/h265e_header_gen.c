@@ -127,6 +127,15 @@ static MPP_RET h265e_encapsulate_nals(H265eExtraInfo *out)
     return MPP_OK;
 }
 
+static MPP_RET h265e_write_recovery_point(H265eStream * s, RK_U32 recovery_frame_cnt)
+{
+    h265e_stream_write_se_with_log(s, recovery_frame_cnt, NULL);
+    h265e_stream_write1_with_log(s, 1, NULL);
+    h265e_stream_write1_with_log(s, 0, NULL);
+    h265e_stream_rbsp_trailing(s);
+    return MPP_OK;
+}
+
 static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 uuid[16], const RK_U8 *payload,
                                RK_S32 payload_size, RK_S32 payload_type)
 {
@@ -138,7 +147,21 @@ static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 uuid[16], const RK_U8 *payl
 
     h265e_stream_realign(s);
 
-    payload_size += uuid_len;
+    switch (payload_type) {
+    case H265_SEI_USER_DATA_UNREGISTERED : {
+        payload_size += uuid_len;
+    } break;
+    case H265_SEI_RECOVERY_POINT: {
+        H265eStream stream;
+        h265e_stream_init(&stream);
+        h265e_write_recovery_point(&stream, ((RK_U32 *)payload)[0]);
+        payload_size = stream.enc_stream.byte_cnt;
+        h265e_stream_deinit(&stream);
+    } break;
+    default: {
+        mpp_err_f("payload_type %d is no process ", payload_type);
+    } break;
+    }
 
     for (i = 0; i <= payload_type - 255; i += 255)
         h265e_stream_write_with_log(s, 0xff, 8,
@@ -154,18 +177,54 @@ static MPP_RET h265e_sei_write(H265eStream *s, RK_U8 uuid[16], const RK_U8 *payl
     h265e_stream_write_with_log(s,  payload_size - i, 8,
                                 "sei_last_payload_size_byte");
 
-    for (i = 0; i < uuid_len; i++) {
-        h265e_stream_write_with_log(s, uuid[i], 8,
-                                    "sei_uuid_byte");
+    switch (payload_type) {
+    case H265_SEI_USER_DATA_UNREGISTERED : {
+        for (i = 0; i < uuid_len; i++)
+            h265e_stream_write_with_log(s, uuid[i], 8, NULL);
+        for (i = 0; i < data_len; i++)
+            h265e_stream_write_with_log(s, (RK_U32) payload[i], 8, NULL);
+        h265e_stream_rbsp_trailing(s);
+    } break;
+    case H265_SEI_RECOVERY_POINT: {
+        h265e_write_recovery_point(s, ((RK_U32 *)payload)[0]);
+    } break;
+    default: {
+        mpp_err_f("payload_type %d is no process ", payload_type);
+    } break;
     }
 
-    for (i = 0; i < data_len; i++)
-        h265e_stream_write_with_log(s, (RK_U32)payload[i], 8,
-                                    "sei_payload_data");
+    h265e_dbg_func("leave\n");
 
-    h265e_stream_rbsp_trailing(s);
+    return MPP_OK;
+}
+
+MPP_RET h265e_sei_recovery_point(void *dst, RK_U8 uuid[16], const void *payload,
+                                 RK_S32 size)
+{
+    H265eNal sei_nal;
+    H265eStream stream;
+    RK_U8 *end = 0;
+
+    h265e_dbg_func("enter\n");
+
+    h265e_stream_init(&stream);
+    memset(&sei_nal, 0, sizeof(H265eNal));
+
+    sei_nal.i_type = NAL_SEI_PREFIX;
+    sei_nal.p_payload = &stream.buf[stream.enc_stream.byte_cnt];
+
+    h265e_sei_write(&stream, uuid, payload, size,
+                    H265_SEI_RECOVERY_POINT);
+
+    end = &stream.buf[stream.enc_stream.byte_cnt];
+    sei_nal.i_payload = (RK_S32) (end - sei_nal.p_payload);
+
+    h265e_nal_encode(dst, &sei_nal);
+
+    h265e_stream_deinit(&stream);
 
     h265e_dbg_func("leave\n");
+    return sei_nal.i_payload;
 
     return MPP_OK;
 }

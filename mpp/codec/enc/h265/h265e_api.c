@@ -305,7 +305,13 @@ static MPP_RET h265e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
     RK_U32 new_length = 0;
 
     ptr += offset;
-    new_length = h265e_data_to_sei(ptr, uuid, data, size);
+
+    if (uuid == uuid_refresh_cfg) {
+        RK_U32 recovery_frame_cnt = ((RK_U32 *)data)[0] - 1;
+        new_length = h265e_sei_recovery_point(ptr, uuid, &recovery_frame_cnt, 0);
+    } else {
+        new_length = h265e_data_to_sei(ptr, uuid, data, size);
+    }
     *length = new_length;
 
     mpp_packet_set_length(pkt, offset + new_length);
@@ -550,6 +556,19 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         if (src->prep.change) {
             ret |= h265e_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
+        }
+
+        if (cfg->rc.refresh_en) {
+            RK_U32 mb_rows;
+
+            if (MPP_ENC_RC_INTRA_REFRESH_ROW == cfg->rc.refresh_mode)
+                mb_rows = MPP_ALIGN(cfg->prep.height, 64) / 64;
+            else
+                mb_rows = MPP_ALIGN(cfg->prep.width, 64) / 64;
+
+            cfg->rc.refresh_length = (mb_rows + cfg->rc.refresh_num - 1) / cfg->rc.refresh_num;
+            if (cfg->rc.gop < cfg->rc.refresh_length)
+                cfg->rc.refresh_length = cfg->rc.gop;
         }
 
         if (src->codec.h265.change) {
