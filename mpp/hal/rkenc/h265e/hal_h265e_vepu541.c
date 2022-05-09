@@ -87,6 +87,7 @@ typedef struct H265eV541HalContext_t {
     MppEncROICfg        *roi_data;
     MppEncROICfg2       *roi_data2;
     void                *roi_buf;
+    Vepu541RoiCfg       *roi_buf_tmp;
     MppBufferGroup      roi_grp;
     MppBuffer           roi_hw_buf;
     RK_U32              roi_buf_size;
@@ -688,7 +689,14 @@ MPP_RET hal_h265e_v541_deinit(void *hal)
     MPP_FREE(ctx->l2_regs);
     MPP_FREE(ctx->reg_out);
     MPP_FREE(ctx->input_fmt);
-    MPP_FREE(ctx->roi_buf);
+    if (ctx->roi_buf_tmp) {
+        MPP_FREE(ctx->roi_buf_tmp);
+        ctx->roi_buf_tmp = NULL;
+    }
+    if (ctx->roi_buf) {
+        mpp_buffer_put(ctx->roi_buf);
+        ctx->roi_buf = NULL;
+    }
     hal_bufs_deinit(ctx->dpb_bufs);
 
     if (ctx->roi_hw_buf) {
@@ -847,6 +855,100 @@ MPP_RET vepu541_h265_set_roi(void *dst_buf, void *src_buf, RK_S32 w, RK_S32 h)
         }
     }
     return MPP_OK;
+}
+
+static MPP_RET setup_vepu541_intra_refresh(H265eV541RegSet *regs, H265eV541HalContext *ctx, RK_U32 refresh_idx)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 h = ctx->cfg->prep.height;
+    RK_U32 w = ctx->cfg->prep.width;
+    MppEncROIRegion *region = NULL;
+    RK_U32 stride_h = MPP_ALIGN(w / 16, 4);
+    RK_U32 stride_v = MPP_ALIGN(h / 16, 4);
+    RK_U32 i = 0;
+
+    hal_h265e_dbg_func("enter\n");
+
+    if (!ctx->cfg->rc.refresh_en) {
+        ret = MPP_ERR_VALUE;
+        goto RET;
+    }
+
+    if (NULL == ctx->roi_buf) {
+        RK_S32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
+
+        if (NULL == ctx->roi_grp)
+            mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
+
+        mpp_buffer_get(ctx->roi_grp, &ctx->roi_buf, roi_buf_size);
+        ctx->roi_buf_size = roi_buf_size;
+    }
+    if (NULL == ctx->roi_buf_tmp)
+        ctx->roi_buf_tmp = (Vepu541RoiCfg *)mpp_malloc(Vepu541RoiCfg, stride_h * stride_v);
+
+    mpp_assert(ctx->roi_buf);
+    mpp_assert(ctx->roi_buf_tmp);
+    RK_S32 fd = mpp_buffer_get_fd(ctx->roi_buf);
+    void *buf = ctx->roi_buf_tmp;
+    void *dst_buf = mpp_buffer_get_ptr(ctx->roi_buf);
+    Vepu541RoiCfg cfg;
+    Vepu541RoiCfg *ptr = (Vepu541RoiCfg *)buf;
+    cfg.force_intra = 0;
+    cfg.reserved    = 0;
+    cfg.qp_area_idx = 0;
+    cfg.qp_area_en  = 1;
+    cfg.qp_adj      = 0;
+    cfg.qp_adj_mode = 0;
+
+    for (i = 0; i < stride_h * stride_v; i++, ptr++)
+        memcpy(ptr, &cfg, sizeof(cfg));
+
+    region = mpp_calloc(MppEncROIRegion, 1);
+
+    if (NULL == region) {
+        mpp_err_f("Failed to calloc for MppEncROIRegion !\n");
+        ret = MPP_ERR_MALLOC;
+    }
+
+    if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_ROW) {
+        region->x = 0;
+        region->w = w;
+        if (refresh_idx > 0) {
+            region->y = refresh_idx * 64 * ctx->cfg->rc.refresh_num - 128;
+            region->h = 64 * ctx->cfg->rc.refresh_num + 128;
+        } else {
+            region->y = refresh_idx * 64 * ctx->cfg->rc.refresh_num;
+            region->h = 64 * ctx->cfg->rc.refresh_num;
+        }
+        regs->me_rnge.cime_srch_v = 1;
+    } else if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_COL) {
+        region->y = 0;
+        region->h = h;
+        if (refresh_idx > 0) {
+            region->x = refresh_idx * 64 * ctx->cfg->rc.refresh_num - 128;
+            region->w = 64 * ctx->cfg->rc.refresh_num + 128;
+        } else {
+            region->x = refresh_idx * 64 * ctx->cfg->rc.refresh_num;
+            region->w = 64 * ctx->cfg->rc.refresh_num;
+        }
+        regs->me_rnge.cime_srch_h = 1;
+    }
+
+    region->intra = 1;
+    region->quality = -ctx->cfg->rc.qp_delta_ip;
+
+    region->area_map_en = 1;
+    region->qp_area_idx = 1;
+    region->abs_qp_en = 0;
+
+    regs->enc_pic.roi_en = 1;
+    regs->roi_addr_hevc = fd;
+    vepu541_set_one_roi(buf, region, w, h);
+    vepu541_h265_set_roi(dst_buf, buf, w, h);
+    mpp_free(region);
+RET:
+    hal_h265e_dbg_func("leave, ret %d\n", ret);
+    return ret;
 }
 
 static MPP_RET
@@ -1404,6 +1506,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 pic_wd64, pic_h64;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
+    EncFrmStatus *frm_status = &task->rc_task->frm;
 
     hal_h265e_enter();
     pic_width_align8 = (syn->pp.pic_width + 7) & (~7);
@@ -1539,6 +1642,9 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     }
     /* ROI configure */
     vepu541_h265_set_roi_regs(ctx, regs);
+
+    if (frm_status->is_i_refresh)
+        setup_vepu541_intra_refresh(regs, ctx, frm_status->seq_idx % ctx->cfg->rc.gop);
 
     ctx->frame_num++;
 
