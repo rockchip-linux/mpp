@@ -23,6 +23,7 @@
 extern "C" {
 #endif
 
+MPP_RET h264e_sei_recovery_point_to_packet(MppPacket packet, RK_S32 *len, RK_U32 recovery_frame_cnt);
 MPP_RET h264e_sei_to_packet(MppPacket packet, RK_S32 *len, RK_S32 type,
                             RK_U8 uuid[16], const void *data, RK_S32 size);
 

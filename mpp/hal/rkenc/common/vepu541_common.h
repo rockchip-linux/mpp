@@ -174,6 +174,7 @@ MPP_RET vepu541_set_fmt(VepuFmtCfg *cfg, MppFrameFormat format);
  */
 RK_S32  vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h);
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h);
+MPP_RET vepu541_set_one_roi(void *buf, MppEncROIRegion *region, RK_S32 w, RK_S32 h);
 
 MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg);
 MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg);
