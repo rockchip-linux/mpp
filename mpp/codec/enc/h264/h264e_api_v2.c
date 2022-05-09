@@ -538,6 +538,20 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         if (src->prep.change)
             ret |= h264e_proc_prep_cfg(&cfg->prep, &src->prep);
 
+        // TODO: rc cfg shouldn't be done here
+        if (cfg->rc.refresh_en) {
+            RK_U32 mb_rows;
+
+            if (MPP_ENC_RC_INTRA_REFRESH_ROW == cfg->rc.refresh_mode)
+                mb_rows = MPP_ALIGN(cfg->prep.height, 16) / 16;
+            else
+                mb_rows = MPP_ALIGN(cfg->prep.width, 16) / 16;
+
+            cfg->rc.refresh_length = (mb_rows + cfg->rc.refresh_num - 1) / cfg->rc.refresh_num;
+            if (cfg->rc.gop < cfg->rc.refresh_length)
+                cfg->rc.refresh_length = cfg->rc.gop;
+        }
+
         if (src->codec.h264.change)
             ret |= h264e_proc_h264_cfg(&cfg->codec.h264, &src->codec.h264);
 
@@ -799,8 +813,11 @@ static MPP_RET h264e_sw_enc(void *ctx, HalEncTask *task)
 MPP_RET h264e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
                       const void *data, RK_S32 size)
 {
-    return h264e_sei_to_packet(pkt, length, H264_SEI_USER_DATA_UNREGISTERED,
-                               uuid, data, size);
+    if (uuid == uuid_refresh_cfg) {
+        return h264e_sei_recovery_point_to_packet(pkt, length, ((RK_U32 *)data)[0] - 1);
+    } else
+        return h264e_sei_to_packet(pkt, length, H264_SEI_USER_DATA_UNREGISTERED,
+                                   uuid, data, size);
 }
 
 /*!

@@ -963,6 +963,96 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, MppDev dev,
     hal_h264e_dbg_func("leave\n");
 }
 
+static MPP_RET setup_vepu541_intra_refresh(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx, RK_U32 refresh_idx)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 w = ctx->sps->pic_width_in_mbs * 16;
+    RK_U32 h = ctx->sps->pic_height_in_mbs * 16;
+    MppEncROIRegion *region = NULL;
+    RK_U32 refresh_num = ctx->cfg->rc.refresh_num;
+    RK_U32 stride_h = MPP_ALIGN(w / 16, 4);
+    RK_U32 stride_v = MPP_ALIGN(h / 16, 4);
+    RK_U32 i = 0;
+
+    hal_h264e_dbg_func("enter\n");
+
+    if (!ctx->cfg->rc.refresh_en) {
+        ret = MPP_ERR_VALUE;
+        goto RET;
+    }
+
+    if (NULL == ctx->roi_buf) {
+        RK_S32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
+
+        if (NULL == ctx->roi_grp)
+            mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
+
+        mpp_buffer_get(ctx->roi_grp, &ctx->roi_buf, roi_buf_size);
+        ctx->roi_buf_size = roi_buf_size;
+    }
+
+    mpp_assert(ctx->roi_buf);
+    RK_S32 fd = mpp_buffer_get_fd(ctx->roi_buf);
+    void *buf = mpp_buffer_get_ptr(ctx->roi_buf);
+    Vepu541RoiCfg cfg;
+    Vepu541RoiCfg *ptr = (Vepu541RoiCfg *)buf;
+    cfg.force_intra = 0;
+    cfg.reserved    = 0;
+    cfg.qp_area_idx = 0;
+    cfg.qp_area_en  = 1;
+    cfg.qp_adj      = 0;
+    cfg.qp_adj_mode = 0;
+
+    for (i = 0; i < stride_h * stride_v; i++, ptr++)
+        memcpy(ptr, &cfg, sizeof(cfg));
+
+    region = mpp_calloc(MppEncROIRegion, 1);
+
+    if (NULL == region) {
+        mpp_err_f("Failed to calloc for MppEncROIRegion !\n");
+        ret = MPP_ERR_MALLOC;
+    }
+
+    if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_ROW) {
+        region->x = 0;
+        region->w = w;
+        if (refresh_idx > 0) {
+            region->y = refresh_idx * 16 * refresh_num - 32;
+            region->h = 16 * refresh_num + 32;
+        } else {
+            region->y = refresh_idx * 16 * refresh_num;
+            region->h = 16 * refresh_num;
+        }
+        regs->reg089.cme_srch_v = 1;
+    } else if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_COL) {
+        region->y = 0;
+        region->h = h;
+        if (refresh_idx > 0) {
+            region->x = refresh_idx * 16 * refresh_num - 32;
+            region->w = 16 * refresh_num + 32;
+        } else {
+            region->x = refresh_idx * 16 * refresh_num;
+            region->w = 16 * refresh_num;
+        }
+        regs->reg089.cme_srch_h = 1;
+    }
+
+    region->intra = 1;
+    region->quality = -ctx->cfg->rc.qp_delta_ip;
+
+    region->area_map_en = 1;
+    region->qp_area_idx = 1;
+    region->abs_qp_en = 0;
+
+    regs->reg013.roi_enc = 1;
+    regs->reg073.roi_addr = fd;
+    vepu541_set_one_roi(buf, region, w, h);
+    mpp_free(region);
+RET:
+    hal_h264e_dbg_func("leave, ret %d\n", ret);
+    return ret;
+}
+
 static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
 {
 
@@ -1457,6 +1547,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
     MPP_RET ret = MPP_OK;
+    EncFrmStatus *frm_status = &task->rc_task->frm;
 
     hal_h264e_dbg_func("enter %p\n", hal);
     hal_h264e_dbg_detail("frame %d generate regs now", ctx->frms->seq_idx);
@@ -1487,6 +1578,9 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
         setup_vepu540_force_slice_split(regs, prep->width);
 
     setup_vepu541_me(regs, sps, slice, ctx->is_vepu540);
+
+    if (frm_status->is_i_refresh)
+        setup_vepu541_intra_refresh(regs, ctx, frm_status->seq_idx % cfg->rc.gop);
 
     if (ctx->is_vepu540)
         vepu540_set_osd(&ctx->osd_cfg);

@@ -348,6 +348,66 @@ RK_S32 vepu541_get_roi_buf_size(RK_S32 w, RK_S32 h)
     return buf_size + 32;
 }
 
+MPP_RET vepu541_set_one_roi(void *buf, MppEncROIRegion *region, RK_S32 w, RK_S32 h)
+{
+    Vepu541RoiCfg *ptr = (Vepu541RoiCfg *)buf;
+    RK_S32 mb_w = MPP_ALIGN(w, 16) / 16;
+    RK_S32 mb_h = MPP_ALIGN(h, 16) / 16;
+    RK_S32 stride_h = MPP_ALIGN(mb_w, 4);
+    Vepu541RoiCfg cfg;
+    MPP_RET ret = MPP_NOK;
+
+    if (NULL == buf || NULL == region) {
+        mpp_err_f("invalid buf %p roi %p\n", buf, region);
+        goto DONE;
+    }
+
+    RK_S32 roi_width  = (region->w + 15) / 16;
+    RK_S32 roi_height = (region->h + 15) / 16;
+    RK_S32 pos_x_init = (region->x + 15) / 16;
+    RK_S32 pos_y_init = (region->y + 15) / 16;
+    RK_S32 pos_x_end  = pos_x_init + roi_width;
+    RK_S32 pos_y_end  = pos_y_init + roi_height;
+    RK_S32 x, y;
+
+    if (pos_x_end > mb_w)
+        pos_x_end = mb_w;
+
+    if (pos_y_end > mb_h)
+        pos_y_end = mb_h;
+
+    if (pos_x_init < 0)
+        pos_x_init = 0;
+
+    if (pos_y_init < 0)
+        pos_y_init = 0;
+
+    mpp_assert(pos_x_init >= 0 && pos_x_init < mb_w);
+    mpp_assert(pos_x_end  >= 0 && pos_x_end <= mb_w);
+    mpp_assert(pos_y_init >= 0 && pos_y_init < mb_h);
+    mpp_assert(pos_y_end  >= 0 && pos_y_end <= mb_h);
+
+    cfg.force_intra = region->intra;
+    cfg.reserved    = 0;
+    cfg.qp_area_idx = region->qp_area_idx;
+    // NOTE: When roi is enabled the qp_area_en should be one.
+    cfg.qp_area_en  = 1;    // region->area_map_en;
+    cfg.qp_adj      = region->quality;
+    cfg.qp_adj_mode = region->abs_qp_en;
+
+    ptr += pos_y_init * stride_h + pos_x_init;
+    for (y = 0; y < roi_height; y++) {
+        Vepu541RoiCfg *dst = ptr;
+
+        for (x = 0; x < roi_width; x++, dst++)
+            memcpy(dst, &cfg, sizeof(cfg));
+
+        ptr += stride_h;
+    }
+DONE:
+    return ret;
+}
+
 MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
 {
     MppEncROIRegion *region = roi->regions;
@@ -415,37 +475,7 @@ MPP_RET vepu541_set_roi(void *buf, MppEncROICfg *roi, RK_S32 w, RK_S32 h)
     region = roi->regions;
     /* step 2. setup region for top to bottom */
     for (i = 0; i < (RK_S32)roi->number; i++, region++) {
-        RK_S32 roi_width  = (region->w + 15) / 16;
-        RK_S32 roi_height = (region->h + 15) / 16;
-        RK_S32 pos_x_init = (region->x + 15) / 16;
-        RK_S32 pos_y_init = (region->y + 15) / 16;
-        RK_S32 pos_x_end  = pos_x_init + roi_width;
-        RK_S32 pos_y_end  = pos_y_init + roi_height;
-        RK_S32 x, y;
-
-        mpp_assert(pos_x_init >= 0 && pos_x_init < mb_w);
-        mpp_assert(pos_x_end  >= 0 && pos_x_end <= mb_w);
-        mpp_assert(pos_y_init >= 0 && pos_y_init < mb_h);
-        mpp_assert(pos_y_end  >= 0 && pos_y_end <= mb_h);
-
-        cfg.force_intra = region->intra;
-        cfg.reserved    = 0;
-        cfg.qp_area_idx = region->qp_area_idx;
-        // NOTE: When roi is enabled the qp_area_en should be one.
-        cfg.qp_area_en  = 1; // region->area_map_en;
-        cfg.qp_adj      = region->quality;
-        cfg.qp_adj_mode = region->abs_qp_en;
-
-        ptr = (Vepu541RoiCfg *)buf;
-        ptr += pos_y_init * stride_h + pos_x_init;
-        for (y = 0; y < roi_height; y++) {
-            Vepu541RoiCfg *dst = ptr;
-
-            for (x = 0; x < roi_width; x++, dst++)
-                memcpy(dst, &cfg, sizeof(cfg));
-
-            ptr += stride_h;
-        }
+        vepu541_set_one_roi(buf, region, w, h);
     }
 
 DONE:

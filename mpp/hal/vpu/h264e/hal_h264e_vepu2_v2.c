@@ -281,6 +281,55 @@ static RK_S32 setup_output_packet(HalH264eVepu2Ctx *ctx, RK_U32 *reg, MppBuffer 
     return (offset - offset8) * 8;
 }
 
+static MPP_RET setup_intra_refresh(HalH264eVepu2Ctx *ctx, EncFrmStatus *frm)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
+    RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
+    RK_U32 refresh_num = ctx->cfg->rc.refresh_num;
+    MppEncCfgSet *cfg = ctx->cfg;
+    RK_U32 *reg = ctx->regs_set.val;
+    RK_U32 val = 0;
+    RK_S32 top = 0;
+    RK_S32 left = 0;
+    RK_S32 right = 0;
+    RK_S32 bottom = 0;
+    RK_U32 refresh_idx = frm->seq_idx % cfg->rc.gop;
+
+    hal_h264e_dbg_func("enter\n");
+
+    if (!ctx->cfg->rc.refresh_en || !frm->is_i_refresh) {
+        goto RET;
+    }
+
+    if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_ROW) {
+        left = 0;
+        right = mb_w;
+        top = refresh_idx * refresh_num - 2;
+        bottom = (refresh_idx + 1) * refresh_num - 1;
+        top = mpp_clip(top, 0, mb_h);
+        bottom = mpp_clip(bottom, 0, mb_h);
+    } else if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_COL) {
+        top = 0;
+        bottom = mb_h;
+        left = refresh_idx * refresh_num - 2;
+        right = (refresh_idx + 1) * refresh_num - 1;
+        left = mpp_clip(left, 0, mb_w);
+        right = mpp_clip(right, 0, mb_w);
+    }
+
+RET:
+    val = VEPU_REG_INTRA_AREA_TOP(top)
+          | VEPU_REG_INTRA_AREA_BOTTOM(bottom)
+          | VEPU_REG_INTRA_AREA_LEFT(left)
+          | VEPU_REG_INTRA_AREA_RIGHT(right);
+    H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_AREA_CTRL, val);
+
+    hal_h264e_dbg_func("leave, ret %d\n", ret);
+
+    return ret;
+}
+
 static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 {
     //MPP_RET ret = MPP_OK;
@@ -333,11 +382,7 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
      * values of other planes are calculated internally based on
      * format setting.
      */
-    val = VEPU_REG_INTRA_AREA_TOP(mb_h)
-          | VEPU_REG_INTRA_AREA_BOTTOM(mb_h)
-          | VEPU_REG_INTRA_AREA_LEFT(mb_w)
-          | VEPU_REG_INTRA_AREA_RIGHT(mb_w);
-    H264E_HAL_SET_REG(reg, VEPU_REG_INTRA_AREA_CTRL, val);
+    setup_intra_refresh(ctx, frm);
 
     val = VEPU_REG_AXI_CTRL_READ_ID(0);
     val |= VEPU_REG_AXI_CTRL_WRITE_ID(0);
