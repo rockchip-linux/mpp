@@ -20,6 +20,8 @@
 #include "mpp_trie.h"
 #include "mpp_enc_cfg.h"
 
+extern RK_U8 uuid_refresh_cfg[16];
+
 typedef struct MppEncCfgImpl_t {
     RK_S32              size;
     MppEncCfgSet        cfg;

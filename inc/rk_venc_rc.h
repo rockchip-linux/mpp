@@ -57,4 +57,10 @@ typedef enum MppEncRcGopMode_e {
     MPP_ENC_RC_GOP_MODE_BUTT,
 } MppEncRcGopMode;
 
+typedef enum MppEncRcIntraRefreshMode_e {
+    MPP_ENC_RC_INTRA_REFRESH_ROW = 0,
+    MPP_ENC_RC_INTRA_REFRESH_COL,
+    MPP_ENC_RC_INTRA_REFRESH_BUTT
+} MppEncRcRefreshMode;
+
 #endif /*__RK_VENC_RC_H__*/

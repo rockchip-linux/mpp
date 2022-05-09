@@ -236,6 +236,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_DEBREATH      = (1 << 24),
     MPP_ENC_RC_CFG_CHANGE_HIER_QP       = (1 << 25),
     MPP_ENC_RC_CFG_CHANGE_ST_TIME       = (1 << 26),
+    MPP_ENC_RC_CFG_CHANGE_REFRESH       = (1 << 27),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -406,6 +407,11 @@ typedef struct MppEncRcCfg_t {
     RK_S32                  hier_qp_en;
     RK_S32                  hier_qp_delta[4];
     RK_S32                  hier_frame_num[4];
+
+    RK_U32                  refresh_en;
+    MppEncRcRefreshMode     refresh_mode;
+    RK_U32                  refresh_num;
+    RK_S32                  refresh_length;
 } MppEncRcCfg;
 
 

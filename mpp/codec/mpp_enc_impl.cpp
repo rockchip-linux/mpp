@@ -77,6 +77,11 @@ static RK_U8 uuid_debug_info[16] = {
     0xa9, 0x06, 0xae, 0x29, 0x94, 0x11, 0xcd, 0x9a
 };
 
+RK_U8 uuid_refresh_cfg[16] = {
+    0x72, 0x65, 0x63, 0x6f, 0x76, 0x65, 0x72, 0x79,
+    0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x00, 0x00
+};
+
 static void reset_hal_enc_task(HalEncTask *task)
 {
     memset(task, 0, sizeof(*task));
@@ -562,8 +567,16 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             dst->fps_out_denorm = src->fps_out_denorm;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP)
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP) {
+            /*
+             * If GOP is changed smaller, disable Intra-Refresh
+             * and User level should reconfig Intra-Refresh
+             */
+            if (dst->gop < src->gop && dst->refresh_en) {
+                dst->refresh_en = 0;
+            }
             dst->gop = src->gop;
+        }
 
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
             dst->max_reenc_times = src->max_reenc_times;
@@ -642,6 +655,17 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
 
         if (change & MPP_ENC_RC_CFG_CHANGE_ST_TIME)
             dst->stats_time = src->stats_time;
+
+        if (change & MPP_ENC_RC_CFG_CHANGE_REFRESH) {
+            if (dst->debreath_en) {
+                mpp_err_f("Turn off Debreath first.");
+                ret = MPP_ERR_VALUE;
+            }
+            dst->refresh_en = src->refresh_en;
+            dst->refresh_mode = src->refresh_mode;
+            // Make sure refresh_num is legal
+            dst->refresh_num = src->refresh_num;
+        }
 
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
@@ -1041,6 +1065,9 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     if (check_rc_gop_update(cmd, &enc->cfg))
         mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
 
+    if (enc->cfg.rc.refresh_en)
+        mpp_enc_refs_set_refresh_length(enc->refs, enc->cfg.rc.refresh_length);
+
     if (check_hal_info_update(cmd))
         enc->hal_info_updated = 0;
 
@@ -1212,6 +1239,8 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 
     cfg->debreath_cfg.enable   = rc->debreath_en;
     cfg->debreath_cfg.strength = rc->debre_strength;
+
+    cfg->refresh_len = rc->refresh_length;
 
     if (info->st_gop) {
         cfg->vgop = info->st_gop;
@@ -1509,6 +1538,16 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
         length = 0;
         enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
                             enc->rc_cfg_info, enc->rc_cfg_length);
+
+        hal_task->sei_length += length;
+        hal_task->length += length;
+    }
+
+    if (!frm->is_idr && frm->is_i_recovery && enc->cfg.rc.refresh_en) {
+        RK_S32 length = 0;
+
+        enc_impl_add_prefix(impl, packet, &length, uuid_refresh_cfg,
+                            &enc->cfg.rc.refresh_length, 0);
 
         hal_task->sei_length += length;
         hal_task->length += length;
