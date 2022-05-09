@@ -40,12 +40,15 @@ typedef struct RcModelV2Ctx_t {
     MppDataV2       *vi_bit;
     RK_U32          vi_sumbits;
     RK_U32          vi_scale;
+    RK_U32          i_refresh_scale;
     MppDataV2       *p_bit;
     RK_U32          p_sumbits;
+    RK_U32          i_refresh_sumbits;
     RK_U32          p_scale;
 
     MppDataV2       *pre_p_bit;
     MppDataV2       *pre_i_bit;
+    MppDataV2       *i_refresh_bit;
     MppDataV2       *pre_i_mean_qp;
     MppDataV2       *madi;
     MppDataV2       *madp;

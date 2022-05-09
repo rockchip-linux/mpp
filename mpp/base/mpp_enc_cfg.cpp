@@ -162,6 +162,9 @@ public:
     ENTRY(rc,   hier_qp_delta,  St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_qp_delta) \
     ENTRY(rc,   hier_frame_num, St,  RK_S32 *,          MPP_ENC_RC_CFG_CHANGE_HIER_QP,          rc, hier_frame_num) \
     ENTRY(rc,   stats_time,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_ST_TIME,          rc, stats_time) \
+    ENTRY(rc,   refresh_en,     U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_REFRESH,          rc, refresh_en) \
+    ENTRY(rc,   refresh_mode,   U32, MppEncRcRefreshMode, MPP_ENC_RC_CFG_CHANGE_REFRESH,        rc, refresh_mode) \
+    ENTRY(rc,   refresh_num,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_REFRESH,          rc, refresh_num) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \

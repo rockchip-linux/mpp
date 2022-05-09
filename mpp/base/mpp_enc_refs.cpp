@@ -104,6 +104,7 @@ typedef struct MppEncRefsImpl_t {
     MppEncRefCfgImpl    *ref_cfg;
     MppEncRefFrmUsrCfg  usr_cfg;
     RK_S32              igop;
+    RK_U32              refresh_length;
 
     RK_S32              hdr_need_update;
 
@@ -318,6 +319,22 @@ static void set_st_cfg_to_frm(EncFrmStatus *frm, RK_S32 seq_idx,
         dump_frm(frm);
 }
 
+static MPP_RET set_frm_refresh_flag(EncFrmStatus *frm, MppEncRefsImpl *p)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (!frm || !p)
+        return ret = MPP_ERR_NULL_PTR;
+
+    if (p->refresh_length) {
+        frm->is_i_refresh = ((frm->seq_idx  % p->igop) < p->refresh_length) && p->cpb.seq_cnt > 1;
+        frm->is_i_recovery = !(frm->seq_idx  % p->igop)  && p->cpb.seq_cnt > 1;
+    } else
+        frm->is_i_refresh = 0;
+
+    return ret;
+}
+
 static void set_lt_cfg_to_frm(EncFrmStatus *frm, RefsCnt *lt_cfg)
 {
     frm->is_non_ref = 0;
@@ -339,7 +356,7 @@ static EncFrmStatus *get_ref_from_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
     MppEncRefMode ref_mode = frm->ref_mode;
     RK_S32 ref_arg = frm->ref_arg;
 
-    if (frm->is_intra)
+    if (frm->is_idr)
         return NULL;
 
     EncFrmStatus *ref = NULL;
@@ -592,6 +609,7 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
         while (repeat-- > 0) {
             /* step 1. updated by st_cfg */
             set_st_cfg_to_frm(&frm, seq_idx++, st_cfg);
+            set_frm_refresh_flag(&frm, p);
 
             /* step 2. updated by lt_cfg */
             RefsCnt *lt_cfg = &cpb->lt_cnter[0];
@@ -694,6 +712,30 @@ MPP_RET mpp_enc_refs_set_rc_igop(MppEncRefs refs, RK_S32 igop)
     return MPP_OK;
 }
 
+MPP_RET mpp_enc_refs_set_refresh_length(MppEncRefs refs, RK_S32 len)
+{
+    MPP_RET ret = MPP_OK;
+    if (NULL == refs) {
+        mpp_err_f("invalid NULL input refs\n");
+        return MPP_ERR_VALUE;
+    }
+
+    enc_refs_dbg_func("enter %p\n", refs);
+
+    MppEncRefsImpl *p = (MppEncRefsImpl *)refs;
+
+    if (len < p->igop) {
+        p->refresh_length = len;
+    } else {
+        p->refresh_length = p->igop;
+        ret = MPP_ERR_VALUE;
+        goto RET;
+    }
+    enc_refs_dbg_func("leave %p\n", refs);
+RET:
+    return ret;
+}
+
 RK_S32 mpp_enc_refs_update_hdr(MppEncRefs refs)
 {
     if (NULL == refs) {
@@ -764,12 +806,17 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     if (p->changed & ENC_REFS_IGOP_CHANGED)
         cleanup_cpb = 1;
 
-    if (p->igop && cpb->seq_idx >= p->igop)
-        cleanup_cpb = 1;
+    if (p->igop && (cpb->seq_idx >= p->igop)) {
+        if (p->refresh_length) {
+            p->cpb.seq_cnt = cpb->seq_idx / p->igop + 1;
+        } else
+            cleanup_cpb = 1;
+    }
 
     if (usr_cfg->force_flag & ENC_FORCE_IDR) {
         usr_cfg->force_flag &= (~ENC_FORCE_IDR);
         cleanup_cpb = 1;
+        p->cpb.seq_cnt = 0;
     }
 
     if (cleanup_cpb) {
@@ -787,6 +834,7 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     st_cfg = &cfg->st_cfg[cpb->st_cfg_pos];
     /* step 2. updated by st_cfg */
     set_st_cfg_to_frm(frm, cpb->seq_idx++, st_cfg);
+    set_frm_refresh_flag(frm, p);
 
     lt_cfg = p->cpb.lt_cnter;
 

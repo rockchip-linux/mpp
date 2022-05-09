@@ -61,6 +61,7 @@ MPP_RET mpp_enc_refs_deinit(MppEncRefs *refs);
 MPP_RET mpp_enc_refs_set_cfg(MppEncRefs refs, MppEncRefCfg ref_cfg);
 MPP_RET mpp_enc_refs_set_usr_cfg(MppEncRefs refs, MppEncRefFrmUsrCfg *force);
 MPP_RET mpp_enc_refs_set_rc_igop(MppEncRefs refs, RK_S32 igop);
+MPP_RET mpp_enc_refs_set_refresh_length(MppEncRefs refs, RK_S32 len);
 
 /* return hdr need update or not */
 RK_S32  mpp_enc_refs_update_hdr(MppEncRefs refs);
