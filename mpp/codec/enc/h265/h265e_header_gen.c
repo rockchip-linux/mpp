@@ -18,8 +18,11 @@
 
 #include <string.h>
 
-#include "mpp_common.h"
 #include "mpp_mem.h"
+#include "mpp_common.h"
+
+#include "mpp_packet_impl.h"
+
 #include "h265e_ps.h"
 #include "h265e_header_gen.h"
 
@@ -700,6 +703,8 @@ MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out)
         h265e_dbg(H265E_DBG_HEADER, "get extra info nal type %d, size %d bytes",
                   src->nal[k].i_type, src->nal[k].i_payload);
         mpp_packet_write(pkt_out, offset, src->nal[k].p_payload, src->nal[k].i_payload);
+        mpp_packet_add_segment_info(pkt_out, src->nal[k].i_type,
+                                    offset, src->nal[k].i_payload);
         offset += src->nal[k].i_payload;
     }
     mpp_packet_set_length(pkt_out, offset);
