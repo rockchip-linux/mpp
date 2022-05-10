@@ -104,7 +104,7 @@ MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
     return MPP_OK;
 }
 
-RK_S32 h264e_pps_to_packet(H264ePps *pps, MppPacket packet, RK_S32 *len)
+RK_S32 h264e_pps_to_packet(H264ePps *pps, MppPacket packet, RK_S32 *offset, RK_S32 *len)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *data = mpp_packet_get_data(packet);
@@ -186,6 +186,8 @@ RK_S32 h264e_pps_to_packet(H264ePps *pps, MppPacket packet, RK_S32 *len)
     pps_size = mpp_writer_bytes(bit);
     if (len)
         *len = pps_size;
+    if (offset)
+        *offset = length;
 
     mpp_packet_set_length(packet, length + pps_size);
 
