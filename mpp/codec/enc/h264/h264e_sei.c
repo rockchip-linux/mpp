@@ -21,6 +21,7 @@
 #include "mpp_common.h"
 
 #include "mpp_bitwrite.h"
+#include "mpp_packet_impl.h"
 #include "h264e_debug.h"
 
 #include "h264_syntax.h"
@@ -87,6 +88,7 @@ MPP_RET h264e_sei_to_packet(MppPacket packet, RK_S32 *len, RK_S32 type,
         *len = sei_size;
 
     mpp_packet_set_length(packet, length + sei_size);
+    mpp_packet_add_segment_info(packet, H264_NALU_TYPE_SEI, length, sei_size);
 
     h264e_dbg_sei("sei data length %d pkt len %d -> %d\n", sei_size,
                   length, length + sei_size);

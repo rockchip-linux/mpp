@@ -92,6 +92,24 @@ RK_U32  mpp_packet_is_partition(const MppPacket packet);
 RK_U32  mpp_packet_is_soi(const MppPacket packet);
 RK_U32  mpp_packet_is_eoi(const MppPacket packet);
 
+/*
+ * packet segement pack info for
+ * segment number - number of segment
+ * segment info   - base address of segment info
+ */
+typedef struct MppPktSeg_t MppPktSeg;
+
+struct MppPktSeg_t {
+    RK_S32          index;
+    RK_S32          type;
+    RK_U32          offset;
+    RK_U32          len;
+    const MppPktSeg *next;
+};
+
+RK_U32 mpp_packet_get_segment_nb(const MppPacket packet);
+const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet);
+
 #ifdef __cplusplus
 }
 #endif

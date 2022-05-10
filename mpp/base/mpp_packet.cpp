@@ -53,6 +53,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
         return MPP_ERR_NULL_PTR;
     }
     setup_mpp_packet_name(p);
+    p->segment_buf_cnt = MPP_PKT_SEG_CNT_DEFAULT;
 
     return MPP_OK;
 }
@@ -175,6 +176,8 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     if (p->meta)
         mpp_meta_put(p->meta);
 
+    MPP_FREE(p->segments_ext);
+
     mpp_mem_pool_put(mpp_packet_pool, *packet);
     *packet = NULL;
     return MPP_OK;
@@ -266,6 +269,7 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
     packet->pos  = data;
     packet->size = size;
     setup_mpp_packet_name(packet);
+    mpp_packet_reset_segment(packet);
     return MPP_OK;
 }
 
@@ -415,6 +419,35 @@ MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
 
     memcpy(dst_impl->pos, src_impl->pos, src_impl->length);
     dst_impl->length = src_impl->length;
+
+    if (src_impl->segment_nb) {
+        MppPktSeg *src_segs = src_impl->segments;
+        MppPktSeg *dst_segs = NULL;
+        RK_U32 segment_nb = src_impl->segment_nb;
+        RK_U32 i;
+
+        mpp_packet_reset_segment(dst);
+        dst_impl->segment_nb = segment_nb;
+        dst_impl->segment_buf_cnt = src_impl->segment_buf_cnt;
+
+        if (segment_nb <= MPP_PKT_SEG_CNT_DEFAULT) {
+            dst_segs = dst_impl->segments_def;
+
+            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
+        } else {
+            dst_segs = mpp_calloc(MppPktSeg, dst_impl->segment_buf_cnt);
+
+            mpp_assert(dst_segs);
+            dst_impl->segments_ext = dst_segs;
+            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
+        }
+
+        for (i = 0; i < segment_nb - 1; i++)
+            dst_segs[i].next = &dst_segs[i + 1];
+
+        dst_impl->segments = dst_segs;
+    }
+
     return MPP_OK;
 }
 
@@ -430,8 +463,98 @@ MPP_RET mpp_packet_append(MppPacket dst, MppPacket src)
 
     memcpy((RK_U8 *)dst_impl->pos + dst_impl->length, src_impl->pos,
            src_impl->length);
+
+    if (src_impl->segment_nb) {
+        MppPktSeg *segs = src_impl->segments;
+        RK_U32 offset = dst_impl->length;
+        RK_U32 i;
+
+        for (i = 0; i < src_impl->segment_nb; i++, segs++) {
+            mpp_packet_add_segment_info(dst, segs->type, offset, segs->len);
+            offset += segs->len;
+        }
+    }
+
     dst_impl->length += src_impl->length;
     return MPP_OK;
+}
+
+void mpp_packet_reset_segment(MppPacket packet)
+{
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    p->segment_nb = 0;
+    p->segment_buf_cnt = MPP_PKT_SEG_CNT_DEFAULT;
+    memset(p->segments_def, 0, sizeof(p->segments_def));
+    p->segments = NULL;
+    MPP_FREE(p->segments_ext);
+}
+
+MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset, RK_S32 len)
+{
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    RK_U32 old_buf_cnt = p->segment_buf_cnt;
+    RK_U32 segment_nb  = p->segment_nb;
+    MppPktSeg *seg_buf = p->segments;
+
+    if (segment_nb >= old_buf_cnt) {
+        RK_U32 i;
+
+        /* realloc segment info buffer. default 8 segments */
+        old_buf_cnt *= 2;
+
+        if (NULL == p->segments_ext) {
+            seg_buf = mpp_calloc(MppPktSeg, old_buf_cnt);
+            if (seg_buf)
+                memcpy(seg_buf, p->segments_def, sizeof(p->segments_def));
+        } else {
+            seg_buf = mpp_realloc(p->segments_ext, MppPktSeg, old_buf_cnt);
+        }
+
+        if (NULL == seg_buf)
+            return MPP_NOK;
+
+        for (i = 0; i < segment_nb - 1; i++)
+            seg_buf[i].next = &seg_buf[i + 1];
+
+        p->segments_ext = seg_buf;
+        p->segments = seg_buf;
+        p->segment_buf_cnt = old_buf_cnt;
+    } else {
+        if (NULL == seg_buf) {
+            seg_buf = p->segments_def;
+            p->segments = seg_buf;
+        }
+    }
+
+    mpp_assert(seg_buf);
+    seg_buf += segment_nb;
+    seg_buf->index  = segment_nb;
+    seg_buf->type   = type;
+    seg_buf->offset = offset;
+    seg_buf->len    = len;
+    seg_buf->next   = NULL;
+
+    if (segment_nb)
+        seg_buf[-1].next = seg_buf;
+
+    p->segment_nb++;
+    mpp_assert(p->segment_nb <= p->segment_buf_cnt);
+
+    return MPP_OK;
+}
+
+const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
+{
+    if (check_is_mpp_packet(packet))
+        return NULL;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (!p->segment_nb)
+        return NULL;
+
+    return (const MppPktSeg *)p->segments;
 }
 
 /*
@@ -456,3 +579,4 @@ MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
 MPP_PACKET_ACCESSORS(MppTask, task)
+MPP_PACKET_ACCESSORS(RK_U32, segment_nb)

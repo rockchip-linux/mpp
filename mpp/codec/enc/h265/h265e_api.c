@@ -23,6 +23,7 @@
 
 #include "rc.h"
 #include "mpp_enc_cfg_impl.h"
+#include "mpp_packet_impl.h"
 
 #include "h265e_api.h"
 #include "h265e_slice.h"
@@ -297,6 +298,7 @@ static MPP_RET h265e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
     *length = new_length;
 
     mpp_packet_set_length(pkt, offset + new_length);
+    mpp_packet_add_segment_info(pkt, NAL_SEI_PREFIX, offset, new_length);
 
     return MPP_OK;
 }
