@@ -454,8 +454,10 @@ static MPP_RET h265e_proc_split_cfg(MppEncH265SliceCfg *dst, MppEncSliceSplit *s
         if (src->split_mode == MPP_ENC_SPLIT_BY_CTU)
             dst->split_mode = 1;
         dst->slice_size =  src->split_arg;
+        dst->slice_out = src->split_out;
     } else {
         dst->split_enable = 0;
+        dst->slice_out = 0;
     }
 
     return MPP_OK;

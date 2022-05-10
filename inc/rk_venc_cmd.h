@@ -902,6 +902,7 @@ typedef struct MppEncH265SliceCfg_t {
      * when splitmode is 1, this value presents lcu line number
      */
     RK_U32  slice_size;
+    RK_U32  slice_out;
     RK_U32  loop_filter_across_slices_enabled_flag;
 } MppEncH265SliceCfg;
 
@@ -1094,6 +1095,7 @@ typedef enum MppEncSliceSplit_e {
     /* change on quant parameter */
     MPP_ENC_SPLIT_CFG_CHANGE_MODE           = (1 << 0),
     MPP_ENC_SPLIT_CFG_CHANGE_ARG            = (1 << 1),
+    MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT         = (1 << 2),
     MPP_ENC_SPLIT_CFG_CHANGE_ALL            = (0xFFFFFFFF),
 } MppEncSliceSplitChange;
 
@@ -1124,6 +1126,14 @@ typedef struct MppEncSliceSplit_t {
      * for each slice.
      */
     RK_U32  split_arg;
+
+    /*
+     * slice split output mode
+     *
+     * 0    - output all slice in one packet
+     * 1    - output each slice in a single packet
+     */
+    RK_U32  split_out;
 } MppEncSliceSplit;
 
 /**

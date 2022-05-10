@@ -447,6 +447,9 @@ static MPP_RET h264e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src
     if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
         dst->split_arg = src->split_arg;
 
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT)
+        dst->split_out = src->split_out;
+
     dst->change |= change;
     src->change = 0;
 

@@ -244,6 +244,7 @@ public:
     /* split config */ \
     ENTRY(split, mode,          U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
     ENTRY(split, arg,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg) \
+    ENTRY(split, out,           U32, RK_U32,            MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT,        split, split_out) \
     /* hardware detail config */ \
     ENTRY(hw,   qp_row,         S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QP_ROW,           hw, qp_delta_row) \
     ENTRY(hw,   qp_row_i,       S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QP_ROW_I,         hw, qp_delta_row_i) \
@@ -352,7 +353,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1555, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1560, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;
