@@ -17,11 +17,13 @@
 #ifndef __MPP_PACKET_IMPL_H__
 #define __MPP_PACKET_IMPL_H__
 
-#include "mpp_meta.h"
+#include "mpp_packet.h"
 
 #define MPP_PACKET_FLAG_EOS             (0x00000001)
 #define MPP_PACKET_FLAG_EXTRA_DATA      (0x00000002)
 #define MPP_PACKET_FLAG_INTERNAL        (0x00000004)
+
+#define MPP_PKT_SEG_CNT_DEFAULT         8
 
 typedef union MppPacketStatus_t {
     RK_U32  val;
@@ -66,6 +68,12 @@ typedef struct MppPacketImpl_t {
     MppBuffer       buffer;
     MppMeta         meta;
     MppTask         task;
+
+    RK_U32          segment_nb;
+    RK_U32          segment_buf_cnt;
+    MppPktSeg       segments_def[MPP_PKT_SEG_CNT_DEFAULT];
+    MppPktSeg       *segments_ext;
+    MppPktSeg       *segments;
 } MppPacketImpl;
 
 #ifdef __cplusplus
@@ -77,10 +85,15 @@ extern "C" {
 MPP_RET mpp_packet_reset(MppPacketImpl *packet);
 MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src);
 MPP_RET mpp_packet_append(MppPacket dst, MppPacket src);
+
 MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status);
 MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status);
 void    mpp_packet_set_task(MppPacket packet, MppTask task);
 MppTask mpp_packet_get_task(MppPacket packet);
+
+void    mpp_packet_reset_segment(MppPacket packet);
+void    mpp_packet_set_segment_nb(MppPacket packet);
+MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset, RK_S32 len);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
