@@ -1872,8 +1872,6 @@ MPP_RET h265d_parse(void *ctx, HalDecTask *task)
     h265d_dbg(H265D_DBG_GLOBAL, "decode poc = %d", s->poc);
     if (s->ref) {
         h265d_parser2_syntax(h265dctx);
-        if (!task->flags.parse_err)
-            s->ps_need_upate = 0;
 
         s->task->syntax.data = s->hal_pic_private;
         s->task->syntax.number = 1;
@@ -2097,9 +2095,9 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
 {
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HalDecTask *task_dec = (HalDecTask *)err_info;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
 
     if (!h265dctx->cfg->base.disable_error) {
-        HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
         MppFrame frame = NULL;
         RK_U32 i = 0;
 
@@ -2116,6 +2114,10 @@ MPP_RET h265d_callback(void *ctx, void *err_info)
             }
         }
     }
+
+    if (!task_dec->flags.parse_err)
+        s->ps_need_upate = 0;
+
     (void) err_info;
 
     return MPP_OK;
