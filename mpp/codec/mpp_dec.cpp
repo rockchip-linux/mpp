@@ -300,15 +300,11 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             dec_dbg_reset("reset: vproc reset done\n");
         }
 
-        // wait hal thread reset ready
-        if (task->wait.info_change) {
-            mpp_log("reset at info change status\n");
-            mpp_buf_slot_reset(frame_slots, task_dec->output);
-        }
-
         if (task->status.task_parsed_rdy) {
             mpp_log("task no send to hal que must clr current frame hal status\n");
-            mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+            if (task_dec->output >= 0)
+                mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
+
             for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 index = task_dec->refer[i];
                 if (index >= 0)
@@ -345,6 +341,10 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             task->status.dec_pkt_copy_rdy = 0;
             task_dec->input = -1;
         }
+
+        // wait hal thread reset ready
+        if (task->wait.info_change)
+            mpp_log("reset at info change\n");
 
         task->status.task_parsed_rdy = 0;
         // IMPORTANT: clear flag in MppDec context
