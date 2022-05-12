@@ -51,6 +51,8 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     else
         p->api = &hal_vp9d_rkv;
 
+    cfg->support_fast_mode = 1;
+
     p->slots = cfg->frame_slots;
     p->dec_cb = cfg->dec_cb;
     p->fast_mode = cfg->cfg->base.fast_parse;

@@ -109,7 +109,6 @@ typedef struct MppDecImpl_t {
     RK_U32              parser_fast_mode;
     RK_U32              disable_error;
     RK_U32              enable_deinterlace;
-    RK_U32              batch_mode;
 
     // dec parser thread runtime resource context
     MppPacket           mpp_pkt_in;
