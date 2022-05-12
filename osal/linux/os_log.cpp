@@ -20,6 +20,7 @@
 #include <syslog.h>
 
 #include "os_log.h"
+#include "os_env.h"
 
 #define LINE_SZ 1024
 
@@ -38,7 +39,14 @@ static SyslogWrapper syslog_wrapper;
 
 SyslogWrapper::SyslogWrapper()
 {
-    openlog("mpp", LOG_PID | LOG_CONS, LOG_USER);
+    int option = LOG_PID | LOG_CONS;
+    RK_U32 syslog_perror = 0;
+
+    os_get_env_u32("mpp_syslog_perror", &syslog_perror, 0);
+    if (syslog_perror)
+        option |= LOG_PERROR;
+
+    openlog("mpp", option, LOG_USER);
 }
 
 SyslogWrapper::~SyslogWrapper()
