@@ -72,7 +72,7 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
 
     p_hal->dev          = cfg->dev;
     p_hal->cfg          = cfg->cfg;
-    p_hal->slots  = cfg->frame_slots;
+    p_hal->slots        = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
     p_hal->fast_mode    = cfg->cfg->base.fast_parse;
 

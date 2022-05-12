@@ -243,6 +243,7 @@ void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
     cfg->base.type = MPP_CTX_BUTT;
     cfg->base.coding = MPP_VIDEO_CodingUnused;
     cfg->base.hw_type = -1;
+    cfg->base.fast_parse = 1;
 }
 
 MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)

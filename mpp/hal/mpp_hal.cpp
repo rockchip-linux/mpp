@@ -112,14 +112,6 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
                 break;
             }
 
-            ret = hal_task_group_init(&p->tasks, cfg->cfg->status.hal_task_count,
-                                      sizeof(HalDecTask));
-            if (ret) {
-                mpp_err_f("hal_task_group_init failed ret %d\n", ret);
-                break;
-            }
-
-            cfg->tasks = p->tasks;
             *ctx = p;
             return MPP_OK;
         }
@@ -142,8 +134,6 @@ MPP_RET mpp_hal_deinit(MppHal ctx)
     MppHalImpl *p = (MppHalImpl*)ctx;
     p->api->deinit(p->ctx);
     mpp_free(p->ctx);
-    if (p->tasks)
-        hal_task_group_deinit(p->tasks);
     mpp_free(p);
     return MPP_OK;
 }
@@ -225,4 +215,3 @@ MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param)
 
     return p->api->control(p->ctx, cmd, param);
 }
-

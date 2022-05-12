@@ -365,20 +365,16 @@ MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
     MppDecBaseCfg *base = &cfg->base;
     MppDecStatusCfg *status = &cfg->status;
 
+    if (status->hal_task_count && !status->hal_support_fast_mode) {
+        if (!p->parser_fast_mode && base->fast_parse) {
+            mpp_err("can not enable fast parse while hal not support\n");
+            base->fast_parse = 0;
+        }
+    }
+
     p->parser_fast_mode     = base->fast_parse;
     p->enable_deinterlace   = base->enable_vproc;
     p->disable_error        = base->disable_error;
-    p->batch_mode           = base->batch_mode;
-
-    if (p->dev) {
-        if (p->batch_mode)
-            mpp_dev_ioctl(p->dev, MPP_DEV_BATCH_ON, NULL);
-        else
-            mpp_dev_ioctl(p->dev, MPP_DEV_BATCH_OFF, NULL);
-    }
-
-    status->hal_task_count  = (base->fast_parse) ? 3 : 2;
-    status->vproc_task_count = 0;
 
     return MPP_OK;
 }
@@ -1667,11 +1663,14 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     MppCodingType coding;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
+    HalTaskGroup tasks = NULL;
     Parser parser = NULL;
     MppHal hal = NULL;
     Mpp *mpp = (Mpp *)cfg->mpp;
     MppDecImpl *p = NULL;
-    MppDecStatusCfg *status = NULL;
+    MppDecCfgSet *dec_cfg = NULL;
+    RK_U32 hal_task_count = 2;
+    RK_U32 support_fast_mode = 0;
 
     mpp_env_get_u32("mpp_dec_debug", &mpp_dec_debug, 0);
     dec_dbg_func("in\n");
@@ -1691,17 +1690,16 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
 
     p->mpp = mpp;
     coding = cfg->coding;
+    dec_cfg = &p->cfg;
 
     mpp_assert(cfg->cfg);
-    mpp_dec_cfg_set_default(&p->cfg);
-    mpp_dec_set_cfg(&p->cfg, cfg->cfg);
+    mpp_dec_cfg_set_default(dec_cfg);
+    mpp_dec_set_cfg(dec_cfg, cfg->cfg);
     mpp_dec_update_cfg(p);
 
     p->dec_cb.callBack = mpp_dec_callback_hal_to_parser;
     p->dec_cb.ctx = p;
     p->dec_cb.cmd = DEC_PARSER_CALLBACK;
-
-    status = &p->cfg.status;
 
     do {
         ret = mpp_buf_slot_init(&frame_slots);
@@ -1716,18 +1714,16 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             break;
         }
 
-        mpp_buf_slot_setup(packet_slots, status->hal_task_count);
-
         MppHalCfg hal_cfg = {
             MPP_CTX_DEC,
             coding,
             frame_slots,
             packet_slots,
-            &p->cfg,
+            dec_cfg,
             &p->dec_cb,
             NULL,
             NULL,
-            NULL,
+            0,
         };
 
         ret = mpp_hal_init(&hal, &hal_cfg);
@@ -1735,6 +1731,25 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_err_f("could not init hal\n");
             break;
         }
+
+        support_fast_mode = hal_cfg.support_fast_mode;
+
+        if (dec_cfg->base.fast_parse && support_fast_mode) {
+            hal_task_count = 3;
+        } else {
+            dec_cfg->base.fast_parse = 0;
+            p->parser_fast_mode = 0;
+        }
+        dec_cfg->status.hal_support_fast_mode = support_fast_mode;
+        dec_cfg->status.hal_task_count = hal_task_count;
+
+        ret = hal_task_group_init(&tasks, hal_task_count, sizeof(HalDecTask));
+        if (ret) {
+            mpp_err_f("hal_task_group_init failed ret %d\n", ret);
+            break;
+        }
+
+        mpp_buf_slot_setup(packet_slots, hal_task_count);
 
         p->hw_info = hal_cfg.hw_info;
         p->dev = hal_cfg.dev;
@@ -1745,7 +1760,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             coding,
             frame_slots,
             packet_slots,
-            &p->cfg,
+            dec_cfg,
             p->hw_info,
         };
 
@@ -1764,7 +1779,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         p->coding = coding;
         p->parser = parser;
         p->hal    = hal;
-        p->tasks  = hal_cfg.tasks;
+        p->tasks  = tasks;
         p->frame_slots  = frame_slots;
         p->packet_slots = packet_slots;
 
@@ -1843,6 +1858,11 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
         dec->parser = NULL;
     }
 
+    if (dec->tasks) {
+        hal_task_group_deinit(dec->tasks);
+        dec->tasks = NULL;
+    }
+
     if (dec->hal) {
         mpp_hal_deinit(dec->hal);
         dec->hal = NULL;
@@ -1862,9 +1882,6 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
         mpp_buf_slot_deinit(dec->packet_slots);
         dec->packet_slots = NULL;
     }
-
-    if (dec->batch_mode)
-        mpp_dev_ioctl(dec->dev, MPP_DEV_BATCH_OFF, NULL);
 
     if (dec->cmd_lock) {
         delete dec->cmd_lock;
