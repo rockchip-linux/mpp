@@ -21,6 +21,7 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
+#include "mpp_packet_impl.h"
 
 #include "h264e_api_v2.h"
 #include "jpege_api_v2.h"
@@ -138,8 +139,13 @@ MPP_RET enc_impl_gen_hdr(EncImpl impl, MppPacket pkt)
 
     MPP_RET ret = MPP_OK;
     EncImplCtx *p = (EncImplCtx *)impl;
-    if (p->api->gen_hdr)
+
+    if (p->api->gen_hdr) {
+        if (pkt)
+            mpp_packet_reset_segment(pkt);
+
         ret = p->api->gen_hdr(p->ctx, pkt);
+    }
 
     return ret;
 }
