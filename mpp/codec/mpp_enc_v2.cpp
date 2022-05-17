@@ -341,6 +341,13 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
             cfg->prep.rotation == MPP_ENC_ROT_270) {
             MPP_SWAP(RK_S32, cfg->prep.width, cfg->prep.height);
         }
+        /* cleanup output change flag to avoid extra change flag bit when user resend the cfg */
+        cfg->rc.change = 0;
+        cfg->prep.change = 0;
+        cfg->hw.change = 0;
+        cfg->codec.change = 0;
+        cfg->split.change = 0;
+        cfg->tune.change = 0;
     } break;
     case MPP_ENC_GET_PREP_CFG : {
         enc_dbg_ctrl("get prep config\n");
