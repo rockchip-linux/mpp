@@ -33,12 +33,14 @@ static void setup_mpp_frame_name(MppFrameImpl *frame)
     frame->name = module_name;
 }
 
-MPP_RET check_is_mpp_frame(void *frame)
+#define check_is_mpp_frame(frame) _check_is_mpp_frame(__FUNCTION__, frame)
+
+MPP_RET _check_is_mpp_frame(const char *func, void *frame)
 {
     if (frame && ((MppFrameImpl*)frame)->name == module_name)
         return MPP_OK;
 
-    mpp_err_f("pointer %p failed on check\n", frame);
+    mpp_err("pointer %p failed on %s check mpp_frame\n", frame, func);
     mpp_abort();
     return MPP_NOK;
 }
