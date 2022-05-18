@@ -3,6 +3,7 @@ include_directories(.)
 include_directories(../../rkenc/common/)
 include_directories(../../rkenc/h264e/)
 include_directories(../../vpu/h264e/)
+include_directories(../../../codec/enc/h264/)
 
 # hal h264 header
 set(HAL_H264E_HDR
@@ -11,6 +12,7 @@ set(HAL_H264E_HDR
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
     hal_h264e_api_v2.c
+    hal_h264e_stream_amend.c
     )
 
 add_library(hal_h264e STATIC

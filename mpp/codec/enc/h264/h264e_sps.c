@@ -161,7 +161,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     sps->chroma_format_idc = H264_CHROMA_420;
 
     // set max frame number and poc lsb according to gop size
-    sps->pic_order_cnt_type = h264->poc_type;
+    sps->pic_order_cnt_type = h264->hw_poc_type;
     sps->log2_max_poc_lsb_minus4 = h264->log2_max_poc_lsb;
     sps->log2_max_frame_num_minus4 = h264->log2_max_frame_num;
 
@@ -248,7 +248,8 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     return MPP_OK;
 }
 
-MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset, RK_S32 *len)
+MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset,
+                            RK_S32 *len, MppEncCfgSet *cfg)
 {
     void *pos = mpp_packet_get_pos(packet);
     void *data = mpp_packet_get_data(packet);
@@ -310,9 +311,11 @@ MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset, RK_
     /* log2_max_frame_num_minus4 */
     mpp_writer_put_ue(bit, sps->log2_max_frame_num_minus4);
     /* pic_order_cnt_type */
-    mpp_writer_put_ue(bit, sps->pic_order_cnt_type);
-
-    if (sps->pic_order_cnt_type == 0) {
+    /* accodring usr cfg cfg->codec.h264.poc_type, hw may no support
+       will convert after get stream
+    */
+    mpp_writer_put_ue(bit, cfg->codec.h264.poc_type);
+    if (cfg->codec.h264.poc_type == 0) {
         /* log2_max_pic_order_cnt_lsb_minus4 */
         mpp_writer_put_ue(bit, sps->log2_max_poc_lsb_minus4);
     }
