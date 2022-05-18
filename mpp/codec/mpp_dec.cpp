@@ -1095,16 +1095,20 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         return MPP_NOK;
 
     if (dec->cfg.base.sort_pts) {
+        MppFrame frame = NULL;
         MppPktTs *pkt_ts = (MppPktTs *)mpp_mem_pool_get(dec->ts_pool);
 
         mpp_assert(pkt_ts);
+        mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &frame);
         pkt_ts->pts = task->ts_cur.pts;
         pkt_ts->dts = task->ts_cur.dts;
         INIT_LIST_HEAD(&pkt_ts->link);
-        mpp_spinlock_lock(&dec->ts_lock);
-        list_add_tail(&pkt_ts->link, &dec->ts_link);
-        list_sort(NULL, &dec->ts_link, ts_cmp);
-        mpp_spinlock_unlock(&dec->ts_lock);
+        if (frame && mpp_frame_get_pts(frame) == pkt_ts->pts) {
+            mpp_spinlock_lock(&dec->ts_lock);
+            list_add_tail(&pkt_ts->link, &dec->ts_link);
+            list_sort(NULL, &dec->ts_link, ts_cmp);
+            mpp_spinlock_unlock(&dec->ts_lock);
+        }
     }
 
     /* generating registers table */
