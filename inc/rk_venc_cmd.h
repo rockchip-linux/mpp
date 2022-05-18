@@ -703,6 +703,7 @@ typedef struct MppEncH264Cfg_t {
      * log2_max_frame_num   - used in sps
      */
     RK_U32              poc_type;
+    RK_U32              hw_poc_type;
     RK_U32              log2_max_poc_lsb;
     RK_U32              log2_max_frame_num;
     RK_U32              gaps_not_allowed;

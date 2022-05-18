@@ -105,11 +105,13 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     case VPU_CLIENT_VEPU1 :
     case VPU_CLIENT_VEPU2 : {
         h264->poc_type = 2;
+        h264->hw_poc_type = 2;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
     } break;
     case VPU_CLIENT_RKVENC : {
         h264->poc_type = 0;
+        h264->hw_poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
         h264->chroma_cb_qp_offset = -6;
@@ -117,6 +119,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     } break;
     default : {
         h264->poc_type = 0;
+        h264->hw_poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
     } break;
@@ -581,7 +584,8 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     h264e_dpb_setup(&p->dpb, p->cfg, &p->sps);
 
     mpp_packet_reset(p->hdr_pkt);
-    h264e_sps_to_packet(&p->sps, p->hdr_pkt, &p->sps_offset, &p->sps_len);
+
+    h264e_sps_to_packet(&p->sps, p->hdr_pkt, &p->sps_offset, &p->sps_len, p->cfg);
     h264e_pps_to_packet(&p->pps, p->hdr_pkt, &p->pps_offset, &p->pps_len);
     p->hdr_len = mpp_packet_get_length(p->hdr_pkt);
 
