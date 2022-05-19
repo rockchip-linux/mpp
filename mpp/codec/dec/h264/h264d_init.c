@@ -420,7 +420,9 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             MppFrameFormat out_fmt = p_Dec->cfg->base.out_fmt;
             MppFrameImpl *impl = (MppFrameImpl *)p_Dec->curframe;
 
-            if ((H264_CHROMA_420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+            if ((H264_CHROMA_400 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
+                fmt = MPP_FMT_YUV400;
+            } else if ((H264_CHROMA_420 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV420SP;
             } else if ((H264_CHROMA_420 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV420SP_10BIT;
