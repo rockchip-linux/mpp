@@ -32,7 +32,7 @@
 #include <limits.h>
 #include <string.h>
 
-#include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 #include "mpp_buf_slot.h"
 #include "mpp_mem_pool.h"

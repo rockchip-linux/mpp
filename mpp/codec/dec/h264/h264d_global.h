@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include "rk_type.h"
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 #include "mpp_mem_pool.h"
 

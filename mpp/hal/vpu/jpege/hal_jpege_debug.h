@@ -17,7 +17,7 @@
 #ifndef __HAL_JPEGE_DEBUG_H__
 #define __HAL_JPEGE_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define HAL_JPEGE_DBG_FUNCTION          (0x00000001)
 #define HAL_JPEGE_DBG_SIMPLE            (0x00000002)

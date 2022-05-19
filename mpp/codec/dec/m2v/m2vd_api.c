@@ -18,11 +18,6 @@
 
 #include <string.h>
 
-#include "mpp_env.h"
-#include "mpp_mem.h"
-#include "mpp_log.h"
-#include "mpp_packet_impl.h"
-
 #include "m2vd_api.h"
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"

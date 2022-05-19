@@ -116,7 +116,7 @@ MppRuntimeService::MppRuntimeService()
         /* Detect hardware buffer type is ion or drm */
         RK_U32 i, j;
         char path[MAX_DTS_PATH_LEN];
-        RK_U32 path_len = MAX_DTS_PATH_LEN;
+        RK_U32 path_len = MAX_DTS_PATH_LEN - 1;
         RK_U32 dts_path_len = snprintf(path, path_len, "%s", mpp_dts_base);
         char *p = path + dts_path_len;
         RK_U32 allocator_found = 0;

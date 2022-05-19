@@ -20,7 +20,6 @@
 #include "mpp_parse_cfg.h"
 
 #include "mpp_log.h"
-#include "rk_type.h"
 
 #define ARRAY_SIZE(x)   (sizeof(x) / sizeof(x[0]))
 

@@ -25,8 +25,7 @@
 
 #include "mpp_event_trigger.h"
 
-#include "mpp_log.h"
-#include "rk_type.h"
+#include "mpp_debug.h"
 
 struct event_ctx_impl {
     int (*notify)(void *param);

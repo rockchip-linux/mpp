@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 
 #include "av1d_parser.h"

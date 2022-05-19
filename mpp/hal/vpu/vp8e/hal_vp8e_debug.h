@@ -17,7 +17,7 @@
 #ifndef __HAL_VP8E_DEBUG_H__
 #define __HAL_VP8E_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define VP8E_DBG_HAL_FUNCTION           (0x00000001)
 #define VP8E_DBG_HAL_REG                (0x00000002)

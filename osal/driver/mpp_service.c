@@ -21,9 +21,9 @@
 #include <errno.h>
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "osal_2str.h"
 

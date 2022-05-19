@@ -16,7 +16,7 @@
 #ifndef __H265E_CODEC_H__
 #define __H265E_CODEC_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #include "mpp_common.h"
 #include "mpp_rc.h"

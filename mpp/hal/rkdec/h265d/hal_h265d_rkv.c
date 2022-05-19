@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"

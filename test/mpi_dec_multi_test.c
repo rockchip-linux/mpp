@@ -21,6 +21,8 @@
 #define MODULE_TAG "mpi_dec_multi_test"
 
 #include <string.h>
+#include <pthread.h>
+
 #include "rk_mpi.h"
 
 #include "mpp_mem.h"
@@ -28,9 +30,7 @@
 #include "mpp_time.h"
 #include "mpp_common.h"
 
-#include "utils.h"
 #include "mpi_dec_utils.h"
-#include <pthread.h>
 
 /* For each instance thread setup */
 typedef struct {

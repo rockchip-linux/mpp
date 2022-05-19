@@ -16,7 +16,7 @@
 
 #define MODULE_TAG "mpp_compat"
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "mpp_compat.h"

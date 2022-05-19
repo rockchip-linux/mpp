@@ -30,7 +30,6 @@
 #include "mpp_time.h"
 #include "mpp_common.h"
 
-#include "utils.h"
 #include "mpi_dec_utils.h"
 
 typedef struct {

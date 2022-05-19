@@ -19,9 +19,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 
 #include "h263d_syntax.h"
 #include "hal_h263d_api.h"

@@ -18,13 +18,9 @@
 #ifndef __MPP_BITPUT_H__
 #define __MPP_BITPUT_H__
 
-#include <stdio.h>
-#include <assert.h>
-
 #include "rk_type.h"
-#include "mpp_log.h"
-#include "mpp_common.h"
 #include "mpp_err.h"
+#include "mpp_common.h"
 
 typedef struct bitput_ctx_t {
     RK_U32          buflen;         //!< max buf length, 64bit uint

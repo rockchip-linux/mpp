@@ -15,11 +15,12 @@
  */
 
 #define MODULE_TAG "hal_vp8d_vdpu2"
+
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 
 #include "hal_vp8d_vdpu2.h"
 #include "hal_vp8d_vdpu2_reg.h"

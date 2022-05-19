@@ -23,10 +23,10 @@
 #include <unistd.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_time.h"
 #include "mpp_list.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "vpu.h"

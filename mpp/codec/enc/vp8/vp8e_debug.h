@@ -17,9 +17,7 @@
 #ifndef __VP8E_DEBUG_H__
 #define __VP8E_DEBUG_H__
 
-#include "rk_type.h"
-
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define VP8E_DBG_RC_FUNCTION            (0x00010000)
 #define VP8E_DBG_RC_BPS                 (0x00020000)

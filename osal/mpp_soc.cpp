@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "mpp_soc.h"

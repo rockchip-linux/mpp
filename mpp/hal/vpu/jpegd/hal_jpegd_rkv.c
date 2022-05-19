@@ -20,8 +20,8 @@
 #include <stdint.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
 
@@ -743,7 +743,7 @@ MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task)
         mpp_buf_slot_get_prop(ctx->frame_slots, task->dec.output, SLOT_BUFFER, &outputBuf);
         base = mpp_buffer_get_ptr(outputBuf);
 
-        snprintf(name, sizeof(name), "/data/tmp/output%02d.yuv", ctx->output_yuv_count);
+        snprintf(name, sizeof(name) - 1, "/data/tmp/output%02d.yuv", ctx->output_yuv_count);
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {
             JpegdSyntax *s = (JpegdSyntax *) task->dec.syntax.data;

@@ -20,9 +20,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "mpp_log.h"
-#include "mpp_common.h"
 #include "mpp_err.h"
+#include "mpp_common.h"
 
 #define   __BITREAD_ERR   __bitread_error
 

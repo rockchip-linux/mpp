@@ -18,8 +18,8 @@
 
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_cfg.h"
+#include "mpp_debug.h"
 
 const char *cfg_type_names[] = {
     "RK_S32",

@@ -19,7 +19,7 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "osal_2str.h"
 
 #include "mpp_hal.h"

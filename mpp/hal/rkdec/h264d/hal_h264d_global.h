@@ -20,7 +20,7 @@
 #define __HAL_H264D_GLOBAL_H__
 
 #include "mpp_hal.h"
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "mpp_device.h"
 #include "hal_bufs.h"
 

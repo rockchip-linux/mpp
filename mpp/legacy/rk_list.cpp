@@ -1,8 +1,12 @@
-#define ALOG_TAG "RK_LIST"
-#include "rk_list.h"
-#include <mpp_log.h>
+#define ALOG_TAG "rk_list"
+
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
+
+#include "rk_list.h"
+#include "mpp_log.h"
+
 //#define _RK_LIST_DEUBG
 #define _RK_LIST_ERROR
 

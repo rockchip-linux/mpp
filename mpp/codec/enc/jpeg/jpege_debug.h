@@ -17,7 +17,7 @@
 #ifndef __JPEGE_DEBUG_H__
 #define __JPEGE_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define JPEGE_DBG_FUNCTION          (0x00000001)
 #define JPEGE_DBG_INPUT             (0x00000010)

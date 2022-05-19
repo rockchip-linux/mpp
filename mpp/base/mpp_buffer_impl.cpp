@@ -18,10 +18,10 @@
 
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_hash.h"
 #include "mpp_lock.h"
+#include "mpp_debug.h"
 #include "mpp_mem_pool.h"
 
 #include "mpp_buffer_impl.h"
@@ -912,9 +912,9 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     RK_U32 id = get_group_id();
 
     if (tag) {
-        snprintf(p->tag, sizeof(p->tag), "%s_%d", tag, id);
+        snprintf(p->tag, sizeof(p->tag) - 1, "%s_%d", tag, id);
     } else {
-        snprintf(p->tag, sizeof(p->tag), "unknown");
+        snprintf(p->tag, sizeof(p->tag) - 1, "unknown");
     }
     p->group_id = id;
 

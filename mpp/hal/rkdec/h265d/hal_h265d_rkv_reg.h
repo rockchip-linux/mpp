@@ -29,7 +29,6 @@
 #define __HAL_H265D_REG_H__
 
 #include "rk_type.h"
-#include "mpp_log.h"
 
 #define HEVC_DECODER_REG_NUM        (48)
 #define RKVDEC_REG_PERF_CYCLE_INDEX (64)

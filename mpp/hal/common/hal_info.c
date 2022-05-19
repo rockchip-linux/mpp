@@ -17,8 +17,9 @@
 #include <string.h>
 
 #include "mpp_mem.h"
-#include "mpp_log.h"
 #include "mpp_2str.h"
+#include "mpp_debug.h"
+#include "mpp_common.h"
 
 #include "hal_info.h"
 

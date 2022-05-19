@@ -21,9 +21,9 @@
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_time.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_thread.h"
 
@@ -84,7 +84,7 @@ MppClock mpp_clock_get(const char *name)
     MppClockImpl *impl = mpp_calloc(MppClockImpl, 1);
     if (impl) {
         impl->check = clock_name;
-        snprintf(impl->name, sizeof(impl->name), name, NULL);
+        snprintf(impl->name, sizeof(impl->name) - 1, name, NULL);
     } else
         mpp_err_f("malloc failed\n");
 
@@ -307,7 +307,7 @@ MppTimer mpp_timer_get(const char *name)
         impl->initial  = 1000;
         impl->interval = 1000;
         impl->check = timer_name;
-        snprintf(impl->name, sizeof(impl->name), name, NULL);
+        snprintf(impl->name, sizeof(impl->name) - 1, name, NULL);
 
         return impl;
     } while (0);

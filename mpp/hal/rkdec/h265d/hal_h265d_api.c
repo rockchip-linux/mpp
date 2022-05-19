@@ -20,8 +20,8 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 
 #include "hal_h265d_ctx.h"
 #include "hal_h265d_api.h"
