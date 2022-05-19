@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_list.h"
 #include "mpp_time.h"

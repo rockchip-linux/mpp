@@ -18,8 +18,7 @@
 #include <sys/mman.h>
 
 #include "mpp_mem.h"
-#include "mpp_log.h"
-#include "os_mem.h"
+#include "mpp_debug.h"
 
 #include "allocator_ext_dma.h"
 

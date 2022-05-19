@@ -17,7 +17,6 @@
 
 #define MODULE_TAG "hal_avsd_reg"
 
-#include "mpp_log.h"
 #include "mpp_common.h"
 
 #include "avsd_syntax.h"

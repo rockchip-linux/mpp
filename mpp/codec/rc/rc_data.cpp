@@ -17,9 +17,9 @@
 #define MODULE_TAG "rc_data"
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_list.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "rc_data.h"

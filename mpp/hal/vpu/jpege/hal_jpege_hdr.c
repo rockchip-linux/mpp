@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "hal_jpege_hdr.h"

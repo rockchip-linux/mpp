@@ -17,6 +17,8 @@
 #ifndef __AVSD_PARSE_H__
 #define __AVSD_PARSE_H__
 
+#include "mpp_debug.h"
+
 #include "parser_api.h"
 #include "mpp_bitread.h"
 

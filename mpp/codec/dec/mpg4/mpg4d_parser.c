@@ -20,15 +20,15 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 
 #include "mpg4d_parser.h"
 #include "mpg4d_syntax.h"
 
-
 RK_U32 mpg4d_debug = 0;
+
 #define mpg4d_dbg(flag, fmt, ...)   _mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 

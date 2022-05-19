@@ -17,7 +17,7 @@
 #ifndef __RC_DEBUG_H__
 #define __RC_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define RC_DBG_FUNCTION             (0x00000001)
 #define RC_DBG_API_IMPL             (0x00000002)

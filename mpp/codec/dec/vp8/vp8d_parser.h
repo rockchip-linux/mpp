@@ -18,8 +18,7 @@
 #ifndef __VP8D_PARSER_H__
 #define __VP8D_PARSER_H__
 
-#include "mpp_bitread.h"
-#include "mpp_mem.h"
+#include <stdio.h>
 
 #include "parser_api.h"
 #include "vp8d_syntax.h"

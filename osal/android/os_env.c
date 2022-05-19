@@ -64,7 +64,7 @@ RK_S32 os_get_env_str(const char *name, const char **value, const char *default_
 RK_S32 os_set_env_u32(const char *name, RK_U32 value)
 {
     char buf[PROP_VALUE_MAX + 1 + 2];
-    snprintf(buf, sizeof(buf), "0x%x", value);
+    snprintf(buf, sizeof(buf) - 1, "0x%x", value);
     int len = __system_property_set(name, buf);
     return (len) ? (0) : (-1);
 }

@@ -21,12 +21,12 @@
 
 #include "rk_mpi.h"
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_time.h"
 #include "mpp_impl.h"
 #include "mpp_2str.h"
+#include "mpp_debug.h"
 
 #include "mpp.h"
 #include "mpp_hal.h"

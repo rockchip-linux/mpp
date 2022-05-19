@@ -18,8 +18,8 @@
 
 #include <pthread.h>
 
-#include "mpp_log.h"
 #include "mpp_time.h"
+#include "mpp_debug.h"
 #include "mpp_meta_impl.h"
 
 #define TEST_MAX    2

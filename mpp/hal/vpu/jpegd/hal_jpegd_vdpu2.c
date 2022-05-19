@@ -21,8 +21,8 @@
 #include <stdint.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
 
@@ -974,7 +974,7 @@ MPP_RET hal_jpegd_vdpu2_wait(void *hal, HalTaskInfo *task)
                               SLOT_BUFFER, &outputBuf);
         base = mpp_buffer_get_ptr(outputBuf);
 
-        snprintf(name, sizeof(name), "/tmp/output%02d.yuv",
+        snprintf(name, sizeof(name) - 1, "/tmp/output%02d.yuv",
                  JpegHalCtx->output_yuv_count);
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {

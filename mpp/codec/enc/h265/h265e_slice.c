@@ -18,7 +18,7 @@
 
 #include <string.h>
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 #include "h265e_codec.h"
 #include "h265e_slice.h"
 

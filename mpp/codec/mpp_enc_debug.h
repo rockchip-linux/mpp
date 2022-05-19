@@ -17,7 +17,7 @@
 #ifndef __MPP_ENC_DEBUG_H__
 #define __MPP_ENC_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)
 #define MPP_ENC_DBG_CONTROL             (0x00000002)

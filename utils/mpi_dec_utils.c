@@ -20,11 +20,9 @@
 #include <pthread.h>
 
 #include "rk_mpi.h"
-#include "utils.h"
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
-#include "mpp_log.h"
 #include "mpp_lock.h"
 #include "mpp_time.h"
 #include "mpp_common.h"

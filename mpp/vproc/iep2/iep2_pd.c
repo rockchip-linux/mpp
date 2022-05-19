@@ -24,7 +24,6 @@
 #include <stdlib.h>
 
 #include "mpp_common.h"
-#include "mpp_log.h"
 #include "iep_common.h"
 
 #include "iep2.h"

@@ -22,10 +22,10 @@
 #include <dlfcn.h>
 #include <unistd.h>
 
-#include "mpp_log.h"
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_env.h"
+#include "mpp_debug.h"
 #include "mpp_platform.h"
 
 #include "hal_mpg4d_api.h"

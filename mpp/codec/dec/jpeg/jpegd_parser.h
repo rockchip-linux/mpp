@@ -21,7 +21,6 @@
 #include <limits.h>
 #include <string.h>
 
-#include "mpp_mem.h"
 #include "mpp_bitread.h"
 
 #include "jpegd_syntax.h"

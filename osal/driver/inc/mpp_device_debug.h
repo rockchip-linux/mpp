@@ -17,7 +17,7 @@
 #ifndef __MPP_DEVICE_DEBUG_H__
 #define __MPP_DEVICE_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define MPP_DEVICE_DBG_FUNC                 (0x00000001)
 #define MPP_DEVICE_DBG_PROBE                (0x00000002)

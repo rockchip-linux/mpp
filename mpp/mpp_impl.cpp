@@ -25,9 +25,9 @@
 #include "rk_mpi_cmd.h"
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_time.h"
+#include "mpp_debug.h"
 #include "mpp_thread.h"
 #include "mpp_common.h"
 
@@ -122,7 +122,7 @@ static FILE *try_env_file(const char *env, const char *path, pid_t tid)
 
     mpp_env_get_str(env, &fname, path);
     if (fname == path) {
-        snprintf(name, sizeof(name), "%s-%d", path, tid);
+        snprintf(name, sizeof(name) - 1, "%s-%d", path, tid);
         fname = name;
     }
 

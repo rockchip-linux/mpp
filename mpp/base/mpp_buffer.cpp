@@ -18,8 +18,8 @@
 
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_buffer_impl.h"
 
 MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer,

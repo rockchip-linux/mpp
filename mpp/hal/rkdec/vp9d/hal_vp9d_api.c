@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "mpp_env.h"
-#include "mpp_log.h"
 
 #include "hal_vp9d_debug.h"
 #include "hal_vp9d_api.h"

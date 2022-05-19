@@ -17,7 +17,7 @@
 #ifndef __H264E_DEBUG_H__
 #define __H264E_DEBUG_H__
 
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define H264E_DBG_FUNCTION          (0x00000001)
 #define H264E_DBG_FLOW              (0x00000002)

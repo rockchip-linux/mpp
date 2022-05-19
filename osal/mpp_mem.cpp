@@ -18,13 +18,10 @@
 
 #include <string.h>
 
-#include "rk_type.h"
-#include "mpp_err.h"
-
-#include "mpp_log.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_list.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "os_mem.h"

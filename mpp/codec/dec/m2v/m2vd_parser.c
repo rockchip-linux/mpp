@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "mpp_env.h"
+#include "mpp_debug.h"
 #include "mpp_packet_impl.h"
 
 #include "m2vd_parser.h"

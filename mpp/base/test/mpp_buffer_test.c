@@ -21,8 +21,8 @@
 #if defined(_WIN32)
 #include "vld.h"
 #endif
-#include "mpp_log.h"
 #include "mpp_env.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_buffer.h"
 #include "mpp_allocator.h"

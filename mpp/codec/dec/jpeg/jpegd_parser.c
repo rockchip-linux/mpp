@@ -22,6 +22,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_soc.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
 
@@ -993,7 +994,7 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         static FILE *jpg_file;
         static char name[32];
 
-        snprintf(name, sizeof(name), "/data/input%02d.jpg",
+        snprintf(name, sizeof(name) - 1, "/data/input%02d.jpg",
                  JpegCtx->input_jpeg_count);
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {

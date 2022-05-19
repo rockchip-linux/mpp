@@ -28,7 +28,6 @@
 #include "mpp_time.h"
 #include "mpp_common.h"
 #include "mpi_dec_utils.h"
-#include "utils.h"
 
 typedef struct {
     MpiDecTestCmd   *cmd;

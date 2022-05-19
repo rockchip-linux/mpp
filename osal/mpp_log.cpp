@@ -20,29 +20,26 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "mpp_log.h"
-#include "mpp_mem.h"
+#include "mpp_env.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 
 #include "os_log.h"
 
 #define MPP_LOG_MAX_LEN     256
 
-typedef void (*mpp_log_callback)(const char*, const char*, va_list);
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 RK_U32 mpp_debug = 0;
-static RK_U32 mpp_log_enabled = 1;
 
 // TODO: add log timing information and switch flag
 static const char *msg_log_warning = "log message is long\n";
 static const char *msg_log_nothing = "\n";
+static int mpp_log_level = MPP_LOG_INFO;
 
-static void __mpp_log(mpp_log_callback func, const char *tag, const char *fmt,
+static void __mpp_log(os_log_callback func, const char *tag, const char *fmt,
                       const char *fname, va_list args)
 {
     char msg[MPP_LOG_MAX_LEN + 1];
@@ -83,32 +80,78 @@ void _mpp_log(const char *tag, const char *fmt, const char *fname, ...)
 {
     va_list args;
 
-    if (!mpp_log_enabled)
-        return;
+    mpp_logw("warning: use new logx function\n");
 
     va_start(args, fname);
-    __mpp_log(os_log, tag, fmt, fname, args);
+    __mpp_log(os_log_info, tag, fmt, fname, args);
     va_end(args);
 }
 
 void _mpp_err(const char *tag, const char *fmt, const char *fname, ...)
 {
     va_list args;
+
+    mpp_logw("warning: use new logx function\n");
+
     va_start(args, fname);
-    __mpp_log(os_err, tag, fmt, fname, args);
+    __mpp_log(os_log_error, tag, fmt, fname, args);
     va_end(args);
 }
 
-void mpp_log_enable(RK_S32 id)
+void _mpp_log_l(int level, const char *tag, const char *fmt, const char *fname, ...)
 {
-    (void)id;
-    mpp_log_enabled = 1;
+    static os_log_callback log_func[] = {
+        NULL,           /* MPP_LOG_DEFAULT */
+        os_log_fatal,   /* MPP_LOG_FATAL   */
+        os_log_error,   /* MPP_LOG_ERROR   */
+        os_log_warn,    /* MPP_LOG_WARN   */
+        os_log_info,    /* MPP_LOG_INFO    */
+        os_log_debug,   /* MPP_LOG_DEBUG   */
+        os_log_trace,   /* MPP_LOG_VERBOSE */
+        os_log_info,    /* MPP_LOG_DEFAULT */
+    };
+
+    va_list args;
+    int log_level;
+
+    if (level <= MPP_LOG_UNKNOWN || level >= MPP_LOG_SILENT)
+        return;
+
+    log_level = mpp_log_level;
+    if (log_level >= MPP_LOG_SILENT)
+        return;
+
+    if (level > log_level)
+        return;
+
+    va_start(args, fname);
+    __mpp_log(log_func[level], tag, fmt, fname, args);
+    va_end(args);
 }
 
-void mpp_log_disable(RK_S32 id)
+void mpp_set_log_level(int level)
 {
-    (void)id;
-    mpp_log_enabled = 0;
+    if (level <= MPP_LOG_UNKNOWN || level > MPP_LOG_SILENT) {
+        mpp_logw("log level should in range [%d : %d] invalid intput %d\n",
+                 MPP_LOG_FATAL, MPP_LOG_SILENT, level);
+        level = MPP_LOG_INFO;
+    }
+
+    mpp_log_level = level;
+}
+
+int mpp_get_log_level(void)
+{
+    int level;
+
+    mpp_env_get_u32("mpp_log_level", (RK_U32 *)&level, mpp_log_level);
+
+    if (level <= MPP_LOG_UNKNOWN || level > MPP_LOG_SILENT)
+        level = MPP_LOG_INFO;
+
+    mpp_log_level = level;
+
+    return level;
 }
 
 #ifdef __cplusplus

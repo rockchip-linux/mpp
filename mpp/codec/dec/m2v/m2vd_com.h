@@ -20,8 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rk_type.h"
-#include "mpp_log.h"
+#include "mpp_debug.h"
 
 #define M2VD_DEMO_MODE         0
 

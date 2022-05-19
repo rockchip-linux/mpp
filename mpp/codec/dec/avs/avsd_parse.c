@@ -21,7 +21,6 @@
 #include <stdlib.h>
 
 #include "mpp_mem.h"
-#include "mpp_log.h"
 #include "mpp_packet_impl.h"
 #include "hal_dec_task.h"
 

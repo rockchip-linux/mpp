@@ -19,7 +19,7 @@
 
 #include <stdlib.h>
 
-#include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_bitread.h"
 
 #include "parser_api.h"

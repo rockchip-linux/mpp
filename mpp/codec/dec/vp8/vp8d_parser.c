@@ -18,10 +18,13 @@
 
 #include <string.h>
 
+#include "mpp_env.h"
+#include "mpp_mem.h"
+#include "mpp_debug.h"
+#include "mpp_frame.h"
+
 #include "vp8d_parser.h"
 #include "vp8d_codec.h"
-#include "mpp_frame.h"
-#include "mpp_env.h"
 
 #define FUN_T(tag) \
     do {\

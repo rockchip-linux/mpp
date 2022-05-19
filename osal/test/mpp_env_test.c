@@ -15,6 +15,7 @@
  */
 
 #define MODULE_TAG "mpp_env_test"
+
 #include "mpp_env.h"
 #include "mpp_log.h"
 

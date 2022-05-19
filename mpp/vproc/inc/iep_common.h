@@ -17,8 +17,7 @@
 #ifndef __IEP_COMMON_H__
 #define __IEP_COMMON_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "mpp_debug.h"
 
 #define IEP_DBG_FUNCTION            (0x00000001)
 #define IEP_DBG_TRACE               (0x00000002)

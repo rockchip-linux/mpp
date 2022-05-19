@@ -16,7 +16,6 @@
 
 #include <string.h>
 
-#include "rk_type.h"
 #include "mpp_log.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
@@ -79,7 +78,7 @@ static RK_S32 rga_test_parse_options(int argc, char **argv, RgaTestCmd *cmd)
             switch (*opt) {
             case 'i' :
                 if (next) {
-                    strncpy(cmd->input_file, next, MAX_NAME_LENGTH);
+                    strncpy(cmd->input_file, next, MAX_NAME_LENGTH - 1);
                     cmd->input_file[strlen(next)] = '\0';
                     cmd->have_input = 1;
                 } else {
@@ -89,7 +88,7 @@ static RK_S32 rga_test_parse_options(int argc, char **argv, RgaTestCmd *cmd)
                 break;
             case 'o' :
                 if (next) {
-                    strncpy(cmd->output_file, next, MAX_NAME_LENGTH);
+                    strncpy(cmd->output_file, next, MAX_NAME_LENGTH - 1);
                     cmd->output_file[strlen(next)] = '\0';
                     cmd->have_output = 1;
                 } else {

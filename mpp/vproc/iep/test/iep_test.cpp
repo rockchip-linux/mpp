@@ -18,9 +18,9 @@
 
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_time.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_thread.h"
 #include "mpp_buffer.h"
@@ -475,12 +475,12 @@ int main(int argc, char **argv)
         } break;
         case 'f': {
             mpp_log("input filename: %s\n", optarg);
-            strncpy(cfg.src_url, optarg, sizeof(cfg.src_url));
+            strncpy(cfg.src_url, optarg, sizeof(cfg.src_url) - 1);
             cfg.fp_src = fopen(cfg.src_url, "rb");
         } break;
         case 'F': {
             mpp_log("output filename: %s\n", optarg);
-            strncpy(cfg.dst_url, optarg, sizeof(cfg.dst_url));
+            strncpy(cfg.dst_url, optarg, sizeof(cfg.dst_url) - 1);
             cfg.fp_dst = fopen(cfg.dst_url, "w+b");
         } break;
         case 'm': {
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
         } break;
         case 'x': {
             mpp_log("configure filename: %s\n", optarg);
-            strncpy(cfg.cfg_url, optarg, sizeof(cfg.cfg_url));
+            strncpy(cfg.cfg_url, optarg, sizeof(cfg.cfg_url) - 1);
             cfg.ini = iniparser_load(cfg.cfg_url);
             if (cfg.ini)
                 parse_cfg(&cfg);

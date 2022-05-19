@@ -38,9 +38,9 @@ MppThread::MppThread(MppThreadFunc func, void *ctx, const char *name)
     mStatus[THREAD_CONTROL] = MPP_THREAD_RUNNING;
 
     if (name)
-        strncpy(mName, name, sizeof(mName));
+        strncpy(mName, name, sizeof(mName) - 1);
     else
-        snprintf(mName, sizeof(mName), "mpp_thread");
+        snprintf(mName, sizeof(mName) - 1, "mpp_thread");
 }
 
 MppThreadStatus MppThread::get_status(MppThreadSignal id)
