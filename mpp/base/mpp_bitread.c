@@ -35,6 +35,7 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
         ++bitctx->data_;
         --bitctx->bytes_left_;
         ++bitctx->emulation_prevention_bytes_;
+        bitctx->used_bits += 8;
         // Need another full three bytes before we can detect the sequence again.
         bitctx->prev_two_bytes_ = 0xffff;
         if (bitctx->bytes_left_ < 1)
