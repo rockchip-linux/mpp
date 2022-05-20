@@ -160,6 +160,8 @@ if(GCC)
     if($(CMAKE_BUILD_TYPE) MATCHES "Release")
         set(CMAKE_C_VISIBILITY_PRESET hidden)
         set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    else()
+        add_definitions(-g)
     endif()
 
     # disable multichar warning
