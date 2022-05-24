@@ -247,10 +247,14 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     } break;
     }
 
-    if (MPP_FRAME_FMT_IS_FBC(p->fmt))
-        p->header_size = MPP_ALIGN(MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16, SZ_4K);
-    else
+    if (MPP_FRAME_FMT_IS_FBC(p->fmt)) {
+        if ((p->fmt & MPP_FRAME_FBC_MASK) == MPP_FRAME_FBC_AFBC_V1)
+            p->header_size = MPP_ALIGN(MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+        else
+            p->header_size = MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16;
+    } else {
         p->header_size = 0;
+    }
 
     return ret;
 }
