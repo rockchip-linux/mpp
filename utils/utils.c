@@ -434,7 +434,12 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         RK_U32 align_w = MPP_ALIGN(width, 16);
         RK_U32 align_h = MPP_ALIGN(height, 16);
-        RK_U32 header_size = MPP_ALIGN(align_w * align_h / 16, SZ_4K);
+        RK_U32 header_size = 0;
+
+        if ((fmt & MPP_FRAME_FBC_MASK) == MPP_FRAME_FBC_AFBC_V1)
+            header_size = MPP_ALIGN(align_w * align_h / 16, SZ_4K);
+        else
+            header_size = align_w * align_h / 16;
 
         /* read fbc header first */
         read_size = fread(buf, 1, header_size, fp);
