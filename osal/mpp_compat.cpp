@@ -27,7 +27,16 @@ static MppCompat compats[] = {
         MPP_COMPAT_INC_FBC_BUF_SIZE,
         MPP_COMPAT_BOOL,
         1,
+#if defined(__ANDROID__)
+        /*
+         * The codecs might need extra lines for deblock output, but the
+         * android world rather risk memory overflow than using the correct
+         * buf size.
+         */
         0,
+#else
+        1,
+#endif
         "increase decoder fbc buffer size",
         &compats[1],
     },

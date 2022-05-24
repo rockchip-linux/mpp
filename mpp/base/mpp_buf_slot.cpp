@@ -258,7 +258,6 @@ static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
 
     /* AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 and !AFBC_FORMAT_MOD_TILED */
     width = MPP_ALIGN(width, 16);
-    /* NOTE: Add extra 16 line for deblock output */
     height = MPP_ALIGN(height, 16);
     hdr_alignment = AFBC_HDR_ALIGN;
 
