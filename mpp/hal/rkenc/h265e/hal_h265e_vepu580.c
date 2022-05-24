@@ -1471,7 +1471,9 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt, 
     reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 
-    if (prep_cfg->hor_stride) {
+    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
+        stridey = MPP_ALIGN(prep_cfg->width, 16);
+    } else if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
         if (fmt->format == VEPU541_FMT_BGRA8888 )
