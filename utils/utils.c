@@ -456,7 +456,11 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
                 goto err;
             }
         } break;
-        case MPP_FMT_YUV422SP : {
+        case MPP_FMT_YUV422SP :
+        case MPP_FMT_YUV422_YUYV :
+        case MPP_FMT_YUV422_YVYU :
+        case MPP_FMT_YUV422_UYVY :
+        case MPP_FMT_YUV422_VYUY : {
             read_size = fread(buf, 1, align_w * align_h * 2, fp);
             if (read_size != align_w * align_h * 2) {
                 mpp_err_f("read 422sp fbc file payload failed %d vs %d\n",
