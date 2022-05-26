@@ -9,4 +9,4 @@ SET(CMAKE_SYSTEM_PROCESSOR "armv7-a")
 
 add_definitions(-fPIC)
 add_definitions(-DARMLINUX)
-add_definitions(-D__gnu_linux__)
+add_definitions(-Dlinux)

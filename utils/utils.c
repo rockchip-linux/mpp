@@ -17,6 +17,7 @@
 #define MODULE_TAG "utils"
 
 #include <ctype.h>
+#include <limits.h>
 #include <string.h>
 
 #include "mpp_mem.h"
@@ -196,10 +197,10 @@ void wide_bit_sum(RK_U8 *data, RK_U32 len, RK_ULONG *sum)
     RK_U8   *data8 = NULL;
     RK_U32  loop;
     data8 = data;
-#if __WORDSIZE == 32
+#if LONG_MAX == INT_MAX
     RK_U16 *data_rk = NULL;
     data_rk = (RK_U16 *)data;
-#elif __WORDSIZE == 64
+#else
     RK_U32 *data_rk = NULL;
     data_rk = (RK_U32 *)data;
 #endif

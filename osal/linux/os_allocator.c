@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#if defined(__gnu_linux__)
+#if defined(linux) && !defined(__ANDROID__)
 #include "mpp_log.h"
 #include "mpp_runtime.h"
 
