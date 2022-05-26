@@ -82,7 +82,7 @@ MPP_RET avsd_init(void *decoder, ParserCfg *init)
     p_dec->frame_slots = init->frame_slots;
     p_dec->packet_slots = init->packet_slots;
     //!< decoder parameters
-    mpp_buf_slot_setup(p_dec->frame_slots, 5);
+    mpp_buf_slot_setup(p_dec->frame_slots, 12);
     p_dec->mem = mpp_calloc(AvsdMemory_t, 1);
     MEM_CHECK(ret, p_dec->mem);
     p_dec->p_header = &p_dec->mem->headerbuf;
@@ -205,6 +205,8 @@ MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
             avsd_flush(decoder);
         }
         p_dec->has_get_eos = 1;
+        task->flags.eos = p_dec->has_get_eos;
+        goto __RETURN;
     }
     if (mpp_packet_get_length(pkt) > MAX_STREAM_SIZE) {
         AVSD_DBG(AVSD_DBG_ERROR, "[pkt_in_timeUs] input error, stream too large");
