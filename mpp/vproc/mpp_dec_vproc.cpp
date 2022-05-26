@@ -592,7 +592,7 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     p->slots = ((MppDecImpl *)p->mpp->mDec)->frame_slots;
     p->thd = new MppThread(dec_vproc_thread, p, "mpp_dec_vproc");
     sem_init(&p->reset_sem, 0, 0);
-    ret = hal_task_group_init(&p->task_group, 4, sizeof(HalDecVprocTask));
+    ret = hal_task_group_init(&p->task_group, TASK_BUTT, 4, sizeof(HalDecVprocTask));
     if (ret) {
         mpp_err_f("create task group failed\n");
         delete p->thd;
