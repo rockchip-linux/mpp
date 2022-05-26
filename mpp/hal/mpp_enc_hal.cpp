@@ -80,7 +80,7 @@ MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg)
                 break;
             }
 
-            ret = hal_task_group_init(&p->tasks, cfg->task_cnt,
+            ret = hal_task_group_init(&p->tasks, TASK_BUTT, cfg->task_cnt,
                                       sizeof(EncAsyncTaskInfo));
             if (ret) {
                 mpp_err_f("hal_task_group_init failed ret %d\n", ret);

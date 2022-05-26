@@ -33,55 +33,64 @@ struct HalTaskImpl_t {
     struct list_head    list;
     HalTaskGroupImpl    *group;
     RK_S32              index;
-    HalTaskStatus       status;
+    RK_S32              status;
     void                *data;
 };
 
 struct HalTaskGroupImpl_t {
-    MppCtxType          type;
+    RK_S32              stage_count;
     RK_S32              task_count;
 
     spinlock_t          lock;
 
-    struct list_head    list[TASK_BUTT];
-    RK_U32              count[TASK_BUTT];
     RK_S32              size;
     RK_S32              aligned_size;
 
-    HalTaskImpl         tasks[];
+    struct list_head    *list;
+    RK_U32              *count;
+    HalTaskImpl         *tasks;
 };
 
-MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count, RK_S32 size)
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 stage_cnt, RK_S32 task_cnt, RK_S32 task_size)
 {
-    if (NULL == group) {
-        mpp_err_f("found invalid input group %p count %d\n", group, count);
+    if (NULL == group || stage_cnt < 0 || task_cnt < 0 || task_size < 0) {
+        mpp_err_f("found invalid input group %p stage %d task %d size %d\n",
+                  group, stage_cnt, task_cnt, task_size);
         return MPP_ERR_UNKNOW;
     }
 
     HalTaskGroupImpl *p = NULL;
-    RK_S32 aligned_size = MPP_ALIGN(size, sizeof(void *));
-    RK_U8 *buf = NULL;
+    RK_S32 aligned_size = MPP_ALIGN(task_size, sizeof(void *));
 
     do {
+        RK_U8 *buf = NULL;
+        RK_S32 i;
+
         p = mpp_calloc_size(HalTaskGroupImpl, sizeof(HalTaskGroupImpl) +
-                            (sizeof(HalTaskImpl) + aligned_size) * count);
+                            (sizeof(HalTaskImpl) + aligned_size) * task_cnt +
+                            (sizeof(struct list_head)) * stage_cnt +
+                            (sizeof(RK_U32)) * stage_cnt);
         if (NULL == p) {
             mpp_err_f("malloc group failed\n");
             break;
         }
 
-        p->task_count = count;
-        p->size = size;
+        p->stage_count = stage_cnt;
+        p->task_count = task_cnt;
+        p->size = task_size;
         p->aligned_size = aligned_size;
+        p->list = (struct list_head *)((HalTaskImpl *)(p + 1));
+        p->count = (RK_U32 *)(p->list + stage_cnt);
+        p->tasks = (HalTaskImpl *)(p->count + stage_cnt);
 
         mpp_spinlock_init(&p->lock);
 
-        for (RK_U32 i = 0; i < TASK_BUTT; i++)
+        for (i = 0; i < stage_cnt; i++)
             INIT_LIST_HEAD(&p->list[i]);
 
-        buf = (RK_U8 *)(((HalTaskImpl *)(p + 1) + count));
+        buf = (RK_U8 *)(p->tasks + task_cnt);
 
-        for (RK_S32 i = 0; i < count; i++) {
+        for (i = 0; i < task_cnt; i++) {
             HalTaskImpl *task = &p->tasks[i];
 
             INIT_LIST_HEAD(&task->list);
@@ -108,7 +117,7 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group)
     return MPP_OK;
 }
 
-MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *hnd)
+MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_S32 status, HalTaskHnd *hnd)
 {
     if (NULL == group || status >= TASK_BUTT || NULL == hnd) {
         mpp_err_f("found invaid input group %p status %d hnd %p\n", group, status, hnd);
@@ -132,7 +141,7 @@ MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *h
     return MPP_OK;
 }
 
-MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status)
+MPP_RET hal_task_check_empty(HalTaskGroup group, RK_S32 status)
 {
     if (NULL == group || status >= TASK_BUTT) {
         mpp_err_f("found invaid input group %p status %d \n", group, status);
@@ -150,7 +159,7 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status)
     return ret;
 }
 
-RK_S32 hal_task_get_count(HalTaskGroup group, HalTaskStatus status)
+RK_S32 hal_task_get_count(HalTaskGroup group, RK_S32 status)
 {
     if (NULL == group || status >= TASK_BUTT) {
         mpp_err_f("found invaid input group %p status %d\n", group, status);
@@ -167,7 +176,7 @@ RK_S32 hal_task_get_count(HalTaskGroup group, HalTaskStatus status)
     return count;
 }
 
-MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status)
+MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, RK_S32 status)
 {
     if (NULL == hnd || status >= TASK_BUTT) {
         mpp_err_f("found invaid input hnd %p status %d\n", hnd, status);

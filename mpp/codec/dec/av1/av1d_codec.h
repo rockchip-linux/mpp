@@ -18,7 +18,7 @@
 #define __AV1D_CODEC_H__
 
 #include "mpp_frame.h"
-#include "hal_task.h"
+
 #include "av1d_cbs.h"
 #include "av1d_syntax.h"
 #include "mpp_bitread.h"

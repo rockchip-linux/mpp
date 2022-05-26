@@ -1747,7 +1747,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         dec_cfg->status.hal_support_fast_mode = support_fast_mode;
         dec_cfg->status.hal_task_count = hal_task_count;
 
-        ret = hal_task_group_init(&tasks, hal_task_count, sizeof(HalDecTask));
+        ret = hal_task_group_init(&tasks, TASK_BUTT, hal_task_count, sizeof(HalDecTask));
         if (ret) {
             mpp_err_f("hal_task_group_init failed ret %d\n", ret);
             break;

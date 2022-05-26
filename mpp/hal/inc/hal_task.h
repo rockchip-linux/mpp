@@ -17,10 +17,8 @@
 #ifndef __HAL_TASK__
 #define __HAL_TASK__
 
+#include "rk_type.h"
 #include "mpp_err.h"
-
-typedef void* HalTaskHnd;
-typedef void* HalTaskGroup;
 
 typedef enum HalTaskStatus_e {
     TASK_IDLE,
@@ -28,6 +26,9 @@ typedef enum HalTaskStatus_e {
     TASK_PROC_DONE,
     TASK_BUTT,
 } HalTaskStatus;
+
+typedef void* HalTaskHnd;
+typedef void* HalTaskGroup;
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +38,8 @@ extern "C" {
  * group init / deinit will be called by hal
  * HalTaskGroup is a group of task list with status
  */
-MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 count, RK_S32 size);
+MPP_RET hal_task_group_init(HalTaskGroup *group, RK_S32 stage_cnt,
+                            RK_S32 task_cnt, RK_S32 task_size);
 MPP_RET hal_task_group_deinit(HalTaskGroup group);
 
 /*
@@ -64,13 +66,13 @@ MPP_RET hal_task_group_deinit(HalTaskGroup group);
  * hal_task_set_hnd(hnd, idle)              - codec mark task is idle
  *
  */
-MPP_RET hal_task_get_hnd(HalTaskGroup group, HalTaskStatus status, HalTaskHnd *hnd);
-RK_S32  hal_task_get_count(HalTaskGroup group, HalTaskStatus status);
-MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, HalTaskStatus status);
+MPP_RET hal_task_get_hnd(HalTaskGroup group, RK_S32 status, HalTaskHnd *hnd);
+RK_S32  hal_task_get_count(HalTaskGroup group, RK_S32 status);
+MPP_RET hal_task_hnd_set_status(HalTaskHnd hnd, RK_S32 status);
 MPP_RET hal_task_hnd_set_info(HalTaskHnd hnd, void *task);
 MPP_RET hal_task_hnd_get_info(HalTaskHnd hnd, void *task);
 void   *hal_task_hnd_get_data(HalTaskHnd hnd);
-MPP_RET hal_task_check_empty(HalTaskGroup group, HalTaskStatus status);
+MPP_RET hal_task_check_empty(HalTaskGroup group, RK_S32 status);
 
 #ifdef __cplusplus
 }
