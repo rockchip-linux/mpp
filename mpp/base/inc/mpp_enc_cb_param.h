@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
+ * Copyright 2022 Rockchip Electronics Co. LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_CB_PARAM_H__
-#define __MPP_DEC_CB_PARAM_H__
+#ifndef __MPP_ENC_CB_PARAM_H__
+#define __MPP_ENC_CB_PARAM_H__
 
 #include "rk_type.h"
 
-typedef enum MppDecCbCmd_e {
-    DEC_CALLBACK_NONE       = 0,
+typedef enum MppEncCbCmd_e {
+    ENC_CALLBACK_NONE       = 0,
 
-    DEC_CALLBACK_BASE       = 0x100,
-    DEC_PARSER_CALLBACK     = (DEC_CALLBACK_BASE + 1),
-    DEC_CALLBACK_CMD_BUTT,
-} MppDecCbCmd;
+    ENC_CALLBACK_BASE       = 0x200,
+    ENC_OUTPUT_FINISH       = (ENC_CALLBACK_BASE + 1),
+    ENC_OUTPUT_SLICE        = (ENC_CALLBACK_BASE + 2),
+    ENC_CALLBACK_CMD_BUTT,
+} MppEncCbCmd;
 
 /* DEC_PARSER_CALLBACK */
-typedef struct DecCallBackParam_t {
+typedef struct EncOutParam_t {
     void    *task;
-    RK_U32  *regs;
-    RK_U32  hard_err;
-} DecCbHalDone;
+    void    *base;
+    RK_S32  start;
+    RK_S32  length;
+} EncOutParam;
 
-#endif /* __MPP_DEC_CB_PARAM_H__ */
+#endif /* __MPP_ENC_CB_PARAM_H__ */
