@@ -82,13 +82,21 @@ typedef struct MppDevSetInfoCfg_t {
     RK_U64  data;
 } MppDevInfoCfg;
 
+typedef union MppDevPollEncSliceInfo_u {
+    RK_U32  val;
+    struct {
+        RK_U32  length  : 31;
+        RK_U32  last    : 1;
+    };
+} MppDevPollEncSliceInfo;
+
 /* for MPP_DEV_POLL */
 typedef struct MppDevPollCfg_t {
     RK_S32  poll_type;
     RK_S32  poll_ret;
     RK_S32  count_max;
     RK_S32  count_ret;
-    RK_S32  slice_len[];
+    MppDevPollEncSliceInfo slice_info[];
 } MppDevPollCfg;
 
 typedef struct MppDevApi_t {
