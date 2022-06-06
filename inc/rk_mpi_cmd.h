@@ -74,6 +74,7 @@ typedef enum {
      */
     MPP_SET_INPUT_TIMEOUT,              /* parameter type RK_S64 */
     MPP_SET_OUTPUT_TIMEOUT,             /* parameter type RK_S64 */
+    MPP_SET_DISABLE_THREAD,             /* MPP no thread mode and use external thread to decode */
 
     MPP_STATE_CMD_BASE                  = CMD_MODULE_MPP | CMD_STATE_OPS,
     MPP_START,
@@ -102,6 +103,8 @@ typedef enum {
     MPP_DEC_SET_IMMEDIATE_OUT,
     MPP_DEC_SET_ENABLE_DEINTERLACE,     /* MPP enable deinterlace by default. Vpuapi can disable it */
     MPP_DEC_SET_ENABLE_FAST_PLAY,       /* enable idr output immediately */
+    MPP_DEC_SET_DISABLE_THREAD,         /* MPP no thread mode and use external thread to decode */
+    MPP_DEC_SET_MAX_USE_BUFFER_SIZE,
 
     MPP_DEC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_QUERY,
     /* query decoder runtime information for decode stage */
