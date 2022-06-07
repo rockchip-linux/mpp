@@ -34,6 +34,7 @@
 #include "mpp_enc_hal.h"
 #include "vepu541_common.h"
 #include "hal_h264e_vepu580_reg.h"
+#include "mpp_enc_cb_param.h"
 
 #define DUMP_REG 0
 #define MAX_TASK_CNT        2
@@ -94,6 +95,12 @@ typedef struct HalH264eVepu580Ctx_t {
     RK_S32                  prev_idx;
     HalVepu580RegSet        *regs_set;
     MppBuffer               ext_line_buf;
+
+    /* slice low delay output callback */
+    MppCbCtx                *output_cb;
+    RK_S32                  poll_slice_max;
+    RK_S32                  poll_cfg_size;
+    MppDevPollCfg           *poll_cfgs;
 } HalH264eVepu580Ctx;
 
 #define CHROMA_KLUT_TAB_SIZE    (24 * sizeof(RK_U32))
@@ -174,6 +181,7 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
     clear_ext_line_bufs(p);
 
     MPP_FREE(p->regs_sets);
+    MPP_FREE(p->poll_cfgs);
 
     if (p->ext_line_buf_grp) {
         mpp_buffer_group_put(p->ext_line_buf_grp);
@@ -238,6 +246,15 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         goto DONE;
     }
 
+    p->poll_slice_max = 8;
+    p->poll_cfg_size = (sizeof(p->poll_cfgs) + sizeof(RK_S32) * p->poll_slice_max);
+    p->poll_cfgs = mpp_malloc_size(MppDevPollCfg, p->poll_cfg_size * p->task_cnt);
+    if (NULL == p->poll_cfgs) {
+        ret = MPP_ERR_MALLOC;
+        mpp_err_f("init poll cfg buffer failed\n");
+        goto DONE;
+    }
+
     p->osd_cfg.reg_base = &p->regs_sets->reg_osd;
     p->osd_cfg.dev = p->dev;
     p->osd_cfg.reg_cfg = NULL;
@@ -261,6 +278,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
     p->osd_cfg.reg_cfg = p->offsets;
 
     p->tune = vepu580_h264e_tune_init(p);
+    p->output_cb = cfg->output_cb;
 
     cfg->cap_recn_out = 1;
 
@@ -449,6 +467,8 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     task->flags.reg_idx = ctx->task_idx;
     task->flags.curr_idx = frms->curr_idx;
     task->flags.refr_idx = frms->refr_idx;
+    task->part_first = 1;
+    task->part_last = 0;
 
     ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
     ctx->regs_set = &ctx->regs_sets[ctx->task_idx];
@@ -1385,7 +1405,7 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = 0;
 
         regs->reg_base.sli_byte.sli_splt_byte = cfg->split_arg;
-        regs->reg_base.enc_pic.slen_fifo = 0;
+        regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
         regs->reg_base.sli_splt.sli_splt = 1;
@@ -1396,7 +1416,7 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
         regs->reg_base.sli_byte.sli_splt_byte = 0;
-        regs->reg_base.enc_pic.slen_fifo = 0;
+        regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
@@ -2038,16 +2058,51 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
-    if (ret) {
-        mpp_err_f("poll cmd failed %d\n", ret);
-        ret = MPP_ERR_VPUHW;
+    if (ctx->cfg->split.split_out) {
+        EncOutParam param;
+        RK_U32 slice_len;
+        RK_U32 slice_last;
+        MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs +
+                                                    task->flags.reg_idx * ctx->poll_cfg_size);
+        param.task = task;
+        param.base = mpp_packet_get_data(task->packet);
+
+        do {
+            RK_S32 i;
+
+            poll_cfg->poll_type = 0;
+            poll_cfg->poll_ret  = 0;
+            poll_cfg->count_max = ctx->poll_slice_max;
+            poll_cfg->count_ret = 0;
+
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, poll_cfg);
+
+            for (i = 0; i < poll_cfg->count_ret; i++) {
+                slice_last = poll_cfg->slice_info[i].last;
+                slice_len = poll_cfg->slice_info[i].length;
+
+                param.length = slice_len;
+
+                if (slice_last)
+                    ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
+                else
+                    ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
+
+                mpp_callback(ctx->output_cb, &param);
+            }
+        } while (!slice_last);
     } else {
-        hal_h264e_vepu580_status_check(regs);
-        task->hw_length += regs->reg_st.bs_lgth_l32;
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+        if (ret) {
+            mpp_err_f("poll cmd failed %d\n", ret);
+            ret = MPP_ERR_VPUHW;
+        }
     }
 
-    hal_h264e_dbg_func("leave %p\n", hal);
+    hal_h264e_vepu580_status_check(regs);
+    task->hw_length += regs->reg_st.bs_lgth_l32;
+
+    hal_h264e_dbg_func("leave %p ret %d\n", hal, ret);
 
     return ret;
 }
