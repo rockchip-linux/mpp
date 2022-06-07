@@ -28,6 +28,7 @@
 #include "mpp_enc_debug.h"
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
+#include "mpp_enc_cb_param.h"
 
 RK_U32 mpp_enc_debug = 0;
 
@@ -62,10 +63,15 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         goto ERR_RET;
     }
 
+    p->output_cb.callBack = mpp_enc_callback;
+    p->output_cb.ctx = p;
+    p->output_cb.cmd = ENC_CALLBACK_BASE;
+
     // H.264 encoder use mpp_enc_hal path
     // create hal first
     enc_hal_cfg.coding = coding;
     enc_hal_cfg.cfg = &p->cfg;
+    enc_hal_cfg.output_cb = &p->output_cb;
     enc_hal_cfg.task_cnt = cfg->task_cnt;
     enc_hal_cfg.type = VPU_CLIENT_BUTT;
     enc_hal_cfg.dev = NULL;

@@ -78,6 +78,9 @@ typedef struct MppEncImpl_t {
     MppFrame            frame;
     MppPacket           packet;
     RK_U32              low_delay_part_mode;
+    RK_U32              low_delay_output;
+    /* output callback for slice output */
+    MppCbCtx            output_cb;
 
     /* base task information */
     HalTaskGroup        tasks;
@@ -142,6 +145,7 @@ extern "C" {
 
 void *mpp_enc_thread(void *data);
 void *mpp_enc_async_thread(void *data);
+MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param);
 
 #ifdef __cplusplus
 }
