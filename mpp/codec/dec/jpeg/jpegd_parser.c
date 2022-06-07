@@ -146,7 +146,7 @@ static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
             ret = MPP_ERR_STREAM;
         }
     } else if (s->nb_components == 1) {
-        if ((s->h_count[0] == 1) || (s->v_count[0] == 1)) {
+        if (s->h_count[0] == s->v_count[0] && s->h_count[0] != 0) {
             s->yuv_mode = JPEGDEC_YUV400;
             s->output_fmt = MPP_FMT_YUV400;
 
