@@ -97,6 +97,7 @@ typedef struct {
     RK_U32 osd_mode;
     RK_U32 split_mode;
     RK_U32 split_arg;
+    RK_U32 split_out;
 
     RK_U32 user_data_enable;
     RK_U32 roi_enable;
@@ -435,14 +436,18 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     p->split_mode = 0;
     p->split_arg = 0;
+    p->split_out = 0;
 
     mpp_env_get_u32("split_mode", &p->split_mode, MPP_ENC_SPLIT_NONE);
     mpp_env_get_u32("split_arg", &p->split_arg, 0);
+    mpp_env_get_u32("split_out", &p->split_out, 0);
 
     if (p->split_mode) {
-        mpp_log_q(quiet, "%p split_mode %d split_arg %d\n", ctx, p->split_mode, p->split_arg);
+        mpp_log_q(quiet, "%p split mode %d arg %d out %d\n", ctx,
+                  p->split_mode, p->split_arg, p->split_out);
         mpp_enc_cfg_set_s32(cfg, "split:mode", p->split_mode);
         mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
+        mpp_enc_cfg_set_s32(cfg, "split:out", p->split_out);
     }
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);
