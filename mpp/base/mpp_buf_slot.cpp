@@ -159,7 +159,7 @@ typedef union SlotStatus_u {
         RK_U32  on_used     : 1;
         RK_U32  not_ready   : 1;        // buffer slot is filled or not
         RK_U32  codec_use   : 1;        // buffer slot is used by codec ( dpb reference )
-        RK_U32  hal_output  : 1;        // buffer slot is set to hw output will ready when hw done
+        RK_U32  hal_output  : 2;        // buffer slot is set to hw output will ready when hw done
         RK_U32  hal_use     : 8;        // buffer slot is used by hardware
         RK_U32  queue_use   : 5;        // buffer slot is used in different queue
 
@@ -501,13 +501,14 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
         }
     } break;
     case SLOT_SET_HAL_OUTPUT : {
-        status.hal_output = 1;
+        status.hal_output++;
         status.not_ready  = 1;
     } break;
     case SLOT_CLR_HAL_OUTPUT : {
-        status.hal_output = 0;
+        status.hal_output--;
         // NOTE: set output index ready here
-        status.not_ready  = 0;
+        if (!status.hal_output)
+            status.not_ready  = 0;
     } break;
     case SLOT_SET_QUEUE_USE :
     case SLOT_ENQUEUE_OUTPUT :
