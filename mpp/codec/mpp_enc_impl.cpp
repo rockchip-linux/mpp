@@ -30,6 +30,7 @@
 #include "mpp_enc_debug.h"
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
+#include "mpp_enc_cb_param.h"
 
 typedef union EncAsyncWait_u {
     RK_U32          val;
@@ -365,20 +366,149 @@ static RK_S32 check_hal_info_update(MpiCmd cmd)
     return 0;
 }
 
-static RK_S32 check_low_delay_part_mode(MppEncImpl *enc)
+static void check_low_delay_part_mode(MppEncImpl *enc)
 {
     MppEncCfgSet *cfg = &enc->cfg;
 
-    if (!cfg->base.low_delay)
-        return 0;
+    enc->low_delay_part_mode = 0;
+
+    if (!(cfg->base.low_delay))
+        return;
 
     if (!cfg->split.split_mode)
-        return 0;
+        return;
 
     if (mpp_enc_hal_check_part_mode(enc->enc_hal))
-        return 0;
+        return;
 
-    return 1;
+    enc->low_delay_part_mode = 1;
+}
+
+static void check_low_delay_output(MppEncImpl *enc)
+{
+    MppEncCfgSet *cfg = &enc->cfg;
+
+    enc->low_delay_output = 0;
+
+    if (!cfg->split.split_mode || !cfg->split.split_out)
+        return;
+
+    if (cfg->rc.max_reenc_times) {
+        mpp_log_f("can not enable lowdelay output with reencode enabled\n");
+        cfg->rc.max_reenc_times = 0;
+    }
+
+    if (cfg->rc.drop_mode) {
+        mpp_log_f("can not enable lowdelay output with drop mode enabled\n");
+        cfg->rc.drop_mode = MPP_ENC_RC_DROP_FRM_DISABLED;
+    }
+
+    if (cfg->rc.super_mode) {
+        mpp_log_f("can not enable lowdelay output with super frame mode enabled\n");
+        cfg->rc.super_mode = MPP_ENC_RC_SUPER_FRM_NONE;
+    }
+
+    enc->low_delay_output = 1;
+}
+
+MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
+{
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+    EncOutParam *out = (EncOutParam *)param;
+    HalEncTask *task = NULL;
+    MppPacket packet = NULL;
+    MppPacketImpl *impl = NULL;
+    RK_U8 *last_pos = NULL;
+    RK_S32 slice_length = 0;
+    RK_U32 part_first = 0;
+    MPP_RET ret = MPP_OK;
+    Mpp *mpp = (Mpp*)enc->mpp;
+    (void) caller;
+
+    if (!enc->low_delay_output)
+        return ret;
+
+    task = (HalEncTask *)out->task;
+    mpp_assert(task);
+    part_first = task->part_first;
+    packet = task->packet;
+
+    if (part_first) {
+        task->part_pos = (RK_U8 *)mpp_packet_get_pos(packet);
+        task->part_length = mpp_packet_get_length(packet);
+
+        enc_dbg_slice("first slice previous length %d\n", task->part_length);
+        mpp_assert(task->part_pos);
+        task->part_first = 0;
+        slice_length = task->part_length;
+    }
+
+    last_pos = (RK_U8 *)task->part_pos;
+    slice_length += out->length;
+
+    enc_dbg_slice("last_pos %p len %d:%d\n", last_pos, out->length, slice_length);
+
+    switch (cmd) {
+    case ENC_OUTPUT_FINISH : {
+        enc_dbg_slice("slice pos %p len %5d last\n", last_pos, slice_length);
+
+        impl = (MppPacketImpl *)packet;
+
+        impl->pos = last_pos;
+        impl->length = slice_length;
+        impl->status.val = 0;
+        impl->status.partition = 1;
+        impl->status.soi = part_first;
+        impl->status.eoi = 1;
+
+        task->part_pos += slice_length;
+        task->part_length += slice_length;
+        task->part_count++;
+        task->part_last = 1;
+    } break;
+    case ENC_OUTPUT_SLICE : {
+        enc_dbg_slice("slice pos %p len %5d\n", last_pos, slice_length);
+
+        mpp_packet_copy_init((MppPacket *)&impl, packet);
+
+        impl->pos = last_pos;
+        impl->length = slice_length;
+        impl->status.val = 0;
+        impl->status.partition = 1;
+        impl->status.soi = part_first;
+        impl->status.eoi = 0;
+
+        enc_dbg_detail("pkt %d new pos %p len %d\n", task->part_count,
+                       last_pos, slice_length);
+
+        task->part_pos += slice_length;
+        task->part_length += slice_length;
+        task->part_count++;
+        if (!mpp->mEncAyncProc) {
+            mpp_task_meta_set_packet(enc->task_out, KEY_OUTPUT_PACKET, impl);
+            mpp_port_enqueue(enc->output, enc->task_out);
+
+            ret = mpp_port_poll(enc->output, MPP_POLL_BLOCK);
+            mpp_assert(ret > 0);
+            ret = mpp_port_dequeue(enc->output, &enc->task_out);
+            mpp_assert(enc->task_out);
+        } else {
+            if (mpp->mPktOut) {
+                mpp_list *pkt_out = mpp->mPktOut;
+
+                AutoMutex autoLock(pkt_out->mutex());
+
+                pkt_out->add_at_tail(&impl, sizeof(impl));
+                mpp->mPacketPutCount++;
+                pkt_out->signal();
+            }
+        }
+    } break;
+    default : {
+    } break;
+    }
+
+    return ret;
 }
 
 MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg *src)
@@ -871,7 +1001,8 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     if (check_hal_info_update(cmd))
         enc->hal_info_updated = 0;
 
-    enc->low_delay_part_mode = check_low_delay_part_mode(enc);
+    check_low_delay_part_mode(enc);
+    check_low_delay_output(enc);
 
     return ret;
 }
@@ -1924,6 +2055,7 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
     EncFrmStatus *frm = &rc_task->frm;
     MppEncRefFrmUsrCfg *frm_cfg = &task->usr;
     HalEncTask *hal_task = &task->task;
+    MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
 
     if (hal_task->flags.drop_by_fps)
@@ -1968,11 +2100,13 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
 TASK_DONE:
     mpp_stopwatch_record(hal_task->stopwatch, "encode task done");
 
-    /* setup output packet and meta data */
-    mpp_packet_set_length(enc->packet, hal_task->length);
+    if (!mpp_packet_is_partition(packet)) {
+        /* setup output packet and meta data */
+        mpp_packet_set_length(packet, hal_task->length);
+    }
 
     {
-        MppMeta meta = mpp_packet_get_meta(enc->packet);
+        MppMeta meta = mpp_packet_get_meta(packet);
 
         if (hal_task->md_info)
             mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
@@ -1992,7 +2126,7 @@ TASK_DONE:
      */
     enc_dbg_detail("task %d enqueue packet pts %lld\n", frm->seq_idx, enc->task_pts);
 
-    mpp_task_meta_set_packet(enc->task_out, KEY_OUTPUT_PACKET, enc->packet);
+    mpp_task_meta_set_packet(enc->task_out, KEY_OUTPUT_PACKET, packet);
     mpp_port_enqueue(enc->output, enc->task_out);
 
     enc_dbg_detail("task %d enqueue frame pts %lld\n", frm->seq_idx, enc->task_pts);
@@ -2674,10 +2808,12 @@ static MPP_RET enc_async_wait_task(MppEncImpl *enc, EncAsyncTaskInfo *info)
     ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
 
 TASK_DONE:
-    /* setup output packet and meta data */
-    mpp_packet_set_length(pkt, hal_task->length);
+    if (!mpp_packet_is_partition(pkt)) {
+        /* setup output packet and meta data */
+        mpp_packet_set_length(pkt, hal_task->length);
 
-    check_hal_task_pkt_len(hal_task, "hw finish");
+        check_hal_task_pkt_len(hal_task, "hw finish");
+    }
 
     mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
     if (rc_task->info.quality_real)

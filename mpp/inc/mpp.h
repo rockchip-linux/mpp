@@ -186,6 +186,7 @@ public:
     MppEnc          mEnc;
 
     RK_U32          mEncAyncIo;
+    RK_U32          mEncAyncProc;
     MppIoMode       mIoMode;
 
 private:

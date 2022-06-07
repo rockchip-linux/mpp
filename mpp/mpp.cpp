@@ -101,6 +101,7 @@ Mpp::Mpp(MppCtx ctx)
       mDec(NULL),
       mEnc(NULL),
       mEncAyncIo(0),
+      mEncAyncProc(0),
       mIoMode(MPP_IO_MODE_DEFAULT),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
@@ -225,6 +226,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             break;
 
         if (mInputTimeout == MPP_POLL_NON_BLOCK) {
+            mEncAyncProc = 1;
             ret = mpp_enc_start_async(mEnc);
         } else {
             ret = mpp_enc_start_v2(mEnc);
