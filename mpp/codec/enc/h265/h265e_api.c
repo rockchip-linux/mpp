@@ -448,21 +448,26 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
     return MPP_OK;
 }
 
-static MPP_RET h265e_proc_split_cfg(MppEncH265SliceCfg *dst, MppEncSliceSplit *src)
+static MPP_RET h265e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
 {
-    if (src->split_mode > MPP_ENC_SPLIT_NONE) {
-        dst->split_enable = 1;
-        dst->split_mode = 0;
-        if (src->split_mode == MPP_ENC_SPLIT_BY_CTU)
-            dst->split_mode = 1;
-        dst->slice_size =  src->split_arg;
-        dst->slice_out = src->split_out;
-    } else {
-        dst->split_enable = 0;
-        dst->slice_out = 0;
+    MPP_RET ret = MPP_OK;
+    RK_U32 change = src->change;
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
+        dst->split_mode = src->split_mode;
+        dst->split_arg = src->split_arg;
     }
 
-    return MPP_OK;
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
+        dst->split_arg = src->split_arg;
+
+    if (change & MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT)
+        dst->split_out = src->split_out;
+
+    dst->change |= change;
+    src->change = 0;
+
+    return ret;
 }
 
 static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
@@ -488,7 +493,7 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             src->codec.h265.change = 0;
         }
         if (src->split.change) {
-            ret |= h265e_proc_split_cfg(&cfg->codec.h265.slice_cfg, &src->split);
+            ret |= h265e_proc_split_cfg(&cfg->split, &src->split);
             src->split.change = 0;
         }
     } break;
