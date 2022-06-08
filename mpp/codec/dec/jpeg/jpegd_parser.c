@@ -149,7 +149,11 @@ static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
         if (s->h_count[0] == s->v_count[0] && s->h_count[0] != 0) {
             s->yuv_mode = JPEGDEC_YUV400;
             s->output_fmt = MPP_FMT_YUV400;
-
+            if (s->output_fmt != ctx->output_fmt) {
+                mpp_err_f("unsupported upsampling(%d*%d)\n", s->output_fmt,
+                          ctx->output_fmt);
+                ret = MPP_ERR_STREAM;
+            }
             /* check if fill needed */
             if ((s->width & 0xf) && ((s->width & 0xf) <= 8)) {
                 s->fill_right = 1;
