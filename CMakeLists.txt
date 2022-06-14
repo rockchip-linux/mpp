@@ -157,10 +157,7 @@ if(GCC)
         endif()
     endif()
 
-    if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-        set(CMAKE_C_VISIBILITY_PRESET hidden)
-        set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-    else()
+    if(NOT ${CMAKE_BUILD_TYPE} MATCHES "Release")
         add_definitions(-g)
     endif()
 
