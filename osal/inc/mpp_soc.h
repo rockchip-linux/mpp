@@ -92,7 +92,6 @@ extern "C" {
 
 const char *mpp_get_soc_name(void);
 RockchipSocType mpp_get_soc_type(void);
-RK_U32 mpp_get_vcodec_type(void);
 
 const MppSocInfo *mpp_get_soc_info(void);
 RK_U32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding);

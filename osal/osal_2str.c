@@ -25,7 +25,7 @@ const char *strof_client_type(MppClientType type)
         /* VPU_CLIENT_VDPU1_PP      */  "vdpu1_pp",
         /* VPU_CLIENT_VDPU2_PP      */  "vdpu2_pp",
         /* 4 ~ 7 */
-        /* VPU_CLIENT_BUTT          */  NULL,
+        /* VPU_CLIENT_AV1DEC        */  "av1dec",
         /* VPU_CLIENT_BUTT          */  NULL,
         /* VPU_CLIENT_BUTT          */  NULL,
         /* VPU_CLIENT_BUTT          */  NULL,
@@ -43,7 +43,7 @@ const char *strof_client_type(MppClientType type)
         /* VPU_CLIENT_RKVENC        */  "rkvenc",
         /* VPU_CLIENT_VEPU1         */  "vepu1",
         /* VPU_CLIENT_VEPU2         */  "vepu2",
-        /* VPU_CLIENT_VEPU2_LITE    */  "vepu2_lite",
+        /* VPU_CLIENT_VEPU2_JPEG    */  "vepu2_jpeg",
         /* 20 ~ 23 */
         /* VPU_CLIENT_BUTT          */  NULL,
         /* VPU_CLIENT_BUTT          */  NULL,
