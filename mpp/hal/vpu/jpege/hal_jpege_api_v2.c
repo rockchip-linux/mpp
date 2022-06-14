@@ -48,7 +48,7 @@ static MPP_RET hal_jpege_init(void *hal, MppEncHalCfg *cfg)
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
 
-    if (vcodec_type & HAVE_VEPU2) {
+    if (vcodec_type & (HAVE_VEPU2 | HAVE_VEPU2_JPEG)) {
         api = &hal_jpege_vepu2;
     } else if (vcodec_type & HAVE_VEPU1) {
         api = &hal_jpege_vepu1;

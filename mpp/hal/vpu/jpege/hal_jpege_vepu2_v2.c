@@ -43,12 +43,15 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    RK_U32 vcodec_type = mpp_get_vcodec_type();
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
     /* update output to MppEnc */
-    cfg->type = VPU_CLIENT_VEPU2;
+    cfg->type = (vcodec_type & VPU_CLIENT_VEPU2_JPEG) ?
+                VPU_CLIENT_VEPU2_JPEG : VPU_CLIENT_VEPU2;
+
     ret = mpp_dev_init(&cfg->dev, cfg->type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);

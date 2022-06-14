@@ -45,6 +45,7 @@ MppIoctlVersion mpp_get_ioctl_version(void);
 MppKernelVersion mpp_get_kernel_version(void);
 RK_U32 mpp_get_2d_hw_flag(void);
 RK_U32 mpp_get_client_hw_id(RK_S32 client_type);
+RK_U32 mpp_get_vcodec_type(void);
 
 #ifdef __cplusplus
 }

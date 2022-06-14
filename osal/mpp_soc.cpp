@@ -352,7 +352,7 @@ static const MppEncHwCap vepu2_no_jpeg = {
 
 static const MppEncHwCap vepu2_jpeg = {
     .cap_coding         = HAVE_MJPEG,
-    .type               = VPU_CLIENT_VEPU2,
+    .type               = VPU_CLIENT_VEPU2_JPEG,
     .cap_fbc            = 0,
     .cap_4k             = 0,
     .cap_8k             = 0,
@@ -668,7 +668,8 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rk3588",
         ROCKCHIP_SOC_RK3588,
-        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_AV1DEC | HAVE_AVSDEC,
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC |
+        HAVE_JPEG_DEC | HAVE_AV1DEC | HAVE_AVSDEC | HAVE_VEPU2_JPEG,
         {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, &av1d, &avspd},
         {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
     },
@@ -824,16 +825,6 @@ RockchipSocType mpp_get_soc_type(void)
 
     soc_type = MppSocService::get()->get_soc_info()->soc_type;
     return soc_type;
-}
-
-RK_U32 mpp_get_vcodec_type(void)
-{
-    static RK_U32 vcodec_type = 0;
-
-    if (!vcodec_type)
-        vcodec_type = MppSocService::get()->get_soc_info()->vcodec_type;
-
-    return vcodec_type;
 }
 
 static RK_U32 is_valid_cap_coding(RK_U32 cap, MppCodingType coding)
