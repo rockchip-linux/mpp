@@ -33,6 +33,7 @@ struct MppFrameImpl_t {
     RK_U32  hor_stride;
     RK_U32  ver_stride;
     RK_U32  hor_stride_pixel;
+    RK_U32  fbc_hdr_stride;
     RK_U32  offset_x;
     RK_U32  offset_y;
 
