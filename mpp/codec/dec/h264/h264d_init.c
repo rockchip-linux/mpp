@@ -459,6 +459,8 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
                 if (*compat_ext_fbc_buf_size)
                     impl->ver_stride += 16;
+
+                impl->fbc_hdr_stride =  MPP_ALIGN(impl->width, 64);
             }
 
             /* After cropped */

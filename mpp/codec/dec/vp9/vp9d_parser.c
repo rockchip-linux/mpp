@@ -403,6 +403,7 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
         mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK))));
+        mpp_frame_set_fbc_hdr_stride(frame->f, MPP_ALIGN(ctx->width, 64));
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
