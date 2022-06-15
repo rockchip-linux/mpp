@@ -1348,8 +1348,8 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
 
         if (ret < 0) {
             mpp_err("hls_slice_header error ret = %d", ret);
-
-            if (s->first_nal_type != s->nal_unit_type)
+            /*s->first_nal_type == -1 means first nal is still not parsed.*/
+            if ((s->first_nal_type != s->nal_unit_type) && (s->first_nal_type != NAL_INIT_VALUE))
                 return 0;
 
             return ret;
@@ -1773,7 +1773,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     h265d_dbg(H265D_DBG_TIME, "prepare get pts %lld", pts);
     length = (RK_S32)mpp_packet_get_length(pkt);
 
-    if (mpp_packet_get_flag(pkt)& MPP_PACKET_FLAG_EXTRA_DATA) {
+    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
 
         h265dctx->extradata_size = length;
         h265dctx->extradata = buf;
@@ -2005,6 +2005,7 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
         h265dctx->priv_data = s;
     }
 
+    s->first_nal_type = NAL_INIT_VALUE;
     h265dctx->cfg = parser_cfg->cfg;
 
     if (sc == NULL && h265dctx->cfg->base.split_parse) {
