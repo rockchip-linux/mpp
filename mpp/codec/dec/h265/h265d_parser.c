@@ -1655,7 +1655,7 @@ static RK_S32 parser_nal_units(HEVCContext *s)
             case NAL_RADL_R:
             case NAL_RASL_N:
             case NAL_RASL_R:
-                if (s->pps->slice_header_extension_present_flag) {
+                if (s->pps && s->pps->slice_header_extension_present_flag) {
                     h265d_dxva2_picture_context_t *temp = (h265d_dxva2_picture_context_t *)s->hal_pic_private;
                     temp->slice_cut_param[slice_cnt].start_bit = s->start_bit;
                     temp->slice_cut_param[slice_cnt].end_bit = s->end_bit;
