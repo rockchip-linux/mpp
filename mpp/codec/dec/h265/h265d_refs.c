@@ -100,8 +100,11 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
             mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
             mpp_frame_set_offset_x(frame->frame, 0);
             mpp_frame_set_offset_y(frame->frame, 4);
+
             if (*compat_ext_fbc_buf_size)
                 mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height + 16);
+
+            mpp_frame_set_fbc_hdr_stride(frame->frame, MPP_ALIGN(s->h265dctx->width, 64));
         }
 
         mpp_frame_set_errinfo(frame->frame, 0);
