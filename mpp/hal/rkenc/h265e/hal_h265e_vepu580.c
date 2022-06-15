@@ -1474,7 +1474,8 @@ static MPP_RET vepu580_h265_set_rc_regs(H265eV580HalContext *ctx, H265eV580RegSe
     return MPP_OK;
 }
 
-static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt, MppEncPrepCfg *prep_cfg)
+static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt,
+                                        MppEncPrepCfg *prep_cfg, HalEncTask *task)
 {
     hevc_vepu580_control_cfg *reg_ctl = &regs->reg_ctl;
     hevc_vepu580_base        *reg_base = &regs->reg_base;
@@ -1491,7 +1492,9 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt, 
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 
     if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
-        stridey = MPP_ALIGN(prep_cfg->width, 16);
+        stridey = mpp_frame_get_fbc_hdr_stride(task->frame);
+        if (!stridey)
+            stridey = MPP_ALIGN(prep_cfg->width, 16);
     } else if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
@@ -2167,7 +2170,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     }
 
     vepu580_h265_set_hw_address(ctx, reg_base, task);
-    vepu580_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep);
+    vepu580_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep, task);
     vepu580_h265_set_rc_regs(ctx, regs, task);
     vepu580_h265_set_slice_regs(syn, reg_base);
     vepu580_h265_set_ref_regs(syn, reg_base);
