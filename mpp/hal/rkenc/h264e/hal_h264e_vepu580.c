@@ -546,7 +546,8 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     hal_h264e_dbg_func("leave\n");
 }
 
-static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
+static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep,
+                                  HalEncTask *task)
 {
     VepuFmtCfg cfg;
     MppFrameFormat fmt = prep->format;
@@ -575,7 +576,9 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep)
     regs->reg_base.src_fmt.out_fmt    = 1;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-        y_stride = MPP_ALIGN(prep->width, 16);
+        y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
+        if (!y_stride)
+            y_stride = MPP_ALIGN(prep->width, 16);
     } else if (prep->hor_stride) {
         y_stride = prep->hor_stride;
     } else {
@@ -1834,7 +1837,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(*regs));
 
     setup_vepu580_normal(regs);
-    ret = setup_vepu580_prep(regs, &ctx->cfg->prep);
+    ret = setup_vepu580_prep(regs, &ctx->cfg->prep, task);
     if (ret)
         return ret;
 
