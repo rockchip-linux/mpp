@@ -1754,6 +1754,12 @@ static MPP_RET try_get_enc_task(MppEncImpl *enc, EncAsyncTaskInfo *task, EncAsyn
             hal_task->length = 0;
             hal_task->flags.drop_by_fps = 1;
             status->enc_start = 1;
+            if (!status->refs_force_update) {
+                if (frm_cfg->force_flag)
+                    mpp_enc_refs_set_usr_cfg(enc->refs, frm_cfg);
+
+                status->refs_force_update = 1;
+            }
             ret = MPP_OK;
             goto TASK_DONE;
         }
