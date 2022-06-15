@@ -131,6 +131,7 @@
  * Table 7-3: NAL unit type codes
  */
 enum NALUnitType {
+    NAL_INIT_VALUE = -1,
     NAL_TRAIL_N    = 0,
     NAL_TRAIL_R    = 1,
     NAL_TSA_N      = 2,
