@@ -76,6 +76,7 @@ enum IEP2_PARAM_TYPE {
     IEP2_PARAM_TYPE_ROI
 };
 
+// Pulldown compose flag
 enum PD_COMP_FLAG {
     PD_COMP_FLAG_CC,
     PD_COMP_FLAG_CN,
