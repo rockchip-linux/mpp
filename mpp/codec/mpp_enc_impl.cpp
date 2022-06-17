@@ -469,7 +469,11 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
     case ENC_OUTPUT_SLICE : {
         enc_dbg_slice("slice pos %p len %5d\n", last_pos, slice_length);
 
-        mpp_packet_copy_init((MppPacket *)&impl, packet);
+        mpp_packet_new((MppPacket *)&impl);
+        mpp_assert(impl);
+
+        /* copy the source data */
+        memcpy(impl, packet, sizeof(*impl));
 
         impl->pos = last_pos;
         impl->length = slice_length;
@@ -477,6 +481,16 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
         impl->status.partition = 1;
         impl->status.soi = part_first;
         impl->status.eoi = 0;
+
+        if (impl->buffer)
+            mpp_buffer_inc_ref(impl->buffer);
+
+        mpp_meta_get(&impl->meta);
+        if (impl->meta) {
+            EncFrmStatus *frm = &task->rc_task->frm;
+
+            mpp_meta_set_s32(impl->meta, KEY_OUTPUT_INTRA, frm->is_intra);
+        }
 
         enc_dbg_detail("pkt %d new pos %p len %d\n", task->part_count,
                        last_pos, slice_length);
