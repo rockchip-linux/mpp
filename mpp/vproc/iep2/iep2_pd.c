@@ -32,20 +32,25 @@
 #define RKMIN(a, b)             (((a) < (b)) ? (a) : (b))
 #define RKMAX(a, b)             (((a) > (b)) ? (a) : (b))
 
-#define PD_TS   1
-#define PD_BS   2
-#define PD_DF   0
+#define PD_TS   1     // Top field unchanged, Bottom field changed
+#define PD_BS   2     // Top filed changed, Bottom field unchanged
+#define PD_DF   0     // Both fileds changed.
 #define PD_ID   3
 
-static int pd_table[][5] = {
-    { PD_TS, PD_DF, PD_BS, PD_DF, PD_DF },
-    { PD_DF, PD_BS, PD_DF, PD_TS, PD_DF },
-    { PD_TS, PD_BS, PD_DF, PD_DF, PD_DF },
-    { PD_BS, PD_DF, PD_DF, PD_TS, PD_DF },
-    { PD_DF, PD_DF, PD_DF, PD_DF, PD_DF }
+#define PD_FRAME_PERIOD         5
+
+#define FIELD_DIFF_SUM_THR      32
+
+static int pd_table[][PD_FRAME_PERIOD] = {
+    { PD_TS, PD_DF, PD_BS, PD_DF, PD_DF },      // 3:2:3:2
+    { PD_DF, PD_BS, PD_DF, PD_TS, PD_DF },      // 2:3:2:3
+    { PD_TS, PD_BS, PD_DF, PD_DF, PD_DF },      // 2:3:3:2
+    { PD_BS, PD_DF, PD_DF, PD_TS, PD_DF },      // 3:2:2:3
+    { PD_DF, PD_DF, PD_DF, PD_DF, PD_DF }       // unknown
 };
 
-static int sp_table[][5] = {
+// field intensity table
+static int sp_table[][PD_FRAME_PERIOD] = {
     { 0, 1, 1, 0, 0 },
     { 0, 0, 1, 1, 0 },
     { 0, 1, 0, 0, 0 },
@@ -53,7 +58,7 @@ static int sp_table[][5] = {
     { 1, 1, 1, 1, 1 }
 };
 
-static int fp_table[][5] = {
+static int fp_table[][PD_FRAME_PERIOD] = {
     { 1, 1, 1, 0, 0 },
     { 0, 1, 1, 1, 0 },
     { 0, 1, 1, 0, 0 },
@@ -76,7 +81,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
     int bcnt = ctx->output.dect_pd_bcnt;
     int tdiff = ctx->output.ff_gradt_tcnt + 1;
     int bdiff = ctx->output.ff_gradt_bcnt + 1;
-    int idx = pd_inf->i % 5;
+    int idx = pd_inf->i % PD_FRAME_PERIOD;
     int ff00t = (ctx->output.dect_ff_cur_tcnt << 5) / tdiff;
     int ff00b = (ctx->output.dect_ff_cur_bcnt << 5) / bdiff;
     int nz = ctx->output.dect_ff_nz + 1;
@@ -84,7 +89,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
     size_t i, j;
 
     pd_inf->spatial[idx] = RKMIN(ff00t, ff00b);
-    pd_inf->temporal[idx] = (tcnt < 32) | ((bcnt < 32) << 1);
+    pd_inf->temporal[idx] = (tcnt < FIELD_DIFF_SUM_THR) | ((bcnt < FIELD_DIFF_SUM_THR) << 1);
     pd_inf->fcoeff[idx] = f * 100 / nz;
 
     iep_dbg_trace("pd tcnt %d bcnt %d\n", tcnt, bcnt);
@@ -114,8 +119,8 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
         int n = (int)pd_inf->pdtype;
         int type = pd_table[n][(pd_inf->step + 1) % 5];
 
-        if ((type == PD_TS && !(tcnt < 32)) ||
-            (type == PD_BS && !(bcnt < 32))) {
+        if ((type == PD_TS && !(tcnt < FIELD_DIFF_SUM_THR)) ||
+            (type == PD_BS && !(bcnt < FIELD_DIFF_SUM_THR))) {
             pd_inf->pdtype = PD_TYPES_UNKNOWN;
             pd_inf->step = -1;
         }
@@ -127,7 +132,7 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
         pd_inf->i++;
         return;
     } else {
-        iep_dbg_trace("pulldown recheck start:\n");
+        iep_dbg_trace("pulldown recheck start: old type %s\n", pd_titles[pd_inf->pdtype]);
     }
 
     for (i = 0; i < MPP_ARRAY_ELEMS(pd_table); ++i) {
@@ -136,6 +141,8 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
             pd_inf->temporal[(idx + 2) % 5] == pd_table[i][2] &&
             pd_inf->temporal[(idx + 3) % 5] == pd_table[i][3] &&
             pd_inf->temporal[(idx + 4) % 5] == pd_table[i][4]) {
+
+            iep_dbg_trace("[%d] match %s, current idx %d\n", i, pd_titles[i], idx % PD_FRAME_PERIOD);
 
             if (i != PD_TYPES_UNKNOWN) {
                 int vmax = 0x7fffffff;
@@ -162,8 +169,14 @@ void iep2_check_pd(struct iep2_api_ctx *ctx)
                 }
 
                 if (vmax > vmin || fmax > fmin) {
-                    mpp_log("confirm pulldown type %s\n", pd_titles[i]);
                     pd_inf->pdtype = i;
+
+                    if (i == PD_TYPES_3_2_2_3 && pd_inf->spatial[1] > RKMAX(pd_inf->spatial[0],
+                                                                            pd_inf->spatial[4])) {
+                        pd_inf->pdtype = PD_TYPES_3_2_3_2;
+                    }
+
+                    iep_dbg_trace("confirm pulldown type %s\n", pd_titles[i]);
                     pd_inf->step = 0;
                 }
             }
@@ -181,6 +194,12 @@ char *PD_COMP_STRING[] = {
     "PD_COMP_NON"
 };
 
+/**
+ * @brief get pulldown compose flag
+ *
+ * @param pd_inf
+ * @return int see @PD_COMP_STRING
+ */
 int iep2_pd_get_output(struct iep2_pd_info *pd_inf)
 {
     int flag = PD_COMP_FLAG_CC;

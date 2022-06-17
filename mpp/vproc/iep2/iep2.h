@@ -152,6 +152,7 @@ struct iep2_api_ctx {
     MppBufferGroup memGroup;
     MppBuffer mv_buf;
     MppBuffer md_buf;
+    int first_cfg;
     int fd;
 };
 
