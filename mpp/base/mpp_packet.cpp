@@ -420,33 +420,8 @@ MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
     memcpy(dst_impl->pos, src_impl->pos, src_impl->length);
     dst_impl->length = src_impl->length;
 
-    if (src_impl->segment_nb) {
-        MppPktSeg *src_segs = src_impl->segments;
-        MppPktSeg *dst_segs = NULL;
-        RK_U32 segment_nb = src_impl->segment_nb;
-        RK_U32 i;
-
-        mpp_packet_reset_segment(dst);
-        dst_impl->segment_nb = segment_nb;
-        dst_impl->segment_buf_cnt = src_impl->segment_buf_cnt;
-
-        if (segment_nb <= MPP_PKT_SEG_CNT_DEFAULT) {
-            dst_segs = dst_impl->segments_def;
-
-            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
-        } else {
-            dst_segs = mpp_calloc(MppPktSeg, dst_impl->segment_buf_cnt);
-
-            mpp_assert(dst_segs);
-            dst_impl->segments_ext = dst_segs;
-            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
-        }
-
-        for (i = 0; i < segment_nb - 1; i++)
-            dst_segs[i].next = &dst_segs[i + 1];
-
-        dst_impl->segments = dst_segs;
-    }
+    if (src_impl->segment_nb)
+        mpp_packet_copy_segment_info(dst, src);
 
     return MPP_OK;
 }
@@ -542,6 +517,41 @@ MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset
     mpp_assert(p->segment_nb <= p->segment_buf_cnt);
 
     return MPP_OK;
+}
+
+void mpp_packet_copy_segment_info(MppPacket dst, MppPacket src)
+{
+    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
+
+    mpp_packet_reset_segment(dst);
+
+    if (src_impl->segment_nb) {
+        MppPktSeg *src_segs = src_impl->segments;
+        MppPktSeg *dst_segs = NULL;
+        RK_U32 segment_nb = src_impl->segment_nb;
+        RK_U32 i;
+
+        dst_impl->segment_nb = segment_nb;
+        dst_impl->segment_buf_cnt = src_impl->segment_buf_cnt;
+
+        if (segment_nb <= MPP_PKT_SEG_CNT_DEFAULT) {
+            dst_segs = dst_impl->segments_def;
+
+            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
+        } else {
+            dst_segs = mpp_calloc(MppPktSeg, dst_impl->segment_buf_cnt);
+
+            mpp_assert(dst_segs);
+            dst_impl->segments_ext = dst_segs;
+            memcpy(dst_segs, src_segs, sizeof(*dst_segs) * segment_nb);
+        }
+
+        for (i = 0; i < segment_nb - 1; i++)
+            dst_segs[i].next = &dst_segs[i + 1];
+
+        dst_impl->segments = dst_segs;
+    }
 }
 
 const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
