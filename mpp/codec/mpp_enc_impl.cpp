@@ -390,7 +390,7 @@ static void check_low_delay_output(MppEncImpl *enc)
 
     enc->low_delay_output = 0;
 
-    if (!cfg->split.split_mode || !cfg->split.split_out)
+    if (!cfg->split.split_mode || !(cfg->split.split_out & MPP_ENC_SPLIT_OUT_LOWDELAY))
         return;
 
     if (cfg->rc.max_reenc_times) {
@@ -491,6 +491,9 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
 
             mpp_meta_set_s32(impl->meta, KEY_OUTPUT_INTRA, frm->is_intra);
         }
+
+        mpp_packet_copy_segment_info(impl, packet);
+        mpp_packet_reset_segment(packet);
 
         enc_dbg_detail("pkt %d new pos %p len %d\n", task->part_count,
                        last_pos, slice_length);

@@ -25,6 +25,7 @@
 #include "mpp_soc.h"
 #include "mpp_common.h"
 #include "mpp_frame_impl.h"
+#include "mpp_packet_impl.h"
 
 #include "hal_h265e_debug.h"
 #include "h265e_syntax_new.h"
@@ -2510,6 +2511,8 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
     H265eV580HalContext *ctx = (H265eV580HalContext *)hal;
     HalEncTask *enc_task = task;
     H265eV580StatusElem *elem = (H265eV580StatusElem *)ctx->reg_out;
+    RK_U32 split_out = ctx->cfg->split.split_out;
+
     hal_h265e_enter();
 
     if (enc_task->flags.err) {
@@ -2518,15 +2521,19 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
         return MPP_NOK;
     }
 
-    if (ctx->cfg->split.split_out) {
+    if (split_out) {
         EncOutParam param;
         RK_U32 slice_len = 0;
         RK_U32 slice_last = 0;
         RK_U32 finish_cnt = 0;
         RK_U32 tile1_offset = 0;
-        RK_U32 stream_len = 0;
-        RK_U32 offset = mpp_packet_get_length(enc_task->packet);
-        void* ptr = mpp_packet_get_pos(enc_task->packet);
+        MppPacket pkt = enc_task->packet;
+        RK_U32 offset = mpp_packet_get_length(pkt);
+        RK_U32 seg_offset = offset;
+        void* ptr = mpp_packet_get_pos(pkt);
+        H265eV580RegSet *regs = (H265eV580RegSet *)ctx->regs[0];
+        hevc_vepu580_base *reg_base = &regs->reg_base;
+        RK_U32 type = reg_base->reg0236_synt_nal.nal_unit_type;
         MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs);
 
         param.task = task;
@@ -2549,7 +2556,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                 if (finish_cnt > 0) {
                     void *tile1_ptr  = mpp_buffer_get_ptr(ctx->hw_tile_stream);
 
-                    memcpy(ptr + stream_len + offset, tile1_ptr + tile1_offset, slice_len);
+                    memcpy(ptr + seg_offset, tile1_ptr + tile1_offset, slice_len);
                     tile1_offset += slice_len;
                 }
 
@@ -2563,8 +2570,13 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                     }
                 }
 
-                stream_len += slice_len;
-                mpp_callback(ctx->output_cb, &param);
+                if (split_out & MPP_ENC_SPLIT_OUT_SEGMENT)
+                    mpp_packet_add_segment_info(pkt, type, seg_offset, slice_len);
+
+                if (split_out & MPP_ENC_SPLIT_OUT_LOWDELAY)
+                    mpp_callback(ctx->output_cb, &param);
+
+                seg_offset += slice_len;
             }
 
             if (ctx->tile_parall_en) {
@@ -2577,6 +2589,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
         } while (1);
     } else {
         RK_U32 i = 0;
+
         if (ctx->tile_parall_en) {
             for (i = 0; i < ctx->tile_num; i ++)
                 ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
