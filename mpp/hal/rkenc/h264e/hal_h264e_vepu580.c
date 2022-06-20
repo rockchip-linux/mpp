@@ -22,6 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_frame_impl.h"
+#include "mpp_packet_impl.h"
 #include "mpp_rc.h"
 
 #include "h264e_sps.h"
@@ -2058,21 +2059,25 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     HalVepu580RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
+    RK_U32 split_out = ctx->cfg->split.split_out;
+    RK_S32 i;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    if (ctx->cfg->split.split_out) {
+    if (split_out) {
         EncOutParam param;
         RK_U32 slice_len;
         RK_U32 slice_last;
+        MppPacket pkt = task->packet;
+        RK_S32 offset = mpp_packet_get_length(pkt);
+        H264NaluType type = ctx->slice->slice_type == H264_I_SLICE ?
+                            H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
         MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs +
                                                     task->flags.reg_idx * ctx->poll_cfg_size);
         param.task = task;
         param.base = mpp_packet_get_data(task->packet);
 
         do {
-            RK_S32 i;
-
             poll_cfg->poll_type = 0;
             poll_cfg->poll_ret  = 0;
             poll_cfg->count_max = ctx->poll_slice_max;
@@ -2084,14 +2089,20 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
                 slice_last = poll_cfg->slice_info[i].last;
                 slice_len = poll_cfg->slice_info[i].length;
 
-                param.length = slice_len;
+                if (split_out & MPP_ENC_SPLIT_OUT_SEGMENT) {
+                    mpp_packet_add_segment_info(pkt, type, offset, slice_len);
+                    offset += slice_len;
+                }
+                if (split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) {
+                    param.length = slice_len;
 
-                if (slice_last)
-                    ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
-                else
-                    ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
+                    if (slice_last)
+                        ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
+                    else
+                        ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
 
-                mpp_callback(ctx->output_cb, &param);
+                    mpp_callback(ctx->output_cb, &param);
+                }
             }
         } while (!slice_last);
     } else {

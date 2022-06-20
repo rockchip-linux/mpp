@@ -1105,6 +1105,11 @@ typedef enum MppEncSplitMode_e {
     MPP_ENC_SPLIT_BY_CTU,
 } MppEncSplitMode;
 
+typedef enum MppEncSplitOutMode_e {
+    MPP_ENC_SPLIT_OUT_LOWDELAY              = (1 << 0),
+    MPP_ENC_SPLIT_OUT_SEGMENT               = (1 << 1),
+} MppEncSplitOutMode;
+
 typedef struct MppEncSliceSplit_t {
     RK_U32  change;
 
@@ -1130,8 +1135,10 @@ typedef struct MppEncSliceSplit_t {
     /*
      * slice split output mode
      *
-     * 0    - output all slice in one packet
-     * 1    - output each slice in a single packet
+     * MPP_ENC_SPLIT_OUT_LOWDELAY
+     * - When enabled encoder will lowdelay output each slice in a single packet
+     * MPP_ENC_SPLIT_OUT_SEGMENT
+     * - When enabled encoder will packet with segment info for each slice
      */
     RK_U32  split_out;
 } MppEncSliceSplit;
