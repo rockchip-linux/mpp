@@ -94,6 +94,7 @@ MppTask mpp_packet_get_task(MppPacket packet);
 void    mpp_packet_reset_segment(MppPacket packet);
 void    mpp_packet_set_segment_nb(MppPacket packet);
 MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset, RK_S32 len);
+void    mpp_packet_copy_segment_info(MppPacket dst, MppPacket src);
 
 /* pointer check function */
 MPP_RET check_is_mpp_packet(void *ptr);
