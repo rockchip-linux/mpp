@@ -994,7 +994,8 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
     return MPP_OK;
 }
 
-static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, MppEncPrepCfg *prep_cfg)
+static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt,
+                                        MppEncPrepCfg *prep_cfg,  HalEncTask *task)
 {
     RK_S32 stridey = 0;
     RK_S32 stridec = 0;
@@ -1006,7 +1007,9 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt, 
     regs->src_fmt.src_range = fmt->src_range;
     regs->src_proc.src_rot = prep_cfg->rotation;
     if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
-        stridey = MPP_ALIGN(prep_cfg->width, 16);
+        stridey = mpp_frame_get_fbc_hdr_stride(task->frame);
+        if (!stridey)
+            stridey = MPP_ALIGN(prep_cfg->hor_stride, 16);
     } else if (prep_cfg->hor_stride) {
         stridey = prep_cfg->hor_stride;
     } else {
@@ -1513,7 +1516,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         regs->synt_nal.nal_unit_type    = i_nal_type;
     }
     vepu54x_h265_set_hw_address(ctx, regs, task);
-    vepu541_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep);
+    vepu541_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep, task);
 
     vepu541_h265_set_rc_regs(ctx, regs, task);
 
