@@ -425,7 +425,8 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs, RK_U32 is_vepu540)
     hal_h264e_dbg_func("leave\n");
 }
 
-static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
+static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep,
+                                  HalEncTask *task)
 {
     VepuFmtCfg cfg;
     MppFrameFormat fmt = prep->format;
@@ -456,8 +457,14 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep)
     regs->reg017.src_range  = cfg.src_range;
     regs->reg017.out_fmt_cfg = 0;
 
-    y_stride = (MPP_FRAME_FMT_IS_FBC(fmt)) ? (MPP_ALIGN(prep->width, 16)) :
-               (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
+        if (!y_stride)
+            y_stride = MPP_ALIGN(prep->hor_stride, 16);
+    } else
+        y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
+
+
     c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
                y_stride : y_stride / 2;
 
@@ -1441,7 +1448,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(*regs));
 
     setup_vepu541_normal(regs, ctx->is_vepu540);
-    ret = setup_vepu541_prep(regs, &ctx->cfg->prep);
+    ret = setup_vepu541_prep(regs, &ctx->cfg->prep, task);
     if (ret)
         return ret;
 
