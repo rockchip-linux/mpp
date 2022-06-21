@@ -61,7 +61,7 @@ static int drm_ioctl(int fd, int req, void *arg)
         ret = ioctl(fd, req, arg);
     } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
 
-    drm_dbg(DRM_IOCTL, "drm_ioctl %x with code %d: %s\n", req,
+    drm_dbg(DRM_IOCTL, "%x with code %d: %s\n", req,
             ret, strerror(errno));
 
     return ret;
@@ -96,26 +96,6 @@ static int drm_handle_to_fd(int fd, RK_U32 handle, int *map_fd, RK_U32 flags)
     return ret;
 }
 
-static int drm_fd_to_handle(int fd, int map_fd, RK_U32 *handle, RK_U32 flags)
-{
-    int ret;
-    struct drm_prime_handle dph;
-
-    dph.fd = map_fd;
-    dph.flags = flags;
-
-    ret = drm_ioctl(fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &dph);
-    if (ret < 0) {
-        return ret;
-    }
-
-    *handle = dph.handle;
-
-    drm_dbg_func("dev %d fd %d get handle %d\n", fd, map_fd, *handle);
-
-    return ret;
-}
-
 static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 flags)
 {
     int ret;
@@ -135,8 +115,8 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 fl
         return ret;
 
     *handle = dmcb.handle;
-    drm_dbg_func("dev %d alloc aligned %d size %lld handle %d\n", fd,
-                 align, dmcb.size, dmcb.handle);
+    drm_dbg_func("dev %d alloc aligned %d handle %d size %lld\n", fd,
+                 align, dmcb.handle, dmcb.size);
 
     return ret;
 }
@@ -215,9 +195,6 @@ static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
         return ret;
     }
 
-    drm_dbg_func("dev %d get handle %d", p->drm_device,
-                 (RK_U32)((intptr_t)info->hnd));
-
     ret = drm_handle_to_fd(p->drm_device, (RK_U32)((intptr_t)info->hnd),
                            &info->fd, DRM_CLOEXEC | DRM_RDWR);
 
@@ -226,23 +203,35 @@ static MPP_RET os_allocator_drm_alloc(void *ctx, MppBufferInfo *info)
         return ret;
     }
 
+    drm_dbg_func("dev %d get handle %d with fd %d\n", p->drm_device,
+                 (RK_U32)((intptr_t)info->hnd), info->fd);
+
+    /* release handle to reduce iova usage */
+    drm_free(p->drm_device, (RK_U32)((intptr_t)info->hnd));
+    info->hnd = NULL;
     info->ptr = NULL;
+
     return ret;
 }
 
 static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 {
-    MPP_RET ret = MPP_OK;
     allocator_ctx_drm *p = (allocator_ctx_drm *)ctx;
+    RK_S32 fd_ext = data->fd;
+    MPP_RET ret = MPP_OK;
 
     drm_dbg_func("enter dev %d\n", p->drm_device);
 
-    ret = drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
+    mpp_assert(fd_ext > 0);
 
-    ret = drm_handle_to_fd(p->drm_device, (RK_U32)((intptr_t)data->hnd),
-                           &data->fd, DRM_CLOEXEC | DRM_RDWR);
-
+    data->fd = dup(fd_ext);
     data->ptr = NULL;
+
+    if (data->fd <= 0) {
+        mpp_err_f(" fd dup return invalid fd %d\n", data->fd);
+        ret = MPP_NOK;
+    }
+
     drm_dbg_func("leave dev %d\n", p->drm_device);
 
     return ret;
@@ -259,19 +248,22 @@ static MPP_RET os_allocator_drm_free(void *ctx, MppBufferInfo *data)
 
     p = (allocator_ctx_drm *)ctx;
 
-    /* NOTE: update hnd avoid freed hnd */
-    drm_fd_to_handle(p->drm_device, data->fd, (RK_U32 *)&data->hnd, 0);
-
-    drm_dbg_func("dev %d unmap %p size %d fd %d handle %p\n", p->drm_device,
-                 data->ptr, data->size, data->fd, data->hnd);
+    drm_dbg_func("dev %d handle %p unmap %p fd %d size %d\n", p->drm_device,
+                 data->hnd, data->ptr, data->fd, data->size);
 
     if (data->ptr) {
         munmap(data->ptr, data->size);
         data->ptr = NULL;
     }
-    close(data->fd);
 
-    return drm_free(p->drm_device, (RK_U32)((intptr_t)data->hnd));
+    if (data->fd > 0) {
+        close(data->fd);
+        data->fd = -1;
+    } else {
+        mpp_err_f("can not close invalid fd %d\n", data->fd);
+    }
+
+    return MPP_OK;
 }
 
 static MPP_RET os_allocator_drm_close(void *ctx)
