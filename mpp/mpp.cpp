@@ -679,7 +679,7 @@ MPP_RET Mpp::put_frame_async(MppFrame frame)
         return MPP_NOK;
 
     /* NOTE: the max input queue length is 2 */
-    if (mFrmIn->list_size() >= 2) {
+    if (mFrmIn->wait_le(10, 1)) {
         mFrmIn->unlock();
         return MPP_NOK;
     }
