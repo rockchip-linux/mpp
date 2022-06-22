@@ -18,6 +18,7 @@
 #include "mpp_log.h"
 #include "mpp_runtime.h"
 
+#include "allocator_dma_heap.h"
 #include "allocator_drm.h"
 #include "allocator_ext_dma.h"
 #include "allocator_ion.h"
@@ -37,6 +38,7 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
     } break;
     case MPP_BUFFER_TYPE_ION : {
         *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
 #if HAVE_DRM
                (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #endif
@@ -46,13 +48,15 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
         *api = allocator_ext_dma;
     } break;
     case MPP_BUFFER_TYPE_DRM : {
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
 #if HAVE_DRM
-        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
-#else
-        * api =
+               (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
 #endif
                (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
                allocator_std;
+    } break;
+    case MPP_BUFFER_TYPE_DMA_HEAP: {
+        *api = allocator_dma_heap;
     } break;
     default : {
         ret = MPP_NOK;
