@@ -22,6 +22,7 @@ set(MPP_ALLOCATOR
     allocator/allocator_std.c
     allocator/allocator_ion.c
     allocator/allocator_ext_dma.c
+    allocator/allocator_dma_heap.c
     ${DRM_FILES}
 )
 

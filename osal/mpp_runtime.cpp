@@ -86,9 +86,17 @@ MppRuntimeService::MppRuntimeService()
     allocator_valid[MPP_BUFFER_TYPE_NORMAL] = 1;
     allocator_valid[MPP_BUFFER_TYPE_ION] = !access("/dev/ion", F_OK | R_OK | W_OK);
     allocator_valid[MPP_BUFFER_TYPE_DRM] = !access("/dev/dri/card0", F_OK | R_OK | W_OK);
+    allocator_valid[MPP_BUFFER_TYPE_DMA_HEAP] = !access("/dev/dma_heap", F_OK | R_OK | W_OK);
 
-    if (!allocator_valid[MPP_BUFFER_TYPE_ION] && !allocator_valid[MPP_BUFFER_TYPE_DRM]) {
+    if (!allocator_valid[MPP_BUFFER_TYPE_ION] &&
+        !allocator_valid[MPP_BUFFER_TYPE_DRM] &&
+        !allocator_valid[MPP_BUFFER_TYPE_DMA_HEAP]) {
         mpp_err("can NOT found any allocator\n");
+        return;
+    }
+
+    if (allocator_valid[MPP_BUFFER_TYPE_DMA_HEAP]) {
+        mpp_rt_dbg("use dma heap allocator\n");
         return;
     }
 
