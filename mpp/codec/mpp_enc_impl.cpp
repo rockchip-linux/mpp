@@ -2489,6 +2489,7 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncWait *wait)
 
             if (frm_in->list_size()) {
                 frm_in->del_at_head(&frame, sizeof(frame));
+                frm_in->signal();
                 mpp->mFrameGetCount++;
 
                 mpp_assert(frame);
