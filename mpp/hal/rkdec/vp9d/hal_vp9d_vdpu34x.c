@@ -36,13 +36,25 @@
 #define HW_PROB 1
 #define VP9_CONTEXT 4
 #define VP9_CTU_SIZE 64
+#define PROB_SIZE_ALIGN_TO_4K MPP_ALIGN(PROB_SIZE, SZ_4K)
+#define COUNT_SIZE_ALIGN_TO_4K MPP_ALIGN(COUNT_SIZE, SZ_4K)
+#define MAX_SEGMAP_SIZE_ALIGN_TO_4K MPP_ALIGN(MAX_SEGMAP_SIZE, SZ_4K)
+
+#define VDPU34X_OFFSET_COUNT (PROB_SIZE_ALIGN_TO_4K)
+#define VDPU34X_OFFSET_SEGID_CUR (PROB_SIZE_ALIGN_TO_4K + COUNT_SIZE_ALIGN_TO_4K)
+#define VDPU34X_OFFSET_SEGID_LAST (PROB_SIZE_ALIGN_TO_4K \
+                                + COUNT_SIZE_ALIGN_TO_4K \
+                                + MAX_SEGMAP_SIZE_ALIGN_TO_4K)
+#define VDPU34X_PROBE_BUFFER_SIZE (PROB_SIZE_ALIGN_TO_4K \
+                                + COUNT_SIZE_ALIGN_TO_4K \
+                                + MAX_SEGMAP_SIZE_ALIGN_TO_4K * 2)
 
 typedef struct Vdpu34xVp9dCtx_t {
     Vp9dRegBuf      g_buf[MAX_GEN_REG];
     MppBuffer       probe_base;
-    MppBuffer       count_base;
-    MppBuffer       segid_cur_base;
-    MppBuffer       segid_last_base;
+    RK_U32          offset_count;
+    RK_U32          offset_segid_cur;
+    RK_U32          offset_segid_last;
     MppBuffer       prob_default_base;
     void*           hw_regs;
     RK_S32          mv_base_addr;
@@ -79,7 +91,9 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     RK_S32 ret = 0;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
-
+    hw_ctx->offset_count = VDPU34X_OFFSET_COUNT;
+    hw_ctx->offset_segid_cur = VDPU34X_OFFSET_SEGID_CUR;
+    hw_ctx->offset_segid_last = VDPU34X_OFFSET_SEGID_LAST;
     /* alloc common buffer */
     for (i = 0; i < VP9_CONTEXT; i++) {
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_loop_base[i], PROB_SIZE);
@@ -97,52 +111,17 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xVp9dRegSet));
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].probe_base, PROB_SIZE);
+            ret = mpp_buffer_get(p_hal->group, &hw_ctx->g_buf[i].probe_base, VDPU34X_PROBE_BUFFER_SIZE);
             if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
-                return ret;
-            }
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].count_base, COUNT_SIZE);
-            if (ret) {
-                mpp_err("vp9 count_base get buffer failed\n");
-                return ret;
-            }
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].segid_cur_base, MAX_SEGMAP_SIZE);
-            if (ret) {
-                mpp_err("vp9 segid_cur_base get buffer failed\n");
-                return ret;
-            }
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].segid_last_base, MAX_SEGMAP_SIZE);
-            if (ret) {
-                mpp_err("vp9 segid_last_base get buffer failed\n");
                 return ret;
             }
         }
     } else {
         hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xVp9dRegSet));
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, PROB_SIZE);
+        ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, VDPU34X_PROBE_BUFFER_SIZE);
         if (ret) {
             mpp_err("vp9 probe_base get buffer failed\n");
-            return ret;
-        }
-
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->count_base, COUNT_SIZE);
-        if (ret) {
-            mpp_err("vp9 count_base get buffer failed\n");
-            return ret;
-        }
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_cur_base, MAX_SEGMAP_SIZE);
-        if (ret) {
-            mpp_err("vp9 segid_cur_base get buffer failed\n");
-            return ret;
-        }
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_last_base, MAX_SEGMAP_SIZE);
-        if (ret) {
-            mpp_err("vp9 segid_last_base get buffer failed\n");
             return ret;
         }
     }
@@ -181,27 +160,6 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
                     return ret;
                 }
             }
-            if (hw_ctx->g_buf[i].count_base) {
-                ret = mpp_buffer_put(hw_ctx->g_buf[i].count_base);
-                if (ret) {
-                    mpp_err("vp9 count_base put buffer failed\n");
-                    return ret;
-                }
-            }
-            if (hw_ctx->g_buf[i].segid_cur_base) {
-                ret = mpp_buffer_put(hw_ctx->g_buf[i].segid_cur_base);
-                if (ret) {
-                    mpp_err("vp9 segid_cur_base put buffer failed\n");
-                    return ret;
-                }
-            }
-            if (hw_ctx->g_buf[i].segid_last_base) {
-                ret = mpp_buffer_put(hw_ctx->g_buf[i].segid_last_base);
-                if (ret) {
-                    mpp_err("vp9 segid_last_base put buffer failed\n");
-                    return ret;
-                }
-            }
             if (hw_ctx->g_buf[i].hw_regs) {
                 mpp_free(hw_ctx->g_buf[i].hw_regs);
                 hw_ctx->g_buf[i].hw_regs = NULL;
@@ -222,27 +180,7 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
                 return ret;
             }
         }
-        if (hw_ctx->count_base) {
-            ret = mpp_buffer_put(hw_ctx->count_base);
-            if (ret) {
-                mpp_err("vp9 count_base put buffer failed\n");
-                return ret;
-            }
-        }
-        if (hw_ctx->segid_cur_base) {
-            ret = mpp_buffer_put(hw_ctx->segid_cur_base);
-            if (ret) {
-                mpp_err("vp9 segid_cur_base put buffer failed\n");
-                return ret;
-            }
-        }
-        if (hw_ctx->segid_last_base) {
-            ret = mpp_buffer_put(hw_ctx->segid_last_base);
-            if (ret) {
-                mpp_err("vp9 segid_last_base put buffer failed\n");
-                return ret;
-            }
-        }
+
         if (hw_ctx->hw_regs) {
             mpp_free(hw_ctx->hw_regs);
             hw_ctx->hw_regs = NULL;
@@ -473,9 +411,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
             if (!hw_ctx->g_buf[i].use_flag) {
                 task->dec.reg_index = i;
                 hw_ctx->probe_base = hw_ctx->g_buf[i].probe_base;
-                hw_ctx->count_base = hw_ctx->g_buf[i].count_base;
-                hw_ctx->segid_cur_base = hw_ctx->g_buf[i].segid_cur_base;
-                hw_ctx->segid_last_base = hw_ctx->g_buf[i].segid_last_base;
+
                 hw_ctx->hw_regs = hw_ctx->g_buf[i].hw_regs;
                 hw_ctx->g_buf[i].use_flag = 1;
                 break;
@@ -690,14 +626,17 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common_addr.reg129_rlcwrite_base = mpp_buffer_get_fd(streambuf);
 
     vp9_hw_regs->vp9d_addr.reg197_cabactbl_base = mpp_buffer_get_fd(hw_ctx->probe_base);
-    vp9_hw_regs->vp9d_addr.reg167_count_prob_base  = mpp_buffer_get_fd(hw_ctx->count_base);
+    vp9_hw_regs->vp9d_addr.reg167_count_prob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
+    vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(hw_ctx->probe_base);
+    vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(hw_ctx->probe_base);
+    mpp_dev_set_reg_offset(p_hal->dev, 167, hw_ctx->offset_count);
 
     if (hw_ctx->last_segid_flag) {
-        vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
-        vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
+        mpp_dev_set_reg_offset(p_hal->dev, 168, hw_ctx->offset_segid_last);
+        mpp_dev_set_reg_offset(p_hal->dev, 169, hw_ctx->offset_segid_cur);
     } else {
-        vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
-        vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
+        mpp_dev_set_reg_offset(p_hal->dev, 168, hw_ctx->offset_segid_cur);
+        mpp_dev_set_reg_offset(p_hal->dev, 169, hw_ctx->offset_segid_last);
     }
 
     if (pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) {
