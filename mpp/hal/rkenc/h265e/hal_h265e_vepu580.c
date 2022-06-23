@@ -1941,6 +1941,9 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
 
     mpp_dev_multi_offset_update(ctx->reg_cfg, 175, mpp_packet_get_length(task->packet));
     mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(enc_task->output));
+
+    regs->reg0204_pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
+    regs->reg0204_pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 }
 
 static MPP_RET vepu580_h265e_save_pass1_patch(H265eV580RegSet *regs, H265eV580HalContext *ctx,
