@@ -83,7 +83,7 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
 
     coef = 2;
 
-    if (ffi * coef <= ffx) {
+    if ((ffi * coef <= ffx) && (ffx - ffi * coef) > 2 * ffx / 10) {
         ctx->ff_inf.frm_score = RKCLIP(ctx->ff_inf.frm_score + 1, 0, 20);
         ctx->ff_inf.fie_score = RKCLIP(ctx->ff_inf.fie_score - 1, 0, 20);
     } else {
