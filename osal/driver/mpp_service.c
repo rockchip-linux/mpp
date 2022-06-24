@@ -471,7 +471,7 @@ MPP_RET mpp_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
         }
     }
 
-    info = mpp_service_next_reg_offset(p);;
+    info = mpp_service_next_reg_offset(p);
     info->reg_idx = cfg->reg_idx;
     info->offset = cfg->offset;
 
