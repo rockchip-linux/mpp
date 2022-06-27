@@ -37,6 +37,8 @@ typedef struct HalJpegeRc_t {
 
 typedef struct hal_jpege_ctx_s {
     MppDev              dev;
+    MppClientType       type;
+
     JpegeBits           bits;
     /* NOTE: regs should reserve space for extra_info */
     void                *regs;
@@ -61,6 +63,8 @@ typedef struct hal_jpege_ctx_s {
     HalJpegeRc          hal_rc;
     RK_S32              hal_start_pos;
     VepuStrideCfg       stride_cfg;
+
+    void                *ctx_ext;
 } HalJpegeCtx;
 
 extern const RK_U32 qp_reorder_table[QUANTIZE_TABLE_SIZE];
