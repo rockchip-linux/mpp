@@ -39,25 +39,46 @@ typedef struct jpege_vepu2_reg_set_t {
     RK_U32  val[VEPU_JPEGE_VEPU2_NUM_REGS];
 } jpege_vepu2_reg_set;
 
+#define MAX_CORE_NUM                4
+
+typedef struct JpegeMultiCoreCtx_t {
+    RK_U32              multi_core_enabled;
+    RK_U32              partion_num;
+    MppDevRegOffCfgs    *reg_cfg;
+
+    MppBufferGroup      partions_group;
+    MppBuffer           partions_buf[MAX_CORE_NUM - 1];
+    RK_U32              buf_size;
+
+    RK_U32              part_rows[MAX_CORE_NUM];
+
+    void                *regs_base;
+    void                *regs[MAX_CORE_NUM];
+    void                *regs_out[MAX_CORE_NUM];
+} JpegeMultiCoreCtx;
+
 MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    MppClientType type;
     RK_U32 vcodec_type = mpp_get_vcodec_type();
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
     /* update output to MppEnc */
-    cfg->type = (vcodec_type & VPU_CLIENT_VEPU2_JPEG) ?
-                VPU_CLIENT_VEPU2_JPEG : VPU_CLIENT_VEPU2;
+    type = (vcodec_type & VPU_CLIENT_VEPU2_JPEG) ?
+           VPU_CLIENT_VEPU2_JPEG : VPU_CLIENT_VEPU2;
 
-    ret = mpp_dev_init(&cfg->dev, cfg->type);
+    cfg->type = type;
+    ret = mpp_dev_init(&cfg->dev, type);
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
     ctx->dev = cfg->dev;
+    ctx->type = cfg->type;
 
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
@@ -101,8 +122,31 @@ MPP_RET hal_jpege_vepu2_deinit(void *hal)
 
     hal_jpege_vepu_deinit_rc(&ctx->hal_rc);
 
+    if (ctx->ctx_ext) {
+        JpegeMultiCoreCtx *ctx_ext = ctx->ctx_ext;
+        RK_U32 i;
+
+        if (ctx_ext->reg_cfg) {
+            mpp_dev_multi_offset_deinit(ctx_ext->reg_cfg);
+            ctx_ext->reg_cfg = NULL;
+        }
+
+        for (i = 0; i < MAX_CORE_NUM - 1; i++)
+            if (ctx_ext->partions_buf[i])
+                mpp_buffer_put(ctx_ext->partions_buf[i]);
+
+        if (ctx_ext->partions_group) {
+            mpp_buffer_group_put(ctx_ext->partions_group);
+            ctx_ext->partions_group = NULL;
+        }
+
+        MPP_FREE(ctx_ext->regs_base);
+        MPP_FREE(ctx->ctx_ext);
+    }
+
     MPP_FREE(ctx->regs);
     MPP_FREE(ctx->regs_out);
+
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return MPP_OK;
 }
@@ -111,6 +155,9 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+    JpegeMultiCoreCtx *ctx_ext = (JpegeMultiCoreCtx *)ctx->ctx_ext;
+    RK_U32 i = 0;
+
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
@@ -140,6 +187,97 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
     ctx->rst_marker_idx = 0;
     task->part_first = 1;
     task->part_last = 0;
+
+    /* Split single task to multi cores on rk3588 */
+    if (ctx_ext)
+        ctx_ext->multi_core_enabled = 0;
+
+    if (ctx->type == VPU_CLIENT_VEPU2_JPEG && !ctx->cfg->split.split_mode) {
+        RK_U32 width = ctx->cfg->prep.width;
+        RK_U32 height = ctx->cfg->prep.height;
+        RK_U32 buf_size = width * height / 4;
+
+        /* small image do not need to split into four segments */
+        if (width * height <= 1280 * 720 && height <= 720)
+            goto MULTI_CORE_SPLIT_DONE;
+
+        if (!ctx_ext) {
+            ctx_ext = mpp_calloc(JpegeMultiCoreCtx, 1);
+            ctx->ctx_ext = ctx_ext;
+        }
+
+        mpp_assert(ctx_ext);
+
+        if (!ctx_ext->partions_group)
+            mpp_buffer_group_get_internal(&ctx_ext->partions_group, MPP_BUFFER_TYPE_ION);
+
+        mpp_assert(ctx_ext->partions_group);
+
+        if (ctx_ext->buf_size != buf_size) {
+            MppBuffer buf = NULL;
+
+            for (i = 0; i < MAX_CORE_NUM - 1; i++) {
+                buf = ctx_ext->partions_buf[i];
+                if (buf)
+                    mpp_buffer_put(buf);
+            }
+
+            mpp_buffer_group_clear(ctx_ext->partions_group);
+
+            for (i = 0; i < MAX_CORE_NUM - 1; i++) {
+                mpp_buffer_get(ctx_ext->partions_group, &buf, buf_size);
+                mpp_assert(buf);
+                ctx_ext->partions_buf[i] = buf;
+            }
+
+            ctx_ext->buf_size = buf_size;
+        }
+
+        if (!ctx_ext->regs_base) {
+            void *regs_base = mpp_calloc_size(void, ctx->reg_size * MAX_CORE_NUM * 2);
+            size_t reg_size = ctx->reg_size;
+
+            ctx_ext->regs_base = regs_base;
+            for (i = 0; i < MAX_CORE_NUM; i++) {
+                ctx_ext->regs[i] = regs_base;
+                regs_base += reg_size;
+
+                ctx_ext->regs_out[i] = regs_base;
+                regs_base += reg_size;
+            }
+        }
+
+        {
+            RK_U32 mb_w = MPP_ALIGN(width, 16) / 16;
+            RK_U32 mb_h = MPP_ALIGN(height, 16) / 16;
+            RK_U32 part_rows = mb_h / 4;
+
+            ctx_ext->partion_num = 0;
+
+            for (i = 0; i < MAX_CORE_NUM; i++) {
+                part_rows = (mb_h >= part_rows) ? part_rows : mb_h;
+
+                ctx_ext->part_rows[i] = part_rows;
+
+                hal_jpege_dbg_detail("part %d row %d restart %d\n",
+                                     i, part_rows, mb_w * part_rows);
+
+                if (part_rows)
+                    ctx_ext->partion_num++;
+
+                if (i == 0)
+                    ctx->syntax.restart_ri = mb_w * part_rows;
+
+                mb_h -= part_rows;
+            }
+        }
+
+        mpp_dev_multi_offset_init(&ctx_ext->reg_cfg, 24);
+
+        syntax->low_delay = 1;
+        ctx_ext->multi_core_enabled = 1;
+    }
+MULTI_CORE_SPLIT_DONE:
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
 
@@ -284,7 +422,6 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
     regs[77] = mpp_buffer_get_fd(output);
     if (bytepos)
         mpp_dev_set_reg_offset(ctx->dev, 77, bytepos);
-
     /* 95 - 97 color conversion parameter */
     {
         RK_U32 coeffA;
@@ -396,47 +533,224 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 
+static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
+{
+    JpegeMultiCoreCtx *ctx_ext = ctx->ctx_ext;
+    JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+    MppDevRegOffCfgs *reg_cfg = ctx_ext->reg_cfg;
+    MppDev dev = ctx->dev;
+    RK_U32 *src = (RK_U32 *)ctx->regs;
+    RK_U32 reg_size = ctx->reg_size;
+    MPP_RET ret = MPP_OK;
+    RK_U32 partion_num = ctx_ext->partion_num;
+    RK_U32 mcu_y = 0;
+    RK_U32 i;
+
+    hal_jpege_dbg_detail("start %d partions\n", partion_num);
+
+    for (i = 0; i < partion_num; i++) {
+        RK_U32 part_not_end = i < partion_num - 1;
+        RK_U32 *regs = (RK_U32 *)ctx_ext->regs[i];
+        RK_U32 part_enc_mcu_h = ctx_ext->part_rows[i];
+        RK_U32 part_y_fill = part_not_end ? 0 : ctx->part_y_fill;
+        RK_U32 part_bytepos = ctx->part_bytepos;
+
+        memcpy(regs, src, reg_size);
+
+        mpp_dev_multi_offset_reset(reg_cfg);
+
+        if (i == 0) {
+            get_msb_lsb_at_pos(&regs[51], &regs[52], ctx->base, part_bytepos);
+            regs[77] = mpp_buffer_get_fd(task->output);
+            regs[53] = mpp_buffer_get_size(task->output) - part_bytepos;
+            regs[60] = (((part_bytepos & 7) * 8) << 16) |
+                       (ctx->part_x_fill << 4) |
+                       (part_y_fill);
+            /* the stream offset had been setup */
+        } else {
+            MppBuffer buf = ctx_ext->partions_buf[i - 1];
+
+            regs[77] = mpp_buffer_get_fd(buf);
+            regs[53] = mpp_buffer_get_size(buf);
+            regs[60] = (((0 & 7) * 8) << 16) |
+                       (ctx->part_x_fill << 4) |
+                       (part_y_fill);
+        }
+
+        regs[103] = syntax->mcu_w << 8  |
+                    (part_enc_mcu_h) << 20 |
+                    (1 << 6) |  /* intra coding  */
+                    (2 << 4) |  /* format jpeg   */
+                    1;          /* encoder start */
+
+        regs[107] = part_not_end << 24 | jpege_restart_marker[ctx->rst_marker_idx & 7];
+        ctx->rst_marker_idx++;
+
+        VepuOffsetCfg cfg;
+
+        memset(&cfg, 0, sizeof(cfg));
+
+        cfg.fmt = syntax->format;
+        cfg.width = syntax->width;
+        cfg.height = syntax->height;
+        cfg.hor_stride = syntax->hor_stride;
+        cfg.ver_stride = syntax->ver_stride;
+        cfg.offset_x = syntax->offset_x;
+        cfg.offset_y = syntax->offset_y + mcu_y * 16;
+
+        get_vepu_offset_cfg(&cfg);
+
+        mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_Y, cfg.offset_byte[0]);
+        mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_U, cfg.offset_byte[1]);
+        mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_V, cfg.offset_byte[2]);
+
+        mcu_y += part_enc_mcu_h;
+
+        do {
+            MppDevRegWrCfg wr_cfg;
+            MppDevRegRdCfg rd_cfg;
+
+            wr_cfg.reg = regs;
+            wr_cfg.size = reg_size;
+            wr_cfg.offset = 0;
+
+            ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
+            if (ret) {
+                mpp_err_f("set register write failed %d\n", ret);
+                break;
+            }
+
+            rd_cfg.reg = ctx_ext->regs_out[i];
+            rd_cfg.size = reg_size;
+            rd_cfg.offset = 0;
+
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+            if (ret) {
+                mpp_err_f("set register read failed %d\n", ret);
+                break;
+            }
+
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFS, reg_cfg);
+            if (ret) {
+                mpp_err_f("set register offsets failed %d\n", ret);
+                break;
+            }
+
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_DELIMIT, NULL);
+            if (ret) {
+                mpp_err_f("send delimit failed %d\n", ret);
+                break;
+            }
+        } while (0);
+    }
+
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+    if (ret)
+        mpp_err_f("send cmd failed %d\n", ret);
+
+    return ret;
+}
+
+static MPP_RET multi_core_wait(HalJpegeCtx *ctx, HalEncTask *task)
+{
+    JpegeMultiCoreCtx *ctx_ext = (JpegeMultiCoreCtx *)ctx->ctx_ext;
+    JpegeFeedback *feedback = &ctx->feedback;
+    RK_U32 sw_bit = 0;
+    RK_U32 hw_bit = 0;
+    MPP_RET ret = MPP_OK;
+    RK_U32 val;
+    RK_U32 i;
+
+    hal_jpege_dbg_detail("poll partion_num %d\n", ctx_ext->partion_num);
+
+    for (i = 0; i < ctx_ext->partion_num; i++) {
+        RK_U32 *regs = ctx_ext->regs_out[i];
+
+        hal_jpege_dbg_detail("poll reg %d %p", i, regs);
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+        if (ret)
+            mpp_err_f("poll cmd failed %d\n", ret);
+
+        if (i == 0) {
+            val = regs[109];
+            hal_jpege_dbg_output("hw_status %08x\n", val);
+            feedback->hw_status = val & 0x70;
+            val = regs[53];
+            sw_bit = jpege_bits_get_bitpos(ctx->bits);
+            hw_bit = val;
+            feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
+            hal_jpege_dbg_detail("partion len = %d", hw_bit / 8);
+            task->length = feedback->stream_length;
+            task->hw_length = task->length - ctx->hal_start_pos;
+        } else {
+            void *stream_ptr = mpp_buffer_get_ptr(task->output);
+            void *partion_ptr = mpp_buffer_get_ptr(ctx_ext->partions_buf[i - 1]);
+            RK_U32 partion_len = 0;
+
+            val = regs[109];
+            hal_jpege_dbg_output("hw_status %08x\n", val);
+            feedback->hw_status = val & 0x70;
+            partion_len = regs[53] / 8;
+
+            hal_jpege_dbg_detail("partion_len = %d", partion_len);
+            memcpy(stream_ptr + feedback->stream_length, partion_ptr, partion_len);
+            feedback->stream_length += partion_len;
+            task->length = feedback->stream_length;
+            task->hw_length += partion_len;
+        }
+    }
+
+    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d hw_length %d\n",
+                         sw_bit, hw_bit, feedback->stream_length, task->hw_length);
+
+    return ret;
+}
+
 MPP_RET hal_jpege_vepu2_start(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    JpegeMultiCoreCtx *ctx_ext = (JpegeMultiCoreCtx *)ctx->ctx_ext;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
-    hal_jpege_vepu2_set_extra_info(ctx->dev, &ctx->syntax, 0);
+    if (ctx_ext && ctx_ext->multi_core_enabled) {
+        multi_core_start(ctx, task);
+    } else {
+        hal_jpege_vepu2_set_extra_info(ctx->dev, &ctx->syntax, 0);
+        do {
+            MppDevRegWrCfg wr_cfg;
+            MppDevRegRdCfg rd_cfg;
+            RK_U32 reg_size = ctx->reg_size;
 
-    do {
-        MppDevRegWrCfg wr_cfg;
-        MppDevRegRdCfg rd_cfg;
-        RK_U32 reg_size = ctx->reg_size;
+            wr_cfg.reg = ctx->regs;
+            wr_cfg.size = reg_size;
+            wr_cfg.offset = 0;
 
-        wr_cfg.reg = ctx->regs;
-        wr_cfg.size = reg_size;
-        wr_cfg.offset = 0;
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+            if (ret) {
+                mpp_err_f("set register write failed %d\n", ret);
+                break;
+            }
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
+            rd_cfg.reg = ctx->regs;
+            rd_cfg.size = reg_size;
+            rd_cfg.offset = 0;
 
-        rd_cfg.reg = ctx->regs;
-        rd_cfg.size = reg_size;
-        rd_cfg.offset = 0;
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+            if (ret) {
+                mpp_err_f("set register read failed %d\n", ret);
+                break;
+            }
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
-        if (ret) {
-            mpp_err_f("set register read failed %d\n", ret);
-            break;
-        }
-
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
-        if (ret) {
-            mpp_err_f("send cmd failed %d\n", ret);
-            break;
-        }
-    } while (0);
-
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+            if (ret) {
+                mpp_err_f("send cmd failed %d\n", ret);
+                break;
+            }
+        } while (0);
+    }
     hal_jpege_dbg_func("leave hal %p\n", hal);
     (void)task;
     return ret;
@@ -444,38 +758,44 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalEncTask *task)
 
 MPP_RET hal_jpege_vepu2_wait(void *hal, HalEncTask *task)
 {
-    MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    JpegeBits bits = ctx->bits;
-    RK_U32 *regs = ctx->regs;
-    JpegeFeedback *feedback = &ctx->feedback;
-    RK_U32 val;
-    RK_U32 sw_bit = 0;
-    RK_U32 hw_bit = 0;
+    JpegeMultiCoreCtx *ctx_ext = (JpegeMultiCoreCtx *)ctx->ctx_ext;
+    MPP_RET ret = MPP_OK;
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
-    if (ctx->dev) {
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
-        if (ret)
-            mpp_err_f("poll cmd failed %d\n", ret);
+    if (ctx_ext && ctx_ext->multi_core_enabled) {
+        multi_core_wait(ctx, task);
+    } else {
+        JpegeFeedback *feedback = &ctx->feedback;
+        JpegeBits bits = ctx->bits;
+        RK_U32 *regs = ctx->regs;
+        RK_U32 sw_bit = 0;
+        RK_U32 hw_bit = 0;
+        RK_U32 val;
+
+        if (ctx->dev) {
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+            if (ret)
+                mpp_err_f("poll cmd failed %d\n", ret);
+        }
+
+        val = regs[109];
+        hal_jpege_dbg_output("hw_status %08x\n", val);
+        feedback->hw_status = val & 0x70;
+        val = regs[53];
+
+        sw_bit = jpege_bits_get_bitpos(bits);
+        hw_bit = val;
+
+        // NOTE: hardware will return 64 bit access byte count
+        feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
+        task->length = feedback->stream_length;
+        task->hw_length = task->length - ctx->hal_start_pos;
+
+        hal_jpege_dbg_output("stream bit: sw %d hw %d total %d hw_length %d\n",
+                             sw_bit, hw_bit, feedback->stream_length, task->hw_length);
     }
-
-    val = regs[109];
-    hal_jpege_dbg_output("hw_status %08x\n", val);
-    feedback->hw_status = val & 0x70;
-    val = regs[53];
-
-    sw_bit = jpege_bits_get_bitpos(bits);
-    hw_bit = val;
-
-    // NOTE: hardware will return 64 bit access byte count
-    feedback->stream_length = ((sw_bit / 8) & (~0x7)) + hw_bit / 8;
-    task->length = feedback->stream_length;
-    task->hw_length = task->length - ctx->hal_start_pos;
-
-    hal_jpege_dbg_output("stream bit: sw %d hw %d total %d hw_length %d\n",
-                         sw_bit, hw_bit, feedback->stream_length, task->hw_length);
 
     hal_jpege_dbg_func("leave hal %p\n", hal);
     return ret;
