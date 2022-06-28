@@ -2553,6 +2553,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                     tile1_offset += slice_len;
                 }
 
+                ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
                 if (slice_last) {
                     finish_cnt++;
                     if (ctx->tile_parall_en) {
@@ -2560,8 +2561,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                             ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
                         }
                     }
-                } else
-                    ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
+                }
 
                 stream_len += slice_len;
                 mpp_callback(ctx->output_cb, &param);
