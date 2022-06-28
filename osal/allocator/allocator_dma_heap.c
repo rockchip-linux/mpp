@@ -23,8 +23,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#include <linux/dma-buf.h>
-
 #include "os_mem.h"
 #include "allocator_dma_heap.h"
 
