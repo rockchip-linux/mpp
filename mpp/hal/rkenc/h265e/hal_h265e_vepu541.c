@@ -1102,7 +1102,8 @@ static void vepu541_h265_set_slice_regs(H265eSyntax_new *syn, H265eV541RegSet *r
     regs->synt_sli1.sli_lp_fltr_acrs_sli  = syn->sp.sli_lp_fltr_acrs_sli;
     regs->synt_sli1.sli_dblk_fltr_dis     = syn->sp.sli_dblk_fltr_dis;
     regs->synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
-    regs->synt_sli1.sli_cb_qp_ofst        = syn->sp.sli_cb_qp_ofst;
+    regs->synt_sli1.sli_cb_qp_ofst        = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
+                                            syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
     regs->synt_sli1.max_mrg_cnd           = syn->sp.max_mrg_cnd;
 
     regs->synt_sli1.col_ref_idx           = syn->sp.col_ref_idx;
