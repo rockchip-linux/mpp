@@ -416,6 +416,11 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
     }
     if (change & MPP_ENC_H265_CFG_TRANS_CHANGE) {
+        if (src->trans_cfg.cb_qp_offset != src->trans_cfg.cr_qp_offset) {
+            mpp_log("cr_qp_offset %d MUST equal to cb_qp_offset %d. FORCE to same value\n",
+                    src->trans_cfg.cb_qp_offset, src->trans_cfg.cr_qp_offset);
+            src->trans_cfg.cr_qp_offset = src->trans_cfg.cb_qp_offset;
+        }
         memcpy(&dst->trans_cfg, &src->trans_cfg, sizeof(src->trans_cfg));
     }
 

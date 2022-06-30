@@ -1600,9 +1600,10 @@ static void vepu580_h265_set_slice_regs(H265eSyntax_new *syn, hevc_vepu580_base 
     regs->reg0240_synt_sli1.sp_tc_ofst_div2       = syn->sp.sli_tc_ofst_div2;;
     regs->reg0240_synt_sli1.sp_beta_ofst_div2     = syn->sp.sli_beta_ofst_div2;
     regs->reg0240_synt_sli1.sli_lp_fltr_acrs_sli  = syn->sp.sli_lp_fltr_acrs_sli;
-    regs->reg0240_synt_sli1.sp_dblk_fltr_dis     = syn->sp.sli_dblk_fltr_dis;
+    regs->reg0240_synt_sli1.sp_dblk_fltr_dis      = syn->sp.sli_dblk_fltr_dis;
     regs->reg0240_synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
-    regs->reg0240_synt_sli1.sli_cb_qp_ofst        = syn->sp.sli_cb_qp_ofst;
+    regs->reg0240_synt_sli1.sli_cb_qp_ofst        = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
+                                                    syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
     regs->reg0240_synt_sli1.max_mrg_cnd           = syn->sp.max_mrg_cnd;
 
     regs->reg0240_synt_sli1.col_ref_idx           = syn->sp.col_ref_idx;
