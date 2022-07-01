@@ -56,7 +56,8 @@ MPP_RET os_allocator_get(os_allocator *api, MppBufferType type)
                allocator_std;
     } break;
     case MPP_BUFFER_TYPE_DMA_HEAP: {
-        *api = allocator_dma_heap;
+        *api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
+               allocator_std;
     } break;
     default : {
         ret = MPP_NOK;

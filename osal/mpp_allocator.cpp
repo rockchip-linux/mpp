@@ -176,7 +176,11 @@ MPP_RET mpp_allocator_put(MppAllocator *allocator)
     }
 
     MppAllocatorImpl *p = (MppAllocatorImpl *)*allocator;
+
+    if (!p)
+        return MPP_OK;
     *allocator = NULL;
+
     if (p->os_api.close && p->ctx)
         p->os_api.close(p->ctx);
     pthread_mutex_destroy(&p->lock);
