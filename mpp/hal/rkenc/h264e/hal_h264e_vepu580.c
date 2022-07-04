@@ -120,6 +120,13 @@ static RK_U32 h264e_klut_weight[30] = {
 static RK_U32 dump_l1_reg = 0;
 static RK_U32 dump_l2_reg = 0;
 
+static RK_U32 h264_mode_bias[16] = {
+    0,  2,  4,  6,
+    8,  10, 12, 14,
+    16, 18, 20, 24,
+    28, 32, 64, 128
+};
+
 static RK_S32 h264_aq_tthd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
@@ -981,6 +988,46 @@ static void setup_vepu580_rdo_pred(HalVepu580RegSet *regs, H264eSps *sps,
     regs->reg_base.rdo_cfg.atf_intra_e  = 1;
 
     hal_h264e_dbg_func("leave\n");
+}
+
+static void setup_vepu580_rdo_bias_cfg(Vepu580RdoCfg *regs, MppEncHwCfg *hw)
+{
+    RK_U8 bias = h264_mode_bias[hw->mode_bias[1]];
+
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt00 = bias > 24 ? bias : 24;
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt01 = bias > 22 ? bias : 22;
+    regs->rdo_intra_atf_wgt0.atf_rdo_intra_wgt02 = bias > 21 ? bias : 21;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt10 = bias > 22 ? bias : 22;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt11 = bias > 21 ? bias : 21;
+    regs->rdo_intra_atf_wgt1.atf_rdo_intra_wgt12 = bias > 20 ? bias : 20;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt20 = bias > 20 ? bias : 20;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt21 = bias > 19 ? bias : 19;
+    regs->rdo_intra_atf_wgt2.atf_rdo_intra_wgt22 = bias > 18 ? bias : 18;
+    regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt30 = bias;
+    regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt31 = bias;
+    regs->rdo_intra_atf_wgt3.atf_rdo_intra_wgt32 = bias;
+
+    if (hw->skip_bias_en) {
+        bias = hw->skip_bias;
+
+        regs->rdo_skip_cime_thd0.atf_rdo_skip_cime_thd0 = hw->skip_sad < 10 ? hw->skip_sad : 10;
+        regs->rdo_skip_cime_thd0.atf_rdo_skip_cime_thd1 = hw->skip_sad < 8  ? hw->skip_sad : 8;
+        regs->rdo_skip_cime_thd1.atf_rdo_skip_cime_thd2 = hw->skip_sad < 15 ? hw->skip_sad : 15;
+        regs->rdo_skip_cime_thd1.atf_rdo_skip_cime_thd3 = hw->skip_sad;
+        regs->rdo_skip_atf_wgt0.atf_rdo_skip_atf_wgt00 = bias > 20 ? bias : 20;
+        regs->rdo_skip_atf_wgt0.atf_rdo_skip_atf_wgt10 = bias;
+        regs->rdo_skip_atf_wgt0.atf_rdo_skip_atf_wgt11 = bias;
+        regs->rdo_skip_atf_wgt0.atf_rdo_skip_atf_wgt12 = bias;
+        regs->rdo_skip_atf_wgt1.atf_rdo_skip_atf_wgt20 = bias;
+        regs->rdo_skip_atf_wgt1.atf_rdo_skip_atf_wgt21 = bias;
+        regs->rdo_skip_atf_wgt1.atf_rdo_skip_atf_wgt22 = bias;
+        regs->rdo_skip_atf_wgt2.atf_rdo_skip_atf_wgt30 = bias;
+        regs->rdo_skip_atf_wgt2.atf_rdo_skip_atf_wgt31 = bias;
+        regs->rdo_skip_atf_wgt2.atf_rdo_skip_atf_wgt32 = bias;
+        regs->rdo_skip_atf_wgt3.atf_rdo_skip_atf_wgt40 = bias;
+        regs->rdo_skip_atf_wgt3.atf_rdo_skip_atf_wgt41 = bias;
+        regs->rdo_skip_atf_wgt3.atf_rdo_skip_atf_wgt42 = bias;
+    }
 }
 
 static void setup_vepu580_rdo_cfg(Vepu580RdoCfg *regs)
@@ -1853,6 +1900,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     setup_vepu580_codec(regs, sps, pps, slice);
     setup_vepu580_rdo_pred(regs, sps, pps, slice);
     setup_vepu580_rdo_cfg(&regs->reg_rdo);
+    setup_vepu580_rdo_bias_cfg(&regs->reg_rdo, &cfg->hw);
     setup_vepu580_scl_cfg(&regs->reg_scl);
     setup_vepu580_rc_base(regs, sps, slice, &cfg->hw, rc_task);
     setup_vepu580_io_buf(regs, ctx->offsets, task);
