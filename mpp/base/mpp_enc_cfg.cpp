@@ -253,6 +253,10 @@ public:
     ENTRY(hw,   aq_step_i,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I,        hw, aq_step_i) \
     ENTRY(hw,   aq_step_p,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
     ENTRY(hw,   mb_rc_disable,  S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable) \
+    ENTRY(hw,   mode_bias,      St,  RK_S32 *,          MPP_ENC_HW_CFG_CHANGE_CU_MODE_BIAS,     hw, mode_bias) \
+    ENTRY(hw,   skip_bias_en,   S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS,     hw, skip_bias_en) \
+    ENTRY(hw,   skip_sad,       S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS,     hw, skip_sad) \
+    ENTRY(hw,   skip_bias,      S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS,     hw, skip_bias) \
     /* quality fine tuning config */ \
     ENTRY(tune, scene_mode,     S32, MppEncSceneMode,   MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode)
 
@@ -383,9 +387,17 @@ MppCfgInfoNode *MppEncCfgService::get_info_root()
 
 static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
 {
+    RK_U32 i;
+
     cfg->prep.color = MPP_FRAME_SPC_UNSPECIFIED;
     cfg->prep.colorprim = MPP_FRAME_PRI_UNSPECIFIED;
     cfg->prep.colortrc = MPP_FRAME_TRC_UNSPECIFIED;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(cfg->hw.mode_bias); i++)
+        cfg->hw.mode_bias[i] = 8;
+
+    cfg->hw.skip_sad  = 8;
+    cfg->hw.skip_bias = 8;
 }
 
 MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)

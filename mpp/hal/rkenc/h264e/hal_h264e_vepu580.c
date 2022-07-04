@@ -265,6 +265,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 
     {   /* setup default hardware config */
         MppEncHwCfg *hw = &cfg->cfg->hw;
+        RK_U32 i;
 
         hw->qp_delta_row_i  = 2;
         hw->qp_delta_row    = 2;
@@ -274,6 +275,12 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
         memcpy(hw->aq_step_i, h264_I_aq_step_default, sizeof(hw->aq_step_i));
         memcpy(hw->aq_step_p, h264_P_aq_step_default, sizeof(hw->aq_step_p));
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(hw->mode_bias); i++)
+            hw->mode_bias[i] = 8;
+
+        hw->skip_sad  = 8;
+        hw->skip_bias = 8;
     }
     mpp_dev_multi_offset_init(&p->offsets, 24);
     p->osd_cfg.reg_cfg = p->offsets;
