@@ -1237,6 +1237,12 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
         memcpy(hw->aq_step_i, aq_qp_dealt_default, sizeof(hw->aq_step_i));
         memcpy(hw->aq_step_p, aq_qp_dealt_default, sizeof(hw->aq_step_p));
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(hw->mode_bias); i++)
+            hw->mode_bias[i] = 8;
+
+        hw->skip_sad  = 8;
+        hw->skip_bias = 8;
     }
 
     ctx->tune = vepu580_h265e_tune_init(ctx);

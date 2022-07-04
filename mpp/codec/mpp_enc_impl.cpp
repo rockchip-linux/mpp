@@ -762,6 +762,15 @@ MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
         if (change & MPP_ENC_HW_CFG_CHANGE_MB_RC)
             dst->mb_rc_disable = src->mb_rc_disable;
 
+        if (change & MPP_ENC_HW_CFG_CHANGE_CU_MODE_BIAS)
+            memcpy(dst->mode_bias, src->mode_bias, sizeof(dst->mode_bias));
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS) {
+            dst->skip_bias_en = src->skip_bias_en;
+            dst->skip_sad = src->skip_sad;
+            dst->skip_bias = src->skip_bias;
+        }
+
         if (dst->qp_delta_row < 0 || dst->qp_delta_row_i < 0) {
             mpp_err("invalid hw qp delta row [%d:%d]\n",
                     dst->qp_delta_row_i, dst->qp_delta_row);

@@ -418,6 +418,8 @@ typedef enum MppEncHwCfgChange_e {
     MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I     = (1 << 4),
     MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P     = (1 << 5),
     MPP_ENC_HW_CFG_CHANGE_MB_RC         = (1 << 6),
+    MPP_ENC_HW_CFG_CHANGE_CU_MODE_BIAS  = (1 << 8),
+    MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS  = (1 << 9),
     MPP_ENC_HW_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncHwCfgChange;
 
@@ -443,6 +445,32 @@ typedef struct MppEncHwCfg_t {
 
     /* vepu580 */
     RK_S32                  extra_buf;
+
+    /*
+     * block mode decision bias config
+     * 0 - intra32x32
+     * 1 - intra16x16
+     * 2 - intra8x8
+     * 3 - intra4x4
+     * 4 - inter64x64
+     * 5 - inter32x32
+     * 6 - inter16x16
+     * 7 - inter8x8
+     * value range 0 ~ 15, default : 8
+     * If the value is smaller then encoder will be more likely to encode corresponding block mode.
+     */
+    RK_S32                  mode_bias[8];
+
+    /*
+     * skip mode bias config
+     * skip_bias_en - enable flag for skip bias config
+     * skip_sad     - sad threshold for skip / non-skip
+     * skip_bias    - tendency for skip, value range 0 ~ 15, default : 8
+     *                If the value is smaller then encoder will be more likely to encode skip block.
+     */
+    RK_S32                  skip_bias_en;
+    RK_S32                  skip_sad;
+    RK_S32                  skip_bias;
 } MppEncHwCfg;
 
 /*
