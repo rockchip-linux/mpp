@@ -139,6 +139,13 @@ static RK_U32 aq_thd_default[16] = {
     15, 20, 25, 35
 };
 
+static RK_U32 h265e_mode_bias[16] = {
+    0,  2,  4,  6,
+    8,  10, 12, 14,
+    16, 18, 20, 24,
+    28, 32, 64, 128
+};
+
 static RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
@@ -623,6 +630,219 @@ static void vepu580_h265_sobel_cfg(hevc_vepu580_wgt *reg)
     reg->i32_sobel_e_09.intra_l32_sobel_e1_qp4_high = 0;
 }
 
+static void vepu580_h265_rdo_bias_cfg (vepu580_rdo_cfg *reg, MppEncHwCfg *hw)
+{
+    RdoAtfCfg* p_rdo_atf;
+    RdoAtfSkipCfg* p_rdo_atf_skip;
+    RK_U8 bias = h265e_mode_bias[hw->mode_bias[4]];
+
+    p_rdo_atf = &reg->rdo_b64_inter_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    if (hw->skip_bias_en) {
+        bias = h265e_mode_bias[hw->skip_bias];
+
+        p_rdo_atf_skip = &reg->rdo_b64_skip_atf;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = hw->skip_sad < 4 ? hw->skip_sad : 4;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = hw->skip_sad < 6 ? hw->skip_sad : 6;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = hw->skip_sad;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = bias > 24 ? bias : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = bias < 4 ? bias : 4;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = bias < 6 ? bias : 6;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = bias < 8 ? bias : 8;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = bias < 10 ? bias : 10;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = bias < 10 ? bias : 10;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = bias < 10 ? bias : 10;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = bias < 14 ? bias : 14;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = bias < 14 ? bias : 14;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = bias;
+    }
+
+    bias = h265e_mode_bias[hw->mode_bias[0]];
+
+    p_rdo_atf = &reg->rdo_b32_intra_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias > 26 ? bias : 26;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias > 24 ? bias : 24;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias > 23 ? bias : 23;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias > 21 ? bias : 21;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias > 19 ? bias : 19;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias > 18 ? bias : 18;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    bias = h265e_mode_bias[hw->mode_bias[5]];
+
+    p_rdo_atf = &reg->rdo_b32_inter_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    if (hw->skip_bias_en) {
+        bias = h265e_mode_bias[hw->skip_bias];
+
+        p_rdo_atf_skip = &reg->rdo_b32_skip_atf;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = hw->skip_sad < 4 ? hw->skip_sad : 4;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = hw->skip_sad < 6 ? hw->skip_sad : 6;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = hw->skip_sad;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias > 18 ? bias : 18;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = bias < 11 ? bias : 11;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = bias < 11 ? bias : 11;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = bias < 11 ? bias : 11;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = bias < 13 ? bias : 13;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = bias < 13 ? bias : 13;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = bias < 13 ? bias : 13;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = bias < 15 ? bias : 15;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = bias;
+    }
+
+    bias = h265e_mode_bias[hw->mode_bias[1]];
+
+    p_rdo_atf = &reg->rdo_b16_intra_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias > 26 ? bias : 26;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias > 24 ? bias : 24;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias > 23 ? bias : 23;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias > 21 ? bias : 21;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias > 19 ? bias : 19;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias > 18 ? bias : 18;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    bias = h265e_mode_bias[hw->mode_bias[6]];
+
+    p_rdo_atf = &reg->rdo_b16_inter_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    if (hw->skip_bias_en) {
+        bias = h265e_mode_bias[hw->skip_bias];
+
+        p_rdo_atf_skip = &reg->rdo_b16_skip_atf;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = hw->skip_sad < 48 ? hw->skip_sad : 48;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = hw->skip_sad;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = bias;
+    }
+
+    bias = h265e_mode_bias[hw->mode_bias[2]];
+
+    p_rdo_atf = &reg->rdo_b8_intra_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias > 26 ? bias : 26;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias > 25 ? bias : 25;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias > 24 ? bias : 24;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias > 23 ? bias : 23;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias > 21 ? bias : 21;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias > 19 ? bias : 19;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias > 18 ? bias : 18;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    bias = h265e_mode_bias[hw->mode_bias[7]];
+
+    p_rdo_atf = &reg->rdo_b8_inter_atf;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = bias;
+    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = bias;
+    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = bias;
+    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = bias;
+    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = bias;
+
+    if (hw->skip_bias_en) {
+        bias = h265e_mode_bias[hw->skip_bias];
+
+        p_rdo_atf_skip = &reg->rdo_b8_skip_atf;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = hw->skip_sad < 24 ? hw->skip_sad : 24;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = hw->skip_sad < 48 ? hw->skip_sad : 48;
+        p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = hw->skip_sad;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = bias;
+        p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = bias;
+    }
+}
+
 static void vepu580_h265_rdo_cfg (vepu580_rdo_cfg *reg)
 {
     RdoAtfCfg* p_rdo_atf;
@@ -1059,6 +1279,7 @@ static void vepu580_h265_global_cfg_set(H265eV580HalContext *ctx, H265eV580RegSe
     vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
     vepu580_h265_sobel_cfg(reg_wgt);
     vepu580_h265_rdo_cfg(reg_rdo);
+    vepu580_h265_rdo_bias_cfg(reg_rdo, hw);
     vepu580_h265_scl_cfg(reg_rdo);
 
     memcpy(&reg_wgt->iprd_wgt_qp_hevc_0_51[0], lamd_satd_qp, sizeof(lamd_satd_qp));
