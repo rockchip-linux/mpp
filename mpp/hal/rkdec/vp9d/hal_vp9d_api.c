@@ -45,16 +45,18 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     p->dev = cfg->dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
-    if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X)
+    if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
         p->api = &hal_vp9d_vdpu34x;
-    else
+        cfg->support_fast_mode = 1;
+    } else {
         p->api = &hal_vp9d_rkv;
+        cfg->support_fast_mode = 0;
+    }
 
-    cfg->support_fast_mode = 1;
 
     p->slots = cfg->frame_slots;
     p->dec_cb = cfg->dec_cb;
-    p->fast_mode = cfg->cfg->base.fast_parse;
+    p->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
     p->packet_slots = cfg->packet_slots;
 
     mpp_env_get_u32("hal_vp9d_debug", &hal_vp9d_debug, 0);
