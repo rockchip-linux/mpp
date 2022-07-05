@@ -69,11 +69,12 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
                         (&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
     }
 
+    cfg->support_fast_mode = 0;
     p_hal->dev          = cfg->dev;
     p_hal->cfg          = cfg->cfg;
     p_hal->slots        = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
-    p_hal->fast_mode    = cfg->cfg->base.fast_parse;
+    p_hal->fast_mode    = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
 
     if (p_hal->buf_group == NULL) {
         FUN_CHECK(ret = mpp_buffer_group_get_internal
