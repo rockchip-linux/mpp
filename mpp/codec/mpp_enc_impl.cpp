@@ -1306,6 +1306,7 @@ static MPP_RET mpp_enc_check_frm_pkt(MppEncImpl *enc)
         enc->frm_buf = frm_buf;
 
         mpp_packet_set_pts(enc->packet, pts);
+        mpp_packet_set_dts(enc->packet, mpp_frame_get_dts(enc->frame));
 
         if (mpp_frame_get_eos(enc->frame))
             mpp_packet_set_eos(enc->packet);
@@ -2359,6 +2360,7 @@ static void async_task_skip(MppEncImpl *enc)
 
     mpp_packet_set_length(pkt, 0);
     mpp_packet_set_pts(pkt, mpp_frame_get_pts(frm));
+    mpp_packet_set_dts(pkt, mpp_frame_get_dts(frm));
 
     if (mpp_frame_get_eos(frm))
         mpp_packet_set_eos(pkt);
@@ -2407,6 +2409,7 @@ static MPP_RET check_async_frm_pkt(EncAsyncTaskInfo *async)
         hal_task->input = frm_buf;
 
         mpp_packet_set_pts(packet, pts);
+        mpp_packet_set_dts(packet, mpp_frame_get_dts(frame));
 
         if (mpp_frame_get_eos(frame))
             mpp_packet_set_eos(packet);
