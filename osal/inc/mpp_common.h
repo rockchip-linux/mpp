@@ -210,6 +210,8 @@ static __inline RK_U32 mpp_is_32bit()
 }
 
 RK_S32 axb_div_c(RK_S32 a, RK_S32 b, RK_S32 c);
+RK_U32 mpp_align_16(RK_U32 val);
+RK_U32 mpp_align_64(RK_U32 val);
 
 #ifdef __cplusplus
 }

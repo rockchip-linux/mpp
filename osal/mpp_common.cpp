@@ -106,3 +106,13 @@ RK_S32 axb_div_c(RK_S32 a, RK_S32 b, RK_S32 c)
                          (RK_U32)c * (RK_U32)b) >> shift) * sign;
     }
 }
+
+RK_U32 mpp_align_16(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
+
+RK_U32 mpp_align_64(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}

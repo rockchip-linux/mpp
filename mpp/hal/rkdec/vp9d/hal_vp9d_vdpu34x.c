@@ -1041,20 +1041,25 @@ static MPP_RET hal_vp9d_vdpu34x_flush(void *hal)
 
 static MPP_RET hal_vp9d_vdpu34x_control(void *hal, MpiCmd cmd_type, void *param)
 {
+    HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
+
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO : {
         /* commit buffer stride */
         RK_U32 width = mpp_frame_get_width((MppFrame)param);
         RK_U32 height = mpp_frame_get_height((MppFrame)param);
+        MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
-        mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
-        mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
+        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+            vdpu34x_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
+        } else {
+            mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
+            mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
+        }
     } break;
     default : {
     } break;
     }
-
-    (void)hal;
 
     return MPP_OK;
 }
