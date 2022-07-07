@@ -21,6 +21,7 @@
 #include "mpp_log.h"
 #include "mpp_buffer.h"
 #include "mpp_common.h"
+#include "mpp_compat_impl.h"
 
 #include "vdpu34x_com.h"
 
@@ -176,4 +177,18 @@ void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta)
     sta->reg270.axi_rd_qos = 3;
     sta->reg270.bus2mc_buffer_qos_level = 255;
     sta->reg271_wr_wait_cycle_qos = 0;
+}
+
+void vdpu34x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand)
+{
+    RK_U32 ver_stride = 0;
+    RK_U32 img_height = mpp_frame_get_height(frame);
+
+    mpp_slots_set_prop(slots, SLOTS_HOR_ALIGN, mpp_align_64);
+    mpp_slots_set_prop(slots, SLOTS_VER_ALIGN, mpp_align_16);
+    ver_stride = mpp_align_16(img_height);
+    if (*compat_ext_fbc_buf_size) {
+        ver_stride += expand;
+    }
+    mpp_frame_set_ver_stride(frame, ver_stride);
 }

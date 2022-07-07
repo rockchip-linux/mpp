@@ -18,6 +18,7 @@
 #define __VDPU34X_COM_H__
 
 #include "mpp_device.h"
+#include "mpp_buf_slot.h"
 #include "vdpu34x.h"
 
 #define OFFSET_COMMON_REGS          (8 * sizeof(RK_U32))
@@ -457,6 +458,7 @@ RK_S32 get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu34xRcbInfo *info);
 RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b);
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
+void vdpu34x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 
 #ifdef  __cplusplus
 }

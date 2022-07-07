@@ -1216,7 +1216,9 @@ MPP_RET vdpu34x_h264d_control(void *hal, MpiCmd cmd_type, void *param)
         if (fmt == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
         }
-        if (imgwidth > 1920 || imgheight > 1088) {
+        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+            vdpu34x_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);
+        } else if (imgwidth > 1920 || imgheight > 1088) {
             mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align_256_odds);
         }
         break;

@@ -1375,10 +1375,19 @@ static MPP_RET hal_h265d_vdpu34x_flush(void *hal)
 static MPP_RET hal_h265d_vdpu34x_control(void *hal, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_OK;
+    HalH265dCtx *p_hal = (HalH265dCtx *)hal;
 
     (void)hal;
-    (void)param;
     switch ((MpiCmd)cmd_type) {
+    case MPP_DEC_SET_FRAME_INFO: {
+        MppFrame frame = (MppFrame)param;
+        MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+
+        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+            vdpu34x_afbc_align_calc(p_hal->slots, frame, 16);
+        }
+        break;
+    }
     case MPP_DEC_SET_OUTPUT_FORMAT: {
     } break;
     default:
