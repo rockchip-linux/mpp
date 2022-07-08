@@ -457,11 +457,16 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     }
 
     /* optional */
-    p->sei_mode = MPP_ENC_SEI_MODE_ONE_FRAME;
-    ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
-    if (ret) {
-        mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
-        goto RET;
+    {
+        RK_U32 sei_mode;
+
+        mpp_env_get_u32("sei_mode", &sei_mode, MPP_ENC_SEI_MODE_ONE_FRAME);
+        p->sei_mode = sei_mode;
+        ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
+        if (ret) {
+            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+            goto RET;
+        }
     }
 
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
