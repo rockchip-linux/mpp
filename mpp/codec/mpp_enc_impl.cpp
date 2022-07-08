@@ -1514,6 +1514,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
     enc_dbg_detail("task %d hal generate reg\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_gen_regs, hal, hal_task, mpp, ret);
 
+    hal_task->segment_nb = mpp_packet_get_segment_nb(hal_task->packet);
     mpp_stopwatch_record(hal_task->stopwatch, "encode hal start");
     enc_dbg_detail("task %d hal start\n", frm->seq_idx);
     ENC_RUN_FUNC2(mpp_enc_hal_start, hal, hal_task, mpp, ret);
@@ -2101,6 +2102,8 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
     while (frm->reencode && frm->reencode_times < enc->cfg.rc.max_reenc_times) {
         hal_task->length -= hal_task->hw_length;
         hal_task->hw_length = 0;
+
+        mpp_packet_set_segment_nb(hal_task->packet, hal_task->segment_nb);
 
         enc_dbg_detail("task %d reenc %d times %d\n", frm->seq_idx, frm->reencode, frm->reencode_times);
 
