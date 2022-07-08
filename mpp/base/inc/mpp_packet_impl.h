@@ -92,7 +92,7 @@ void    mpp_packet_set_task(MppPacket packet, MppTask task);
 MppTask mpp_packet_get_task(MppPacket packet);
 
 void    mpp_packet_reset_segment(MppPacket packet);
-void    mpp_packet_set_segment_nb(MppPacket packet);
+void    mpp_packet_set_segment_nb(MppPacket packet, RK_U32 segment_nb);
 MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset, RK_S32 len);
 void    mpp_packet_copy_segment_info(MppPacket dst, MppPacket src);
 

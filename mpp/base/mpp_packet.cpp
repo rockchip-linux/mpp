@@ -465,6 +465,41 @@ void mpp_packet_reset_segment(MppPacket packet)
     MPP_FREE(p->segments_ext);
 }
 
+void mpp_packet_set_segment_nb(MppPacket packet, RK_U32 segment_nb)
+{
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    MppPktSeg *segs = p->segments;
+    RK_S32 i;
+
+    if (segment_nb >= p->segment_nb || !segs)
+        return;
+
+    if (!segment_nb) {
+        mpp_packet_reset_segment(packet);
+        return;
+    }
+
+    /* truncate segment member and drop later segment info */
+    if (segment_nb <= MPP_PKT_SEG_CNT_DEFAULT) {
+        if (p->segments_ext) {
+            memcpy(p->segments_def, segs, sizeof(*segs) * segment_nb);
+            segs = p->segments_def;
+            p->segments = segs;
+            MPP_FREE(p->segments_ext);
+        }
+
+        p->segment_buf_cnt = MPP_PKT_SEG_CNT_DEFAULT;
+    }
+
+    /* relink segment info */
+    for (i = 0; i < (RK_S32)segment_nb - 1; i++)
+        segs[i].next = &segs[i + 1];
+
+    segs[segment_nb - 1].next = NULL;
+
+    p->segment_nb = segment_nb;
+}
+
 MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset, RK_S32 len)
 {
     MppPacketImpl *p = (MppPacketImpl *)packet;
@@ -582,6 +617,13 @@ const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
         ((MppPacketImpl*)s)->field = v; \
     }
 
+#define MPP_PACKET_ACCESSOR_GET(type, field) \
+    type mpp_packet_get_##field(const MppPacket s) \
+    { \
+        check_is_mpp_packet(s); \
+        return ((MppPacketImpl*)s)->field; \
+    }
+
 MPP_PACKET_ACCESSORS(void *, data)
 MPP_PACKET_ACCESSORS(size_t, size)
 MPP_PACKET_ACCESSORS(size_t, length)
@@ -589,4 +631,4 @@ MPP_PACKET_ACCESSORS(RK_S64, pts)
 MPP_PACKET_ACCESSORS(RK_S64, dts)
 MPP_PACKET_ACCESSORS(RK_U32, flag)
 MPP_PACKET_ACCESSORS(MppTask, task)
-MPP_PACKET_ACCESSORS(RK_U32, segment_nb)
+MPP_PACKET_ACCESSOR_GET(RK_U32, segment_nb)
