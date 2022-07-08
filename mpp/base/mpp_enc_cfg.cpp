@@ -389,6 +389,8 @@ static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
 {
     RK_U32 i;
 
+    cfg->rc.max_reenc_times = 1;
+
     cfg->prep.color = MPP_FRAME_SPC_UNSPECIFIED;
     cfg->prep.colorprim = MPP_FRAME_PRI_UNSPECIFIED;
     cfg->prep.colortrc = MPP_FRAME_TRC_UNSPECIFIED;

@@ -100,7 +100,7 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_out_denorm = 1;
     rc_cfg->gop = 60;
-    rc_cfg->max_reenc_times = 0;
+    rc_cfg->max_reenc_times = 1;
 
     p->rc = mpp_calloc(Vp8eRc, 1);
     memset(p->rc, 0, sizeof(Vp8eRc));
