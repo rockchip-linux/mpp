@@ -695,7 +695,12 @@ static MPP_RET vepu580_h264e_save_pass1_patch(HalVepu580RegSet *regs, HalH264eVe
     regs->reg_base.rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
     regs->reg_base.rfpw_b_addr = regs->reg_base.rfpw_h_addr;
     regs->reg_base.enc_pic.rec_fbc_dis = 1;
+
     mpp_dev_multi_offset_update(ctx->offsets, 164, width_align * height_align);
+
+    /* NOTE: disable split to avoid lowdelay slice output */
+    regs->reg_base.sli_splt.sli_splt = 0;
+    regs->reg_base.enc_pic.slen_fifo = 0;
 
     return MPP_OK;
 }
