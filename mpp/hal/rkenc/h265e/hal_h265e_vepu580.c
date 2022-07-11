@@ -2202,6 +2202,10 @@ static MPP_RET vepu580_h265e_save_pass1_patch(H265eV580RegSet *regs, H265eV580Ha
 
     mpp_dev_multi_offset_update(ctx->reg_cfg, 164, width_align * height);
 
+    /* NOTE: disable split to avoid lowdelay slice output */
+    regs->reg_base.reg0216_sli_splt.sli_splt = 0;
+    regs->reg_base.reg0192_enc_pic.slen_fifo = 0;
+
     return MPP_OK;
 }
 
