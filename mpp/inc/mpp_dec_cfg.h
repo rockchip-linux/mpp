@@ -91,15 +91,4 @@ typedef struct MppDecCfgSet_t {
     MppDecCbCfg         cb;
 } MppDecCfgSet;
 
-/*
- * MppDecCfgApi is the function set for configure MppDecCfgSet by name
- */
-typedef struct MppDecCfgApi_t {
-    const char          *name;
-    RK_S32              type_set;
-    RK_S32              type_get;
-    void                *api_set;
-    void                *api_get;
-} MppDecCfgApi;
-
 #endif /* __MPP_DEC_CFG_H__ */
