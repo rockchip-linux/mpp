@@ -104,7 +104,7 @@ MPP_RET mpp_cfg_get_st(MppCfgInfoNode *info, void *cfg, void *val)
 
 MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val)
 {
-    return mpp_cfg_set(info, cfg, val);
+    return mpp_cfg_set(info, cfg, &val);
 }
 
 MPP_RET mpp_cfg_get_ptr(MppCfgInfoNode *info, void *cfg, void **val)
