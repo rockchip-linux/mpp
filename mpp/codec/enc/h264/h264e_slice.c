@@ -281,7 +281,7 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
 
     mpp_set_bitread_ctx(&bit, p, size);
     /* enable remove 03 */
-    mpp_set_pre_detection(&bit);
+    mpp_set_bitread_pseudo_code_type(&bit, PSEUDO_CODE_H264_H265);
 
     /* start_code */
     ret |= mpp_read_longbits(&bit, 32, (RK_U32 *)&val);

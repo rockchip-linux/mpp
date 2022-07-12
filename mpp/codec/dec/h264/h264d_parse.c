@@ -155,7 +155,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     H264_Nalu_t     *cur_nal  = &p_Cur->nalu;
 
     mpp_set_bitread_ctx(p_bitctx, cur_nal->sodb_buf, cur_nal->sodb_len);
-    mpp_set_pre_detection(p_bitctx);
+    mpp_set_bitread_pseudo_code_type(p_bitctx, PSEUDO_CODE_H264_H265);
 
     READ_BITS(p_bitctx, 1, &cur_nal->forbidden_bit);
     ASSERT(cur_nal->forbidden_bit == 0);
@@ -211,7 +211,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
     mpp_set_bitread_ctx(p_bitctx,
                         cur_nal->sodb_buf + cur_nal->ualu_header_bytes,
                         cur_nal->sodb_len - cur_nal->ualu_header_bytes);
-    mpp_set_pre_detection(p_bitctx);
+    mpp_set_bitread_pseudo_code_type(p_bitctx, PSEUDO_CODE_H264_H265);
     p_Cur->p_Dec->nalu_ret = StartofNalu;
 
     return ret = MPP_OK;
@@ -398,7 +398,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
         RK_U32      forbidden_bit = -1;
         RK_U32  nal_reference_idc = -1;
         mpp_set_bitread_ctx(p_bitctx, p_strm->nalu_buf, 4);
-        mpp_set_pre_detection(p_bitctx);
+        mpp_set_bitread_pseudo_code_type(p_bitctx, PSEUDO_CODE_H264_H265);
 
         READ_BITS(p_bitctx, 1, &forbidden_bit);
         ASSERT(forbidden_bit == 0);
@@ -429,7 +429,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
                    || p_strm->nalu_type == H264_NALU_TYPE_IDR)) {
         RK_U32 first_mb_in_slice  = 0;
         mpp_set_bitread_ctx(p_bitctx, (p_strm->nalu_buf + nalu_header_bytes), 4); // reset
-        mpp_set_pre_detection(p_bitctx);
+        mpp_set_bitread_pseudo_code_type(p_bitctx, PSEUDO_CODE_H264_H265);
         READ_UE(p_bitctx, &first_mb_in_slice);
         if (first_mb_in_slice == 0) {
             p_Cur->last_dts = p_Cur->curr_dts;
