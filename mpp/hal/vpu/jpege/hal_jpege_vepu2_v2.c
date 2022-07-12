@@ -636,10 +636,12 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
                 break;
             }
 
-            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_DELIMIT, NULL);
-            if (ret) {
-                mpp_err_f("send delimit failed %d\n", ret);
-                break;
+            if (i < partion_num - 1) {
+                ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_DELIMIT, NULL);
+                if (ret) {
+                    mpp_err_f("send delimit failed %d\n", ret);
+                    break;
+                }
             }
         } while (0);
     }
