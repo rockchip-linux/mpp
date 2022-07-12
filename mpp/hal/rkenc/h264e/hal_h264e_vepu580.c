@@ -2130,8 +2130,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
         RK_U32 slice_last;
         MppPacket pkt = task->packet;
         RK_S32 offset = mpp_packet_get_length(pkt);
-        H264NaluType type = ctx->slice->slice_type == H264_I_SLICE ?
-                            H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+        H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
         MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs +
                                                     task->flags.reg_idx * ctx->poll_cfg_size);
         param.task = task;
