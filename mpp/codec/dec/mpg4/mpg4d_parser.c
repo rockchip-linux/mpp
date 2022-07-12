@@ -703,7 +703,7 @@ static MPP_RET mpg4d_parse_user_data(Mpg4dParserImpl *p, BitReadCtx_t *gb)
 
     memset(tmp, 0, 256);
 
-    for (i = 0; i < 256 && gb->bytes_left_; i++) {
+    for (i = 0; i < 255 && gb->bytes_left_; i++) {
         RK_U32 show_bit = MPP_MIN(remain_bit, 23);
         RK_U32 val;
 
@@ -716,6 +716,10 @@ static MPP_RET mpg4d_parse_user_data(Mpg4dParserImpl *p, BitReadCtx_t *gb)
         remain_bit -= 8;
     }
 
+    /*
+     * The value of i in the for loop above must be less than 255 otherwise it will cause
+     * tmp [256] = 0 which is overflow
+     */
     tmp[i] = 0;
 
     if (!mp4Hdr->usr.packed_mode) {
