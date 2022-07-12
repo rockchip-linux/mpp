@@ -93,6 +93,13 @@
         else { goto __BITREAD_ERR; }\
     } while (0)
 
+typedef enum  PseudoCodeType_e {
+    PSEUDO_CODE_NONE = 0,
+    PSEUDO_CODE_H264_H265,
+    PSEUDO_CODE_AVS2,
+    PSEUDO_CODE_BUT
+} PseudoCodeType;
+
 typedef struct bitread_ctx_t {
     // Pointer to the next unread (not in curr_byte_) byte in the stream.
     RK_U8 *data_;
@@ -114,7 +121,8 @@ typedef struct bitread_ctx_t {
     RK_S32 buf_len;
     // ctx
     MPP_RET   ret;
-    RK_S32    need_prevention_detection;
+    PseudoCodeType prevention_type;
+    MPP_RET (*update_curbyte)(struct bitread_ctx_t *bitctx);
 } BitReadCtx_t;
 
 
@@ -149,8 +157,7 @@ MPP_RET mpp_read_ue(BitReadCtx_t *bitctx, RK_U32* val);
 //!< read se(1-31)
 MPP_RET mpp_read_se(BitReadCtx_t *bitctx, RK_S32* val);
 
-//!< set whether detect 0x03 (used in h264 and h265)
-void    mpp_set_pre_detection(BitReadCtx_t *bitctx);
+void mpp_set_bitread_pseudo_code_type(BitReadCtx_t *bitctx, PseudoCodeType type);
 
 //!< check whether has more rbsp data(used in h264)
 RK_U32  mpp_has_more_rbsp_data(BitReadCtx_t * bitctx);

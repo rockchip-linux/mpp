@@ -21,15 +21,28 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 
-static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
+static MPP_RET update_curbyte_default(BitReadCtx_t *bitctx)
+{
+    if (bitctx->bytes_left_ < 1)
+        return  MPP_ERR_READ_BIT;
+
+    // Load a new byte and advance pointers.
+    bitctx->curr_byte_ = *bitctx->data_++ & 0xff;
+    --bitctx->bytes_left_;
+    bitctx->num_remaining_bits_in_curr_byte_ = 8;
+    bitctx->prev_two_bytes_ = (bitctx->prev_two_bytes_ << 8) | bitctx->curr_byte_;
+
+    return MPP_OK;
+}
+
+static MPP_RET update_curbyte_h264(BitReadCtx_t *bitctx)
 {
     if (bitctx->bytes_left_ < 1)
         return  MPP_ERR_READ_BIT;
 
     // Emulation prevention three-byte detection.
     // If a sequence of 0x000003 is found, skip (ignore) the last byte (0x03).
-    if (bitctx->need_prevention_detection
-        && (*bitctx->data_ == 0x03)
+    if ((*bitctx->data_ == 0x03)
         && ((bitctx->prev_two_bytes_ & 0xffff) == 0)) {
         // Detected 0x000003, skip last byte.
         ++bitctx->data_;
@@ -46,6 +59,27 @@ static MPP_RET update_curbyte(BitReadCtx_t *bitctx)
     --bitctx->bytes_left_;
     bitctx->num_remaining_bits_in_curr_byte_ = 8;
     bitctx->prev_two_bytes_ = (bitctx->prev_two_bytes_ << 8) | bitctx->curr_byte_;
+
+    return MPP_OK;
+}
+
+static MPP_RET update_curbyte_avs2(BitReadCtx_t *bitctx)
+{
+    if (bitctx->bytes_left_ < 1)
+        return MPP_ERR_READ_BIT;
+
+    if (*bitctx->data_ == 0x02 && ((bitctx->prev_two_bytes_ & 0xffff) == 0)) {
+        // Detected 0x000002, get 2 bits from next byte
+        bitctx->curr_byte_ = 0;
+        bitctx->num_remaining_bits_in_curr_byte_ = 6;
+        ++bitctx->data_;
+    } else {
+        bitctx->curr_byte_ = *bitctx->data_++ & 0xff;
+        bitctx->num_remaining_bits_in_curr_byte_ = 8;
+    }
+    // Load a new byte and advance pointers.
+    bitctx->prev_two_bytes_ = (bitctx->prev_two_bytes_ << 8) | bitctx->curr_byte_;
+    --bitctx->bytes_left_;
 
     return MPP_OK;
 }
@@ -69,7 +103,7 @@ MPP_RET mpp_read_bits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
         // Take all that's left in current byte, shift to make space for the rest.
         *out |= (bitctx->curr_byte_ << (bits_left - bitctx->num_remaining_bits_in_curr_byte_));
         bits_left -= bitctx->num_remaining_bits_in_curr_byte_;
-        if (update_curbyte(bitctx)) {
+        if (bitctx->update_curbyte(bitctx)) {
             return  MPP_ERR_READ_BIT;
         }
     }
@@ -117,7 +151,7 @@ MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits)
     while (bitctx->num_remaining_bits_in_curr_byte_ < bits_left) {
         // Take all that's left in current byte, shift to make space for the rest.
         bits_left -= bitctx->num_remaining_bits_in_curr_byte_;
-        if (update_curbyte(bitctx)) {
+        if (bitctx->update_curbyte(bitctx)) {
             return  MPP_ERR_READ_BIT;
         }
     }
@@ -243,7 +277,7 @@ RK_U32 mpp_has_more_rbsp_data(BitReadCtx_t *bitctx)
 
     // Make sure we have more bits, if we are at 0 bits in current byte
     // and updating current byte fails, we don't have more data anyway.
-    if (bitctx->num_remaining_bits_in_curr_byte_ == 0 && update_curbyte(bitctx))
+    if (bitctx->num_remaining_bits_in_curr_byte_ == 0 && bitctx->update_curbyte(bitctx))
         return 0;
     // On last byte?
     if (bitctx->bytes_left_)
@@ -273,18 +307,25 @@ void mpp_set_bitread_ctx(BitReadCtx_t *bitctx, RK_U8 *data, RK_S32 size)
     bitctx->buf = data;
     bitctx->buf_len = size;
     bitctx->used_bits = 0;
-    bitctx->need_prevention_detection = 0;
+    mpp_set_bitread_pseudo_code_type(bitctx, PSEUDO_CODE_NONE);
 }
-/*!
-***********************************************************************
-* \brief
-*   set whether detect 0x03 for h264 and h265
-***********************************************************************
-*/
-void mpp_set_pre_detection(BitReadCtx_t *bitctx)
+
+void mpp_set_bitread_pseudo_code_type(BitReadCtx_t *bitctx, PseudoCodeType type)
 {
-    bitctx->need_prevention_detection = 1;
+    bitctx->prevention_type = type;
+    switch (type) {
+    case PSEUDO_CODE_H264_H265:
+        bitctx->update_curbyte = update_curbyte_h264;
+        break;
+    case PSEUDO_CODE_AVS2:
+        bitctx->update_curbyte = update_curbyte_avs2;
+        break;
+    default:
+        bitctx->update_curbyte = update_curbyte_default;
+        break;
+    }
 }
+
 /*!
 ***********************************************************************
 * \brief

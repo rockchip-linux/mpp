@@ -34,6 +34,9 @@ add_mpp_base_test(mpp_meta)
 # mpp_bitwriter unit test
 add_mpp_base_test(mpp_bit)
 
+# mpp_bitread unit test
+add_mpp_base_test(mpp_bit_read)
+
 # mpp_trie unit test
 add_mpp_base_test(mpp_trie)
 

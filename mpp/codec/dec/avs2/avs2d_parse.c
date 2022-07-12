@@ -578,6 +578,7 @@ MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
             memset(&p_dec->bitctx, 0, sizeof(BitReadCtx_t));
             AVS2D_PARSE_TRACE("bitread ctx, pos %d, length %d\n", p_nalu->start_pos, p_nalu->length);
             mpp_set_bitread_ctx(&p_dec->bitctx, p_nalu->pdata, p_nalu->length);
+            mpp_set_bitread_pseudo_code_type(&p_dec->bitctx, PSEUDO_CODE_AVS2);
         }
 
         switch (startcode) {
