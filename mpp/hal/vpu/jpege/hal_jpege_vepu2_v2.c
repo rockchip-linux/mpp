@@ -250,7 +250,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
         {
             RK_U32 mb_w = MPP_ALIGN(width, 16) / 16;
             RK_U32 mb_h = MPP_ALIGN(height, 16) / 16;
-            RK_U32 part_rows = mb_h / 4;
+            RK_U32 part_rows = MPP_ALIGN(mb_h, 4) / 4;
 
             ctx_ext->partion_num = 0;
 
