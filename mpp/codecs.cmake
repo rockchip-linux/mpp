@@ -10,6 +10,16 @@ if( ENABLE_AVSD AND
     add_definitions(-DHAVE_AVSD)
 endif()
 
+# AVS2 decoder
+option(ENABLE_AVS2D   "Enable avs2 decoder" ON)
+if( ENABLE_AVS2D AND
+    EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/codec/dec/avs2" )
+    set(HAVE_AVS2D true)
+    set(CODEC_AVS2D codec_avs2d)
+    set(HAL_AVS2D hal_avs2d)
+    add_definitions(-DHAVE_AVS2D)
+endif()
+
 # H.263 decoder
 option(ENABLE_H263D  "Enable h.263 decoder" ON)
 if( ENABLE_H263D )

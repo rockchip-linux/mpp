@@ -6,6 +6,10 @@ if( HAVE_AVSD )
     add_subdirectory(avs)
 endif()
 
+if( HAVE_AVS2D )
+    add_subdirectory(avs2)
+endif()
+
 if( HAVE_H263D )
     add_subdirectory(h263)
 endif()

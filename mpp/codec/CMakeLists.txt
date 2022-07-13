@@ -24,6 +24,7 @@ add_subdirectory(rc)
 target_link_libraries(mpp_codec
                       enc_rc
                       ${CODEC_AVSD}
+                      ${CODEC_AVS2D}
                       ${CODEC_H263D}
                       ${CODEC_H264D}
                       ${CODEC_H265D}
