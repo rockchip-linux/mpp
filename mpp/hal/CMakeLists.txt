@@ -24,6 +24,7 @@ set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")
 
 target_link_libraries(mpp_hal
                       ${HAL_AVSD}
+                      ${HAL_AVS2D}
                       ${HAL_H263D}
                       ${HAL_H264D}
                       ${HAL_H265D}
