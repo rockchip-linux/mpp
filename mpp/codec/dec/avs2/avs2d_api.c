@@ -230,7 +230,6 @@ MPP_RET avs2d_parse(void *decoder, HalDecTask *task)
     AVS2D_PARSE_TRACE("In.");
 
     task->valid = 0;
-    // memset(task->refer, -1, sizeof(task->refer));
 
     avs2d_parse_stream(p_dec, task);
     if (task->valid) {
@@ -252,28 +251,69 @@ MPP_RET avs2d_callback(void *decoder, void *info)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     Avs2dCtx_t *p_dec = (Avs2dCtx_t *)decoder;
+    Avs2dFrameMgr_t *mgr = &p_dec->frm_mgr;
     DecCbHalDone *ctx = (DecCbHalDone *)info;
-    MppFrame mframe = NULL;
     HalDecTask *task_dec = (HalDecTask *)ctx->task;
+    MppFrame mframe = NULL;
+    MppFrame ref_frm = NULL;
+    RK_U32 i = 0;
+    RK_U32 error = 0;
+    RK_U32 discard = 0;
+    RK_U32 ref_used_flag = 0;
 
     AVS2D_PARSE_TRACE("In.");
     mpp_buf_slot_get_prop(p_dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
 
-    AVS2D_DBG(AVS2D_DBG_CALLBACK, "frame poc %d, ref=%d, dpberr=%d, harderr=%d\n",
-              mpp_frame_get_poc(mframe),
-              task_dec->flags.used_for_ref, task_dec->flags.ref_err, ctx->hard_err);
+    if (!mframe) {
+        ret = MPP_ERR_UNKNOW;
+        AVS2D_DBG(AVS2D_DBG_CALLBACK, "[CALLBACK]: failed to get frame\n");
+        goto __FAILED;
+    }
 
-    if (mframe) {
-        if (ctx->hard_err || task_dec->flags.ref_err) {
-            if (task_dec->flags.used_for_ref) {
-                mpp_frame_set_errinfo(mframe, 1);
-            } else {
-                mpp_frame_set_discard(mframe, 1);
-            }
+    if (ctx->hard_err || task_dec->flags.ref_err) {
+        if (task_dec->flags.used_for_ref) {
+            error = 1;
+        } else {
+            discard = 1;
+        }
+    } else {
+        if (task_dec->flags.ref_miss & task_dec->flags.ref_used) {
+            discard = 1;
+            AVS2D_DBG(AVS2D_DBG_CALLBACK, "[CALLBACK]: fake ref used, miss 0x%x used 0x%x\n",
+                      task_dec->flags.ref_miss, task_dec->flags.ref_used);
         }
     }
+
+    for (i = 0; i < AVS2_MAX_REFS; i++) {
+        if (!mgr->refs[i] || !mgr->refs[i]->frame || mgr->refs[i]->slot_idx < 0)
+            continue;
+
+        mpp_buf_slot_get_prop(p_dec->frame_slots, mgr->refs[i]->slot_idx, SLOT_FRAME_PTR, &ref_frm);
+        if (!ref_frm)
+            continue;
+
+        ref_used_flag = (task_dec->flags.ref_used >> i) & 1;
+        //TODO: In fast mode, ref list isn't kept sync with task flag.ref_used
+        AVS2D_DBG(AVS2D_DBG_CALLBACK, "[CALLBACK]: ref_frm poc %d, err %d, dis %d, ref_used %d\n",
+                  mpp_frame_get_poc(ref_frm), mpp_frame_get_errinfo(ref_frm),
+                  mpp_frame_get_discard(ref_frm), ref_used_flag);
+
+        if (ref_used_flag) {
+            discard |= mpp_frame_get_discard(ref_frm);
+            error |= mpp_frame_get_errinfo(ref_frm);
+        }
+    }
+
+    mpp_frame_set_errinfo(mframe, error);
+    mpp_frame_set_discard(mframe, discard);
+
+    AVS2D_DBG(AVS2D_DBG_CALLBACK, "[CALLBACK]: frame poc %d, ref=%d, dpberr=%d, harderr=%d, err:dis=%d:%d\n",
+              mpp_frame_get_poc(mframe), task_dec->flags.used_for_ref, task_dec->flags.ref_err,
+              ctx->hard_err, error, discard);
+
+__FAILED:
     AVS2D_PARSE_TRACE("Out.");
-    return ret = MPP_OK;
+    return ret;
 }
 
 const ParserApi api_avs2d_parser = {

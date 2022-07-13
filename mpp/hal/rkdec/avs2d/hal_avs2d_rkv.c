@@ -315,6 +315,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu34xAvs2dRegSet *hw_regs)
 
 static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, HalTaskInfo *task)
 {
+    MPP_RET ret = MPP_OK;
     RK_U32 i;
     MppFrame mframe = NULL;
     Avs2dSyntax_t *syntax = &p_hal->syntax;
@@ -372,14 +373,30 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
     // set reference
     {
         RK_U64 ref_flag = 0;
+        RK_S32 valid_slot = -1;
 
         AVS2D_HAL_TRACE("num of ref %d", refp->ref_pic_num);
+
+        for (i = 0; i < refp->ref_pic_num; i++) {
+            if (task_dec->refer[i] < 0)
+                continue;
+
+            valid_slot = i;
+            break;
+        }
 
         for (i = 0; i < MAX_REF_NUM; i++) {
             if (i < refp->ref_pic_num) {
                 MppFrame frame_ref = NULL;
 
-                mpp_buf_slot_get_prop(p_hal->frame_slots, task_dec->refer[i], SLOT_FRAME_PTR, &frame_ref);
+                RK_S32 slot_idx = task_dec->refer[i] < 0 ? valid_slot : task_dec->refer[i];
+
+                if (slot_idx < 0) {
+                    AVS2D_HAL_TRACE("missing ref, could not found valid ref");
+                    return ret = MPP_ERR_UNKNOW;
+                }
+
+                mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &frame_ref);
 
                 if (frame_ref) {
                     RK_U32 frm_flag = 1 << 3;
@@ -392,14 +409,14 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
 
                     ref_flag |= frm_flag << (i * 8);
 
-                    p_regs->avs2d_addr.ref_base[i] = get_frame_fd(p_hal, task_dec->refer[i]);
-                    mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, task_dec->refer[i]);
+                    p_regs->avs2d_addr.ref_base[i] = get_frame_fd(p_hal, slot_idx);
+                    mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
                     p_regs->avs2d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
                     p_regs->avs2d_param.reg67_098_ref_poc[i] = mpp_frame_get_poc(frame_ref);
 
                     AVS2D_HAL_TRACE("ref_base[%d] index=%d, fd = %d, colmv %d, poc %d",
-                                    i, task_dec->refer[i], p_regs->avs2d_addr.ref_base[i],
+                                    i, slot_idx, p_regs->avs2d_addr.ref_base[i],
                                     p_regs->avs2d_addr.colmv_base[i], p_regs->avs2d_param.reg67_098_ref_poc[i]);
                 }
             }
@@ -418,7 +435,7 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
         common->reg016_str_len = MPP_ALIGN(mpp_packet_get_length(task_dec->input_packet), 16) + 64;
     }
 
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET hal_avs2d_rkv_deinit(void *hal)
@@ -624,7 +641,10 @@ MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     prepare_header(p_hal, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat));
     prepare_scalist(p_hal, reg_ctx->scalist_dat, sizeof(reg_ctx->scalist_dat));
 
-    fill_registers(p_hal, regs, task);
+    ret = fill_registers(p_hal, regs, task);
+
+    if (ret)
+        goto __RETURN;
 
     {
         memcpy(reg_ctx->bufs_ptr + reg_ctx->shph_offset, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat));
@@ -686,6 +706,9 @@ MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     vdpu34x_setup_statistic(&regs->common, &regs->statistic);
+    /* enable reference frame usage feedback */
+    regs->statistic.reg265.perf_cnt0_sel = 42;
+    regs->statistic.reg266_perf_cnt0 = 0;
 
 __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
@@ -856,6 +879,26 @@ MPP_RET hal_avs2d_rkv_start(void *hal, HalTaskInfo *task)
 
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = &regs->avs2d_param;
+        rd_cfg.size = sizeof(regs->avs2d_param);
+        rd_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
+
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
+        rd_cfg.reg = &regs->statistic;
+        rd_cfg.size = sizeof(regs->statistic);
+        rd_cfg.offset = OFFSET_STATISTIC_REGS;
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
+
+        if (ret) {
+            mpp_err_f("set register write failed %d\n", ret);
             break;
         }
 
@@ -1041,6 +1084,15 @@ MPP_RET hal_avs2d_rkv_wait(void *hal, HalTaskInfo *task)
             param.hard_err = 1;
         else
             param.hard_err = 0;
+
+        task->dec.flags.ref_used = p_regs->statistic.reg266_perf_cnt0;
+
+        if (task->dec.flags.ref_miss) {
+            RK_U32 ref_hw_usage = p_regs->statistic.reg266_perf_cnt0;
+
+            AVS2D_HAL_TRACE("hal frame %d ref miss %x hard_err %d hw_usage %x", p_hal->frame_no,
+                            task->dec.flags.ref_miss, param.hard_err, ref_hw_usage);
+        }
 
         AVS2D_HAL_TRACE("hal frame %d hard_err= %d", p_hal->frame_no, param.hard_err);
 

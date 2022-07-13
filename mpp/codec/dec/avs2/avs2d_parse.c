@@ -325,7 +325,7 @@ MPP_RET avs2d_fill_parameters(Avs2dCtx_t *p_dec, Avs2dSyntax_t *syntax)
     refp->ref_pic_num = mgr->num_of_ref;
     memset(refp->ref_poc_list, -1, sizeof(refp->ref_poc_list));
     for (i = 0; i < mgr->num_of_ref; i++) {
-        refp->ref_poc_list[i] = mgr->refs[i]->poi;
+        refp->ref_poc_list[i] = mgr->refs[i] ? mgr->refs[i]->poi : -1;
     }
 
     //!< picture alf params
