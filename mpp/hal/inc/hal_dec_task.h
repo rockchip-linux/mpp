@@ -35,7 +35,7 @@ typedef struct MppSyntax_t {
 } MppSyntax;
 
 typedef union HalDecTaskFlag_t {
-    RK_U32          val;
+    RK_U64          val;
     struct {
         RK_U32      eos              : 1;
         RK_U32      info_change      : 1;
@@ -63,6 +63,9 @@ typedef union HalDecTaskFlag_t {
         RK_U32      used_for_ref     : 1;
 
         RK_U32      wait_done        : 1;
+        RK_U32      reserved0        : 2;
+        RK_U32      ref_miss         : 8;
+        RK_U32      ref_used         : 8;
     };
 } HalDecTaskFlag;
 
