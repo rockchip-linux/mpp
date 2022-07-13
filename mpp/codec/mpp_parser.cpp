@@ -29,6 +29,7 @@
 #include "h265d_api.h"
 #include "vp9d_api.h"
 #include "avsd_api.h"
+#include "avs2d_api.h"
 #include "m2vd_api.h"
 #include "mpg4d_api.h"
 #include "vp8d_api.h"
@@ -44,6 +45,9 @@
 static const ParserApi *parsers[] = {
 #if HAVE_AVSD
     &api_avsd_parser,
+#endif
+#if HAVE_AVS2D
+    &api_avs2d_parser,
 #endif
 #if HAVE_H263D
     &api_h263d_parser,

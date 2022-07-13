@@ -30,6 +30,7 @@
 #include "hal_vp8d_api.h"
 #include "hal_vp9d_api.h"
 #include "hal_avsd_api.h"
+#include "hal_avs2d_api.h"
 #include "hal_m2vd_api.h"
 #include "hal_mpg4d_api.h"
 #include "hal_jpegd_api.h"
@@ -45,6 +46,9 @@
 static const MppHalApi *hw_apis[] = {
 #if HAVE_AVSD
     &hal_api_avsd,
+#endif
+#if HAVE_AVS2D
+    &hal_api_avs2d,
 #endif
 #if HAVE_H263D
     &hal_api_h263d,
