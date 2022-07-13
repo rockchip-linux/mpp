@@ -485,6 +485,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     mpp_frame_set_pts(mframe, mpp_packet_get_pts(task->input_packet));
     mpp_frame_set_dts(mframe, mpp_packet_get_dts(task->input_packet));
     mpp_frame_set_errinfo(mframe, 0);
+    mpp_frame_set_discard(mframe, 0);
     mpp_frame_set_poc(mframe, frm->poi);
     if (p_dec->got_exh) {
         mpp_frame_set_color_primaries(mframe, exh->color_primaries);
@@ -638,26 +639,26 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
     (void) task;
 
     avs2d_dbg_dpb("In.");
-    for (i = 0; i < AVS2_MAX_REFS; i++) {
-        mgr->refs[i] = NULL;
-    }
+    memset(mgr->refs, 0, sizeof(mgr->refs));
 
     p_cur = mgr->cur_frm;
     mgr->num_of_ref = 0;
     p_rps = &mgr->cur_rps;
     num_of_ref = p_rps->num_of_ref;
+    task->flags.ref_miss = 0;
     for (i = 0; i < num_of_ref; i++) {
         doi_of_ref = p_cur->doi - p_rps->ref_pic[i];
         p = find_ref_frame(mgr, doi_of_ref);
         if (!p) {
-            mpp_frame_set_discard(p_cur->frame, 1);
+            task->flags.ref_miss |= 1 << i;
             avs2d_dbg_dpb("Missing ref doi %d", doi_of_ref);
         } else {
             mgr->refs[mgr->num_of_ref] = p;
-            mgr->num_of_ref++;
             mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
             mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_HAL_INPUT);
         }
+
+        mgr->num_of_ref++;
     }
 
     if (mgr->num_of_ref < 1 && !p_cur->intra_frame_flag) {
@@ -668,7 +669,7 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
             error_flag = 1;
         } else if (mgr->scene_ref != mgr->refs[0] || mgr->num_of_ref > 1) {
             AVS2D_DBG(AVS2D_DBG_ERROR, "Error reference frame(doi %lld ~ %lld) for S.\n",
-                      mgr->scene_ref->doi, mgr->refs[0]->doi);
+                      mgr->scene_ref->doi, mgr->refs[0] ? mgr->refs[0]->doi : -1);
             mgr->num_of_ref = 1;
             mgr->refs[mgr->num_of_ref - 1] = mgr->scene_ref;
         }
@@ -681,7 +682,8 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
             mgr->refs[mgr->num_of_ref - 1] = mgr->scene_ref;
         }
     } else if (p_cur->picture_type == B_PICTURE &&
-               (mgr->num_of_ref != 2 || mgr->refs[0]->poi <= p_cur->poi || mgr->refs[1]->poi >= p_cur->poi)) {
+               (mgr->num_of_ref != 2 || (mgr->refs[0] && mgr->refs[0]->poi <= p_cur->poi) ||
+                (mgr->refs[1] && mgr->refs[1]->poi >= p_cur->poi))) {
         error_flag = 1;
     }
 
@@ -740,13 +742,18 @@ MPP_RET avs2d_dpb_insert(Avs2dCtx_t *p_dec, HalDecTask *task)
 
     //!< set task refers
     ret = dpb_set_frame_refs(p_dec, mgr, task);
-    if (ret != MPP_OK) {
-        task->flags.ref_err |= mpp_frame_get_errinfo(mgr->cur_frm);
-    }
+    if (ret)
+        task->flags.ref_err = 0;
 
     for (i = 0; i < mgr->num_of_ref; i++) {
-        task->refer[i] = mgr->refs[i]->slot_idx;
-        avs2d_dbg_dpb("task refer[%d] slot_idx %d doi %d poi %d", i, task->refer[i], mgr->refs[i]->doi, mgr->refs[i]->poi);
+        task->refer[i] = mgr->refs[i] ? mgr->refs[i]->slot_idx : -1;
+        if (mgr->refs[i]) {
+            task->refer[i] = mgr->refs[i]->slot_idx;
+            avs2d_dbg_dpb("task refer[%d] slot_idx %d doi %d poi %d", i, task->refer[i], mgr->refs[i]->doi, mgr->refs[i]->poi);
+        } else {
+            task->refer[i] = -1;
+            avs2d_dbg_dpb("task refer[%d] missing ref\n", i);
+        }
     }
 
     //!< update dpb by rps
