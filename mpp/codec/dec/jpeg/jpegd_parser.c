@@ -895,7 +895,7 @@ fail:
 
 static MPP_RET
 jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
-                  RK_U8 *dst, RK_U32 *dst_size)
+                  RK_U8 *dst, RK_U32 dst_size, RK_U32 *copy_length)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -927,11 +927,11 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
         }
         if (copy_len < src_size)
             memset(dst, 0, src_size - copy_len);
-        *dst_size = copy_len;
+        *copy_length = copy_len;
     } else {
         memcpy(dst, src, src_size);
-        memset(dst + src_size, 0, str_size - src_size);
-        *dst_size = src_size;
+        memset(dst + src_size, 0, str_size > dst_size ? dst_size - src_size : str_size - src_size);
+        *copy_length = src_size;
     }
 
     jpegd_dbg_func("exit\n");
@@ -984,7 +984,8 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     }
 
     if (JpegCtx->copy_flag)
-        jpegd_split_frame(base, pkt_length, JpegCtx->recv_buffer, &copy_length);
+        jpegd_split_frame(base, pkt_length, JpegCtx->recv_buffer,
+                          JpegCtx->bufferSize, &copy_length);
 
     pos += pkt_length;
     mpp_packet_set_pos(pkt, pos);
