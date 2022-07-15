@@ -1067,7 +1067,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
                     hw_regs->common_addr.reg132_error_ref_base = hw_regs->h265d_addr.reg164_179_ref_base[i];
                     reg_cxt->error_index = dxva_cxt->pp.RefPicList[i].Index7Bits;
                     hw_regs->common.reg021.error_intra_mode = 0;
-
                 }
             } else {
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = valid_ref;
@@ -1091,19 +1090,21 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
-            MppFrame mframe = NULL;
+            if (!hw_regs->common.reg021.error_intra_mode) {
+                MppFrame mframe = NULL;
 
-            mpp_buf_slot_get_prop(reg_cxt->slots,
-                                  dxva_cxt->pp.RefPicList[i].Index7Bits,
-                                  SLOT_BUFFER, &framebuf);
+                mpp_buf_slot_get_prop(reg_cxt->slots,
+                                      dxva_cxt->pp.RefPicList[i].Index7Bits,
+                                      SLOT_BUFFER, &framebuf);
 
-            mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits,
-                                  SLOT_FRAME_PTR, &mframe);
+                mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.RefPicList[i].Index7Bits,
+                                      SLOT_FRAME_PTR, &mframe);
 
-            if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
-                mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
-                hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
-                hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
+                    mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
+                    hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
+                    hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                }
             }
         } else {
             mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, reg_cxt->error_index);
