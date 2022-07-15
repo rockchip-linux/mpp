@@ -950,11 +950,21 @@ MPP_RET hal_jpege_vepu2_part_wait(void *hal, HalEncTask *task)
 MPP_RET hal_jpege_vepu2_ret_task(void *hal, HalEncTask *task)
 {
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
 
     ctx->hal_rc.last_quality = task->rc_task->info.quality_target;
     task->rc_task->info.bit_real = ctx->feedback.stream_length * 8;
     task->hal_ret.data = &ctx->feedback;
     task->hal_ret.number = 1;
+
+    if (ctx->cfg->rc.rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        if (!ctx->hal_rc.q_factor)
+            rc_info->quality_real = rc_info->quality_target;
+        else
+            rc_info->quality_real = ctx->hal_rc.q_factor;
+    } else {
+        rc_info->quality_real = ctx->cfg->codec.jpeg.q_factor;
+    }
 
     return MPP_OK;
 }
