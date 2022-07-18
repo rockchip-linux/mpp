@@ -536,7 +536,7 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
 static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
 {
     JpegeMultiCoreCtx *ctx_ext = ctx->ctx_ext;
-    JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
+    JpegeSyntax *syntax = &ctx->syntax;
     MppDevRegOffCfgs *reg_cfg = ctx_ext->reg_cfg;
     MppDev dev = ctx->dev;
     RK_U32 *src = (RK_U32 *)ctx->regs;
@@ -598,8 +598,18 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
         cfg.offset_x = syntax->offset_x;
         cfg.offset_y = syntax->offset_y + mcu_y * 16;
 
-        get_vepu_offset_cfg(&cfg);
+        if (syntax->rotation == MPP_ENC_ROT_90 || syntax->rotation == MPP_ENC_ROT_270) {
+            regs[103] = part_enc_mcu_h << 8  |
+                        (syntax->mcu_w) << 20 |
+                        (1 << 6) |  /* intra coding  */
+                        (2 << 4) |  /* format jpeg   */
+                        1;          /* encoder start */
 
+            cfg.offset_x = syntax->offset_x + mcu_y * 16;
+            cfg.offset_y = syntax->offset_y;
+        }
+
+        get_vepu_offset_cfg(&cfg);
         mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_Y, cfg.offset_byte[0]);
         mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_U, cfg.offset_byte[1]);
         mpp_dev_multi_offset_update(reg_cfg, VEPU2_REG_INPUT_V, cfg.offset_byte[2]);
