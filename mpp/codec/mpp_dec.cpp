@@ -76,6 +76,8 @@ static MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
     p->enable_deinterlace   = base->enable_vproc;
     p->disable_error        = base->disable_error;
 
+    mpp_env_get_u32("enable_deinterlace", &p->enable_deinterlace, base->enable_vproc);
+
     return MPP_OK;
 }
 
