@@ -43,6 +43,22 @@
 
 RK_U32 iep_debug = 0;
 
+static MPP_RET get_param_from_env(struct iep2_api_ctx *ctx)
+{
+    struct iep2_params *params = &ctx->params;
+    mpp_env_get_u32("md_theta", &params->md_theta, ctx->params.md_theta);
+    mpp_env_get_u32("md_r", &params->md_r, ctx->params.md_r);
+    mpp_env_get_u32("md_lambda", &params->md_lambda, ctx->params.md_lambda);
+
+    mpp_env_get_u32("mv_similar_thr", &params->mv_similar_thr, ctx->params.mv_similar_thr);
+    mpp_env_get_u32("mv_similar_num_thr0", &params->mv_similar_num_thr0, ctx->params.mv_similar_num_thr0);
+
+    mpp_env_get_u32("eedi_thr0", &params->eedi_thr0, ctx->params.eedi_thr0);
+    mpp_env_get_u32("comb_t_thr", &params->comb_t_thr, ctx->params.comb_t_thr);
+    mpp_env_get_u32("comb_feature_thr", &params->comb_feature_thr, ctx->params.comb_feature_thr);
+    return MPP_OK;
+}
+
 static MPP_RET iep2_init(IepCtx *ictx)
 {
     MPP_RET ret;
@@ -201,6 +217,7 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
         iep2_update_gmv(ctx, &ls);
         iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
+        get_param_from_env(ctx);
 #if 0
         if (ctx->params.roi_en && ctx->params.osd_area_num > 0) {
             struct iep2_rect r;
@@ -226,6 +243,7 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
         ctx->params.dil_mode == IEP2_DIL_MODE_PD) {
         iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
+        get_param_from_env(ctx);
     }
 
     if (ctx->pd_inf.pdtype != PD_TYPES_UNKNOWN) {
