@@ -844,7 +844,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
-    RK_U32 fbc_flag = 0;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -953,7 +952,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
 
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            fbc_flag = 1;
             RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
             RK_U32 fbd_offset = MPP_ALIGN(pixel_width * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
                                           SZ_4K);
@@ -1073,9 +1071,11 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             SET_REF_VALID(hw_regs->h265d_param, i, 1);
         }
     }
-
-    if ((reg_cxt->error_index == dxva_cxt->pp.CurrPic.Index7Bits) &&
-        !dxva_cxt->pp.IntraPicFlag && fbc_flag) {
+    //mpp_log("error_index %d IntraPicFlag %d Index7Bits = %d",
+    //        reg_cxt->error_index, dxva_cxt->pp.IntraPicFlag,
+    //        dxva_cxt->pp.CurrPic.Index7Bits);
+    if ((reg_cxt->error_index == dxva_cxt->pp.CurrPic.Index7Bits) && !dxva_cxt->pp.IntraPicFlag) {
+        // mpp_err("current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
     }
