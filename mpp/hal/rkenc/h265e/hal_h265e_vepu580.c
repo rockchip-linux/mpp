@@ -2242,8 +2242,10 @@ static MPP_RET vepu580_h265e_use_pass1_patch(H265eV580RegSet *regs, H265eV580Hal
     return MPP_OK;
 }
 
-static void setup_vepu580_split(H265eV580RegSet *regs, MppEncSliceSplit *cfg)
+static void setup_vepu580_split(H265eV580RegSet *regs, MppEncCfgSet *enc_cfg, RK_U32 title_en)
 {
+    MppEncSliceSplit *cfg = &enc_cfg->split;
+
     hal_h265e_dbg_func("enter\n");
 
     switch (cfg->split_mode) {
@@ -2270,6 +2272,15 @@ static void setup_vepu580_split(H265eV580RegSet *regs, MppEncSliceSplit *cfg)
         regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
+        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 64) / 64;
+        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 64) / 64;
+        RK_U32 slice_num = 0;
+
+        if (title_en)
+            mb_w = mb_w / 2;
+
+        slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
+
         regs->reg_base.reg0216_sli_splt.sli_splt = 1;
         regs->reg_base.reg0216_sli_splt.sli_splt_mode = 1;
         regs->reg_base.reg0216_sli_splt.sli_splt_cpst = 0;
@@ -2279,6 +2290,10 @@ static void setup_vepu580_split(H265eV580RegSet *regs, MppEncSliceSplit *cfg)
 
         regs->reg_base.reg0217_sli_byte.sli_splt_byte = 0;
         regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.reg0008_int_en.slc_done_en = (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ? 1 : 0;
+
+        if (slice_num > VEPU580_SLICE_FIFO_LEN)
+            regs->reg_ctl.reg0008_int_en.slc_done_en = 1;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
@@ -2324,7 +2339,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->reg0008_int_en.enc_done_en         = 1;
     reg_ctl->reg0008_int_en.lkt_node_done_en    = 1;
     reg_ctl->reg0008_int_en.sclr_done_en        = 1;
-    reg_ctl->reg0008_int_en.slc_done_en         = 1;
+    reg_ctl->reg0008_int_en.slc_done_en         = 0;
     reg_ctl->reg0008_int_en.bsf_oflw_en         = 1;
     reg_ctl->reg0008_int_en.brsp_otsd_en        = 1;
     reg_ctl->reg0008_int_en.wbus_err_en         = 1;
@@ -2419,7 +2434,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     vepu580_h265_global_cfg_set(ctx, regs);
 
     vepu580_h265e_tune_reg_patch(ctx->tune);
-    setup_vepu580_split(regs, &ctx->cfg->split);
+    setup_vepu580_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);
     /* two pass register patch */
     if (frm->save_pass1)
         vepu580_h265e_save_pass1_patch(regs, ctx, syn->pp.tiles_enabled_flag);

@@ -520,7 +520,7 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     regs->reg_ctl.int_en.enc_done_en         = 1;
     regs->reg_ctl.int_en.lkt_node_done_en    = 1;
     regs->reg_ctl.int_en.sclr_done_en        = 1;
-    regs->reg_ctl.int_en.slc_done_en         = 1;
+    regs->reg_ctl.int_en.slc_done_en         = 0;
     regs->reg_ctl.int_en.bsf_oflw_en         = 1;
     regs->reg_ctl.int_en.brsp_otsd_en        = 1;
     regs->reg_ctl.int_en.wbus_err_en         = 1;
@@ -1443,8 +1443,10 @@ static void setup_vepu580_recn_refr(HalH264eVepu580Ctx *ctx, HalVepu580RegSet *r
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
+static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncCfgSet *enc_cfg)
 {
+    MppEncSliceSplit *cfg = &enc_cfg->split;
+
     hal_h264e_dbg_func("enter\n");
 
     switch (cfg->split_mode) {
@@ -1469,8 +1471,13 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
 
         regs->reg_base.sli_byte.sli_splt_byte = cfg->split_arg;
         regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.int_en.slc_done_en = 1;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
+        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 16) / 16;
+        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 16) / 16;
+        RK_U32 slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
+
         regs->reg_base.sli_splt.sli_splt = 1;
         regs->reg_base.sli_splt.sli_splt_mode = 1;
         regs->reg_base.sli_splt.sli_splt_cpst = 0;
@@ -1480,6 +1487,10 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncSliceSplit *cfg)
 
         regs->reg_base.sli_byte.sli_splt_byte = 0;
         regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.int_en.slc_done_en = (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ? 1 : 0;
+
+        if (slice_num > VEPU580_SLICE_FIFO_LEN)
+            regs->reg_ctl.int_en.slc_done_en = 1;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
@@ -1918,7 +1929,7 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
     regs->reg_base.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->reg_base.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
-    setup_vepu580_split(regs, &cfg->split);
+    setup_vepu580_split(regs, cfg);
     setup_vepu580_me(regs, sps, slice);
 
     vepu580_set_osd(&ctx->osd_cfg);

@@ -25,6 +25,7 @@
 #define VEPU541_REG_BASE_L2         0x00010004
 
 #define VEPU541_MAX_ROI_NUM         8
+#define VEPU580_SLICE_FIFO_LEN      32
 
 typedef enum Vepu541Fmt_e {
     VEPU541_FMT_BGRA8888,   // 0
