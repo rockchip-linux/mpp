@@ -374,6 +374,8 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
     {
         RK_U64 ref_flag = 0;
         RK_S32 valid_slot = -1;
+        RK_U32 *ref_low = (RK_U32 *)&p_regs->avs2d_param.reg99;
+        RK_U32 *ref_hight = (RK_U32 *)&p_regs->avs2d_param.reg100;
 
         AVS2D_HAL_TRACE("num of ref %d", refp->ref_pic_num);
 
@@ -422,7 +424,8 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
             }
         }
 
-        *(RK_U64 *)&p_regs->avs2d_param.reg99 = ref_flag;
+        *ref_low = (RK_U32) (ref_flag & 0xffffffff);
+        *ref_hight = (RK_U32) ((ref_flag >> 32) & 0xffffffff);
 
         p_regs->common_addr.reg132_error_ref_base = p_regs->avs2d_addr.ref_base[0];
     }
@@ -559,9 +562,11 @@ static MPP_RET set_up_colmv_buf(void *hal)
     RK_U32 seg_head_size = seg_head_line_size * seg_cnt_h;
     RK_U32 seg_payload_size = seg_cnt_w * seg_cnt_h * 64 * COLMV_BYTES;
 
-    mv_size = COLMV_COMPRESS_EN ? (seg_payload_size + seg_head_size) :
-              (MPP_ALIGN(p_hal->syntax.pp.pic_width_in_luma_samples, 64) *
-               MPP_ALIGN(p_hal->syntax.pp.pic_height_in_luma_samples, 64)) >> 5;
+    if (COLMV_COMPRESS_EN)
+        mv_size = seg_payload_size + seg_head_size;
+    else
+        mv_size = (MPP_ALIGN(p_hal->syntax.pp.pic_width_in_luma_samples, 64) *
+                   MPP_ALIGN(p_hal->syntax.pp.pic_height_in_luma_samples, 64)) >> 5;
 
     // colmv frame size align to 128byte
     if ((mv_size / 8) % 2 == 1) {
