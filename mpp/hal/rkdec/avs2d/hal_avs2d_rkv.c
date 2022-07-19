@@ -735,21 +735,21 @@ static MPP_RET hal_avs2d_rkv_dump_reg_write(void *hal, Vdpu34xAvs2dRegSet *regs)
         fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i, 0);
 
     for (i = 0; i < sizeof(Vdpu34xRegCommon) / sizeof(RK_U32); i++)
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_COMMON_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_COMMON_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->common)[i]);
 
     for (i = 0; i < 63 - 32; i++)
         fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + 33, 0);
 
     for (i = 0; i < sizeof(Vdpu34xRegAvs2dParam) / sizeof(RK_U32); i++)
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_CODEC_PARAMS_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_CODEC_PARAMS_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->avs2d_param)[i]);
 
     for (i = 0; i < 127 - 112; i++)
         fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + 113, 0);
 
     for (i = 0; i < sizeof(Vdpu34xRegCommonAddr) / sizeof(RK_U32); i++)
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_COMMON_ADDR_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_COMMON_ADDR_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->common_addr)[i]);
 
     for (i = 0; i < 159 - 142; i++)
@@ -757,21 +757,21 @@ static MPP_RET hal_avs2d_rkv_dump_reg_write(void *hal, Vdpu34xAvs2dRegSet *regs)
 
 
     for (i = 0; i < sizeof(Vdpu34xRegAvs2dAddr) / sizeof(RK_U32); i++ )
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_CODEC_ADDR_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_CODEC_ADDR_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->avs2d_addr)[i]);
 
     for (i = 0; i < 223 - 197; i++)
         fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + 198, 0);
 
     for (i = 0; i < sizeof(Vdpu34xRegIrqStatus) / sizeof(RK_U32); i++ )
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_INTERRUPT_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_INTERRUPT_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->irq_status)[i]);
 
     for (i = 0; i < 255 - 237; i++)
         fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + 238, 0);
 
     for (i = 0; i < sizeof(Vdpu34xRegStatistic) / sizeof(RK_U32); i++ )
-        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", i + OFFSET_STATISTIC_REGS / sizeof(RK_U32),
+        fprintf(fp_reg, "Write reg[%03d] : 0x%08x\n", (RK_U32)(i + OFFSET_STATISTIC_REGS / sizeof(RK_U32)),
                 ((RK_U32 *)&regs->statistic)[i]);
 
     fclose(fp_reg);
