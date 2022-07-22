@@ -533,8 +533,14 @@ static void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
             HalTaskHnd hnd = NULL;
             HalTaskInfo task;
             HalDecVprocTask *vproc_task = &task.dec_vproc;
+            MPP_RET ret = MPP_OK;
 
-            MPP_RET ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
+            do {
+                ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
+                if (ret) {
+                    msleep(10);
+                }
+            } while (ret);
 
             mpp_assert(ret == MPP_OK);
 
