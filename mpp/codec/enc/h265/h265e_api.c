@@ -370,9 +370,12 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     }
 
     if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation)) {
-        mpp_err("invalid cfg fbc data no support mirror %d or rotaion",
-                dst->mirroring, dst->rotation);
-        ret = MPP_ERR_VALUE;
+        // rk3588 rkvenc support fbc with rotation
+        if (!strstr(mpp_get_soc_name(), "rk3588")) {
+            mpp_err("invalid cfg fbc data no support mirror %d or rotaion",
+                    dst->mirroring, dst->rotation);
+            ret = MPP_ERR_VALUE;
+        }
     }
 
     if (dst->range >= MPP_FRAME_RANGE_NB ||
@@ -392,7 +395,7 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
                   dst->width, dst->height,
                   dst->hor_stride, dst->ver_stride);
     }
-    return MPP_OK;
+    return ret;
 }
 
 
