@@ -22,7 +22,7 @@
 #include "mpp_debug.h"
 #include "mpp_meta_impl.h"
 
-#define TEST_MAX    2
+#define TEST_MAX    200
 #define LOOP_MAX    100000
 
 void *meta_test(void *param)
@@ -114,7 +114,7 @@ void *meta_test(void *param)
 
     time_end = mpp_time();
 
-    *((RK_S64 *)param) = time_end - time_start;
+    *((RK_S64 *)param) = (time_end - time_start) / loop_max;
 
     return NULL;
 }
@@ -142,7 +142,8 @@ int main()
     for (i = 0; i < thd_cnt; i++)
         avg_time += times[i];
 
-    mpp_log("mpp_meta_test use %.2f ms", ((float)avg_time) / 1000 / thd_cnt);
+    mpp_log("mpp_meta_test %d threads %d loop config avg %lld us",
+            thd_cnt, LOOP_MAX, avg_time / thd_cnt);
 
     mpp_log("mpp_meta_test done\n");
 
