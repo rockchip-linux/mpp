@@ -242,12 +242,14 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         break;
     case H264_NALU_TYPE_PPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=PPS");
-        FUN_CHECK(ret = process_pps(currSlice));
+        if (process_pps(currSlice) < 0)
+            H264D_WARNNING("Function error(%d).\n", __LINE__);
         currSlice->p_Dec->nalu_ret = NALU_PPS;
         break;
     case H264_NALU_TYPE_SUB_SPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SUB_SPS");
-        FUN_CHECK(ret = process_subsps(currSlice));
+        if (process_subsps(currSlice) < 0)
+            H264D_WARNNING("Function error(%d).\n", __LINE__);
         currSlice->p_Dec->nalu_ret = NALU_SubSPS;
         break;
     case H264_NALU_TYPE_SEI:
