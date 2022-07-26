@@ -55,12 +55,17 @@ RK_U32 mpp_trie_debug = 0;
 static RK_S32 trie_get_node(MppTrieImpl *trie)
 {
     if (trie->node_used >= trie->node_count) {
-        RK_S32 new_count = trie->node_count * 2;
+        RK_S32 old_count = trie->node_count;
+        RK_S32 new_count = old_count * 2;
         MppTrieNode *new_nodes = mpp_realloc(trie->nodes, MppTrieNode, new_count);
+
         if (NULL == new_nodes) {
             mpp_err_f("failed to realloc new nodes %d\n", new_count);
             return -1;
         }
+
+        /* NOTE: new memory should be memset to zero */
+        memset(new_nodes + old_count, 0, sizeof(*new_nodes) * old_count);
 
         trie_dbg_cnt("trie %p enlarge node %p:%d -> %p:%d\n",
                      trie, trie->nodes, trie->node_count, new_nodes, new_count);
