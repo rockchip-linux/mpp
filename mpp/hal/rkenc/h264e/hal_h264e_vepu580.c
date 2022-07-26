@@ -119,6 +119,7 @@ static RK_U32 h264e_klut_weight[30] = {
 
 static RK_U32 dump_l1_reg = 0;
 static RK_U32 dump_l2_reg = 0;
+static RK_U32 disable_rcb_buf = 0;
 
 static RK_U32 h264_mode_bias[16] = {
     0,  2,  4,  6,
@@ -229,6 +230,8 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
     hal_h264e_dbg_func("enter %p\n", p);
 
     p->cfg = cfg->cfg;
+
+    mpp_env_get_u32("disable_rcb_buf", &disable_rcb_buf, 0);
 
     /* update output to MppEnc */
     cfg->type = VPU_CLIENT_RKVENC;
@@ -1845,20 +1848,36 @@ static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice, MppEncHw
 static void setup_vepu580_ext_line_buf(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
 {
     RK_S32 offset = 0;
+    RK_S32 fd;
 
-    if (ctx->ext_line_buf) {
-        RK_S32 fd = mpp_buffer_get_fd(ctx->ext_line_buf);
-
-        regs->reg_base.ebuft_addr = fd;
-        regs->reg_base.ebufb_addr = fd;
-
-        offset = ctx->ext_line_buf_size;
-    } else {
+    if (!ctx->ext_line_buf) {
         regs->reg_base.ebufb_addr = 0;
         regs->reg_base.ebufb_addr = 0;
+        return;
     }
 
+    fd = mpp_buffer_get_fd(ctx->ext_line_buf);
+    offset = ctx->ext_line_buf_size;
+
+    regs->reg_base.ebuft_addr = fd;
+    regs->reg_base.ebufb_addr = fd;
+
     mpp_dev_multi_offset_update(ctx->offsets, 182, offset);
+
+    /* rcb info for sram */
+    if (!disable_rcb_buf) {
+        MppDevRcbInfoCfg rcb_cfg;
+
+        rcb_cfg.reg_idx = 183;
+        rcb_cfg.size = offset;
+
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+
+        rcb_cfg.reg_idx = 182;
+        rcb_cfg.size = 0;
+
+        mpp_dev_ioctl(ctx->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+    }
 }
 
 static MPP_RET setup_vepu580_dual_core(HalH264eVepu580Ctx *ctx, H264SliceType slice_type)
