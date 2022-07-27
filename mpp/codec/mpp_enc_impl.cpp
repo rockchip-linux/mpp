@@ -890,6 +890,12 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
             mpp_packet_copy((MppPacket)param, enc->hdr_pkt);
         }
 
+        if (enc->hdr_pkt) {
+            Mpp *mpp = (Mpp *)enc->mpp;
+            // dump output
+            mpp_ops_enc_get_pkt(mpp->mDump, enc->hdr_pkt);
+        }
+
         enc->hdr_status.added_by_ctrl = 1;
     } break;
     case MPP_ENC_PRE_ALLOC_BUFF : {
