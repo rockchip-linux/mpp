@@ -103,12 +103,12 @@ Mpp::Mpp(MppCtx ctx)
       mEncAyncIo(0),
       mEncAyncProc(0),
       mIoMode(MPP_IO_MODE_DEFAULT),
+      mDump(NULL),
       mType(MPP_CTX_BUTT),
       mCoding(MPP_VIDEO_CodingUnused),
       mInitDone(0),
       mStatus(0),
-      mExtraPacket(NULL),
-      mDump(NULL)
+      mExtraPacket(NULL)
 {
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 

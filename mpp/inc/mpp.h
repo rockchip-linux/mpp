@@ -189,6 +189,9 @@ public:
     RK_U32          mEncAyncProc;
     MppIoMode       mIoMode;
 
+    /* dump info for debug */
+    MppDump         mDump;
+
 private:
     void clear();
 
@@ -207,9 +210,6 @@ private:
     RK_U32          mImmediateOut;
     /* backup extra packet for seek */
     MppPacket       mExtraPacket;
-
-    /* dump info for debug */
-    MppDump         mDump;
 
     MPP_RET control_mpp(MpiCmd cmd, MppParam param);
     MPP_RET control_osal(MpiCmd cmd, MppParam param);
