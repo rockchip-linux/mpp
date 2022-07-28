@@ -1516,6 +1516,7 @@ void *mpp_dec_advanced_thread(void *data)
             mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp));
             mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp));
             mpp_frame_set_errinfo(frame, mpp_frame_get_errinfo(tmp));
+            mpp_frame_set_buf_size(frame, mpp_frame_get_buf_size(tmp));
 
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,  SLOT_HAL_INPUT);
             mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
