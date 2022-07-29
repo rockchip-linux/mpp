@@ -1300,7 +1300,9 @@ ERR_PROC:
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
         hw_regs->irq_status.reg224.dec_error_sta ||
-        hw_regs->irq_status.reg224.buf_empty_sta) {
+        hw_regs->irq_status.reg224.buf_empty_sta ||
+        hw_regs->irq_status.reg224.dec_bus_sta ||
+        !hw_regs->irq_status.reg224.dec_rdy_sta) {
         if (!reg_cxt->fast_mode) {
             if (reg_cxt->dec_cb)
                 mpp_callback(reg_cxt->dec_cb, &task->dec);
