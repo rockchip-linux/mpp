@@ -206,6 +206,7 @@ public:
     ENTRY(h264, max_ltr,        S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_MAX_LTR,        codec.h264, max_ltr_frames) \
     ENTRY(h264, prefix_mode,    S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX,     codec.h264, prefix_mode) \
     ENTRY(h264, base_layer_pid, S32, RK_S32,            MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID, codec.h264, base_layer_pid) \
+    ENTRY(h264, constraint_set, U32, RK_U32,            MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET, codec.h264, constraint_set) \
     /* h265 config*/ \
     ENTRY(h265, profile,        S32, RK_S32,            MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, profile) \
     ENTRY(h265, level,          S32, RK_S32,            MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, level) \
@@ -357,7 +358,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1604, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1622, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;

@@ -667,6 +667,10 @@ typedef enum MppEncH264CfgChange_e {
 
     /* change on vui */
     MPP_ENC_H264_CFG_CHANGE_VUI             = (1 << 28),
+
+    /* change on constraint */
+    MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET  = (1 << 29),
+
     MPP_ENC_H264_CFG_CHANGE_ALL             = (0xFFFFFFFF),
 } MppEncH264CfgChange;
 
@@ -806,6 +810,17 @@ typedef struct MppEncH264Cfg_t {
     RK_S32              max_tid;
     RK_S32              prefix_mode;
     RK_S32              base_layer_pid;
+    /*
+     * Mpp encoder constraint_set parameter
+     * Mpp encoder constraint_set controls constraint_setx_flag in AVC.
+     * Mpp encoder constraint_set uses type RK_U32 to store force_flag and constraint_force as followed.
+     * | 00 | force_flag | 00 | constraint_force |
+     * As for force_flag and constraint_force, only low 6 bits are valid,
+     * corresponding to constraint_setx_flag from 5 to 0.
+     * If force_flag bit is enabled, constraint_setx_flag will be set correspondingly.
+     * Otherwise, constraint_setx_flag will use default value.
+     */
+    RK_U32              constraint_set;
 } MppEncH264Cfg;
 
 #define H265E_MAX_ROI_NUMBER  64
