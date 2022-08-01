@@ -114,11 +114,11 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 change = src->change;
-    MppFrameFormat fmt = dst->format & MPP_FRAME_FMT_MASK;
 
     mpp_assert(change);
     if (change) {
         MppEncPrepCfg bak = *dst;
+        MppFrameFormat fmt;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
             dst->format = src->format;
@@ -151,6 +151,7 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             ret = MPP_NOK;
         }
 
+        fmt = dst->format & MPP_FRAME_FMT_MASK;
         if ((fmt != MPP_FMT_YUV420SP    &&
              fmt != MPP_FMT_YUV420P     &&
              fmt != MPP_FMT_YUV422SP_VU &&
