@@ -435,6 +435,12 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
         dst->change |= MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID;
     }
 
+    if ((change & MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET) &&
+        (dst->constraint_set != src->constraint_set)) {
+        dst->constraint_set = src->constraint_set;
+        dst->change |= MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET;
+    }
+
     src->change = 0;
     return ret;
 }

@@ -117,6 +117,24 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     } break;
     }
 
+    //updata constraint_set0~5
+    RK_U32 set = h264->constraint_set;
+    RK_U8 constraint_force = (set >> 0) & 0x3f;
+    RK_U8 force_flag = (set >> 16) & 0x3f;
+
+    if (force_flag & 1)
+        sps->constraint_set0 = (constraint_force & 1) ? 1 : 0;
+    if (force_flag & 2)
+        sps->constraint_set1 = (constraint_force & 2) ? 1 : 0;
+    if (force_flag & 4)
+        sps->constraint_set2 = (constraint_force & 4) ? 1 : 0;
+    if (force_flag & 8)
+        sps->constraint_set3 = (constraint_force & 8) ? 1 : 0;
+    if (force_flag & 16)
+        sps->constraint_set4 = (constraint_force & 16) ? 1 : 0;
+    if (force_flag & 32)
+        sps->constraint_set5 = (constraint_force & 32) ? 1 : 0;
+
     // level_idc is connected with frame size
     {
         RK_S32 mbs = (aligned_w * aligned_h) >> 8;

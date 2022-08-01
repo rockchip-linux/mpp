@@ -405,6 +405,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
     switch (p->type) {
     case MPP_VIDEO_CodingAVC : {
+        RK_U32 constraint_set;
+
         /*
          * H.264 profile_idc parameter
          * 66  - Baseline profile
@@ -424,6 +426,10 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_en", 1);
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
+
+        mpp_env_get_u32("constraint_set", &constraint_set, 0);
+        if (constraint_set & 0x3f0000)
+            mpp_enc_cfg_set_s32(cfg, "h264:constraint_set", constraint_set);
     } break;
     case MPP_VIDEO_CodingHEVC :
     case MPP_VIDEO_CodingMJPEG :
