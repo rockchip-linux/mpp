@@ -952,9 +952,8 @@ void *enc_test_output(void *arg)
 
                 mpp_assert(frm);
                 frm_buf = mpp_frame_get_buffer(frm);
-                mpp_assert(frm_buf);
 
-                {
+                if (frm_buf) {
                     AutoMutex autolock(list_buf->mutex());
                     list_buf->add_at_tail(&frm_buf, sizeof(frm_buf));
                     list_buf->signal();
