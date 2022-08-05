@@ -2563,22 +2563,25 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncWait *wait)
      * If there is no input frame just return empty packet task
      */
     if (!status->frm_pkt_rdy) {
+        async->seq_idx = enc->task_idx++;
+        async->pts = mpp_frame_get_pts(hal_task->frame);
+
+        hal_task->stopwatch = stopwatch;
+        rc_task->frame = async->task.frame;
+
+        enc_dbg_detail("task seq idx %d start\n", seq_idx);
+
         if (check_async_frm_pkt(async)) {
-            mpp_stopwatch_record(stopwatch, "invalid on check frm pkt");
-            reset_hal_enc_task(hal_task);
-            ret = MPP_NOK;
+            mpp_stopwatch_record(stopwatch, "empty frame on check frm pkt");
+            hal_task->valid = 1;
+            hal_task->length = 0;
+            hal_task->flags.drop_by_fps = 1;
+            ret = MPP_OK;
             goto TASK_DONE;
         }
 
         status->frm_pkt_rdy = 1;
-        hal_task->stopwatch = stopwatch;
         enc_dbg_detail("task frame packet ready\n");
-
-        async->seq_idx = enc->task_idx++;
-        async->pts = mpp_frame_get_pts(hal_task->frame);
-
-        rc_task->frame = async->task.frame;
-        enc_dbg_detail("task seq idx %d start\n", seq_idx);
     }
 
     seq_idx = async->seq_idx;
