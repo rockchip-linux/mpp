@@ -439,7 +439,10 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
             pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 1920 ;
         } else if (strstr(soc_name, "rk3588")) {
-            pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 4096 ;
+            if (codec->auto_tile)
+                pps->m_nNumTileColumnsMinus1 = 1;
+            else
+                pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 4096 ;
         }
         if (pps->m_nNumTileColumnsMinus1) {
             pps->m_tiles_enabled_flag = 1;
