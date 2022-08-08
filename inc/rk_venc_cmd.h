@@ -930,6 +930,7 @@ typedef enum MppEncH265CfgChange_e {
     MPP_ENC_H265_CFG_RC_I_QP_CHANGE             = (1 << 19),
     MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE      = (1 << 21),
     MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE      = (1 << 20),
+    MPP_ENC_H265_CFG_TITLE_CHANGE               = (1 << 22),
     MPP_ENC_H265_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncH265CfgChange;
 
@@ -1050,6 +1051,7 @@ typedef struct MppEncH265Cfg_t {
     MppEncH265DblkCfg_t  dblk_cfg;
     MppEncH265RefCfg     ref_cfg;
     MppEncH265MergesCfg  merge_cfg;
+    RK_S32               auto_tile;
 
     /* extra info */
     MppEncH265VuiCfg    vui;
