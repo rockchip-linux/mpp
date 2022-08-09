@@ -1047,6 +1047,8 @@ typedef struct h264d_video_ctx_t {
     MppMemPool pic_st;
     //!< spspps data update
     RK_U32     spspps_update;
+
+    RK_U32     dpb_fast_out;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
