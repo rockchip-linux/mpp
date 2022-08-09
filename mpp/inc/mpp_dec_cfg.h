@@ -83,6 +83,7 @@ typedef struct MppDecStatusCfg_t {
     RK_U32              hal_support_fast_mode;
     RK_U32              hal_task_count;
     RK_U32              vproc_task_count;
+    RK_U32              use_ext_fast_play;
 } MppDecStatusCfg;
 
 typedef struct MppDecCfgSet_t {

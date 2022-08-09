@@ -877,7 +877,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             if (p_err->used_ref_flag) {
                 mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
-                if (p_Vid->p_Dec->cfg->base.enable_fast_play)
+                if (p_Vid->dpb_fast_out)
                     mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
@@ -1261,8 +1261,8 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         RK_S32 poc_inc = 0;
 
         if (p_Dpb->p_Vid->p_Dec->cfg->base.fast_out ||
-            (p_Dpb->p_Vid->p_Dec->cfg->base.enable_fast_play &&
-             p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
+            (p_Dpb->p_Vid->dpb_fast_out && p_err->i_slice_no < 2 &&
+             p_Dpb->last_output_poc == INT_MIN)) {
             FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
         } else {
             while ((p_Dpb->last_output_poc > INT_MIN)
