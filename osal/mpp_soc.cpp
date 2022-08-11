@@ -532,7 +532,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu2_no_jpeg, &vepu22, NULL, NULL, },
     },
     {   /*
-         * rk3228 has codec:
+         * rk3328 has codec:
          * 1 - vpu2
          * 2 - RK H.264/H.265/VP9 4K decoder
          * 4 - H.265 encoder
