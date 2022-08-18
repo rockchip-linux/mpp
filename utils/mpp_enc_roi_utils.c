@@ -161,6 +161,9 @@ typedef struct MppEncRoiImpl_t {
     RK_U32              amv_cfg_size;
     RK_U32              mv_cfg_size;
 
+    RK_U8               *cu_map;
+    RK_U32              cu_size;
+
     /* tmp buffer for convert vepu54x roi cfg to vepu58x roi cfg */
     Vepu541RoiCfg       *tmp;
 } MppEncRoiImpl;
@@ -228,6 +231,8 @@ static MPP_RET gen_vepu54x_roi(MppEncRoiImpl *ctx, Vepu541RoiCfg *dst)
     MPP_RET ret = MPP_NOK;
     RK_S32 i;
 
+    memset(ctx->cu_map, 0, ctx->cu_size);
+
     cfg.force_intra = 0;
     cfg.reserved    = 0;
     cfg.qp_area_idx = 0;
@@ -271,6 +276,7 @@ static MPP_RET gen_vepu54x_roi(MppEncRoiImpl *ctx, Vepu541RoiCfg *dst)
     /* step 2. setup region for top to bottom */
     for (i = 0; i < ctx->count; i++, region++) {
         Vepu541RoiCfg *p = dst;
+        RK_U8 *map = ctx->cu_map;
         RK_S32 roi_width  = (region->w + 15) / 16;
         RK_S32 roi_height = (region->h + 15) / 16;
         RK_S32 pos_x_init = (region->x + 15) / 16;
@@ -293,11 +299,51 @@ static MPP_RET gen_vepu54x_roi(MppEncRoiImpl *ctx, Vepu541RoiCfg *dst)
         cfg.qp_adj_mode = region->qp_mode;
 
         p += pos_y_init * stride_h + pos_x_init;
+        map += pos_y_init * stride_h + pos_x_init;
         for (y = 0; y < roi_height; y++) {
-            for (x = 0; x < roi_width; x++)
+            for (x = 0; x < roi_width; x++) {
                 memcpy(p + x, &cfg, sizeof(cfg));
+                if (ctx->type == MPP_VIDEO_CodingAVC) {
+                    *(map + x) = 1;
+                }
 
+            }
             p += stride_h;
+            map += stride_h;
+        }
+
+        if (ctx->type == MPP_VIDEO_CodingHEVC) {
+            map = ctx->cu_map;
+            RK_U32 stride_cu64_h = stride_h * 16 / 64;
+
+            roi_width  = (region->w + 64) / 64;
+            roi_height = (region->h + 64) / 64;
+
+            if (region->x < 64) {
+                pos_x_init = 0;
+                roi_width += 2;
+            } else if (region->x % 64) {
+                pos_x_init = (region->x - 64) / 64;
+                roi_width += 2;
+            } else
+                pos_x_init = region->x / 64;
+
+            if (region->y < 64) {
+                pos_y_init = 0;
+                roi_height += 2;
+            } else if (region->y % 64) {
+                pos_y_init = (region->y - 64) / 64;
+                roi_height += 2;
+            } else
+                pos_y_init = region->y / 64;
+
+            map += pos_y_init * stride_cu64_h + pos_x_init;
+            for (y = 0; y < roi_height; y++) {
+                for (x = 0; x < roi_width; x++) {
+                    *(map + x) = 1;
+                }
+                map += stride_cu64_h;
+            }
         }
     }
 
@@ -434,27 +480,29 @@ static MPP_RET gen_vepu580_roi_h264(MppEncRoiImpl *ctx)
 
     for (j = 0; j < mb_h; j++) {
         for (k = 0; k < stride_h; k++) {
-            Vepu541RoiCfg *cu_cfg = &src[j * stride_h + k];
-            Vepu580RoiQpCfg *qp_cfg = &dst_qp[j * stride_h + k];
-            Vepu580RoiH264BsCfg *base_cfg = &dst_base[j * stride_h + k];
+            if (ctx->cu_map[j * stride_h + k]) {
+                Vepu541RoiCfg *cu_cfg = &src[j * stride_h + k];
+                Vepu580RoiQpCfg *qp_cfg = &dst_qp[j * stride_h + k];
+                Vepu580RoiH264BsCfg *base_cfg = &dst_base[j * stride_h + k];
 
-            qp_cfg->qp_adj = cu_cfg->qp_adj;
-            qp_cfg->qp_adj_mode = cu_cfg->qp_adj_mode;
-            qp_cfg->qp_area_idx = cu_cfg->qp_area_idx;
-            base_cfg->force_intra = cu_cfg->force_intra;
-            base_cfg->qp_adj_en = !!cu_cfg->qp_adj;
+                qp_cfg->qp_adj = cu_cfg->qp_adj;
+                qp_cfg->qp_adj_mode = cu_cfg->qp_adj_mode;
+                qp_cfg->qp_area_idx = cu_cfg->qp_area_idx;
+                base_cfg->force_intra = cu_cfg->force_intra;
+                base_cfg->qp_adj_en = !!cu_cfg->qp_adj;
 #if 0
-            if (j < 8 && k < 8) {
-                RK_U64 *tmp = (RK_U64 *)base_cfg;
-                RK_U16 *qp = (RK_U16 *)qp_cfg;
+                if (j < 8 && k < 8) {
+                    RK_U64 *tmp = (RK_U64 *)base_cfg;
+                    RK_U16 *qp = (RK_U16 *)qp_cfg;
 
-                mpp_log("force_intra %d, qp_adj_en %d qp_adj %d, qp_adj_mode %d",
-                        base_cfg->force_intra, base_cfg->qp_adj_en, qp_cfg->qp_adj, qp_cfg->qp_adj_mode);
-                mpp_log("val low %8x hight %8x", *tmp & 0xffffffff, ((*tmp >> 32) & 0xffffffff));
+                    mpp_log("force_intra %d, qp_adj_en %d qp_adj %d, qp_adj_mode %d",
+                            base_cfg->force_intra, base_cfg->qp_adj_en, qp_cfg->qp_adj, qp_cfg->qp_adj_mode);
+                    mpp_log("val low %8x hight %8x", *tmp & 0xffffffff, ((*tmp >> 32) & 0xffffffff));
 
-                mpp_log("qp cfg %4x", *qp);
-            }
+                    mpp_log("qp cfg %4x", *qp);
+                }
 #endif
+            }
         }
     }
 
@@ -507,64 +555,66 @@ static MPP_RET gen_vepu580_roi_h265(MppEncRoiImpl *ctx)
             RK_S32 cu16_num_line = ctu_line * 4;
             RK_U32 adjust_cnt = 0;
 
-            for (cu16cnt = 0; cu16cnt < 16; cu16cnt++) {
-                RK_S32 cu16_x;
-                RK_S32 cu16_y;
-                RK_S32 cu16_addr_in_frame;
-                RK_U32 zindex = 0;
-                Vepu541RoiCfg *cu16_cfg = NULL;
-                Vepu580RoiH265BsCfg val;
+            if (ctx->cu_map[j * ctu_w + k]) {
+                for (cu16cnt = 0; cu16cnt < 16; cu16cnt++) {
+                    RK_S32 cu16_x;
+                    RK_S32 cu16_y;
+                    RK_S32 cu16_addr_in_frame;
+                    RK_U32 zindex = 0;
+                    Vepu541RoiCfg *cu16_cfg = NULL;
+                    Vepu580RoiH265BsCfg val;
 
-                memset(&val, 0, sizeof(val));
-                cu16_x = cu16cnt & 3;
-                cu16_y = cu16cnt / 4;
-                cu16_x += k * 4;
-                cu16_y += j * 4;
-                cu16_addr_in_frame = cu16_x + cu16_y * cu16_num_line;
-                cu16_cfg = &src[cu16_addr_in_frame];
-                zindex = raster2zscan16[cu16cnt];
+                    memset(&val, 0, sizeof(val));
+                    cu16_x = cu16cnt & 3;
+                    cu16_y = cu16cnt / 4;
+                    cu16_x += k * 4;
+                    cu16_y += j * 4;
+                    cu16_addr_in_frame = cu16_x + cu16_y * cu16_num_line;
+                    cu16_cfg = &src[cu16_addr_in_frame];
+                    zindex = raster2zscan16[cu16cnt];
 
-                val.force_intra = cu16_cfg->force_intra;
-                val.qp_adj = !!cu16_cfg->qp_adj;
-                if (val.force_intra || val.qp_adj) {
-                    adjust_cnt++;
-                }
-
-                set_roi_cu16_split_cu8(dst_base, cu16cnt, val);
-                set_roi_cu16_base_cfg(dst_base, zindex, val);
-                set_roi_cu16_qp_cfg(dst_qp, zindex, cu16_cfg);
-                /*
-                 * if all cu16 adjust c64 and cu32 must adjust
-                 * or we will force split to cu 16
-                 */
-                if (adjust_cnt == 16 && cu16cnt == 15) {
-                    // cu64
-                    set_roi_cu64_base_cfg(dst_base, val);
-                    set_roi_cu64_qp_cfg(dst_qp, cu16_cfg);
-                    // cu32
-                    for (i = 0; i < 4; i++) {
-                        set_roi_cu32_base_cfg(dst_base, i, val);
-                        set_roi_cu32_qp_cfg(dst_qp, i, cu16_cfg);
+                    val.force_intra = cu16_cfg->force_intra;
+                    val.qp_adj = !!cu16_cfg->qp_adj;
+                    if (val.force_intra || val.qp_adj) {
+                        adjust_cnt++;
                     }
 
-                    for (i = 0; i < 64; i ++) {
-                        set_roi_cu8_base_cfg(dst_base, i, val);
-                        set_roi_qp_cfg(dst_qp, i, cu16_cfg);
-                    }
-                } else if (cu16cnt == 15 && adjust_cnt > 0) {
-                    val.force_split = 1;
-                    set_roi_force_split(dst_base, 84, val.force_split);
-                    for (i = 0; i < 4; i++) {
-                        set_roi_force_split(dst_base, 80 + i, val.force_split);
-                    }
-                    for (i = 0; i < 16; i++) {
-                        set_roi_force_split(dst_base, 64 + i, val.force_split);
+                    set_roi_cu16_split_cu8(dst_base, cu16cnt, val);
+                    set_roi_cu16_base_cfg(dst_base, zindex, val);
+                    set_roi_cu16_qp_cfg(dst_qp, zindex, cu16_cfg);
+                    /*
+                     * if all cu16 adjust c64 and cu32 must adjust
+                     * or we will force split to cu 16
+                     */
+                    if (adjust_cnt == 16 && cu16cnt == 15) {
+                        // cu64
+                        set_roi_cu64_base_cfg(dst_base, val);
+                        set_roi_cu64_qp_cfg(dst_qp, cu16_cfg);
+                        // cu32
+                        for (i = 0; i < 4; i++) {
+                            set_roi_cu32_base_cfg(dst_base, i, val);
+                            set_roi_cu32_qp_cfg(dst_qp, i, cu16_cfg);
+                        }
+
+                        for (i = 0; i < 64; i ++) {
+                            set_roi_cu8_base_cfg(dst_base, i, val);
+                            set_roi_qp_cfg(dst_qp, i, cu16_cfg);
+                        }
+                    } else if (cu16cnt == 15 && adjust_cnt > 0) {
+                        val.force_split = 1;
+                        set_roi_force_split(dst_base, 84, val.force_split);
+                        for (i = 0; i < 4; i++) {
+                            set_roi_force_split(dst_base, 80 + i, val.force_split);
+                        }
+                        for (i = 0; i < 16; i++) {
+                            set_roi_force_split(dst_base, 64 + i, val.force_split);
+                        }
                     }
                 }
             }
-
 #if 0
             if (j < 3 && (k < 3 )) {
+                mpp_log("j %d, k %d need_update = %d", j, k, need_update);
                 RK_U16 *qp_val = (RK_U16 *)dst_qp;
                 for (i = 0; i < CU_BASE_CFG_BYTE / 4; i++) {
                     mpp_log("cfg[%d] = %08x", i, dst_base[i]);
@@ -578,7 +628,6 @@ static MPP_RET gen_vepu580_roi_h265(MppEncRoiImpl *ctx)
             dst_qp += CU_QP_CFG_BYTE;
         }
     }
-
     return MPP_OK;
 }
 
@@ -652,18 +701,22 @@ MPP_RET mpp_enc_roi_init(MppEncRoiCtx *ctx, RK_U32 w, RK_U32 h, MppCodingType ty
             RK_U32 ctu_w = MPP_ALIGN(w, 64) / 64;
             RK_U32 ctu_h  = MPP_ALIGN(h, 64) / 64;
 
-            impl->base_cfg_size  = ctu_w * ctu_h * 64;
-            impl->qp_cfg_size    = ctu_w * ctu_h * 256;
-            impl->amv_cfg_size   = ctu_w * ctu_h * 512;
-            impl->mv_cfg_size    = ctu_w * ctu_h * 4;
+            impl->base_cfg_size = ctu_w * ctu_h * 64;
+            impl->qp_cfg_size   = ctu_w * ctu_h * 256;
+            impl->amv_cfg_size  = ctu_w * ctu_h * 512;
+            impl->mv_cfg_size   = ctu_w * ctu_h * 4;
+            impl->cu_map        = mpp_calloc(RK_U8, ctu_w * ctu_h);
+            impl->cu_size       = ctu_w * ctu_h;
         } else {
             RK_U32 mb_w = MPP_ALIGN(w, 64) / 16;
             RK_U32 mb_h = MPP_ALIGN(h, 64) / 16;
 
-            impl->base_cfg_size  = mb_w * mb_h * 8;
-            impl->qp_cfg_size    = mb_w * mb_h * 2;
-            impl->amv_cfg_size   = mb_w * mb_h / 4;
-            impl->mv_cfg_size    = mb_w * mb_h * 96 / 4;
+            impl->base_cfg_size = mb_w * mb_h * 8;
+            impl->qp_cfg_size   = mb_w * mb_h * 2;
+            impl->amv_cfg_size  = mb_w * mb_h / 4;
+            impl->mv_cfg_size   = mb_w * mb_h * 96 / 4;
+            impl->cu_map        = mpp_calloc(RK_U8, mb_w * mb_h);
+            impl->cu_size       = mb_h * mb_h;
         }
 
         mpp_log("set to vepu58x roi generation\n");
@@ -756,7 +809,7 @@ MPP_RET mpp_enc_roi_deinit(MppEncRoiCtx ctx)
         mpp_buffer_group_put(impl->roi_grp);
         impl->roi_grp = NULL;
     }
-
+    MPP_FREE(impl->cu_map);
     MPP_FREE(impl->legacy_roi_region);
     MPP_FREE(impl->regions);
     MPP_FREE(impl->tmp);
