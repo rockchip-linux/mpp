@@ -52,6 +52,8 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     } else if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
         p->api = &hal_vp9d_vdpu34x;
         cfg->support_fast_mode = 1;
+        if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588)
+            cfg->cfg->status.hal_task_count = 2;
     } else {
         p->api = &hal_vp9d_rkv;
         cfg->support_fast_mode = 0;
