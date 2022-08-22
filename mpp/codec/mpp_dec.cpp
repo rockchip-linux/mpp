@@ -675,7 +675,8 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         support_fast_mode = hal_cfg.support_fast_mode;
 
         if (dec_cfg->base.fast_parse && support_fast_mode) {
-            hal_task_count = 3;
+            hal_task_count = dec_cfg->status.hal_task_count ?
+                             dec_cfg->status.hal_task_count : 3;
         } else {
             dec_cfg->base.fast_parse = 0;
             p->parser_fast_mode = 0;
