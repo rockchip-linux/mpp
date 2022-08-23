@@ -340,7 +340,7 @@ MPP_RET mpp_h263_parser_split(H263dParser ctx, MppPacket dst, MppPacket src)
             state = (state << 8) | src_buf[src_pos];
             if ((state & H263_STARTCODE_MASK) == H263_STARTCODE &&
                 (state & H263_GOB_ZERO_MASK)  == H263_GOB_ZERO) {
-                pos_frm_start = src_pos - 3;
+                pos_frm_start = src_pos - 2;
                 src_pos++;
                 break;
             }
@@ -354,7 +354,7 @@ MPP_RET mpp_h263_parser_split(H263dParser ctx, MppPacket dst, MppPacket src)
 
             if ((state & H263_STARTCODE_MASK) == H263_STARTCODE &&
                 (state & H263_GOB_ZERO_MASK)  == H263_GOB_ZERO) {
-                pos_frm_end = src_pos - 3;
+                pos_frm_end = src_pos - 2;
                 break;
             }
         }

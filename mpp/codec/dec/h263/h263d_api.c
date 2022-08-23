@@ -41,7 +41,6 @@ typedef struct {
     RK_U32          task_eos;
 
     // runtime parameter
-    RK_U32          need_split;
     RK_U32          frame_count;
 
     // parser context
@@ -89,7 +88,6 @@ MPP_RET h263d_init(void *dec, ParserCfg *cfg)
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
     p->cfg          = cfg->cfg;
-    p->need_split   = p->cfg->base.split_parse;
     p->stream       = stream;
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;
@@ -197,7 +195,7 @@ MPP_RET h263d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         return MPP_ERR_UNKNOW;
     }
 
-    if (!p->need_split) {
+    if (!p->cfg->base.split_parse) {
         /*
          * Copy packet mode:
          * Decoder's user will insure each packet is one frame for process
