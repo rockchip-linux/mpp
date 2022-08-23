@@ -244,7 +244,7 @@ static MPP_RET init_common_regs(Vdpu34xAvs2dRegSet *regs)
     common->reg021.error_deb_en = 0;
     common->reg021.error_intra_mode = 0;
 
-    common->reg024.cabac_err_en_lowbits = 0xffffffff;
+    common->reg024.cabac_err_en_lowbits = 0xffffffdf;
     common->reg025.cabac_err_en_highbits = 0x3dffffff;
 
     common->reg026.swreg_block_gating_e =
