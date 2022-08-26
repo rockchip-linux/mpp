@@ -1138,6 +1138,7 @@ static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
 
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+    MppDecCfgSet *cfg = h265dctx->cfg;
 
     do {
         RK_S32 nb_output = 0;
@@ -1159,8 +1160,14 @@ static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
 
         /* wait for more frames before output */
         if (!flush && s->seq_output == s->seq_decode && s->sps &&
-            nb_output <= s->sps->temporal_layer[s->sps->max_sub_layers - 1].num_reorder_pics)
-            return 0;
+            nb_output <= s->sps->temporal_layer[s->sps->max_sub_layers - 1].num_reorder_pics) {
+            if (cfg->base.enable_fast_play && (IS_IDR(s) ||
+                                               (IS_BLA(s) && !s->first_i_fast_play))) {
+                s->first_i_fast_play = 1;
+            } else {
+                return 0;
+            }
+        }
 
         if (nb_output) {
             HEVCFrame *frame = &s->DPB[min_idx];
@@ -2085,6 +2092,7 @@ MPP_RET h265d_reset(void *ctx)
     h265d_split_reset(h265dctx->split_cxt);
     s->max_ra = INT_MAX;
     s->eos = 0;
+    s->first_i_fast_play = 0;
     return MPP_OK;
 }
 
