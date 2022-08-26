@@ -287,6 +287,7 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
+    AvsdRegs_t *p_regs = (AvsdRegs_t *)p_hal->p_regs;
 
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
@@ -300,23 +301,22 @@ MPP_RET hal_avsd_wait(void *decoder, HalTaskInfo *task)
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
+    update_parameters(p_hal);
+    if (!p_hal->first_field && p_hal->syn.pp.pictureStructure == FIELDPICTURE)
+        repeat_other_field(p_hal, task);
+
 __SKIP_HARD:
     if (p_hal->dec_cb) {
         DecCbHalDone param;
 
         param.task = (void *)&task->dec;
-        param.regs = (RK_U32 *)p_hal->p_regs;
-        param.hard_err = (!((AvsdRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int);
+        param.regs = (RK_U32 *)p_regs;
+        param.hard_err = !p_regs->sw01.dec_rdy_int;
 
         mpp_callback(p_hal->dec_cb, &param);
     }
-    update_parameters(p_hal);
-    memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
-    if (!p_hal->first_field
-        && p_hal->syn.pp.pictureStructure == FIELDPICTURE) {
-        repeat_other_field(p_hal, task);
-    }
 
+    memset(&p_regs->sw01, 0, sizeof(p_regs->sw01));
 __RETURN:
     AVSD_HAL_TRACE("Out.");
 
