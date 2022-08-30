@@ -455,7 +455,20 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
                     ctx->out_buf0 = NULL;
                 }
             } else {
-                if (mode & MPP_FRAME_FLAG_TOP_FIRST) {
+                RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
+                RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
+                RK_U32 is_tff = 0;
+
+                if (fo_from_iep != fo_from_syntax) {
+                    if (ctx->dei_info.dil_order_confidence_ratio > 30)
+                        is_tff = fo_from_iep;
+                    else
+                        is_tff = fo_from_iep;
+                } else {
+                    is_tff = fo_from_syntax;
+                }
+
+                if (is_tff) {
                     dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
                     if (vproc_debug & VPROC_DBG_DUMP_OUT)
                         dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);

@@ -19,6 +19,7 @@
 
 #include "rk_type.h"
 
+#define FIELD_ORDER_RATIO_SIZE (10)
 struct iep2_ff_info {
     RK_S32 tff_offset;
     RK_S32 bff_offset;
@@ -30,6 +31,11 @@ struct iep2_ff_info {
     RK_S32 fie_score;
     RK_S32 fo_detected;
     RK_S32 is_frm;
+    RK_U32 fo_ratio[FIELD_ORDER_RATIO_SIZE];
+    RK_U32 fo_ratio_idx;
+    RK_U32 fo_ratio_cnt;
+    RK_U32 fo_ratio_sum;
+    RK_U32 fo_ratio_avg;
 };
 
 struct iep2_api_ctx;
