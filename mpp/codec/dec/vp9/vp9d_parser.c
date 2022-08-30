@@ -763,6 +763,10 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
                 h = mpp_get_bits(&s->gb, 16) + 1;
                 vp9d_dbg(VP9D_DBG_HEADER, "frame_size_height %d", h);
             }
+            if (w == 0 || h == 0) {
+                mpp_err("ref frame w:%d h:%d\n", w, h);
+                return -1;
+            }
             // Note that in this code, "CUR_FRAME" is actually before we
             // have formally allocated a frame, and thus actually represents
             // the _last_ frame
