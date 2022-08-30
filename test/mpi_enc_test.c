@@ -176,10 +176,10 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_den  = cmd->fps_out_den;
     p->fps_out_num  = cmd->fps_out_num;
     p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
+                      (MPP_ALIGN(p->hor_stride, 32) >> 5) *
+                      (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
                       (MPP_ALIGN(p->hor_stride, 64) >> 6) *
-                      (MPP_ALIGN(p->ver_stride, 64) >> 6) * 32 :
-                      (MPP_ALIGN(p->hor_stride, 64) >> 6) *
-                      (MPP_ALIGN(p->ver_stride, 16) >> 4) * 8;
+                      (MPP_ALIGN(p->ver_stride, 16) >> 4) * 16;
 
     if (cmd->file_input) {
         if (!strncmp(cmd->file_input, "/dev/video", 10)) {
