@@ -44,6 +44,7 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
     RK_U32 ffx = RKMIN(ff0t1b, ff0b1t);
     RK_U32 ffi = RKMAX(ff00, ff11);
     RK_U32 thr = ffx / 10;
+    RK_U32 field_diff_ratio = 0;
 
     iep_dbg_trace("deinterlace pd_cnt %d : %d, gradt cnt %d : %d, cur cnt %d : %d, nxt cnt %d : %d, ble 01:%d 10:%d",
                   tcnt, bcnt, tdiff, bdiff, ctx->output.ff_gradt_tcnt, ctx->output.ff_gradt_bcnt,
@@ -113,10 +114,19 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
         return;
     }
 
-    // thr = thr < 2 ? 2 : thr;
+    thr = (thr == 0) ? 1 : thr;
 
     // field order detection
-    if (RKABS(ff0t1b - ff0b1t) > thr) {
+    field_diff_ratio = RKABS(ff0t1b - ff0b1t) / thr * 10;
+    ctx->ff_inf.fo_ratio_sum = ctx->ff_inf.fo_ratio_sum + field_diff_ratio - ctx->ff_inf.fo_ratio[ctx->ff_inf.fo_ratio_idx];
+    ctx->ff_inf.fo_ratio[ctx->ff_inf.fo_ratio_idx] = field_diff_ratio;
+    ctx->ff_inf.fo_ratio_idx = (ctx->ff_inf.fo_ratio_idx + 1) % FIELD_ORDER_RATIO_SIZE;
+
+    ctx->ff_inf.fo_ratio_cnt++;
+    ctx->ff_inf.fo_ratio_cnt = RKMIN(ctx->ff_inf.fo_ratio_cnt, FIELD_ORDER_RATIO_SIZE);
+    ctx->ff_inf.fo_ratio_avg = ctx->ff_inf.fo_ratio_sum / ctx->ff_inf.fo_ratio_cnt;
+
+    if (field_diff_ratio > 10) {
         if (ff0t1b > ff0b1t) {
             ctx->ff_inf.tff_score = RKCLIP(ctx->ff_inf.tff_score + 1, 0, 10);
             ctx->ff_inf.bff_score = RKCLIP(ctx->ff_inf.bff_score - 1, 0, 10);

@@ -322,7 +322,7 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
             ctx->ff_inf.fie_offset = 10;
         }
 
-        if (param->mode.dil_order == 0) {
+        if (param->mode.dil_order == IEP2_FIELD_ORDER_TFF) {
             ctx->ff_inf.tff_offset = 3;
             ctx->ff_inf.bff_offset = 0;
         } else {
@@ -465,6 +465,7 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
             inf->dil_order = ctx->params.dil_field_order;
             inf->frm_mode = ctx->ff_inf.is_frm;
             inf->pd_types = ctx->pd_inf.pdtype;
+            inf->dil_order_confidence_ratio = ctx->ff_inf.fo_ratio_avg;
         }
     }
     break;
