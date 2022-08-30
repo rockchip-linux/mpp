@@ -1133,12 +1133,29 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
+static RK_S32 mpp_hevc_out_dec_order(void *ctx)
+{
+    H265dContext_t *h265dctx = (H265dContext_t *)ctx;
+    HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
+
+    if (s->ref && (s->ref->flags & HEVC_FRAME_FLAG_OUTPUT)) {
+        s->ref->flags &= ~(HEVC_FRAME_FLAG_OUTPUT);
+        mpp_buf_slot_set_flag(s->slots, s->ref->slot_index, SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(s->slots, s->ref->slot_index, QUEUE_DISPLAY);
+    }
+
+    return 0;
+}
+
 static RK_S32 mpp_hevc_output_frame(void *ctx, int flush)
 {
 
     H265dContext_t *h265dctx = (H265dContext_t *)ctx;
     HEVCContext *s = (HEVCContext *)h265dctx->priv_data;
     MppDecCfgSet *cfg = h265dctx->cfg;
+
+    if (cfg->base.fast_out)
+        return mpp_hevc_out_dec_order(ctx);
 
     do {
         RK_S32 nb_output = 0;
