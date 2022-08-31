@@ -272,7 +272,8 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
             }
         }
 
-        mpp_dev_multi_offset_init(&ctx_ext->reg_cfg, 24);
+        if (!ctx_ext->reg_cfg)
+            mpp_dev_multi_offset_init(&ctx_ext->reg_cfg, 24);
 
         syntax->low_delay = 1;
         ctx_ext->multi_core_enabled = 1;
