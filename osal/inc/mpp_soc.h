@@ -60,6 +60,7 @@ typedef struct MppDecHwCap_t {
     RK_U32          cap_jpg_pp_out  : 1;
     RK_U32          cap_10bit       : 1;
     RK_U32          cap_down_scale  : 1;
+    RK_U32          cap_lmt_linebuf : 1;
     RK_U32          reserved        : 12;
 } MppDecHwCap;
 

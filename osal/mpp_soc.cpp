@@ -76,6 +76,7 @@ static const MppDecHwCap vdpu1 = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -91,6 +92,7 @@ static const MppDecHwCap vdpu1_2160p = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -106,6 +108,7 @@ static const MppDecHwCap vdpu1_jpeg_pp = {
     .cap_jpg_pp_out     = 1,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -121,6 +124,7 @@ static const MppDecHwCap vdpu2 = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -136,6 +140,7 @@ static const MppDecHwCap vdpu2_jpeg = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -151,6 +156,7 @@ static const MppDecHwCap vdpu2_jpeg_pp = {
     .cap_jpg_pp_out     = 1,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -166,6 +172,7 @@ static const MppDecHwCap rk_hevc = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 1,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -181,6 +188,7 @@ static const MppDecHwCap rk_hevc_1080p = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -196,6 +204,7 @@ static const MppDecHwCap vdpu341 = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 1,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -211,6 +220,7 @@ static const MppDecHwCap vdpu341_lite = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 1,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -226,6 +236,7 @@ static const MppDecHwCap vdpu341_lite_1080p = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -241,6 +252,7 @@ static const MppDecHwCap vdpu341_h264 = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -257,6 +269,7 @@ static const MppDecHwCap vdpu34x = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 1,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 0,
     .reserved           = 0,
 };
 
@@ -272,6 +285,7 @@ static const MppDecHwCap vdpu38x = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 1,
     .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
     .reserved           = 0,
 };
 
@@ -287,6 +301,7 @@ static const MppDecHwCap avsd = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -302,6 +317,7 @@ static const MppDecHwCap avspd = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
@@ -317,6 +333,7 @@ static const MppDecHwCap rkjpegd = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 0,
     .reserved           = 0,
 };
 
@@ -332,6 +349,7 @@ static const MppDecHwCap av1d = {
     .cap_jpg_pp_out     = 0,
     .cap_10bit          = 0,
     .cap_down_scale     = 0,
+    .cap_lmt_linebuf    = 1,
     .reserved           = 0,
 };
 
