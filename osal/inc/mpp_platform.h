@@ -34,6 +34,7 @@ typedef enum MppKernelVersion_e {
     KERNEL_3_10,
     KERNEL_4_4,
     KERNEL_4_19,
+    KERNEL_5_10,
     KERNEL_VERSION_BUTT,
 } MppKernelVersion;
 
