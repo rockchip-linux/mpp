@@ -50,12 +50,19 @@ static MppKernelVersion check_kernel_version(void)
             pos += 14;
             count = sscanf(pos, "%d.%d.%d ", &major, &minor, &last);
             if (count >= 2 && major > 0 && minor > 0) {
-                if (major == 3)
+                switch (major) {
+                case 3: {
                     version = KERNEL_3_10;
-                else if (major == 4) {
+                } break;
+                case 4: {
                     version = KERNEL_4_4;
                     if (minor >= 19)
                         version = KERNEL_4_19;
+                } break;
+                case 5: {
+                    version = KERNEL_5_10;
+                } break;
+                default: break;
                 }
             }
         }
