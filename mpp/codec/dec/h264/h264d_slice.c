@@ -277,7 +277,7 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
     ret |= (sps->max_num_ref_frames > 16);
 
     if (hw_info && hw_info->cap_8k)
-        max_mb_width  = MAX_MBW_8Kx4K;
+        max_mb_width  = MAX_MBW_8Kx4K * hw_info->cap_core_num;
     else if (hw_info && hw_info->cap_4k)
         max_mb_width  = MAX_MBW_4Kx2K;
 
