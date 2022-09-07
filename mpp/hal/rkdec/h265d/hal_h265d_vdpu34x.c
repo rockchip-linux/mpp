@@ -828,6 +828,9 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
         default: break;}\
     }while(0)
 
+#define pocdistance(a, b) (((a) > (b)) ? ((a) - (b)) : ((b) - (a)))
+#define MAX_INT           2147483647
+
 static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     RK_S32 i = 0;
@@ -844,6 +847,11 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
+    RK_S32 distance = MAX_INT;
+    h265d_dxva2_picture_context_t *dxva_cxt =
+        (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
+    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    void *rps_ptr = NULL;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -851,13 +859,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         return MPP_OK;
     }
 
-    h265d_dxva2_picture_context_t *dxva_cxt =
-        (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
-    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
-    RK_S32 max_poc =  dxva_cxt->pp.current_poc;
-    RK_S32 min_poc =  0;
-
-    void *rps_ptr = NULL;
     if (reg_cxt ->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             if (!reg_cxt->g_buf[i].use_flag) {
@@ -1036,6 +1037,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     valid_ref = hw_regs->common_addr.reg130_decout_base;
     reg_cxt->error_index = dxva_cxt->pp.CurrPic.Index7Bits;
     hw_regs->common_addr.reg132_error_ref_base = valid_ref;
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
@@ -1050,11 +1052,10 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             if (framebuf != NULL) {
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 valid_ref = hw_regs->h265d_addr.reg164_179_ref_base[i];
-                if ((dxva_cxt->pp.PicOrderCntValList[i] < max_poc) &&
-                    (dxva_cxt->pp.PicOrderCntValList[i] >= min_poc)
+                // mpp_log("cur poc %d, ref poc %d", dxva_cxt->pp.current_poc, dxva_cxt->pp.PicOrderCntValList[i]);
+                if ((pocdistance(dxva_cxt->pp.PicOrderCntValList[i], dxva_cxt->pp.current_poc) < distance)
                     && (!mpp_frame_get_errinfo(mframe))) {
-
-                    min_poc = dxva_cxt->pp.PicOrderCntValList[i];
+                    distance = pocdistance(dxva_cxt->pp.PicOrderCntValList[i], dxva_cxt->pp.current_poc);
                     hw_regs->common_addr.reg132_error_ref_base = hw_regs->h265d_addr.reg164_179_ref_base[i];
                     reg_cxt->error_index = dxva_cxt->pp.RefPicList[i].Index7Bits;
                     hw_regs->common.reg021.error_intra_mode = 0;
@@ -1071,9 +1072,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             SET_REF_VALID(hw_regs->h265d_param, i, 1);
         }
     }
-    //mpp_log("error_index %d IntraPicFlag %d Index7Bits = %d",
-    //        reg_cxt->error_index, dxva_cxt->pp.IntraPicFlag,
-    //        dxva_cxt->pp.CurrPic.Index7Bits);
+
     if ((reg_cxt->error_index == dxva_cxt->pp.CurrPic.Index7Bits) && !dxva_cxt->pp.IntraPicFlag) {
         // mpp_err("current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
