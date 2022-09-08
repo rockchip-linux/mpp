@@ -508,15 +508,13 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     p_Inp->pkt_eos = mpp_packet_get_eos(pkt);
     p_Inp->in_buf = (RK_U8 *)mpp_packet_get_pos(pkt);
 
-    if (p_Inp->pkt_eos) {
+    if (p_Inp->pkt_eos && p_Inp->in_length < 4) {
         p_Inp->has_get_eos = 1;
-        if (p_Inp->in_length < 4) {
-            p_Inp->in_buf      = NULL;
-            p_Inp->in_length   = 0;
-            task->flags.eos = p_Inp->pkt_eos;
-            h264d_flush_dpb_eos(p_Dec);
-            goto __RETURN;
-        }
+        p_Inp->in_buf = NULL;
+        p_Inp->in_length = 0;
+        task->flags.eos = p_Inp->pkt_eos;
+        h264d_flush_dpb_eos(p_Dec);
+        goto __RETURN;
     }
 
     if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
@@ -554,7 +552,8 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
             task->valid = p_Inp->task_valid;  //!< prepare valid flag
         } while (mpp_packet_get_length(pkt) && !task->valid);
     }
-    task->flags.eos = p_Inp->pkt_eos;
+    if (p_Inp->in_length < 4)
+        task->flags.eos = p_Inp->pkt_eos;
     if (task->valid) {
         memset(p_Dec->dxva_ctx->bitstream + p_Dec->dxva_ctx->strm_offset, 0,
                MPP_ALIGN(p_Dec->dxva_ctx->strm_offset, 16) - p_Dec->dxva_ctx->strm_offset);

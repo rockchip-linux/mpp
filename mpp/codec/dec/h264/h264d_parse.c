@@ -599,7 +599,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
         p_Dec->nalu_ret = HaveNoStream;
     }
 
-    if (p_Inp->pkt_eos) {
+    if (p_Inp->pkt_eos && p_Inp->in_length < 4) {
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
         FUN_CHECK(ret = add_empty_nalu(p_strm));
         p_Dec->p_Inp->task_valid = 1;
