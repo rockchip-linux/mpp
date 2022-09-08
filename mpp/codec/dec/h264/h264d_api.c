@@ -514,7 +514,6 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->in_length = 0;
         task->flags.eos = p_Inp->pkt_eos;
         h264d_flush_dpb_eos(p_Dec);
-        goto __RETURN;
     }
 
     if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
