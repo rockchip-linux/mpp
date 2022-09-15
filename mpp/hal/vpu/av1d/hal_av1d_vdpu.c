@@ -732,7 +732,7 @@ void set_frame_sign_bias(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     RK_U32 i = 0;
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
-    if (!dxva->order_hint || dxva->format.frame_type == AV1_FRAME_INTRA_ONLY ||
+    if (!dxva->order_hint_bits || dxva->format.frame_type == AV1_FRAME_INTRA_ONLY ||
         dxva->format.frame_type == AV1_FRAME_KEY) {
         for (i = 0; i < AV1_REF_LIST_SIZE; i++) {
             reg_ctx->ref_frame_sign_bias[i] = 0;
