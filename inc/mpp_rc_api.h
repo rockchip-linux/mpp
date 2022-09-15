@@ -185,6 +185,7 @@ typedef struct RcCfg_s {
     RcHierQPCfg     hier_qp_cfg;
     RK_U32          refresh_len;
     RK_S32          scene_mode;
+    RK_U32          fps_chg_prop;
 } RcCfg;
 
 /*

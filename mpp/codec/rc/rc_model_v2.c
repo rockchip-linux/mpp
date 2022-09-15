@@ -22,7 +22,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
-
+#include "mpp_time.h"
 #include "rc_debug.h"
 #include "rc_ctx.h"
 #include "rc_model_v2.h"
@@ -1065,7 +1065,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_S64 gop_bits = 0;
-    RK_U32 target_bps;
+    RK_U32 target_bps = 0;
 
     rc_dbg_func("enter %p\n", ctx);
 
@@ -1098,6 +1098,10 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->first_frm_flg = 1;
     ctx->gop_frm_cnt = 0;
     ctx->gop_qp_sum = 0;
+
+    if (!usr_cfg->fps_chg_prop) {
+        usr_cfg->fps_chg_prop = 25;
+    }
 
     target_bps = ctx->usr_cfg.bps_max;
     ctx->re_calc_ratio = reenc_calc_vbr_ratio;
@@ -1139,6 +1143,7 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->watl_thrd = 3 * target_bps;
     ctx->stat_watl = ctx->watl_thrd  >> 3;
     ctx->watl_base = ctx->stat_watl;
+    ctx->last_fps = fps->fps_out_num / fps->fps_out_denorm;
 
     rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
               ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,
@@ -1147,9 +1152,67 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     if (bits_model_param_init(ctx)) {
         return MPP_NOK;
     }
-
+    ctx->time_base = mpp_time();
     bits_frm_init(ctx);
     rc_dbg_func("leave %p\n", ctx);
+    return MPP_OK;
+}
+
+static MPP_RET update_mode_param(RcModelV2Ctx *ctx, RK_U32 fps)
+{
+    RcCfg *usr_cfg = &ctx->usr_cfg;
+    RK_S32 gop_len = ctx->usr_cfg.igop;
+    RK_S64 gop_bits = 0;
+    RK_U32 target_bps;
+    RK_U32  stat_len = fps * usr_cfg->stats_time;
+
+    target_bps = ctx->usr_cfg.bps_max;
+    if (ctx->usr_cfg.mode == RC_CBR) {
+        target_bps = ctx->usr_cfg.bps_target;
+    }
+
+    if (gop_len >= 1)
+        gop_bits = (RK_S64)gop_len * target_bps;
+    else
+        gop_bits = (RK_S64)target_bps;
+
+    ctx->gop_total_bits = gop_bits / fps;
+
+    ctx->bit_per_frame = target_bps / fps;
+
+    if (ctx->stat_bits != NULL) {
+        mpp_data_deinit_v2(ctx->stat_bits);
+        ctx->stat_bits = NULL;
+    }
+    mpp_data_init_v2(&ctx->stat_bits, stat_len , ctx->bit_per_frame);
+    if (ctx->stat_bits == NULL) {
+        mpp_err("stat_bits init fail stat_len %d", stat_len);
+        return MPP_ERR_MALLOC;
+    }
+    return MPP_OK;
+}
+
+static MPP_RET fps_chg_update_mode(RcModelV2Ctx *ctx)
+{
+    ctx->time_end = mpp_time();
+    ctx->frm_cnt++;
+
+    if (ctx->time_base && ctx->time_end &&
+        ((ctx->time_end - ctx->time_base) >= (RK_S64)(250 * 1000))) {
+
+        RK_S32 time_diff = ((RK_S32)(ctx->time_end - ctx->time_base) / 1000);
+        RK_U32 fps = ctx->frm_cnt * 1000 / time_diff;
+
+        if (ctx->last_fps > 0 && fps &&
+            abs(ctx->last_fps - (RK_S32)fps) * 100 / ctx->last_fps > (RK_S32)ctx->usr_cfg.fps_chg_prop) {
+            update_mode_param(ctx, fps);
+            mpp_log("fps chg from %d -> %d", ctx->last_fps, fps);
+            ctx->last_fps = fps;
+        }
+        ctx->time_base = ctx->time_end;
+        ctx->frm_cnt = 0;
+    }
+
     return MPP_OK;
 }
 
@@ -1318,6 +1381,10 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         rc_dbg_rc("quality [%d : %d : %d]\n", info->quality_min, info->quality_target, info->quality_max);
 
         return MPP_OK;
+    }
+
+    if (usr_cfg->fps.fps_out_flex) {
+        fps_chg_update_mode(ctx);
     }
 
     info->frame_type = (frm->is_intra) ? (INTRA_FRAME) : (INTER_P_FRAME);

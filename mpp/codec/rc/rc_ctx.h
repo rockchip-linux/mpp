@@ -98,6 +98,11 @@ typedef struct RcModelV2Ctx_t {
     RK_S32          qp_layer_id;
     RK_S32          hier_frm_cnt[4];
 
+    RK_S64          time_base;
+    RK_S64          time_end;
+    RK_S32          frm_cnt;
+    RK_S32          last_fps;
+
     MPP_RET         (*calc_ratio)(void* ctx, EncRcTaskInfo *cfg);
     MPP_RET         (*re_calc_ratio)(void* ctx, EncRcTaskInfo *cfg);
 } RcModelV2Ctx;
