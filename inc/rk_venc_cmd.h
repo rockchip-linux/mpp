@@ -480,8 +480,9 @@ typedef enum MppEncPrepCfgChange_e {
     MPP_ENC_PREP_CFG_CHANGE_INPUT       = (1 << 0),     /* change on input config */
     MPP_ENC_PREP_CFG_CHANGE_FORMAT      = (1 << 2),     /* change on format */
     /* transform parameter */
-    MPP_ENC_PREP_CFG_CHANGE_ROTATION    = (1 << 4),     /* change on ration */
+    MPP_ENC_PREP_CFG_CHANGE_ROTATION    = (1 << 4),     /* change on rotation */
     MPP_ENC_PREP_CFG_CHANGE_MIRRORING   = (1 << 5),     /* change on mirroring */
+    MPP_ENC_PREP_CFG_CHANGE_FLIP        = (1 << 6),     /* change on flip */
     /* enhancement parameter */
     MPP_ENC_PREP_CFG_CHANGE_DENOISE     = (1 << 8),     /* change on denoise */
     MPP_ENC_PREP_CFG_CHANGE_SHARPEN     = (1 << 9),     /* change on denoise */
@@ -550,15 +551,24 @@ typedef struct MppEncPrepCfg_t {
     MppFrameColorTransferCharacteristic colortrc;
     MppFrameColorRange  range;
 
+    /* suffix ext means the user set config externally */
     MppEncRotationCfg   rotation;
+    MppEncRotationCfg   rotation_ext;
 
     /*
      * input frame mirroring parameter
      * 0 - disable mirroring
      * 1 - horizontal mirroring
-     * 2 - vertical mirroring
      */
     RK_S32              mirroring;
+    RK_S32              mirroring_ext;
+
+    /*
+     * input frame flip parameter
+     * 0 - disable flip
+     * 1 - flip, vertical mirror transformation
+     */
+    RK_S32              flip;
 
     /*
      * TODO:

@@ -1005,7 +1005,9 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt,
     regs->src_fmt.alpha_swap = fmt->alpha_swap;
     regs->src_fmt.rbuv_swap = fmt->rbuv_swap;
     regs->src_fmt.src_range = fmt->src_range;
+    regs->src_proc.src_mirr = prep_cfg->mirroring > 0;
     regs->src_proc.src_rot = prep_cfg->rotation;
+
     if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
         stridey = mpp_frame_get_fbc_hdr_stride(task->frame);
         if (!stridey)

@@ -134,12 +134,15 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     prep->ver_stride = 720;
     prep->format = MPP_FMT_YUV420SP;
     prep->rotation = MPP_ENC_ROT_0;
+    prep->rotation_ext = MPP_ENC_ROT_0;
     prep->color = MPP_FRAME_SPC_UNSPECIFIED;
     prep->colorprim = MPP_FRAME_PRI_UNSPECIFIED;
     prep->colortrc = MPP_FRAME_TRC_UNSPECIFIED;
     prep->range = MPP_FRAME_RANGE_UNSPECIFIED;
     prep->mirroring = 0;
+    prep->mirroring_ext = 0;
     prep->denoise = 0;
+    prep->flip = 0;
 
     /*
      * default rc_cfg:
@@ -236,6 +239,8 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
     mpp_assert(change);
     if (change) {
+        RK_S32 mirroring;
+        RK_S32 rotation;
         MppEncPrepCfg bak = *dst;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
@@ -254,16 +259,43 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             dst->colortrc = src->colortrc;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-            dst->rotation = src->rotation;
+            dst->rotation_ext = src->rotation_ext;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
-            dst->mirroring = src->mirroring;
+            dst->mirroring_ext = src->mirroring_ext;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FLIP)
+            dst->flip = src->flip;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
             dst->denoise = src->denoise;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
             dst->sharpen = src->sharpen;
+
+        // parameter checking
+        if (dst->rotation_ext >= MPP_ENC_ROT_BUTT || dst->rotation_ext < 0 ||
+            dst->mirroring_ext < 0 || dst->flip < 0) {
+            mpp_err("invalid trans: rotation %d, mirroring %d\n", dst->rotation_ext, dst->mirroring_ext);
+            ret = MPP_ERR_VALUE;
+        }
+
+        /* For unifying the encoder's params used by CFG_SET and CFG_GET command,
+         * there is distinction between user's set and set in hal.
+         * User can externally set rotation_ext, mirroring_ext and flip,
+         * which should be transformed to mirroring and rotation in hal.
+         */
+        mirroring = dst->mirroring_ext;
+        rotation = dst->rotation_ext;
+
+        if (dst->flip) {
+            mirroring = !mirroring;
+            rotation += MPP_ENC_ROT_180;
+            rotation &= MPP_ENC_ROT_270;
+        }
+
+        dst->mirroring = mirroring;
+        dst->rotation = rotation;
 
         if ((change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
             (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
@@ -295,11 +327,11 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             }
         }
 
-        if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation)) {
+        if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation || dst->flip)) {
             // rk3588 rkvenc support fbc with rotation
             if (!strstr(mpp_get_soc_name(), "rk3588")) {
-                mpp_err("invalid cfg fbc data no support mirror %d or rotaion",
-                        dst->mirroring, dst->rotation);
+                mpp_err("invalid cfg fbc data no support mirror %d, rotation %d, or flip %d",
+                        dst->mirroring, dst->rotation, dst->flip);
                 ret = MPP_ERR_VALUE;
             }
         }

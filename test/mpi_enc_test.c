@@ -292,6 +292,9 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     MppEncCfg cfg = p->cfg;
     RK_U32 quiet = cmd->quiet;
     MPP_RET ret;
+    RK_U32 rotation;
+    RK_U32 mirroring;
+    RK_U32 flip;
 
     /* setup default parameter */
     if (p->fps_in_den == 0)
@@ -455,6 +458,14 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
         mpp_enc_cfg_set_s32(cfg, "split:out", p->split_out);
     }
+
+    mpp_env_get_u32("mirroring", &mirroring, 0);
+    mpp_env_get_u32("rotation", &rotation, 0);
+    mpp_env_get_u32("flip", &flip, 0);
+
+    mpp_enc_cfg_set_s32(cfg, "prep:mirroring", mirroring);
+    mpp_enc_cfg_set_s32(cfg, "prep:rotation", rotation);
+    mpp_enc_cfg_set_s32(cfg, "prep:flip", flip);
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);
     if (ret) {
