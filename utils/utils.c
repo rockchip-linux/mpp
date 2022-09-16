@@ -124,6 +124,53 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
             fwrite(base_c, 1, width / 2, fp);
         }
     } break;
+    case MPP_FMT_YUV420SP_10BIT : {
+        RK_U32 i, k;
+        RK_U8 *base_y = base;
+        RK_U8 *base_c = base + h_stride * v_stride;
+        RK_U8 *tmp_line = (RK_U8 *)mpp_malloc(RK_U16, width);
+
+        if (!tmp_line) {
+            mpp_log("tmp_line malloc fail");
+            return;
+        }
+
+        for (i = 0; i < height; i++, base_y += h_stride) {
+            for (k = 0; k < width / 8; k++) {
+                RK_U16 *pix = (RK_U16 *)(tmp_line + k * 16);
+                RK_U16 *base_u16 = (RK_U16 *)(base_y + k * 10);
+
+                pix[0] =  base_u16[0] & 0x03FF;
+                pix[1] = (base_u16[0] & 0xFC00) >> 10 | (base_u16[1] & 0x000F) << 6;
+                pix[2] = (base_u16[1] & 0x3FF0) >> 4;
+                pix[3] = (base_u16[1] & 0xC000) >> 14 | (base_u16[2] & 0x00FF) << 2;
+                pix[4] = (base_u16[2] & 0xFF00) >> 8  | (base_u16[3] & 0x0003) << 8;
+                pix[5] = (base_u16[3] & 0x0FFC) >> 2;
+                pix[6] = (base_u16[3] & 0xF000) >> 12 | (base_u16[4] & 0x003F) << 4;
+                pix[7] = (base_u16[4] & 0xFFC0) >> 6;
+            }
+            fwrite(tmp_line, width * sizeof(RK_U16) , 1, fp);
+        }
+
+        for (i = 0; i < height / 2; i++, base_c += h_stride) {
+            for (k = 0; k < (width / 8); k++) {
+                RK_U16 *pix = (RK_U16 *)(tmp_line + k * 16);
+                RK_U16 *base_u16 = (RK_U16 *)(base_c + k * 10);
+
+                pix[0] = base_u16[0] & 0x03FF;
+                pix[1] = (base_u16[0] & 0xFC00) >> 10 | (base_u16[1] & 0x000F) << 6;
+                pix[2] = (base_u16[1] & 0x3FF0) >> 4;
+                pix[3] = (base_u16[1] & 0xC000) >> 14 | (base_u16[2] & 0x00FF) << 2;
+                pix[4] = (base_u16[2] & 0xFF00) >> 8  | (base_u16[3] & 0x0003) << 8;
+                pix[5] = (base_u16[3] & 0x0FFC) >> 2;
+                pix[6] = (base_u16[3] & 0xF000) >> 12 | (base_u16[4] & 0x003F) << 4;
+                pix[7] = (base_u16[4] & 0xFFC0) >> 6;
+            }
+            fwrite(tmp_line, width * sizeof(RK_U16) , 1, fp);
+        }
+
+        MPP_FREE(tmp_line);
+    } break;
     case MPP_FMT_YUV444SP : {
         /* YUV444SP -> YUV444P for better display */
         RK_U32 i, j;
