@@ -129,6 +129,8 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
         return ;
     }
 
+    pthread_mutex_lock(&impl->lock);
+
     if (!list_empty(&impl->unused)) {
         list_for_each_entry_safe(node, m, &impl->unused, MppMemPoolNode, list) {
             MPP_FREE(node);
@@ -148,6 +150,8 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
 
     mpp_assert(!impl->used_count);
     mpp_assert(!impl->unused_count);
+
+    pthread_mutex_unlock(&impl->lock);
 
     {
         AutoMutex auto_lock(get_lock());
