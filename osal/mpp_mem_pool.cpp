@@ -52,6 +52,9 @@ typedef struct MppMemPoolImpl_t {
     struct list_head    unused;
     RK_S32              used_count;
     RK_S32              unused_count;
+
+    /* extra flag for C++ static destruction order error */
+    RK_S32              finalized;
 } MppMemPoolImpl;
 
 class MppMemPoolService
@@ -110,6 +113,7 @@ MppMemPoolImpl *MppMemPoolService::get_pool(size_t size)
     pool->size = size;
     pool->used_count = 0;
     pool->unused_count = 0;
+    pool->finalized = 0;
 
     INIT_LIST_HEAD(&pool->used);
     INIT_LIST_HEAD(&pool->unused);
@@ -126,8 +130,11 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
 
     if (impl != impl->check) {
         mpp_err_f("invalid mem impl %p check %p\n", impl, impl->check);
-        return ;
+        return;
     }
+
+    if (impl->finalized)
+        return;
 
     pthread_mutex_lock(&impl->lock);
 
@@ -158,6 +165,7 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
         list_del_init(&impl->service_link);
     }
 
+    impl->finalized = 1;
     mpp_free(impl);
 }
 
