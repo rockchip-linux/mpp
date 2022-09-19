@@ -1379,24 +1379,46 @@ static void setup_vepu580_roi(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
     /* memset register on start so do not clear registers again here */
     if (ctx->roi_data) {
         /* roi setup */
-        MppEncROICfg2 *cfg = ( MppEncROICfg2 *)ctx->roi_data;
+        RK_U32 mb_w = MPP_ALIGN(ctx->cfg->prep.width, 64) / 16;
+        RK_U32 mb_h = MPP_ALIGN(ctx->cfg->prep.height, 64) / 16;
+        RK_U32 base_cfg_size = mb_w * mb_h * 8;
+        RK_U32 qp_cfg_size   = mb_w * mb_h * 2;
+        RK_U32 amv_cfg_size  = mb_w * mb_h / 4;
+        RK_U32 mv_cfg_size   = mb_w * mb_h * 96 / 4;
+        MppEncROICfg2 *cfg   = (MppEncROICfg2 *)ctx->roi_data;
 
-        regs->reg_base.enc_pic.roi_en = 1;
-        regs->reg_base.roi_addr = mpp_buffer_get_fd(cfg->base_cfg_buf);
+        if (mpp_buffer_get_size(cfg->base_cfg_buf) >= base_cfg_size) {
+            regs->reg_base.enc_pic.roi_en = 1;
+            regs->reg_base.roi_addr = mpp_buffer_get_fd(cfg->base_cfg_buf);
+        } else {
+            mpp_err("roi base cfg buf not enough, roi is invalid");
+        }
 
         if (cfg->roi_qp_en) {
-            regs->reg_base.roi_qp_addr  =  mpp_buffer_get_fd(cfg->qp_cfg_buf);
-            regs->reg_base.roi_en.roi_qp_en = 1;
+            if (mpp_buffer_get_size(cfg->qp_cfg_buf) >= qp_cfg_size) {
+                regs->reg_base.roi_qp_addr  =  mpp_buffer_get_fd(cfg->qp_cfg_buf);
+                regs->reg_base.roi_en.roi_qp_en = 1;
+            } else {
+                mpp_err("roi qp cfg buf not enough, roi is invalid");
+            }
         }
 
         if (cfg->roi_amv_en) {
-            regs->reg_base.qoi_amv_addr =  mpp_buffer_get_fd(cfg->amv_cfg_buf);
-            regs->reg_base.roi_en.roi_amv_en = 1;
+            if (mpp_buffer_get_size(cfg->amv_cfg_buf) >= amv_cfg_size) {
+                regs->reg_base.qoi_amv_addr =  mpp_buffer_get_fd(cfg->amv_cfg_buf);
+                regs->reg_base.roi_en.roi_amv_en = 1;
+            } else {
+                mpp_err("roi amv cfg buf not enough, roi is invalid");
+            }
         }
 
         if (cfg->roi_mv_en) {
-            regs->reg_base.qoi_mv_addr =  mpp_buffer_get_fd(cfg->mv_cfg_buf);
-            regs->reg_base.roi_en.roi_mv_en = 1;
+            if (mpp_buffer_get_size(cfg->mv_cfg_buf) >= mv_cfg_size) {
+                regs->reg_base.qoi_mv_addr =  mpp_buffer_get_fd(cfg->mv_cfg_buf);
+                regs->reg_base.roi_en.roi_mv_en = 1;
+            } else {
+                mpp_err("roi mv cfg buf not enough, roi is invalid");
+            }
         }
     }
 
