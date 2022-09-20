@@ -716,7 +716,7 @@ MPP_RET mpp_enc_roi_init(MppEncRoiCtx *ctx, RK_U32 w, RK_U32 h, MppCodingType ty
             impl->amv_cfg_size  = mb_w * mb_h / 4;
             impl->mv_cfg_size   = mb_w * mb_h * 96 / 4;
             impl->cu_map        = mpp_calloc(RK_U8, mb_w * mb_h);
-            impl->cu_size       = mb_h * mb_h;
+            impl->cu_size       = mb_w * mb_h;
         }
 
         mpp_log("set to vepu58x roi generation\n");
