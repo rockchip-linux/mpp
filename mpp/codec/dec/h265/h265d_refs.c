@@ -216,7 +216,7 @@ static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
 
 /* add a reference with the given poc to the list and mark it as used in DPB */
 static int add_candidate_ref(HEVCContext *s, RefPicList *list,
-                             int poc, int ref_flag)
+                             int poc, int ref_flag, RK_U32 cur_used)
 {
     HEVCFrame *ref = find_ref_idx(s, poc);
 
@@ -224,7 +224,9 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         ref = generate_missing_ref(s, poc);
         if (!ref)
             return MPP_ERR_NOMEM;
-        ref->error_flag = 1;
+
+        if (cur_used)
+            ref->error_flag = 1;
     }
 
     list->list[list->nb_refs] = ref->poc;
@@ -276,7 +278,7 @@ RK_S32 mpp_hevc_frame_rps(HEVCContext *s)
         else
             list = ST_CURR_AFT;
 
-        ret = add_candidate_ref(s, &rps[list], poc, HEVC_FRAME_FLAG_SHORT_REF);
+        ret = add_candidate_ref(s, &rps[list], poc, HEVC_FRAME_FLAG_SHORT_REF, ST_FOLL != list);
         if (ret < 0)
             return ret;
     }
@@ -286,7 +288,7 @@ RK_S32 mpp_hevc_frame_rps(HEVCContext *s)
         int poc  = long_rps->poc[i];
         int list = long_rps->used[i] ? LT_CURR : LT_FOLL;
 
-        ret = add_candidate_ref(s, &rps[list], poc, HEVC_FRAME_FLAG_LONG_REF);
+        ret = add_candidate_ref(s, &rps[list], poc, HEVC_FRAME_FLAG_LONG_REF, LT_FOLL != list);
         if (ret < 0)
             return ret;
     }
