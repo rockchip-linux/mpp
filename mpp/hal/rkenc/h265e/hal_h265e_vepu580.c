@@ -38,7 +38,7 @@
 
 #include "mpp_service.h"
 
-#define MAX_TILE_NUM 2
+#define MAX_TILE_NUM 4
 
 #define hal_h265e_err(fmt, ...) \
     do {\
@@ -95,8 +95,8 @@ typedef struct H265eV580HalContext_t {
     MppEncCfgSet        *cfg;
 
     MppBufferGroup      tile_grp;
-    MppBuffer           hw_tile_buf[2];
-    MppBuffer           hw_tile_stream;
+    MppBuffer           hw_tile_buf[MAX_TILE_NUM];
+    MppBuffer           hw_tile_stream[MAX_TILE_NUM - 1];
     MppBuffer           buf_pass1;
 
     RK_U32              enc_mode;
@@ -1363,19 +1363,18 @@ MPP_RET hal_h265e_v580_deinit(void *hal)
     MPP_FREE(ctx->input_fmt);
     hal_bufs_deinit(ctx->dpb_bufs);
 
-    if (ctx->hw_tile_buf[0]) {
-        mpp_buffer_put(ctx->hw_tile_buf[0]);
-        ctx->hw_tile_buf[0] = NULL;
+    for (i = 0; i < MAX_TILE_NUM; i++) {
+        if (ctx->hw_tile_buf[i]) {
+            mpp_buffer_put(ctx->hw_tile_buf[i]);
+            ctx->hw_tile_buf[i] = NULL;
+        }
     }
 
-    if (ctx->hw_tile_buf[1]) {
-        mpp_buffer_put(ctx->hw_tile_buf[1]);
-        ctx->hw_tile_buf[1] = NULL;
-    }
-
-    if (ctx->hw_tile_stream) {
-        mpp_buffer_put(ctx->hw_tile_stream);
-        ctx->hw_tile_stream = NULL;
+    for (i = 0; i < MAX_TILE_NUM - 1; i ++) {
+        if (ctx->hw_tile_stream[i]) {
+            mpp_buffer_put(ctx->hw_tile_stream[i]);
+            ctx->hw_tile_stream[i] = NULL;
+        }
     }
 
     if (ctx->tile_grp) {
@@ -2156,21 +2155,31 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     mpp_dev_multi_offset_update(ctx->reg_cfg, 166, ctx->fbc_header_len);
 
     if (syn->pp.tiles_enabled_flag) {
+        RK_U32 tile_num = (syn->pp.num_tile_columns_minus1 + 1) * (syn->pp.num_tile_rows_minus1 + 1);
+        RK_U32 i = 0;
+
         if (NULL == ctx->tile_grp)
             mpp_buffer_group_get_internal(&ctx->tile_grp, MPP_BUFFER_TYPE_ION);
 
         mpp_assert(ctx->tile_grp);
 
-        if (NULL == ctx->hw_tile_buf[0]) {
-            mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_buf[0], TILE_BUF_SIZE);
+        for (i = 0; i < MAX_TILE_NUM; i++) {
+            if (NULL == ctx->hw_tile_buf[i]) {
+                mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_buf[i], TILE_BUF_SIZE);
+            }
         }
 
-        if (NULL == ctx->hw_tile_buf[1]) {
-            mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_buf[1], TILE_BUF_SIZE);
+        if (NULL == ctx->hw_tile_stream[0]) {
+            mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_stream[0], ctx->frame_size / tile_num);
         }
 
-        if (NULL == ctx->hw_tile_stream) {
-            mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_stream, ctx->frame_size / 2);
+        if (tile_num > 2) {
+            if (NULL == ctx->hw_tile_stream[1]) {
+                mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_stream[1], ctx->frame_size / tile_num);
+            }
+            if (NULL == ctx->hw_tile_stream[2]) {
+                mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_stream[2], ctx->frame_size / tile_num);
+            }
         }
 
         regs->reg0176_lpfw_addr  = mpp_buffer_get_fd(ctx->hw_tile_buf[0]);
@@ -2480,10 +2489,6 @@ void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *s
                             index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
 
         if (index > 0) {
-            RK_U32 tmp = regs->reg0177_lpfr_addr;
-            regs->reg0177_lpfr_addr = regs->reg0176_lpfw_addr;
-            regs->reg0176_lpfw_addr = tmp;
-
             regs->reg0193_dual_core.dchs_txid = index;
             regs->reg0193_dual_core.dchs_rxid = index - 1;
             regs->reg0193_dual_core.dchs_txe = 1;
@@ -2557,6 +2562,9 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
         if (k) {
             RK_U32 offset = 0;
 
+            reg_base->reg0176_lpfw_addr  = mpp_buffer_get_fd(ctx->hw_tile_buf[k]);
+            reg_base->reg0177_lpfr_addr  = mpp_buffer_get_fd(ctx->hw_tile_buf[k - 1]);
+
             if (!ctx->tile_parall_en) {
                 offset = mpp_packet_get_length(enc_task->packet);
                 offset += stream_len;
@@ -2566,13 +2574,14 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
                 mpp_dev_multi_offset_update(ctx->reg_cfg, 175, offset);
                 mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(enc_task->output));
             } else {
-                reg_base->reg0172_bsbt_addr = mpp_buffer_get_fd(ctx->hw_tile_stream);
+                reg_base->reg0172_bsbt_addr = mpp_buffer_get_fd(ctx->hw_tile_stream[k - 1]);
                 /* TODO: stream size relative with syntax */
                 reg_base->reg0173_bsbb_addr = reg_base->reg0172_bsbt_addr;
                 reg_base->reg0174_bsbr_addr = reg_base->reg0172_bsbt_addr;
                 reg_base->reg0175_adr_bsbs  = reg_base->reg0172_bsbt_addr;
+
                 mpp_dev_multi_offset_update(ctx->reg_cfg, 175, 0);
-                mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(ctx->hw_tile_stream));
+                mpp_dev_multi_offset_update(ctx->reg_cfg, 172, mpp_buffer_get_size(ctx->hw_tile_stream[k - 1]));
             }
 
             offset = ctx->fbc_header_len;
@@ -2823,7 +2832,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                 param.length = slice_len;
 
                 if (finish_cnt > 0) {
-                    void *tile1_ptr  = mpp_buffer_get_ptr(ctx->hw_tile_stream);
+                    void *tile1_ptr  = mpp_buffer_get_ptr(ctx->hw_tile_stream[finish_cnt - 1]);
 
                     memcpy(ptr + seg_offset, tile1_ptr + tile1_offset, slice_len);
                     tile1_offset += slice_len;
@@ -2832,6 +2841,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                 ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
                 if (slice_last) {
                     finish_cnt++;
+                    tile1_offset = 0;
                     if (ctx->tile_parall_en) {
                         if (finish_cnt + 1 > ctx->tile_num) {
                             ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
@@ -2941,7 +2951,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
             if (!ctx->cfg->split.split_out) {
                 if (i) {  //copy tile 1 stream
                     RK_U32 len = fb->out_strm_size - stream_len;
-                    void *tile1_ptr  = mpp_buffer_get_ptr(ctx->hw_tile_stream);
+                    void *tile1_ptr  = mpp_buffer_get_ptr(ctx->hw_tile_stream[i - 1]);
                     memcpy(ptr + stream_len + offset, tile1_ptr, len);
                 }
                 stream_len = fb->out_strm_size;

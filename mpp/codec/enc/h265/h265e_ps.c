@@ -439,10 +439,16 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
             pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 1920 ;
         } else if (strstr(soc_name, "rk3588")) {
-            if (codec->auto_tile)
+            if (sps->m_picWidthInLumaSamples > 8192) {
+                /* 4 tile for over 8k encoding */
+                pps->m_nNumTileColumnsMinus1 = 3;
+            } else if (sps->m_picWidthInLumaSamples > 4096) {
+                /* 2 tile for 4k ~ 8k encoding */
                 pps->m_nNumTileColumnsMinus1 = 1;
-            else
-                pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 4096 ;
+            } else {
+                /* 1 tile for less 4k encoding and use 2 tile on auto tile enabled */
+                pps->m_nNumTileColumnsMinus1 = codec->auto_tile ? 1 : 0;
+            }
         }
         if (pps->m_nNumTileColumnsMinus1) {
             pps->m_tiles_enabled_flag = 1;
