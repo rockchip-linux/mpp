@@ -778,7 +778,8 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_Inp->task_valid = 0;
     if (p_Inp->pkt_eos) {
         p_Inp->task_eos = 1;
-        p_Inp->task_valid = 1;
+        if (p_Inp->in_length)
+            p_Inp->task_valid = 1;
         return MPP_OK;
     }
     VAL_CHECK(ret, (p_Inp->nal_size > 0));
