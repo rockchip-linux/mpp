@@ -354,6 +354,22 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
             mpp_packet_set_size(h->input_packet, buff_size);
         }
     }
+    if (ctx_pic->max_slice_num < h->nb_nals) {
+
+        MPP_FREE(ctx_pic->slice_short);
+
+        ctx_pic->slice_short = (DXVA_Slice_HEVC_Short *)mpp_malloc(DXVA_Slice_HEVC_Short, h->nb_nals);
+        if (!ctx_pic->slice_short)
+            return MPP_ERR_NOMEM;
+
+        MPP_FREE(ctx_pic->slice_cut_param);
+
+        ctx_pic->slice_cut_param = (DXVA_Slice_HEVC_Cut_Param *)mpp_malloc(DXVA_Slice_HEVC_Cut_Param, h->nb_nals);
+        if (!ctx_pic->slice_cut_param)
+            return MPP_ERR_NOMEM;
+
+        ctx_pic->max_slice_num = h->nb_nals;
+    }
     for (i = 0; i < h->nb_nals; i++) {
         static const RK_U8 start_code[] = {0, 0, 1 };
         static const RK_U32 start_code_size = sizeof(start_code);
