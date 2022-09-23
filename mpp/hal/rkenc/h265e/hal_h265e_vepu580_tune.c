@@ -48,14 +48,14 @@ typedef struct HalH265eVepu580Tune_t {
 static RK_S32 ctu_avg_madp_thd[6] = {896, 640, 384, 896, 640, 384};
 
 static RK_U8 lvl32_preintra_cst_wgt[4][8] = {
-    {23, 22, 21, 20, 22, 24, 26, 16},
+    {21, 20, 19, 18, 20, 22, 24, 16},
     {19, 18, 17, 16, 18, 20, 21, 16},
     {20, 19, 18, 17, 19, 21, 22, 16},
     {16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_U8 lvl16_preintra_cst_wgt[4][8] = {
-    {23, 22, 21, 20, 22, 24, 26, 16},
+    {21, 20, 19, 18, 20, 22, 24, 16},
     {19, 18, 17, 16, 18, 20, 21, 16},
     {20, 19, 18, 17, 19, 21, 22, 16},
     {16, 16, 16, 16, 16, 16, 16, 16},
@@ -69,42 +69,42 @@ static RK_S32 skip_b64_atf_wgt[4][13] = {
 };
 
 static RK_S32 intra_b32_atf_wgt[4][12] = {
-    {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
+    {24, 23, 23, 23, 22, 21, 20, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b32_atf_wgt[4][13] = {
-    {18, 13, 14, 15, 14, 14, 15, 15, 15, 16, 16, 16, 16},
+    {16, 13, 14, 15, 14, 14, 15, 15, 15, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {18, 14, 14, 15, 14, 14, 15, 15, 15, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 intra_b16_atf_wgt[4][12] = {
-    {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
+    {24, 23, 23, 23, 22, 21, 20, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b16_atf_wgt[4][13] = {
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 13, 14, 15, 14, 14, 15, 15, 15, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 intra_b8_atf_wgt[4][12] = {
-    {26, 25, 25, 25, 24, 23, 21, 19, 18, 16, 16, 16},
+    {24, 23, 23, 23, 22, 21, 20, 19, 18, 16, 16, 16},
     {21, 20, 19, 20, 19, 18, 19, 18, 18, 18, 18, 17},
     {20, 19, 18, 19, 18, 17, 18, 17, 17, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
 };
 
 static RK_S32 skip_b8_atf_wgt[4][13] = {
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
+    {16, 13, 14, 15, 14, 14, 15, 15, 15, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
@@ -257,7 +257,7 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     memcpy(&reg_wgt->lvl16_intra_CST_WGT0, lvl16_preintra_cst_wgt[scene_motion_flag], sizeof(lvl16_preintra_cst_wgt[scene_motion_flag]));
 
     p_rdo_atf_skip = &reg_rdo->rdo_b64_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
     p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
     p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
     p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
@@ -294,7 +294,7 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b32_atf_wgt[scene_motion_flag][11];
 
     p_rdo_atf_skip = &reg_rdo->rdo_b32_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 =  12;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 =  1;
     p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 =  2;
     p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 =  4;
     p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 =  6;
@@ -330,10 +330,10 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b16_atf_wgt[scene_motion_flag][11];
 
     p_rdo_atf_skip = &reg_rdo->rdo_b16_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 24;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 48;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 96;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
+    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
+    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b16_atf_wgt[scene_motion_flag][0];
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b16_atf_wgt[scene_motion_flag][1];
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b16_atf_wgt[scene_motion_flag][2];
@@ -366,10 +366,10 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b8_atf_wgt[scene_motion_flag][11];
 
     p_rdo_atf_skip = &reg_rdo->rdo_b8_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 24;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 48;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 96;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
+    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
+    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
+    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b8_atf_wgt[scene_motion_flag][0];
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b8_atf_wgt[scene_motion_flag][1];
     p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b8_atf_wgt[scene_motion_flag][2];
