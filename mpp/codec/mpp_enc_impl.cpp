@@ -259,9 +259,11 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         return 0;
 
     do {
+        if (cmd == MPP_ENC_SET_IDR_FRAME)
+            return 1;
+
         if (cmd == MPP_ENC_SET_CODEC_CFG ||
-            cmd == MPP_ENC_SET_PREP_CFG ||
-            cmd == MPP_ENC_SET_IDR_FRAME) {
+            cmd == MPP_ENC_SET_PREP_CFG) {
             resend = 1;
             break;
         }
@@ -312,7 +314,7 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
     } while (0);
 
     if (resend)
-        mpp_log("send header for %s\n", resend_reason[resend]);
+        enc_dbg_detail("send header for %s\n", resend_reason[resend]);
 
     return resend;
 }
