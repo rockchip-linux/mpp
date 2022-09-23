@@ -148,7 +148,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
                 if (min_level > (RK_S32)level_idc &&
                     min_level != H264_LEVEL_1_b) {
                     level_idc = min_level;
-                    mpp_log("set level to %s\n", level_infos[i].name);
+                    h264e_dbg_sps("set level to %s\n", level_infos[i].name);
                 }
 
                 break;
