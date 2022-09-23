@@ -146,11 +146,11 @@ static RK_U32 intra_lvl32_sobel_c[4][5] = {
 };
 
 static RK_U32 qnt_bias_i[4] = {
-    171, 171, 171, 171
+    128, 128, 128, 128
 };
 
 static RK_U32 qnt_bias_p[4] = {
-    85, 85, 171, 171
+    60, 60, 85, 85
 };
 
 static RK_U32 rime_sqi_cime_sad_th[4] = {

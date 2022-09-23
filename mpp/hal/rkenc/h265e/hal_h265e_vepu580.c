@@ -148,9 +148,9 @@ static RK_U32 h265e_mode_bias[16] = {
 
 static RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
-    -4, -3, -2, -1,
-    0,  1,  2,  3,
-    4,  5,  6,  8,
+    -4, -2, -1, -1,
+    0,  2,  3,  4,
+    5,  7,  8,  9,
 };
 
 static RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
