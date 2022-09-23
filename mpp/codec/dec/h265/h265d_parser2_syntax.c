@@ -343,7 +343,7 @@ RK_S32 h265d_syntax_fill_slice(void *ctx, RK_S32 input_index)
         current = (RK_U8 *)mpp_packet_get_data(h->input_packet);
         size = (RK_U32)mpp_packet_get_size(h->input_packet);
         for (i = 0; i < h->nb_nals; i++) {
-            length += h->nals[i].size;
+            length += h->nals[i].size + 4;
         }
         length = MPP_ALIGN(length, 16) + 64;
         if (length > size) {

@@ -852,6 +852,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
     void *rps_ptr = NULL;
+    RK_U32 stream_buf_size = 0;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -1011,8 +1012,12 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hw_regs->common_addr.reg128_rlc_base        = mpp_buffer_get_fd(streambuf);
     hw_regs->common_addr.reg129_rlcwrite_base   = mpp_buffer_get_fd(streambuf);
+    stream_buf_size                             = mpp_buffer_get_size(streambuf);
     hw_regs->common.reg016_str_len              = ((dxva_cxt->bitstream_size + 15)
                                                    & (~15)) + 64;
+    hw_regs->common.reg016_str_len = stream_buf_size > hw_regs->common.reg016_str_len ?
+                                     hw_regs->common.reg016_str_len : stream_buf_size;
+
     aglin_offset =  hw_regs->common.reg016_str_len - dxva_cxt->bitstream_size;
     if (aglin_offset > 0) {
         memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0,

@@ -755,6 +755,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
     RK_U32 sw_ref_valid = 0;
+    RK_U32 stream_buf_size = 0;
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -873,8 +874,13 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->sw_pps_base        =  mpp_buffer_get_fd(reg_cxt->pps_data);
     hw_regs->sw_rps_base        =  mpp_buffer_get_fd(reg_cxt->rps_data);
     hw_regs->sw_strm_rlc_base   =  mpp_buffer_get_fd(streambuf);
+    stream_buf_size             =  mpp_buffer_get_size(streambuf);
+
     hw_regs->sw_stream_len      = ((dxva_cxt->bitstream_size + 15)
                                    & (~15)) + 64;
+    hw_regs->sw_stream_len      = stream_buf_size >  hw_regs->sw_stream_len ?
+                                  hw_regs->sw_stream_len : stream_buf_size;
+
     aglin_offset =  hw_regs->sw_stream_len - dxva_cxt->bitstream_size;
     if (aglin_offset > 0) {
         memset((void *)(dxva_cxt->bitstream + dxva_cxt->bitstream_size), 0,
