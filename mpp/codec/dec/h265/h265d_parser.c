@@ -1956,6 +1956,9 @@ MPP_RET h265d_deinit(void *ctx)
     s->nals_allocated = 0;
 
     if (s->hal_pic_private) {
+        h265d_dxva2_picture_context_t *ctx_pic = (h265d_dxva2_picture_context_t *)s->hal_pic_private;
+        MPP_FREE(ctx_pic->slice_short);
+        MPP_FREE(ctx_pic->slice_cut_param);
         mpp_free(s->hal_pic_private);
     }
     if (s->input_packet) {
@@ -2047,6 +2050,21 @@ MPP_RET h265d_init(void *ctx, ParserCfg *parser_cfg)
     ret = hevc_init_context(h265dctx);
 
     s->hal_pic_private = mpp_calloc_size(void, sizeof(h265d_dxva2_picture_context_t));
+
+    if (s->hal_pic_private) {
+        h265d_dxva2_picture_context_t *ctx_pic = (h265d_dxva2_picture_context_t *)s->hal_pic_private;
+        ctx_pic->slice_short = (DXVA_Slice_HEVC_Short *)mpp_malloc(DXVA_Slice_HEVC_Short, MAX_SLICES);
+
+        if (!ctx_pic->slice_short)
+            return MPP_ERR_NOMEM;
+
+        ctx_pic->slice_cut_param = (DXVA_Slice_HEVC_Cut_Param *)mpp_malloc(DXVA_Slice_HEVC_Cut_Param, MAX_SLICES);
+        if (!ctx_pic->slice_cut_param)
+            return MPP_ERR_NOMEM;
+        ctx_pic->max_slice_num = MAX_SLICES;
+    } else {
+        return MPP_ERR_NOMEM;
+    }
 
     if (ret < 0)
         return ret;

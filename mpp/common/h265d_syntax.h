@@ -208,13 +208,14 @@ typedef struct _DXVA_Slice_HEVC_Cut_Param {
 } DXVA_Slice_HEVC_Cut_Param, *LPDXVA_Slice_HEVC_Cut_Param;
 
 typedef struct h265d_dxva2_picture_context {
-    DXVA_PicParams_HEVC   pp;
-    DXVA_Qmatrix_HEVC     qm;
-    UINT32                slice_count;
-    DXVA_Slice_HEVC_Short slice_short[MAX_SLICES];
-    const UCHAR         *bitstream;
-    UINT32              bitstream_size;
-    DXVA_Slice_HEVC_Cut_Param slice_cut_param[MAX_SLICES];
+    DXVA_PicParams_HEVC         pp;
+    DXVA_Qmatrix_HEVC           qm;
+    UINT32                      slice_count;
+    DXVA_Slice_HEVC_Short       *slice_short;
+    const UCHAR                 *bitstream;
+    UINT32                      bitstream_size;
+    DXVA_Slice_HEVC_Cut_Param   *slice_cut_param;
+    INT                         max_slice_num;
 } h265d_dxva2_picture_context_t;
 
 #endif /*__H265D_SYNTAX__*/
