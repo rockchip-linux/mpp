@@ -37,7 +37,8 @@ typedef enum MppDecCfgChange_e {
     MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY = (1 << 16),
     MPP_DEC_CFG_CHANGE_ENABLE_HDR_META  = (1 << 17),
     MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL = (1 << 18),
-
+    /* reserve high bit for global config */
+    MPP_DEC_CFG_CHANGE_DISABLE_THREAD   = (1 << 28),
     MPP_DEC_CFG_CHANGE_ALL              = (0xFFFFFFFF),
 } MppDecCfgChange;
 
@@ -66,6 +67,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              enable_fast_play;
     RK_U32              enable_hdr_meta;
     RK_U32              enable_thumbnail;
+    RK_U32              disable_thread;
 } MppDecBaseCfg;
 
 typedef enum MppDecCbCfgChange_e {
