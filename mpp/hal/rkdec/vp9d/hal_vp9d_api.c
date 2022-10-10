@@ -46,7 +46,7 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     p->dev = cfg->dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
-    if (hw_id == HWID_VDPU382) {
+    if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562) {
         p->api = &hal_vp9d_vdpu382;
         cfg->support_fast_mode = 1;
     } else if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {

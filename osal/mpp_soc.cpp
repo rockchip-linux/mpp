@@ -354,6 +354,24 @@ static const MppDecHwCap vdpu38x = {
     .reserved           = 0,
 };
 
+static const MppDecHwCap vdpu382_lite = {
+    .cap_coding         = CAP_CODING_VDPU341,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_buf      = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 1,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 0,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
 static const MppDecHwCap avspd = {
     .cap_coding         = CAP_CODING_AVSPD,
     .type               = VPU_CLIENT_AVSPLUS_DEC,
@@ -786,6 +804,18 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3528,
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC | HAVE_AVSDEC,
         {   &vdpu38x, &rkjpegd, &vdpu2, &avspd, NULL, NULL, },
+        {   &vepu540c, NULL, NULL, NULL, },
+    },
+    {   /*
+         * rk3562 has codec:
+         * 1 - RK H.264/H.265/VP9 4K decoder
+         * 2 - RK H.264 1080P encoder
+         * 3 - RK jpeg decoder
+         */
+        "rk3562",
+        ROCKCHIP_SOC_RK3562,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
+        {   &vdpu382_lite, &rkjpegd, NULL, NULL, NULL, NULL, },
         {   &vepu540c, NULL, NULL, NULL, },
     },
 };

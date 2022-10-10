@@ -17,6 +17,7 @@
 #ifndef __VDPU382_H__
 #define __VDPU382_H__
 
-#define HWID_VDPU382                (0x70393f05)
+#define HWID_VDPU382_RK3528             (0x70393f05)
+#define HWID_VDPU382_RK3562             (0x72bb0f01)
 
 #endif /* __VDPU382_H__ */

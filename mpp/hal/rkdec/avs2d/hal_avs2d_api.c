@@ -86,7 +86,7 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
     RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVDEC);
 
     p_api          = &p_hal->hal_api;
-    if (hw_id == HWID_VDPU382) {
+    if (hw_id == HWID_VDPU382_RK3528) {
         p_api->init    = hal_avs2d_vdpu382_init;
         p_api->deinit  = hal_avs2d_vdpu382_deinit;
         p_api->reg_gen = hal_avs2d_vdpu382_gen_regs;
