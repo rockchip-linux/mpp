@@ -722,6 +722,19 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp, &av1d, &avspd},
         {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
     },
+    {   /*
+         * rk3528 has codec:
+         * 1 - vpu2 for jpeg/vp8 decoder
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - RK H.264/H.265 1080P encoder
+         * 4 - RK jpeg decoder
+         */
+        "rk3528",
+        ROCKCHIP_SOC_RK3528,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC,
+        {   &vdpu38x, &rkjpegd, &vdpu2, NULL, NULL, NULL, },
+        {   &vepu540c, NULL, NULL, NULL, },
+    },
 };
 
 static const MppSocInfo mpp_soc_default = {
