@@ -640,7 +640,7 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rv1109",
         ROCKCHIP_SOC_RV1109,
-        HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
+        HAVE_VDPU2 | HAVE_VEPU2_JPEG | HAVE_RKVDEC | HAVE_RKVENC,
         {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
@@ -652,7 +652,7 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rv1126",
         ROCKCHIP_SOC_RV1126,
-        HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
+        HAVE_VDPU2 | HAVE_VEPU2_JPEG | HAVE_RKVDEC | HAVE_RKVENC,
         {   &vdpu2_jpeg, &vdpu341_lite, NULL, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
