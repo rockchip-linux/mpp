@@ -59,7 +59,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
     p->is_v34x = (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X);
     p->client_type = client_type;
 
-    if (hw_id == HWID_VDPU382)
+    if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562)
         p->api = &hal_h265d_vdpu382;
     else if (p->is_v34x)
         p->api = &hal_h265d_vdpu34x;
