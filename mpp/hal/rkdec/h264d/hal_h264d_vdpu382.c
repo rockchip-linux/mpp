@@ -540,7 +540,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
     memset(&regs->h264d_highpoc, 0, sizeof(regs->h264d_highpoc));
     common->reg016_str_len = p_hal->strm_len;
     common->reg013.cur_pic_is_idr = p_hal->slice_long->idr_flag;
-    common->reg012.colmv_compress_en = (pp->frame_mbs_only_flag) ? 1 : 0;
+    common->reg012.colmv_compress_en =
+        (p_hal->hw_info && p_hal->hw_info->cap_colmv_compress && pp->frame_mbs_only_flag) ? 1 : 0;
     //!< caculate the yuv_frame_size
     {
         MppFrame mframe = NULL;
@@ -783,6 +784,8 @@ MPP_RET vdpu382_h264d_init(void *hal, MppHalCfg *cfg)
 
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
+
+        p_hal->hw_info = hw_info;
     }
 
 __RETURN:

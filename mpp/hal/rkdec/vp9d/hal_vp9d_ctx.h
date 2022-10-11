@@ -61,6 +61,8 @@ typedef struct HalVp9dCtx_t {
     MppCbCtx        *dec_cb;
     RK_U32          fast_mode;
     void*           hw_ctx;
+
+    const MppDecHwCap   *hw_info;
 } HalVp9dCtx;
 
 #endif /*__HAL_VP9D_CTX_H__*/

@@ -264,6 +264,7 @@ static MPP_RET hal_vp9d_vdpu382_init(void *hal, MppHalCfg *cfg)
 
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
+        p_hal->hw_info = hw_info;
     }
 
     return ret;
