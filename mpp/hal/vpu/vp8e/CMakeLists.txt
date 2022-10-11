@@ -23,4 +23,4 @@ set(HAL_VP8E_SRC
 add_library(hal_vp8e STATIC ${HAL_VP8E_SRC})
 
 set_target_properties(hal_vp8e PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(hal_vp8e mpp_base)
+target_link_libraries(hal_vp8e mpp_base hal_vepu_common)
