@@ -591,6 +591,12 @@ MPP_RET mt_test_res_init(MpiEncMtCtxInfo *info)
         return ret;
     }
 
+    ret = p->mpi->control(p->ctx, MPP_ENC_GET_CFG, p->cfg);
+    if (ret) {
+        mpp_err_f("get enc cfg failed ret %d\n", ret);
+        return ret;
+    }
+
     ret = test_mt_cfg_setup(info);
     if (ret) {
         mpp_err_f("test mpp setup failed ret %d\n", ret);

@@ -917,6 +917,12 @@ void *enc_test(void *arg)
         goto MPP_TEST_OUT;
     }
 
+    ret = p->mpi->control(p->ctx, MPP_ENC_GET_CFG, p->cfg);
+    if (ret) {
+        mpp_err_f("get enc cfg failed ret %d\n", ret);
+        goto MPP_TEST_OUT;
+    }
+
     ret = test_mpp_enc_cfg_setup(info);
     if (ret) {
         mpp_err_f("test mpp setup failed ret %d\n", ret);

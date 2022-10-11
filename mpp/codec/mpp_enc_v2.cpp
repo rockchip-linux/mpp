@@ -138,6 +138,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     mpp_enc_ref_cfg_init(&p->cfg.ref_cfg);
     ret = mpp_enc_ref_cfg_copy(p->cfg.ref_cfg, mpp_enc_ref_default());
     ret = mpp_enc_refs_set_cfg(p->refs, mpp_enc_ref_default());
+    mpp_enc_refs_set_rc_igop(p->refs, p->cfg.rc.gop);
 
     sem_init(&p->enc_reset, 0, 0);
     sem_init(&p->cmd_start, 0, 0);
