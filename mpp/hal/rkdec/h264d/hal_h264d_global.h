@@ -132,6 +132,8 @@ typedef struct h264d_hal_ctx_t {
     MppDev                   dev;
     void                     *reg_ctx;
     RK_U32                   fast_mode;
+
+    const MppDecHwCap        *hw_info;
 } H264dHalCtx_t;
 
 #endif /*__HAL_H264D_GLOBAL_H__*/

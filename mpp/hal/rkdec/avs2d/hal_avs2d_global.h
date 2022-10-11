@@ -107,6 +107,7 @@ typedef struct avs2d_hal_ctx_t {
     MppBuffer               scalist_buf;
 
     RK_U32                   frame_no;
+    const MppDecHwCap       *hw_info;
 } Avs2dHalCtx_t;
 
 #endif /*__HAL_AVS2D_GLOBAL_H__*/

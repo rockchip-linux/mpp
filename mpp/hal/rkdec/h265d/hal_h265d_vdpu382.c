@@ -175,6 +175,9 @@ static MPP_RET hal_h265d_vdpu382_init(void *hal, MppHalCfg *cfg)
 
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
+
+        //save hw_info to context
+        reg_cxt->hw_info = hw_info;
     }
 
 #ifdef dump
@@ -807,7 +810,8 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                aglin_offset);
     }
     hw_regs->common.reg010.dec_e                = 1;
-    hw_regs->common.reg012.colmv_compress_en    = 1;
+    hw_regs->common.reg012.colmv_compress_en = reg_cxt->hw_info ?
+                                               reg_cxt->hw_info->cap_colmv_compress : 0;
 
     hw_regs->common.reg024.cabac_err_en_lowbits = 0xffffdfff;
     hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;

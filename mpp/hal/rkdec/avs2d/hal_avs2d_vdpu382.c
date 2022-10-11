@@ -610,6 +610,7 @@ MPP_RET hal_avs2d_vdpu382_init(void *hal, MppHalCfg *cfg)
 
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
+        p_hal->hw_info = hw_info;
     }
 
 __RETURN:
