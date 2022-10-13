@@ -161,7 +161,7 @@ static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
         if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
             if ((src->width < 0 || src->width > 1920) ||
                 (src->height < 0 || src->height > 3840) ||
-                (src->hor_stride < 0 || src->hor_stride > 3840) ||
+                (src->hor_stride < 0 || src->hor_stride > 7680) ||
                 (src->ver_stride < 0 || src->ver_stride > 3840)) {
                 mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
                         src->width, src->height,
