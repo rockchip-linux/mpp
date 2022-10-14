@@ -131,21 +131,22 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     INP_CHECK(ret, !p_Vid);
 
     for (i = 0; i < MAXSPS; i++) {
+        MPP_FREE(p_Vid->spsSet[i]);
         if (p_Vid->subspsSet[i])
             recycle_subsps(p_Vid->subspsSet[i]);
-    }
-    for (i = 0; i < MAXSPS; i++) {
-        MPP_FREE(p_Vid->spsSet[i]);
         MPP_FREE(p_Vid->subspsSet[i]);
     }
-    for (i = 0; i < MAXPPS; i++) {
+
+    for (i = 0; i < MAXPPS; i++)
         MPP_FREE(p_Vid->ppsSet[i]);
-    }
+
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         free_dpb(p_Vid->p_Dpb_layer[i]);
         MPP_FREE(p_Vid->p_Dpb_layer[i]);
     }
+
     free_storable_picture(p_Vid->p_Dec, p_Vid->dec_pic);
+
     if (p_Vid->pic_st) {
         mpp_mem_pool_deinit(p_Vid->pic_st);
         p_Vid->pic_st = NULL;
@@ -290,6 +291,8 @@ static MPP_RET h264d_flush_dpb_eos(H264_DecCtx_t *p_Dec)
         // layer_id == 1
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
+        p_Dec->p_Vid->p_Dpb_layer[0]->size = MPP_MIN(p_Dec->p_Vid->p_Dpb_layer[1]->size, MAX_DPB_SIZE / 2);
+        p_Dec->p_Vid->dpb_size[0] = p_Dec->p_Vid->p_Dpb_layer[0]->size;
     }
 
     flush_dpb_buf_slot(p_Dec);
@@ -394,6 +397,8 @@ MPP_RET h264d_reset(void *decoder)
         // layer_id == 1
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
+        p_Dec->p_Vid->p_Dpb_layer[0]->size = MPP_MIN(p_Dec->p_Vid->p_Dpb_layer[1]->size, MAX_DPB_SIZE / 2);
+        p_Dec->p_Vid->dpb_size[0] = p_Dec->p_Vid->p_Dpb_layer[0]->size;
     }
     flush_dpb_buf_slot(p_Dec);
     //!< reset input parameter
@@ -651,9 +656,10 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
                     mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
                 }
             }
-            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d\n",
+            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d, poc=%d, view_id=%d\n",
                       p_Dec->p_Vid->g_framecnt, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
-                      mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe));
+                      mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe),
+                      mpp_frame_get_poc(mframe), mpp_frame_get_viewid(mframe));
         }
     }
 

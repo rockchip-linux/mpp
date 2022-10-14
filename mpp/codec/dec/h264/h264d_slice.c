@@ -234,8 +234,7 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     H264_Nalu_t    *cur_nalu = &currSlice->p_Cur->nalu;
 
     //--- init slice syntax
-    currSlice->idr_flag = ((cur_nalu->nalu_type == H264_NALU_TYPE_IDR)
-                           || (currSlice->mvcExt.valid && !currSlice->mvcExt.non_idr_flag));
+    currSlice->idr_flag = cur_nalu->nalu_type == H264_NALU_TYPE_IDR;
     currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
     //!< set ref flag and dpb error flag
     {

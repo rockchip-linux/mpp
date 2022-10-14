@@ -580,6 +580,10 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
             //!< init frame slots, store frame buffer size
             p_Vid->dpb_size[1] = p_Vid->p_Dpb_layer[1]->size;
             p_Vid->spspps_update = 1;
+            if (p_Vid->p_Dec->mvc_valid && p_Vid->p_Dpb_layer[1]->size > 0) {
+                p_Vid->p_Dpb_layer[0]->size = MPP_MIN(p_Vid->p_Dpb_layer[1]->size, MAX_DPB_SIZE / 2);
+                p_Vid->dpb_size[0] = p_Vid->p_Dpb_layer[0]->size;
+            }
         }
         VAL_CHECK(ret, p_Vid->dpb_size[1] > 0);
     } else { //!< layer_id == 0
