@@ -853,16 +853,6 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
          || p->mem_malloc_type == Mem_BotOnly)
         && p->structure == FRAME && p_mark->out_flag) {
         mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
-        mpp_frame_set_poc(mframe, p->poc);
-        p_mark->poc = p->poc;
-        p_mark->pts = mpp_frame_get_pts(mframe);
-        mpp_frame_set_viewid(mframe, p->layer_id);
-        //if (p->layer_id == 1) {
-        //  mpp_frame_set_discard(frame, 1);
-        //}
-        //else {
-        //  mpp_frame_set_discard(frame, 1);
-        //}
 
         //!< discard unpaired
         if (p->mem_malloc_type == Mem_TopOnly || p->mem_malloc_type == Mem_BotOnly) {
@@ -881,10 +871,67 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
                     mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
-        mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
-        if (p_Vid->p_Dec->mvc_valid && !p_Vid->p_Inp->mvc_disable) {
-            //muti_view_output(p_Vid->p_Dec->frame_slots, p_mark, p_Vid);
+
+        if (p_Vid->p_Dec->mvc_valid) {
+            H264_DpbMark_t *match_mark = NULL;
+            H264_DpbMark_t *out_mark_list[2] = {NULL, NULL};
+            RK_U32 i = 0;
+            RK_S32 match_flag = 0;
+            RK_U32 is_base_view = p_mark->pic->layer_id == 0 ? 1 : 0;
+
+            // find pic with the same poc at base view
+            for (i = 0; i < MAX_MARK_SIZE; i++) {
+                match_mark = &p_Vid->p_Dec->dpb_mark[i];
+
+                if (!match_mark || !match_mark->pic || !match_mark->out_flag || match_mark->slot_idx < 0)
+                    continue;
+
+                if (match_mark->pic->layer_id != p_mark->pic->layer_id) {
+                    if (match_mark->pic->poc < p_mark->pic->poc) {
+                        match_flag = 1;
+                        break;
+                    } else if (match_mark->pic->poc == p_mark->pic->poc) {
+                        match_flag = 2;
+                        break;
+                    } else {
+                        match_flag = 0;
+                    }
+                }
+            }
+
+            if (!match_flag) {
+                H264D_DBG(H264D_DBG_DPB_INFO, "no other view matched with current view_id %d, poc %d",
+                          p_mark->pic->layer_id, p_mark->pic->poc);
+                out_mark_list[0] = p_mark;
+            } else if (match_flag == 1) {
+                H264D_DBG(H264D_DBG_DPB_INFO, "find match view at %d, slot_idx %d, view_id %d, poc %d",
+                          i, match_mark->slot_idx, match_mark->pic->layer_id, match_mark->pic->poc);
+                out_mark_list[0] = match_mark;
+                out_mark_list[1] = p_mark;
+            } else if (match_flag == 2) {
+                H264D_DBG(H264D_DBG_DPB_INFO, "find match view at %d, slot_idx %d, view_id %d, poc %d",
+                          i, match_mark->slot_idx, match_mark->pic->layer_id, match_mark->pic->poc);
+                if (is_base_view) {
+                    out_mark_list[0] = p_mark;
+                    out_mark_list[1] = match_mark;
+                } else {
+                    out_mark_list[0] = match_mark;
+                    out_mark_list[1] = p_mark;
+                }
+            }
+
+            for (i = 0; i < 2; i++) {
+                if (out_mark_list[i]) {
+                    mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, out_mark_list[i]->slot_idx, SLOT_QUEUE_USE);
+                    mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, out_mark_list[i]->slot_idx, QUEUE_DISPLAY);
+                    out_mark_list[i]->out_flag = 0;
+                    p_Vid->p_Dec->last_frame_slot_idx = out_mark_list[i]->slot_idx;
+                }
+            }
         } else {
+            H264D_DBG(H264D_DBG_DPB_INFO, "display frame view_id %d slot_idx %d poc %d",
+                      p_mark->pic->layer_id, p_mark->slot_idx, p_mark->pic->poc);
+            mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, SLOT_QUEUE_USE);
             mpp_buf_slot_enqueue(p_Vid->p_Dec->frame_slots, p_mark->slot_idx, QUEUE_DISPLAY);
             p_Vid->p_Dec->last_frame_slot_idx = p_mark->slot_idx;
             p_mark->out_flag = 0;
@@ -907,6 +954,7 @@ static MPP_RET write_unpaired_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *f
         FUN_CHECK(ret = dpb_combine_field_yuv(p_Vid, fs, 0));
         fs->frame->view_id = fs->view_id;
         fs->frame->mem_malloc_type = Mem_TopOnly;
+        H264D_WARNNING("write frame, line %d", __LINE__);
         write_picture(fs->frame, p_Vid);
     }
 
@@ -926,6 +974,7 @@ static MPP_RET write_unpaired_field(H264dVideoCtx_t *p_Vid, H264_FrameStore_t *f
         FUN_CHECK(ret = dpb_combine_field_yuv(p_Vid, fs, 0));
         fs->frame->view_id = fs->view_id;
         fs->frame->mem_malloc_type = Mem_BotOnly;
+        H264D_WARNNING("write frame, line %d", __LINE__);
         write_picture(fs->frame, p_Vid);
     }
     fs->is_used = 3;
@@ -968,6 +1017,7 @@ static MPP_RET write_stored_frame(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, 
         fs->top_field = NULL;
         fs->bottom_field = NULL;
     } else {
+        H264D_WARNNING("write frame, line %d", __LINE__);
         write_picture(fs->frame, p_Vid);
     }
     p_Dpb->last_output_poc = fs->poc;
@@ -989,6 +1039,7 @@ static MPP_RET output_one_frame_from_dpb(H264_DpbBuf_t *p_Dpb)
     //!< find smallest POC
     if (get_smallest_poc(p_Dpb, &poc, &pos)) {
         //!< JVT-P072 ends
+        H264D_WARNNING("write_stored_frame, line %d", __LINE__);
         FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb, p_Dpb->fs[pos]));
         //!< free frame store and move empty store to end of buffer
         if (!is_used_for_reference(p_Dpb->fs[pos])) {
@@ -1195,6 +1246,7 @@ static MPP_RET direct_output(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, H264_
     if (p->structure == FRAME) {
         //!< we have a frame (or complementary field pair), so output it directly
         FUN_CHECK(ret = flush_direct_output(p_Vid));
+        H264D_WARNNING("write frame, line %d", __LINE__);
         write_picture(p, p_Vid);
         p_Dpb->last_output_poc = p->poc;
         free_storable_picture(p_Vid->p_Dec, p);
@@ -1230,6 +1282,7 @@ static MPP_RET direct_output(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, H264_
         //!< we have both fields, so output them
         FUN_CHECK(ret = dpb_combine_field_yuv(p_Vid, &p_Vid->out_buffer, 0));
         p_Vid->out_buffer.frame->view_id = p_Vid->out_buffer.view_id;
+        H264D_WARNNING("write frame, line %d", __LINE__);
         write_picture(p_Vid->out_buffer.frame, p_Vid);
         free_storable_picture(p_Vid->p_Dec, p_Vid->out_buffer.frame);
         p_Vid->out_buffer.frame = NULL;
@@ -1271,6 +1324,7 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
                 if ((p_Dpb->last_output_poc > INT_MIN) && (abs(poc_inc) & 0x1))
                     p_Dpb->poc_interval = 1;
                 if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
+                    H264D_WARNNING("write_stored_frame, line %d", __LINE__);
                     FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
                 } else {
                     break;
@@ -1357,6 +1411,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     }
     while (!remove_unused_frame_from_dpb(p_Dpb));
     //!< when full output one frame
+    H264D_DBG(H264D_DBG_DPB_INFO, "before out, dpb[%d] used_size %d, size %d",
+              p_Dpb->layer_id, p_Dpb->used_size, p_Dpb->size);
     while (p_Dpb->used_size >= p_Dpb->size) {
         RK_S32 min_poc = 0, min_pos = 0;
         RK_S32 find_flag = 0;
@@ -1374,6 +1430,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             //min_pos = 0;
             unmark_for_reference(p_Vid->p_Dec, p_Dpb->fs[min_pos]);
             if (!p_Dpb->fs[min_pos]->is_output) {
+                H264D_WARNNING("write_stored_frame, line %d", __LINE__);
                 FUN_CHECK(ret = write_stored_frame(p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
             }
             FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, min_pos));
@@ -1381,6 +1438,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         }
         FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
     }
+    H264D_DBG(H264D_DBG_DPB_INFO, "after out, dpb[%d] used_size %d, size %d",
+              p_Dpb->layer_id, p_Dpb->used_size, p_Dpb->size);
     //!< store current decoder picture at end of dpb
     FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->fs[p_Dpb->used_size], p, 0));
     if (p->structure != FRAME) {
@@ -1393,7 +1452,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 
     p_Dpb->used_size++;
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_size] p_Dpb->used_size=%d", p_Dpb->used_size);
-    scan_dpb_output(p_Dpb, p);
+    if (!p_Vid->p_Dec->mvc_valid)
+        scan_dpb_output(p_Dpb, p);
     update_ref_list(p_Dpb);
     update_ltref_list(p_Dpb);
 
@@ -1443,7 +1503,7 @@ void free_dpb(H264_DpbBuf_t *p_Dpb)
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
 
     if (p_Dpb->fs) {
-        for (i = 0; i < p_Dpb->size; i++) {
+        for (i = 0; i < p_Dpb->allocated_size; i++) {
             free_frame_store(p_Vid->p_Dec, p_Dpb->fs[i]);
             p_Dpb->fs[i] = NULL;
         }
@@ -1753,6 +1813,7 @@ MPP_RET init_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb, RK_S32 type)  // 
     }
     dpb_size = getDpbSize(p_Vid, active_sps);
     p_Dpb->size = MPP_MAX(1, dpb_size);
+    p_Dpb->allocated_size = p_Dpb->size;
     p_Dpb->num_ref_frames = active_sps->max_num_ref_frames;
     if (active_sps->max_dec_frame_buffering < active_sps->max_num_ref_frames) {
         H264D_WARNNING("DPB size at specified level is smaller than reference frames");
@@ -1822,6 +1883,8 @@ MPP_RET flush_dpb(H264_DpbBuf_t *p_Dpb, RK_S32 type)
     if (!p_Dpb->init_done) {
         goto __RETURN;
     }
+    H264D_DBG(H264D_DBG_DPB_INFO, "dpb layer %d, used_size %d",
+              p_Dpb->layer_id, p_Dpb->used_size);
     //!< mark all frames unused
     for (i = 0; i < p_Dpb->used_size; i++) {
         if (p_Dpb->fs[i] && p_Dpb->p_Vid) {

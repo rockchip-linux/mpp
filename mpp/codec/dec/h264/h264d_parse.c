@@ -79,12 +79,13 @@ static void reset_slice(H264dVideoCtx_t *p_Vid)
     memset(currSlice, 0, sizeof(H264_SLICE_t));
     //-- re-init parameters
     currSlice->view_id = -1;
-    currSlice->p_Vid   = p_Vid;
-    currSlice->p_Dec   = p_Vid->p_Dec;
-    currSlice->p_Cur   = p_Vid->p_Cur;
-    currSlice->p_Inp   = p_Vid->p_Inp;
+    currSlice->p_Vid = p_Vid;
+    currSlice->p_Dec = p_Vid->p_Dec;
+    currSlice->p_Cur = p_Vid->p_Cur;
+    currSlice->p_Inp = p_Vid->p_Inp;
     currSlice->active_sps = p_Vid->active_sps;
     currSlice->active_pps = p_Vid->active_pps;
+    currSlice->active_subsps = p_Vid->active_subsps;
     //--- reset listP listB
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         currSlice->listP[i] = p_Vid->p_Cur->listP[i];
@@ -420,6 +421,7 @@ static MPP_RET judge_is_new_frame(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm
         && (p_strm->nalu_type == H264_NALU_TYPE_SEI
             || p_strm->nalu_type == H264_NALU_TYPE_SPS
             || p_strm->nalu_type == H264_NALU_TYPE_PPS
+            || p_strm->nalu_type == H264_NALU_TYPE_SUB_SPS
             || p_strm->nalu_type == H264_NALU_TYPE_AUD
             /*|| p_strm->nalu_type == H264_NALU_TYPE_PREFIX*/)) { // prefix may insert in slices of one frame
         if (p_Cur->p_Dec->have_slice_data) {

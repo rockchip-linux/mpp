@@ -545,6 +545,9 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     impl->colorspace = MPP_FRAME_SPC_UNSPECIFIED;
                 }
             }
+
+            impl->poc = dec_pic->poc;
+            impl->viewid = dec_pic->layer_id;
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, p_Dec->curframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
         }
@@ -1110,7 +1113,7 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
         MEM_CHECK(ret, currSlice->fs_listinterview0);
         list0idx = currSlice->listXsizeP[0];
         if (currSlice->structure == FRAME) {
-            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], 0, 0,
+            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], currSlice->structure, 0,
                                                   currSlice->fs_listinterview0, &currSlice->listinterviewidx0, currPOC, curr_layer_id, anchor_pic_flag));
             for (i = 0; i < (RK_U32)currSlice->listinterviewidx0; i++) {
                 currSlice->listP[0][list0idx++] = currSlice->fs_listinterview0[i]->frame;
@@ -1279,9 +1282,9 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
         MEM_CHECK(ret, currSlice->fs_listinterview0 && currSlice->fs_listinterview1);
         list0idx = currSlice->listXsizeB[0];
         if (currSlice->structure == FRAME) {
-            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], 0, 0,
+            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], currSlice->structure, 0,
                                                   currSlice->fs_listinterview0, &currSlice->listinterviewidx0, currPOC, curr_layer_id, anchor_pic_flag));
-            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], 0, 1,
+            FUN_CHECK(ret = append_interview_list(p_Vid->p_Dpb_layer[1], currSlice->structure, 1,
                                                   currSlice->fs_listinterview1, &currSlice->listinterviewidx1, currPOC, curr_layer_id, anchor_pic_flag));
 
             for (i = 0; i < (RK_U32)currSlice->listinterviewidx0; i++) {
@@ -1927,14 +1930,15 @@ static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
                 mpp_buf_slot_get_prop(p_Dec->frame_slots, p_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
                 mbuffer = mframe ? mpp_frame_get_buffer(mframe) : NULL;
                 fd = mbuffer ? mpp_buffer_get_fd(mbuffer) : 0xFF;
-                H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_MARK_INFO] slot_idx=%d, top_used=%d, bot_used=%d, out_flag=%d, fd=0x%02x",
-                          p_mark->slot_idx, p_mark->top_used, p_mark->bot_used, p_mark->out_flag, fd);
+                H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_MARK_INFO] slot_idx=%d, top_used=%d, bot_used=%d, out_flag=%d, fd=0x%02x, poc=%d, view_id=%d",
+                          p_mark->slot_idx, p_mark->top_used, p_mark->bot_used,
+                          p_mark->out_flag, fd, p_mark->pic->poc, p_mark->pic->layer_id);
             }
         }
     }
     H264D_DBG(H264D_DBG_DPB_INFO, "[DPB_MARK_INFO] ---------- cur_slot=%d --------------------", p_Dec->in_task->output);
 
-    if (dpb_used > currSlice->p_Dpb->size + 2)  {
+    if (dpb_used > MPP_MIN(p_Dec->p_Vid->dpb_size[0] + p_Dec->p_Vid->dpb_size[1], 16) + 2)  {
         H264D_ERR("[h264d_reset_error]");
         h264d_reset((void *)p_Dec);
         return MPP_NOK;
