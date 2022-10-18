@@ -183,6 +183,9 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
         if (sps->log2_max_frame_num_minus4 < log2_frm_num)
             sps->log2_max_frame_num_minus4 = log2_frm_num;
 
+        if (log2_poc_lsb > 12)
+            log2_poc_lsb = 12;
+
         if (sps->log2_max_poc_lsb_minus4 < log2_poc_lsb)
             sps->log2_max_poc_lsb_minus4 = log2_poc_lsb;
     }
