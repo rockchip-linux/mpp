@@ -155,8 +155,9 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
         }
     }
 
-    mpp_assert(!impl->used_count);
-    mpp_assert(!impl->unused_count);
+    if (impl->used_count || impl->unused_count)
+        mpp_err_f("pool size %d found leaked buffer used:unused [%d:%d]\n",
+                  impl->size, impl->used_count, impl->unused_count);
 
     pthread_mutex_unlock(&impl->lock);
 
