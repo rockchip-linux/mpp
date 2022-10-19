@@ -51,7 +51,6 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
 
     INP_CHECK(ret, !p_Inp && !init);
 
-    mpp_env_get_u32("rkv_h264d_mvc_disable", &p_Inp->mvc_disable, 1);
     open_stream_file(p_Inp, "/sdcard");
     if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
         p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;

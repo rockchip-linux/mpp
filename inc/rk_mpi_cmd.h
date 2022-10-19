@@ -105,6 +105,7 @@ typedef enum {
     MPP_DEC_SET_ENABLE_FAST_PLAY,       /* enable idr output immediately */
     MPP_DEC_SET_DISABLE_THREAD,         /* MPP no thread mode and use external thread to decode */
     MPP_DEC_SET_MAX_USE_BUFFER_SIZE,
+    MPP_DEC_SET_ENABLE_MVC,             /* enable MVC decoding*/
 
     MPP_DEC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_QUERY,
     /* query decoder runtime information for decode stage */
