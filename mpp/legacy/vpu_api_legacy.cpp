@@ -1429,8 +1429,14 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_ENC_SETFORMAT : {
         EncInputPictureType type = *((EncInputPictureType *)param);
+        MppCodingType coding = (MppCodingType)ctx->videoCoding;
+        MppFrameFormat old_fmt = format;
+
         format = vpu_pic_type_remap_to_mpp(type);
-        return 0;
+        if (old_fmt != format)
+            return vpu_api_set_enc_cfg(mpp_ctx, mpi, enc_cfg, coding, format, &enc_param);
+        else
+            return 0;
     } break;
     case VPU_API_ENC_SETIDRFRAME : {
         mpicmd = MPP_ENC_SET_IDR_FRAME;
