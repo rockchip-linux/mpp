@@ -137,7 +137,8 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_OUTPUT_FORMAT :
     case MPP_DEC_SET_DISABLE_ERROR :
     case MPP_DEC_SET_ENABLE_DEINTERLACE :
-    case MPP_DEC_SET_ENABLE_FAST_PLAY : {
+    case MPP_DEC_SET_ENABLE_FAST_PLAY :
+    case MPP_DEC_SET_ENABLE_MVC : {
         ret = mpp_dec_set_cfg_by_cmd(&dec->cfg, cmd, param);
         mpp_dec_update_cfg(dec);
         dec->cfg.base.change = 0;
@@ -522,6 +523,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
 
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL)
             dst_base->enable_thumbnail = src_base->enable_thumbnail;
+
+        if (change & MPP_DEC_CFG_CHANGE_ENABLE_MVC)
+            dst_base->enable_mvc = src_base->enable_mvc;
 
         if (change & MPP_DEC_CFG_CHANGE_DISABLE_THREAD)
             dst_base->disable_thread = src_base->disable_thread;
@@ -1017,6 +1021,11 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
         cfg->enable_fast_play = (param) ? (*((RK_U32 *)param)) : (0);
         cfg->change |= MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY;
         dec_dbg_func("disable idr immediately output %d\n", cfg->enable_fast_play);
+    } break;
+    case MPP_DEC_SET_ENABLE_MVC : {
+        cfg->enable_mvc = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_ENABLE_MVC;
+        dec_dbg_func("enable MVC decoder %d\n", cfg->enable_mvc);
     } break;
     default : {
         mpp_err_f("unsupported cfg update cmd %x\n", cmd);
