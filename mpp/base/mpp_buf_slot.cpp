@@ -504,7 +504,11 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
         status.not_ready  = 1;
     } break;
     case SLOT_CLR_HAL_OUTPUT : {
-        status.hal_output--;
+        if (status.hal_output)
+            status.hal_output--;
+        else
+            mpp_err("can not clr hal_output on slot %d\n", slot->index);
+
         // NOTE: set output index ready here
         if (!status.hal_output)
             status.not_ready  = 0;
