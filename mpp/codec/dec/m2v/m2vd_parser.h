@@ -224,8 +224,9 @@ typedef struct M2VDCombMem_t {
 } M2VDCombMem;
 
 typedef struct M2VDParserContext_t {
-    M2VDDxvaParam *dxva_ctx;
-    BitReadCtx_t  *bitread_ctx;
+    MppDecCfgSet    *cfg;
+    M2VDDxvaParam   *dxva_ctx;
+    BitReadCtx_t    *bitread_ctx;
     RK_U8           *bitstream_sw_buf;
     RK_U8           *qp_tab_sw_buf;
     RK_U32          max_stream_size;

@@ -138,6 +138,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     M2VD_CHK_I(ctx);
     memset(ctx, 0, sizeof(*ctx));
 
+    ctx->cfg = cfg->cfg;
     ctx->dxva_ctx = mpp_calloc(M2VDDxvaParam, 1);
     ctx->bitread_ctx = mpp_calloc(BitReadCtx_t, 1);
 
@@ -161,7 +162,7 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
             return MPP_ERR_NOMEM;
         }
         ctx->Framehead[i].picCodingType = 0xffffffff;
-        ctx->Framehead[i].slot_index = 0xff;
+        ctx->Framehead[i].slot_index = -1;
     }
 #if M2VD_SKIP_ERROR_FRAME_EN
     ctx->mHwDecStatus = MPP_OK;
@@ -307,11 +308,11 @@ MPP_RET m2vd_parser_reset(void *ctx)
     M2VDContext *c = (M2VDContext *)ctx;
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     m2vd_dbg_func("FUN_I");
-    if (p->frame_cur->slot_index != 0xff)
+    if (p->frame_cur->slot_index >= 0)
         mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index,
                               SLOT_CODEC_USE);
 
-    if (p->frame_ref0->slot_index != 0xff) {
+    if (p->frame_ref0->slot_index >= 0) {
         if (p->frame_ref0->flags) {
             mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
                                   SLOT_QUEUE_USE);
@@ -323,7 +324,7 @@ MPP_RET m2vd_parser_reset(void *ctx)
                               SLOT_CODEC_USE);
     }
 
-    if (p->frame_ref1->slot_index != 0xff)
+    if (p->frame_ref1->slot_index >= 0)
         mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index,
                               SLOT_CODEC_USE);
 
@@ -331,9 +332,9 @@ MPP_RET m2vd_parser_reset(void *ctx)
         mpp_packet_clr_eos(p->input_packet);
     }
 
-    p->frame_cur->slot_index = 0xff;
-    p->frame_ref0->slot_index = 0xff;
-    p->frame_ref1->slot_index = 0xff;
+    p->frame_cur->slot_index = -1;
+    p->frame_ref0->slot_index = -1;
+    p->frame_ref1->slot_index = -1;
     p->ref_frame_cnt = 0;
     p->resetFlag = 1;
     p->eos = 0;
@@ -356,7 +357,7 @@ MPP_RET m2vd_parser_flush(void *ctx)
     M2VDParserContext *p = (M2VDParserContext *)c->parse_ctx;
     m2vd_dbg_func("FUN_I");
 
-    if ((p->frame_ref0->slot_index != 0xff) && p->frame_ref0->flags) {
+    if ((p->frame_ref0->slot_index >= 0) && p->frame_ref0->flags) {
         mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index,
                               SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index,
@@ -1073,38 +1074,99 @@ static MPP_RET m2vd_decode_head(M2VDParserContext *ctx)
     return ret;
 }
 
+static MPP_RET m2v_update_ref_frame(M2VDParserContext *p, RK_S32 force)
+{
+    //push frame
+    if (force || (p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME) ||
+        ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && p->pic_code_ext_head.top_field_first ) ||
+        ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && (!p->pic_code_ext_head.top_field_first))) {
+        if (p->frame_cur->picCodingType == M2VD_CODING_TYPE_B) {
+            mpp_buf_slot_set_flag(p->frame_slots, p->frame_cur->slot_index, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(p->frame_slots, p->frame_cur->slot_index, QUEUE_DISPLAY);
+            mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index, SLOT_CODEC_USE);
+            p->frame_cur->slot_index = -1;
+        } else if (p->frame_cur->picCodingType != 0xffffffff) {
+            M2VDFrameHead *tmpHD = NULL;
+            p->ref_frame_cnt++;
+            if (p->frame_ref0->slot_index >= 0) {
+                if (p->frame_ref0->flags) {
+                    mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
+                    mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
+                    p->frame_ref0->flags = 0;
+                }
+            }
+            if (p->frame_ref1->slot_index >= 0) {
+                mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_CODEC_USE);
+                p->frame_ref1->slot_index = -1;
+            }
+            tmpHD = p->frame_ref1;
+            p->frame_ref1 = p->frame_ref0;
+            p->frame_ref0 = p->frame_cur;
+            p->frame_cur = tmpHD;
+        }
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
 {
+    M2VDHeadPic *pic_head = &ctx->pic_head;
+    M2VDHeadPicCodeExt *pic_code_ext_head = &ctx->pic_code_ext_head;
     RK_U64 pts = ctx->pts;
-    if (ctx->resetFlag && ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I) {
-        mpp_log("[m2v]: resetFlag[%d] && picture_coding_type[%d] != I_TYPE", ctx->resetFlag, ctx->pic_head.picture_coding_type);
+
+    if (ctx->resetFlag && pic_head->picture_coding_type != M2VD_CODING_TYPE_I) {
+        mpp_log("[m2v]: resetFlag[%d] && picture_coding_type[%d] != I_TYPE", ctx->resetFlag, pic_head->picture_coding_type);
         return MPP_NOK;
-    } else {
-        ctx->resetFlag = 0;
     }
-    if ((ctx->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME ) ||
-        ((ctx->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && ctx->pic_code_ext_head.top_field_first) ||
-        ((ctx->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && (!ctx->pic_code_ext_head.top_field_first)) ||
-        (ctx->frame_cur->slot_index == 0xff)) {
-        RK_S64 Time = 0;
+
+    ctx->resetFlag = 0;
+
+    if ((ctx->ref_frame_cnt < 2) && (pic_head->picture_coding_type == M2VD_CODING_TYPE_B)) {
+        mpp_log("[m2v]: (ref_frame_cnt[%d] < 2) && (frame_cur->picCodingType[%d] == B_TYPE)",
+                ctx->ref_frame_cnt, pic_head->picture_coding_type);
+        return MPP_NOK;
+    }
+
+    if ((pic_code_ext_head->picture_structure == M2VD_PIC_STRUCT_FRAME ) ||
+        ((pic_code_ext_head->picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && pic_code_ext_head->top_field_first) ||
+        ((pic_code_ext_head->picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && (!pic_code_ext_head->top_field_first))) {
+        RK_S64 frm_pts = 0;
+        RK_U32 frametype = 0;
+
+        if (ctx->frame_cur->slot_index >= 0) {
+            MppFrame frame = NULL;
+
+            mpp_buf_slot_get_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME_PTR, &frame);
+            if (ctx->cfg->base.disable_error)
+                mpp_frame_set_discard(frame, 1);
+            else
+                mpp_frame_set_errinfo(frame, 1);
+
+            mpp_log("[m2v]: miss match field order at ref_frame_cnt[%d] picture_structure %d top_field_first %d\n",
+                    ctx->ref_frame_cnt, pic_head->picture_coding_type, pic_code_ext_head->top_field_first);
+
+            m2v_update_ref_frame(ctx, 1);
+        }
+
         if (ctx->PreGetFrameTime != pts) {
             RK_S64 tmp_frame_period;
 
             if (ctx->GroupFrameCnt) {
-                ctx->GroupFrameCnt = ctx->GroupFrameCnt + ctx->pic_head.temporal_reference;
-            } else if (ctx->pic_head.temporal_reference == (RK_S32)ctx->PreChangeTime_index)
+                ctx->GroupFrameCnt = ctx->GroupFrameCnt + pic_head->temporal_reference;
+            } else if (pic_head->temporal_reference == (RK_S32)ctx->PreChangeTime_index)
                 ctx->GroupFrameCnt = ctx->max_temporal_reference + 1;
-            else if (ctx->pic_head.temporal_reference)
-                ctx->GroupFrameCnt = ctx->pic_head.temporal_reference - ctx->PreChangeTime_index;
+            else if (pic_head->temporal_reference)
+                ctx->GroupFrameCnt = pic_head->temporal_reference - ctx->PreChangeTime_index;
             else
                 ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
 
             tmp_frame_period = pts - ctx->PreGetFrameTime;
 
-            if ((pts > ctx->PreGetFrameTime) && (ctx->pic_head.temporal_reference > (RK_S32)ctx->PreChangeTime_index)) {
+            if ((pts > ctx->PreGetFrameTime) && (pic_head->temporal_reference > (RK_S32)ctx->PreChangeTime_index)) {
                 RK_S32 theshold_frame_period = tmp_frame_period * 2 ;
                 RK_S32 last_frame_period = ctx->preframe_period ? ctx->preframe_period : ctx->frame_period;
-                RK_S32 predict_frame_period = (ctx->pic_head.temporal_reference - ctx->PreChangeTime_index) * last_frame_period / 256;
+                RK_S32 predict_frame_period = (pic_head->temporal_reference - ctx->PreChangeTime_index) * last_frame_period / 256;
                 if (theshold_frame_period < predict_frame_period) {
                     pts = ctx->PreGetFrameTime + predict_frame_period;
                     tmp_frame_period = predict_frame_period;
@@ -1122,22 +1184,22 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                 }
             }
 
-            ctx->Group_start_Time = pts - (ctx->pic_head.temporal_reference * ctx->frame_period / 256);
+            ctx->Group_start_Time = pts - (pic_head->temporal_reference * ctx->frame_period / 256);
             if (ctx->Group_start_Time < 0)
                 ctx->Group_start_Time = 0;
             ctx->PreGetFrameTime = pts;
-            ctx->PreChangeTime_index = ctx->pic_head.temporal_reference;
+            ctx->PreChangeTime_index = pic_head->temporal_reference;
             ctx->GroupFrameCnt = 0;
-        } else if ((RK_S32)ctx->pretemporal_reference > ctx->pic_head.temporal_reference + 5) {
+        } else if ((RK_S32)ctx->pretemporal_reference > pic_head->temporal_reference + 5) {
             ctx->Group_start_Time += ((ctx->max_temporal_reference + 1) * ctx->frame_period / 256);
             ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
             ctx->max_temporal_reference = 0;
         }
-        if ((RK_S32)ctx->pretemporal_reference > ctx->pic_head.temporal_reference + 5)
+        if ((RK_S32)ctx->pretemporal_reference > pic_head->temporal_reference + 5)
             ctx->max_temporal_reference = 0;
-        if (ctx->pic_head.temporal_reference > (RK_S32)ctx->max_temporal_reference)
-            ctx->max_temporal_reference = ctx->pic_head.temporal_reference;
-        ctx->pretemporal_reference = ctx->pic_head.temporal_reference;
+        if (pic_head->temporal_reference > (RK_S32)ctx->max_temporal_reference)
+            ctx->max_temporal_reference = pic_head->temporal_reference;
+        ctx->pretemporal_reference = pic_head->temporal_reference;
         /*if(picture_coding_type == I_TYPE)
         {
             if (Video_Bitsream.Slice_Time.low_part >= (RK_U32)(frame_period/128))
@@ -1145,107 +1207,65 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             else
                 Group_start_Time = Video_Bitsream.Slice_Time.low_part;
         }*/
-        Time = ctx->Group_start_Time;
-        Time += ((ctx->pic_head.temporal_reference * ctx->frame_period) / 256);
-        if (Time < 0) {
-            Time = 0;
+        frm_pts = ctx->Group_start_Time;
+        frm_pts += ((pic_head->temporal_reference * ctx->frame_period) / 256);
+        if (frm_pts < 0) {
+            frm_pts = 0;
         }
+
+        /*
+        mpp_log("picture_coding_type %d picture_structure %d top_field_first %d frame slot %d ref_frame_cnt %d pts %lld\n",
+                pic_head->picture_coding_type, pic_code_ext_head->picture_structure,
+                pic_code_ext_head->top_field_first, ctx->frame_cur->slot_index, ctx->ref_frame_cnt, frm_pts);
+        */
+
         //base.Current_frame->ShowTime = Time;//Video_Bitsream.Slice_Time.low_part;
         //!< mark current slot error
-        if (ctx->pic_head.picture_coding_type != M2VD_CODING_TYPE_I
-            && ctx->pic_head.pre_picture_coding_type == ctx->pic_head.picture_coding_type) {
-            if ((ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference > 3)
-                || (ctx->pic_head.temporal_reference - ctx->pic_head.pre_temporal_reference < -3)) {
+        if (pic_head->picture_coding_type != M2VD_CODING_TYPE_I
+            && pic_head->pre_picture_coding_type == pic_head->picture_coding_type) {
+            if ((pic_head->temporal_reference - pic_head->pre_temporal_reference > 3)
+                || (pic_head->temporal_reference - pic_head->pre_temporal_reference < -3)) {
                 mpp_frame_set_errinfo(ctx->frame_cur->f, 1);
             } else {
                 mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
             }
         }
-        ctx->pic_head.pre_temporal_reference = ctx->pic_head.temporal_reference;
-        ctx->pic_head.pre_picture_coding_type = ctx->pic_head.picture_coding_type;
-        ctx->frame_cur->picCodingType = ctx->pic_head.picture_coding_type;
+        pic_head->pre_temporal_reference = pic_head->temporal_reference;
+        pic_head->pre_picture_coding_type = pic_head->picture_coding_type;
+        ctx->frame_cur->picCodingType = pic_head->picture_coding_type;
         ctx->seq_head.decode_height = (ctx->seq_head.decode_height + 15) & (~15);
         ctx->seq_head.decode_width = (ctx->seq_head.decode_width + 15) & (~15);
 
-        if ((ctx->ref_frame_cnt < 2) && (ctx->frame_cur->picCodingType == M2VD_CODING_TYPE_B)) {
-            // not enough refs on B-type need cal pts and parser ctx but not need to decode
-            mpp_log("[m2v]: (ref_frame_cnt[%d] < 2) && (frame_cur->picCodingType[%d] == B_TYPE)", ctx->ref_frame_cnt, ctx->frame_cur->picCodingType);
-            return MPP_NOK;
-        }
-        if (ctx->frame_cur->slot_index == 0xff) {
-            RK_U32 frametype = 0;
-            mpp_frame_set_width(ctx->frame_cur->f, ctx->display_width);
-            mpp_frame_set_height(ctx->frame_cur->f, ctx->display_height);
-            mpp_frame_set_hor_stride(ctx->frame_cur->f, ctx->display_width);
-            mpp_frame_set_ver_stride(ctx->frame_cur->f, ctx->display_height);
-            mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
-            mpp_frame_set_pts(ctx->frame_cur->f, Time);
-            ctx->frame_cur->flags = M2V_OUT_FLAG;
-            if (ctx->seq_ext_head.progressive_sequence) {
-                frametype = MPP_FRAME_FLAG_FRAME;
-            } else {
-                frametype = MPP_FRAME_FLAG_PAIRED_FIELD;
-                if (ctx->pic_code_ext_head.top_field_first)
-                    frametype |= MPP_FRAME_FLAG_TOP_FIRST;
-                else
-                    frametype |= MPP_FRAME_FLAG_BOT_FIRST;
-            }
-            mpp_frame_set_mode(ctx->frame_cur->f, frametype);
+        mpp_frame_set_width(ctx->frame_cur->f, ctx->display_width);
+        mpp_frame_set_height(ctx->frame_cur->f, ctx->display_height);
+        mpp_frame_set_hor_stride(ctx->frame_cur->f, ctx->display_width);
+        mpp_frame_set_ver_stride(ctx->frame_cur->f, ctx->display_height);
+        mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
+        mpp_frame_set_pts(ctx->frame_cur->f, frm_pts);
+        ctx->frame_cur->flags = M2V_OUT_FLAG;
 
-            if (ctx->seq_head.aspect_ratio_information >= 0 && ctx->seq_head.aspect_ratio_information < 16)
-                mpp_frame_set_sar(ctx->frame_cur->f, mpeg2_aspect[ctx->seq_head.aspect_ratio_information]);
-
-            mpp_buf_slot_get_unused(ctx->frame_slots, &ctx->frame_cur->slot_index);
-            mpp_buf_slot_set_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME, ctx->frame_cur->f);
-            mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_CODEC_USE);
-            mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_HAL_OUTPUT);
+        if (ctx->seq_ext_head.progressive_sequence) {
+            frametype = MPP_FRAME_FLAG_FRAME;
+        } else {
+            frametype = MPP_FRAME_FLAG_PAIRED_FIELD;
+            if (pic_code_ext_head->top_field_first)
+                frametype |= MPP_FRAME_FLAG_TOP_FIRST;
+            else
+                frametype |= MPP_FRAME_FLAG_BOT_FIRST;
         }
-    }
-    //alloc frame space
-    if ((ctx->ref_frame_cnt < 2) && (ctx->frame_cur->picCodingType == M2VD_CODING_TYPE_B)) {
-        mpp_log("[m2v]: (ref_frame_cnt[%d] < 2) && (frame_cur->picCodingType[%d] == B_TYPE)", ctx->ref_frame_cnt, ctx->frame_cur->picCodingType);
-        return MPP_NOK;
+        mpp_frame_set_mode(ctx->frame_cur->f, frametype);
+
+        if (ctx->seq_head.aspect_ratio_information >= 0 && ctx->seq_head.aspect_ratio_information < 16)
+            mpp_frame_set_sar(ctx->frame_cur->f, mpeg2_aspect[ctx->seq_head.aspect_ratio_information]);
+
+        //alloc frame space
+        mpp_buf_slot_get_unused(ctx->frame_slots, &ctx->frame_cur->slot_index);
+        mpp_buf_slot_set_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME, ctx->frame_cur->f);
+        mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_CODEC_USE);
+        mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_HAL_OUTPUT);
     }
 
     return MPP_OK;
-}
-
-static MPP_RET m2v_update_ref_frame(M2VDParserContext *p)
-{
-
-    MPP_RET ret = MPP_OK;
-    m2vd_dbg_func("FUN_I");
-    //push frame
-    if ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_FRAME) ||
-        ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_BOTTOM_FIELD) && p->pic_code_ext_head.top_field_first ) ||
-        ((p->pic_code_ext_head.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) && (!p->pic_code_ext_head.top_field_first))) {
-
-        if (p->frame_cur->picCodingType == M2VD_CODING_TYPE_B) {
-            mpp_buf_slot_set_flag(p->frame_slots, p->frame_cur->slot_index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(p->frame_slots, p->frame_cur->slot_index, QUEUE_DISPLAY);
-            mpp_buf_slot_clr_flag(p->frame_slots, p->frame_cur->slot_index, SLOT_CODEC_USE);
-            p->frame_cur->slot_index = 0xFF;
-        } else if (p->frame_cur->picCodingType != 0xffffffff) {
-            M2VDFrameHead *tmpHD = NULL;
-            p->ref_frame_cnt++;
-            if (p->frame_ref0->slot_index < 0x7f) {
-                if (p->frame_ref0->flags) {
-                    mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_QUEUE_USE);
-                    mpp_buf_slot_enqueue(p->frame_slots, p->frame_ref0->slot_index, QUEUE_DISPLAY);
-                    p->frame_ref0->flags = 0;
-                }
-            }
-            if (p->frame_ref1->slot_index < 0x7f) {
-                mpp_buf_slot_clr_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_CODEC_USE);
-                p->frame_ref1->slot_index = 0xff;
-            }
-            tmpHD = p->frame_ref1;
-            p->frame_ref1 = p->frame_ref0;
-            p->frame_ref0 = p->frame_cur;
-            p->frame_cur = tmpHD;
-        }
-    }
-    return ret;
 }
 
 static MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
@@ -1333,12 +1353,11 @@ static MPP_RET m2vd_convert_to_dxva(M2VDParserContext *p)
     dst->CurrPic.Index7Bits = p->frame_cur->slot_index;
     p->cur_slot_index = p->frame_cur->slot_index;
 
-    if (p->frame_ref0->slot_index == 0xff) {
+    if (p->frame_ref0->slot_index < 0)
         pbw = p->frame_cur;
-    }
-    if (p->frame_ref1->slot_index == 0xff) {
+
+    if (p->frame_ref1->slot_index < 0)
         pfw = pbw;
-    }
 
     for (i = 0; i < 4; i++) {
         dst->frame_refs[i].bPicEntry = 0xff;
@@ -1429,8 +1448,7 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
     }
 
     if (rev == M2VD_DEC_PICHEAD_OK) {
-        if (MPP_OK != m2vd_alloc_frame(p)) {
-            mpp_err("m2vd_alloc_frame not OK");
+        if (m2vd_alloc_frame(p)) {
             goto __FAILED;
         }
         m2vd_convert_to_dxva(p);
@@ -1439,13 +1457,13 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
         in_task->output = p->frame_cur->slot_index;
         p->pic_head.pre_picture_coding_type = p->pic_head.picture_coding_type;
 
-        if (p->frame_ref0->slot_index < 0x7f &&
+        if (p->frame_ref0->slot_index >= 0 &&
             (p->frame_ref0->slot_index != p->frame_cur->slot_index)) {
             mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref0->slot_index, SLOT_HAL_INPUT);
             in_task->refer[0] = p->frame_ref0->slot_index;
         }
 
-        if (p->frame_ref1->slot_index < 0x7f && (p->frame_ref1->slot_index != p->frame_cur->slot_index)) {
+        if (p->frame_ref1->slot_index >= 0 && (p->frame_ref1->slot_index != p->frame_cur->slot_index)) {
             mpp_buf_slot_set_flag(p->frame_slots, p->frame_ref1->slot_index, SLOT_HAL_INPUT);
             in_task->refer[1] = p->frame_ref1->slot_index;
         }
@@ -1465,13 +1483,12 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
         }
 
         in_task->valid = 1;
-        m2v_update_ref_frame(p);
+        m2v_update_ref_frame(p, 0);
     }
 
 __FAILED:
-    if (p->eos) {
+    if (p->eos)
         m2vd_parser_flush(ctx);
-    }
 
     m2vd_dbg_func("FUN_O");
 
