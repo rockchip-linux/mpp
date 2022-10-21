@@ -28,6 +28,7 @@ NOTE:
    RK3288/RK3368/RK3399
    RK3228/RK3229/RK3228H/RK3328
    RK3566/RK3568
+   RK3588
    RV1108/RV1107
    RV1109/RV1126
 3. Mpp support all format hardware can support except VC1.
@@ -35,6 +36,9 @@ NOTE:
      Liunx : https://github.com/WainDing/mpp_linux_cpp
              https://github.com/MUZLATAN/ffmpeg_rtsp_mpp
      Android : https://github.com/c-xh/RKMediaCodecDemo
+5. offical github: https://github.com/rockchip-linux/mpp
+   develop github: https://github.com/HermanChen/mpp
+   develop gitee : https://gitee.com/hermanchen82/mpp
 
 More document can be found at http://opensource.rock-chips.com/wiki_Mpp
 
