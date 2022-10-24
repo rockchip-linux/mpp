@@ -2113,19 +2113,38 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     // regs->vdpu_av1d_pp_cfg.swreg337.sw_pp_in_y_stride = hor_stride;
     // regs->vdpu_av1d_pp_cfg.swreg337.sw_pp_in_c_stride = hor_stride;
     if (ctx->fbc_en) {
+        RK_U32 vir_left = 0, vir_right = 0, vir_top = 0, vir_bottom = 0;
+        RK_U32 bypass_filter = !regs->swreg5.sw_superres_is_scaled &&
+                               !regs->swreg5.sw_enable_cdef &&
+                               !regs->swreg14.sw_filt_level0 &&
+                               !regs->swreg15.sw_filt_level1 &&
+                               !regs->swreg18.sw_lr_type;
+
+        regs->vdpu_av1d_pp_cfg.swreg329.sw_pp_out_y_stride = dxva->bitdepth > 8 ?
+                                                             width * 2 : width;
+        regs->vdpu_av1d_pp_cfg.swreg329.sw_pp_out_c_stride = dxva->bitdepth > 8 ?
+                                                             width * 2 : width;
         regs->swreg58.sw_dec_axi_wd_id_e = 1;
         regs->swreg58.sw_dec_axi_rd_id_e = 1;
         regs->vdpu_av1d_pp_cfg.swreg320.sw_pp_out_tile_e = 1;
         regs->vdpu_av1d_pp_cfg.swreg321.sw_pp_tile_size = 2;
 
-        RK_U32 vir_left = 0, vir_right = 0, vir_top = 0, vir_bottom = 0;
         vir_left = 0;
         if (((vir_left + width) % 16))
             vir_right = 16 - ((vir_left + width) % 16);
         else
             vir_right = 0;
-
-        vir_top = 8;
+        if (!bypass_filter) {
+            if (16 - (56 % 16))
+                vir_top = 16 - (56 % 16);
+            else
+                vir_top = 0;
+        } else {
+            if (((64 - (height % 64))) % 16)
+                vir_top = 16 - (((64 - (height % 64))) % 16);
+            else
+                vir_top = 0;
+        }
 
         if (((vir_top + height) % 16))
             vir_bottom = 16 - ((vir_top + height) % 16);
@@ -2136,6 +2155,9 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->vdpu_av1d_pp_cfg.swreg503.sw_pp0_virtual_left = vir_left;
         regs->vdpu_av1d_pp_cfg.swreg503.sw_pp0_virtual_bottom = vir_bottom;
         regs->vdpu_av1d_pp_cfg.swreg503.sw_pp0_virtual_right = vir_right;
+        mpp_frame_set_offset_y(mframe, vir_top);
+        mpp_frame_set_ver_stride(mframe, vir_top + height + vir_bottom);
+        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 3;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg505.sw_pp0_afbc_tile_base_lsb = mpp_buffer_get_fd(buffer);
@@ -2149,9 +2171,9 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         mpp_dev_set_reg_offset(p_hal->dev, 328, y_stride);
     }
 
-    /*RK_U32 i = 0;
+    /* RK_U32 i = 0;
     for (i = 0; i < sizeof(VdpuAv1dRegSet) / sizeof(RK_U32); i++)
-                mpp_log("regs[%04d]=%08X\n", i, ((RK_U32 *)regs)[i]);*/
+        mpp_log("regs[%04d]=%08X\n", i, ((RK_U32 *)regs)[i]); */
 
 
 __RETURN:
