@@ -486,7 +486,7 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
         tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
         tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
-        tmp |= (RK_U32)(voidx & 0x1) << 1;
+        tmp |= (RK_U32)(voidx & 0x1) << 6;
         mpp_put_bits(&bp, tmp, 7);
     }
     for (j = 1; j < 3; j++) {
@@ -498,7 +498,7 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
             voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
             tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
             tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
-            tmp |= (RK_U32)(voidx & 0x1) << 1;
+            tmp |= (RK_U32)(voidx & 0x1) << 6;
             mpp_put_bits(&bp, tmp, 7);
         }
     }
