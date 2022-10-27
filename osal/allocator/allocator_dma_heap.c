@@ -68,20 +68,20 @@ typedef struct {
 typedef enum DmaHeapType_e {
     DMA_HEAP_CMA        = (1 << 0),
     DMA_HEAP_CACHABLE   = (1 << 1),
-    DMA_HEAP_DMA64      = (1 << 2),
-    DMA_HEAP_TYPE_MASK  = DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA64,
+    DMA_HEAP_DMA32      = (1 << 2),
+    DMA_HEAP_TYPE_MASK  = DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA32,
     DMA_HEAP_TYPE_NB,
 } DmaHeapType;
 
 static const char *heap_names[] = {
-    "system-uncached-dma32",    /* 0 - default */
+    "system-uncached",          /* 0 - default */
     "cma-uncached",             /* 1 -                                      DMA_HEAP_CMA */
-    "system-dma32",             /* 2 -                  DMA_HEAP_CACHABLE                */
+    "system",                   /* 2 -                  DMA_HEAP_CACHABLE                */
     "cma",                      /* 3 -                  DMA_HEAP_CACHABLE | DMA_HEAP_CMA */
-    "system-uncached",          /* 4 - DMA_HEAP_DMA64                                    */
-    "cma-uncached",             /* 5 - DMA_HEAP_DMA64                     | DMA_HEAP_CMA */
-    "system",                   /* 6 - DMA_HEAP_DMA64 | DMA_HEAP_CACHABLE                */
-    "cma",                      /* 7 - DMA_HEAP_DMA64 | DMA_HEAP_CACHABLE | DMA_HEAP_CMA */
+    "system-uncached-dma32",    /* 4 - DMA_HEAP_DMA32                                    */
+    "cma-uncached",             /* 5 - DMA_HEAP_DMA32                     | DMA_HEAP_CMA */
+    "system-dma32",             /* 6 - DMA_HEAP_DMA32 | DMA_HEAP_CACHABLE                */
+    "cma",                      /* 7 - DMA_HEAP_DMA32 | DMA_HEAP_CACHABLE | DMA_HEAP_CMA */
 };
 
 static int heap_fds[DMA_HEAP_TYPE_NB];
@@ -167,6 +167,9 @@ static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
 
     if (cfg->flags & (MPP_BUFFER_FLAGS_CACHABLE >> 16))
         type |= DMA_HEAP_CACHABLE;
+
+    if (cfg->flags & (MPP_BUFFER_FLAGS_DMA32 >> 16))
+        type |= DMA_HEAP_DMA32;
 
     fd = heap_fd_open(type);
     if (fd < 0) {

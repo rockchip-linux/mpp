@@ -145,11 +145,13 @@ typedef enum {
  * flags originate from drm_rockchip_gem_mem_type
  */
 
-#define MPP_BUFFER_FLAGS_MASK           0x000f0000      //ROCKCHIP_BO_MASK << 16
+#define MPP_BUFFER_FLAGS_MASK           0x003f0000      //ROCKCHIP_BO_MASK << 16
 #define MPP_BUFFER_FLAGS_CONTIG         0x00010000      //ROCKCHIP_BO_CONTIG << 16
 #define MPP_BUFFER_FLAGS_CACHABLE       0x00020000      //ROCKCHIP_BO_CACHABLE << 16
 #define MPP_BUFFER_FLAGS_WC             0x00040000      //ROCKCHIP_BO_WC << 16
 #define MPP_BUFFER_FLAGS_SECURE         0x00080000      //ROCKCHIP_BO_SECURE << 16
+#define MPP_BUFFER_FLAGS_ALLOC_KMAP     0x00100000      //ROCKCHIP_BO_ALLOC_KMAP << 16
+#define MPP_BUFFER_FLAGS_DMA32          0x00200000      //ROCKCHIP_BO_DMA32 << 16
 
 /*
  * MppBufferInfo variable's meaning is different in different MppBufferType
