@@ -1,43 +1,47 @@
-Media Process Platform (MPP) module directory description:
+## Media Process Platform (MPP) module directory description
+Acronym | Meaning
+---|---
+MPP | Media Process Platform
+MPI | Media Process Interface
+HAL | Hardware Abstraction Layer
+OSAL | Operating System Abstraction Layer
 
-MPP    : Media Process Platform
-MPI    : Media Process Interface
-HAL    : Hardware Abstract Layer
-OSAL   : Operation System Abstract Layer
-
-Rules:
-1. header file arrange rule
-a. inc directory in each module folder is for external module usage.
-b. module internal header file should be put along with the implement file.
-c. header file should not contain any relative path or absolute path, all
-   include path should be keep in Makefile.
-2. compiling system rule
-a. for cross platform compiling use cmake as the compiling management system.
-b. use cmake out-of-source build, final binary and library will be install to
+### Rules:
+1. header file arrangement rules
+   * inc directory in each module folder is for external module usage.
+   * module internal header file should be put along with the implement file.
+   * header files should not contain any relative paths or absolute paths, all
+   include paths should be kept in the Makefile.
+2. compiling system rules
+   * for cross platform compiling use cmake as the build system.
+   * use cmake out-of-source build, final binary and library will be install to
    out/ directory.
 3. header file include order
-a. MODULE_TAG
-b. system header
-c. osal header
-d. module header
+   * MODULE_TAG
+   * system header
+   * osal header
+   * module header
 
-NOTE:
+### NOTE:
 1. Windows support is NOT maintained any more.
-2. Mpp support all rockchip chipset now including:
-   RK29XX/RK30XX/RK31XX
-   RK3288/RK3368/RK3399
-   RK3228/RK3229/RK3228H/RK3328
-   RK3566/RK3568
-   RV1108/RV1107
-   RV1109/RV1126
-3. Mpp support all format hardware can support except VC1.
-4. you can get demo about mpp applied to linux and android.
-     Liunx : https://github.com/WainDing/mpp_linux_cpp
-             https://github.com/MUZLATAN/ffmpeg_rtsp_mpp
-     Android : https://github.com/c-xh/RKMediaCodecDemo
+2. Mpp supports all rockchip chipsets now including:
+   * RK29XX/RK30XX/RK31XX
+   * RK3288/RK3368/RK3399
+   * RK3228/RK3229/RK3228H/RK3328
+   * RK3566/RK3568
+   * RV1108/RV1107
+   * RV1109/RV1126
+3. Mpp supports all formats hardware can support except VC1.
+4. you can get demos about mpp applied to Linux and Android.
+   * Linux
+     * https://github.com/WainDing/mpp_linux_cpp
+     * https://github.com/MUZLATAN/ffmpeg_rtsp_mpp
+   * Android
+     * https://github.com/c-xh/RKMediaCodecDemo
 
-More document can be found at http://opensource.rock-chips.com/wiki_Mpp
+More documents can be found at http://opensource.rock-chips.com/wiki_Mpp
 
+```
 ----                             top
    |
    |----- build                  CMake out-of-source build directory
@@ -176,10 +180,13 @@ More document can be found at http://opensource.rock-chips.com/wiki_Mpp
    |----- tools                  coding style format tools
    |
    |----- utils                  small util functions
+```
 
+## Framework overview
 
 Here is the mpp implement overall framework:
 
+```
                 +---------------------------------------+
                 |                                       |
                 | ffmpeg / OpenMax / gstreamer / libva  |
@@ -217,15 +224,16 @@ Here is the mpp implement overall framework:
                 |       RK vcodec_service / v4l2        |
                 |                                       |
                 +---------------------------------------+
+```
 
 
-
-Here is the Media Process Interface hierarchical structure
-MpiPacket and MpiFrame is the stream I/O data structure.
-And MpiBuffer encapsulates different buffer implement like Linux's dma-buf and
-Android's ion.
+Here is the Media Process Interface hierarchical structure\
+MpiPacket and MpiFrame are the stream I/O data structure.\
+And MpiBuffer encapsulates different buffer implementations like Linux's dma-buf and\
+Android's ion.\
 This part is learned from ffmpeg.
 
+```
                 +-------------------+
                 |                   |
                 |        MPI        |
@@ -254,16 +262,17 @@ This part is learned from ffmpeg.
             +---->+     buffer    +<----+
                   |               |
                   +---------------+
+```
 
 
-
-Take H.264 deocder for example. Video stream will first queued by MPI/MPP layer,
-MPP will send the stream to codec layer, codec layer parses the stream header
-and generates a protocol standard output. This output will be send to HAL to
-generate register file set and communicate with hardware. Hardware will complete
-the task and resend information back. MPP notify codec by hardware result, codec
+Take H.264 decoder for example. Video stream will first queued by MPI/MPP layer,\
+MPP will send the stream to codec layer, codec layer parses the stream header\
+and generates a protocol standard output. This output will be send to HAL to\
+generate register file set and communicate with hardware. Hardware will complete\
+the task and resend information back. MPP notify codec by hardware result, codec\
 output decoded frame by display order.
 
+```
 MPI                MPP              decoder             parser              HAL
 
  +                  +                  +                  +                  +
@@ -331,55 +340,58 @@ MPI                MPP              decoder             parser              HAL
  |                  |                  |                  |      close       |
  |                  |                  +-----------------------------------> |
  +                  +                  +                  +                  +
+```
+
+## Memory usage modes
 
 There are three memory usage modes that decoder can support:
 
-Mode 1: Pure internal mode
-In the mode user will NOT call MPP_DEC_SET_EXT_BUF_GROUP control to decoder.
-Only call MPP_DEC_SET_INFO_CHANGE_READY to let decoder go on. Then decoder will
+### Mode 1: Pure internal mode
+In the mode user will NOT call MPP_DEC_SET_EXT_BUF_GROUP control to decoder.\
+Only call MPP_DEC_SET_INFO_CHANGE_READY to let decoder go on. Then decoder will\
 use create buffer internally and user need to release each frame they get.
 
-Advantage:
-Easy to use and get a demo quickly
-Disadvantage:
+Advantages:
+1. Easy to use and get a demo quickly
+Disadvantages:
 1. The buffer from decoder may not be return before decoder is close.
    So memory leak or crash may happen.
 2. The decoder memory usage can not be control. Decoder is on a free-to-run
    status and consume all memory it can get.
 3. Difficult to implement zero-copy display path.
 
-Mode 2: Half internal mode
-This is the mode current mpi_dec_test code using. User need to create
-MppBufferGroup according to the returned info change MppFrame.
-User can use mpp_buffer_group_limit_config to limit decoder memory usage.
+### Mode 2: Half internal mode
+This is the mode current mpi_dec_test code using. User need to create\
+MppBufferGroup according to the returned info change MppFrame.\
+User can use mpp_buffer_group_limit_config to limit decoder memory usage.\
 
-Advantage:
+Advantages:
 1. Easy to use
 2. User can release MppBufferGroup after decoder is closed.
    So memory can stay longer safely.
 3. Can limit the memory usage by mpp_buffer_group_limit_config
-Disadvantage:
+Disadvantages:
 1. The buffer limitation is still not accurate. Memory usage is 100% fixed.
 2. Also difficult to implement zero-copy display path.
 
-Mode 3: Pure external mode
-In this mode use need to create empty MppBufferGroup and import memory from
-external allocator by file handle.
-On Android surfaceflinger will create buffer. Then mediaserver get file handle
+### Mode 3: Pure external mode
+In this mode use need to create empty MppBufferGroup and import memory from\
+external allocator by file handle.\
+On Android surfaceflinger will create buffer. Then mediaserver get file handle\
 from surfaceflinger and commit to decoder's MppBufferGroup.
 
-Advantage:
+Advantages:
 1. Most efficient way for zero-copy display
-Disadvantage:
+Disadvantages:
 1. Difficult to learn and use.
 2. Player work flow may limit this usage.
 3. May need external parser to get the correct buffer size for the external
    allocator.
 
-The required buffer size caculation:
-hor_stride * ver_stride * 3 / 2 for pixel data
-hor_stride * ver_stride / 2 for extra info
+The required buffer size caculation:\
+hor_stride * ver_stride * 3 / 2 for pixel data\
+hor_stride * ver_stride / 2 for extra info\
 Total hor_stride * ver_stride * 2 will be enough.
 
-For H.264/H.265 20+ buffers will be enough.
+For H.264/H.265 20+ buffers will be enough.\
 For other codec 10 buffers will be enough.
