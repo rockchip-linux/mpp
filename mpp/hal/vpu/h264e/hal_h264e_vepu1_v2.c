@@ -302,6 +302,11 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
     RK_U32 val = 0;
     RK_S32 i = 0;
 
+    if (hw_prep->rotation) {
+        mb_w = ctx->sps->pic_height_in_mbs;
+        mb_h = ctx->sps->pic_width_in_mbs;
+    }
+
     hw_mbrc->qp_init = rc_info->quality_target;
     hw_mbrc->qp_max = rc_info->quality_max;
     hw_mbrc->qp_min = rc_info->quality_min;
@@ -385,7 +390,7 @@ static MPP_RET hal_h264e_vepu1_gen_regs_v2(void *hal, HalEncTask *task)
           | VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(overfill_r)
           | VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b)
           | VEPU_REG_IN_IMG_CTRL_FMT(hw_prep->src_fmt)
-          | VEPU_REG_IN_IMG_ROTATE_MODE(0);
+          | VEPU_REG_IN_IMG_ROTATE_MODE(hw_prep->rotation);
 
     H264E_HAL_SET_REG(reg, VEPU_REG_ENC_INPUT_IMAGE_CTRL, val);
 

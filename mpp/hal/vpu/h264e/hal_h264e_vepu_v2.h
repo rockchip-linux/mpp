@@ -63,6 +63,8 @@ typedef struct HalH264eVepuInput_t {
     RK_U32          color_conversion_coeff_c;
     RK_U32          color_conversion_coeff_e;
     RK_U32          color_conversion_coeff_f;
+
+    RK_U32          rotation;
 } HalH264eVepuPrep;
 
 typedef struct HalH264eVepuFrmAddr_t {

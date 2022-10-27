@@ -305,12 +305,30 @@ MPP_RET h264e_vepu_prep_setup(HalH264eVepuPrep *prep, MppEncPrepCfg *cfg)
     MPP_RET ret = MPP_OK;
     MppFrameFormat format = cfg->format;
     VepuFormatCfg fmt_cfg;
+    RK_U32 width = cfg->width;
+    RK_U32 height = cfg->height;
+    RK_U32 rotation = 0;
 
     hal_h264e_dbg_buffer("enter\n");
 
+    // do not support mirroring
+    if (cfg->mirroring)
+        mpp_err_f("Warning: do not support mirroring\n");
+
+    if (cfg->rotation == MPP_ENC_ROT_90)
+        rotation = 1;
+    else if (cfg->rotation == MPP_ENC_ROT_270)
+        rotation = 2;
+    else if (cfg->rotation != MPP_ENC_ROT_0)
+        mpp_err_f("Warning: only support 90 or 270 degree rotate, request rotate %d", rotation);
+
+    if (rotation)
+        MPP_SWAP(RK_U32, width, height);
+
     prep->src_fmt = format;
-    prep->src_w = cfg->width;
-    prep->src_h = cfg->height;
+    prep->rotation = rotation;
+    prep->src_w = width;
+    prep->src_h = height;
 
     if (!get_vepu_fmt(&fmt_cfg, format)) {
         prep->r_mask_msb = fmt_cfg.r_mask;
