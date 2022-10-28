@@ -1380,6 +1380,7 @@ static MPP_RET mpp_enc_proc_two_pass(Mpp *mpp, EncAsyncTaskInfo *task)
 
         enc_dbg_detail("task %d two pass mode enter\n", frm->seq_idx);
         rc_task->info = enc->rc_info_prev;
+        hal_task->segment_nb = mpp_packet_get_segment_nb(hal_task->packet);
 
         enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
         mpp_enc_refs_get_cpb_pass1(enc->refs, cpb);
@@ -1407,6 +1408,7 @@ static MPP_RET mpp_enc_proc_two_pass(Mpp *mpp, EncAsyncTaskInfo *task)
 
         //recover status & packet
         mpp_packet_set_length(packet, pkt_len);
+        mpp_packet_set_segment_nb(packet, hal_task->segment_nb);
         hal_task->hw_length = hw_len;
         hal_task->length = task_len;
 
