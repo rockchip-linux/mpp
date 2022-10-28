@@ -2788,7 +2788,6 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     H265eV580HalContext *ctx = (H265eV580HalContext *)hal;
     HalEncTask *enc_task = task;
-    H265eV580StatusElem *elem = (H265eV580StatusElem *)ctx->reg_out;
     RK_U32 split_out = ctx->cfg->split.split_out;
 
     hal_h265e_enter();
@@ -2849,8 +2848,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                     }
                 }
 
-                if (split_out & MPP_ENC_SPLIT_OUT_SEGMENT)
-                    mpp_packet_add_segment_info(pkt, type, seg_offset, slice_len);
+                mpp_packet_add_segment_info(pkt, type, seg_offset, slice_len);
 
                 if (split_out & MPP_ENC_SPLIT_OUT_LOWDELAY)
                     mpp_callback(ctx->output_cb, &param);
@@ -2867,6 +2865,12 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
             }
         } while (1);
     } else {
+        H265eV580StatusElem *elem = (H265eV580StatusElem *)ctx->reg_out;
+        H265eV580RegSet *regs = (H265eV580RegSet *)ctx->regs[0];
+        hevc_vepu580_base *reg_base = &regs->reg_base;
+        RK_U32 type = reg_base->reg0236_synt_nal.nal_unit_type;
+        MppPacket pkt = enc_task->packet;
+        RK_U32 offset = mpp_packet_get_length(pkt);
         RK_U32 i = 0;
 
         if (ctx->tile_parall_en) {
@@ -2876,8 +2880,13 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
             ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
         }
 
-        for (i = 0; i < MAX_TILE_NUM; i++) {
-            RK_U32 hw_status = ((H265eV580StatusElem *)ctx->reg_out[i])->hw_status;
+        for (i = 0; i < ctx->tile_num; i++) {
+            H265eV580StatusElem *elem_ret = (H265eV580StatusElem *)ctx->reg_out[i];
+            RK_U32 hw_status = elem_ret->hw_status;
+            RK_U32 tile_size = elem_ret->st.bs_lgth_l32;
+
+            mpp_packet_add_segment_info(pkt, type, offset, tile_size);
+            offset += tile_size;
 
             if (ctx->tile_dump_err &&
                 (hw_status & (RKV_ENC_INT_BUS_WRITE_ERROR | RKV_ENC_INT_BUS_READ_ERROR))) {

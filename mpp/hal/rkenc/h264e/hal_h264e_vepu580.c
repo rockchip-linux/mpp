@@ -2172,6 +2172,9 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     HalVepu580RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
     RK_U32 split_out = ctx->cfg->split.split_out;
+    MppPacket pkt = task->packet;
+    RK_S32 offset = mpp_packet_get_length(pkt);
+    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     RK_S32 i;
 
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -2180,9 +2183,6 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
         EncOutParam param;
         RK_U32 slice_len;
         RK_U32 slice_last;
-        MppPacket pkt = task->packet;
-        RK_S32 offset = mpp_packet_get_length(pkt);
-        H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
         MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs +
                                                     task->flags.reg_idx * ctx->poll_cfg_size);
         param.task = task;
@@ -2200,10 +2200,9 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
                 slice_last = poll_cfg->slice_info[i].last;
                 slice_len = poll_cfg->slice_info[i].length;
 
-                if (split_out & MPP_ENC_SPLIT_OUT_SEGMENT) {
-                    mpp_packet_add_segment_info(pkt, type, offset, slice_len);
-                    offset += slice_len;
-                }
+                mpp_packet_add_segment_info(pkt, type, offset, slice_len);
+                offset += slice_len;
+
                 if (split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) {
                     param.length = slice_len;
 
@@ -2222,6 +2221,8 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
             mpp_err_f("poll cmd failed %d\n", ret);
             ret = MPP_ERR_VPUHW;
         }
+
+        mpp_packet_add_segment_info(pkt, type, offset, regs->reg_st.bs_lgth_l32);
     }
 
     hal_h264e_vepu580_status_check(regs);
