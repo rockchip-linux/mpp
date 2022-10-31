@@ -30,6 +30,7 @@ typedef struct JpegeSyntax_t {
     MppFrameFormat      format;
     MppFrameColorSpace  color;
     MppEncRotationCfg   rotation;
+    RK_S32              mirroring;
     RK_U32              offset_x;
     RK_U32              offset_y;
 
