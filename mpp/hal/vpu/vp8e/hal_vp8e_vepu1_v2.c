@@ -67,10 +67,16 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     regs->sw10.base_rec_chr = hw_cfg->internal_img_chr_base_w;
 
     regs->sw11.base_in_lum = hw_cfg->input_lum_base;
+    if (hw_cfg->input_lum_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 11, hw_cfg->input_lum_offset);
+
     regs->sw12.base_in_cb = hw_cfg->input_cb_base;
-    mpp_dev_set_reg_offset(ctx->dev, 12, hw_cfg->input_cb_offset);
+    if (hw_cfg->input_cb_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 12, hw_cfg->input_cb_offset);
+
     regs->sw13.base_in_cr = hw_cfg->input_cr_base;
-    mpp_dev_set_reg_offset(ctx->dev, 13, hw_cfg->input_cr_offset);
+    if (hw_cfg->input_cr_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 13, hw_cfg->input_cr_offset);
 
     regs->sw14.int_timeout = 1;
     regs->sw14.int_slice_ready = hw_cfg->int_slice_ready;

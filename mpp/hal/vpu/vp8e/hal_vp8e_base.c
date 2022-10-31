@@ -1319,6 +1319,7 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
 {
     HalVp8eCtx  *ctx  = (HalVp8eCtx *)hal;
     Vp8eHwCfg *hw_cfg = &ctx->hw_cfg;
+    VepuOffsetCfg hw_offset;
 
     MppEncCfgSet  *cfg = ctx->cfg;
     MppEncPrepCfg *prep = &cfg->prep;
@@ -1332,16 +1333,27 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
     }
 
     {
+        hw_offset.fmt = prep->format;
+
+        hw_offset.width = prep->width;
+        hw_offset.height = prep->height;
+        hw_offset.hor_stride = prep->hor_stride;
+        hw_offset.ver_stride = prep->ver_stride;
+        hw_offset.offset_x = mpp_frame_get_offset_x(task->frame);
+        hw_offset.offset_y = mpp_frame_get_offset_y(task->frame);
+
+        get_vepu_offset_cfg(&hw_offset);
+    }
+
+    {
         HalEncTask *enc_task = task;
-        RK_U32 hor_stride = MPP_ALIGN(prep->width, 16);
-        RK_U32 ver_stride = MPP_ALIGN(prep->height, 16);
-        RK_U32 offset_uv  = hor_stride * ver_stride;
 
         hw_cfg->input_lum_base = mpp_buffer_get_fd(enc_task->input);
         hw_cfg->input_cb_base  = hw_cfg->input_lum_base;
-        hw_cfg->input_cb_offset = offset_uv;
         hw_cfg->input_cr_base  = hw_cfg->input_cb_base;
-        hw_cfg->input_cr_offset  = offset_uv * 5 / 4;
+        hw_cfg->input_lum_offset = hw_offset.offset_byte[0];
+        hw_cfg->input_cb_offset = hw_offset.offset_byte[1];
+        hw_cfg->input_cr_offset  = hw_offset.offset_byte[2];
     }
 
     // split memory for vp8 partition
@@ -1385,8 +1397,8 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
     }
 
     {
-
         HalVp8ePicBuf *pic_buf = &ctx->picbuf;
+
         pic_buf->cur_pic->show = 1;
         pic_buf->cur_pic->poc = ctx->frame_cnt;
         pic_buf->cur_pic->i_frame = (ctx->frame_type == VP8E_FRM_KEY);
@@ -1422,12 +1434,12 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *task)
 MPP_RET hal_vp8e_init_qp_table(void *hal)
 {
     RK_S32 i = 0, j = 0;
-
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 
     for (i = 0; i < QINDEX_RANGE; i++) {
         RK_S32 tmp = 0;
         Vp8eQp * qp = &ctx->qp_y1[i];
+
         for (j = 0; j < 2; j++) {
             if (j == 0) {
                 tmp = dc_q_lookup_tbl[MPP_CLIP3(0, QINDEX_RANGE - 1, i)];
@@ -1480,7 +1492,6 @@ MPP_RET hal_vp8e_init_qp_table(void *hal)
 MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
 {
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
-
     Vp8eVpuBuf *buffers = (Vp8eVpuBuf *)ctx->buffers;
     const RK_U32 hw_offset = ctx->hw_cfg.first_free_bit / 8;
     RK_U32 *part = (RK_U32 *)mpp_buffer_get_ptr(buffers->hw_size_table_buf);

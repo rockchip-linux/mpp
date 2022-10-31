@@ -234,6 +234,7 @@ typedef struct {
     RK_U32 internal_img_lum_base_r[2];
     RK_U32 internal_img_chr_base_r[2];
     RK_U32 input_lum_base;
+    RK_U32 input_lum_offset;
     RK_U32 input_cb_base;
     RK_U32 input_cb_offset;
     RK_U32 input_cr_base;
