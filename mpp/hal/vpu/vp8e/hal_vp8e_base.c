@@ -26,7 +26,6 @@
 #include "hal_vp8e_putbit.h"
 #include "hal_vp8e_table.h"
 #include "hal_vp8e_debug.h"
-#include "vepu_common.h"
 
 static MPP_RET set_frame_params(void *hal)
 {
@@ -862,6 +861,10 @@ static MPP_RET set_frame_tag(void *hal)
     HalVp8ePicBuf *pic_buf = &ctx->picbuf;
     HalVp8eRefPic *cur_pic = pic_buf->cur_pic;
     Vp8ePutBitBuf *bitbuf = &ctx->bitbuf[0];
+    RK_S32 pic_height_in_pixel;
+    RK_S32 pic_width_in_pixel;
+    RK_S32 h_scaling;
+    RK_S32 v_scaling;
 
     tmp = ((ctx->bitbuf[1].byte_cnt) << 5) |
           ((cur_pic->show ? 1 : 0) << 4) |
@@ -881,11 +884,23 @@ static MPP_RET set_frame_tag(void *hal)
     vp8e_put_byte(bitbuf, 0x01);
     vp8e_put_byte(bitbuf, 0x2a);
 
-    tmp = ctx->sps.pic_width_in_pixel | (ctx->sps.horizontal_scaling << 14);
+    if (ctx->hw_cfg.input_rotation) {
+        pic_height_in_pixel = ctx->sps.pic_width_in_pixel;
+        pic_width_in_pixel = ctx->sps.pic_height_in_pixel;
+        h_scaling = ctx->sps.vertical_scaling;
+        v_scaling = ctx->sps.horizontal_scaling;
+    } else {
+        pic_height_in_pixel = ctx->sps.pic_height_in_pixel;
+        pic_width_in_pixel = ctx->sps.pic_width_in_pixel;
+        h_scaling = ctx->sps.horizontal_scaling;
+        v_scaling = ctx->sps.vertical_scaling;
+    }
+
+    tmp = pic_width_in_pixel | (h_scaling << 14);
     vp8e_put_byte(bitbuf, tmp & 0xff);
     vp8e_put_byte(bitbuf, tmp >> 8);
 
-    tmp = ctx->sps.pic_height_in_pixel | (ctx->sps.vertical_scaling << 14);
+    tmp = pic_height_in_pixel | (v_scaling << 14);
     vp8e_put_byte(bitbuf, tmp & 0xff);
     vp8e_put_byte(bitbuf, tmp >> 8);
 
@@ -967,20 +982,40 @@ static MPP_RET set_parameter(void *hal)
     Vp8eHwCfg *hw_cfg = &ctx->hw_cfg;
     MppEncPrepCfg *set = &ctx->cfg->prep;
 
-    RK_S32 width  = 16 * ((set->width + 15) / 16);
-    RK_S32 height = 16 * ((set->height + 15) / 16);
-    RK_U32 stride = MPP_ALIGN(width, 16);
+    RK_S32 width  = set->width;
+    RK_S32 height = set->height;
+    RK_S32 width_align  = MPP_ALIGN(set->width, 16);
+    RK_S32 height_align = MPP_ALIGN(set->height, 16);
+    RK_U32 stride;
+    RK_U32 rotation = 0;
 
-    //TODO handle rotation
+    // do not support mirroring
+    if (set->mirroring)
+        mpp_err_f("Warning: do not support mirroring\n");
 
-    ctx->mb_per_frame = width / 16 * height / 16;
-    ctx->mb_per_row = width / 16;
-    ctx->mb_per_col = height / 16;
+    if (set->rotation == MPP_ENC_ROT_90)
+        rotation = 1;
+    else if (set->rotation == MPP_ENC_ROT_270)
+        rotation = 2;
+    else if (set->rotation != MPP_ENC_ROT_0)
+        mpp_err_f("Warning: only support 90 or 270 degree rotate, request rotate %d", rotation);
 
-    sps->pic_width_in_pixel    = width;
-    sps->pic_height_in_pixel   = height;
-    sps->pic_width_in_mbs      = width / 16;
-    sps->pic_height_in_mbs     = height / 16;
+    if (rotation) {
+        MPP_SWAP(RK_S32, width, height);
+        MPP_SWAP(RK_S32, width_align, height_align);
+    }
+
+    stride = get_vepu_pixel_stride(&ctx->stride_cfg, width,
+                                   set->hor_stride, set->format);
+
+    ctx->mb_per_frame = width_align / 16 * height_align / 16;
+    ctx->mb_per_row = width_align / 16;
+    ctx->mb_per_col = height_align / 16;
+
+    sps->pic_width_in_pixel    = width_align;
+    sps->pic_height_in_pixel   = height_align;
+    sps->pic_width_in_mbs      = width_align / 16;
+    sps->pic_height_in_mbs     = height_align / 16;
     sps->horizontal_scaling    = 0;
     sps->vertical_scaling      = 0;
     sps->color_type            = 0;
@@ -1002,7 +1037,7 @@ static MPP_RET set_parameter(void *hal)
     memset(sps->ref_delta, 0, sizeof(sps->ref_delta));
     memset(sps->mode_delta, 0, sizeof(sps->mode_delta));
 
-    hw_cfg->input_rotation = set->rotation;
+    hw_cfg->input_rotation = rotation;
 
     {
         RK_U32 tmp = 0;
@@ -1062,17 +1097,17 @@ static MPP_RET set_parameter(void *hal)
                 hw_cfg->vs_next_luma_base += (tmp & (~7));
         }
 
-        hw_cfg->mbs_in_row = (set->width + 15) / 16;
-        hw_cfg->mbs_in_col = (set->height + 15) / 16;
+        hw_cfg->mbs_in_row = width_align / 16;
+        hw_cfg->mbs_in_col = height_align / 16;
         hw_cfg->pixels_on_row = stride;
     }
-    if (set->width & 0x0F)
-        hw_cfg->x_fill = (16 - (set->width & 0x0F)) / 4;
+    if (width & 0x0F)
+        hw_cfg->x_fill = (16 - (width & 0x0F)) / 4;
     else
         hw_cfg->x_fill = 0;
 
-    if (set->height & 0x0F)
-        hw_cfg->y_fill = 16 - (set->height & 0x0F);
+    if (height & 0x0F)
+        hw_cfg->y_fill = 16 - (height & 0x0F);
     else
         hw_cfg->y_fill = 0;
 

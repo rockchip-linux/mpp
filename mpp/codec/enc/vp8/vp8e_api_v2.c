@@ -77,7 +77,9 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
     prep->ver_stride = 720;
     prep->format = MPP_FMT_YUV420SP;
     prep->rotation = MPP_ENC_ROT_0;
+    prep->rotation_ext = MPP_ENC_ROT_0;
     prep->mirroring = 0;
+    prep->mirroring_ext = 0;
     prep->denoise = 0;
 
     /*
@@ -158,21 +160,8 @@ static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
     mpp_assert(change);
     if (change) {
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT) {
-            if ((src->width < 0 || src->width > 1920) ||
-                (src->height < 0 || src->height > 3840) ||
-                (src->hor_stride < 0 || src->hor_stride > 7680) ||
-                (src->ver_stride < 0 || src->ver_stride > 3840)) {
-                mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
-                        src->width, src->height,
-                        src->hor_stride, src->ver_stride);
-                ret = MPP_NOK;
-            }
-            dst->width = src->width;
-            dst->height = src->height;
-            dst->ver_stride = src->ver_stride;
-            dst->hor_stride = src->hor_stride;
-        }
+        RK_S32 mirroring;
+        RK_S32 rotation;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
             if ((src->format < MPP_FRAME_FMT_RGB &&
@@ -183,7 +172,76 @@ static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
             }
             dst->format = src->format;
         }
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
+            dst->rotation_ext = src->rotation_ext;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
+            dst->mirroring_ext = src->mirroring_ext;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FLIP)
+            dst->flip = src->flip;
+
+        // parameter checking
+        if (dst->rotation_ext >= MPP_ENC_ROT_BUTT || dst->rotation_ext < 0 ||
+            dst->mirroring_ext < 0 || dst->flip < 0) {
+            mpp_err("invalid trans: rotation %d, mirroring %d\n", dst->rotation_ext, dst->mirroring_ext);
+            ret = MPP_ERR_VALUE;
+        }
+
+        rotation = dst->rotation_ext;
+        mirroring = dst->mirroring_ext;
+
+        if (dst->flip) {
+            mirroring = !mirroring;
+            rotation += MPP_ENC_ROT_180;
+            rotation &= MPP_ENC_ROT_270;
+        }
+
+        dst->mirroring = mirroring;
+        dst->rotation = rotation;
+
+        /* vp8 encoder do not have denoise/sharpen feature */
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT ||
+            (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
+            if ((src->width < 0 || src->width > 1920) ||
+                (src->height < 0 || src->height > 3840) ||
+                (src->hor_stride < 0 || src->hor_stride > 7680) ||
+                (src->ver_stride < 0 || src->ver_stride > 3840)) {
+                mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
+                        src->width, src->height,
+                        src->hor_stride, src->ver_stride);
+                ret = MPP_NOK;
+            }
+
+            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+                dst->width = src->height;
+                dst->height = src->width;
+            } else {
+                dst->width = src->width;
+                dst->height = src->height;
+            }
+            dst->ver_stride = src->ver_stride;
+            dst->hor_stride = src->hor_stride;
+        }
+
         dst->change |= src->change;
+
+        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
+            if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
+        } else {
+            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
+                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
+                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
         vp8e_dbg_cfg("width %d height %d hor_stride %d ver_srtride %d format 0x%x\n",
                      dst->width, dst->height, dst->hor_stride, dst->ver_stride, dst->format);
     }
