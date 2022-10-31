@@ -619,7 +619,7 @@ MPP_RET mpp_service_cmd_send(void *ctx)
         for (i = 0; i < p->req_cnt; i++)
             p->reqs[i].flag |= MPP_FLAGS_MULTI_MSG;
     }
-    p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG;
+    p->reqs[p->req_cnt - 1].flag |=  MPP_FLAGS_LAST_MSG | MPP_FLAGS_REG_OFFSET_ALONE;
 
     if (p->batch_io) {
         ret = mpp_server_send_task(ctx);
