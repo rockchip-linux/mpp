@@ -69,12 +69,18 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     regs->sw64.base_rec_chr = hw_cfg->internal_img_chr_base_w;
 
     regs->sw48.base_in_lum = hw_cfg->input_lum_base;
-    regs->sw49.base_in_cb = hw_cfg->input_cb_base;
-    mpp_dev_set_reg_offset(ctx->dev, 49, hw_cfg->input_cb_offset);
-    regs->sw50.base_in_cr = hw_cfg->input_cr_base;
-    mpp_dev_set_reg_offset(ctx->dev, 50, hw_cfg->input_cr_offset);
+    if (hw_cfg->input_lum_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 48, hw_cfg->input_lum_offset);
 
-//    regs->sw109.int_timeout =  1 & 1;
+    regs->sw49.base_in_cb = hw_cfg->input_cb_base;
+    if (hw_cfg->input_cb_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 49, hw_cfg->input_cb_offset);
+
+    regs->sw50.base_in_cr = hw_cfg->input_cr_base;
+    if (hw_cfg->input_cr_offset)
+        mpp_dev_set_reg_offset(ctx->dev, 50, hw_cfg->input_cr_offset);
+
+    // regs->sw109.int_timeout =  1 & 1;
     regs->sw109.val |= 0x0400;
     regs->sw109.int_slice_ready =  hw_cfg->int_slice_ready;
     regs->sw109.rec_write_disable =  hw_cfg->rec_write_disable;
