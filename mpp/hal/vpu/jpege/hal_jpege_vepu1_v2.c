@@ -216,6 +216,10 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
 
     hal_jpege_dbg_func("enter hal %p\n", hal);
 
+    // do not support mirroring
+    if (syntax->mirroring)
+        mpp_err_f("Warning: do not support mirroring\n");
+
     if (syntax->rotation == MPP_ENC_ROT_90)
         rotation = 1;
     else if (syntax->rotation == MPP_ENC_ROT_270)

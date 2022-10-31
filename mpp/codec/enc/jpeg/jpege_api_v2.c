@@ -119,14 +119,41 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     if (change) {
         MppEncPrepCfg bak = *dst;
         MppFrameFormat fmt;
+        RK_S32 mirroring;
+        RK_S32 rotation;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
             dst->format = src->format;
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-            dst->rotation = src->rotation;
+            dst->rotation_ext = src->rotation_ext;
 
-        /* jpeg encoder do not have mirring / denoise feature */
+        if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
+            dst->mirroring_ext = src->mirroring_ext;
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FLIP)
+            dst->flip = src->flip;
+
+        // parameter checking
+        if (dst->rotation_ext >= MPP_ENC_ROT_BUTT || dst->rotation_ext < 0 ||
+            dst->mirroring_ext < 0 || dst->flip < 0) {
+            mpp_err("invalid trans: rotation %d, mirroring %d\n", dst->rotation_ext, dst->mirroring_ext);
+            ret = MPP_ERR_VALUE;
+        }
+
+        rotation = dst->rotation_ext;
+        mirroring = dst->mirroring_ext;
+
+        if (dst->flip) {
+            mirroring = !mirroring;
+            rotation += MPP_ENC_ROT_180;
+            rotation &= MPP_ENC_ROT_270;
+        }
+
+        dst->mirroring = mirroring;
+        dst->rotation = rotation;
+
+        /* jpeg encoder do not have denoise/sharpen feature */
 
         if ((change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
             (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
@@ -476,6 +503,7 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->format      = prep->format;
     syntax->color       = prep->color;
     syntax->rotation    = prep->rotation;
+    syntax->mirroring   = prep->mirroring;
     syntax->offset_x    = mpp_frame_get_offset_x(frame);
     syntax->offset_y    = mpp_frame_get_offset_y(frame);
     syntax->quality     = codec->jpeg.quant;
