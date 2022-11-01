@@ -106,6 +106,10 @@ typedef enum VPU_API_CMD {
     VPU_API_ENC_SET_VEPU22_CTU_QP,
     VPU_API_ENC_SET_VEPU22_ROI,
 
+    VPU_API_ENC_MPP        = 0x3000,
+    VPU_API_ENC_MPP_SETCFG,
+    VPU_API_ENC_MPP_GETCFG,
+
     /* mlvec dynamic configure */
     VPU_API_ENC_MLVEC_CFG = 0x4000,
     VPU_API_ENC_SET_MAX_TID,

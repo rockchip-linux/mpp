@@ -1540,6 +1540,13 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_ENC_SET_VEPU22_ROI: {
         mpicmd = MPP_ENC_SET_ROI_CFG;
     } break;
+    case VPU_API_ENC_MPP_SETCFG: {
+        mpicmd = MPP_ENC_SET_CFG;
+    } break;
+    case VPU_API_ENC_MPP_GETCFG: {
+        *((MppEncCfg *)param) = enc_cfg;
+        mpicmd = MPP_ENC_GET_CFG;
+    } break;
     case VPU_API_ENC_SET_MAX_TID: {
         RK_S32 max_tid = *(RK_S32 *)param;
 
