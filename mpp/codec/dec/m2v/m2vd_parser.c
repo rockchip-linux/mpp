@@ -1263,6 +1263,9 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         mpp_buf_slot_set_prop(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_FRAME, ctx->frame_cur->f);
         mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_CODEC_USE);
         mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_HAL_OUTPUT);
+    } else {
+        if (ctx->frame_cur->slot_index >= 0)
+            mpp_buf_slot_set_flag(ctx->frame_slots, ctx->frame_cur->slot_index, SLOT_HAL_OUTPUT);
     }
 
     return MPP_OK;
