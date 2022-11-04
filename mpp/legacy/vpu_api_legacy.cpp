@@ -1468,7 +1468,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_ENC_GETCFG : {
         memcpy(param, &enc_param, sizeof(enc_param));
-        return 0;
+        return mpi->control(mpp_ctx, MPP_ENC_GET_CFG, enc_cfg);;
     } break;
     case VPU_API_ENC_SETFORMAT : {
         EncInputPictureType type = *((EncInputPictureType *)param);
@@ -1548,7 +1548,7 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_ENC_MPP_GETCFG: {
         *((MppEncCfg *)param) = enc_cfg;
-        mpicmd = MPP_ENC_GET_CFG;
+        return 0;
     } break;
     case VPU_API_ENC_SET_MAX_TID: {
         RK_S32 max_tid = *(RK_S32 *)param;
