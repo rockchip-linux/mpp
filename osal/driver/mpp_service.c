@@ -657,14 +657,14 @@ MPP_RET mpp_service_cmd_poll(void *ctx, MppDevPollCfg *cfg)
 
         if (p->support_hw_irq && cfg) {
             dev_req.cmd = MPP_CMD_POLL_HW_IRQ;
-            dev_req.flag |= MPP_FLAGS_LAST_MSG;
+            dev_req.flag |= MPP_FLAGS_LAST_MSG | MPP_FLAGS_REG_OFFSET_ALONE;
 
             dev_req.size = sizeof(*cfg) + cfg->count_max * sizeof(cfg->slice_info[0]);
             dev_req.offset = 0;
             dev_req.data_ptr = REQ_DATA_PTR(cfg);
         } else {
             dev_req.cmd = MPP_CMD_POLL_HW_FINISH;
-            dev_req.flag |= MPP_FLAGS_LAST_MSG;
+            dev_req.flag |= MPP_FLAGS_LAST_MSG | MPP_FLAGS_REG_OFFSET_ALONE;
 
             if (cfg) {
                 mpp_assert(cfg->count_max);
