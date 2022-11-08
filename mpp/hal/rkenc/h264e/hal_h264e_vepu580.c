@@ -72,7 +72,6 @@ typedef struct HalH264eVepu580Ctx_t {
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
     H264ePrefixNal          *prefix;
-    HalH264eVepuStreamAmend  amend;
 
     /* syntax for output to enc_impl */
     EncRcTaskInfo           hal_rc_cfg;
@@ -91,12 +90,14 @@ typedef struct HalH264eVepu580Ctx_t {
 
     /* register */
     HalVepu580RegSet        *regs_sets;
+    HalH264eVepuStreamAmend *amend_sets;
 
     /* frame parallel info */
     RK_S32                  task_idx;
     RK_S32                  curr_idx;
     RK_S32                  prev_idx;
     HalVepu580RegSet        *regs_set;
+    HalH264eVepuStreamAmend *amend;
     MppBuffer               ext_line_buf;
 
     /* slice low delay output callback */
@@ -181,6 +182,7 @@ static void clear_ext_line_bufs(HalH264eVepu580Ctx *ctx)
 static MPP_RET hal_h264e_vepu580_deinit(void *hal)
 {
     HalH264eVepu580Ctx *p = (HalH264eVepu580Ctx *)hal;
+    RK_U32 i;
 
     hal_h264e_dbg_func("enter %p\n", p);
 
@@ -191,10 +193,12 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
 
     clear_ext_line_bufs(p);
 
-    MPP_FREE(p->regs_sets);
-    MPP_FREE(p->poll_cfgs);
+    for (i = 0; i < p->task_cnt; i++)
+        h264e_vepu_stream_amend_deinit(&p->amend_sets[i]);
 
-    h264e_vepu_stream_amend_deinit(&p->amend);
+    MPP_FREE(p->regs_sets);
+    MPP_FREE(p->amend_sets);
+    MPP_FREE(p->poll_cfgs);
 
     if (p->ext_line_buf_grp) {
         mpp_buffer_group_put(p->ext_line_buf_grp);
@@ -230,6 +234,7 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 {
     HalH264eVepu580Ctx *p = (HalH264eVepu580Ctx *)hal;
     MPP_RET ret = MPP_OK;
+    RK_U32 i;
 
     hal_h264e_dbg_func("enter %p\n", p);
 
@@ -260,6 +265,12 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         mpp_err_f("init register buffer failed\n");
         goto DONE;
     }
+    p->amend_sets = mpp_malloc(HalH264eVepuStreamAmend, p->task_cnt);
+    if (NULL == p->amend_sets) {
+        ret = MPP_ERR_MALLOC;
+        mpp_err_f("init amend data failed\n");
+        goto DONE;
+    }
 
     p->poll_slice_max = 8;
     p->poll_cfg_size = (sizeof(p->poll_cfgs) + sizeof(RK_S32) * p->poll_slice_max);
@@ -279,7 +290,6 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 
     {   /* setup default hardware config */
         MppEncHwCfg *hw = &cfg->cfg->hw;
-        RK_U32 i;
 
         hw->qp_delta_row_i  = 2;
         hw->qp_delta_row    = 2;
@@ -304,7 +314,8 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
 
     cfg->cap_recn_out = 1;
 
-    h264e_vepu_stream_amend_init(&p->amend);
+    for (i = 0; i < p->task_cnt; i++)
+        h264e_vepu_stream_amend_init(&p->amend_sets[i]);
 
 DONE:
     if (ret)
@@ -496,12 +507,13 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
 
     ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
     ctx->regs_set = &ctx->regs_sets[ctx->task_idx];
+    ctx->amend = &ctx->amend_sets[ctx->task_idx];
     ctx->osd_cfg.reg_base = &ctx->regs_set->reg_osd;
 
     if (ctx->task_cnt > 1)
         ctx->task_idx = !ctx->task_idx;
 
-    h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
+    h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
                                    ctx->slice, ctx->prefix);
 
     hal_h264e_dbg_func("leave %p\n", hal);
@@ -2241,7 +2253,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
     }
 
     if (!(split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) && !ret) {
-        HalH264eVepuStreamAmend *amend = &ctx->amend;
+        HalH264eVepuStreamAmend *amend = &ctx->amend_sets[task->flags.reg_idx];
 
         if (amend->enable) {
             amend->old_length = task->hw_length;
