@@ -555,10 +555,25 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
 
     for (i = 0; i < partion_num; i++) {
         RK_U32 part_not_end = i < partion_num - 1;
+        RK_U32 part_not_start = i > 0;
         RK_U32 *regs = (RK_U32 *)ctx_ext->regs[i];
         RK_U32 part_enc_mcu_h = ctx_ext->part_rows[i];
-        RK_U32 part_y_fill = part_not_end ? 0 : ctx->part_y_fill;
+        RK_U32 part_x_fill = ctx->part_x_fill;
+        RK_U32 part_y_fill = ctx->part_y_fill;
         RK_U32 part_bytepos = ctx->part_bytepos;
+
+        // it only needs to fill the partition on the right and below.
+        if (syntax->rotation == MPP_ENC_ROT_90) {
+            if (part_not_end)
+                part_x_fill = 0;
+        } else if (syntax->rotation == MPP_ENC_ROT_0 || syntax->rotation == MPP_ENC_ROT_180) {
+            if (part_not_end)
+                part_y_fill = 0;
+        } else if (syntax->rotation == MPP_ENC_ROT_270) {
+            if (part_not_start)
+                part_x_fill = 0;
+        } else
+            mpp_err_f("input rotation %d not supported", syntax->rotation);
 
         memcpy(regs, src, reg_size);
 
@@ -569,7 +584,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
             regs[77] = mpp_buffer_get_fd(task->output);
             regs[53] = mpp_buffer_get_size(task->output) - part_bytepos;
             regs[60] = (((part_bytepos & 7) * 8) << 16) |
-                       (ctx->part_x_fill << 4) |
+                       (part_x_fill << 4) |
                        (part_y_fill);
             /* the stream offset had been setup */
         } else {
@@ -578,7 +593,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
             regs[77] = mpp_buffer_get_fd(buf);
             regs[53] = mpp_buffer_get_size(buf);
             regs[60] = (((0 & 7) * 8) << 16) |
-                       (ctx->part_x_fill << 4) |
+                       (part_x_fill << 4) |
                        (part_y_fill);
         }
 
@@ -610,8 +625,17 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
                         (2 << 4) |  /* format jpeg   */
                         1;          /* encoder start */
 
-            cfg.offset_x = syntax->offset_x + mcu_y * 16;
-            cfg.offset_y = syntax->offset_y;
+            /*
+             * It is opposite that position of partitions
+             * of rotation 90 degree and rotation 270 degree.
+             */
+            if (syntax->rotation == MPP_ENC_ROT_270)
+                cfg.offset_x = syntax->offset_y +
+                               (syntax->mcu_h - ctx_ext->part_rows[0] - mcu_y) * 16;
+            else
+                cfg.offset_x = syntax->offset_y + mcu_y * 16;
+
+            cfg.offset_y = syntax->offset_x;
         }
 
         get_vepu_offset_cfg(&cfg);
