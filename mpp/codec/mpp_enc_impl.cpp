@@ -676,6 +676,15 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
                 ret = MPP_ERR_VALUE;
             }
         }
+
+        if (dst->fps_in_num < 0 || dst->fps_in_denorm < 0 ||
+            dst->fps_out_num < 0 || dst->fps_out_denorm < 0) {
+            mpp_err("invalid fps cfg [number:denorm:flex]: in [%d:%d:%d] out [%d:%d:%d]\n",
+                    dst->fps_in_num, dst->fps_in_denorm, dst->fps_in_flex,
+                    dst->fps_out_num, dst->fps_out_denorm, dst->fps_out_flex);
+            ret = MPP_ERR_VALUE;
+        }
+
         // if I frame min/max is not set use normal case
         if (dst->qp_min_i <= 0)
             dst->qp_min_i = dst->qp_min;
