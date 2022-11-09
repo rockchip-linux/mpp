@@ -108,7 +108,7 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
     } else {
         MPP_FREE(ctx->dst_buf);
         MPP_FREE(ctx->src_buf);
-        memset(ctx, 0, sizeof(*ctx));
+        h264e_vepu_stream_amend_init(ctx);
     }
 
     slice->pic_order_cnt_type = cfg->codec.h264.poc_type;
