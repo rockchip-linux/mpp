@@ -172,7 +172,7 @@ static MPP_RET parser_nalu_header(H264_SLICE_t *currSlice)
         || cur_nal->nalu_type == H264_NALU_TYPE_SLC_EXT) {
         READ_ONEBIT(p_bitctx, &currSlice->svc_extension_flag);
         if (currSlice->svc_extension_flag) {
-            currSlice->svcExt.valid =  1;
+            currSlice->svcExt.valid = 1;
             p_Cur->p_Dec->svc_valid = 1;
             READ_ONEBIT(p_bitctx,     &currSlice->svcExt.idr_flag);
             READ_BITS(p_bitctx,    6, &currSlice->svcExt.priority_id);
