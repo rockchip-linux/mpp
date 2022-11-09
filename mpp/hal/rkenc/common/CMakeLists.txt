@@ -4,6 +4,7 @@ include_directories(.)
 # hal vepu541 common module
 add_library(hal_vepu541_common STATIC
             vepu541_common.c
+            vepu5xx_common.c
             )
 
 target_link_libraries(hal_vepu541_common mpp_base)

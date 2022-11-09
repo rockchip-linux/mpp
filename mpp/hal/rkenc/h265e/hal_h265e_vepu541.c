@@ -32,6 +32,7 @@
 #include "hal_h265e_vepu541_reg.h"
 #include "hal_h265e_vepu54x_reg_l2.h"
 #include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "rkv_enc_def.h"
 #include "mpp_enc_hal.h"
 #include "hal_bufs.h"
@@ -1030,21 +1031,27 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt,
               stridey : stridey / 2;
 
     if (regs->src_fmt.src_cfmt < VEPU541_FMT_NONE) {
-        regs->src_udfy.wght_r2y = 66;
-        regs->src_udfy.wght_g2y = 129;
-        regs->src_udfy.wght_b2y = 25;
+        const VepuRgb2YuvCfg *cfg_coeffs = cfg_coeffs = get_rgb2yuv_cfg(prep_cfg->range, prep_cfg->color);
 
-        regs->src_udfu.wght_r2u = -38;
-        regs->src_udfu.wght_g2u = -74;
-        regs->src_udfu.wght_b2u = 112;
+        hal_h265e_dbg_simple("input color range %d colorspace %d", prep_cfg->range, prep_cfg->color);
 
-        regs->src_udfv.wght_r2v = 112;
-        regs->src_udfv.wght_g2v = -94;
-        regs->src_udfv.wght_b2v = -18;
+        regs->src_udfy.wght_r2y = cfg_coeffs->_2y.r_coeff;
+        regs->src_udfy.wght_g2y = cfg_coeffs->_2y.g_coeff;
+        regs->src_udfy.wght_b2y = cfg_coeffs->_2y.b_coeff;
 
-        regs->src_udfo.ofst_y = 16;
-        regs->src_udfo.ofst_u = 128;
-        regs->src_udfo.ofst_v = 128;
+        regs->src_udfu.wght_r2u = cfg_coeffs->_2u.r_coeff;
+        regs->src_udfu.wght_g2u = cfg_coeffs->_2u.g_coeff;
+        regs->src_udfu.wght_b2u = cfg_coeffs->_2u.b_coeff;
+
+        regs->src_udfv.wght_r2v = cfg_coeffs->_2v.r_coeff;
+        regs->src_udfv.wght_g2v = cfg_coeffs->_2v.g_coeff;
+        regs->src_udfv.wght_b2v = cfg_coeffs->_2v.b_coeff;
+
+        regs->src_udfo.ofst_y = cfg_coeffs->_2y.offset;
+        regs->src_udfo.ofst_u = cfg_coeffs->_2u.offset;
+        regs->src_udfo.ofst_v = cfg_coeffs->_2v.offset;
+
+        hal_h265e_dbg_simple("use color range %d colorspace %d", cfg_coeffs->dst_range, cfg_coeffs->color);
     }
 
     regs->src_strid.src_ystrid  = stridey;
