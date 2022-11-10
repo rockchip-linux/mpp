@@ -1036,13 +1036,18 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
                                                   ? 0 : 1;
     hw_regs->common.reg012.colmv_compress_en    = 1;
 
-    hw_regs->common.reg024.cabac_err_en_lowbits = 0xffffdfff;
-    hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) {
+        hw_regs->common.reg026.swreg_block_gating_e = 0xfffef;
+        hw_regs->common.reg024.cabac_err_en_lowbits = 0;
+        hw_regs->common.reg025.cabac_err_en_highbits = 0;
+    } else {
+        hw_regs->common.reg024.cabac_err_en_lowbits = 0xffffdfff;
+        hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;
+        hw_regs->common.reg026.swreg_block_gating_e = 0xfffff;
+    }
 
     hw_regs->common.reg011.dec_clkgate_e    = 1;
     hw_regs->common.reg011.dec_e_strmd_clkgate_dis = 0;
-    hw_regs->common.reg026.swreg_block_gating_e =
-        (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) ? 0xfffef : 0xfffff;
     hw_regs->common.reg026.reg_cfg_gating_en = 1;
     hw_regs->common.reg032_timeout_threshold = 0x3ffff;
 
