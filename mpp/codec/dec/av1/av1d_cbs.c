@@ -2334,8 +2334,10 @@ static RK_S32 mpp_av1_metadata_itut_t35(AV1Context *ctx, BitReadCtx_t *gb,
     if (current->itu_t_t35_country_code == 0xff)
         fb(8, itu_t_t35_country_code_extension_byte);
 
-    current->payload_size = mpp_av1_get_payload_bytes_left(gb);
+    current->payload_size = mpp_get_bits_left(gb) / 8 - 1;
 
+    av1d_dbg(AV1D_DBG_STRMIN, "%s itu_t_t35_country_code %d payload_size %d\n",
+             __func__, current->itu_t_t35_country_code, current->payload_size);
     current->payload = mpp_malloc(RK_U8, current->payload_size);
     if (!current->payload)
         return MPP_ERR_NOMEM;
@@ -2392,7 +2394,7 @@ static RK_S32 mpp_av1_metadata_obu(AV1Context *ctx, BitReadCtx_t *gb,
     RK_S32 err;
 
     leb128(metadata_type);
-
+    av1d_dbg(AV1D_DBG_STRMIN, "%s meta type %d\n", __func__, current->metadata_type);
     switch (current->metadata_type) {
     case AV1_METADATA_TYPE_HDR_CLL:
         CHECK(mpp_av1_metadata_hdr_cll(ctx, gb, &current->metadata.hdr_cll));
@@ -2687,7 +2689,8 @@ MPP_RET mpp_av1_read_unit(AV1Context *ctx, Av1ObuUnit *unit)
             }
         }
     }
-
+    av1d_dbg(AV1D_DBG_HEADER, "obu type %d size %d\n",
+             obu->header.obu_type, obu->obu_size);
     switch (obu->header.obu_type) {
     case AV1_OBU_SEQUENCE_HEADER: {
         err = mpp_av1_sequence_header_obu(ctx, &gbc,

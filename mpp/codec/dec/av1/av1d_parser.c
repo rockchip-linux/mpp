@@ -50,6 +50,7 @@ static const Av1UnitType unit_types[] = {
     AV1_OBU_SEQUENCE_HEADER,
     AV1_OBU_FRAME_HEADER,
     AV1_OBU_TILE_GROUP,
+    AV1_OBU_METADATA,
     AV1_OBU_FRAME,
 };
 
