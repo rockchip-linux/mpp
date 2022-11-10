@@ -123,6 +123,7 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     mpp_enc_cfg_set_s32(enc_cfg, "prep:width", width);
     mpp_enc_cfg_set_s32(enc_cfg, "prep:height", height);
     switch (fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420P:
     case MPP_FMT_YUV420SP :
     case MPP_FMT_YUV420SP_VU : {
         mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", MPP_ALIGN(width, 16));
@@ -1008,6 +1009,7 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     mpp_frame_set_height(frame, height);
     mpp_frame_set_ver_stride(frame, ver_stride);
     switch (format & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420P :
     case MPP_FMT_YUV420SP :
     case MPP_FMT_YUV420SP_VU : {
         mpp_frame_set_hor_stride(frame, hor_stride);
@@ -1262,6 +1264,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     mpp_frame_set_ver_stride(frame, ver_stride);
     mpp_frame_set_pts(frame, pts);
     switch (format & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420P :
     case MPP_FMT_YUV420SP :
     case MPP_FMT_YUV420SP_VU : {
         mpp_frame_set_hor_stride(frame, hor_stride);
