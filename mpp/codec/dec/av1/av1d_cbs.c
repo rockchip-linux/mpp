@@ -1158,11 +1158,15 @@ static RK_S32 mpp_av1_segmentation_params(AV1Context *ctx, BitReadCtx_t *gb,
             for (j = 0; j < AV1_SEG_LVL_MAX; j++) {
                 if (current->segmentation_update_data) {
                     flags(feature_enabled[i][j], 2, i, j);
-
                     if (current->feature_enabled[i][j] && bits[j] > 0) {
-                        if (sign[j])
-                            sus(1 + bits[j], feature_value[i][j], 2, i, j);
-                        else
+                        if (sign[j]) {
+                            RK_S32 sign_, data;
+
+                            READ_ONEBIT(gb, &sign_);
+                            READ_BITS(gb, bits[j], &data);
+                            if (sign_) data -= (1 << bits[j]);
+                            current->feature_value[i][j] = data;
+                        } else
                             fbs(bits[j], feature_value[i][j], 2, i, j);
                     } else {
                         infer(feature_value[i][j], 0);
@@ -1183,6 +1187,8 @@ static RK_S32 mpp_av1_segmentation_params(AV1Context *ctx, BitReadCtx_t *gb,
     }
 
     return 0;
+__BITREAD_ERR:
+    return MPP_ERR_STREAM;
 }
 
 static RK_S32 mpp_av1_delta_q_params(AV1Context *ctx, BitReadCtx_t *gb,
