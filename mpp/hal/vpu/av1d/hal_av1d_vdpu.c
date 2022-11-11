@@ -1225,7 +1225,7 @@ void vdpu_av1d_set_segmentation(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
     RK_U8 preskip_segid = 0;
     RK_U8 last_active_seg = 0;
     /* Segmentation */
-    regs->swreg13.sw_segment_temp_upd_e   = dxva->segmentation.update_data;
+    regs->swreg13.sw_segment_temp_upd_e   = dxva->segmentation.temporal_update;
     regs->swreg13.sw_segment_upd_e        = dxva->segmentation.update_map;
     regs->swreg13.sw_segment_e            = dxva->segmentation.enabled;
 
