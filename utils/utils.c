@@ -595,6 +595,8 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     case MPP_FMT_YUV422_VYUY : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 2, fp);
     } break;
+    case MPP_FMT_YUV444SP :
+    case MPP_FMT_YUV444P :
     case MPP_FMT_RGB888 :
     case MPP_FMT_BGR888 : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 3, fp);
