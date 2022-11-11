@@ -1837,6 +1837,8 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         p->cmd_lock = new Mutex();
         sem_init(&p->parser_reset, 0, 0);
         sem_init(&p->hal_reset, 0, 0);
+        sem_init(&p->cmd_start, 0, 0);
+        sem_init(&p->cmd_done, 0, 0);
 
         // init timestamp for record and sort pts
         mpp_spinlock_init(&p->ts_lock);
@@ -1933,6 +1935,9 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
 
     sem_destroy(&dec->parser_reset);
     sem_destroy(&dec->hal_reset);
+    sem_destroy(&dec->cmd_start);
+    sem_destroy(&dec->cmd_done);
+
     if (dec->ts_pool) {
         mpp_mem_pool_deinit(dec->ts_pool);
         dec->ts_pool = NULL;
