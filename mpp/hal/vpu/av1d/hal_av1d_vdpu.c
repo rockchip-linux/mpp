@@ -2165,7 +2165,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 out_w = hor_stride;
         RK_U32 out_h = ver_stride;
         RK_U32 y_stride = out_w * out_h;
-        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 3;
+        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 0;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
         mpp_dev_set_reg_offset(p_hal->dev, 328, y_stride);
