@@ -90,7 +90,7 @@ static MPP_RET get_pixel_format(Av1CodecContext *ctx)
             if (bit_depth == 8)
                 pix_fmt = MPP_FMT_YUV420SP;
             else if (bit_depth == 10) {
-                pix_fmt = MPP_FMT_YUV420SP; //pp will covert to 8 bit
+                pix_fmt = MPP_FMT_YUV420SP_10BIT;
             } else {
                 mpp_err_f("no support MPP_FMT_YUV420SP bit depth > 8\n");
                 return -1;
