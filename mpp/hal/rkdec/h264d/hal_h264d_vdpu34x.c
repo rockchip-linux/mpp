@@ -626,7 +626,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu34xH264dRegSet *regs, Hal
                 (!mpp_frame_get_errinfo(mframe))) {
                 min_frame_num = pp->FrameNumList[i];
                 regs->common_addr.reg132_error_ref_base =  mpp_buffer_get_fd(mbuffer);
-                common->reg021.error_intra_mode = 0;
+                if (!pp->weighted_pred_flag)
+                    common->reg021.error_intra_mode = 0;
             }
 
             RK_S32 fd = mpp_buffer_get_fd(mbuffer);
