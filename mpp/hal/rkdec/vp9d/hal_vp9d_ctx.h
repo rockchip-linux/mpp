@@ -20,7 +20,6 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 #include "hal_bufs.h"
-#include "vdpu34x_com.h"
 
 #define MAX_GEN_REG 3
 

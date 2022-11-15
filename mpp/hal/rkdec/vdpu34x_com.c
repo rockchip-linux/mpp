@@ -51,7 +51,7 @@ static RK_S32 update_size_offset(Vdpu34xRcbInfo *info, RK_U32 reg,
     return buf_size;
 }
 
-RK_S32 get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height)
+RK_S32 vdpu34x_get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height)
 {
     RK_S32 offset = 0;
 

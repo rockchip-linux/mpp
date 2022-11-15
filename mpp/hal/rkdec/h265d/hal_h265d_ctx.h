@@ -20,9 +20,9 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 #include "hal_bufs.h"
-#include "vdpu34x_com.h"
 
 #define MAX_GEN_REG 3
+#define H265D_RCB_BUF_COUNT 10
 
 typedef struct H265dRegBuf_t {
     RK_S32    use_flag;
@@ -31,6 +31,12 @@ typedef struct H265dRegBuf_t {
     MppBuffer rps_data;
     void*     hw_regs;
 } H265dRegBuf;
+
+typedef struct h265d_rcb_info_t {
+    RK_S32              reg;
+    RK_S32              size;
+    RK_S32              offset;
+} H265dRcbInfo;
 
 typedef struct HalH265dCtx_t {
     /* for hal api call back */
@@ -53,7 +59,7 @@ typedef struct HalH265dCtx_t {
     RK_S32          width;
     RK_S32          height;
     RK_S32          rcb_buf_size;
-    Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
+    H265dRcbInfo    rcb_info[H265D_RCB_BUF_COUNT];
     MppBuffer       rcb_buf[MAX_GEN_REG];
 
     void*           hw_regs;

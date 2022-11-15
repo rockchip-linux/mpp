@@ -29,6 +29,7 @@
 #include "hal_avs2d_api.h"
 #include "hal_avs2d_rkv.h"
 #include "mpp_dec_cb_param.h"
+#include "vdpu34x_avs2d.h"
 
 #define VDPU34X_FAST_REG_SET_CNT    (3)
 #define MAX_REF_NUM                 (8)
@@ -293,7 +294,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu34xAvs2dRegSet *hw_regs)
 
     (void) hw_regs;
 
-    reg_ctx->rcb_buf_size = get_rcb_buf_size(reg_ctx->rcb_info, width, height);
+    reg_ctx->rcb_buf_size = vdpu34x_get_rcb_buf_size(reg_ctx->rcb_info, width, height);
     //avs2d_refine_rcb_size(reg_ctx->rcb_info, hw_regs, width, height, (void *)&p_hal->syntax);
 
     for (i = 0; i < loop; i++) {
