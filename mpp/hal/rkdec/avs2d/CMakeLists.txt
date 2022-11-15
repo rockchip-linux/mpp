@@ -13,6 +13,7 @@ set(HAL_AVS2D_HDR
 # hal avs2 decoder sourse
 set(HAL_AVS2D_SRC
     hal_avs2d_rkv.c
+    hal_avs2d_vdpu382.c
     hal_avs2d_api.c
     )
 

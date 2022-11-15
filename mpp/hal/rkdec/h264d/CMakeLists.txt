@@ -4,6 +4,7 @@
 set(HAL_H264D_SRC
     hal_h264d_api.c
     hal_h264d_vdpu34x.c
+    hal_h264d_vdpu382.c
     hal_h264d_rkv_reg.c
     hal_h264d_vdpu2.c
     hal_h264d_vdpu1.c

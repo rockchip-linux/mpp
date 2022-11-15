@@ -38,6 +38,7 @@
 
 #include "hal_h264d_rkv_reg.h"
 #include "hal_h264d_vdpu34x.h"
+#include "hal_h264d_vdpu382.h"
 #include "hal_h264d_vdpu2.h"
 #include "hal_h264d_vdpu1.h"
 
@@ -133,7 +134,16 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     case VPU_CLIENT_RKVDEC : {
         RK_U32 hw_id = mpp_get_client_hw_id(client_type);
 
-        if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
+        if (hw_id == HWID_VDPU382) {
+            p_api->init    = vdpu382_h264d_init;
+            p_api->deinit  = vdpu382_h264d_deinit;
+            p_api->reg_gen = vdpu382_h264d_gen_regs;
+            p_api->start   = vdpu382_h264d_start;
+            p_api->wait    = vdpu382_h264d_wait;
+            p_api->reset   = vdpu382_h264d_reset;
+            p_api->flush   = vdpu382_h264d_flush;
+            p_api->control = vdpu382_h264d_control;
+        } else if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
             p_api->init    = vdpu34x_h264d_init;
             p_api->deinit  = vdpu34x_h264d_deinit;
             p_api->reg_gen = vdpu34x_h264d_gen_regs;
