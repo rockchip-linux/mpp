@@ -345,7 +345,7 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, voi
         hw_ctx->width != width ||
         hw_ctx->height != height) {
 
-        hw_ctx->rcb_buf_size = get_rcb_buf_size(hw_ctx->rcb_info, width, height);
+        hw_ctx->rcb_buf_size = vdpu34x_get_rcb_buf_size(hw_ctx->rcb_info, width, height);
         vp9d_refine_rcb_size(hw_ctx->rcb_info, hw_regs, width, height, pic_param);
 
         if (p_hal->fast_mode) {

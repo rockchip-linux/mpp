@@ -783,8 +783,8 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
         RK_U32 i = 0;
         RK_U32 loop = reg_cxt->fast_mode ? MPP_ARRAY_ELEMS(reg_cxt->g_buf) : 1;
 
-        reg_cxt->rcb_buf_size = get_rcb_buf_size(reg_cxt->rcb_info, width, height);
-        h265d_refine_rcb_size(reg_cxt->rcb_info, hw_regs, width, height, dxva_cxt);
+        reg_cxt->rcb_buf_size = vdpu34x_get_rcb_buf_size((Vdpu34xRcbInfo*)reg_cxt->rcb_info, width, height);
+        h265d_refine_rcb_size((Vdpu34xRcbInfo*)reg_cxt->rcb_info, hw_regs, width, height, dxva_cxt);
 
         for (i = 0; i < loop; i++) {
             MppBuffer rcb_buf;
@@ -1128,7 +1128,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
     vdpu34x_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->fast_mode ?
                       reg_cxt->rcb_buf[syn->dec.reg_index] : reg_cxt->rcb_buf[0],
-                      reg_cxt->rcb_info);
+                      (Vdpu34xRcbInfo*)reg_cxt->rcb_info);
     vdpu34x_setup_statistic(&hw_regs->common, &hw_regs->statistic);
 
     return ret;

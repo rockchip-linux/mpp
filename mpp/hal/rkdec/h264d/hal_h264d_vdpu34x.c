@@ -878,7 +878,7 @@ static void hal_h264d_rcb_info_update(void *hal, Vdpu34xH264dRegSet *regs)
         RK_U32 i;
         RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
 
-        ctx->rcb_buf_size = get_rcb_buf_size(ctx->rcb_info, width, height);
+        ctx->rcb_buf_size = vdpu34x_get_rcb_buf_size(ctx->rcb_info, width, height);
         h264d_refine_rcb_size(hal, ctx->rcb_info, regs, width, height);
         for (i = 0; i < loop; i++) {
             MppBuffer rcb_buf = ctx->rcb_buf[i];
