@@ -27,6 +27,7 @@
 #include "hal_h265d_api.h"
 #include "hal_h265d_rkv.h"
 #include "hal_h265d_vdpu34x.h"
+#include "hal_h265d_vdpu382.h"
 
 RK_U32 hal_h265d_debug = 0;
 
@@ -58,7 +59,9 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
     p->is_v34x = (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X);
     p->client_type = client_type;
 
-    if (p->is_v34x)
+    if (hw_id == HWID_VDPU382)
+        p->api = &hal_h265d_vdpu382;
+    else if (p->is_v34x)
         p->api = &hal_h265d_vdpu34x;
     else
         p->api = &hal_h265d_rkv;

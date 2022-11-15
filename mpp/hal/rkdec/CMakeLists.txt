@@ -1,7 +1,7 @@
 # vim: syntax=cmake
 include_directories(inc)
 
-add_library(vdpu34x_com STATIC vdpu34x_com.c)
+add_library(vdpu34x_com STATIC vdpu34x_com.c vdpu382_com.c)
 
 if( HAVE_AVSD )
     add_subdirectory(avsd)
