@@ -577,12 +577,14 @@ typedef struct Vepu540cBaseCfg_t {
         RK_U32 chrm_spcl      : 1;
         RK_U32 reserved1      : 8;
         RK_U32 ccwa_e         : 1;
-        RK_U32 reserved2      : 6;
+        RK_U32 reserved2      : 1;
+        RK_U32 intra_cost_e   : 1;
+        RK_U32 reserved3      : 4;
         RK_U32 scl_lst_sel    : 2;
-        RK_U32 reserved3      : 6;
+        RK_U32 reserved4      : 6;
         RK_U32 atf_e          : 1;
         RK_U32 atr_e          : 1;
-        RK_U32 reserved4      : 2;
+        RK_U32 reserved5      : 2;
     } rdo_cfg;
 
     /* 0x000003a4 reg233 */

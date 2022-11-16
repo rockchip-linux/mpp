@@ -210,39 +210,8 @@ typedef struct RdoNoSkipPar_t {
 /* 0x00002000 reg2048 - 0x00002c7c reg2847*/
 typedef struct Vepu540cRdoCfg_t {
 
-    /* 0x00002000 reg2048 */
-    struct {
-        RK_U32 log2weight_denom_c         : 3;
-        RK_U32 log2weight_denom_y         : 3;
-        RK_U32 weightp_c                  : 1;
-        RK_U32 weightp_y                  : 1;
-        RK_U32 weightp_en                 : 1;
-        RK_U32 cime_ds_data_chg_for_wp    : 1;
-        RK_U32 reserved                   : 22;
-    } weightp_cfg_comb;
-
-    /* 0x00002004 reg2049 */
-    struct {
-        RK_U32 input_weight_v    : 9;
-        RK_U32 reserved          : 1;
-        RK_U32 input_weight_u    : 9;
-        RK_U32 reserved1         : 1;
-        RK_U32 input_weight_y    : 9;
-        RK_U32 reserved2         : 3;
-    } whightp_input_comb;
-
-    /* 0x00002008 reg2050 */
-    struct {
-        RK_U32 input_offset_v    : 8;
-        RK_U32 reserved          : 2;
-        RK_U32 input_offset_u    : 8;
-        RK_U32 reserved1         : 2;
-        RK_U32 input_offset_y    : 8;
-        RK_U32 reserved2         : 4;
-    } whightp_inoffset_comb;
-
-    /* 0x200c */
-    RK_U32 reserved_2051;
+    /* 0x2000 - 0x200c */
+    RK_U32 reserved2048_2051[4];
 
     /* 0x00002010 reg2052 */
     struct {
