@@ -480,8 +480,14 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
     }
 
-    if (change & MPP_ENC_H265_CFG_TITLE_CHANGE)
+    if (change & MPP_ENC_H265_CFG_TILE_CHANGE)
         dst->auto_tile = src->auto_tile;
+
+    if (change & MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE)
+        dst->lpf_acs_sli_en = src->lpf_acs_sli_en;
+
+    if (change & MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE)
+        dst->lpf_acs_tile_disable = src->lpf_acs_tile_disable;
 
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config

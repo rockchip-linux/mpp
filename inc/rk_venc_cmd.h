@@ -941,7 +941,9 @@ typedef enum MppEncH265CfgChange_e {
     MPP_ENC_H265_CFG_RC_I_QP_CHANGE             = (1 << 19),
     MPP_ENC_H265_CFG_RC_MAX_QP_STEP_CHANGE      = (1 << 21),
     MPP_ENC_H265_CFG_RC_IP_DELTA_QP_CHANGE      = (1 << 20),
-    MPP_ENC_H265_CFG_TITLE_CHANGE               = (1 << 22),
+    MPP_ENC_H265_CFG_TILE_CHANGE                = (1 << 22),
+    MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE        = (1 << 23),
+    MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE         = (1 << 24),
     MPP_ENC_H265_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncH265CfgChange;
 
@@ -958,7 +960,6 @@ typedef struct MppEncH265SliceCfg_t {
      */
     RK_U32  slice_size;
     RK_U32  slice_out;
-    RK_U32  loop_filter_across_slices_enabled_flag;
 } MppEncH265SliceCfg;
 
 typedef struct MppEncH265CuCfg_t {
@@ -1063,6 +1064,8 @@ typedef struct MppEncH265Cfg_t {
     MppEncH265RefCfg     ref_cfg;
     MppEncH265MergesCfg  merge_cfg;
     RK_S32               auto_tile;
+    RK_U32               lpf_acs_sli_en;
+    RK_U32               lpf_acs_tile_disable;
 
     /* extra info */
     MppEncH265VuiCfg    vui;

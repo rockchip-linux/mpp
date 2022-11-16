@@ -226,7 +226,9 @@ public:
     ENTRY(h265, qp_delta_ip,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
     ENTRY(h265, sao_luma_disable,   S32, RK_S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_luma_disable) \
     ENTRY(h265, sao_chroma_disable, S32, RK_S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_chroma_disable) \
-    ENTRY(h265, auto_tile,      S32, RK_S32,            MPP_ENC_H265_CFG_TITLE_CHANGE,          codec.h265, auto_tile) \
+    ENTRY(h265, lpf_acs_sli_en, U32, RK_U32,            MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   codec.h265, lpf_acs_sli_en) \
+    ENTRY(h265, lpf_acs_tile_disable, U32, RK_U32,      MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    codec.h265, lpf_acs_tile_disable) \
+    ENTRY(h265, auto_tile,      S32, RK_S32,            MPP_ENC_H265_CFG_TILE_CHANGE,           codec.h265, auto_tile) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
