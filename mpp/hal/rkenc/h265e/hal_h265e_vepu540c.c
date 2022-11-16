@@ -106,7 +106,7 @@ static RK_U32 aq_thd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
     8,  8,  8,  15,
-    15, 20, 25, 35
+    15, 20, 25, 25
 };
 
 static RK_S32 aq_qp_dealt_default[16] = {
@@ -438,42 +438,42 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
         /* 0x1760 */
         regs->reg_wgt.me_sqi_cfg.cime_pmv_num = 1;
         regs->reg_wgt.me_sqi_cfg.cime_fuse   = 1;
-        regs->reg_wgt.me_sqi_cfg.itp_mode    = 1;
-        regs->reg_wgt.me_sqi_cfg.move_lambda = 1;
-        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 1;
-        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 0;
-        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 0;
+        regs->reg_wgt.me_sqi_cfg.itp_mode    = 0;
+        regs->reg_wgt.me_sqi_cfg.move_lambda = 2;
+        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 0;
+        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 3;
+        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 3;
 
         /* 0x1764 */
-        regs->reg_wgt.cime_mvd_th.cime_mvd_th0 = 50;
-        regs->reg_wgt.cime_mvd_th.cime_mvd_th1 = 511;
-        regs->reg_wgt.cime_mvd_th.cime_mvd_th2 = 0;
+        regs->reg_wgt.cime_mvd_th.cime_mvd_th0 = 8;
+        regs->reg_wgt.cime_mvd_th.cime_mvd_th1 = 20;
+        regs->reg_wgt.cime_mvd_th.cime_mvd_th2 = 32;
 
         /* 0x1768 */
-        regs->reg_wgt.cime_madp_th.cime_madp_th = 160;
+        regs->reg_wgt.cime_madp_th.cime_madp_th = 16;
 
         /* 0x176c */
-        regs->reg_wgt.cime_multi.cime_multi0 = 192;
-        regs->reg_wgt.cime_multi.cime_multi1 = 255;
-        regs->reg_wgt.cime_multi.cime_multi2 = 0;
-        regs->reg_wgt.cime_multi.cime_multi3 = 15;
+        regs->reg_wgt.cime_multi.cime_multi0 = 8;
+        regs->reg_wgt.cime_multi.cime_multi1 = 12;
+        regs->reg_wgt.cime_multi.cime_multi2 = 16;
+        regs->reg_wgt.cime_multi.cime_multi3 = 20;
     }
 
     /* RIME && FME */
     {
         /* 0x1770 */
-        regs->reg_wgt.rime_mvd_th.rime_mvd_th0  = 0;
-        regs->reg_wgt.rime_mvd_th.rime_mvd_th1  = 1;
+        regs->reg_wgt.rime_mvd_th.rime_mvd_th0  = 1;
+        regs->reg_wgt.rime_mvd_th.rime_mvd_th1  = 2;
         regs->reg_wgt.rime_mvd_th.fme_madp_th   = 0;
 
         /* 0x1774 */
-        regs->reg_wgt.rime_madp_th.rime_madp_th0 = 192;
-        regs->reg_wgt.rime_madp_th.rime_madp_th1 = 1023;
+        regs->reg_wgt.rime_madp_th.rime_madp_th0 = 8;
+        regs->reg_wgt.rime_madp_th.rime_madp_th1 = 16;
 
         /* 0x1778 */
-        regs->reg_wgt.rime_multi.rime_multi0 = 16;
-        regs->reg_wgt.rime_multi.rime_multi1 = 16;
-        regs->reg_wgt.rime_multi.rime_multi2 = 128;
+        regs->reg_wgt.rime_multi.rime_multi0 = 4;
+        regs->reg_wgt.rime_multi.rime_multi1 = 8;
+        regs->reg_wgt.rime_multi.rime_multi2 = 12;
 
         /* 0x177C */
         regs->reg_wgt.cmv_st_th.cmv_th0 = 64;
@@ -698,10 +698,10 @@ static MPP_RET vepu540c_h265_set_rc_regs(H265eV540cHalContext *ctx, H265eV540cRe
     MppEncHwCfg *hw = &cfg->hw;
     MppEncCodecCfg *codec = &cfg->codec;
     MppEncH265Cfg *h265 = &codec->h265;
-    RK_S32 mb_wd64 = (syn->pp.pic_width + 63) / 64;
-    RK_S32 mb_h64 = (syn->pp.pic_height + 63) / 64;
+    RK_S32 mb_wd32 = (syn->pp.pic_width + 31) / 32;
+    RK_S32 mb_h32 = (syn->pp.pic_height + 31) / 32;
 
-    RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / (mb_wd64 * mb_h64);
+    RK_U32 ctu_target_bits_mul_16 = (rc_cfg->bit_target << 4) / (mb_wd32 * mb_h32);
     RK_U32 ctu_target_bits;
     RK_S32 negative_bits_thd, positive_bits_thd;
 
@@ -715,7 +715,7 @@ static MPP_RET vepu540c_h265_set_rc_regs(H265eV540cHalContext *ctx, H265eV540cRe
         if (ctu_target_bits_mul_16 >= 0x100000) {
             ctu_target_bits_mul_16 = 0x50000;
         }
-        ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd64) >> 4;
+        ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd32) >> 4;
         negative_bits_thd = 0 - 5 * ctu_target_bits / 16;
         positive_bits_thd = 5 * ctu_target_bits / 16;
 
@@ -724,7 +724,7 @@ static MPP_RET vepu540c_h265_set_rc_regs(H265eV540cHalContext *ctx, H265eV540cRe
         reg_base->reg212_rc_cfg.rc_en      = 1;
         reg_base->reg212_rc_cfg.aq_en  = 1;
         reg_base->reg212_rc_cfg.aq_mode    = 1;
-        reg_base->reg212_rc_cfg.rc_ctu_num = mb_wd64;
+        reg_base->reg212_rc_cfg.rc_ctu_num = mb_wd32;
         reg_base->reg213_rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ?
                                              hw->qp_delta_row_i : hw->qp_delta_row;
         reg_base->reg213_rc_qp.rc_max_qp   = rc_cfg->quality_max;

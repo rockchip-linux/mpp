@@ -239,9 +239,10 @@ MPP_RET vepu540c_set_jpeg_reg(Vepu540cJpegCfg *cfg)
     regs->reg0280_pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
     //to be done
 
-    regs->reg0283_src_flt.pp_corner_filter_strength = 0;
-    regs->reg0283_src_flt.pp_edge_filter_strength = 0;
-    regs->reg0283_src_flt.pp_internal_filter_strength = 0;
+    // no 0283 ?
+    // regs->reg0283_src_flt.pp_corner_filter_strength = 0;
+    // regs->reg0283_src_flt.pp_edge_filter_strength = 0;
+    // regs->reg0283_src_flt.pp_internal_filter_strength = 0;
 
     regs->reg0284_y_cfg.bias_y = 0;
     regs->reg0285_u_cfg.bias_u = 0;
