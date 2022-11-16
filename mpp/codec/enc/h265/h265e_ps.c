@@ -399,7 +399,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_outputFlagPresentFlag = 0;
     pps->m_signHideFlag = 0;
     pps->m_picInitQPMinus26 = codec->intra_qp - 26;
-    pps->m_LFCrossSliceBoundaryFlag = codec->slice_cfg.loop_filter_across_slices_enabled_flag;
+    pps->m_LFCrossSliceBoundaryFlag = codec->lpf_acs_sli_en;
     pps->m_deblockingFilterControlPresentFlag = !codec->dblk_cfg.slice_deblocking_filter_disabled_flag;
     if (pps->m_deblockingFilterControlPresentFlag) {
         pps->m_deblockingFilterOverrideEnabledFlag = 0;
@@ -432,7 +432,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_bTileUniformSpacing = 0;
     pps->m_nNumTileRowsMinus1 = 0;
     pps->m_nNumTileColumnsMinus1 = 0;
-    pps->m_loopFilterAcrossTilesEnabledFlag = 1;
+    pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;
     {
         const char *soc_name = mpp_get_soc_name();
         /* check tile support on rk3566 and rk3568 */
@@ -453,7 +453,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         if (pps->m_nNumTileColumnsMinus1) {
             pps->m_tiles_enabled_flag = 1;
             pps->m_bTileUniformSpacing = 1;
-            pps->m_loopFilterAcrossTilesEnabledFlag = 1;
+            pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;;
         }
     }
 
