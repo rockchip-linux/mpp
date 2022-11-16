@@ -63,6 +63,7 @@
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
 #define CAP_CODING_VEPU22       (HAVE_HEVC)
 #define CAP_CODING_VEPU54X      (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VEPU540C      (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
 
 static const MppDecHwCap vdpu1 = {
     .cap_coding         = CAP_CODING_VDPU,
@@ -451,6 +452,17 @@ static const MppEncHwCap vepu58x = {
     .cap_4k             = 1,
     .cap_8k             = 1,
     .cap_hw_osd         = 1,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
+static const MppEncHwCap vepu540c = {
+    .cap_coding         = CAP_CODING_VEPU540C,
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 0x1 | 0x2,
+    .cap_4k             = 0,
+    .cap_8k             = 0,
+    .cap_hw_osd         = 0,
     .cap_hw_roi         = 1,
     .reserved           = 0,
 };
