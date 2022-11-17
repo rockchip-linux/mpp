@@ -125,6 +125,10 @@ typedef struct Vdpu382RegH265dAddr_t {
     RK_U32  reg181_196_colmv_base[16];
 
     RK_U32  reg197_cabactbl_base;
+
+    RK_U32  reg198_scale_down_luma_base;
+
+    RK_U32  reg199_scale_down_chorme_base;
 } Vdpu382RegH265dAddr;
 
 typedef struct Vdpu382H265dHighPoc_t {
