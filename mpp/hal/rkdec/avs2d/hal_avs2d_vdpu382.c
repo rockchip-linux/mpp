@@ -1007,6 +1007,14 @@ static MPP_RET hal_avs2d_vdpu382_dump_yuv(void *hal, HalTaskInfo *task)
     snprintf(name, sizeof(name), "/data/tmp/rkv_out_%dx%d_nv12_%03d.yuv", vir_w, vir_h,
              p_hal->frame_no);
     fp_stream = fopen(name, "wb");
+    /* if format is fbc, write fbc header first */
+    if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        RK_U32 header_size = 0;
+
+        header_size = vir_w * vir_h / 16;
+        fwrite(base, 1, header_size, fp_stream);
+        base += header_size;
+    }
 
     if (fmt != MPP_FMT_YUV420SP_10BIT) {
         fwrite(base, 1, vir_w * vir_h * 3 / 2, fp_stream);
