@@ -535,6 +535,7 @@ void vdpu382_setup_rcb(Vdpu382RegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdp
 RK_S32 vdpu382_compare_rcb_size(const void *a, const void *b);
 void vdpu382_setup_statistic(Vdpu382RegCommon *com, Vdpu382RegStatistic *sta);
 void vdpu382_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
+void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com);
 
 #ifdef  __cplusplus
 }

@@ -898,6 +898,24 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     vdpu382_setup_rcb(&hw_regs->common_addr, reg_cxt->dev, reg_cxt->fast_mode ?
                       reg_cxt->rcb_buf[syn->dec.reg_index] : reg_cxt->rcb_buf[0],
                       (Vdpu382RcbInfo*)reg_cxt->rcb_info);
+    {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
+                              SLOT_FRAME_PTR, &mframe);
+
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            hw_regs->h265d_addr.reg198_scale_down_luma_base =
+                hw_regs->common_addr.reg130_decout_base;
+            hw_regs->h265d_addr.reg199_scale_down_chorme_base =
+                hw_regs->common_addr.reg130_decout_base;
+            vdpu382_setup_down_scale(mframe, reg_cxt->dev, &hw_regs->common);
+        } else {
+            hw_regs->h265d_addr.reg198_scale_down_luma_base = 0;
+            hw_regs->h265d_addr.reg199_scale_down_chorme_base = 0;
+            hw_regs->common.reg012.scale_down_en = 0;
+        }
+    }
     vdpu382_setup_statistic(&hw_regs->common, &hw_regs->statistic);
 
     return ret;

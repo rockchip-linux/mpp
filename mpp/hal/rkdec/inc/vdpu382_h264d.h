@@ -186,6 +186,13 @@ typedef struct Vdpu382RegH264dAddr_t {
 
     /* SWREG197 */
     RK_U32  cabactbl_base;
+
+    /* SWREG198*/
+    RK_U32  reg198_scale_down_luma_base;
+
+    /* SWREG199*/
+    RK_U32  reg199_scale_down_chorme_base;
+
 } Vdpu382RegH264dAddr;
 
 typedef struct Vdpu382H264dHighPoc_t {

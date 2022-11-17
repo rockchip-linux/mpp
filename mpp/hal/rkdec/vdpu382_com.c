@@ -22,6 +22,7 @@
 #include "mpp_buffer.h"
 #include "mpp_common.h"
 #include "mpp_compat_impl.h"
+#include "mpp_frame_impl.h"
 
 #include "vdpu382_com.h"
 
@@ -191,4 +192,37 @@ void vdpu382_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand)
         ver_stride += expand;
     }
     mpp_frame_set_ver_stride(frame, ver_stride);
+}
+
+void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com)
+{
+    RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
+    RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
+    RK_U32 down_scale_ver =  MPP_ALIGN(ver_stride >> 1, 16);
+    RK_U32 down_scale_hor =  MPP_ALIGN(hor_stride >> 1, 16);
+    MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+    MppMeta meta = mpp_frame_get_meta(frame);
+    RK_U32 down_scale_y_offset = 0;
+    RK_U32 down_scale_uv_offset = 0;
+
+    if (MPP_FRAME_FMT_IS_FBC(fmt))
+        down_scale_y_offset = mpp_frame_get_fbc_size(frame);
+    else
+        down_scale_y_offset = ver_stride * hor_stride * 3 / 2;
+
+    com->reg012.scale_down_en = 1;
+    com->reg029.scale_down_y_wratio = 2;
+    com->reg029.scale_down_y_hratio = 2;
+    com->reg029.scale_down_c_wratio = 2;
+    com->reg029.scale_down_c_hratio = 2;
+    com->reg030.y_scale_down_hor_stride =  MPP_ALIGN(down_scale_hor, 16) >> 4;
+    com->reg031.uv_scale_down_hor_stride = MPP_ALIGN(down_scale_hor, 16) >> 4;
+
+    down_scale_y_offset = MPP_ALIGN(down_scale_y_offset, 16);
+    mpp_dev_set_reg_offset(dev, 198, down_scale_y_offset);
+    mpp_meta_set_s32(meta, KEY_DEC_TBN_Y_OFFSET, down_scale_y_offset);
+
+    down_scale_uv_offset = down_scale_y_offset + down_scale_hor * down_scale_ver;
+    mpp_dev_set_reg_offset(dev, 199, down_scale_uv_offset);
+    mpp_meta_set_s32(meta, KEY_DEC_TBN_UV_OFFSET, down_scale_uv_offset);
 }

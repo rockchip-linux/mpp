@@ -997,6 +997,23 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
     vdpu382_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
                       ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
                       ctx->rcb_info);
+    {
+        MppFrame mframe = NULL;
+        DXVA_PicParams_H264_MVC *pp = p_hal->pp;
+        mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
+
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            regs->h264d_addr.reg198_scale_down_luma_base =
+                regs->common_addr.reg130_decout_base;
+            regs->h264d_addr.reg199_scale_down_chorme_base =
+                regs->common_addr.reg130_decout_base;
+            vdpu382_setup_down_scale(mframe, p_hal->dev, &regs->common);
+        } else {
+            regs->h264d_addr.reg198_scale_down_luma_base = 0;
+            regs->h264d_addr.reg199_scale_down_chorme_base = 0;
+            regs->common.reg012.scale_down_en = 0;
+        }
+    }
     vdpu382_setup_statistic(&regs->common, &regs->statistic);
 
 __RETURN:
