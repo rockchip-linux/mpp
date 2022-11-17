@@ -93,6 +93,8 @@ private:
     /* for mlvec */
     VpuApiMlvec mlvec;
     VpuApiMlvecDynamicCfg mlvec_dy_cfg;
+
+    RK_S32 dec_out_frm_struct_type;
 };
 
 #endif /*__VPU_API_LEGACY_H__*/
