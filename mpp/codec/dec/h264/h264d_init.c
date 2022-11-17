@@ -40,7 +40,6 @@ static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
     H264_SPS_t *active_sps = p_Vid->active_sps;
     // for POC mode 0:
     MaxPicOrderCntLsb = (1 << (active_sps->log2_max_pic_order_cnt_lsb_minus4 + 4));
-    RK_U32 dpb_fast_out = p_Vid->dpb_fast_out;
 
     switch (active_sps->pic_order_cnt_type) {
     case 0: // POC MODE 0
@@ -90,7 +89,6 @@ static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
             p_Vid->PrevPicOrderCntLsb = pSlice->pic_order_cnt_lsb;
             p_Vid->PrevPicOrderCntMsb = pSlice->PicOrderCntMsb;
         }
-        dpb_fast_out = 0;
         break;
 
     case 1: // POC MODE 1
@@ -153,7 +151,6 @@ static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
         pSlice->framepoc = pSlice->ThisPOC;
         p_Vid->PreviousFrameNum = pSlice->frame_num;
         p_Vid->PreviousFrameNumOffset = p_Vid->FrameNumOffset;
-        dpb_fast_out = 1;
         break;
 
 
@@ -188,16 +185,11 @@ static MPP_RET decode_poc(H264dVideoCtx_t *p_Vid, H264_SLICE_t *pSlice)
         }
         p_Vid->PreviousFrameNum = pSlice->frame_num;
         p_Vid->PreviousFrameNumOffset = p_Vid->FrameNumOffset;
-        dpb_fast_out = 1;
         break;
     default:
         ret = MPP_NOK;
         goto __FAILED;
     }
-    if (p_Vid->p_Dec->cfg->status.use_ext_fast_play)
-        p_Vid->dpb_fast_out = p_Vid->p_Dec->cfg->base.enable_fast_play;
-    else
-        p_Vid->dpb_fast_out = dpb_fast_out;
     return ret = MPP_OK;
 
 __FAILED:
