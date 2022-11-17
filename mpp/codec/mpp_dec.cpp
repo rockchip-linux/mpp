@@ -2172,7 +2172,6 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
     } break;
     case MPP_DEC_SET_ENABLE_FAST_PLAY : {
         cfg->enable_fast_play = (param) ? (*((RK_U32 *)param)) : (0);
-        set->status.use_ext_fast_play = 1;
         cfg->change |= MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY;
         dec_dbg_func("disable idr immediately output %d\n", cfg->enable_fast_play);
     } break;
