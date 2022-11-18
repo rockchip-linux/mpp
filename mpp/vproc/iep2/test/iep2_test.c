@@ -282,6 +282,7 @@ void iep2_test(iep2_test_cfg *cfg)
     params.param.com.dswap = cfg->dst_swa;
     params.param.com.width = cfg->w;
     params.param.com.height = cfg->h;
+    params.param.com.hor_stride = cfg->w;
     iep2->ops->control(iep2->priv, IEP_CMD_SET_DEI_CFG, &params);
 
     for (i = 0; i < MPP_ARRAY_ELEMS(imgsrc); i++)
