@@ -130,7 +130,8 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
 
     p_regs->sw05.strm_start_bit = 8 * (p_hal->data_offset & 0x7);
     p_hal->data_offset = (p_hal->data_offset & ~0x7);
-    p_regs->sw12.rlc_vlc_base = get_packet_fd(p_hal, task->input) | (p_hal->data_offset << 10);
+    p_regs->sw12.rlc_vlc_base = get_packet_fd(p_hal, task->input);
+    mpp_dev_set_reg_offset(p_hal->dev, 12, p_hal->data_offset);
     p_regs->sw06.stream_len = p_syn->bitstream_size - p_hal->data_offset;
 
     p_regs->sw03.pic_fixed_quant = p_syn->pp.fixedPictureQp;
@@ -172,7 +173,9 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
     } else {
         //!< start of bottom field line
         RK_U32 stride = p_syn->pp.horizontalSize;
-        p_regs->sw13.dec_out_base = get_frame_fd(p_hal, task->output) | (stride << 10);
+
+        p_regs->sw13.dec_out_base = get_frame_fd(p_hal, task->output);
+        mpp_dev_set_reg_offset(p_hal->dev, 13, stride);
     }
     {
         RK_S32 tmp_fwd = -1;
@@ -463,7 +466,8 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         else
             frame_height = 2 * ((p_syn->pp.verticalSize + 31) >> 5);
         offset = MPP_ALIGN(frame_width * frame_height / 2, 2) * 16;
-        p_regs->sw41.dir_mv_base = mpp_buffer_get_fd(p_hal->mv_buf) | (offset << 10);
+        p_regs->sw41.dir_mv_base = mpp_buffer_get_fd(p_hal->mv_buf);
+        mpp_dev_set_reg_offset(p_hal->dev, 41, offset);
     }
     //!< AVS Plus stuff
     if (p_regs->sw44.dec_avsp_ena) {
@@ -480,8 +484,12 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         p_regs->sw18.prev_anc_type = prev_anc_type;
     }
     //!< b-picture needs to know if future reference is field or frame coded
-    p_regs->sw16.refer2_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
-    p_regs->sw17.refer3_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
+    // p_regs->sw16.refer2_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
+    // p_regs->sw17.refer3_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
+    if (!p_hal->prev_pic_structure) {
+        mpp_dev_set_reg_offset(p_hal->dev, 16, 2);
+        mpp_dev_set_reg_offset(p_hal->dev, 17, 3);
+    }
 
     p_regs->sw03.dec_out_dis = 0;
     p_regs->sw01.dec_e = 1;
