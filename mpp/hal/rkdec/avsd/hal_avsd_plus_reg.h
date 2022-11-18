@@ -148,44 +148,36 @@ typedef struct {
     } sw13;
     union {
         RK_U32 refer0_base : 32;
-        struct { //!< left move 10bit
-            RK_U32 reserve0 : 10;
+        struct {
             RK_U32 refer0_topc_e : 1;
             RK_U32 refer0_field_e : 1;
-            RK_U32 reserve1 : 20;
         };
     } sw14;
     union {
         struct {
             RK_U32 refer1_base : 32;
         };
-        struct { //!< left move 10bit
-            RK_U32 reserve0 : 10;
+        struct {
             RK_U32 refer1_topc_e : 1;
             RK_U32 refer1_field_e : 1;
-            RK_U32 reserve1 : 20;
         };
     } sw15;
     union {
         struct {
             RK_U32 refer2_base : 32;
         };
-        struct { //!< left move 10bit
-            RK_U32 reserve0 : 10;
+        struct {
             RK_U32 refer2_topc_e : 1;
             RK_U32 refer2_field_e : 1;
-            RK_U32 reserve1 : 20;
         };
     } sw16;
     union {
         struct {
             RK_U32 refer3_base : 32;
         };
-        struct { //!< left move 10bit
-            RK_U32 reserve0 : 10;
+        struct {
             RK_U32 refer3_topc_e : 1;
             RK_U32 refer3_field_e : 1;
-            RK_U32 reserve1 : 20;
         };
     } sw17;
     struct {
