@@ -210,6 +210,7 @@ void iep2_test(iep2_test_cfg *cfg)
     RK_S32 field_order = IEP2_FIELD_ORDER_TFF;
     RK_S32 out_order = field_order == IEP2_FIELD_ORDER_TFF ? 0 : 1;
     DataCrc checkcrc;
+    struct iep2_api_info dei_info;
 
     // NOTISE, used IepImg structure for version compatibility consideration,
     // only addresses in this structure are useful in iep2
@@ -315,7 +316,7 @@ void iep2_test(iep2_test_cfg *cfg)
 
         memset(pdst[0], 0, dstfrmsize);
         memset(pdst[1], 0, dstfrmsize);
-        iep2->ops->control(iep2->priv, IEP_CMD_RUN_SYNC, NULL);
+        iep2->ops->control(iep2->priv, IEP_CMD_RUN_SYNC, &dei_info);
 
         if (cfg->fp_slt) {
             calc_data_crc(pdst[out_order], dstfrmsize, &checkcrc);
@@ -323,6 +324,8 @@ void iep2_test(iep2_test_cfg *cfg)
             calc_data_crc(pdst[1 - out_order], dstfrmsize, &checkcrc);
             write_data_crc(cfg->fp_slt, &checkcrc);
         }
+
+        out_order = dei_info.dil_order == IEP2_FIELD_ORDER_BFF ? 1 : 0;
 
         if (dstfrmsize > fwrite(pdst[out_order], 1, dstfrmsize, cfg->fp_dst)) {
             mpp_err("destination dump failed\n");
