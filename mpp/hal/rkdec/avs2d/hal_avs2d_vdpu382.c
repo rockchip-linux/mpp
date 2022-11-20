@@ -1079,7 +1079,7 @@ MPP_RET hal_avs2d_vdpu382_wait(void *hal, HalTaskInfo *task)
             p_regs->irq_status.reg224.buf_empty_sta ||
             p_regs->irq_status.reg226.strmd_error_status ||
             p_regs->irq_status.reg227.colmv_error_ref_picidx ||
-            p_regs->irq_status.reg225.strmd_detect_error_flag)
+            p_regs->irq_status.reg226.strmd_detect_error_flag)
             param.hard_err = 1;
         else
             param.hard_err = 0;

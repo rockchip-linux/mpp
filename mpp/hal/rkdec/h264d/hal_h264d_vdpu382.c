@@ -1154,7 +1154,8 @@ __SKIP_HARD:
             (!p_regs->irq_status.reg224.dec_rdy_sta) ||
             p_regs->irq_status.reg224.buf_empty_sta ||
             p_regs->irq_status.reg226.strmd_error_status ||
-            p_regs->irq_status.reg227.colmv_error_ref_picidx)
+            p_regs->irq_status.reg227.colmv_error_ref_picidx ||
+            p_regs->irq_status.reg226.strmd_detect_error_flag)
             param.hard_err = 1;
         else
             param.hard_err = 0;
