@@ -360,15 +360,14 @@ typedef struct Vdpu382RegIrqStatus_t {
         RK_U32      reserve         : 17;
     } reg224;
 
-    struct SWREG225_STA_ERR_INFO {
-        RK_U32      all_frame_error_flag    : 1;
-        RK_U32      strmd_detect_error_flag : 1;
-        RK_U32      reserve                 : 30;
+    struct SWREG225_STA_SLICE_BYTE_OFFSET {
+        RK_U32      strmd_slice_byte_offset : 32;
     } reg225;
 
     struct SWREG226_STA_CABAC_ERROR_STATUS {
         RK_U32      strmd_error_status      : 28;
-        RK_U32      reserve                 : 4;
+        RK_U32      strmd_detect_error_flag : 3;
+        RK_U32      all_frame_error_flag    : 1;
     } reg226;
 
     struct SWREG227_STA_COLMV_ERROR_REF_PICIDX {
