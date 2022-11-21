@@ -458,6 +458,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     Avs2dFrameMgr_t *mgr = &p_dec->frm_mgr;
     RK_U32 ctu_size = 1 << (p_dec->vsh.lcu_size);
     RK_U32 bitdepth = p_dec->vsh.bit_depth;
+    RK_U32 ver_stride = vsh->vertical_size;
 
     avs2d_dbg_dpb("In.");
     frm = dpb_get_one_frame(mgr, vsh, ph);
@@ -484,6 +485,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     }
 
     if (MPP_FRAME_FMT_IS_FBC(p_dec->init.cfg->base.out_fmt)) {
+        // fbc header alignment
         RK_U32 fbc_hdr_stride = MPP_ALIGN(vsh->horizontal_size, 64);
 
         mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | (p_dec->init.cfg->base.out_fmt & (MPP_FRAME_FBC_MASK)));
@@ -492,6 +494,9 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
             fbc_hdr_stride = MPP_ALIGN(vsh->horizontal_size, 256) | 256;
 
         mpp_frame_set_fbc_hdr_stride(mframe, fbc_hdr_stride);
+        // fbc output frame update
+        mpp_frame_set_offset_y(mframe, 8);
+        ver_stride += 16;
     }
 
     if (p_dec->is_hdr)
@@ -500,7 +505,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     mpp_frame_set_width(mframe, vsh->horizontal_size);
     mpp_frame_set_height(mframe, vsh->vertical_size);
     mpp_frame_set_hor_stride(mframe, (MPP_ALIGN(vsh->horizontal_size, ctu_size) * bitdepth + 7) / 8);
-    mpp_frame_set_ver_stride(mframe, MPP_ALIGN(vsh->vertical_size, ctu_size));
+    mpp_frame_set_ver_stride(mframe, MPP_ALIGN(ver_stride, ctu_size));
     mpp_frame_set_pts(mframe, mpp_packet_get_pts(task->input_packet));
     mpp_frame_set_dts(mframe, mpp_packet_get_dts(task->input_packet));
     mpp_frame_set_errinfo(mframe, 0);
