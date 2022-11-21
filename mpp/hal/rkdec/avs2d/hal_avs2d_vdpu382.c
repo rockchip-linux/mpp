@@ -706,8 +706,8 @@ MPP_RET hal_avs2d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
 
     vdpu382_setup_statistic(&regs->common, &regs->statistic);
     /* enable reference frame usage feedback */
-    regs->statistic.reg265.perf_cnt0_sel = 42;
-    regs->statistic.reg266_perf_cnt0 = 0;
+    regs->statistic.reg265.perf_cnt1_sel = 42;
+    regs->statistic.reg267_perf_cnt1 = 0;
 
 __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
@@ -1084,10 +1084,10 @@ MPP_RET hal_avs2d_vdpu382_wait(void *hal, HalTaskInfo *task)
         else
             param.hard_err = 0;
 
-        task->dec.flags.ref_used = p_regs->statistic.reg266_perf_cnt0;
+        task->dec.flags.ref_used = p_regs->statistic.reg267_perf_cnt1;
 
         if (task->dec.flags.ref_miss) {
-            RK_U32 ref_hw_usage = p_regs->statistic.reg266_perf_cnt0;
+            RK_U32 ref_hw_usage = p_regs->statistic.reg267_perf_cnt1;
 
             AVS2D_HAL_TRACE("hal frame %d ref miss %x hard_err %d hw_usage %x", p_hal->frame_no,
                             task->dec.flags.ref_miss, param.hard_err, ref_hw_usage);
