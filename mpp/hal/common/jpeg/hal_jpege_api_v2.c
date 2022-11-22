@@ -49,19 +49,10 @@ static MPP_RET hal_jpege_init(void *hal, MppEncHalCfg *cfg)
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
 
-    if (vcodec_type & HAVE_RKVENC) {
-        RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVENC);
-        switch (hw_id) {
-        case HWID_VEPU540C : {
-            api = &hal_jpege_vepu540c;
-        } break;
-        default : {
-            mpp_err("vcodec type %08x can not find JPEG encoder device\n",
-                    vcodec_type);
-            ret = MPP_NOK;
-        } break;
-        }
-    } else if (HAVE_VEPU2 | HAVE_VEPU2_JPEG) {
+    if ((vcodec_type & HAVE_RKVENC) &&
+        (HWID_VEPU540C == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))) {
+        api = &hal_jpege_vepu540c;
+    } else if (vcodec_type & (HAVE_VEPU2 | HAVE_VEPU2_JPEG)) {
         api = &hal_jpege_vepu2;
     } else if (vcodec_type & HAVE_VEPU1) {
         api = &hal_jpege_vepu1;
