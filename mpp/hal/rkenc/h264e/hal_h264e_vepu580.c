@@ -1438,32 +1438,26 @@ static MPP_RET vepu580_h264_set_one_roi(void *buf, MppEncROIRegion *region, RK_S
 
     RK_S32 roi_width  = (region->w + 15) / 16;
     RK_S32 roi_height = (region->h + 15) / 16;
-    RK_S32 pos_x_init = (region->x + 15) / 16;
-    RK_S32 pos_y_init = (region->y + 15) / 16;
+    RK_S32 pos_x_init = region->x / 16;
+    RK_S32 pos_y_init = region->y / 16;
     RK_S32 pos_x_end  = pos_x_init + roi_width;
     RK_S32 pos_y_end  = pos_y_init + roi_height;
     RK_S32 x, y;
 
-    if (pos_x_end > mb_w)
-        pos_x_end = mb_w;
+    pos_x_end = MPP_MIN(pos_x_end, mb_w);
+    pos_y_end = MPP_MIN(pos_y_end, mb_h);
+    pos_x_init = MPP_MAX(pos_x_init, 0);
+    pos_y_init = MPP_MAX(pos_y_init, 0);
 
-    if (pos_y_end > mb_h)
-        pos_y_end = mb_h;
-
-    if (pos_x_init < 0)
-        pos_x_init = 0;
-
-    if (pos_y_init < 0)
-        pos_y_init = 0;
-
-    mpp_assert(pos_x_init >= 0 && pos_x_init < mb_w);
-    mpp_assert(pos_x_end  >= 0 && pos_x_end <= mb_w);
-    mpp_assert(pos_y_init >= 0 && pos_y_init < mb_h);
-    mpp_assert(pos_y_end  >= 0 && pos_y_end <= mb_h);
+    mpp_assert(pos_x_end > pos_x_init);
+    mpp_assert(pos_y_end > pos_y_init);
 
     cfg.force_intra = 1;
 
     ptr += pos_y_init * stride_h + pos_x_init;
+    roi_width = pos_x_end - pos_x_init;
+    roi_height = pos_y_end - pos_y_init;
+
     for (y = 0; y < roi_height; y++) {
         Vepu580RoiH264BsCfg *dst = ptr;
 
