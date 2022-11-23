@@ -58,12 +58,6 @@ typedef struct HalH264eVepu540cCtx_t {
     RK_S32                  thumb_buf_size;
     RK_S32                  max_buf_cnt;
 
-    /* external line buffer over 4K */
-    MppBufferGroup          ext_line_buf_grp;
-    RK_S32                  ext_line_buf_size;
-
-    MppBuffer               p_extra_buf;
-
     /* syntax for input from enc_impl */
     RK_U32                  updated;
     H264eSps                *sps;
@@ -83,6 +77,9 @@ typedef struct HalH264eVepu540cCtx_t {
     /* register */
     HalVepu540cRegSet       *regs_set;
 
+    /* external line buffer over 3K */
+    MppBufferGroup          ext_line_buf_grp;
+    RK_S32                  ext_line_buf_size;
     MppBuffer               ext_line_buf;
 } HalH264eVepu540cCtx;
 
@@ -133,10 +130,6 @@ static MPP_RET hal_h264e_vepu540c_deinit(void *hal)
     if (p->hw_recn) {
         hal_bufs_deinit(p->hw_recn);
         p->hw_recn = NULL;
-    }
-    if (p->p_extra_buf) {
-        mpp_buffer_put(p->p_extra_buf);
-        p->p_extra_buf = NULL;
     }
 
     MPP_FREE(p->regs_set);
@@ -218,9 +211,8 @@ static void setup_hal_bufs(HalH264eVepu540cCtx *ctx)
             new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
     }
 
-    if (aligned_w > SZ_4K) {
-        /* 480 bytes for each ctu above 3072 */
-        RK_S32 ext_line_buf_size = (aligned_w - 3 * SZ_1K) / 64 * 480;
+    if (aligned_w > (3 * SZ_1K)) {
+        RK_S32 ext_line_buf_size = (aligned_w / 64 - 36) * 56 * 16;
 
         if (NULL == ctx->ext_line_buf_grp)
             mpp_buffer_group_get_internal(&ctx->ext_line_buf_grp, MPP_BUFFER_TYPE_ION);
@@ -1507,17 +1499,14 @@ static void setup_vepu540c_l2(HalVepu540cRegSet *regs, H264eSlice *slice, MppEnc
 static void setup_vepu540c_ext_line_buf(HalVepu540cRegSet *regs, HalH264eVepu540cCtx *ctx)
 {
     if (ctx->ext_line_buf) {
-        MppDevRegOffsetCfg trans_cfg;
         RK_S32 fd = mpp_buffer_get_fd(ctx->ext_line_buf);
 
         regs->reg_base.ebuft_addr = fd;
         regs->reg_base.ebufb_addr = fd;
 
-        trans_cfg.reg_idx = 182;
-        trans_cfg.offset = ctx->ext_line_buf_size;
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(ctx->dev, 178, ctx->ext_line_buf_size);
     } else {
-        regs->reg_base.ebufb_addr = 0;
+        regs->reg_base.ebuft_addr = 0;
         regs->reg_base.ebufb_addr = 0;
     }
 }
