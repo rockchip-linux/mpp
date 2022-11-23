@@ -83,9 +83,6 @@ typedef struct H265eV540cHalContext_t {
     void                *roi_data;
     MppEncCfgSet        *cfg;
 
-    MppBufferGroup      tile_grp;
-    MppBuffer           hw_tile_buf[2];
-
     RK_U32              enc_mode;
     RK_U32              frame_size;
     RK_S32              max_buf_cnt;
@@ -98,6 +95,11 @@ typedef struct H265eV540cHalContext_t {
     HalBufs             dpb_bufs;
     RK_S32              fbc_header_len;
     RK_U32              title_num;
+
+    /* external line buffer over 3K */
+    MppBufferGroup          ext_line_buf_grp;
+    RK_S32                  ext_line_buf_size;
+    MppBuffer               ext_line_buf;
 } H265eV540cHalContext;
 
 #define TILE_BUF_SIZE  MPP_ALIGN(128 * 1024, 256)
@@ -147,6 +149,8 @@ static MPP_RET vepu540c_h265_setup_hal_bufs(H265eV540cHalContext *ctx)
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
     RK_S32 new_max_cnt = 2;
+    RK_S32 alignment = 32;
+    RK_S32 aligned_w = MPP_ALIGN(prep->width,  alignment);
 
     hal_h265e_enter();
 
@@ -183,6 +187,37 @@ static MPP_RET vepu540c_h265_setup_hal_bufs(H265eV540cHalContext *ctx)
     if (ref_cfg) {
         MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
         new_max_cnt = MPP_MAX(new_max_cnt, info->dpb_size + 1);
+    }
+
+    if (aligned_w > (3 * SZ_1K)) {
+        RK_S32 ext_line_buf_size = (aligned_w / 32 - 91) * 26 * 16;
+
+        if (NULL == ctx->ext_line_buf_grp)
+            mpp_buffer_group_get_internal(&ctx->ext_line_buf_grp, MPP_BUFFER_TYPE_ION);
+        else if (ext_line_buf_size != ctx->ext_line_buf_size) {
+            mpp_buffer_put(ctx->ext_line_buf);
+            ctx->ext_line_buf = NULL;
+            mpp_buffer_group_clear(ctx->ext_line_buf_grp);
+        }
+
+        mpp_assert(ctx->ext_line_buf_grp);
+
+        if (NULL == ctx->ext_line_buf)
+            mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_buf, ext_line_buf_size);
+
+        ctx->ext_line_buf_size = ext_line_buf_size;
+    } else {
+        if (ctx->ext_line_buf) {
+            mpp_buffer_put(ctx->ext_line_buf);
+            ctx->ext_line_buf = NULL;
+        }
+
+        if (ctx->ext_line_buf_grp) {
+            mpp_buffer_group_clear(ctx->ext_line_buf_grp);
+            mpp_buffer_group_put(ctx->ext_line_buf_grp);
+            ctx->ext_line_buf_grp = NULL;
+        }
+        ctx->ext_line_buf_size = 0;
     }
 
     if (frame_size > ctx->frame_size || new_max_cnt > old_max_cnt) {
@@ -545,14 +580,14 @@ MPP_RET hal_h265e_v540c_deinit(void *hal)
     MPP_FREE(ctx->input_fmt);
     hal_bufs_deinit(ctx->dpb_bufs);
 
-    if (ctx->hw_tile_buf[0]) {
-        mpp_buffer_put(ctx->hw_tile_buf[0]);
-        ctx->hw_tile_buf[0] = NULL;
+    if (ctx->ext_line_buf) {
+        mpp_buffer_put(ctx->ext_line_buf);
+        ctx->ext_line_buf = NULL;
     }
 
-    if (ctx->hw_tile_buf[1]) {
-        mpp_buffer_put(ctx->hw_tile_buf[1]);
-        ctx->hw_tile_buf[1] = NULL;
+    if (ctx->ext_line_buf_grp) {
+        mpp_buffer_group_put(ctx->ext_line_buf_grp);
+        ctx->ext_line_buf_grp = NULL;
     }
 
     if (ctx->dev) {
@@ -1093,6 +1128,20 @@ void vepu540c_h265_set_hw_address(H265eV540cHalContext *ctx, hevc_vepu540c_base 
     regs->reg0204_pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 }
 
+static void setup_vepu540c_ext_line_buf(H265eV540cHalContext *ctx, H265eV540cRegSet *regs)
+{
+    if (ctx->ext_line_buf) {
+        RK_S32 fd = mpp_buffer_get_fd(ctx->ext_line_buf);
+
+        regs->reg_base.reg0179_adr_ebufb = fd;
+        regs->reg_base.reg0178_adr_ebuft = fd;
+        mpp_dev_set_reg_offset(ctx->dev, 178, ctx->ext_line_buf_size);
+    } else {
+        regs->reg_base.reg0179_adr_ebufb = 0;
+        regs->reg_base.reg0178_adr_ebuft = 0;
+    }
+}
+
 MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
 {
     H265eV540cHalContext *ctx = (H265eV540cHalContext *)hal;
@@ -1220,6 +1269,7 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     vepu540c_h265_set_slice_regs(syn, reg_base);
     vepu540c_h265_set_ref_regs(syn, reg_base);
     vepu540c_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
+    setup_vepu540c_ext_line_buf(ctx, ctx->regs);
 
     /* ROI configure */
     if (ctx->roi_data)
