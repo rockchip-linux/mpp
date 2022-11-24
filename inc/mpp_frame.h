@@ -78,10 +78,10 @@ typedef enum {
     MPP_FRAME_PRI_BT470M        = 4,    ///< also FCC Title 47 Code of Federal Regulations 73.682 (a)(20)
 
     MPP_FRAME_PRI_BT470BG       = 5,    ///< also ITU-R BT601-6 625 / ITU-R BT1358 625 / ITU-R BT1700 625 PAL & SECAM
-    MPP_FRAME_PRI_SMPTE170M     = 6,    ///< also ITU-R BT601-6 525 / ITU-R BT1358 525 / ITU-R BT1700 NTSC
-    MPP_FRAME_PRI_SMPTE240M     = 7,    ///< functionally identical to above
+    MPP_FRAME_PRI_SMPTE170M     = 6,    ///< also ITU-R BT601-6 525 / ITU-R BT1358 525 / ITU-R BT1700 NTSC/SMPTE ST 170 (2004)
+    MPP_FRAME_PRI_SMPTE240M     = 7,    ///< functionally identical to above/SMPTE ST 240
     MPP_FRAME_PRI_FILM          = 8,    ///< colour filters using Illuminant C
-    MPP_FRAME_PRI_BT2020        = 9,    ///< ITU-R BT2020
+    MPP_FRAME_PRI_BT2020        = 9,    ///< ITU-R BT2020 / ITU-R BT.2100-2
     MPP_FRAME_PRI_SMPTEST428_1  = 10,   ///< SMPTE ST 428-1 (CIE 1931 XYZ)
     MPP_FRAME_PRI_SMPTE431      = 11,   ///< SMPTE ST 431-2 (2011) / DCI P3
     MPP_FRAME_PRI_SMPTE432      = 12,   ///< SMPTE ST 432-1 (2010) / P3 D65 / Display P3
@@ -171,6 +171,12 @@ typedef enum {
 
 #define MPP_FRAME_FBC_MASK          (0x00f00000)
 #define MPP_FRAME_FBC_NONE          (0x00000000)
+
+#define MPP_FRAME_HDR_MASK          (0x0f000000)
+#define MPP_FRAME_HDR_NONE          (0x00000000)
+
+#define MPP_FRAME_HDR               (0x01000000)
+
 /*
  * AFBC_V1 is for ISP output.
  * It has default payload offset to be calculated * from width and height:
@@ -195,6 +201,8 @@ typedef enum {
  * For MPP_FRAME_FBC_AFBC_V1 the 16byte aligned stride is used.
  */
 #define MPP_FRAME_FMT_IS_FBC(fmt)   (fmt & MPP_FRAME_FBC_MASK)
+
+#define MPP_FRAME_FMT_IS_HDR(fmt)   (fmt & MPP_FRAME_HDR_MASK)
 
 #define MPP_FRAME_FMT_IS_LE(fmt)    ((fmt & MPP_FRAME_FMT_LE_MASK) == MPP_FRAME_FMT_LE_MASK)
 #define MPP_FRAME_FMT_IS_BE(fmt)    ((fmt & MPP_FRAME_FMT_LE_MASK) == 0)
@@ -262,6 +270,12 @@ typedef struct MppFrameContentLightMetadata {
     RK_U16 MaxCLL;
     RK_U16 MaxFALL;
 } MppFrameContentLightMetadata;
+
+typedef struct MppFrameHdrDynamicMeta {
+    RK_U32 hdr_fmt;
+    RK_U32 size;
+    RK_U8 data[];
+} MppFrameHdrDynamicMeta;
 
 typedef enum {
     MPP_FRAME_ERR_UNKNOW           = 0x0001,
@@ -380,6 +394,8 @@ MppFrameMasteringDisplayMetadata mpp_frame_get_mastering_display(const MppFrame 
 void    mpp_frame_set_mastering_display(MppFrame frame, MppFrameMasteringDisplayMetadata mastering_display);
 MppFrameContentLightMetadata mpp_frame_get_content_light(const MppFrame frame);
 void    mpp_frame_set_content_light(MppFrame frame, MppFrameContentLightMetadata content_light);
+MppFrameHdrDynamicMeta* mpp_frame_get_hdr_dynamic_meta(const MppFrame frame);
+void    mpp_frame_set_hdr_dynamic_meta(MppFrame frame, MppFrameHdrDynamicMeta *vivi_data);
 
 /*
  * HDR parameter
