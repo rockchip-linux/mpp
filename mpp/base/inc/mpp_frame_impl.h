@@ -96,6 +96,7 @@ struct MppFrameImpl_t {
     MppFrameRational sar;
     MppFrameMasteringDisplayMetadata mastering_display;
     MppFrameContentLightMetadata content_light;
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta;
 
     /*
      * buffer information
