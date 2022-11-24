@@ -30,6 +30,7 @@
 #include "hal_avs2d_vdpu382.h"
 #include "mpp_dec_cb_param.h"
 #include "vdpu382_avs2d.h"
+#include "rk_hdr_meta_com.h"
 
 #define VDPU382_FAST_REG_SET_CNT    (3)
 #define MAX_REF_NUM                 (8)
@@ -431,6 +432,9 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
         p_regs->common_addr.reg129_rlcwrite_base = p_regs->common_addr.reg128_rlc_base;
         common->reg016_str_len = MPP_ALIGN(mpp_packet_get_length(task_dec->input_packet), 16) + 64;
     }
+
+    if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) && p_hal->cfg->base.enable_hdr_meta)
+        fill_hdr_meta_to_frame(mframe, HDR_AVS2);
 
     return ret;
 }

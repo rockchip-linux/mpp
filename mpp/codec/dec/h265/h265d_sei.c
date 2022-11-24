@@ -28,6 +28,7 @@
 #define MODULE_TAG "h265d_sei"
 
 #include "h265d_parser.h"
+#include "rk_hdr_meta_com.h"
 
 
 static RK_S32 decode_nal_sei_decoded_picture_hash(HEVCContext *s)
@@ -320,6 +321,74 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
+static RK_S32 vivid_display_info(HEVCContext *s, RK_U32 size)
+{
+    BitReadCtx_t *gb = &s->HEVClc->gb;
+
+    if (gb)
+        mpp_hevc_fill_dynamic_meta(s, gb->buf + mpp_get_bits_count(gb) / 8, size, HDRVIVID);
+    return 0;
+}
+
+static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, int size)
+{
+    BitReadCtx_t *gb = &s->HEVClc->gb;
+
+    RK_S32 country_code, provider_code;
+    RK_U16 terminal_provide_oriented_code;
+
+    if (size < 3)
+        return 0;
+    size -= 3;
+
+    READ_BITS(gb, 8, &country_code);
+    if (country_code == 0xFF) {
+        if (size < 1)
+            return 0;
+
+        SKIP_BITS(gb, 8);
+        size--;
+    }
+
+    /* usa country_code or china country_code */
+    if (country_code != 0xB5 && country_code != 0x26) {
+        mpp_log("Unsupported User Data Registered ITU-T T35 SEI message (country_code = %d)", country_code);
+        SKIP_BITS(gb, 8 * size);
+        return 0;
+    }
+
+    READ_BITS(gb, 16, &provider_code);
+    READ_BITS(gb, 16, &terminal_provide_oriented_code);
+
+    h265d_dbg(H265D_DBG_SEI, "country_code=%d provider_code=%d terminal_provider_code %d\n",
+              country_code, provider_code, terminal_provide_oriented_code);
+    if (provider_code == 4) {
+        size -= 2;
+        vivid_display_info(s, size);
+    }
+
+    SKIP_BITS(gb, 8 * size);
+    return 0;
+
+__BITREAD_ERR:
+    return  MPP_ERR_STREAM;
+}
+
+static RK_S32 decode_nal_sei_alternative_transfer(HEVCContext *s)
+{
+    BitReadCtx_t *gb = &s->HEVClc->gb;
+    HEVCSEIAlternativeTransfer *alternative_transfer = &s->alternative_transfer;
+    RK_S32 val;
+
+    READ_BITS(gb, 8, &val);
+    alternative_transfer->present = 1;
+    alternative_transfer->preferred_transfer_characteristics = val;
+    s->is_hdr = 1;
+    return 0;
+__BITREAD_ERR:
+    return  MPP_ERR_STREAM;
+}
+
 static RK_S32 decode_nal_sei_message(HEVCContext *s)
 {
     BitReadCtx_t *gb = &s->HEVClc->gb;
@@ -353,6 +422,8 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
             h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
             SKIP_BITS(gb, 8 * payload_size);
             return ret;
+        } else if (payload_type == 4) {
+            return user_data_registered_itu_t_t35(s, payload_size);
         } else if (payload_type == 129) {
             active_parameter_sets(s);
             h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
@@ -360,6 +431,7 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
         } else if (payload_type == 137) {
             h265d_dbg(H265D_DBG_SEI, "mastering_display_colour_volume in\n");
             mastering_display_colour_volume(s);
+            s->is_hdr = 1;
             return 1;
         } else if (payload_type == 144) {
             h265d_dbg(H265D_DBG_SEI, "content_light_info in\n");
@@ -375,7 +447,12 @@ static RK_S32 decode_nal_sei_message(HEVCContext *s)
             return 1;
         } else if (payload_type == 6) {
             h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
+            SKIP_BITS(gb, 8 * payload_size);
             s->max_ra = INT_MIN;
+            return 1;
+        }  else if (payload_type == 147) {
+            h265d_dbg(H265D_DBG_SEI, "alternative_transfer in\n");
+            decode_nal_sei_alternative_transfer(s);
             return 1;
         } else {
             h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);

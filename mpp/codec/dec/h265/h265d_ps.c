@@ -1205,6 +1205,9 @@ static RK_S32 decode_vui(HEVCContext *s, HEVCSPS *sps)
             //      vui->colour_primaries = RKCOL_PRI_UNSPECIFIED;
             //  if (vui->transfer_characteristic >= RKCOL_TRC_NB)
             //      vui->transfer_characteristic = RKCOL_TRC_UNSPECIFIED;
+            if (vui->transfer_characteristic == MPP_FRAME_TRC_SMPTEST2084 ||
+                vui->transfer_characteristic == MPP_FRAME_TRC_ARIB_STD_B67)
+                s->is_hdr = 1;
             if (vui->matrix_coeffs >= MPP_FRAME_SPC_NB)
                 vui->matrix_coeffs = MPP_FRAME_SPC_UNSPECIFIED;
         }

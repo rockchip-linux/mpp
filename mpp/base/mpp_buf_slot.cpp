@@ -338,6 +338,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
         size /= impl->denominator;
         size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
     }
+
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
     mpp_frame_set_fmt(impl->info_set, fmt);
@@ -346,6 +347,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_hor_stride_pixel(impl->info_set, hor_stride_pixel);
     mpp_frame_set_buf_size(impl->info_set, size);
     mpp_frame_set_buf_size(frame, size);
+    mpp_frame_set_hor_stride(frame, hal_hor_stride);
+    mpp_frame_set_ver_stride(frame, hal_ver_stride);
     mpp_frame_set_hor_stride_pixel(frame, hor_stride_pixel);
     impl->buf_size = size;
 
@@ -783,7 +786,6 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     impl->buf_count = impl->new_count;
 
     mpp_frame_copy(impl->info, impl->info_set);
-    impl->buf_size = mpp_frame_get_buf_size(impl->info);
 
     if (impl->logs)
         buf_slot_logs_reset(impl->logs);
@@ -970,8 +972,8 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         //       then hal will modify it according to hardware requirement
         mpp_assert(src->hor_stride);
         mpp_assert(src->ver_stride);
-        dst->hor_stride = impl->hal_hor_align(src->hor_stride);
-        dst->ver_stride = impl->hal_ver_align(src->ver_stride);
+        dst->hor_stride = src->hor_stride;
+        dst->ver_stride = src->ver_stride;
         dst->eos = slot->eos;
 
         if (mpp_frame_info_cmp(impl->info, impl->info_set)) {

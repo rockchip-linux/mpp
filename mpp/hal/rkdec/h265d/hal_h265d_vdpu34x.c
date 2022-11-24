@@ -30,6 +30,7 @@
 #include "hal_h265d_com.h"
 #include "hal_h265d_vdpu34x.h"
 #include "vdpu34x_h265d.h"
+#include "rk_hdr_meta_com.h"
 
 /* #define dump */
 #ifdef dump
@@ -175,11 +176,10 @@ static MPP_RET hal_h265d_vdpu34x_init(void *hal, MppHalCfg *cfg)
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
     }
-
+    (void)cfg;
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");
 #endif
-    (void) cfg;
     return MPP_OK;
 }
 
@@ -968,6 +968,9 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             hw_regs->common.reg019.uv_hor_virstride = stride_uv >> 4;
             hw_regs->common.reg020_y_virstride.y_virstride = virstrid_y >> 4;
         }
+
+        if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) && reg_cxt->cfg->base.enable_hdr_meta)
+            fill_hdr_meta_to_frame(mframe, HDR_HEVC);
     }
     mpp_buf_slot_get_prop(reg_cxt->slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);

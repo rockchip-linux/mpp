@@ -157,6 +157,7 @@ enum NALUnitType {
     NAL_FD_NUT     = 38,
     NAL_SEI_PREFIX = 39,
     NAL_SEI_SUFFIX = 40,
+    NAL_UNSPEC62   = 62,
 };
 
 typedef enum H265NalPriority_t {

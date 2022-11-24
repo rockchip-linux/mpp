@@ -110,8 +110,9 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
-    p_hal->dec_cb = cfg->dec_cb;
+    p_hal->cfg = cfg->cfg;
     p_hal->dev = cfg->dev;
+    p_hal->dec_cb = cfg->dec_cb;
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
     p_hal->fast_mode    = cfg->cfg->base.fast_parse;

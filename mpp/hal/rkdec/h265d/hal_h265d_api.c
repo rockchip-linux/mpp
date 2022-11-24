@@ -68,6 +68,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
 
     cfg->support_fast_mode = 1;
 
+    p->cfg = cfg->cfg;
     p->slots = cfg->frame_slots;
     p->dec_cb = cfg->dec_cb;
     p->fast_mode = cfg->cfg->base.fast_parse;

@@ -31,6 +31,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
+#include "rk_hdr_meta_com.h"
 
 #include "h265d_parser.h"
 #include "h265d_syntax.h"
@@ -1439,6 +1440,7 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
         break;
     case NAL_AUD:
     case NAL_FD_NUT:
+    case NAL_UNSPEC62:
         break;
     default:
         mpp_log("Skipping NAL unit %d\n", s->nal_unit_type);
@@ -1649,10 +1651,82 @@ fail:
     return (s->nb_nals) ? MPP_OK : ret;
 }
 
+void mpp_hevc_fill_dynamic_meta(HEVCContext *s, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt)
+{
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta = s->hdr_dynamic_meta;
+
+    if (hdr_dynamic_meta && (hdr_dynamic_meta->size < size)) {
+        mpp_free(hdr_dynamic_meta);
+        hdr_dynamic_meta = NULL;
+    }
+
+    if (!hdr_dynamic_meta) {
+        hdr_dynamic_meta = mpp_calloc_size(MppFrameHdrDynamicMeta,
+                                           sizeof(MppFrameHdrDynamicMeta) + size);
+        if (!hdr_dynamic_meta) {
+            mpp_err_f("malloc hdr dynamic data failed!\n");
+            return;
+        }
+    }
+    if (hdr_dynamic_meta->data && data) {
+        if (hdr_fmt == DOLBY) {
+            RK_U8 start_code[4] = {0, 0, 0, 1};
+
+            memcpy((RK_U8*)hdr_dynamic_meta->data, start_code, 4);
+            memcpy((RK_U8*)hdr_dynamic_meta->data + 4, (RK_U8*)data, size - 4);
+        } else
+            memcpy((RK_U8*)hdr_dynamic_meta->data, (RK_U8*)data, size);
+        hdr_dynamic_meta->size = size;
+        hdr_dynamic_meta->hdr_fmt = hdr_fmt;
+    }
+    s->hdr_dynamic_meta = hdr_dynamic_meta;
+    s->hdr_dynamic = 1;
+    s->is_hdr = 1;
+}
+
+static RK_S32 check_rpus(HEVCContext *s)
+{
+    HEVCNAL *nal;
+
+    if (s->nb_nals <= 1)
+        return 0;
+
+    nal = &s->nals[s->nb_nals - 1];
+
+    if (nal->size > 2) {
+        BitReadCtx_t gb;
+        RK_S32 value, nal_unit_type, nuh_layer_id, temporal_id;
+
+        mpp_set_bitread_ctx((&gb), (RK_U8*)nal->data, nal->size);
+        mpp_set_bitread_pseudo_code_type((&gb), PSEUDO_CODE_H264_H265);
+
+        READ_ONEBIT((&gb), &value); /*this bit should be zero*/
+        READ_BITS((&gb), 6, &nal_unit_type);
+        READ_BITS((&gb), 6, &nuh_layer_id);
+        READ_BITS((&gb), 3, &temporal_id);
+
+        /*
+        * Check for RPU delimiter.
+        *
+        * Dolby Vision RPUs masquerade as unregistered NALs of type 62.
+        *
+        * We have to do this check here an create the rpu buffer, since RPUs are appended
+        * to the end of an AU; they are the last non-EOB/EOS NAL in the AU.
+        */
+        if (nal_unit_type == NAL_UNSPEC62)
+            mpp_hevc_fill_dynamic_meta(s, nal->data + 2, gb.bytes_left_ + 4, DOLBY);
+    }
+    return 0;
+__BITREAD_ERR:
+    return  MPP_ERR_STREAM;
+}
+
 static RK_S32 parser_nal_units(HEVCContext *s)
 {
     /* parse the NAL units */
     RK_S32 i, ret = 0, slice_cnt = 0;
+
+    check_rpus(s);
 
     for (i = 0; i < s->nb_nals; i++) {
         ret = parser_nal_unit(s, s->nals[i].data, s->nals[i].size);
@@ -1969,6 +2043,8 @@ MPP_RET h265d_deinit(void *ctx)
 
     if (s->sps_pool)
         mpp_mem_pool_deinit(s->sps_pool);
+
+    MPP_FREE((s->hdr_dynamic_meta));
 
     if (s) {
         mpp_free(s);

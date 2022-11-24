@@ -108,10 +108,13 @@ do {\
 #define AVS2_VIDEO_EDIT_CODE                0x000001B7
 
 //!< SEQ/PIC EXTENSION 4bit
-#define AVS2_SEQUENCE_DISPLAY_EXTENTION     0x00000002
-#define AVS2_COPYRIGHT_EXTENTION            0x00000004
-#define AVS2_PICTURE_DISPLAY_EXTENTION      0x00000007
-#define AVS2_CAMERA_PARAMETERS_EXTENTION    0x0000000B
+#define AVS2_SEQUENCE_DISPLAY_EXT_ID                        (0x2)
+#define AVS2_TEMPORAL_SCALABLE_EXT_ID                       (0x3)
+#define AVS2_COPYRIGHT_EXT_ID                               (0x4)
+#define AVS2_HDR_DYNAMIC_METADATA_EXT_ID                    (0x5)
+#define AVS2_PICTURE_DISPLAY_EXT_ID                         (0x7)
+#define AVS2_MASTERING_DISPLAY_AND_CONTENT_METADATA_EXT_ID  (0xA)
+#define AVS2_CAMERA_PARAMETERS_EXT_ID                       (0xB)
 
 //!< profile
 #define MAIN_PICTURE_PROFILE            0x12
@@ -384,6 +387,9 @@ typedef struct avs2_dec_ctx_t {
     Avs2dSeqHeader_t        vsh;
     Avs2dSeqExtHeader_t     exh;
     Avs2dPicHeader_t        ph;
+    MppFrameMasteringDisplayMetadata    display_meta;
+    MppFrameContentLightMetadata    content_light;
+    MppFrameHdrDynamicMeta    *hdr_dynamic_meta;
 
     Avs2dSyntax_t           syntax;
     Avs2dFrameMgr_t         frm_mgr;
@@ -400,6 +406,8 @@ typedef struct avs2_dec_ctx_t {
     RK_U8                   prev_tail_data[AVS2D_PACKET_SPLIT_CHECKER_BUFFER_SIZE]; // store the last 3 bytes at the lowest addr
     RK_U32                  prev_state;
     RK_U32                  new_frame_flag;
+    RK_U32                  is_hdr;
+    RK_U32                  hdr_dynamic;
 } Avs2dCtx_t;
 
 #endif /*__AVS2D_GLOBAL_H__*/

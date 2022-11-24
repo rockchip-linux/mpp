@@ -340,6 +340,8 @@ typedef struct AV1RawMetadataScalability {
 typedef struct AV1RawMetadataITUTT35 {
     RK_U8 itu_t_t35_country_code;
     RK_U8 itu_t_t35_country_code_extension_byte;
+    RK_U32 itu_t_t35_terminal_provider_code;
+    RK_U32 itu_t_t35_terminal_provider_oriented_code;
 
     RK_U8     *payload;
     size_t     payload_size;

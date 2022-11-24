@@ -37,6 +37,7 @@ extern RK_U32 av1d_debug;
 #define AV1D_DBG_HEADER   (0x00000002)
 #define AV1D_DBG_REF      (0x00000004)
 #define AV1D_DBG_STRMIN   (0x00000008)
+#define AV1D_DBG_DUMP_RPU (0x10000000)
 
 #define av1d_dbg(flag, fmt, ...) _mpp_dbg(av1d_debug, flag, fmt, ##__VA_ARGS__)
 #define av1d_dbg_func(fmt, ...)  av1d_dbg(AV1D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
@@ -87,6 +88,10 @@ typedef struct AV1Context_t {
 
     AV1Frame ref[AV1_NUM_REF_FRAMES];
     AV1Frame cur_frame;
+
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta;
+    RK_U32 hdr_dynamic;
+    RK_U32 is_hdr;
 
     RK_S32 temporal_id;
     RK_S32 spatial_id;

@@ -484,6 +484,11 @@ typedef struct REF_PIC_DEC_INFO {
     RK_U8          is_long_term;
 } REF_PIC_DEC_INFO;
 
+typedef struct HEVCSEIAlternativeTransfer {
+    RK_S32 present;
+    RK_S32 preferred_transfer_characteristics;
+} HEVCSEIAlternativeTransfer;
+
 typedef struct HEVCContext {
     H265dContext_t *h265dctx;
 
@@ -592,6 +597,8 @@ typedef struct HEVCContext {
 
     MppFrameMasteringDisplayMetadata mastering_display;
     MppFrameContentLightMetadata content_light;
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta;
+    HEVCSEIAlternativeTransfer alternative_transfer;
 
     MppBufSlots slots;
 
@@ -614,6 +621,10 @@ typedef struct HEVCContext {
     RK_S32  pps_len;
     RK_S32  pps_buf_size;
     RK_S32  first_i_fast_play;
+
+    /* hdr info */
+    RK_U32  is_hdr;
+    RK_U32  hdr_dynamic;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
@@ -666,5 +677,7 @@ RK_S32 mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *frame, RK_S32 poc);
 void mpp_hevc_unref_frame(HEVCContext *s, HEVCFrame *frame, RK_S32 flags);
 
 void mpp_hevc_pps_free(RK_U8 *data);
+
+void mpp_hevc_fill_dynamic_meta(HEVCContext *s, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt);
 
 #endif /* __H265D_PAESER_H__ */

@@ -478,6 +478,9 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
         mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | MPP_FRAME_FBC_MASK);
     }
 
+    if (p_dec->is_hdr)
+        mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | MPP_FRAME_HDR);
+
     mpp_frame_set_width(mframe, vsh->horizontal_size);
     mpp_frame_set_height(mframe, vsh->vertical_size);
     mpp_frame_set_hor_stride(mframe, (MPP_ALIGN(vsh->horizontal_size, ctu_size) * bitdepth + 7) / 8);
@@ -490,6 +493,12 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     if (p_dec->got_exh) {
         mpp_frame_set_color_primaries(mframe, exh->color_primaries);
         mpp_frame_set_color_trc(mframe, exh->transfer_characteristics);
+    }
+    mpp_frame_set_content_light(mframe, p_dec->content_light);
+    mpp_frame_set_mastering_display(mframe, p_dec->display_meta);
+    if (p_dec->hdr_dynamic_meta && p_dec->hdr_dynamic) {
+        mpp_frame_set_hdr_dynamic_meta(mframe, p_dec->hdr_dynamic_meta);
+        p_dec->hdr_dynamic = 0;
     }
     if (vsh->progressive_sequence) {
         frm->frame_mode = MPP_FRAME_FLAG_FRAME;

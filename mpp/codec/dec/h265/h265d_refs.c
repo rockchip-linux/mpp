@@ -94,6 +94,9 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_hor_stride(frame->frame,
                                  (MPP_ALIGN(s->h265dctx->coded_width, 64) * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
+        if (s->is_hdr) {
+            s->h265dctx->pix_fmt |= MPP_FRAME_HDR;
+        }
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
 
         if (MPP_FRAME_FMT_IS_FBC(s->h265dctx->pix_fmt)) {
@@ -116,10 +119,18 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_poc(frame->frame, s->poc);
         mpp_frame_set_color_range(frame->frame, s->h265dctx->color_range);
         mpp_frame_set_color_primaries(frame->frame, s->sps->vui.colour_primaries);
-        mpp_frame_set_color_trc(frame->frame, s->sps->vui.transfer_characteristic);
+        if (s->alternative_transfer.present)
+            mpp_frame_set_color_trc(frame->frame,
+                                    s->alternative_transfer.preferred_transfer_characteristics);
+        else
+            mpp_frame_set_color_trc(frame->frame, s->sps->vui.transfer_characteristic);
         mpp_frame_set_colorspace(frame->frame, s->h265dctx->colorspace);
         mpp_frame_set_mastering_display(frame->frame, s->mastering_display);
         mpp_frame_set_content_light(frame->frame, s->content_light);
+        if (s->hdr_dynamic_meta && s->hdr_dynamic) {
+            mpp_frame_set_hdr_dynamic_meta(frame->frame, s->hdr_dynamic_meta);
+            s->hdr_dynamic = 0;
+        }
         h265d_dbg(H265D_DBG_GLOBAL, "w_stride %d h_stride %d\n", s->h265dctx->coded_width, s->h265dctx->coded_height);
         ret = mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
         mpp_assert(ret == MPP_OK);

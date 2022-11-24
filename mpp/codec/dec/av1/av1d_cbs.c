@@ -20,6 +20,8 @@
 #include "mpp_mem.h"
 #include "mpp_debug.h"
 #include "mpp_bitread.h"
+#include "mpp_bitwrite.h"
+#include "rk_hdr_meta_com.h"
 
 #include "av1d_parser.h"
 
@@ -2329,12 +2331,95 @@ static RK_S32 mpp_av1_metadata_scalability(AV1Context *ctx, BitReadCtx_t *gb,
     return 0;
 }
 
+static RK_S32 mpp_av1_get_dolby_rpu(AV1Context *ctx, BitReadCtx_t *gb)
+{
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta = ctx->hdr_dynamic_meta;
+    RK_U32 emdf_payload_size = 0;
+
+    /* skip emdf_container{} */
+    SKIP_BITS(gb, 3);
+    SKIP_BITS(gb, 2);
+    SKIP_BITS(gb, 5);
+    SKIP_BITS(gb, 5);
+    SKIP_BITS(gb, 1);
+    SKIP_BITS(gb, 5);
+    SKIP_BITS(gb, 1);
+    /* skip emdf_payload_config{} */
+    SKIP_BITS(gb, 5);
+
+    /* get payload size */
+#define VARIABLE_BITS8(gb, value)   \
+    for (;;) {                      \
+        RK_U32 tmp, flag;           \
+                                    \
+        READ_BITS(gb, 8, &tmp);     \
+        value += tmp;               \
+        READ_ONEBIT(gb, &flag);     \
+        if (!flag) break;           \
+        value <<= 8;                \
+        value += (1 << 8);          \
+    }
+
+    VARIABLE_BITS8(gb, emdf_payload_size);
+    if (!hdr_dynamic_meta) {
+        hdr_dynamic_meta = mpp_calloc_size(MppFrameHdrDynamicMeta,
+                                           sizeof(MppFrameHdrDynamicMeta) + SZ_1K);
+        if (!hdr_dynamic_meta) {
+            mpp_err_f("malloc hdr dynamic data failed!\n");
+            return MPP_ERR_NOMEM;
+        }
+    }
+
+    if (hdr_dynamic_meta->data) {
+        RK_U32 i;
+        MppWriteCtx bit_ctx;
+
+        mpp_writer_init(&bit_ctx, hdr_dynamic_meta->data, SZ_1K);
+
+        mpp_writer_put_raw_bits(&bit_ctx, 0, 24);
+        mpp_writer_put_raw_bits(&bit_ctx, 1, 8);
+        mpp_writer_put_raw_bits(&bit_ctx, 0x19, 8);
+        for (i = 0; i < emdf_payload_size; i++) {
+            RK_U8 data;
+
+            READ_BITS(gb, 8, &data);
+            mpp_writer_put_bits(&bit_ctx, data, 8);
+        }
+
+        hdr_dynamic_meta->size = mpp_writer_bytes(&bit_ctx);
+        hdr_dynamic_meta->hdr_fmt = DOLBY;
+        av1d_dbg(AV1D_DBG_STRMIN, "dolby rpu size %d -> %d\n",
+                 emdf_payload_size, hdr_dynamic_meta->size);
+    }
+    ctx->hdr_dynamic_meta = hdr_dynamic_meta;
+    ctx->hdr_dynamic = 1;
+    ctx->is_hdr = 1;
+
+    if (av1d_debug & AV1D_DBG_DUMP_RPU) {
+        RK_U8 *p = hdr_dynamic_meta->data;
+        char fname[128];
+        FILE *fp_in = NULL;
+        static RK_U32 g_frame_no = 0;
+
+        sprintf(fname, "/data/video/meta_%d.txt", g_frame_no++);
+        fp_in = fopen(fname, "wb");
+        mpp_err("open %s %p\n", fname, fp_in);
+        if (fp_in)
+            fwrite(p, 1, hdr_dynamic_meta->size, fp_in);
+        fflush(fp_in);
+        fclose(fp_in);
+    }
+
+    return 0;
+
+__BITREAD_ERR:
+    return MPP_ERR_STREAM;
+}
+
 static RK_S32 mpp_av1_metadata_itut_t35(AV1Context *ctx, BitReadCtx_t *gb,
                                         AV1RawMetadataITUTT35 *current)
 {
     RK_S32 err;
-    size_t i;
-    (void)ctx;
 
     fb(8, itu_t_t35_country_code);
     if (current->itu_t_t35_country_code == 0xff)
@@ -2344,14 +2429,23 @@ static RK_S32 mpp_av1_metadata_itut_t35(AV1Context *ctx, BitReadCtx_t *gb,
 
     av1d_dbg(AV1D_DBG_STRMIN, "%s itu_t_t35_country_code %d payload_size %d\n",
              __func__, current->itu_t_t35_country_code, current->payload_size);
-    current->payload = mpp_malloc(RK_U8, current->payload_size);
-    if (!current->payload)
-        return MPP_ERR_NOMEM;
 
-    for (i = 0; i < current->payload_size; i++)
-        xf(8, itu_t_t35_payload_bytes[i], current->payload[i],
-           0x00, 0xff, 1, i);
+    fb(16, itu_t_t35_terminal_provider_code);
+    READ_BITS_LONG(gb, 32, &current->itu_t_t35_terminal_provider_oriented_code);
 
+    av1d_dbg(AV1D_DBG_STRMIN, "itu_t_t35_country_code 0x%x\n",
+             current->itu_t_t35_country_code);
+    av1d_dbg(AV1D_DBG_STRMIN, "itu_t_t35_terminal_provider_code 0x%x\n",
+             current->itu_t_t35_terminal_provider_code);
+    av1d_dbg(AV1D_DBG_STRMIN, "itu_t_t35_terminal_provider_oriented_code 0x%x\n",
+             current->itu_t_t35_terminal_provider_oriented_code);
+
+    if (current->itu_t_t35_terminal_provider_code == 0x3B &&
+        current->itu_t_t35_terminal_provider_oriented_code == 0x800)
+        mpp_av1_get_dolby_rpu(ctx, gb);
+
+    return 0;
+__BITREAD_ERR:
     return 0;
 }
 
