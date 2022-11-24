@@ -35,6 +35,7 @@
 #include "av1d_syntax.h"
 #include "film_grain_noise_table.h"
 #include "av1d_common.h"
+#include "rk_hdr_meta_com.h"
 
 #define VDPU_FAST_REG_SET_CNT    3
 #define AV1_MAX_TILES 128
@@ -1864,6 +1865,8 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     tile_out_buf = hal_bufs_get_buf(ctx->tile_out_bufs, task->dec.output);
     hor_stride = mpp_frame_get_hor_stride(mframe);
     ver_stride = mpp_frame_get_ver_stride(mframe);
+    if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) && p_hal->cfg->base.enable_hdr_meta)
+        fill_hdr_meta_to_frame(mframe, HDR_AV1);
 
     ctx->ver_stride = ver_stride;
 

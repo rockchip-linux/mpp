@@ -46,6 +46,7 @@ typedef struct HalH265dCtx_t {
     MppClientType   client_type;
     RK_U32          hw_id;
     MppDev          dev;
+    MppDecCfgSet    *cfg;
 
     /* for resource */
     MppBufSlots     slots;

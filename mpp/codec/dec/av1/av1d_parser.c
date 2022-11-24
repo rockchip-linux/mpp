@@ -602,6 +602,9 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
 
+    if (s->is_hdr)
+        ctx->pix_fmt |= MPP_FRAME_HDR;
+
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
         mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_16);
         if (s->bit_depth == 10) {
@@ -610,6 +613,7 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
             else
                 mpp_err("422p 10bit no support");
         }
+
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK))));
         mpp_frame_set_offset_x(frame->f, 0);
         mpp_frame_set_offset_y(frame->f, 0);
@@ -619,6 +623,11 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
 
     if (ctx->pix_fmt == MPP_FMT_YUV420SP_10BIT)
         mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(ctx->width * s->bit_depth / 8, 8));
+
+    if (s->hdr_dynamic_meta && s->hdr_dynamic) {
+        mpp_frame_set_hdr_dynamic_meta(frame->f, s->hdr_dynamic_meta);
+        s->hdr_dynamic = 0;
+    }
 
     value = 4;
     mpp_slots_set_prop(s->slots, SLOTS_NUMERATOR, &value);
@@ -728,6 +737,7 @@ MPP_RET av1d_parser_deinit(Av1CodecContext *ctx)
 
     mpp_av1_fragment_reset(&s->current_obu);
     MPP_FREE(s->seq_ref);
+    MPP_FREE((s->hdr_dynamic_meta));
     MPP_FREE(ctx->priv_data);
     return MPP_OK;
 

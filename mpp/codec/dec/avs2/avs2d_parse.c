@@ -226,16 +226,92 @@ static MPP_RET parse_seq_dispay_ext_header(BitReadCtx_t *bitctx, Avs2dSeqExtHead
 __BITREAD_ERR:
     return ret = bitctx->ret;
 }
-static MPP_RET parse_extension_header(Avs2dCtx_t *p_dec, BitReadCtx_t *bitctx, Avs2dSeqExtHeader_t *exh)
+
+static MPP_RET parse_mastering_display_and_content_meta(BitReadCtx_t *bitctx,
+                                                        MppFrameMasteringDisplayMetadata *display_meta,
+                                                        MppFrameContentLightMetadata *content_light)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 i = 0;
+    RK_U16 value;
+
+    /* display metadata */
+    for (i = 0; i < 3; i++) {
+        READ_BITS(bitctx, 16, &value);
+        READ_MARKER_BIT(bitctx);
+        display_meta->display_primaries[i][0] = value;
+        READ_BITS(bitctx, 16, &value);
+        READ_MARKER_BIT(bitctx);
+        display_meta->display_primaries[i][1] = value;
+    }
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    display_meta->white_point[0] = value;
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    display_meta->white_point[1] = value;
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    display_meta->max_luminance = value;
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    display_meta->min_luminance = value;
+
+    /* content light */
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    content_light->MaxCLL = value;
+    READ_BITS(bitctx, 16, &value);
+    READ_MARKER_BIT(bitctx);
+    content_light->MaxFALL = value;
+
+    SKIP_BITS(bitctx, 16);
+
+    return ret;
+__BITREAD_ERR:
+    return ret = bitctx->ret;
+}
+
+static MPP_RET parse_hdr_dynamic_meta_extension(BitReadCtx_t *bitctx, MppFrameHdrDynamicMeta *hdr_meta)
+{
+    MPP_RET ret = MPP_OK;
+    RK_S32 country_code, provider_code;
+    RK_U16 terminal_provide_oriented_code;
+    (void)hdr_meta;
+    /* hdr_dynamic_metadata_type */
+    SKIP_BITS(bitctx, 4);
+    READ_BITS(bitctx, 8, &country_code);
+    READ_BITS(bitctx, 16, &provider_code);
+    READ_BITS(bitctx, 16, &terminal_provide_oriented_code);
+    AVS2D_PARSE_TRACE("country_code=%d provider_code=%d terminal_provider_code %d\n",
+                      country_code, provider_code, terminal_provide_oriented_code);
+
+    //TODO: copy dynamic data
+
+    return ret;
+__BITREAD_ERR:
+    return ret = bitctx->ret;
+}
+
+static MPP_RET parse_extension_header(Avs2dCtx_t *p_dec, BitReadCtx_t *bitctx)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 val_temp = 0;
 
     READ_BITS(bitctx, 4, &val_temp); //!< extension_start_code
     switch (val_temp) {
-    case AVS2_SEQUENCE_DISPLAY_EXTENTION:
-        FUN_CHECK(ret = parse_seq_dispay_ext_header(bitctx, exh));
+    case AVS2_SEQUENCE_DISPLAY_EXT_ID:
+        FUN_CHECK(ret = parse_seq_dispay_ext_header(bitctx, &p_dec->exh));
         p_dec->got_exh = 1;
+        break;
+    case AVS2_MASTERING_DISPLAY_AND_CONTENT_METADATA_EXT_ID:
+        FUN_CHECK(ret = parse_mastering_display_and_content_meta(bitctx,
+                                                                 &p_dec->display_meta,
+                                                                 &p_dec->content_light));
+        p_dec->is_hdr = 1;
+        break;
+    case AVS2_HDR_DYNAMIC_METADATA_EXT_ID:
+        FUN_CHECK(ret = parse_hdr_dynamic_meta_extension(bitctx, p_dec->hdr_dynamic_meta));
         break;
     default:
         break;
@@ -598,7 +674,7 @@ MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
             ret = avs2d_parse_picture_header(p_dec, startcode);
             break;
         case AVS2_EXTENSION_START_CODE:
-            ret = parse_extension_header(p_dec, &p_dec->bitctx, &p_dec->exh);
+            ret = parse_extension_header(p_dec, &p_dec->bitctx);
             break;
         case AVS2_USER_DATA_START_CODE:
             break;
