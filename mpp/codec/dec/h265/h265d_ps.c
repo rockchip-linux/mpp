@@ -1988,11 +1988,13 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     READ_ONEBIT(gb, &pps->entropy_coding_sync_enabled_flag);
 
     // check support solution
-    {
+    if (s->h265dctx->hw_info) {
         const MppDecHwCap *hw_info = s->h265dctx->hw_info;
-        if (hw_info && hw_info->cap_lmt_linebuf) {
+
+        if (hw_info->cap_lmt_linebuf) {
             RK_S32 max_supt_width = PIXW_1080P;
             RK_S32 max_supt_height = pps->tiles_enabled_flag ? PIXH_1080P : PIXW_1080P;
+
             if (hw_info && hw_info->cap_8k) {
                 max_supt_width = PIXW_8Kx4K;
                 max_supt_height = pps->tiles_enabled_flag ? PIXH_8Kx4K : PIXW_8Kx4K;
