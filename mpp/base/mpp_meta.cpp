@@ -42,6 +42,9 @@ static MppMetaDef meta_defs[] = {
     {   KEY_MOTION_INFO,        TYPE_BUFFER,    },
     /* buffer storing the HDR information for current frame*/
     {   KEY_HDR_INFO,           TYPE_BUFFER,    },
+    /* the offset of HDR meta data in frame buffer */
+    {   KEY_HDR_META_OFFSET,    TYPE_S32,       },
+    {   KEY_HDR_META_SIZE,      TYPE_S32,       },
 
     {   KEY_OUTPUT_INTRA,       TYPE_S32,       },
     {   KEY_INPUT_BLOCK,        TYPE_S32,       },

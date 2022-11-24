@@ -66,6 +66,8 @@ typedef enum MppMetaKey_e {
     /* output motion information for motion detection */
     KEY_MOTION_INFO             = FOURCC_META('m', 'v', 'i', 'f'),
     KEY_HDR_INFO                = FOURCC_META('h', 'd', 'r', ' '),
+    KEY_HDR_META_OFFSET         = FOURCC_META('h', 'd', 'r', 'o'),
+    KEY_HDR_META_SIZE           = FOURCC_META('h', 'd', 'r', 'l'),
 
     /* flow control key */
     KEY_INPUT_BLOCK             = FOURCC_META('i', 'b', 'l', 'k'),
