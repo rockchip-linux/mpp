@@ -91,9 +91,9 @@ static VepuFmtCfg vepu541_yuv_cfg[MPP_FMT_YUV_BUTT] = {
         .offset     = zeros,
     },
     {   /* MPP_FMT_YUV422SP_VU */
-        .format     = VEPU541_FMT_NONE,
+        .format     = VEPU541_FMT_YUV422SP,
         .alpha_swap = 0,
-        .rbuv_swap  = 0,
+        .rbuv_swap  = 1,
         .src_range  = 1,
         .src_endian = 0,
         .weight     = zeros,

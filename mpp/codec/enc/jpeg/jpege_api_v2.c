@@ -118,7 +118,6 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
     mpp_assert(change);
     if (change) {
         MppEncPrepCfg bak = *dst;
-        MppFrameFormat fmt;
         RK_S32 mirroring;
         RK_S32 rotation;
 
@@ -175,19 +174,6 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
         if (dst->height < 16 && dst->height > 8192) {
             mpp_err_f("invalid height %d is not in range [16..8192]\n", dst->height);
-            ret = MPP_NOK;
-        }
-
-        fmt = dst->format & MPP_FRAME_FMT_MASK;
-        if ((fmt != MPP_FMT_YUV420SP    &&
-             fmt != MPP_FMT_YUV420P     &&
-             fmt != MPP_FMT_YUV422SP_VU &&
-             fmt != MPP_FMT_YUV422_YUYV &&
-             fmt != MPP_FMT_YUV422_UYVY &&
-             fmt < MPP_FRAME_FMT_RGB)   ||
-            fmt == MPP_FMT_RGB888       ||
-            fmt == MPP_FMT_BGR888) {
-            mpp_err_f("invalid format %d is not supportted\n", dst->format);
             ret = MPP_NOK;
         }
 
