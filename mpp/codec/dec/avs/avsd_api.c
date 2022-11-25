@@ -64,7 +64,7 @@ __RETURN:
 ***********************************************************************
 */
 
-MPP_RET avsd_init(void *decoder, ParserCfg *init)
+static MPP_RET avsd_init(void *decoder, ParserCfg *init)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_S32 i = 0;
@@ -110,13 +110,14 @@ __FAILED:
 
     return ret;
 }
+
 /*!
 ***********************************************************************
 * \brief
 *   reset
 ***********************************************************************
 */
-MPP_RET avsd_reset(void *decoder)
+static MPP_RET avsd_reset(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
@@ -147,24 +148,21 @@ MPP_RET avsd_reset(void *decoder)
 *   flush
 ***********************************************************************
 */
-MPP_RET avsd_flush(void *decoder)
+static MPP_RET avsd_flush(void *decoder)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
+
     AVSD_PARSE_TRACE("In.");
 
-    avsd_reset_parameters(p_dec);
-    p_dec->got_keyframe = 0;
-    p_dec->vec_flag = 0;
+    set_frame_output(p_dec, p_dec->dpb[1]);
+    set_frame_output(p_dec, p_dec->dpb[0]);
+    set_frame_output(p_dec, p_dec->cur);
+
     p_dec->got_eos = 0;
-    p_dec->left_length = 0;
-    p_dec->state = 0xFFFFFFFF;
-    p_dec->vop_header_found = 0;
 
     AVSD_PARSE_TRACE("Out.");
-    (void)p_dec;
-    (void)decoder;
-    return ret = MPP_OK;
+
+    return MPP_OK;
 }
 
 /*!
@@ -173,7 +171,7 @@ MPP_RET avsd_flush(void *decoder)
 *   control/perform
 ***********************************************************************
 */
-MPP_RET avsd_control(void *decoder, MpiCmd cmd_type, void *param)
+static MPP_RET avsd_control(void *decoder, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
@@ -199,7 +197,7 @@ MPP_RET avsd_control(void *decoder, MpiCmd cmd_type, void *param)
 *   prepare
 ***********************************************************************
 */
-MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
+static MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -297,7 +295,7 @@ __RETURN:
 *   parser
 ***********************************************************************
 */
-MPP_RET avsd_parse(void *decoder, HalDecTask *task)
+static MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
@@ -328,7 +326,7 @@ MPP_RET avsd_parse(void *decoder, HalDecTask *task)
 *   callback
 ***********************************************************************
 */
-MPP_RET avsd_callback(void *decoder, void *info)
+static MPP_RET avsd_callback(void *decoder, void *info)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
@@ -350,6 +348,10 @@ MPP_RET avsd_callback(void *decoder, void *info)
             }
         }
     }
+
+    if (!ctx->hard_err && p_dec->ph.picture_coding_type == I_PICTURE)
+        p_dec->vsh.version_checked = 1;
+
     AVSD_PARSE_TRACE("Out.");
 
     return ret = MPP_OK;

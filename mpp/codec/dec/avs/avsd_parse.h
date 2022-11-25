@@ -122,6 +122,7 @@ typedef struct avsd_sequence_header_t {
     RK_U8  frame_rate_code;
     RK_U32 bit_rate;
     RK_U8  low_delay;
+    RK_U8  version_checked;
     RK_U32 bbv_buffer_size;
 } AvsdSeqHeader_t;
 
@@ -240,14 +241,13 @@ typedef struct avs_dec_ctx_t {
     RK_U32                   disable_error;
 } AvsdCtx_t;
 
-
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 MPP_RET avsd_free_resource(AvsdCtx_t *p_dec);
 MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec);
+MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p);
 
 MPP_RET avsd_set_dpb(AvsdCtx_t *p_dec, HalDecTask *task);
 MPP_RET avsd_commit_syntaxs(AvsdSyntax_t *syn, HalDecTask *task);
