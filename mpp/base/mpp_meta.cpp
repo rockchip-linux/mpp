@@ -68,6 +68,10 @@ static MppMetaDef meta_defs[] = {
     {   KEY_ENC_USE_LTR,        TYPE_S32,       },
     {   KEY_ENC_FRAME_QP,       TYPE_S32,       },
     {   KEY_ENC_BASE_LAYER_PID, TYPE_S32,       },
+
+    {   KEY_DEC_TBN_EN,         TYPE_S32,       },
+    {   KEY_DEC_TBN_Y_OFFSET,   TYPE_S32,       },
+    {   KEY_DEC_TBN_UV_OFFSET,  TYPE_S32,       },
 };
 
 class MppMetaService

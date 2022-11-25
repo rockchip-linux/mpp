@@ -131,6 +131,11 @@ typedef enum MppMetaKey_e {
     /* MLVEC specified encoder feature  */
     KEY_ENC_FRAME_QP            = FOURCC_META('f', 'r', 'm', 'q'),
     KEY_ENC_BASE_LAYER_PID      = FOURCC_META('b', 'p', 'i', 'd'),
+
+    /* Thumbnail info for decoder output frame */
+    KEY_DEC_TBN_EN              = FOURCC_META('t', 'b', 'e', 'n'),
+    KEY_DEC_TBN_Y_OFFSET        = FOURCC_META('t', 'b', 'y', 'o'),
+    KEY_DEC_TBN_UV_OFFSET       = FOURCC_META('t', 'b', 'c', 'o'),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
