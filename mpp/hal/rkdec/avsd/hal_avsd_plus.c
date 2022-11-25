@@ -167,7 +167,6 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         }
     }
     //!< AVS Plus end
-    p_regs->sw13.dpb_ilace_mode = 0;
     if (p_syn->pp.pictureStructure == FRAMEPICTURE || p_hal->first_field) {
         p_regs->sw13.dec_out_base = get_frame_fd(p_hal, task->output);
     } else {
@@ -477,6 +476,7 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
     {
         RK_U32 pic_type = 0;
         RK_U32 prev_anc_type = 0;
+
         if (p_hal->work0 >= 0) {
             pic_type = p_hal->pic[p_hal->work0].pic_type;
         }
@@ -549,6 +549,7 @@ static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
     AVSD_HAL_DBG(AVSD_HAL_DBG_OFFSET, "frame_no=%d, i=%d, offset=%d\n",
                  p_hal->frame_no, i, p_hal->data_offset);
     //!< re-generate register
+    p_hal->frame_no++;
     FUN_CHECK(ret = set_regs_parameters(p_hal, &task->dec));
     hal_avsd_plus_start((void *)p_hal, task);
     hal_avsd_plus_wait((void *)p_hal, task);
@@ -672,6 +673,26 @@ MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
         wr_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
         wr_cfg.offset = 0;
 
+        {
+            static RK_U32 frame_no = 0;
+            static FILE *fp = NULL;
+            RK_U32 i;
+
+            if (!fp)
+                fp = fopen("regs.txt", "w+b");
+
+            if (fp) {
+                fprintf(fp, "frame %d\n", frame_no);
+
+                for (i = 0; i < AVSD_REGISTERS; i++)
+                    fprintf(fp, "reg[%03d]: %08x\n", i, p_hal->p_regs[i]);
+
+                frame_no++;
+
+                fflush(fp);
+            }
+        }
+
         ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -694,8 +715,6 @@ MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
             break;
         }
     } while (0);
-
-    p_hal->frame_no++;
 
 __RETURN:
     AVSD_HAL_TRACE("Out.");

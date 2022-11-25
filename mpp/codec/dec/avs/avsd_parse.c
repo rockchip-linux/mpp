@@ -226,18 +226,21 @@ static MPP_RET get_i_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, 
         READ_BITS(bitctx, 24, &ph->time_code);
     }
 
-    vsh->version = 0;
-    /* check stream version */
-    if (vsh->low_delay) {
-        vsh->version = 1;
-    } else {
-        SHOW_BITS(bitctx, 9, &val_temp);
-        if (!(val_temp & 1)) {
+    /* NOTE: only check version on correct I frame not found */
+    if (!vsh->version_checked) {
+        vsh->version = 0;
+        /* check stream version */
+        if (vsh->low_delay) {
             vsh->version = 1;
         } else {
-            SHOW_BITS(bitctx, 11, &val_temp);
-            if (val_temp & 3)
+            SHOW_BITS(bitctx, 9, &val_temp);
+            if (!(val_temp & 1)) {
                 vsh->version = 1;
+            } else {
+                SHOW_BITS(bitctx, 11, &val_temp);
+                if (val_temp & 3)
+                    vsh->version = 1;
+            }
         }
     }
 
@@ -375,28 +378,24 @@ __FAILED:
 
 static MPP_RET set_frame_unref(AvsdCtx_t *pdec, AvsdFrame_t *p)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
     if (p && p->slot_idx >= 0) {
         mpp_buf_slot_clr_flag(pdec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
         reset_one_save(p);
     }
 
-    return ret = MPP_OK;
+    return MPP_OK;
 }
 
 
-static MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p)
+MPP_RET set_frame_output(AvsdCtx_t *p_dec, AvsdFrame_t *p)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
     if (p && p->slot_idx >= 0 && !p->had_display) {
         mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(p_dec->frame_slots, p->slot_idx, QUEUE_DISPLAY);
         p->had_display = 1;
     }
 
-    return ret = MPP_OK;
+    return MPP_OK;
 }
 
 /*!
@@ -419,6 +418,8 @@ MPP_RET avsd_reset_parameters(AvsdCtx_t *p_dec)
     p_dec->cur = NULL;
     p_dec->dpb[0] = NULL;
     p_dec->dpb[1] = NULL;
+
+    p_dec->vsh.version_checked = 0;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(p_dec->mem->save); i++) {
         AvsdFrame_t *frm = &p_dec->mem->save[i];
@@ -817,6 +818,10 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task)
                 AVSD_DBG(AVSD_DBG_SYNTAX, "offset=%d,got_vsh=%d, got_ph=%d, task->valid=%d\n",
                          p_dec->cur->stream_offset, p_dec->got_vsh, p_dec->got_ph, task->valid);
             }
+
+            if (p_dec->disable_error)
+                break;
+
             if ((pic_type == P_PICTURE && !p_dec->dpb[0]) ||
                 (pic_type == B_PICTURE && !p_dec->dpb[0]) ||
                 (pic_type == B_PICTURE && !p_dec->dpb[1] && !p_dec->vsh.low_delay) ||

@@ -48,33 +48,23 @@ typedef struct {
         RK_U32 dec_pic_inf : 1;
         RK_U32 reserve6 : 7;
     } sw01;
-    union {
-        struct {
-            RK_U32 dec_max_burst : 5;
-            RK_U32 dec_scmd_dis : 1;
-            RK_U32 dec_adv_pre_dis : 1;
-            RK_U32 tiled_mode_lsb : 1;
-            RK_U32 dec_out_endian : 1;
-            RK_U32 dec_in_endian : 1;
-            RK_U32 dec_clk_gate_e : 1;
-            RK_U32 dec_latency : 6;
-            RK_U32 dec_out_tiled_e : 1;
-            RK_U32 dec_2chan_dis : 1;
-            RK_U32 dec_outswap32_e : 1;
-            RK_U32 dec_inswap32_e : 1;
-            RK_U32 dec_strendian_e : 1;
-            RK_U32 dec_strswap32_e : 1;
-            RK_U32 dec_timeout_e : 1;
-            RK_U32 dec_axi_rd_id : 8;
-        };
-        struct {
-            RK_U32 reserve0 : 5;
-            RK_U32 priority_mode : 3;
-            RK_U32 reserve1 : 9;
-            RK_U32 tiled_mode_msb : 1;
-            RK_U32 dec_data_disc_e : 1;
-            RK_U32 reserve2 : 13;
-        };
+    struct {
+        RK_U32 dec_max_burst : 5;
+        RK_U32 dec_scmd_dis : 1;
+        RK_U32 dec_adv_pre_dis : 1;
+        RK_U32 tiled_mode_lsb : 1;
+        RK_U32 dec_out_endian : 1;
+        RK_U32 dec_in_endian : 1;
+        RK_U32 dec_clk_gate_e : 1;
+        RK_U32 dec_latency : 6;
+        RK_U32 dec_out_tiled_e : 1;
+        RK_U32 dec_data_disc_e : 1;
+        RK_U32 dec_outswap32_e : 1;
+        RK_U32 dec_inswap32_e : 1;
+        RK_U32 dec_strendian_e : 1;
+        RK_U32 dec_strswap32_e : 1;
+        RK_U32 dec_timeout_e : 1;
+        RK_U32 dec_axi_rd_id : 8;
     } sw02;
     struct {
         RK_U32 dec_axi_wr_id : 8;
@@ -106,17 +96,11 @@ typedef struct {
         RK_U32 mb_width_off : 4;
         RK_U32 pic_mb_width : 9;
     } sw04;
-    union {
-        struct {
-            RK_U32 fieldpic_flag_e : 1;
-            RK_S32 reserve0 : 31;
-        };
-        struct {
-            RK_U32 beta_offset : 5;
-            RK_U32 alpha_offset : 5;
-            RK_U32 reserve1 : 16;
-            RK_U32 strm_start_bit : 6;
-        };
+    struct {
+        RK_U32 beta_offset : 5;
+        RK_U32 alpha_offset : 5;
+        RK_U32 reserve1 : 16;
+        RK_U32 strm_start_bit : 6;
     } sw05;
     struct {
         RK_U32 stream_len : 24;
@@ -134,47 +118,34 @@ typedef struct {
     RK_U32 sw10;
     RK_U32 sw11;
     struct {
-        RK_U32 rlc_vlc_base : 32;
+        RK_U32 rlc_vlc_base;
     } sw12;
-    union {
-        struct {
-            RK_U32 dec_out_base : 32;
-        };
-        struct { //!< left move 10bit
-            RK_U32 reserve0 : 11;
-            RK_U32 dpb_ilace_mode : 1;
-            RK_U32 reserve1 : 20;
-        };
+    struct {
+        RK_U32 dec_out_base;
     } sw13;
     union {
-        RK_U32 refer0_base : 32;
+        RK_U32 refer0_base;
         struct {
-            RK_U32 refer0_topc_e : 1;
-            RK_U32 refer0_field_e : 1;
+            RK_U32 refer0_topc_e    : 1;
+            RK_U32 refer0_field_e   : 1;
         };
     } sw14;
     union {
+        RK_U32 refer1_base;
         struct {
-            RK_U32 refer1_base : 32;
-        };
-        struct {
-            RK_U32 refer1_topc_e : 1;
-            RK_U32 refer1_field_e : 1;
+            RK_U32 refer1_topc_e    : 1;
+            RK_U32 refer1_field_e   : 1;
         };
     } sw15;
     union {
+        RK_U32 refer2_base;
         struct {
-            RK_U32 refer2_base : 32;
-        };
-        struct {
-            RK_U32 refer2_topc_e : 1;
-            RK_U32 refer2_field_e : 1;
+            RK_U32 refer2_topc_e    : 1;
+            RK_U32 refer2_field_e   : 1;
         };
     } sw16;
     union {
-        struct {
-            RK_U32 refer3_base : 32;
-        };
+        RK_U32 refer3_base;
         struct {
             RK_U32 refer3_topc_e : 1;
             RK_U32 refer3_field_e : 1;
