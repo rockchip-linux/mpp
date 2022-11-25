@@ -214,6 +214,7 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
         ctx->params.dil_mode == IEP2_DIL_MODE_I5O1B) {
         struct mv_list ls;
 
+        iep2_set_osd(ctx, &ls);
         iep2_update_gmv(ctx, &ls);
         iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
