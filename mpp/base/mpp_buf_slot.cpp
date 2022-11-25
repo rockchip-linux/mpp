@@ -351,7 +351,15 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_ver_stride(frame, hal_ver_stride);
     mpp_frame_set_hor_stride_pixel(frame, hor_stride_pixel);
     impl->buf_size = size;
-
+    if (mpp_frame_get_thumbnail_en(frame)) {
+        /*
+         * The decode hw only support 1/2 scaling in width and height,
+         * so, an extra 1/4 buffer is expanded to store scaling data.
+         */
+        impl->buf_size += size / 4;
+        mpp_frame_set_buf_size(impl->info_set, impl->buf_size);
+        mpp_frame_set_buf_size(frame, impl->buf_size);
+    }
     MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
     MppFrameImpl *frame_impl    = (MppFrameImpl *)frame;
     info_set_impl->color_range      = frame_impl->color_range;
