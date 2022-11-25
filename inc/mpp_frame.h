@@ -352,6 +352,9 @@ RK_U32  mpp_frame_get_errinfo(const MppFrame frame);
 void    mpp_frame_set_errinfo(MppFrame frame, RK_U32 errinfo);
 size_t  mpp_frame_get_buf_size(const MppFrame frame);
 void    mpp_frame_set_buf_size(MppFrame frame, size_t buf_size);
+void    mpp_frame_set_thumbnail_en(MppFrame frame, RK_U32 thumbnail_en);
+RK_U32  mpp_frame_get_thumbnail_en(const MppFrame frame);
+
 /*
  * flow control parmeter
  */
