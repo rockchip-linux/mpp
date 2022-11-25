@@ -569,12 +569,12 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     } break;
     }
 
-    switch (colorPri) {
-    case MPP_FRAME_PRI_BT2020: {
-        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT2020;
+    switch (mpp_frame_get_fmt(mframe) & MPP_FRAME_FBC_MASK) {
+    case MPP_FRAME_FBC_AFBC_V1: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_FBC_AFBC_V1;
     } break;
-    case MPP_FRAME_PRI_BT709: {
-        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT709;
+    case MPP_FRAME_FBC_AFBC_V2: {
+        vframe->ColorType |= VPU_OUTPUT_FORMAT_FBC_AFBC_V2;
     } break;
     default: {
     } break;
@@ -586,9 +586,6 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     } break;
     case MPP_FRAME_TRC_ARIB_STD_B67: {
         vframe->ColorType |= VPU_OUTPUT_FORMAT_DYNCRANGE_HDR_HLG; //HDR_HLG
-    } break;
-    case MPP_FRAME_TRC_BT2020_10: {
-        vframe->ColorType |= VPU_OUTPUT_FORMAT_COLORSPACE_BT2020; //BT2020
     } break;
     default: {
     } break;
