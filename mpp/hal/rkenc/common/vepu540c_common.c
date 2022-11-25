@@ -148,7 +148,7 @@ static MPP_RET vepu540c_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
 
     /* input cr addr */
     if (v_offset)
-        mpp_dev_set_reg_offset(dev, 266, u_offset);
+        mpp_dev_set_reg_offset(dev, 266, v_offset);
 
     return ret;
 }
