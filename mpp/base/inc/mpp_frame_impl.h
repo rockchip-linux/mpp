@@ -126,6 +126,13 @@ struct MppFrameImpl_t {
      *    stride = aligned(width, 16)
      */
     RK_U32          fbc_offset;
+    /*
+     * frame buffer contain downsacle pic
+     *
+     * downscale pic is no fbc fmt the downscale pic size
+     * w/2 x h / 2
+     */
+    RK_U32          thumbnail_en;
 };
 
 #ifdef __cplusplus
