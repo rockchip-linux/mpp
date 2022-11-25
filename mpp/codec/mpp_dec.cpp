@@ -1660,6 +1660,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_HDR_META)
             dst_base->enable_hdr_meta = src_base->enable_hdr_meta;
 
+        if (change & MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL)
+            dst_base->enable_thumbnail = src_base->enable_thumbnail;
+
         dst_base->change = change;
         src_base->change = 0;
     }

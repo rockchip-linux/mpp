@@ -122,6 +122,7 @@ public:
     ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc) \
     ENTRY(base, enable_fast_play, U32, RK_U32,          MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY, base, enable_fast_play) \
     ENTRY(base, enable_hdr_meta, U32, RK_U32,           MPP_DEC_CFG_CHANGE_ENABLE_HDR_META, base, enable_hdr_meta) \
+    ENTRY(base, enable_thumbnail, U32, RK_U32,          MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL, base, enable_thumbnail) \
     ENTRY(cb, pkt_rdy_cb,       Ptr, MppExtCbFunc,      MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cb) \
     ENTRY(cb, pkt_rdy_ctx,      Ptr, MppExtCbCtx,       MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_ctx) \
     ENTRY(cb, pkt_rdy_cmd,      S32, RK_S32,            MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cmd) \
