@@ -521,6 +521,11 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     impl->mode = MPP_FRAME_FLAG_PAIRED_FIELD | MPP_FRAME_FLAG_BOT_FIRST;
             }
 
+            if (p_Dec->cfg->base.enable_thumbnail && p_Dec->hw_info->cap_down_scale)
+                mpp_frame_set_thumbnail_en(p_Dec->curframe, 1);
+            else
+                mpp_frame_set_thumbnail_en(p_Dec->curframe, 0);
+
             //!< set display parameter
             if (p_Vid->active_sps->vui_parameters_present_flag) {
                 H264_VUI_t *p = &p_Vid->active_sps->vui_seq_parameters;

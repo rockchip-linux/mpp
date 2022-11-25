@@ -363,6 +363,7 @@ MPP_RET vp9d_parser_init(Vp9CodecContext *vp9_ctx, ParserCfg *init)
     s->packet_slots = init->packet_slots;
     s->slots = init->frame_slots;
     s->cfg = init->cfg;
+    s->hw_info = init->hw_info;
     mpp_buf_slot_setup(s->slots, 25);
 
     mpp_env_get_u32("vp9d_debug", &vp9d_debug, 0);
@@ -406,6 +407,11 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
         mpp_frame_set_fbc_hdr_stride(frame->f, MPP_ALIGN(ctx->width, 64));
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
+
+    if (s->cfg->base.enable_thumbnail && s->hw_info->cap_down_scale)
+        mpp_frame_set_thumbnail_en(frame->f, 1);
+    else
+        mpp_frame_set_thumbnail_en(frame->f, 0);
 
     mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
     mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_FRAME, frame->f);

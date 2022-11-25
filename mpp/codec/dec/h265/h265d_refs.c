@@ -114,6 +114,11 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
                 mpp_frame_set_mode(frame->frame, MPP_FRAME_FLAG_DEINTERLACED);
         }
 
+        if (s->h265dctx->cfg->base.enable_thumbnail && s->h265dctx->hw_info->cap_down_scale)
+            mpp_frame_set_thumbnail_en(frame->frame, 1);
+        else
+            mpp_frame_set_thumbnail_en(frame->frame, 0);
+
         mpp_frame_set_errinfo(frame->frame, 0);
         mpp_frame_set_pts(frame->frame, s->pts);
         mpp_frame_set_poc(frame->frame, s->poc);
