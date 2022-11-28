@@ -50,6 +50,13 @@ typedef enum MppVprocMode_e {
     MPP_VPROC_MODE_ALL                  = (0xFFFFFFFF),
 } MppVprocMode;
 
+typedef enum FastPlayMode_e {
+    MPP_DISABLE_FAST_PLAY,
+    MPP_ENABLE_FAST_PLAY,
+    // first gop fast play when poc include negative value, otherwise enable fast play all time
+    MPP_ENABLE_FAST_PLAY_ONCE,
+} FastPlayMode;
+
 typedef struct MppDecBaseCfg_t {
     RK_U64              change;
 
