@@ -344,6 +344,8 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     FUN_CHECK(ret = init_vid_ctx(p_Dec->p_Vid));
     FUN_CHECK(ret = init_dec_ctx(p_Dec));
     p_Dec->immediate_out = p_Dec->cfg->base.fast_out;
+    p_Dec->p_Vid->dpb_fast_out = p_Dec->cfg->base.enable_fast_play;
+    p_Dec->p_Vid->dpb_first_fast_played = 0;
 __RETURN:
     return ret = MPP_OK;
 __FAILED:
@@ -439,6 +441,8 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->dxva_ctx->strm_offset = 0;
     p_Dec->dxva_ctx->slice_count = 0;
     p_Dec->last_frame_slot_idx   = -1;
+    p_Dec->p_Vid->dpb_fast_out = p_Dec->cfg->base.enable_fast_play;
+    p_Dec->p_Vid->dpb_first_fast_played = 0;
 
 __RETURN:
     return ret = MPP_OK;
@@ -480,9 +484,16 @@ __FAILED:
 */
 MPP_RET  h264d_control(void *decoder, MpiCmd cmd_type, void *param)
 {
-    (void) decoder;
-    (void) cmd_type;
-    (void) param;
+    H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
+
+    switch (cmd_type) {
+    case MPP_DEC_SET_ENABLE_FAST_PLAY:
+        p_Dec->p_Vid->dpb_fast_out = (param) ? (*((RK_U32 *)param)) : (1);
+        break;
+    default:
+        break;
+    }
+
     return MPP_OK;
 }
 

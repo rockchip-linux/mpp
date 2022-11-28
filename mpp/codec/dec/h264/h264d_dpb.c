@@ -867,7 +867,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
             if (p_err->used_ref_flag && p_err->first_iframe_is_output) {
                 mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
-                if (p_Vid->p_Dec->cfg->base.enable_fast_play)
+                if (p_Vid->dpb_fast_out)
                     mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
             }
         }
@@ -1302,6 +1302,63 @@ __FAILED:
     return ret;
 }
 
+static MPP_RET output_dpb_normal(H264_DpbBuf_t *p_Dpb)
+{
+    MPP_RET ret = MPP_NOK;
+    RK_S32 min_poc = 0;
+    RK_S32 min_pos = 0;
+    RK_S32 poc_inc = 0;
+
+    while ((p_Dpb->last_output_poc > INT_MIN)
+           && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
+        poc_inc = min_poc - p_Dpb->last_output_poc;
+        if ((p_Dpb->last_output_poc > INT_MIN) && (abs(poc_inc) & 0x1))
+            p_Dpb->poc_interval = 1;
+        if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
+            FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
+        } else {
+            break;
+        }
+    }
+    while (!remove_unused_frame_from_dpb(p_Dpb));
+
+    return MPP_OK;
+__FAILED:
+    return ret;
+}
+static MPP_RET output_dpb_fastplay(H264_DpbBuf_t *p_Dpb, H264_FrameStore_t *fs, RK_U32 is_i_frm)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if ((p_Dpb->p_Vid->dpb_fast_out && is_i_frm)) {
+        FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
+    } else
+        output_dpb_normal(p_Dpb);
+
+    return MPP_OK;
+__FAILED:
+    return ret;
+}
+static MPP_RET output_dpb_fastplay_once(H264_DpbBuf_t *p_Dpb, H264_FrameStore_t *fs, RK_U32 is_i_frm)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (p_Dpb->p_Vid->dpb_fast_out && is_i_frm && !p_Dpb->p_Vid->dpb_first_fast_played) {
+        FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
+        p_Dpb->p_Vid->dpb_first_fast_played = 1;
+    } else {
+        // disable fast play once in the second gop
+        if (p_Dpb->p_Vid->dpb_fast_out && is_i_frm && p_Dpb->p_Vid->dpb_first_fast_played) {
+            p_Dpb->p_Vid->dpb_fast_out = MPP_DISABLE_FAST_PLAY;
+        }
+        output_dpb_normal(p_Dpb);
+    }
+
+    return MPP_OK;
+__FAILED:
+    return ret;
+}
+
 static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 {
     MPP_RET ret = MPP_NOK;
@@ -1309,28 +1366,24 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
 
     if (fs->is_used == 3) {
         H264dErrCtx_t *p_err = &p_Dpb->p_Vid->p_Dec->errctx;
-        RK_S32 min_poc = 0;
-        RK_S32 min_pos = 0;
-        RK_S32 poc_inc = 0;
+        RK_U32 is_i_frm = p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN;
 
-        if (p_Dpb->p_Vid->p_Dec->cfg->base.fast_out ||
-            (p_Dpb->p_Vid->p_Dec->cfg->base.enable_fast_play &&
-             p_err->i_slice_no < 2 && p_Dpb->last_output_poc == INT_MIN)) {
+        if (p_Dpb->p_Vid->p_Dec->cfg->base.fast_out)
             FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, fs));
-        } else {
-            while ((p_Dpb->last_output_poc > INT_MIN)
-                   && (get_smallest_poc(p_Dpb, &min_poc, &min_pos))) {
-                poc_inc = min_poc - p_Dpb->last_output_poc;
-                if ((p_Dpb->last_output_poc > INT_MIN) && (abs(poc_inc) & 0x1))
-                    p_Dpb->poc_interval = 1;
-                if ((min_poc - p_Dpb->last_output_poc) <= p_Dpb->poc_interval) {
-                    H264D_WARNNING("write_stored_frame, line %d", __LINE__);
-                    FUN_CHECK(ret = write_stored_frame(p_Dpb->p_Vid, p_Dpb, p_Dpb->fs[min_pos]));
-                } else {
-                    break;
-                }
+        else {
+            switch (p_Dpb->p_Vid->p_Dec->cfg->base.enable_fast_play) {
+            case MPP_DISABLE_FAST_PLAY:
+                FUN_CHECK(ret = output_dpb_normal(p_Dpb));
+                break;
+            case MPP_ENABLE_FAST_PLAY:
+                FUN_CHECK(ret = output_dpb_fastplay(p_Dpb, fs, is_i_frm));
+                break;
+            case MPP_ENABLE_FAST_PLAY_ONCE:
+                FUN_CHECK(ret = output_dpb_fastplay_once(p_Dpb, fs, is_i_frm));
+                break;
+            default:
+                H264D_ERR("unsupport output mode");
             }
-            while (!remove_unused_frame_from_dpb(p_Dpb));
         }
 
         if (is_i_frm)

@@ -37,6 +37,10 @@ if( ENABLE_H264D )
     set(HAL_H264D hal_h264d)
     add_definitions(-DHAVE_H264D)
 endif()
+option(ENABLE_FASTPLAY_ONCE  "Enable h.264 decoder fast play once" OFF)
+if( ENABLE_FASTPLAY_ONCE )
+    add_definitions(-DENABLE_FASTPLAY_ONCE)
+endif()
 
 # H.265 decoder
 option(ENABLE_H265D  "Enable h.265 decoder" ON)
