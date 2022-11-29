@@ -52,7 +52,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
     if (hw_cfg->input_format < INPUT_RGB565) {
         regs->sw105.val = 0xfc000000;
     } else if (hw_cfg->input_format < INPUT_RGB888) {
-        regs->sw105.val = 0x7c000000;
+        regs->sw105.val = 0xfc000000;
     } else {
         regs->sw105.val = 0x3c000000;
     }
