@@ -255,15 +255,15 @@ typedef struct M2VDParserContext_t {
 
     RK_S32             resetFlag;
 
-    RK_U64          PreGetFrameTime;
-    RK_S64          Group_start_Time;
+    double          PreGetFrameTime;
+    double          Group_start_Time;
     RK_U32          GroupFrameCnt;
-    RK_U32          pretemporal_reference;
-    RK_U32          pretime_temporal;
-    RK_U32          max_temporal_reference;
+    float           pretemporal_reference;
+    float           pretime_temporal;
+    float           max_temporal_reference;
     RK_U32          PreChangeTime_index;
-    RK_S32          frame_period;
-    RK_S32          preframe_period;
+    float           frame_period;
+    float           preframe_period;
     RK_U32          maxFrame_inGOP;
     RK_U32          ref_frame_cnt;
     long long       top_first_cnt;
