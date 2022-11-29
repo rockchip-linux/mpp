@@ -39,10 +39,10 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
     RkMetaHdrHeader *hdr_static_meta_header;
     RkMetaHdrHeader *hdr_dynamic_meta_header;
     RK_U32 msg_idx = 0;
-    RK_U16 hdr_format = HDR10;
-    MppMeta meta = mpp_frame_get_meta(frame);
+    RK_U16 hdr_format = HDR_NONE;
+    MppMeta meta = NULL;
     RK_U32 max_size = mpp_buffer_get_size(buf);
-    RK_U32 size, total_size = 0;
+    RK_U32 static_size, dynamic_size = 0, total_size = 0;
 
     if (!ptr || !buf) {
         mpp_err_f("buf is null!\n");
@@ -50,21 +50,26 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
     }
 
     off = MPP_ALIGN(off, SZ_4K);
-    mpp_meta_set_s32(meta, KEY_HDR_META_OFFSET, off);
 
-    size = sizeof(RkMetaHdrHeader) + sizeof(HdrStaticMeta);
-    if ((off + size) > max_size) {
+    static_size = sizeof(RkMetaHdrHeader) + sizeof(HdrStaticMeta);
+    if (dynamic_meta && dynamic_meta->size)
+        dynamic_size = sizeof(RkMetaHdrHeader) + dynamic_meta->size;
+
+    total_size = static_size + dynamic_size;
+
+    if ((off + total_size) > max_size) {
         mpp_err_f("fill hdr meta overflow off %d size %d max %d\n",
-                  off, size, max_size);
+                  off, total_size, max_size);
         return;
     }
+    meta = mpp_frame_get_meta(frame);
+    mpp_meta_set_s32(meta, KEY_HDR_META_OFFSET, off);
     /* 1. fill hdr static meta date */
     hdr_static_meta_header = (RkMetaHdrHeader*)(ptr + off);
     /* For transmission */
     hdr_static_meta_header->magic = HDR_META_MAGIC;
-    hdr_static_meta_header->size = size;
+    hdr_static_meta_header->size = static_size;
     hdr_static_meta_header->message_index = msg_idx++;
-
 
     /* For payload identification */
     hdr_static_meta_header->hdr_payload_type = STATIC;
@@ -103,21 +108,14 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
             hdr_format = HDR10;
     }
     off += hdr_static_meta_header->size;
-    total_size += size;
 
     /* 2. fill hdr dynamic meta date */
     if (dynamic_meta && dynamic_meta->size) {
-        size = sizeof(RkMetaHdrHeader) + dynamic_meta->size;
-        if ((off + size) > max_size) {
-            mpp_err_f("fill hdr meta overflow off %d size %d max %d\n",
-                      off, hdr_static_meta_header->size, max_size);
-            return;
-        }
         hdr_dynamic_meta_header = (RkMetaHdrHeader*)(ptr + off);
 
         /* For transmission */
         hdr_dynamic_meta_header->magic = HDR_META_MAGIC;
-        hdr_dynamic_meta_header->size = size;
+        hdr_dynamic_meta_header->size = dynamic_size;
         hdr_dynamic_meta_header->message_index = msg_idx++;
 
         /* For payload identification */
@@ -128,7 +126,6 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
         memcpy(hdr_dynamic_meta_header->payload, dynamic_meta->data, dynamic_meta->size);
         hdr_dynamic_meta_header->message_total = msg_idx;
         hdr_dynamic_meta_header->hdr_format = hdr_format;
-        total_size += size;
     }
 
     mpp_meta_set_s32(meta, KEY_HDR_META_SIZE, total_size);
