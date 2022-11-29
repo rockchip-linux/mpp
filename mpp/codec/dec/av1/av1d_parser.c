@@ -24,6 +24,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_compat_impl.h"
+#include "rk_hdr_meta_com.h"
 
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
@@ -482,6 +483,12 @@ static MPP_RET set_output_frame(Av1CodecContext *ctx)
         mpp_log2(s->operating_point_idc >> 8) > s->cur_frame.spatial_id)
         return 0;
     mpp_buf_slot_get_prop(s->slots, s->cur_frame.slot_index, SLOT_FRAME_PTR, &frame);
+    if (s->hdr_dynamic_meta && s->hdr_dynamic) {
+        mpp_frame_set_hdr_dynamic_meta(frame, s->hdr_dynamic_meta);
+        s->hdr_dynamic = 0;
+        if (s->raw_frame_header->show_existing_frame)
+            fill_hdr_meta_to_frame(frame, HDR_AV1);
+    }
     mpp_frame_set_pts(frame, s->pts);
     mpp_buf_slot_set_flag(s->slots, s->cur_frame.slot_index, SLOT_QUEUE_USE);
     mpp_buf_slot_enqueue(s->slots, s->cur_frame.slot_index, QUEUE_DISPLAY);
@@ -593,10 +600,11 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     if (frame->ref)
         av1d_frame_unref(ctx, frame);
 
+    mpp_frame_set_meta(frame->f, NULL);
     mpp_frame_set_width(frame->f, ctx->width);
     mpp_frame_set_height(frame->f, ctx->height);
 
-    mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(ctx->width, 16));
+    mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(ctx->width * s->bit_depth / 8, 8));
     mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8));
     mpp_frame_set_errinfo(frame->f, 0);
     mpp_frame_set_discard(frame->f, 0);
@@ -620,14 +628,6 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 28);
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
-
-    if (ctx->pix_fmt == MPP_FMT_YUV420SP_10BIT)
-        mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(ctx->width * s->bit_depth / 8, 8));
-
-    if (s->hdr_dynamic_meta && s->hdr_dynamic) {
-        mpp_frame_set_hdr_dynamic_meta(frame->f, s->hdr_dynamic_meta);
-        s->hdr_dynamic = 0;
-    }
 
     value = 4;
     mpp_slots_set_prop(s->slots, SLOTS_NUMERATOR, &value);
