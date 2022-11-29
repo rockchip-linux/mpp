@@ -131,6 +131,12 @@ MPP_RET hal_m2vd_vdpu2_deinit(void *hal)
             return ret;
         }
     }
+
+    if (p->regs) {
+        mpp_free(p->regs);
+        p->regs = NULL;
+    }
+
     if (p->fp_reg_in) {
         fclose(p->fp_reg_in);
         p->fp_reg_in = NULL;
