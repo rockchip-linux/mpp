@@ -136,8 +136,10 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     }
     for (i = 0; i < MAXSPS; i++) {
         MPP_FREE(p_Vid->spsSet[i]);
-        MPP_FREE(p_Vid->ppsSet[i]);
         MPP_FREE(p_Vid->subspsSet[i]);
+    }
+    for (i = 0; i < MAXPPS; i++) {
+        MPP_FREE(p_Vid->ppsSet[i]);
     }
     for (i = 0; i < MAX_NUM_DPB_LAYERS; i++) {
         free_dpb(p_Vid->p_Dpb_layer[i]);
