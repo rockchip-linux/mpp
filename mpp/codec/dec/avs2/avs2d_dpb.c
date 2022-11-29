@@ -475,7 +475,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     }
 
     if (MPP_FRAME_FMT_IS_FBC(p_dec->init.cfg->base.out_fmt)) {
-        mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | MPP_FRAME_FBC_MASK);
+        mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | (p_dec->init.cfg->base.out_fmt & (MPP_FRAME_FBC_MASK)));
     }
 
     if (p_dec->is_hdr)
