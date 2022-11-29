@@ -120,8 +120,11 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
         int8_t ref_idx = frame_header->ref_frame_idx[i];
         AV1Frame *ref_frame = &h->ref[ref_idx];
         RefInfo *ref_i = ref_frame->ref;
-        pp->frame_refs[i].width  = mpp_frame_get_width(ref_frame->f);
-        pp->frame_refs[i].height = mpp_frame_get_height(ref_frame->f);;
+
+        if (ref_frame->f) {
+            pp->frame_refs[i].width  = mpp_frame_get_width(ref_frame->f);
+            pp->frame_refs[i].height = mpp_frame_get_height(ref_frame->f);;
+        }
         pp->frame_refs[i].Index  = ref_frame->slot_index;
         pp->frame_refs[i].order_hint = ref_frame->order_hint;
         if (ref_i) {
