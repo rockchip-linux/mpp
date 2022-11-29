@@ -29,7 +29,7 @@
 #include "iep_api.h"
 #include "iep2_api.h"
 
-#define DUMP_FILE 0
+#define DUMP_FILE 1
 
 #define dec_vproc_dbg(flag, fmt, ...) \
     do { \
@@ -44,6 +44,8 @@
 #define VPROC_DBG_FUNCTION      (0x00000001)
 #define VPROC_DBG_STATUS        (0x00000002)
 #define VPROC_DBG_RESET         (0x00000004)
+#define VPROC_DBG_DUMP_IN       (0x00000010)
+#define VPROC_DBG_DUMP_OUT      (0x00000020)
 
 #define vproc_dbg_func(fmt, ...)  \
     vproc_dbg_f(VPROC_DBG_FUNCTION, fmt, ## __VA_ARGS__);
@@ -364,7 +366,8 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
     // setup source IepImg
     dec_vproc_set_img_fmt(&img, frm);
 
-    dump_mppbuffer(buf, "/data/dump/dump_in.yuv", hor_stride, ver_stride);
+    if (vproc_debug & VPROC_DBG_DUMP_IN)
+        dump_mppbuffer(buf, "/data/dump/dump_in.yuv", hor_stride, ver_stride);
 
     if (ctx->prev_frm1 && ctx->prev_frm0) {
 
@@ -447,20 +450,25 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
             if (ctx->pd_mode) {
                 if (ctx->dei_info.pd_flag != PD_COMP_FLAG_NON && ctx->dei_info.pd_types != PD_TYPES_UNKNOWN) {
                     dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
-                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
+                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
                     ctx->out_buf0 = NULL;
                 }
             } else {
                 if (mode & MPP_FRAME_FLAG_TOP_FIRST) {
                     dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
-                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
+                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
                     dec_vproc_put_frame(mpp, frm, dst1, curr_pts, frame_err);
-                    dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
+                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                        dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
                 } else {
                     dec_vproc_put_frame(mpp, frm, dst1, first_pts, frame_err);
-                    dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                        dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
                     dec_vproc_put_frame(mpp, frm, dst0, curr_pts, frame_err);
-                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
                 }
                 ctx->out_buf0 = NULL;
                 ctx->out_buf1 = NULL;
@@ -516,7 +524,8 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
         dec_vproc_start_dei(ctx, mode);
         if (!ctx->detection) {
             dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
-            dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+            if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
             ctx->out_buf0 = NULL;
         }
     }
