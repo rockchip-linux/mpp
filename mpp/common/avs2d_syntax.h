@@ -55,6 +55,8 @@ typedef struct _DXVA_PicParams_AVS2 {
 typedef struct _DXVA_RefParams_AVS2 {
     RK_U8       ref_pic_num;
     RK_S32      ref_poc_list[32];
+    RK_S32      scene_ref_slot_idx;
+    RK_S32      scene_ref_enable;
 } RefParams_Avs2d, *LP_RefParams_Avs2d;
 
 typedef struct _DXVA_AlfParams_AVS2 {

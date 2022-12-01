@@ -389,40 +389,52 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
             break;
         }
 
-        for (i = 0; i < MAX_REF_NUM; i++) {
-            if (i < refp->ref_pic_num) {
-                MppFrame frame_ref = NULL;
+        for (i = 0; i < refp->ref_pic_num; i++) {
+            MppFrame frame_ref = NULL;
 
-                RK_S32 slot_idx = task_dec->refer[i] < 0 ? valid_slot : task_dec->refer[i];
+            RK_S32 slot_idx = task_dec->refer[i] < 0 ? valid_slot : task_dec->refer[i];
 
-                if (slot_idx < 0) {
-                    AVS2D_HAL_TRACE("missing ref, could not found valid ref");
-                    return ret = MPP_ERR_UNKNOW;
-                }
+            if (slot_idx < 0) {
+                AVS2D_HAL_TRACE("missing ref, could not found valid ref");
+                return ret = MPP_ERR_UNKNOW;
+            }
 
-                mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &frame_ref);
+            mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &frame_ref);
 
-                if (frame_ref) {
-                    RK_U32 frm_flag = 1 << 3;
+            if (frame_ref) {
+                RK_U32 frm_flag = 1 << 3;
 
-                    if (pp->bottom_field_picture_flag)
-                        frm_flag |= 1 << 2;
+                if (pp->bottom_field_picture_flag)
+                    frm_flag |= 1 << 2;
 
-                    if (pp->field_coded_sequence)
-                        frm_flag |= 1;
+                if (pp->field_coded_sequence)
+                    frm_flag |= 1;
 
-                    ref_flag |= frm_flag << (i * 8);
+                ref_flag |= frm_flag << (i * 8);
 
-                    p_regs->avs2d_addr.ref_base[i] = get_frame_fd(p_hal, slot_idx);
-                    mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
-                    p_regs->avs2d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                p_regs->avs2d_addr.ref_base[i] = get_frame_fd(p_hal, slot_idx);
+                mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
+                p_regs->avs2d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
-                    p_regs->avs2d_param.reg67_098_ref_poc[i] = mpp_frame_get_poc(frame_ref);
+                p_regs->avs2d_param.reg67_098_ref_poc[i] = mpp_frame_get_poc(frame_ref);
 
-                    AVS2D_HAL_TRACE("ref_base[%d] index=%d, fd = %d, colmv %d, poc %d",
-                                    i, slot_idx, p_regs->avs2d_addr.ref_base[i],
-                                    p_regs->avs2d_addr.colmv_base[i], p_regs->avs2d_param.reg67_098_ref_poc[i]);
-                }
+                AVS2D_HAL_TRACE("ref_base[%d] index=%d, fd = %d, colmv %d, poc %d",
+                                i, slot_idx, p_regs->avs2d_addr.ref_base[i],
+                                p_regs->avs2d_addr.colmv_base[i], p_regs->avs2d_param.reg67_098_ref_poc[i]);
+            }
+        }
+
+        if (p_hal->syntax.refp.scene_ref_enable && p_hal->syntax.refp.scene_ref_slot_idx >= 0) {
+            MppFrame scene_ref = NULL;
+            RK_S32 slot_idx = p_hal->syntax.refp.scene_ref_slot_idx;
+
+            mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &scene_ref);
+
+            if (scene_ref) {
+                p_regs->avs2d_addr.ref_base[refp->ref_pic_num - 1] = get_frame_fd(p_hal, slot_idx);
+                mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
+                p_regs->avs2d_addr.colmv_base[refp->ref_pic_num - 1] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                p_regs->avs2d_param.reg67_098_ref_poc[refp->ref_pic_num - 1] = mpp_frame_get_poc(scene_ref);
             }
         }
 
