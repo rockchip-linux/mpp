@@ -273,20 +273,78 @@ static MPP_RET init_common_regs(Vdpu382Avs2dRegSet *regs)
     return MPP_OK;
 }
 
-//TODO calc rcb buffer size;
-/*
 static void avs2d_refine_rcb_size(Vdpu382RcbInfo *rcb_info,
                                   Vdpu382Avs2dRegSet *hw_regs,
                                   RK_S32 width, RK_S32 height, void *dxva)
 {
-    (void) rcb_info;
-    (void) hw_regs;
-    (void) width;
     (void) height;
-    (void) dxva;
+    Avs2dSyntax_t *syntax = dxva;
+    RK_U8 ctu_size = 1 << syntax->pp.lcu_size;
+    RK_U32 chroma_fmt_idc = syntax->pp.chroma_format_idc;
+    RK_U8 bit_depth = syntax->pp.bit_depth_chroma_minus8 + 8;
+    RK_U32 rcb_bits = 0;
+
+    width = MPP_ALIGN(width, ctu_size);
+
+    /* RCB_STRMD_ROW */
+    if (width >= 8192) {
+        RK_U32 factor = 64 / ctu_size;
+
+        rcb_bits = (MPP_ALIGN(width, ctu_size) + factor - 1) / factor * 24;
+    } else
+        rcb_bits = 0;
+    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_TRANSD_ROW */
+    if (width >= 8192)
+        rcb_bits = (MPP_ALIGN(width - 8192, 4) << 1);
+    else
+        rcb_bits = 0;
+    rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_TRANSD_COL */
+    rcb_info[RCB_TRANSD_COL].size = 0;
+
+    /* RCB_INTER_ROW */
+    rcb_bits = width * 21;
+    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_INTER_COL */
+    rcb_info[RCB_INTER_COL].size = 0;
+
+    /* RCB_INTRA_ROW */
+    rcb_bits = width * ((chroma_fmt_idc ? 1 : 0) + 1) * 11;
+    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_DBLK_ROW */
+    if (chroma_fmt_idc == 1 ) {
+        if (ctu_size == 32)
+            rcb_bits = width * ( 4 + 8 * bit_depth);
+        else
+            rcb_bits = width * ( 2 + 8 * bit_depth);
+    } else
+        rcb_bits = 0;
+    rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_SAO_ROW */
+    if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
+        rcb_bits = width * (128 / ctu_size + 2 * bit_depth);
+    } else {
+        rcb_bits = width * (128 / ctu_size + 3 * bit_depth);
+    }
+    rcb_info[RCB_SAO_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_FBC_ROW */
+    if (hw_regs->common.reg012.fbc_e)
+        rcb_bits = width * 4 * bit_depth;
+    else
+        rcb_bits = 0;
+    rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_FILT_COL */
+    rcb_info[RCB_FILT_COL].size = 0;
     return;
 }
-*/
 
 static void hal_avs2d_rcb_info_update(void *hal, Vdpu382Avs2dRegSet *hw_regs)
 {
@@ -298,10 +356,8 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu382Avs2dRegSet *hw_regs)
     RK_S32 i = 0;
     RK_S32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
-    (void) hw_regs;
-
     reg_ctx->rcb_buf_size = vdpu382_get_rcb_buf_size(reg_ctx->rcb_info, width, height);
-    //avs2d_refine_rcb_size(reg_ctx->rcb_info, hw_regs, width, height, (void *)&p_hal->syntax);
+    avs2d_refine_rcb_size(reg_ctx->rcb_info, hw_regs, width, height, (void *)&p_hal->syntax);
 
     for (i = 0; i < loop; i++) {
         MppBuffer rcb_buf = NULL;
