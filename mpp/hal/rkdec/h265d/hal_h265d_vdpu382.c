@@ -1053,23 +1053,8 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
             break;
         }
         /* rcb info for sram */
-        {
-            MppDevRcbInfoCfg rcb_cfg;
-            Vdpu382RcbInfo  rcb_info[RCB_BUF_COUNT];
+        vdpu382_set_rcbinfo(reg_cxt->dev, (Vdpu382RcbInfo*)reg_cxt->rcb_info);
 
-            memcpy(rcb_info, reg_cxt->rcb_info, sizeof(rcb_info));
-            qsort(rcb_info, MPP_ARRAY_ELEMS(rcb_info),
-                  sizeof(rcb_info[0]), vdpu382_compare_rcb_size);
-
-            for (i = 0; i < MPP_ARRAY_ELEMS(rcb_info); i++) {
-                rcb_cfg.reg_idx = rcb_info[i].reg;
-                rcb_cfg.size = rcb_info[i].size;
-                if (rcb_cfg.size > 0)
-                    mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
-                else
-                    break;
-            }
-        }
         ret = mpp_dev_ioctl(reg_cxt->dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
