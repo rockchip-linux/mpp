@@ -48,6 +48,11 @@ typedef enum Vdpu382_RCB_TYPE_E {
     RCB_BUF_COUNT,
 } Vdpu382RcbType_e;
 
+typedef enum Vdpu382_RCB_SET_MODE_E {
+    RCB_SET_BY_SIZE_SORT_MODE,
+    RCB_SET_BY_PRIORITY_MODE,
+} Vdpu382RcbSetMode_e;
+
 /* base: OFFSET_COMMON_REGS */
 typedef struct Vdpu382RegCommon_t {
     struct SWREG8_IN_OUT {
@@ -555,6 +560,7 @@ extern "C" {
 RK_S32 vdpu382_get_rcb_buf_size(Vdpu382RcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu382_setup_rcb(Vdpu382RegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu382RcbInfo *info);
 RK_S32 vdpu382_compare_rcb_size(const void *a, const void *b);
+RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info);
 void vdpu382_setup_statistic(Vdpu382RegCommon *com, Vdpu382RegStatistic *sta);
 void vdpu382_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com);
