@@ -240,8 +240,7 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         if (!ref)
             return MPP_ERR_NOMEM;
 
-        if (cur_used)
-            ref->error_flag = 1;
+        ref->error_flag = 1;
     }
 
     list->list[list->nb_refs] = ref->poc;
@@ -252,7 +251,7 @@ static int add_candidate_ref(HEVCContext *s, RefPicList *list,
         mpp_buf_slot_set_flag(s->slots, ref->slot_index, SLOT_CODEC_USE);
     }
     mark_ref(ref, ref_flag);
-    if (ref->error_flag) {
+    if (ref->error_flag && cur_used) {
         s->miss_ref_flag = 1;
     }
     return 0;
