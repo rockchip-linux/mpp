@@ -634,7 +634,6 @@ __FAILED:
     return ret;
 }
 
-
 static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDecTask *task)
 {
     MPP_RET ret = MPP_OK;
@@ -644,6 +643,7 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
     RK_S32 doi_of_ref;
     Avs2dRps_t *p_rps;
     Avs2dFrame_t *p_cur, *p;
+    RK_U8 replace_ref_flag = 0;
 
     (void) task;
 
@@ -680,7 +680,7 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
             AVS2D_DBG(AVS2D_DBG_ERROR, "Error reference frame(doi %lld ~ %lld) for S.\n",
                       mgr->scene_ref->doi, mgr->refs[0] ? mgr->refs[0]->doi : -1);
             mgr->num_of_ref = 1;
-            mgr->refs[mgr->num_of_ref - 1] = mgr->scene_ref;
+            replace_ref_flag = 1;
         }
     } else if ((p_cur->picture_type == P_PICTURE || p_cur->picture_type == F_PICTURE) &&
                p_dec->ph.background_reference_flag) {
@@ -688,12 +688,19 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
         if (!mgr->scene_ref) {
             error_flag = 1;
         } else {
-            mgr->refs[mgr->num_of_ref - 1] = mgr->scene_ref;
+            replace_ref_flag = 1;
         }
     } else if (p_cur->picture_type == B_PICTURE &&
                (mgr->num_of_ref != 2 || (mgr->refs[0] && mgr->refs[0]->poi <= p_cur->poi) ||
                 (mgr->refs[1] && mgr->refs[1]->poi >= p_cur->poi))) {
         error_flag = 1;
+    }
+
+    if (replace_ref_flag && mgr->scene_ref) {
+        p_dec->syntax.refp.scene_ref_enable = 1;
+        p_dec->syntax.refp.scene_ref_slot_idx = mgr->scene_ref->slot_idx;
+    } else {
+        p_dec->syntax.refp.scene_ref_enable = 0;
     }
 
     if (error_flag) {
