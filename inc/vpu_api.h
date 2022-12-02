@@ -105,6 +105,10 @@ typedef enum VPU_API_CMD {
     VPU_API_DEC_EN_MVC,
     VPU_API_DEC_EN_FBC_HDR_256_ODD,
 
+    /* set pkt/frm ready callback */
+    VPU_API_SET_PKT_RDY_CB = 0x1100,
+    VPU_API_SET_FRM_RDY_CB,
+
     VPU_API_ENC_VEPU22_START = 0x2000,
     VPU_API_ENC_SET_VEPU22_CFG,
     VPU_API_ENC_GET_VEPU22_CFG,
@@ -240,6 +244,13 @@ typedef struct EncoderOut {
     RK_S32 keyFrame;
 
 } EncoderOut_t;
+
+typedef RK_S32 (*VpuFrmRdyCbFunc)(void *cb_ctx);
+
+typedef struct {
+    VpuFrmRdyCbFunc cb;
+    void           *cbCtx;
+} FrameRdyCB;
 
 /*
  * @brief Enumeration used to define the possible video compression codings.
