@@ -246,15 +246,25 @@ static MPP_RET init_common_regs(Vdpu382Avs2dRegSet *regs)
     common->reg024.cabac_err_en_lowbits = 0xffffffdf;
     common->reg025.cabac_err_en_highbits = 0x3dffffff;
 
-    common->reg026.swreg_block_gating_e = 0xfffff;
+    common->reg026.inter_auto_gating_e = 1;
+    common->reg026.filterd_auto_gating_e = 1;
+    common->reg026.strmd_auto_gating_e = 1;
+    common->reg026.mcp_auto_gating_e = 1;
+    common->reg026.busifd_auto_gating_e = 1;
+    common->reg026.dec_ctrl_auto_gating_e = 1;
+    common->reg026.intra_auto_gating_e = 1;
+    common->reg026.mc_auto_gating_e = 1;
+    common->reg026.transd_auto_gating_e = 1;
+    common->reg026.sram_auto_gating_e = 1;
+    common->reg026.cru_auto_gating_e = 1;
     common->reg026.reg_cfg_gating_en = 1;
+
     common->reg032_timeout_threshold = 0x0fffffff;
 
     common->reg011.dec_clkgate_e = 1;
 
     common->reg013.stmerror_waitdecfifo_empty = 1;
     common->reg012.colmv_compress_en = COLMV_COMPRESS_EN;
-    common->reg012.wr_ddr_align_en = 1;
     common->reg012.info_collect_en = 1;
     common->reg012.error_info_en = 0;
 

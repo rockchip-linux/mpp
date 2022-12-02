@@ -760,8 +760,19 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common.reg011.buf_empty_en     = 1;
     vp9_hw_regs->common.reg011.dec_clkgate_e    = 1;
 
-    vp9_hw_regs->common.reg026.swreg_block_gating_e = 0xfffff;
+    vp9_hw_regs->common.reg026.inter_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.filterd_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.strmd_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.mcp_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.busifd_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.dec_ctrl_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.intra_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.mc_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.transd_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.sram_auto_gating_e = 1;
+    vp9_hw_regs->common.reg026.cru_auto_gating_e = 1;
     vp9_hw_regs->common.reg026.reg_cfg_gating_en = 1;
+
     vp9_hw_regs->common.reg032_timeout_threshold = 0x3ffff;
 
     //last info  update
