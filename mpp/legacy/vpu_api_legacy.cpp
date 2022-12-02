@@ -287,6 +287,7 @@ VpuApiLegacy::VpuApiLegacy() :
 
     mpp_create(&mpp_ctx, &mpi);
 
+    memset(&frm_rdy_cb, 0, sizeof(FrameRdyCB));
     memset(&enc_param, 0, sizeof(enc_param));
 
     mlvec = NULL;
@@ -1501,6 +1502,29 @@ RK_S32 VpuApiLegacy::perform(PerformCmd cmd, RK_S32 *data)
     return 0;
 }
 
+static RK_S32 frameReadyCallback(void *ctx, void *mppCtx, RK_S32 cmd, void *mppFrame)
+{
+    (void)mppCtx;
+    (void)cmd;
+    (void)mppFrame;
+    VpuApiLegacy *vpuApi = (VpuApiLegacy *)ctx;
+    RK_S32 ret = 0;
+
+    vpu_api_dbg_func("enter\n");
+
+    if (!vpuApi) {
+        return ret;
+    }
+
+    if (vpuApi->frm_rdy_cb.cb) {
+        ret = vpuApi->frm_rdy_cb.cb(vpuApi->frm_rdy_cb.cbCtx);
+    }
+
+    vpu_api_dbg_func("leave ret %d\n", ret);
+
+    return ret;
+}
+
 RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
 {
     vpu_api_dbg_func("enter cmd 0x%x param %p\n", cmd, param);
@@ -1617,6 +1641,25 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
         }
         ret = mpi->control(mpp_ctx, MPP_DEC_GET_CFG, cfg);
         mpp_dec_cfg_set_u32(cfg, "base:enable_hdr_meta", val);
+        ret = mpi->control(mpp_ctx, MPP_DEC_SET_CFG, cfg);
+        mpp_dec_cfg_deinit(cfg);
+        return ret;
+    } break;
+    case VPU_API_SET_FRM_RDY_CB: {
+        RK_S32 ret = 0;
+        MppDecCfg cfg;
+        FrameRdyCB *cb = (FrameRdyCB *)param;
+
+        ret = mpp_dec_cfg_init(&cfg);
+        if (ret) {
+            return ret;
+        }
+
+        frm_rdy_cb.cb = cb->cb;
+        frm_rdy_cb.cbCtx = cb->cbCtx;
+        mpp_dec_cfg_set_ptr(cfg, "cb:frm_rdy_cb",
+                            frm_rdy_cb.cb ? (void *)frm_rdy_cb.cb : (void *)frameReadyCallback);
+        mpp_dec_cfg_set_ptr(cfg, "cb:frm_rdy_ctx", frm_rdy_cb.cbCtx);
         ret = mpi->control(mpp_ctx, MPP_DEC_SET_CFG, cfg);
         mpp_dec_cfg_deinit(cfg);
         return ret;

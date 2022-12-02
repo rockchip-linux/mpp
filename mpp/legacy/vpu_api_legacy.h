@@ -67,6 +67,9 @@ public:
     RK_S32 perform(PerformCmd cmd, RK_S32 *data);
     RK_S32 control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param);
 
+public:
+    FrameRdyCB frm_rdy_cb;
+
 private:
     VPU_GENERIC vpug;
     MppCtx mpp_ctx;
