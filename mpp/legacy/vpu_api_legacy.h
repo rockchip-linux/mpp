@@ -82,6 +82,8 @@ private:
     MppBufferGroup memGroup;
     MppFrameFormat format;
 
+    RK_U32 mInputTimeOutMs;
+
     RK_S32 fd_input;
     RK_S32 fd_output;
 
