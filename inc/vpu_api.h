@@ -104,6 +104,7 @@ typedef enum VPU_API_CMD {
     VPU_API_DEC_EN_HDR_META,
     VPU_API_DEC_EN_MVC,
     VPU_API_DEC_EN_FBC_HDR_256_ODD,
+    VPU_API_SET_INPUT_BLOCK,
 
     /* set pkt/frm ready callback */
     VPU_API_SET_PKT_RDY_CB = 0x1100,

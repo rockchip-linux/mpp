@@ -274,6 +274,7 @@ VpuApiLegacy::VpuApiLegacy() :
     set_eos(0),
     memGroup(NULL),
     format(MPP_FMT_YUV420P),
+    mInputTimeOutMs(0),
     fd_input(-1),
     fd_output(-1),
     mEosSet(0),
@@ -931,7 +932,7 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     ret = mpi->decode_put_packet(mpp_ctx, mpkt);
     if (ret == MPP_OK) {
         pkt->size = 0;
-    } else {
+    } else if (mInputTimeOutMs == 0) {
         /* reduce cpu overhead here */
         msleep(1);
     }
@@ -1592,6 +1593,22 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
                     mpp_log("set output timeout %d ms\n", timeout);
             } else {
                 mpp_log("set output mode to non-block\n");
+            }
+        }
+    } break;
+    case VPU_API_SET_INPUT_BLOCK: {
+        mpicmd = MPP_SET_INPUT_TIMEOUT;
+        if (param) {
+            RK_S32 timeout = *((RK_S32*)param);
+            mInputTimeOutMs = timeout;
+
+            if (timeout) {
+                if (timeout < 0)
+                    mpp_log("set input mode to block\n");
+                else
+                    mpp_log("set input timeout %d ms\n", timeout);
+            } else {
+                mpp_log("set input mode to non-block\n");
             }
         }
     } break;
