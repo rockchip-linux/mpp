@@ -795,15 +795,24 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                aglin_offset);
     }
     hw_regs->common.reg010.dec_e                = 1;
-    hw_regs->common.reg012.wr_ddr_align_en      = dxva_cxt->pp.tiles_enabled_flag
-                                                  ? 0 : 1;
     hw_regs->common.reg012.colmv_compress_en    = 1;
 
     hw_regs->common.reg024.cabac_err_en_lowbits = 0xffffdfff;
     hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;
 
     hw_regs->common.reg011.dec_clkgate_e    = 1;
-    hw_regs->common.reg026.swreg_block_gating_e = 0xfffff;
+
+    hw_regs->common.reg026.inter_auto_gating_e = 1;
+    hw_regs->common.reg026.filterd_auto_gating_e = 1;
+    hw_regs->common.reg026.strmd_auto_gating_e = 1;
+    hw_regs->common.reg026.mcp_auto_gating_e = 1;
+    hw_regs->common.reg026.busifd_auto_gating_e = 1;
+    hw_regs->common.reg026.dec_ctrl_auto_gating_e = 1;
+    hw_regs->common.reg026.intra_auto_gating_e = 1;
+    hw_regs->common.reg026.mc_auto_gating_e = 1;
+    hw_regs->common.reg026.transd_auto_gating_e = 1;
+    hw_regs->common.reg026.sram_auto_gating_e = 1;
+    hw_regs->common.reg026.cru_auto_gating_e = 1;
     hw_regs->common.reg026.reg_cfg_gating_en = 1;
     hw_regs->common.reg032_timeout_threshold = 0x3ffff;
 

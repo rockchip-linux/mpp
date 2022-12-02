@@ -695,8 +695,20 @@ static MPP_RET init_common_regs(Vdpu382H264dRegSet *regs)
 
     common->reg024.cabac_err_en_lowbits = 0xffffffff;
     common->reg025.cabac_err_en_highbits = 0x3ff3ffff;
-    common->reg026.swreg_block_gating_e = 0xfffff;
+
+    common->reg026.inter_auto_gating_e = 1;
+    common->reg026.filterd_auto_gating_e = 1;
+    common->reg026.strmd_auto_gating_e = 1;
+    common->reg026.mcp_auto_gating_e = 1;
+    common->reg026.busifd_auto_gating_e = 1;
+    common->reg026.dec_ctrl_auto_gating_e = 1;
+    common->reg026.intra_auto_gating_e = 1;
+    common->reg026.mc_auto_gating_e = 1;
+    common->reg026.transd_auto_gating_e = 1;
+    common->reg026.sram_auto_gating_e = 1;
+    common->reg026.cru_auto_gating_e = 1;
     common->reg026.reg_cfg_gating_en = 1;
+
     common->reg032_timeout_threshold = 0x3ffff;
 
     common->reg011.dec_clkgate_e = 1;
