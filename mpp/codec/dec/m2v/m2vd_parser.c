@@ -17,6 +17,7 @@
 #define MODULE_TAG "m2vd_parser"
 
 #include <string.h>
+#include <math.h>
 
 #include "mpp_env.h"
 #include "mpp_debug.h"
