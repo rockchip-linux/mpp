@@ -1105,6 +1105,7 @@ typedef struct h264_err_ctx_t {
 
     RK_U32    i_slice_no;
     RK_S32    first_iframe_poc;
+    RK_S32    first_iframe_is_output;
 } H264dErrCtx_t;
 //!< decoder video parameter
 typedef struct h264_dec_ctx_t {
