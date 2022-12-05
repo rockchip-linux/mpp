@@ -188,6 +188,10 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet, MppFrame *frame)
     }
     dec_dbg_detail("detail: %p check frame group count pass\n", dec);
 
+    /* if dec_task is reset quit decoding and mark current packet is done */
+    if (task_dec->output < 0 || !task_dec->valid)
+        return MPP_OK;
+
     output = task_dec->output;
     mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &hal_buf_out);
     if (NULL == hal_buf_out) {
@@ -287,6 +291,7 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         /* release extra ref in slot's MppBuffer */
         MppBuffer buffer = NULL;
+
         mpp_buf_slot_get_prop(frame_slots, index, SLOT_BUFFER, &buffer);
         if (buffer)
             mpp_buffer_put(buffer);
