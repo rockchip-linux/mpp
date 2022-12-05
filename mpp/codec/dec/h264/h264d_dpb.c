@@ -864,7 +864,7 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         }
         //!<  discard less than first i frame poc
         if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
-            if (p_err->used_ref_flag) {
+            if (p_err->used_ref_flag && p_err->first_iframe_is_output) {
                 mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
                 if (p_Vid->p_Dec->cfg->base.enable_fast_play)
@@ -1332,6 +1332,9 @@ static MPP_RET scan_dpb_output(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             }
             while (!remove_unused_frame_from_dpb(p_Dpb));
         }
+
+        if (is_i_frm)
+            p_err->first_iframe_is_output = fs->is_output;
     }
     (void )p;
     return MPP_OK;
