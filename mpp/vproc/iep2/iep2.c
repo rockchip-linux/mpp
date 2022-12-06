@@ -42,6 +42,7 @@
 #define IEP2_TILE_H_MAX     480
 
 RK_U32 iep_debug = 0;
+RK_U32 iep_md_pre_en = 0;
 
 static MPP_RET get_param_from_env(struct iep2_api_ctx *ctx)
 {
@@ -105,7 +106,17 @@ static MPP_RET iep2_init(IepCtx *ictx)
 
     ctx->params.md_theta = 1;
     ctx->params.md_r = 6;
-    ctx->params.md_lambda = 4;
+
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3528) {
+        mpp_env_get_u32("iep_md_pre_en", &iep_md_pre_en, 0);
+        if (iep_md_pre_en) {
+            ctx->params.md_lambda = 4;
+        } else {
+            ctx->params.md_lambda = 8;
+        }
+    } else {
+        ctx->params.md_lambda = 4;
+    }
 
     ctx->params.dect_resi_thr = 30;
     ctx->params.osd_area_num = 0;
