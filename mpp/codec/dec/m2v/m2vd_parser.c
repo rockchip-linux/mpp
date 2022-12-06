@@ -200,7 +200,6 @@ static MPP_RET m2vd_parser_init_ctx(M2VDParserContext *ctx, ParserCfg *cfg)
     ctx->mExtraHeaderDecFlag = 0;
     ctx->max_stream_size = M2VD_BUF_SIZE_BITMEM;
     ctx->ref_frame_cnt = 0;
-    ctx->need_split = cfg->cfg->base.split_parse;
     ctx->left_length = 0;
     ctx->vop_header_found = 0;
 
@@ -510,7 +509,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_size(p->input_packet, p->max_stream_size);
     }
 
-    if (!p->need_split) {
+    if (!p->cfg->base.split_parse) {
         RK_U32 *val = (RK_U32 *)mpp_packet_get_pos(pkt);
         /* if input data is rk format styl skip those 32 byte */
         RK_S32 offset = (VPU_BITSTREAM_START_CODE == val[0]) ? 32 : 0;
