@@ -289,4 +289,5 @@ MPP_FRAME_ACCESSORS(size_t, buf_size)
 MPP_FRAME_ACCESSORS(RK_U32, errinfo)
 MPP_FRAME_ACCESSORS(MppTask, task)
 MPP_FRAME_ACCESSORS(RK_U32, thumbnail_en)
+MPP_FRAME_ACCESSORS(size_t, fbc_size)
 
