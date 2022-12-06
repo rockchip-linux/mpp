@@ -126,6 +126,7 @@ struct MppFrameImpl_t {
      *    stride = aligned(width, 16)
      */
     RK_U32          fbc_offset;
+    size_t          fbc_size;
     /*
      * frame buffer contain downsacle pic
      *
@@ -143,6 +144,8 @@ MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
 RK_U32  mpp_frame_get_fbc_offset(MppFrame frame);
 RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);
+size_t  mpp_frame_get_fbc_size(MppFrame frame);
+void    mpp_frame_set_fbc_size(MppFrame frame, size_t size);
 
 void    mpp_frame_set_task(MppFrame frame, MppTask task);
 MppTask mpp_frame_get_task(MppFrame frame);
