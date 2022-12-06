@@ -333,6 +333,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
             mpp_err("dec out fmt is no support");
         } break;
         }
+        mpp_frame_set_fbc_size(frame, size);
     } else {
         size *= impl->numerator;
         size /= impl->denominator;
