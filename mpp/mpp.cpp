@@ -532,36 +532,67 @@ MPP_RET Mpp::get_frame_noblock(MppFrame *frame)
 
 MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
 {
-    RK_U32 packet_done = 0;
-    MPP_RET ret = MPP_NOK;
+    RK_U32 pkt_done = 0;
+    RK_S32 frm_rdy = 0;
+    MPP_RET ret = MPP_OK;
 
     if (!mDec)
         return MPP_NOK;
 
+    if (!mInitDone)
+        return MPP_ERR_INIT;
+
+    /*
+     * If there is frame to return get the frame first
+     * But if the output mode is block then we need to send packet first
+     */
+    if (!mOutputTimeout) {
+        AutoMutex autoFrameLock(mFrmOut->mutex());
+
+        if (mFrmOut->list_size()) {
+            mFrmOut->del_at_head(frame, sizeof(*frame));
+            mFrameGetCount++;
+            return MPP_OK;
+        }
+    }
+
     do {
-        /*
-         * If there is frame to return get the frame first
-         * But if the output mode is block then we need to send packet first
-         */
-        if (!mOutputTimeout || packet_done) {
-            ret = get_frame_noblock(frame);
-            if (ret || *frame)
-                break;
+        if (!pkt_done)
+            ret = mpp_dec_decode(mDec, packet);
+
+        /* check input packet finished or not */
+        if (!packet || !mpp_packet_get_length(packet))
+            pkt_done = 1;
+
+        /* always try getting frame */
+        {
+            AutoMutex autoFrameLock(mFrmOut->mutex());
+
+            if (mFrmOut->list_size()) {
+                mFrmOut->del_at_head(frame, sizeof(*frame));
+                mFrameGetCount++;
+                frm_rdy = 1;
+            }
         }
 
-        /* when packet is send do one more get frame here */
-        if (packet_done)
+        /* return on flow error */
+        if (ret < 0)
             break;
 
-        ret = mpp_dec_decode(mDec, packet, frame);
-        if (!ret)
-            packet_done = 1;
-
-        if (!mOutputTimeout || packet_done) {
-            ret = get_frame_noblock(frame);
-            if (ret || *frame)
-                break;
+        /* return on output frame is ready */
+        if (frm_rdy) {
+            mpp_assert(ret > 0);
+            ret = MPP_OK;
+            break;
         }
+
+        /* return when packet is send and it is a non-block call */
+        if (pkt_done) {
+            ret = MPP_OK;
+            break;
+        }
+
+        /* otherwise continue decoding and getting frame */
     } while (1);
 
     return ret;
