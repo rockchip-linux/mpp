@@ -57,6 +57,11 @@ typedef struct RefInfo {
     RK_U32 intra_only;
 } RefInfo;
 
+typedef struct GlobalMtionParams {
+    RK_U32 wmtype;
+    RK_S32 wmmat[6];
+    RK_S32 alpha, beta, gamma, delta;
+} GlobalMtionParams;
 
 typedef struct AV1Frame {
     MppFrame f;
@@ -65,8 +70,7 @@ typedef struct AV1Frame {
     RK_S32 temporal_id;
     RK_S32 spatial_id;
     RK_U8  order_hint;
-    RK_U8  gm_type[AV1_NUM_REF_FRAMES];
-    RK_S32 gm_params[AV1_NUM_REF_FRAMES][6];
+    GlobalMtionParams gm_params[AV1_NUM_REF_FRAMES];
     RK_U8  skip_mode_frame_idx[2];
     AV1RawFilmGrainParams film_grain;
     RK_U8 coded_lossless;

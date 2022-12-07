@@ -153,9 +153,9 @@ static void read_global_param(AV1Context *s, RK_S32 type, RK_S32 ref, RK_S32 idx
      * with defaults at this point.
      */
     if (s->raw_frame_header->primary_ref_frame == AV1_PRIMARY_REF_NONE)
-        prev_gm_param = s->cur_frame.gm_params[ref][idx];
+        prev_gm_param = s->cur_frame.gm_params[ref].wmmat[idx];
     else
-        prev_gm_param = s->ref[prev_frame].gm_params[ref][idx];
+        prev_gm_param = s->ref[prev_frame].gm_params[ref].wmmat[idx];
 
     if (idx < 2) {
         if (type == AV1_WARP_MODEL_TRANSLATION) {
@@ -174,7 +174,7 @@ static void read_global_param(AV1Context *s, RK_S32 type, RK_S32 ref, RK_S32 idx
     mx = 1 << abs_bits;
     r = (prev_gm_param >> prec_diff) - sub;
 
-    s->cur_frame.gm_params[ref][idx] =
+    s->cur_frame.gm_params[ref].wmmat[idx] =
         (decode_signed_subexp_with_ref(s->raw_frame_header->gm_params[ref][idx],
                                        -mx, mx + 1, r) << prec_diff) + round;
 }
@@ -190,10 +190,10 @@ static void global_motion_params(AV1Context *s)
     RK_S32 i = 0;
 
     for (ref = AV1_REF_FRAME_LAST; ref <= AV1_REF_FRAME_ALTREF; ref++) {
-        s->cur_frame.gm_type[ref] = AV1_WARP_MODEL_IDENTITY;
+        s->cur_frame.gm_params[ref].wmtype = AV1_WARP_MODEL_IDENTITY;
         for (i = 0; i < 6; i++)
-            s->cur_frame.gm_params[ref][i] = (i % 3 == 2) ?
-                                             1 << AV1_WARPEDMODEL_PREC_BITS : 0;
+            s->cur_frame.gm_params[ref].wmmat[i] = (i % 3 == 2) ?
+                                                   1 << AV1_WARPEDMODEL_PREC_BITS : 0;
     }
     if (header->frame_type == AV1_FRAME_KEY ||
         header->frame_type == AV1_FRAME_INTRA_ONLY)
@@ -210,7 +210,7 @@ static void global_motion_params(AV1Context *s)
         } else {
             type = AV1_WARP_MODEL_IDENTITY;
         }
-        s->cur_frame.gm_type[ref] = type;
+        s->cur_frame.gm_params[ref].wmtype = type;
 
         if (type >= AV1_WARP_MODEL_ROTZOOM) {
             read_global_param(s, type, ref, 2);
@@ -219,8 +219,8 @@ static void global_motion_params(AV1Context *s)
                 read_global_param(s, type, ref, 4);
                 read_global_param(s, type, ref, 5);
             } else {
-                s->cur_frame.gm_params[ref][4] = -s->cur_frame.gm_params[ref][3];
-                s->cur_frame.gm_params[ref][5] = s->cur_frame.gm_params[ref][2];
+                s->cur_frame.gm_params[ref].wmmat[4] = -s->cur_frame.gm_params[ref].wmmat[3];
+                s->cur_frame.gm_params[ref].wmmat[5] = s->cur_frame.gm_params[ref].wmmat[2];
             }
         }
         if (type >= AV1_WARP_MODEL_TRANSLATION) {
@@ -505,12 +505,9 @@ static RK_S32 av1d_frame_ref(Av1CodecContext *ctx, AV1Frame *dst, const AV1Frame
     dst->temporal_id = src->temporal_id;
     dst->order_hint  = src->order_hint;
 
-    memcpy(dst->gm_type,
-           src->gm_type,
-           AV1_NUM_REF_FRAMES * sizeof(uint8_t));
     memcpy(dst->gm_params,
            src->gm_params,
-           AV1_NUM_REF_FRAMES * 6 * sizeof(RK_S32));
+           sizeof(src->gm_params));
     memcpy(dst->skip_mode_frame_idx,
            src->skip_mode_frame_idx,
            2 * sizeof(uint8_t));
