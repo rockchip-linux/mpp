@@ -139,11 +139,15 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
             pp->frame_refs[i].intra_only = ref_i->intra_only;
         }
         /* Global Motion */
-        pp->frame_refs[i].wminvalid = (h->cur_frame.gm_type[AV1_REF_FRAME_LAST + i] == AV1_WARP_MODEL_IDENTITY);
-        pp->frame_refs[i].wmtype    = h->cur_frame.gm_type[AV1_REF_FRAME_LAST + i];
+        pp->frame_refs[i].wminvalid = (h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmtype == AV1_WARP_MODEL_IDENTITY);
+        pp->frame_refs[i].wmtype    = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmtype;
         for (j = 0; j < 6; ++j) {
-            pp->frame_refs[i].wmmat[j] = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i][j];
+            pp->frame_refs[i].wmmat[j] = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmmat[j];
         }
+        pp->frame_refs[i].alpha = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].alpha;
+        pp->frame_refs[i].beta = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].beta;
+        pp->frame_refs[i].gamma = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].gamma;
+        pp->frame_refs[i].delta = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].delta;
     }
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         AV1Frame *ref_frame = &h->ref[i];
