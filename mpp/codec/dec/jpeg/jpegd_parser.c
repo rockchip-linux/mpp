@@ -780,6 +780,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             /* nothing to do on SOI */
             syntax->dht_found = 0;
             syntax->eoi_found = 0;
+            syntax->sof0_found = 0;
             syntax->qtable_cnt = 0;
             syntax->qtbl_entry = 0;
             syntax->htbl_entry = 0;
@@ -807,6 +808,8 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
                     For baseline, it should be 8\n", ctx->syntax->sample_precision);
                 goto fail;
             }
+
+            syntax->sof0_found = 1;
             break;
         case EOI:
             syntax->eoi_found = 1;
@@ -815,6 +818,11 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             goto done;
             break;
         case SOS:
+            if (!syntax->sof0_found) {
+                mpp_err_f("Warning: only support baseline type\n");
+                goto fail;
+            }
+
             if ((ret = jpegd_decode_sos(ctx)) != MPP_OK) {
                 mpp_err_f("sos decode error\n");
                 goto fail;
