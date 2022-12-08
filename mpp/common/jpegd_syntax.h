@@ -133,6 +133,7 @@ typedef struct JpegdSyntax {
     /* 0 - not found; 1 - found */
     RK_U8          dht_found;
     RK_U8          eoi_found;
+    RK_U8          sof0_found;
 
     /* amount of quantize tables: 1 or 3 */
     RK_U8          qtable_cnt;
