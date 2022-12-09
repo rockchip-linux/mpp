@@ -608,12 +608,6 @@ static void *dec_vproc_thread(void *data)
             if (MPP_THREAD_RUNNING != thd->get_status())
                 break;
 
-            if (ctx->task_wait.task_in) {
-                if (ctx->reset) {
-                    goto RESET;
-                }
-            }
-
             if (ctx->task_wait.val && !ctx->reset) {
                 vproc_dbg_status("vproc thread wait %d", ctx->task_wait.val);
                 thd->wait();
@@ -621,6 +615,11 @@ static void *dec_vproc_thread(void *data)
 
             if (!ctx->task_status.task_rdy) {
                 if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
+                    if (ctx->reset) {
+                        dev_vproc_reset(thd, ctx);
+                        continue;
+                    }
+
                     ctx->task_wait.task_in = 1;
                     continue;
                 }
@@ -704,8 +703,6 @@ static void *dec_vproc_thread(void *data)
 
             vproc_dbg_status("vproc task done");
         }
-    RESET:
-        dev_vproc_reset(thd, ctx);
     }
     mpp_dbg_info("mpp_dec_post_proc_thread exited\n");
 
