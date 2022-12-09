@@ -323,9 +323,17 @@ static MPP_RET dpb_remove_frame(Avs2dCtx_t *p_dec, Avs2dFrame_t *p)
     MppFrame frame = p->frame;
 
     avs2d_dbg_dpb("In.");
+
+    if (p->picture_type == GB_PICTURE || p->invisible) {
+        MppBuffer buffer = NULL;
+        mpp_buf_slot_get_prop(p_dec->frame_slots, p->slot_idx, SLOT_BUFFER, &buffer);
+        mpp_buffer_put(buffer);
+    }
+
     mpp_buf_slot_clr_flag(p_dec->frame_slots, p->slot_idx, SLOT_CODEC_USE);
     avs2d_dbg_dpb("dpb remove frame slot_idx %d, doi %d poi %d, dpb used %d",
                   p->slot_idx, p->doi, p->poi, mgr->used_size);
+
     memset(p, 0, sizeof(Avs2dFrame_t));
     p->frame = frame;
     p->slot_idx = NO_VAL;
@@ -467,7 +475,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     frm->intra_frame_flag = (frm->scene_frame_flag || frm->picture_type == I_PICTURE);
     frm->refered_by_scene = frm->scene_frame_flag;
     frm->refered_by_others = (frm->picture_type != GB_PICTURE && mgr->cur_rps.refered_by_others);
-    avs2d_dbg_dpb("frame picture type ref by others %d\n", frm->refered_by_others);
+    avs2d_dbg_dpb("frame picture type %d, ref by others %d\n", frm->picture_type, frm->refered_by_others);
     if (vsh->chroma_format == CHROMA_420 && vsh->bit_depth == 8) {
         mpp_frame_set_fmt(mframe, MPP_FMT_YUV420SP);
     } else if (vsh->chroma_format == CHROMA_420 && vsh->bit_depth == 10) {
@@ -677,10 +685,10 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
         if (!mgr->scene_ref) {
             error_flag = 1;
         } else if (mgr->scene_ref != mgr->refs[0] || mgr->num_of_ref > 1) {
-            AVS2D_DBG(AVS2D_DBG_ERROR, "Error reference frame(doi %lld ~ %lld) for S.\n",
+            AVS2D_DBG(AVS2D_DBG_ERROR, "Error reference frame(doi %ld ~ %ld) for S.\n",
                       mgr->scene_ref->doi, mgr->refs[0] ? mgr->refs[0]->doi : -1);
-            mgr->num_of_ref = 1;
             replace_ref_flag = 1;
+            p_dec->syntax.refp.scene_ref_replace_pos = 0;
         }
     } else if ((p_cur->picture_type == P_PICTURE || p_cur->picture_type == F_PICTURE) &&
                p_dec->ph.background_reference_flag) {
@@ -689,6 +697,7 @@ static MPP_RET dpb_set_frame_refs(Avs2dCtx_t *p_dec, Avs2dFrameMgr_t *mgr, HalDe
             error_flag = 1;
         } else {
             replace_ref_flag = 1;
+            p_dec->syntax.refp.scene_ref_replace_pos = mgr->num_of_ref - 1;
         }
     } else if (p_cur->picture_type == B_PICTURE &&
                (mgr->num_of_ref != 2 || (mgr->refs[0] && mgr->refs[0]->poi <= p_cur->poi) ||
@@ -724,10 +733,8 @@ MPP_RET avs2d_dpb_insert(Avs2dCtx_t *p_dec, HalDecTask *task)
 
     AVS2D_PARSE_TRACE("In.");
 
-    if (p_dec->ph.picture_type != GB_PICTURE) {
-        //!< output frame from dpb
-        dpb_scan_output_frame(p_dec);
-    }
+    //!< output frame from dpb
+    dpb_scan_output_frame(p_dec);
 
     compute_frame_order_index(p_dec);
 
