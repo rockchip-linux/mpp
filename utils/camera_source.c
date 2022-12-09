@@ -332,6 +332,7 @@ MPP_RET camera_source_deinit(CamSource *ctx)
             mpp_buffer_put(ctx->fbuf[buf.index].buffer);
         }
         munmap(ctx->fbuf[buf.index].start, buf.length);
+        close(ctx->fbuf[i].export_fd);
     }
 
     // Close v4l2 device
