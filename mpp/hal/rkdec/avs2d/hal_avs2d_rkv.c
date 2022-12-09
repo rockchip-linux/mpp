@@ -427,14 +427,15 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu34xAvs2dRegSet *p_regs, 
         if (p_hal->syntax.refp.scene_ref_enable && p_hal->syntax.refp.scene_ref_slot_idx >= 0) {
             MppFrame scene_ref = NULL;
             RK_S32 slot_idx = p_hal->syntax.refp.scene_ref_slot_idx;
+            RK_S32 replace_idx = p_hal->syntax.refp.scene_ref_replace_pos;
 
             mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &scene_ref);
 
             if (scene_ref) {
-                p_regs->avs2d_addr.ref_base[refp->ref_pic_num - 1] = get_frame_fd(p_hal, slot_idx);
+                p_regs->avs2d_addr.ref_base[replace_idx] = get_frame_fd(p_hal, slot_idx);
                 mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
-                p_regs->avs2d_addr.colmv_base[refp->ref_pic_num - 1] = mpp_buffer_get_fd(mv_buf->buf[0]);
-                p_regs->avs2d_param.reg67_098_ref_poc[refp->ref_pic_num - 1] = mpp_frame_get_poc(scene_ref);
+                p_regs->avs2d_addr.colmv_base[replace_idx] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                p_regs->avs2d_param.reg67_098_ref_poc[replace_idx] = mpp_frame_get_poc(scene_ref);
             }
         }
 
