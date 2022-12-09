@@ -568,22 +568,6 @@ static void dec_vproc_update_ref(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 i
     return;
 }
 
-static void dev_vproc_reset(MppThread *thd, MppDecVprocCtxImpl *ctx)
-{
-    AutoMutex autolock_reset(thd->mutex(THREAD_CONTROL));
-
-    if (ctx->reset) {
-        vproc_dbg_reset("reset start\n");
-        dec_vproc_clr_prev(ctx);
-
-        ctx->reset = 0;
-        sem_post(&ctx->reset_sem);
-        ctx->task_status.val = 0;
-        ctx->task_wait.val = 0;
-        vproc_dbg_reset("reset done\n");
-    }
-}
-
 static void *dec_vproc_thread(void *data)
 {
     MppDecVprocCtxImpl *ctx = (MppDecVprocCtxImpl *)data;
@@ -616,7 +600,15 @@ static void *dec_vproc_thread(void *data)
             if (!ctx->task_status.task_rdy) {
                 if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
                     if (ctx->reset) {
-                        dev_vproc_reset(thd, ctx);
+                        /* reset only on all task finished */
+                        vproc_dbg_reset("reset start\n");
+
+                        dec_vproc_clr_prev(ctx);
+                        ctx->reset = 0;
+                        sem_post(&ctx->reset_sem);
+                        ctx->task_wait.val = 0;
+
+                        vproc_dbg_reset("reset done\n");
                         continue;
                     }
 
@@ -933,9 +925,7 @@ MPP_RET dec_vproc_reset(MppDecVprocCtx ctx)
         vproc_dbg_reset("reset contorl start\n");
         // wait reset finished
         thd->lock();
-        thd->lock(THREAD_CONTROL);
         p->reset = 1;
-        thd->unlock(THREAD_CONTROL);
         thd->signal();
         thd->unlock();
 
