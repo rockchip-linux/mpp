@@ -40,6 +40,7 @@
 
 #define IEP2_TILE_W_MAX     120
 #define IEP2_TILE_H_MAX     480
+#define IEP2_OSD_EN         0
 
 RK_U32 iep_debug = 0;
 RK_U32 iep_md_pre_en = 0;
@@ -237,7 +238,11 @@ static MPP_RET iep2_done(struct iep2_api_ctx *ctx)
         ctx->params.dil_mode == IEP2_DIL_MODE_I5O1B) {
         struct mv_list ls;
 
+#if IEP2_OSD_EN
         iep2_set_osd(ctx, &ls);
+#else
+        memset(&ls, 0, sizeof(struct mv_list));
+#endif
         iep2_update_gmv(ctx, &ls);
         iep2_check_ffo(ctx);
         iep2_check_pd(ctx);
