@@ -198,7 +198,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
         RK_U32 buf_size = width * height / 4;
 
         /* small image do not need to split into four segments */
-        if (width * height <= 1280 * 720 && height <= 720)
+        if (width * height <= 1280 * 720 && (height <= 720 || width <= 720))
             goto MULTI_CORE_SPLIT_DONE;
 
         if (!ctx_ext) {
@@ -630,12 +630,12 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
              * of rotation 90 degree and rotation 270 degree.
              */
             if (syntax->rotation == MPP_ENC_ROT_270)
-                cfg.offset_x = syntax->offset_y +
+                cfg.offset_x = syntax->offset_x +
                                (syntax->mcu_h - ctx_ext->part_rows[0] - mcu_y) * 16;
             else
-                cfg.offset_x = syntax->offset_y + mcu_y * 16;
+                cfg.offset_x = syntax->offset_x + mcu_y * 16;
 
-            cfg.offset_y = syntax->offset_x;
+            cfg.offset_y = syntax->offset_y;
         }
 
         get_vepu_offset_cfg(&cfg);
