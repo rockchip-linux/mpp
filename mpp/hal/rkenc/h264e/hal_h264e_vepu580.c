@@ -2260,6 +2260,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
         HalH264eVepuStreamAmend *amend = &ctx->amend_sets[task->flags.reg_idx];
 
         if (amend->enable) {
+            amend->diable_split_out = !split_out;
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
             h264e_vepu_stream_amend_proc(amend, ctx->cfg->codec.h264.hw_poc_type);
