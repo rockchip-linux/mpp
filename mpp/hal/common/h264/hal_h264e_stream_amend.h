@@ -24,6 +24,7 @@ typedef struct HalH264eVepuStreamAmend_t {
     H264eSlice      *slice;
     H264ePrefixNal  *prefix;
     RK_S32          slice_enabled;
+    RK_S32          diable_split_out;
 
     RK_U8           *src_buf;
     RK_U8           *dst_buf;

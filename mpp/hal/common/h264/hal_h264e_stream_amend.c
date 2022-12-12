@@ -100,6 +100,7 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
         cfg->codec.h264.hw_poc_type != cfg->codec.h264.poc_type) {
         ctx->enable = 1;
         ctx->slice_enabled = 0;
+        ctx->diable_split_out = 1;
 
         if (NULL == ctx->dst_buf)
             ctx->dst_buf = mpp_calloc(RK_U8, ctx->buf_size);
@@ -179,7 +180,7 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, RK_U32 poc_ty
         tail_0bit = 0;
         // copy hw stream to stream buffer first
         if (slice->is_multi_slice) {
-            if (!seg) {
+            if ((!seg) || ctx->diable_split_out) {
                 nal_len = get_next_nal(p, &len);
                 last_slice = (len == 0);
             } else {
