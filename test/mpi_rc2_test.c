@@ -135,7 +135,7 @@ static MPP_RET mpi_rc_init(MpiRc2TestCtx *ctx)
     MpiEncTestArgs* enc_cmd = ctx->enc_cmd;
 
     if (enc_cmd->file_input)
-        reader_init(&ctx->reader, enc_cmd->file_input);
+        reader_init(&ctx->reader, enc_cmd->file_input, enc_cmd->type_src);
 
     if (NULL == ctx->reader) {
         mpp_err("failed to open dec input file %s\n", enc_cmd->file_input);
