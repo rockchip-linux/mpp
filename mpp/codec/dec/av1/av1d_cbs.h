@@ -280,8 +280,9 @@ typedef struct AV1RawFrameHeader {
 } AV1RawFrameHeader;
 
 typedef struct AV1RawTileData {
-    RK_U8     *data;
-    size_t       data_size;
+    RK_U8   *data;
+    size_t  offset;
+    size_t  data_size;
 } AV1RawTileData;
 
 typedef struct AV1RawTileGroup {

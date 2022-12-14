@@ -401,11 +401,14 @@ static RK_S32 get_tiles_info(Av1CodecContext *ctx, const AV1RawTileGroup *tile_g
     bytestream_init(&gb, tile_group->tile_data.data,
                     tile_group->tile_data.data_size);
 
-    for (tile_num = tile_group->tg_start; tile_num <= tile_group->tg_end; tile_num++) {
+    if (s->tile_offset)
+        s->tile_offset += tile_group->tile_data.offset;
 
+    for (tile_num = tile_group->tg_start; tile_num <= tile_group->tg_end; tile_num++) {
         if (tile_num == tile_group->tg_end) {
-            s->tile_offset_start[tile_num] = bytestream_tell(&gb);
-            s->tile_offset_end[tile_num] = bytestream_tell(&gb) + bytestream_get_bytes_left(&gb);
+            s->tile_offset_start[tile_num] = bytestream_tell(&gb) + s->tile_offset;
+            s->tile_offset_end[tile_num] = bytestream_tell(&gb) + bytestream_get_bytes_left(&gb) + s->tile_offset;
+            s->tile_offset = s->tile_offset_end[tile_num];
             return 0;
         }
         size_bytes = s->raw_frame_header->tile_size_bytes_minus1 + 1;
@@ -418,9 +421,9 @@ static RK_S32 get_tiles_info(Av1CodecContext *ctx, const AV1RawTileGroup *tile_g
             return MPP_ERR_VALUE;
         size++;
 
-        s->tile_offset_start[tile_num] = bytestream_tell(&gb);
+        s->tile_offset_start[tile_num] = bytestream_tell(&gb) + s->tile_offset;
 
-        s->tile_offset_end[tile_num] = bytestream_tell(&gb) + size;
+        s->tile_offset_end[tile_num] = bytestream_tell(&gb) + size + s->tile_offset;
 
         bytestream_skipu(&gb, size);
     }
@@ -598,11 +601,11 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         av1d_frame_unref(ctx, frame);
 
     mpp_frame_set_meta(frame->f, NULL);
-    mpp_frame_set_width(frame->f, ctx->width);
-    mpp_frame_set_height(frame->f, ctx->height);
+    mpp_frame_set_width(frame->f, s->frame_width);
+    mpp_frame_set_height(frame->f, s->frame_height);
 
-    mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(ctx->width * s->bit_depth / 8, 8));
-    mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8));
+    mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(s->frame_width * s->bit_depth / 8, 8));
+    mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(s->frame_height, 8));
     mpp_frame_set_errinfo(frame->f, 0);
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
@@ -655,7 +658,6 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
           mpp_err_f( "Failed to init tile data.\n");
           return ret;
       }*/
-
     global_motion_params(s);
     skip_mode_params(s);
     coded_lossless_param(s);
@@ -762,7 +764,7 @@ MPP_RET av1d_parser_frame(Av1CodecContext *ctx, HalDecTask *task)
 
     s->current_obu.data = data;
     s->current_obu.data_size = size;
-    s->obu_len = 0;
+    s->tile_offset = 0;
     ret = mpp_av1_split_fragment(s, &s->current_obu, 0);
     if (ret < 0) {
         return ret;

@@ -35,8 +35,8 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
 
     memset(pp, 0, sizeof(*pp));
 
-    pp->width  = ctx->width;
-    pp->height = ctx->height;
+    pp->width  = h->frame_width;
+    pp->height = h->frame_height;
 
     pp->max_width  = seq->max_frame_width_minus_1 + 1;
     pp->max_height = seq->max_frame_height_minus_1 + 1;

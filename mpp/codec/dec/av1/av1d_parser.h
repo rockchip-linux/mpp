@@ -39,7 +39,7 @@ extern RK_U32 av1d_debug;
 #define AV1D_DBG_STRMIN   (0x00000008)
 #define AV1D_DBG_DUMP_RPU (0x10000000)
 
-#define av1d_dbg(flag, fmt, ...) _mpp_dbg(av1d_debug, flag, fmt, ##__VA_ARGS__)
+#define av1d_dbg(flag, fmt, ...) _mpp_dbg_f(av1d_debug, flag, fmt, ##__VA_ARGS__)
 #define av1d_dbg_func(fmt, ...)  av1d_dbg(AV1D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 typedef struct RefInfo {
@@ -76,7 +76,6 @@ typedef struct AV1Frame {
     RK_U8 coded_lossless;
     RefInfo *ref;
 } AV1Frame;
-
 
 typedef struct AV1Context_t {
     BitReadCtx_t gb;
@@ -118,7 +117,8 @@ typedef struct AV1Context_t {
     RK_S32 operating_point;
     RK_S32 extra_has_frame;
     RK_U32 frame_tag_size;
-    RK_U32 obu_len;
+    RK_U32 fist_tile_group;
+    RK_U32 tile_offset;
 
     AV1CDFs *cdfs;
     MvCDFs  *cdfs_ndvc;
