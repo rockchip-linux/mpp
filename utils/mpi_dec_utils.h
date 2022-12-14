@@ -72,7 +72,7 @@ RK_S32  mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv);
 RK_S32  mpi_dec_test_cmd_deinit(MpiDecTestCmd* cmd);
 void    mpi_dec_test_cmd_options(MpiDecTestCmd* cmd);
 
-void    reader_init(FileReader* reader, char* file_in);
+void    reader_init(FileReader* reader, char* file_in, MppCodingType type);
 void    reader_deinit(FileReader reader);
 
 void    reader_start(FileReader reader);
