@@ -162,7 +162,7 @@ void av1d_parser_update(Av1CodecContext *ctx, void *info);
 
 MPP_RET av1d_paser_reset(Av1CodecContext *ctx);
 
-RK_S32 av1d_split_frame(SplitContext_t *ctx,
+RK_S32 av1d_split_frame(Av1CodecContext *ctx,
                         RK_U8 **out_data, RK_S32 *out_size,
                         RK_U8 *data, RK_S32 size);
 

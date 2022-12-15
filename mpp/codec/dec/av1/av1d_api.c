@@ -66,6 +66,11 @@ MPP_RET av1d_init(void *ctx, ParserCfg *init)
     if ((ret = mpp_packet_init(&av1_ctx->pkt, (void *)buf, size)) != MPP_OK)
         goto _err_exit;
 
+    av1_ctx->stream = buf;
+    av1_ctx->stream_size = size;
+    mpp_packet_set_size(av1_ctx->pkt, size);
+    mpp_packet_set_length(av1_ctx->pkt, 0);
+
     return ret;
 
 _err_exit:
@@ -136,9 +141,7 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
     MPP_RET ret = MPP_OK;
     Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
-    SplitContext_t *ps = (SplitContext_t *)av1_ctx->priv_data2;
     AV1Context *s = (AV1Context *)av1_ctx->priv_data;
-
     RK_S64 pts = -1;
     RK_S64 dts = -1;
     RK_U8 *buf = NULL;
@@ -147,7 +150,11 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     RK_S32 out_size = -1;
     RK_S32 consumed = 0;
     RK_U8 *pos = NULL;
+    RK_U32 need_split = s->cfg->base.split_parse;
+
+    need_split = 1;
     task->valid = 0;
+    av1_ctx->new_frame = 0;
 
     pts = mpp_packet_get_pts(pkt);
     dts = mpp_packet_get_dts(pkt);
@@ -178,16 +185,23 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         return ret;
     }
 
-    consumed = av1d_split_frame(ps, &out_data, &out_size, buf, length);
+    if (need_split) {
+        consumed = av1d_split_frame(av1_ctx, &out_data, &out_size, buf, length);
+    } else {
+        out_size = consumed = length;
+        av1_ctx->new_frame = 1;
+    }
+
     pos += (consumed >= 0) ? consumed : length;
 
     mpp_packet_set_pos(pkt, pos);
+    mpp_packet_set_length(pkt, length - consumed);
 
-    av1d_dbg(AV1D_DBG_STRMIN, "pkt_len=%d, pts=%lld , out_size %d \n", length, pts, out_size);
+    av1d_dbg(AV1D_DBG_STRMIN, "pkt_len=%d, pts=%lld , out_size %d consumed %d new frame %d eos %d\n",
+             length, pts, out_size, consumed, av1_ctx->new_frame, av1_ctx->eos);
     if (out_size > 0) {
-        av1d_get_frame_stream(av1_ctx, out_data, out_size);
+        av1d_get_frame_stream(av1_ctx, buf, consumed);
         task->input_packet = av1_ctx->pkt;
-        task->valid = 1;
         mpp_packet_set_pts(av1_ctx->pkt, pts);
         mpp_packet_set_dts(av1_ctx->pkt, dts);
         task->flags.eos = av1_ctx->eos;
@@ -200,6 +214,10 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             mpp_packet_set_pts(av1_ctx->pkt, pts);
             mpp_packet_set_dts(av1_ctx->pkt, dts);
         }
+    }
+    if (av1_ctx->new_frame || (av1_ctx->eos)) {
+        task->valid = 1;
+        av1_ctx->stream_offset = 0;
     }
 
     (void)pts;

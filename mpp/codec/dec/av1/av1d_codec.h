@@ -93,6 +93,7 @@ typedef struct SplitContext {
      */
     RK_S32 key_frame;
     RK_S32 eos;
+    RK_U32 frame_header;
 } SplitContext_t;
 
 typedef struct Av1CodecContext_t {
@@ -115,6 +116,12 @@ typedef struct Av1CodecContext_t {
 
     DXVA_PicParams_AV1 pic_params;
 
+    /* split info */
+    RK_U32 frame_header;
+    RK_U32 new_frame;
+    RK_U8 *stream;
+    RK_U32 stream_size;
+    RK_U32 stream_offset;
 
     RK_S32 eos;
 } Av1CodecContext;

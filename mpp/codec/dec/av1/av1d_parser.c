@@ -999,6 +999,9 @@ MPP_RET av1d_paser_reset(Av1CodecContext *ctx)
         av1d_frame_unref(ctx, &s->cur_frame);
     }
 
+    ctx->frame_header = 0;
+    ctx->stream_offset = 0;
+
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
 
@@ -1090,12 +1093,10 @@ RK_S32 av1_extract_obu(AV1OBU *obu, uint8_t *buf, RK_S32 length)
     return len;
 }
 
-
-RK_S32 av1d_split_frame(SplitContext_t *ctx,
+RK_S32 av1d_split_frame(Av1CodecContext *ctx,
                         RK_U8 **out_data, RK_S32 *out_size,
                         RK_U8 *data, RK_S32 size)
 {
-    (void)ctx;
     (void)out_data;
     (void)out_size;
 
@@ -1109,22 +1110,35 @@ RK_S32 av1d_split_frame(SplitContext_t *ctx,
         RK_S32 len = av1_extract_obu(&obu, ptr, size);
         if (len < 0)
             break;
-        if (obu.type == AV1_OBU_FRAME_HEADER ||
-            obu.type == AV1_OBU_FRAME) {
+        if (obu.type == AV1_OBU_FRAME_HEADER || obu.type == AV1_OBU_FRAME ||
+            ((obu.type == AV1_OBU_TEMPORAL_DELIMITER ||
+              obu.type == AV1_OBU_SEQUENCE_HEADER) && ctx->frame_header))
+            ctx->frame_header ++;
+        if (ctx->frame_header == 2) {
+            *out_size = (RK_S32)(ptr - data);
+            ctx->new_frame = 1;
+            ctx->frame_header = 0;
+            return ptr - data;
+        }
+        if (obu.type == AV1_OBU_FRAME) {
             ptr      += len;
             size     -= len;
             *out_size = (RK_S32)(ptr - data);
+            ctx->new_frame = 1;
+            ctx->frame_header = 0;
             return ptr - data;
         }
         ptr      += len;
         size -= len;
     }
 
-    return 0;
+    *out_size = (RK_S32)(ptr - data);
+
+    return ptr - data;
 
     av1d_dbg_func("leave ctx %p\n", ctx);
-    return 0;
 
+    return 0;
 }
 
 MPP_RET av1d_get_frame_stream(Av1CodecContext *ctx, RK_U8 *buf, RK_S32 length)
@@ -1134,21 +1148,23 @@ MPP_RET av1d_get_frame_stream(Av1CodecContext *ctx, RK_U8 *buf, RK_S32 length)
     RK_S32 buff_size = 0;
     RK_U8 *data = NULL;
     RK_S32 size = 0;
+    RK_S32 offset = ctx->stream_offset;
 
     data = (RK_U8 *)mpp_packet_get_data(ctx->pkt);
     size = (RK_S32)mpp_packet_get_size(ctx->pkt);
 
-    if (length > size) {
-        mpp_free(data);
+    if ((length + offset) > size) {
         mpp_packet_deinit(&ctx->pkt);
-        buff_size = length + 10 * 1024;
-        data = mpp_malloc(RK_U8, buff_size);
-        mpp_packet_init(&ctx->pkt, (void *)data, length);
+        buff_size = length + offset + 10 * 1024;
+        data = mpp_realloc(data, RK_U8, buff_size);
+        mpp_packet_init(&ctx->pkt, (void *)data, buff_size);
         mpp_packet_set_size(ctx->pkt, buff_size);
+        ctx->stream_size = buff_size;
     }
 
-    memcpy(data, buf, length);
-    mpp_packet_set_length(ctx->pkt, length);
+    memcpy(data + offset, buf, length);
+    ctx->stream_offset += length;
+    mpp_packet_set_length(ctx->pkt, ctx->stream_offset);
 
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
