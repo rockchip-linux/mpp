@@ -579,6 +579,14 @@ MPP_RET mpp_dec_callback_hal_to_parser(const char *caller, void *ctx,
     return ret;
 }
 
+MPP_RET mpp_dec_callback_slot(const char *caller, void *ctx, RK_S32 cmd, void *param)
+{
+    (void) caller;
+    (void) cmd;
+    (void) param;
+    return mpp_dec_notify((MppDec)ctx, MPP_DEC_NOTIFY_SLOT_VALID);
+}
+
 MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
 {
     RK_S32 i;
@@ -631,6 +639,14 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_err_f("could not init frame buffer slot\n");
             break;
         }
+
+        MppCbCtx cb_ctx = {
+            mpp_dec_callback_slot,
+            (void *)p,
+            0,
+        };
+
+        mpp_buf_slot_set_callback(frame_slots, &cb_ctx);
 
         ret = mpp_buf_slot_init(&packet_slots);
         if (ret) {
