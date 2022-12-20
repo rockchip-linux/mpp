@@ -163,11 +163,13 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
     RK_U32 val = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 drpm_used_bits = 0;
+    RK_U32 emulation_prevention = 0;
     H264_DRPM_t *tmp_drpm = NULL, *tmp_drpm2 = NULL;
     H264dVideoCtx_t *p_Vid = pSlice->p_Vid;
     BitReadCtx_t *p_bitctx = &pSlice->p_Cur->bitctx;
 
     drpm_used_bits = p_bitctx->used_bits;
+    emulation_prevention = p_bitctx->emulation_prevention_bytes_;
     pSlice->drpm_used_bitlen = 0;
 
     if (pSlice->idr_flag ||
@@ -220,7 +222,11 @@ static MPP_RET dec_ref_pic_marking(H264_SLICE_t *pSlice)
             }
         }
     }
-    pSlice->drpm_used_bitlen = p_bitctx->used_bits - drpm_used_bits;
+
+    // need to minus emulation prevention bytes(0x000003) we met
+    emulation_prevention = p_bitctx->emulation_prevention_bytes_ - emulation_prevention;
+    pSlice->drpm_used_bitlen = p_bitctx->used_bits - drpm_used_bits - (emulation_prevention * 8);
+
     return ret = MPP_OK;
 __BITREAD_ERR:
     ret = p_bitctx->ret;
