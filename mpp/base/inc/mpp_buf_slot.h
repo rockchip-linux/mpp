@@ -18,6 +18,7 @@
 #define __MPP_BUF_SLOT_H__
 
 #include "mpp_frame.h"
+#include "mpp_callback.h"
 
 /*
  * mpp_dec will alloc 18 decoded picture buffer slot
@@ -130,6 +131,7 @@ RK_U32  mpp_buf_slot_is_changed(MppBufSlots slots);
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
 size_t  mpp_buf_slot_get_size(MppBufSlots slots);
 RK_S32  mpp_buf_slot_get_count(MppBufSlots slots);
+MPP_RET mpp_buf_slot_set_callback(MppBufSlots slots, MppCbCtx *cb_ctx);
 /*
  * called by parser
  *

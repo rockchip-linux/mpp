@@ -224,6 +224,9 @@ struct MppBufSlotsImpl_t {
     RK_U32              numerator;
     RK_U32              denominator;
 
+    // callback for free slot notify
+    MppCbCtx            callback;
+
     // NOTE: use MppFrame to store the buffer/display infomation
     //       any buffer related infomation change comparing to previous frame will
     //       trigger a buffer info changed requirement
@@ -601,7 +604,7 @@ static void init_slot_entry(MppBufSlotsImpl *impl, RK_S32 pos, RK_S32 count)
  * NOTE: MppFrame will be destroyed outside mpp
  *       but MppBuffer must dec_ref here
  */
-static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
+static RK_S32 check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
 {
     SlotStatus status = entry->status;
 
@@ -623,7 +626,10 @@ static void check_entry_unused(MppBufSlotsImpl *impl, MppBufSlotEntry *entry)
 
         slot_ops_with_log(impl, entry, SLOT_CLR_ON_USE, NULL);
         impl->used_count--;
+        return 1;
     }
+
+    return 0;
 }
 
 static void clear_slots_impl(MppBufSlotsImpl *impl)
@@ -827,6 +833,20 @@ RK_S32 mpp_buf_slot_get_count(MppBufSlots slots)
     return impl->buf_count;
 }
 
+MPP_RET mpp_buf_slot_set_callback(MppBufSlots slots, MppCbCtx *cb_ctx)
+{
+    if (NULL == slots) {
+        mpp_err_f("found NULL input\n");
+        return MPP_NOK;
+    }
+
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    AutoMutex auto_lock(impl->lock);
+
+    impl->callback = *cb_ctx;
+    return MPP_OK;
+}
+
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
 {
     if (NULL == slots || NULL == index) {
@@ -877,15 +897,21 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    MppBufSlotEntry *slot = &impl->slots[index];
-    slot_ops_with_log(impl, slot, clr_flag_op[type], NULL);
+    RK_S32 unused = 0;
+    {
+        AutoMutex auto_lock(impl->lock);
+        slot_assert(impl, (index >= 0) && (index < impl->buf_count));
+        MppBufSlotEntry *slot = &impl->slots[index];
+        slot_ops_with_log(impl, slot, clr_flag_op[type], NULL);
 
-    if (type == SLOT_HAL_OUTPUT)
-        impl->decode_count++;
+        if (type == SLOT_HAL_OUTPUT)
+            impl->decode_count++;
 
-    check_entry_unused(impl, slot);
+        unused = check_entry_unused(impl, slot);
+    }
+
+    if (unused)
+        mpp_callback(&impl->callback, impl);
     return MPP_OK;
 }
 

@@ -188,7 +188,7 @@ typedef union PaserTaskWait_u {
 
         RK_U32      dec_pkt_idx     : 1;   // 0x1000
         RK_U32      dec_pkt_buf     : 1;   // 0x2000
-        RK_U32      dec_slot_idx    : 1;   // 0x4000
+        RK_U32      dec_slot_idx    : 1;   // 0x4000 MPP_DEC_NOTIFY_SLOT_VALID
     };
 } PaserTaskWait;
 
