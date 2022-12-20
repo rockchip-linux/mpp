@@ -601,6 +601,7 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
         else
             error_flag = 1;
         currSlice->p_Dec->errctx.cur_err_flag |= error_flag ? 1 : 0;
+        currSlice->p_Dec->errctx.dpb_err_flag |= error_flag ? 1 : 0;
 
         H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d",
                   p_last->slice_type, dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, p_last->poc, dec_pic->poc);
@@ -1338,12 +1339,12 @@ __FAILED:
 
 static RK_U32 get_short_term_pic(H264_SLICE_t *currSlice, RK_S32 picNum, H264_StorePic_t **find_pic)
 {
-    RK_U32 i = 0;
+    RK_S32 i = 0;
     H264_StorePic_t *ret_pic = NULL;
     H264_StorePic_t *near_pic = NULL;
     H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
 
-    for (i = 0; i < p_Dpb->ref_frames_in_buffer; i++) {
+    for (i = p_Dpb->ref_frames_in_buffer - 1; i >= 0; i--) {
         if (currSlice->structure == FRAME) {
             if ((p_Dpb->fs_ref[i]->is_reference == 3)
                 && (!p_Dpb->fs_ref[i]->frame->is_long_term)) {
@@ -1815,6 +1816,8 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
     }
     //!<------  set listB -------
     for (k = 0; k < 2; k++) {
+        RK_U32 tmp[16] = {0};
+
         min_poc =  0xFFFF;
         max_poc = -0xFFFF;
         near_dpb_idx = 0;
@@ -1842,8 +1845,10 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
                 voidx = p_Dec->dpb_info[i].voidx;
                 is_used = p_Dec->dpb_info[i].is_used;
                 if (currSlice->structure == FRAME && refpic) {
-                    if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx))
+                    if (poc == MPP_MIN(TOP_POC, BOT_POC) && (layer_id == voidx) && !tmp[i]) {
+                        tmp[i] = 1;
                         break;
+                    }
                 } else {
                     if (is_used == 3) {
                         if ((poc == BOT_POC || poc == TOP_POC) && layer_id == voidx)
