@@ -865,7 +865,10 @@ static void write_picture(H264_StorePic_t *p, H264dVideoCtx_t *p_Vid)
         //!<  discard less than first i frame poc
         if ((p_err->i_slice_no < 2) && (p->poc < p_err->first_iframe_poc)) {
             if (p_err->used_ref_flag && p_err->first_iframe_is_output) {
-                mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
+                if ((p->slice_type % 5) == H264_B_SLICE)
+                    mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
+                else
+                    mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
             } else {
                 if (p_Vid->dpb_fast_out)
                     mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
@@ -1839,6 +1842,14 @@ RK_U32 get_field_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p)
                     combine_flag = 1;
 #endif
                 }
+            }
+            /* set err to unpaired filed */
+            if (!combine_flag) {
+                struct h264_store_pic_t *pic = NULL;
+
+                pic = p_last->structure == TOP_FIELD ? p_last->top_field : p_last->bottom_field;
+                if (pic && !pic->combine_flag)
+                    mpp_frame_set_errinfo(pic->mem_mark->mframe, 1);
             }
         }
     }
