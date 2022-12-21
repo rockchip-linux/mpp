@@ -519,7 +519,6 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->in_buf = NULL;
         p_Inp->in_length = 0;
         task->flags.eos = p_Inp->pkt_eos;
-        h264d_flush_dpb_eos(p_Dec);
     }
 
     if (p_Inp->in_length > MAX_STREM_IN_SIZE) {
@@ -568,6 +567,14 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         task->input_packet = p_Dec->task_pkt;
     } else {
         task->input_packet = NULL;
+        /*
+         * During split_parse, the empty EOS will endcode and decode the
+         * last complete packet.
+         * When sending EOS in split mode, dpb can not be flushed
+         * before split process.
+         */
+        if (p_Inp->pkt_eos && p_Inp->in_length < 4)
+            h264d_flush_dpb_eos(p_Dec);
     }
 __RETURN:
 
