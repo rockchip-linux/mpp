@@ -1434,7 +1434,6 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
     H264dVideoCtx_t *p_Vid = p_Dpb->p_Vid;
 
     VAL_CHECK(ret, NULL != p);  //!< if frame, check for new store
-    p_Vid->last_pic = NULL;
     //!< set use flag
     if (p->mem_mark && (p->mem_mark->slot_idx >= 0)) {
         mpp_buf_slot_set_flag(p_Vid->p_Dec->frame_slots, p->mem_mark->slot_idx, SLOT_CODEC_USE);
@@ -1459,6 +1458,8 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             FUN_CHECK(ret = insert_picture_in_dpb(p_Vid, p_Dpb->last_picture, p, 1));  //!< field_dpb_combine
             scan_dpb_output(p_Dpb, p);
         }
+        memcpy(&p_Vid->old_pic, p, sizeof(H264_StorePic_t));
+        p_Vid->last_pic = &p_Vid->old_pic;
         p_Dpb->last_picture = NULL;
         goto __RETURN;
     }

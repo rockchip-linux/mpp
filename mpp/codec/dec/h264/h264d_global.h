@@ -1048,6 +1048,7 @@ typedef struct h264d_video_ctx_t {
 
     RK_U32     dpb_fast_out;
     RK_U32     dpb_first_fast_played;
+    RK_U32     last_ref_frame_num;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {

@@ -590,23 +590,31 @@ __FAILED:
 static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t *dec_pic, H264_SLICE_t *currSlice)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-#if 1
+
     if (p_last && dec_pic && (dec_pic->slice_type != H264_I_SLICE)
         && (currSlice->p_Cur->sps.gaps_in_frame_num_value_allowed_flag == 0)) {
         RK_U32 error_flag = 0;
 
-        if (dec_pic->frame_num == p_last->frame_num ||
-            dec_pic->frame_num == ((p_last->frame_num + 1) % currSlice->p_Vid->max_frame_num))
-            error_flag = 0;
-        else
-            error_flag = 1;
+        if (dec_pic->combine_flag) {
+            if (dec_pic->frame_num != p_last->frame_num)
+                error_flag = 1;
+        } else {
+            RK_U32 frame_num = currSlice->p_Vid->last_ref_frame_num;
+
+            if (dec_pic->frame_num != frame_num &&
+                dec_pic->frame_num != ((frame_num + 1) % currSlice->p_Vid->max_frame_num))
+                error_flag = 1;
+        }
+
         currSlice->p_Dec->errctx.cur_err_flag |= error_flag ? 1 : 0;
         currSlice->p_Dec->errctx.dpb_err_flag |= error_flag ? 1 : 0;
 
         H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d",
                   p_last->slice_type, dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, p_last->poc, dec_pic->poc);
     }
-#endif
+
+    if (dec_pic->idr_flag || dec_pic->used_for_reference)
+        currSlice->p_Vid->last_ref_frame_num = dec_pic->frame_num;
     return ret = MPP_OK;
 }
 
