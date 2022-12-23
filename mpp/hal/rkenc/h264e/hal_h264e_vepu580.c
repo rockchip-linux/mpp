@@ -567,7 +567,7 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     /* reg007 INT_STA is read only */
     /* reg008 ~ reg0011 gap */
     regs->reg_ctl.enc_wdg.vs_load_thd        = 0x1fffff;
-    regs->reg_ctl.enc_wdg.rfp_load_thd       = 0xff;
+    regs->reg_ctl.enc_wdg.rfp_load_thd       = 0;
 
     /* reg015 DTRNS_MAP */
     regs->reg_ctl.dtrns_map.cmvw_bus_ordr      = 0;
