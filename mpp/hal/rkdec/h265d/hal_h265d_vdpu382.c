@@ -727,13 +727,12 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
         hw_regs->h265d_param.reg64.h26x_stream_mode = 0;
 
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
-            RK_U32 fbd_offset = MPP_ALIGN(pixel_width * (MPP_ALIGN(ver_virstride, 64) + 16) / 16,
-                                          SZ_4K);
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
+            RK_U32 fbd_offset = MPP_ALIGN(fbc_hdr_stride * (ver_virstride + 64) / 16, SZ_4K);
 
             hw_regs->common.reg012.fbc_e = 1;
-            hw_regs->common.reg018.y_hor_virstride = pixel_width >> 4;
-            hw_regs->common.reg019.uv_hor_virstride = pixel_width >> 4;
+            hw_regs->common.reg018.y_hor_virstride = fbc_hdr_stride >> 4;
+            hw_regs->common.reg019.uv_hor_virstride = fbc_hdr_stride >> 4;
             hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
         } else {
             hw_regs->common.reg012.fbc_e = 0;

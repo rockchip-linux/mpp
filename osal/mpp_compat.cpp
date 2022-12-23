@@ -48,10 +48,19 @@ static MppCompat compats[] = {
         "support encoder async input mode",
         NULL,
     },
+    {
+        MPP_COMPAT_DEC_FBC_HDR_256_ODD,
+        MPP_COMPAT_BOOL,
+        0,
+        0,
+        "set decoder fbc header stride to 256 odd align",
+        NULL,
+    },
 };
 
 RK_S32 *compat_ext_fbc_buf_size = &compats[MPP_COMPAT_INC_FBC_BUF_SIZE].value_usr;
 RK_S32 *compat_ext_async_input  = &compats[MPP_COMPAT_ENC_ASYNC_INPUT].value_usr;
+RK_S32 *compat_ext_fbc_hdr_256_odd  = &compats[MPP_COMPAT_DEC_FBC_HDR_256_ODD].value_usr;
 
 MppCompat *mpp_compat_query(void)
 {
