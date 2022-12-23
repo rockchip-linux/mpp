@@ -23,6 +23,7 @@
 typedef enum MppCompatId_e {
     MPP_COMPAT_INC_FBC_BUF_SIZE,
     MPP_COMPAT_ENC_ASYNC_INPUT,
+    MPP_COMPAT_DEC_FBC_HDR_256_ODD,
     MPP_COMPAT_BUTT,
 } MppCompatId;
 

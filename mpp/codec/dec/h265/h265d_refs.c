@@ -100,6 +100,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
 
         if (MPP_FRAME_FMT_IS_FBC(s->h265dctx->pix_fmt)) {
+            RK_U32 fbc_hdr_stride = MPP_ALIGN(s->h265dctx->width, 64);
+
             mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_64);
             mpp_frame_set_offset_x(frame->frame, 0);
             mpp_frame_set_offset_y(frame->frame, 4);
@@ -107,7 +109,10 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
             if (*compat_ext_fbc_buf_size)
                 mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height + 16);
 
-            mpp_frame_set_fbc_hdr_stride(frame->frame, MPP_ALIGN(s->h265dctx->width, 64));
+            if (*compat_ext_fbc_hdr_256_odd)
+                fbc_hdr_stride = MPP_ALIGN(s->h265dctx->width, 256) | 256;
+
+            mpp_frame_set_fbc_hdr_stride(frame->frame, fbc_hdr_stride);
         } else {
             if ((s->h265dctx->cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
                 s->h265dctx->width <= 1920 &&  s->h265dctx->height <= 1088)

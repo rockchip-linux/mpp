@@ -598,7 +598,8 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         if (fbc_en) {
             RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
             RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
-            RK_U32 fbd_offset = MPP_ALIGN(w * (h + 16) / 16, SZ_4K);
+            RK_U32 fbd_offset = MPP_ALIGN(mpp_frame_get_fbc_hdr_stride(mframe) *
+                                          (h + 16) / 16, SZ_4K);
 
             vp9_hw_regs->common.reg012.fbc_e = 1;
             vp9_hw_regs->common.reg018.y_hor_virstride = w >> 4;

@@ -473,6 +473,8 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     impl->ver_stride += 16;
 
                 impl->fbc_hdr_stride =  MPP_ALIGN(impl->width, 64);
+                if (*compat_ext_fbc_hdr_256_odd)
+                    impl->fbc_hdr_stride =  MPP_ALIGN(impl->width, 256) | 256;
             }
 
             /* After cropped */
