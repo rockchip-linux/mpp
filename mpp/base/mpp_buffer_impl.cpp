@@ -681,8 +681,8 @@ MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
 
     MPP_BUF_FUNCTION_ENTER();
 
-    p->callback = callback;
     p->arg      = arg;
+    p->callback = callback;
 
     MPP_BUF_FUNCTION_LEAVE();
     return MPP_OK;
