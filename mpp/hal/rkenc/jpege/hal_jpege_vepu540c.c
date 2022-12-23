@@ -195,7 +195,7 @@ MPP_RET hal_jpege_v540c_gen_regs(void *hal, HalEncTask *task)
 
     reg_ctl->reg0013_dtrns_cfg.axi_brsp_cke     = 0x0;
     reg_ctl->reg0014_enc_wdg.vs_load_thd        = 0x1fffff;
-    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0xff;
+    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0;
 
     vepu540c_set_jpeg_reg(&cfg);
     {
