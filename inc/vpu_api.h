@@ -195,7 +195,8 @@ typedef struct VideoFrame {
     VPU_FRAME        vpuFrame;
     FrameThumbInfo_t thumbInfo;
     FrameHdrInfo_t   hdrInfo;
-    RK_U32          *reserved[4];
+    RK_U32           viewId;
+    RK_U32           reserved[16];
 } VideoFrame_t;
 
 typedef struct VideoPacket {
