@@ -497,6 +497,18 @@ static void dec_vproc_set_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm)
             ctx->pd_mode = 1;
             ctx->detection = 0;
         }
+    } else if (ctx->prev_frm0 && ! ctx->prev_frm1) {
+        vproc_dbg_status("Wait for next frame to turn into I5O2");
+
+        if (ctx->out_buf0) {
+            mpp_buffer_put(ctx->out_buf0);
+            ctx->out_buf0 = NULL;
+        }
+
+        if (ctx->out_buf1) {
+            mpp_buffer_put(ctx->out_buf1);
+            ctx->out_buf1 = NULL;
+        }
     } else {
         struct iep2_api_params params;
 
