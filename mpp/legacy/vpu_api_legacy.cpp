@@ -29,6 +29,7 @@
 #include "mpp_packet_impl.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_frame.h"
+#include "mpp_compat.h"
 
 #define VPU_API_ENC_INPUT_TIMEOUT 100
 
@@ -1580,6 +1581,13 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     } break;
     case VPU_API_SET_OUTPUT_MODE: {
         mpicmd = MPP_DEC_SET_OUTPUT_FORMAT;
+    } break;
+    case VPU_API_DEC_EN_FBC_HDR_256_ODD : {
+        MppCompat *compatItem = NULL;
+        compatItem = mpp_compat_query_by_id(MPP_COMPAT_DEC_FBC_HDR_256_ODD);
+        if (compatItem) {
+            mpp_compat_update(compatItem, 1);
+        }
     } break;
     case VPU_API_DEC_OUT_FRM_STRUCT_TYPE: {
         dec_out_frm_struct_type = *((RK_S32 *)param);
