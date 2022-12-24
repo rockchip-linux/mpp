@@ -1716,6 +1716,9 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_SET_PARSER_SPLIT_MODE: {
         mpicmd = MPP_DEC_SET_PARSER_SPLIT_MODE;
     } break;
+    case VPU_API_DEC_EN_MVC: {
+        mpicmd = MPP_DEC_SET_ENABLE_MVC;
+    } break;
     default: {
     } break;
     }
