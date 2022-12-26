@@ -22,6 +22,7 @@
 #include "mpp_env.h"
 #include "mpp_platform.h"
 #include "mpp_packet_impl.h"
+#include "mpp_frame_impl.h"
 
 #include "h264d_api.h"
 #include "h264d_global.h"
@@ -653,31 +654,81 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264_DecCtx_t *p_Dec = (H264_DecCtx_t *)decoder;
     DecCbHalDone *ctx = (DecCbHalDone *)errinfo;
+    HalDecTask *task_dec = (HalDecTask *)ctx->task;
+    RK_U32 task_err = task_dec->flags.parse_err || task_dec->flags.ref_err;
+    RK_U32 ref_used = task_dec->flags.ref_info_valid ? task_dec->flags.ref_used : 0;
+    RK_U32 hw_ref_miss = task_dec->flags.ref_info_valid ? task_dec->flags.ref_miss : 0;
+    RK_U32 hw_dec_err = ctx->hard_err;
+    RK_S32 output = task_dec->output;
+    RK_U32 err_mark = 0;
+    MppFrame frame = NULL;
 
     INP_CHECK(ret, !decoder);
 
-    {
-        MppFrame mframe = NULL;
-        HalDecTask *task_dec = (HalDecTask *)ctx->task;
+    if (output >= 0)
+        mpp_buf_slot_get_prop(p_Dec->frame_slots, output, SLOT_FRAME_PTR, &frame);
 
-        if (task_dec->output >= 0)
-            mpp_buf_slot_get_prop(p_Dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
+    if (!frame)
+        goto __RETURN;
 
-        if (mframe) {
-            RK_U32 task_err = task_dec->flags.parse_err || task_dec->flags.ref_err;
-            if (ctx->hard_err || task_err) {
-                if (task_dec->flags.used_for_ref) {
-                    mpp_frame_set_errinfo(mframe, MPP_FRAME_ERR_UNKNOW);
-                } else {
-                    mpp_frame_set_discard(mframe, MPP_FRAME_ERR_UNKNOW);
-                }
+    /* check and mark current frame */
+    if (task_err) {
+        err_mark |= MPP_FRAME_ERR_DEC_INVALID;
+        goto DONE;
+    }
+
+    if (hw_dec_err) {
+        err_mark |= MPP_FRAME_ERR_DEC_HW_ERR;
+        goto DONE;
+    }
+
+    if (ref_used) {
+        RK_S32 *refer = task_dec->refer;
+        RK_U32 i;
+
+        for (i = 0; i < 16; i++) {
+            RK_U32 mask = 1 << i;
+            RK_U32 error = 0;
+            MppFrameImpl *tmp = NULL;
+
+            /* not used frame or non-refer frame skip */
+            if (!(ref_used & mask) || (refer[i] < 0))
+                continue;
+
+            /* check and mark error for error reference frame */
+            mpp_buf_slot_get_prop(p_Dec->frame_slots, refer[i],
+                                  SLOT_FRAME_PTR, &tmp);
+
+            error = tmp->errinfo;
+            H264D_DBG(H264D_DBG_DPB_REF_ERR,
+                      "cur_poc %d frm slot %d refer %d slot %d poc %d errinfo %x\n",
+                      mpp_frame_get_poc(frame), output, i, refer[i], tmp->poc, error);
+
+            if (error) {
+                mpp_log_f("cur_poc %d mark error ref slot %d:%d poc %d err %x\n",
+                          mpp_frame_get_poc(frame), i, refer[i], tmp->poc, error);
+                err_mark |= MPP_FRAME_ERR_UNKNOW;
+                break;
             }
-            H264D_DBG(H264D_DBG_CALLBACK, "[CALLBACK] g_no=%d, out_idx=%d, dpberr=%d, harderr=%d, ref_flag=%d, errinfo=%d, discard=%d, poc=%d, view_id=%d\n",
-                      p_Dec->p_Vid->g_framecnt, task_dec->output, task_err, ctx->hard_err, task_dec->flags.used_for_ref,
-                      mpp_frame_get_errinfo(mframe), mpp_frame_get_discard(mframe),
-                      mpp_frame_get_poc(mframe), mpp_frame_get_viewid(mframe));
         }
     }
+
+DONE:
+    if (err_mark) {
+        if (task_dec->flags.used_for_ref) {
+            mpp_frame_set_errinfo(frame, err_mark);
+        } else {
+            mpp_frame_set_discard(frame, err_mark);
+        }
+    }
+
+    H264D_DBG(H264D_DBG_CALLBACK,
+              "[CALLBACK] g_no %d, out_idx %d, dpberr %d, harderr %d, ref_flag %d, "
+              "errinfo %x, discard %x poc %d view_id %d\n",
+              p_Dec->p_Vid->g_framecnt, output, task_err, ctx->hard_err,
+              task_dec->flags.used_for_ref, mpp_frame_get_errinfo(frame),
+              mpp_frame_get_discard(frame), mpp_frame_get_poc(frame),
+              mpp_frame_get_viewid(frame));
 
 __RETURN:
     return ret = MPP_OK;

@@ -277,10 +277,29 @@ typedef struct MppFrameHdrDynamicMeta {
     RK_U8 data[];
 } MppFrameHdrDynamicMeta;
 
-typedef enum {
+typedef enum MppFrameError {
+    /* General error not specified */
     MPP_FRAME_ERR_UNKNOW           = 0x0001,
+
+    /* Critical error for decoder not support error */
     MPP_FRAME_ERR_UNSUPPORT        = 0x0002,
-} MPP_FRAME_ERR;
+
+    /*
+     * Fatal error for decoder can not parse a valid frame for hardware.
+     * the pixel data is all invalid.
+     */
+    MPP_FRAME_ERR_DEC_INVALID      = 0x0010,
+
+    /*
+     * Normal error for decoder found hardware error on decoding.
+     */
+    MPP_FRAME_ERR_DEC_HW_ERR       = 0x0100,
+
+    /*
+     * Normal error for decoder found missing reference frame on decoding.
+     */
+    MPP_FRAME_ERR_DEC_MISS_REF     = 0x0200,
+} MppFrameError;
 
 #ifdef __cplusplus
 extern "C" {

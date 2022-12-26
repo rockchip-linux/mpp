@@ -27,6 +27,7 @@
 #include "mpp_bitput.h"
 
 #include "mpp_device.h"
+#include "mpp_frame_impl.h"
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_vdpu382.h"
@@ -127,7 +128,8 @@
 typedef struct h264d_rkv_buf_t {
     RK_U32              valid;
     Vdpu382H264dRegSet  *regs;
-    RK_S32              ref_slot_index[16];
+    DXVA_PicEntry_H264  RefFrameList[16];
+    DXVA_PicEntry_H264  RefPicList[3][32];
 } H264dRkvBuf_t;
 
 typedef struct Vdpu382H264dRegCtx_t {
@@ -534,7 +536,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     Vdpu382RegCommon *common = &regs->common;
     HalBuf *mv_buf = NULL;
-    Vdpu382H264dRegCtx *ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
 
     // memset(regs, 0, sizeof(Vdpu382H264dRegSet));
     memset(&regs->h264d_highpoc, 0, sizeof(regs->h264d_highpoc));
@@ -542,6 +543,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
     common->reg013.cur_pic_is_idr = p_hal->slice_long->idr_flag;
     common->reg012.colmv_compress_en =
         (p_hal->hw_info && p_hal->hw_info->cap_colmv_compress && pp->frame_mbs_only_flag) ? 1 : 0;
+    common->reg012.info_collect_en = 1;
+
     //!< caculate the yuv_frame_size
     {
         MppFrame mframe = NULL;
@@ -597,7 +600,8 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
         MppBuffer mbuffer = NULL;
         RK_U32 min_frame_num  = 0;
         MppFrame mframe = NULL;
-        RK_S32 *ref_slot_index  = ctx->reg_buf[task->dec.reg_index].ref_slot_index;
+
+        task->dec.flags.ref_miss = 0;
 
         for (i = 0; i < 15; i++) {
             RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
@@ -614,10 +618,9 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
             if (pp->RefFrameList[i].bPicEntry != 0xff) {
                 ref_index = pp->RefFrameList[i].Index7Bits;
                 near_index = pp->RefFrameList[i].Index7Bits;
-                if (!common->reg013.cur_pic_is_idr)
-                    ref_slot_index[i] = ref_index;
             } else {
                 ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
+                task->dec.flags.ref_miss |= (1 << i);
             }
             /* mark 3 to differ from current frame */
             if (ref_index == pp->CurrPic.Index7Bits) {
@@ -926,37 +929,6 @@ static void hal_h264d_rcb_info_update(void *hal, Vdpu382H264dRegSet *regs)
     }
 }
 
-void vdpu382_h264d_check_refinfo(void *hal, HalTaskInfo *task)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    Vdpu382H264dRegCtx *reg_ctx;
-
-    if (!p_hal)
-        return;
-
-    reg_ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
-    if (p_hal->fast_mode) {
-        RK_S32 *ref_slot_index  = reg_ctx->reg_buf[task->dec.reg_index].ref_slot_index;
-        RK_U32 i;
-        MppFrame cur_frame = NULL;
-        MppFrame frame = NULL;
-
-        mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output,
-                              SLOT_FRAME_PTR, &cur_frame);
-        for (i = 0; i < 15; i++) {
-            if (ref_slot_index[i] >= 0) {
-                mpp_buf_slot_get_prop(p_hal->frame_slots, ref_slot_index[i],
-                                      SLOT_FRAME_PTR, &frame);
-                if (frame && mpp_frame_get_errinfo(frame)) {
-                    mpp_frame_set_errinfo(cur_frame, 1);
-                    break;
-                }
-            }
-        }
-        memset(ref_slot_index, -1, 16 * sizeof(RK_S32));
-    }
-}
-
 static MPP_RET vdpu382_h264d_setup_colmv_buf(void *hal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -1002,6 +974,7 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
         goto __RETURN;
     }
 
+    task->dec.reg_index = 0;
     if (p_hal->fast_mode) {
         RK_U32 i = 0;
         for (i = 0; i <  MPP_ARRAY_ELEMS(ctx->reg_buf); i++) {
@@ -1083,6 +1056,15 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
             regs->h264d_addr.reg199_scale_down_chorme_base = 0;
             regs->common.reg012.scale_down_en = 0;
         }
+    }
+    /* back up ref infos */
+    {
+        DXVA_PicParams_H264_MVC *pp = p_hal->pp;
+        RK_S32 index = task->dec.reg_index;
+
+        memcpy(ctx->reg_buf[index].RefFrameList, pp->RefFrameList, sizeof(pp->RefFrameList));
+        memcpy(ctx->reg_buf[index].RefPicList, p_hal->slice_long->RefPicList,
+               sizeof(p_hal->slice_long->RefPicList));
     }
     vdpu382_setup_statistic(&regs->common, &regs->statistic);
 
@@ -1179,6 +1161,17 @@ MPP_RET vdpu382_h264d_start(void *hal, HalTaskInfo *task)
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
+
+        rd_cfg.reg = &regs->statistic;
+        rd_cfg.size = sizeof(regs->statistic);
+        rd_cfg.offset = OFFSET_STATISTIC_REGS;
+
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
+        if (ret) {
+            mpp_err_f("set register read failed %d\n", ret);
+            break;
+        }
+
         /* rcb info for sram */
         vdpu382_set_rcbinfo(dev, reg_ctx->rcb_info);
         /* send request to hardware */
@@ -1193,15 +1186,69 @@ __RETURN:
     return ret = MPP_OK;
 }
 
+RK_U32 vdpu382_h264_get_ref_used(void *hal, HalTaskInfo *task)
+{
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    Vdpu382H264dRegCtx *reg_ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
+    Vdpu382H264dRegSet *p_regs = p_hal->fast_mode ?
+                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
+                                 reg_ctx->regs;
+    RK_U32 hw_ref_used;
+    RK_U32 ref_used = 0;;
+
+    memcpy(&hw_ref_used, &p_regs->statistic.reg265, sizeof(RK_U32));
+
+    {
+        H264dRkvBuf_t *cur_buf = &reg_ctx->reg_buf[task->dec.reg_index];
+        RK_U32 i, j;
+        MppFrame cur_frame = NULL;
+        MppFrameStatus *status;
+
+        mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output,
+                              SLOT_FRAME_PTR, &cur_frame);
+        status = mpp_frame_get_status(cur_frame);
+
+        if (status->is_intra)
+            return ref_used;
+
+        for (i = 0; i < 32; i++) {
+            RK_U32 mask = 1 << i;
+            RK_U32 dpb_idx;
+
+            if (!(hw_ref_used & mask))
+                continue;
+
+            if (status->is_b_frame) {
+                for (j = 1; j < 3; j++) {
+                    dpb_idx = cur_buf->RefPicList[j][i].Index7Bits;
+                    if (cur_buf->RefPicList[j][i].bPicEntry != 0xff && dpb_idx < 16)
+                        ref_used |= (1 << dpb_idx);
+                }
+            } else {
+                j = 1;
+                dpb_idx = cur_buf->RefPicList[j][i].Index7Bits;
+                if (cur_buf->RefPicList[j][i].bPicEntry != 0xff && dpb_idx < 16)
+                    ref_used |= (1 << dpb_idx);
+            }
+        }
+    }
+    H264D_LOG("hw_ref_used 0x%08x ref_used %08x\n", hw_ref_used, ref_used);
+
+    return ref_used;
+}
+
 MPP_RET vdpu382_h264d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
+    RK_S32 index = task->dec.reg_index;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    RK_U32 hw_err = 0;
+    RK_U32 ref_used = 0;
 
     INP_CHECK(ret, NULL == p_hal);
     Vdpu382H264dRegCtx *reg_ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
     Vdpu382H264dRegSet *p_regs = p_hal->fast_mode ?
-                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
+                                 reg_ctx->reg_buf[index].regs :
                                  reg_ctx->regs;
 
     if (task->dec.flags.parse_err ||
@@ -1213,31 +1260,30 @@ MPP_RET vdpu382_h264d_wait(void *hal, HalTaskInfo *task)
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
+    hw_err = p_regs->irq_status.reg224.dec_error_sta ||
+             (!p_regs->irq_status.reg224.dec_rdy_sta) ||
+             p_regs->irq_status.reg224.buf_empty_sta ||
+             p_regs->irq_status.reg226.strmd_error_status ||
+             p_regs->irq_status.reg227.colmv_error_ref_picidx ||
+             p_regs->irq_status.reg226.strmd_detect_error_flag;
+
+    ref_used = vdpu382_h264_get_ref_used(hal, task);
+    task->dec.flags.ref_info_valid = 1;
+    task->dec.flags.ref_used = ref_used;
+
 __SKIP_HARD:
     if (p_hal->dec_cb) {
         DecCbHalDone param;
 
         param.task = (void *)&task->dec;
         param.regs = (RK_U32 *)p_regs;
-
-        if (p_regs->irq_status.reg224.dec_error_sta ||
-            (!p_regs->irq_status.reg224.dec_rdy_sta) ||
-            p_regs->irq_status.reg224.buf_empty_sta ||
-            p_regs->irq_status.reg226.strmd_error_status ||
-            p_regs->irq_status.reg227.colmv_error_ref_picidx ||
-            p_regs->irq_status.reg226.strmd_detect_error_flag)
-            param.hard_err = 1;
-        else {
-            param.hard_err = 0;
-            vdpu382_h264d_check_refinfo(hal, task);
-        }
+        param.hard_err = hw_err;
 
         mpp_callback(p_hal->dec_cb, &param);
     }
-    memset(&p_regs->irq_status.reg224, 0, sizeof(RK_U32));
-    if (p_hal->fast_mode) {
-        reg_ctx->reg_buf[task->dec.reg_index].valid = 0;
-    }
+
+    if (p_hal->fast_mode)
+        reg_ctx->reg_buf[index].valid = 0;
 
     (void)task;
 __RETURN:
@@ -1250,7 +1296,6 @@ MPP_RET vdpu382_h264d_reset(void *hal)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-
 
 __RETURN:
     return ret = MPP_OK;
