@@ -447,6 +447,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
 {
     RK_U32 temp = 0;
     RK_U32 poc_used_bits = 0;
+    RK_U32 emulation_prevention = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     H264dCurCtx_t *p_Cur = currSlice->p_Cur;
@@ -492,6 +493,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
             READ_UE(p_bitctx, &currSlice->idr_pic_id);
         }
         poc_used_bits = p_bitctx->used_bits; //!< init poc used bits
+        emulation_prevention = p_bitctx->emulation_prevention_bytes_;
         if (currSlice->active_sps->pic_order_cnt_type == 0) {
             READ_BITS(p_bitctx, currSlice->active_sps->log2_max_pic_order_cnt_lsb_minus4 + 4, &currSlice->pic_order_cnt_lsb);
             if (currSlice->p_Vid->active_pps->bottom_field_pic_order_in_frame_present_flag == 1
@@ -515,7 +517,10 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
                 currSlice->delta_pic_order_cnt[1] = 0;
             }
         }
-        currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits; //!< calculate poc used bit length
+
+        // need to minus emulation prevention bytes(0x000003) we met
+        emulation_prevention = p_bitctx->emulation_prevention_bytes_ - emulation_prevention;
+        currSlice->poc_used_bitlen = p_bitctx->used_bits - poc_used_bits - (emulation_prevention * 8); //!< calculate poc used bit length
         //!< redundant_pic_cnt is missing here
         ASSERT(currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag == 0); // add by dw, high 4:2:2 profile not support
         if (currSlice->p_Vid->active_pps->redundant_pic_cnt_present_flag) {
