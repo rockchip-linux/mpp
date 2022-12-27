@@ -263,7 +263,14 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
             }
             pp->RefPicLayerIdList[i] = dpb_info[i].voidx;
         }
+    } else {
+        pp->num_views_minus1 = 0;
+        pp->curr_layer_id = dec_pic->layer_id;
+        memset(pp->view_id, 0, sizeof(pp->view_id));
+        memset(pp->ViewIDList, 0, sizeof(pp->ViewIDList));
+        memset(pp->RefPicLayerIdList, 0, sizeof(pp->RefPicLayerIdList));
     }
+
     p_Vid->spspps_update = 0;
 }
 
