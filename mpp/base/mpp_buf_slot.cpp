@@ -26,7 +26,7 @@
 
 #include "mpp_frame_impl.h"
 #include "mpp_buf_slot.h"
-
+#include "mpp_compat_impl.h"
 
 #define BUF_SLOT_DBG_FUNCTION           (0x00000001)
 #define BUF_SLOT_DBG_SETUP              (0x00000002)
@@ -260,7 +260,10 @@ static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
     RK_S32 n_blocks, hdr_alignment, size;
 
     /* AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 and !AFBC_FORMAT_MOD_TILED */
-    width = MPP_ALIGN(width, 16);
+    if (*compat_ext_fbc_hdr_256_odd)
+        width = MPP_ALIGN(width, 256) | 256;
+    else
+        width = MPP_ALIGN(width, 16);
     height = MPP_ALIGN(height, 16);
     hdr_alignment = AFBC_HDR_ALIGN;
 
