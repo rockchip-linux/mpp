@@ -22,6 +22,59 @@
 
 typedef struct MppFrameImpl_t MppFrameImpl;
 
+typedef union MppFrameStatus_u {
+    /* total 64 bit frame status for internal flow */
+    RK_U64              val;
+
+    struct {
+        /* bit 0 ~ 7 common frame status flag for both encoder and decoder */
+
+        /*
+         * data status flag
+         * 0 - pixel data is invalid
+         * 1 - pixel data is valid
+         */
+        RK_U32          valid           : 1;
+
+        /* reference status flag */
+        /*
+         * 0 - inter frame
+         * 1 - intra frame
+         */
+        RK_U32          is_intra        : 1;
+
+        /*
+         * Valid when is_intra is true
+         * 0 - normal intra frame
+         * 1 - IDR frame
+         */
+        RK_U32          is_idr          : 1;
+
+        /*
+         * 0 - mark as reference frame
+         * 1 - mark as non-refernce frame
+         */
+        RK_U32          is_non_ref      : 1;
+
+        /*
+         * Valid when is_non_ref is false
+         * 0 - mark as short-term reference frame
+         * 1 - mark as long-term refernce frame
+         */
+        RK_U32          is_lt_ref       : 1;
+        RK_U32          is_b_frame      : 1;
+
+        /*
+         * frame usage flag for decoder / encoder flow
+         * 0 - mark as general frame
+         * 1 - mark as used by decoder
+         * 2 - mark as used by encoder
+         * 4 - mark as used by vproc
+         */
+        RK_U32          usage           : 3;
+    };
+} MppFrameStatus;
+
 struct MppFrameImpl_t {
     const char  *name;
 
@@ -127,6 +180,7 @@ struct MppFrameImpl_t {
      */
     RK_U32          fbc_offset;
     size_t          fbc_size;
+
     /*
      * frame buffer contain downsacle pic
      *
@@ -134,6 +188,11 @@ struct MppFrameImpl_t {
      * w/2 x h / 2
      */
     RK_U32          thumbnail_en;
+
+    /*
+     * frame status info for internal flow
+     */
+    MppFrameStatus  status;
 };
 
 #ifdef __cplusplus
@@ -147,8 +206,7 @@ RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);
 size_t  mpp_frame_get_fbc_size(MppFrame frame);
 void    mpp_frame_set_fbc_size(MppFrame frame, size_t size);
 
-void    mpp_frame_set_task(MppFrame frame, MppTask task);
-MppTask mpp_frame_get_task(MppFrame frame);
+MppFrameStatus *mpp_frame_get_status(MppFrame frame);
 
 /*
  * Debug for frame process timing
