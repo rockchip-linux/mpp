@@ -148,6 +148,13 @@ void mpp_frame_set_meta(MppFrame frame, MppMeta meta)
     p->meta = meta;
 }
 
+MppFrameStatus *mpp_frame_get_status(MppFrame frame)
+{
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    return &p->status;
+}
+
 void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable)
 {
     if (check_is_mpp_frame(frame))
@@ -290,4 +297,3 @@ MPP_FRAME_ACCESSORS(RK_U32, errinfo)
 MPP_FRAME_ACCESSORS(MppTask, task)
 MPP_FRAME_ACCESSORS(RK_U32, thumbnail_en)
 MPP_FRAME_ACCESSORS(size_t, fbc_size)
-
