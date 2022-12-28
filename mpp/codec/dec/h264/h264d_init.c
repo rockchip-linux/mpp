@@ -551,6 +551,12 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
             impl->poc = dec_pic->poc;
             impl->viewid = dec_pic->layer_id;
+            impl->status.is_intra = dec_pic->slice_type == H264_I_SLICE;
+            impl->status.is_idr = dec_pic->idr_flag;
+            impl->status.is_non_ref = !dec_pic->used_for_reference;
+            impl->status.is_lt_ref = dec_pic->long_term_reference_flag;
+            impl->status.is_b_frame = ((dec_pic->slice_type % 5) == H264_B_SLICE);
+
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, p_Dec->curframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
         }
