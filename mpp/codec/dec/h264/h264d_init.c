@@ -465,6 +465,12 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             impl->hor_stride = hor_stride;
             impl->ver_stride = ver_stride;
 
+            /* After cropped */
+            impl->width = p_Vid->width_after_crop;
+            impl->height = p_Vid->height_after_crop;
+            impl->pts = p_Vid->p_Cur->last_pts;
+            impl->dts = p_Vid->p_Cur->last_dts;
+
             if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
                 impl->offset_x = 0;
                 impl->offset_y = 4;
@@ -477,11 +483,6 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     impl->fbc_hdr_stride =  MPP_ALIGN(impl->width, 256) | 256;
             }
 
-            /* After cropped */
-            impl->width = p_Vid->width_after_crop;
-            impl->height = p_Vid->height_after_crop;
-            impl->pts = p_Vid->p_Cur->last_pts;
-            impl->dts = p_Vid->p_Cur->last_dts;
             /* Setting the interlace mode for the picture */
             switch (structure) {
             case FRAME:

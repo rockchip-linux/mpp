@@ -22,8 +22,9 @@
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_debug.h"
-#include "hal_task.h"
+#include "mpp_compat_impl.h"
 
+#include "hal_task.h"
 #include "avs2d_dpb.h"
 
 #ifndef INT_MAX
@@ -483,7 +484,14 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     }
 
     if (MPP_FRAME_FMT_IS_FBC(p_dec->init.cfg->base.out_fmt)) {
+        RK_U32 fbc_hdr_stride = MPP_ALIGN(vsh->horizontal_size, 64);
+
         mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | (p_dec->init.cfg->base.out_fmt & (MPP_FRAME_FBC_MASK)));
+
+        if (*compat_ext_fbc_hdr_256_odd)
+            fbc_hdr_stride = MPP_ALIGN(vsh->horizontal_size, 256) | 256;
+
+        mpp_frame_set_fbc_hdr_stride(mframe, fbc_hdr_stride);
     }
 
     if (p_dec->is_hdr)
