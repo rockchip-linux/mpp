@@ -393,7 +393,7 @@ typedef struct _DXVA_PicParams_H264_MVC {
     /* SliceGroupMap is not needed for MVC, as MVC is for high profile only */
     RK_U16  slice_group_change_rate_minus1;
     /* Following are H.264 MVC Specific parameters */
-    RK_U8   num_views_minus1;
+    RK_S8   num_views_minus1;
     RK_U16  view_id[16];
     RK_U8   num_anchor_refs_l0[16];
     RK_U16  anchor_ref_l0[16][16];
