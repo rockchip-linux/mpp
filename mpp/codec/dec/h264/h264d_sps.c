@@ -539,7 +539,7 @@ MPP_RET process_subsps(H264_SLICE_t *currSlice)
     get_max_dec_frame_buf_size(&cur_subsps->sps);
     //!< make subSPS available
     if (!currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id])
-        currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id] = mpp_malloc(H264_subSPS_t, 1);
+        currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id] = mpp_calloc(H264_subSPS_t, 1);
     p_subset = currSlice->p_Vid->subspsSet[cur_subsps->sps.seq_parameter_set_id];
     if (p_subset->Valid) {
         recycle_subsps(p_subset);

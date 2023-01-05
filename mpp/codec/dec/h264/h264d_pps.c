@@ -141,7 +141,7 @@ MPP_RET process_pps(H264_SLICE_t *currSlice)
     //!< MakePPSavailable
     ASSERT(cur_pps->Valid == 1);
     if (!currSlice->p_Vid->ppsSet[cur_pps->pic_parameter_set_id]) {
-        currSlice->p_Vid->ppsSet[cur_pps->pic_parameter_set_id] = mpp_malloc(H264_PPS_t, 1);
+        currSlice->p_Vid->ppsSet[cur_pps->pic_parameter_set_id] = mpp_calloc(H264_PPS_t, 1);
     }
 
     memcpy(currSlice->p_Vid->ppsSet[cur_pps->pic_parameter_set_id], cur_pps, sizeof(H264_PPS_t));
