@@ -220,10 +220,11 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
 
     //!< Following are H.264 MVC Specific parameters
     if (p_Vid->active_subsps) {
-        RK_U16 num_views = 0;
+        RK_S32 num_views = 0;
         pp->num_views_minus1 = p_Vid->active_subsps->num_views_minus1;
         num_views = 1 + pp->num_views_minus1;
         ASSERT(num_views <= 16);
+        ASSERT(num_views >= 0);
 
         for (i = 0; i < num_views; i++) {
             pp->view_id[i] = p_Vid->active_subsps->view_id[i];
