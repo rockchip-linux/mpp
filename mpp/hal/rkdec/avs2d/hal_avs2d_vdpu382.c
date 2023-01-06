@@ -235,6 +235,8 @@ static MPP_RET init_common_regs(Vdpu382Avs2dRegSet *regs)
     common->reg015.rlc_mode = 0;
 
     common->reg011.buf_empty_en = 1;
+    common->reg011.err_head_fill_e = 1;
+    common->reg011.err_colmv_fill_e = 1;
 
     common->reg010.dec_e = 1;
 

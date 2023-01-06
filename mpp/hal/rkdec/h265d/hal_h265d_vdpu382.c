@@ -800,6 +800,8 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg025.cabac_err_en_highbits = 0x3ffbf9ff;
 
     hw_regs->common.reg011.dec_clkgate_e    = 1;
+    hw_regs->common.reg011.err_head_fill_e  = 1;
+    hw_regs->common.reg011.err_colmv_fill_e = 1;
 
     hw_regs->common.reg026.inter_auto_gating_e = 1;
     hw_regs->common.reg026.filterd_auto_gating_e = 1;

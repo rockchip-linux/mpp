@@ -759,6 +759,8 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->common.reg010.dec_e            = 1;
     vp9_hw_regs->common.reg011.buf_empty_en     = 1;
     vp9_hw_regs->common.reg011.dec_clkgate_e    = 1;
+    vp9_hw_regs->common.reg011.err_head_fill_e  = 1;
+    vp9_hw_regs->common.reg011.err_colmv_fill_e = 1;
 
     vp9_hw_regs->common.reg026.inter_auto_gating_e = 1;
     vp9_hw_regs->common.reg026.filterd_auto_gating_e = 1;

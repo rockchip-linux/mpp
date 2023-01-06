@@ -687,6 +687,8 @@ static MPP_RET init_common_regs(Vdpu382H264dRegSet *regs)
     common->reg015.rlc_mode = 0;
 
     common->reg011.buf_empty_en = 1;
+    common->reg011.err_head_fill_e = 1;
+    common->reg011.err_colmv_fill_e = 1;
 
     common->reg010.dec_e = 1;
     common->reg017.slice_num = 0x3fff;
@@ -943,26 +945,16 @@ void vdpu382_h264d_check_refinfo(void *hal, HalTaskInfo *task)
     }
 }
 
-MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
+static MPP_RET vdpu382_h264d_setup_colmv_buf(void *hal)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
     RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
-    Vdpu382H264dRegCtx *ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
-    Vdpu382H264dRegSet *regs = ctx->regs;
-    RK_S32 mv_size = width * height / 2;
-    INP_CHECK(ret, NULL == p_hal);
+    RK_S32 mv_size;
 
-    if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
-        goto __RETURN;
-    }
-
-    /* if is field mode is enabled enlarge colmv buffer and disable colmv compression */
-    if (!p_hal->pp->frame_mbs_only_flag)
-        mv_size *= 2;
-
+    /* the worst case is the frame is error with whole frame */
+    mv_size = width * height;
     if (p_hal->cmv_bufs == NULL || p_hal->mv_size < mv_size) {
         size_t size = mv_size;
 
@@ -981,6 +973,23 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
         hal_bufs_setup(p_hal->cmv_bufs, p_hal->mv_count, 1, &size);
     }
 
+__RETURN:
+    return ret;
+}
+
+MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
+{
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    Vdpu382H264dRegCtx *ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
+    Vdpu382H264dRegSet *regs = ctx->regs;
+    INP_CHECK(ret, NULL == p_hal);
+
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
+        goto __RETURN;
+    }
+
     if (p_hal->fast_mode) {
         RK_U32 i = 0;
         for (i = 0; i <  MPP_ARRAY_ELEMS(ctx->reg_buf); i++) {
@@ -996,6 +1005,7 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
             }
         }
     }
+    vdpu382_h264d_setup_colmv_buf(hal);
     prepare_spspps(p_hal, (RK_U64 *)&ctx->spspps, sizeof(ctx->spspps));
     prepare_framerps(p_hal, (RK_U64 *)&ctx->rps, sizeof(ctx->rps));
     prepare_scanlist(p_hal, ctx->sclst, sizeof(ctx->sclst));
