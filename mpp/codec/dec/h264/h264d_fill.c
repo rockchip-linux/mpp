@@ -226,7 +226,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
         ASSERT(num_views <= 16);
         ASSERT(num_views >= 0);
 
-        for (i = 0; i < num_views; i++) {
+        for (i = 0; i < (RK_U32)num_views; i++) {
             pp->view_id[i] = p_Vid->active_subsps->view_id[i];
             pp->num_anchor_refs_l0[i] = p_Vid->active_subsps->num_anchor_refs_l0[i];
             for (j = 0; j < pp->num_anchor_refs_l0[i]; j++) {
