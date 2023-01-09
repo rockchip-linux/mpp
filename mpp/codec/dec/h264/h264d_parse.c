@@ -646,6 +646,10 @@ MPP_RET parse_prepare_fast(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
                 if (p_strm->nalu_type == H264_NALU_TYPE_SLICE
                     || p_strm->nalu_type == H264_NALU_TYPE_IDR || p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT) {
+
+                    if (p_strm->nalu_type == H264_NALU_TYPE_SLC_EXT)
+                        p_strm->nalu_type = H264_NALU_TYPE_SLICE;
+
                     p_strm->nalu_len += (RK_U32)pkt_impl->length;
                     if (p_strm->nalu_len >= p_strm->nalu_max_size) {
                         RK_U32 add_size =  pkt_impl->length + 1 - p_strm->nalu_max_size;
