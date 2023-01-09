@@ -345,7 +345,8 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
 
     if (currSlice->mvcExt.valid) {
         cur_subsps = p_Vid->subspsSet[cur_pps->seq_parameter_set_id];
-        if (cur_subsps && cur_subsps->Valid) {
+        // only num view(except base view) > 0, need to combine view id
+        if (cur_subsps && cur_subsps->Valid && cur_subsps->num_views_minus1 > 0) {
             cur_sps = &cur_subsps->sps;
             if ((RK_S32)currSlice->mvcExt.view_id == cur_subsps->view_id[0]) { // combine subsps to sps
                 p_Vid->active_mvc_sps_flag = 0;
