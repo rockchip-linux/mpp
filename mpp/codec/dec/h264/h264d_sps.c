@@ -48,6 +48,7 @@ static MPP_RET read_hrd_parameters(BitReadCtx_t *p_bitctx, H264_HRD_t *hrd)
     RK_U32 SchedSelIdx = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
     READ_UE(p_bitctx, &hrd->cpb_cnt_minus1);
+    VAL_CHECK(ret, hrd->cpb_cnt_minus1 < MAXIMUMVALUEOFcpb_cnt);
     hrd->cpb_cnt_minus1 += 1;
     READ_BITS(p_bitctx, 4, &hrd->bit_rate_scale);
     READ_BITS(p_bitctx, 4, &hrd->cpb_size_scale);
@@ -67,6 +68,8 @@ static MPP_RET read_hrd_parameters(BitReadCtx_t *p_bitctx, H264_HRD_t *hrd)
     return ret = MPP_OK;
 __BITREAD_ERR:
     return ret = p_bitctx->ret;
+__FAILED:
+    return ret;
 }
 
 static void init_VUI(H264_VUI_t *vui)
@@ -242,7 +245,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         READ_SE(p_bitctx, &cur_sps->offset_for_non_ref_pic);
         READ_SE(p_bitctx, &cur_sps->offset_for_top_to_bottom_field);
         READ_UE(p_bitctx, &cur_sps->num_ref_frames_in_pic_order_cnt_cycle);
-        ASSERT(cur_sps->num_ref_frames_in_pic_order_cnt_cycle < 256);
+        VAL_CHECK(ret, cur_sps->num_ref_frames_in_pic_order_cnt_cycle < 256);
         for (i = 0; i < cur_sps->num_ref_frames_in_pic_order_cnt_cycle; ++i) {
             READ_SE(p_bitctx, &cur_sps->offset_for_ref_frame[i]);
             cur_sps->expected_delta_per_pic_order_cnt_cycle += cur_sps->offset_for_ref_frame[i];
@@ -287,6 +290,7 @@ static MPP_RET sps_mvc_extension(BitReadCtx_t *p_bitctx, H264_subSPS_t *subset_s
     RK_S32 i = 0, j = 0, num_views = 0;
 
     READ_UE(p_bitctx, &subset_sps->num_views_minus1);
+    VAL_CHECK(ret, subset_sps->num_views_minus1 < 16);
     num_views = 1 + subset_sps->num_views_minus1;
     //========================
     if (num_views > 0) {
