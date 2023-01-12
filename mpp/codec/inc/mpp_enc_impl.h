@@ -26,6 +26,8 @@
 #include "rc.h"
 #include "hal_info.h"
 
+#define HDR_ADDED_MASK  0xe
+
 typedef union MppEncHeaderStatus_u {
     RK_U32 val;
     struct {

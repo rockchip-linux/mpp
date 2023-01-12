@@ -1467,18 +1467,89 @@ static void mpp_enc_rc_info_backup(MppEncImpl *enc, EncAsyncTaskInfo *task)
     enc->rc_info_prev = task->rc.info;
 }
 
+static void mpp_enc_add_sw_header(MppEncImpl *enc, HalEncTask *hal_task)
+{
+    EncImpl impl = enc->impl;
+    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
+    EncRcTask *rc_task = hal_task->rc_task;
+    EncFrmStatus *frm = &rc_task->frm;
+    MppPacket packet = hal_task->packet;
+    MppFrame frame = hal_task->frame;
+
+    if (!(hdr_status->val & HDR_ADDED_MASK)) {
+        RK_U32 add_header = 0;
+
+        if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR && frm->is_intra)
+            add_header |= 1;
+
+        if (enc->cfg.rc.refresh_en && frm->is_i_recovery && !frm->is_idr)
+            add_header |= 2;
+
+        if (add_header) {
+            enc_dbg_detail("task %d IDR header length %d\n",
+                           frm->seq_idx, enc->hdr_len);
+
+            mpp_packet_append(packet, enc->hdr_pkt);
+
+            hal_task->header_length = enc->hdr_len;
+            hal_task->length += enc->hdr_len;
+            hdr_status->added_by_mode = 1;
+        }
+
+        if (add_header & 2) {
+            RK_S32 length = 0;
+
+            enc_impl_add_prefix(impl, packet, &length, uuid_refresh_cfg,
+                                &enc->cfg.rc.refresh_length, 0);
+
+            if (length) {
+                enc_dbg_detail("task %d refresh header length %d\n",
+                               frm->seq_idx, enc->hdr_len);
+
+                hal_task->sei_length += length;
+                hal_task->length += length;
+            }
+        }
+    }
+
+    // check for header adding
+    check_hal_task_pkt_len(hal_task, "header adding");
+
+    /* 17. Add all prefix info before encoding */
+    if (frm->is_idr && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
+        RK_S32 length = 0;
+
+        enc_impl_add_prefix(impl, packet, &length, uuid_version,
+                            enc->version_info, enc->version_length);
+
+        hal_task->sei_length += length;
+        hal_task->length += length;
+
+        length = 0;
+        enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
+                            enc->rc_cfg_info, enc->rc_cfg_length);
+
+        hal_task->sei_length += length;
+        hal_task->length += length;
+    }
+
+    if (mpp_frame_has_meta(frame)) {
+        update_user_datas(impl, packet, frame, hal_task);
+    }
+
+    // check for user data adding
+    check_hal_task_pkt_len(hal_task, "user data adding");
+}
+
 static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
 {
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
     EncRcTask *rc_task = &task->rc;
-    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
     HalEncTask *hal_task = &task->task;
-    MppFrame frame = hal_task->frame;
-    MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
 
     if (enc->support_hw_deflicker && enc->cfg.rc.debreath_en) {
@@ -1507,58 +1578,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
     ENC_RUN_FUNC2(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
 
     // 16. generate header before hardware stream
-    if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
-        frm->is_intra &&
-        !hdr_status->added_by_change &&
-        !hdr_status->added_by_ctrl &&
-        !hdr_status->added_by_mode) {
-        enc_dbg_detail("task %d IDR header length %d\n",
-                       frm->seq_idx, enc->hdr_len);
-
-        mpp_packet_append(packet, enc->hdr_pkt);
-
-        hal_task->header_length = enc->hdr_len;
-        hal_task->length += enc->hdr_len;
-        hdr_status->added_by_mode = 1;
-    }
-
-    // check for header adding
-    check_hal_task_pkt_len(hal_task, "header adding");
-
-    /* 17. Add all prefix info before encoding */
-    if (frm->is_idr && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
-        RK_S32 length = 0;
-
-        enc_impl_add_prefix(impl, packet, &length, uuid_version,
-                            enc->version_info, enc->version_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-
-        length = 0;
-        enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
-                            enc->rc_cfg_info, enc->rc_cfg_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-    }
-
-    if (!frm->is_idr && frm->is_i_recovery && enc->cfg.rc.refresh_en) {
-        RK_S32 length = 0;
-
-        enc_impl_add_prefix(impl, packet, &length, uuid_refresh_cfg,
-                            &enc->cfg.rc.refresh_length, 0);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-    }
-
-    if (mpp_frame_has_meta(frame)) {
-        update_user_datas(impl, packet, frame, hal_task);
-    }
-
-    // check for user data adding
-    check_hal_task_pkt_len(hal_task, "user data adding");
+    mpp_enc_add_sw_header(enc, hal_task);
 
     enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
     ENC_RUN_FUNC2(enc_impl_proc_hal, impl, hal_task, mpp, ret);
@@ -1939,12 +1959,10 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncAsyncTaskInfo *task, EncAsyn
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
     EncRcTask *rc_task = &task->rc;
-    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
     EncAsyncStatus *status = &task->status;
     HalEncTask *hal_task = &task->task;
-    MppFrame frame = hal_task->frame;
     MppPacket packet = hal_task->packet;
     MPP_RET ret = MPP_OK;
 
@@ -1964,48 +1982,7 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncAsyncTaskInfo *task, EncAsyn
     ENC_RUN_FUNC2(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
 
     // 16. generate header before hardware stream
-    if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
-        frm->is_intra &&
-        !hdr_status->added_by_change &&
-        !hdr_status->added_by_ctrl &&
-        !hdr_status->added_by_mode) {
-        enc_dbg_detail("task %d IDR header length %d\n",
-                       frm->seq_idx, enc->hdr_len);
-
-        mpp_packet_append(packet, enc->hdr_pkt);
-
-        hal_task->header_length = enc->hdr_len;
-        hal_task->length += enc->hdr_len;
-        hdr_status->added_by_mode = 1;
-    }
-
-    // check for header adding
-    check_hal_task_pkt_len(hal_task, "header adding");
-
-    /* 17. Add all prefix info before encoding */
-    if (frm->is_idr && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
-        RK_S32 length = 0;
-
-        enc_impl_add_prefix(impl, packet, &length, uuid_version,
-                            enc->version_info, enc->version_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-
-        length = 0;
-        enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
-                            enc->rc_cfg_info, enc->rc_cfg_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-    }
-
-    if (mpp_frame_has_meta(frame)) {
-        update_user_datas(impl, packet, frame, hal_task);
-    }
-
-    // check for user data adding
-    check_hal_task_pkt_len(hal_task, "user data adding");
+    mpp_enc_add_sw_header(enc, hal_task);
 
     enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
     ENC_RUN_FUNC2(enc_impl_proc_hal, impl, hal_task, mpp, ret);
@@ -2758,14 +2735,12 @@ static MPP_RET proc_async_task(MppEncImpl *enc)
     Mpp *mpp = (Mpp*)enc->mpp;
     EncImpl impl = enc->impl;
     MppEncHal hal = enc->enc_hal;
-    MppEncHeaderStatus *hdr_status = &enc->hdr_status;
     EncAsyncTaskInfo *async = enc->async;
     EncAsyncStatus *status = &async->status;
     HalEncTask *hal_task = &async->task;
     EncRcTask *rc_task = hal_task->rc_task;
     EncCpbStatus *cpb = &rc_task->cpb;
     EncFrmStatus *frm = &rc_task->frm;
-    MppPacket packet = hal_task->packet;
     RK_U32 seq_idx = async->seq_idx;
     MPP_RET ret = MPP_OK;
 
@@ -2784,48 +2759,7 @@ static MPP_RET proc_async_task(MppEncImpl *enc)
     ENC_RUN_FUNC2(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
 
     // 16. generate header before hardware stream
-    if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR &&
-        frm->is_intra &&
-        !hdr_status->added_by_change &&
-        !hdr_status->added_by_ctrl &&
-        !hdr_status->added_by_mode) {
-        enc_dbg_detail("task %d IDR header length %d\n",
-                       frm->seq_idx, enc->hdr_len);
-
-        mpp_packet_append(packet, enc->hdr_pkt);
-
-        hal_task->header_length = enc->hdr_len;
-        hal_task->length += enc->hdr_len;
-        hdr_status->added_by_mode = 1;
-    }
-
-    // check for header adding
-    check_hal_task_pkt_len(hal_task, "header adding");
-
-    /* 17. Add all prefix info before encoding */
-    if (frm->is_idr && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
-        RK_S32 length = 0;
-
-        enc_impl_add_prefix(impl, packet, &length, uuid_version,
-                            enc->version_info, enc->version_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-
-        length = 0;
-        enc_impl_add_prefix(impl, packet, &length, uuid_rc_cfg,
-                            enc->rc_cfg_info, enc->rc_cfg_length);
-
-        hal_task->sei_length += length;
-        hal_task->length += length;
-    }
-
-    if (mpp_frame_has_meta(hal_task->frame)) {
-        update_user_datas(impl, packet, hal_task->frame, hal_task);
-    }
-
-    // check for user data adding
-    check_hal_task_pkt_len(hal_task, "user data adding");
+    mpp_enc_add_sw_header(enc, hal_task);
 
     enc_dbg_detail("task %d enc proc hal\n", frm->seq_idx);
     ENC_RUN_FUNC2(enc_impl_proc_hal, impl, hal_task, mpp, ret);
