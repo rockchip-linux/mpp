@@ -237,14 +237,14 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
             break;
         } while (1);
 
-        if (pkt_done)
-            break;
-
         if ((data->frame_num > 0 && (data->frame_count >= data->frame_num)) ||
             ((data->frame_num == 0) && frm_eos)) {
             data->loop_end = 1;
             break;
         }
+
+        if (pkt_done)
+            break;
 
         /*
          * why sleep here:
