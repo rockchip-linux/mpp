@@ -179,7 +179,7 @@ RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info)
         RCB_TRANSD_ROW,
         RCB_STRMD_ROW,
         RCB_INTER_COL,
-        RCB_FILT_COL
+        RCB_FILT_COL,
         RCB_TRANSD_COL,
     };
 
