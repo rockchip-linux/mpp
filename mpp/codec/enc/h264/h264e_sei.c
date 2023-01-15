@@ -90,6 +90,7 @@ MPP_RET h264e_sei_recovery_point_to_packet(MppPacket packet, RK_S32 *len, RK_U32
         *len = sei_size;
 
     mpp_packet_set_length(packet, length + sei_size);
+    mpp_packet_add_segment_info(packet, H264_NALU_TYPE_SEI, length, sei_size);
 
     h264e_dbg_sei("sei data length %d pkt len %d -> %d\n", sei_size,
                   length, length + sei_size);
