@@ -311,6 +311,7 @@ static MPP_RET hal_vp8e_vepu2_init_v2(void *hal, MppEncHalCfg *cfg)
     ctx->frame_type = VP8E_FRM_KEY;
     ctx->prev_frame_lost = 0;
     ctx->frame_size = 0;
+    ctx->ivf_hdr_rdy = 0;
     ctx->reg_size = SWREG_AMOUNT_VEPU2;
 
     hw_cfg->irq_disable = 0;
@@ -451,6 +452,7 @@ static MPP_RET hal_vp8e_vepu2_wait_v2(void *hal, HalEncTask *task)
 
     Vp8eFeedback *fb = &ctx->feedback;
     Vp8eVepu2Reg_t *regs = (Vp8eVepu2Reg_t *) ctx->regs;
+    RK_S32 sw_length = task->length;
 
     if (NULL == ctx->dev) {
         mpp_err_f("invalid dev ctx\n");
@@ -473,7 +475,7 @@ static MPP_RET hal_vp8e_vepu2_wait_v2(void *hal, HalEncTask *task)
     ctx->frame_cnt++;
 
     task->rc_task->info.bit_real = ctx->frame_size << 3;
-    task->hw_length = task->length;
+    task->hw_length = task->length - sw_length;
     return ret;
 }
 
@@ -494,6 +496,16 @@ static MPP_RET hal_vp8e_vepu2_get_task_v2(void *hal, HalEncTask *task)
     }
 
     ctx->frame_type = task->rc_task->frm.is_intra ? VP8E_FRM_KEY : VP8E_FRM_P;
+
+    if (!ctx->cfg->codec.vp8.disable_ivf && !ctx->ivf_hdr_rdy) {
+        RK_U8 *p_out = mpp_buffer_get_ptr(task->output);
+
+        write_ivf_header(hal, p_out);
+        task->length += IVF_HDR_BYTES;
+
+        ctx->ivf_hdr_rdy = 1;
+    }
+
     return MPP_OK;
 }
 
