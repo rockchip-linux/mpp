@@ -785,7 +785,7 @@ static MPP_RET set_picbuf_ref(void *hal)
     return MPP_OK;
 }
 
-static void write_ivf_header(void *hal, RK_U8 *out)
+void write_ivf_header(void *hal, RK_U8 *dst)
 {
     RK_U8 data[IVF_HDR_BYTES] = {0};
 
@@ -826,7 +826,7 @@ static void write_ivf_header(void *hal, RK_U8 *out)
     data[26] = (ctx->frame_cnt >> 16) & 0xff;
     data[27] = (ctx->frame_cnt >> 24) & 0xff;
 
-    memcpy(out, data, IVF_HDR_BYTES);
+    memcpy(dst, data, IVF_HDR_BYTES);
 }
 
 static void write_ivf_frame(void *hal, RK_U8 *out)
@@ -1569,12 +1569,7 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
         RK_S32 disable_ivf = ctx->cfg->codec.vp8.disable_ivf;
 
         if (!disable_ivf) {
-            if (ctx->frame_cnt == 0) {
-                write_ivf_header(hal, p_out);
-
-                p_out += IVF_HDR_BYTES;
-                enc_task->length += IVF_HDR_BYTES;
-            }
+            p_out += enc_task->length;
 
             if (ctx->frame_size) {
                 write_ivf_frame(ctx, p_out);

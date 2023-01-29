@@ -357,8 +357,9 @@ typedef struct hal_vp8e_ctx_s {
     RK_U32           frame_size;
 
     RK_U32           buffer_ready;
+    RK_U32           ivf_hdr_rdy;
     RK_U64           frame_cnt;
-    RK_U8            last_frm_intra;
+    RK_U32           last_frm_intra;
     Vp8FrmType       frame_type;
 
     RK_U32           mb_per_frame;
@@ -376,6 +377,7 @@ MPP_RET hal_vp8e_enc_strm_code(void *hal, HalEncTask *info);
 MPP_RET hal_vp8e_init_qp_table(void *hal);
 MPP_RET hal_vp8e_setup(void *hal);
 MPP_RET hal_vp8e_buf_free(void *hal);
+void write_ivf_header(void *hal, RK_U8 *dst);
 #ifdef  __cplusplus
 }
 #endif
