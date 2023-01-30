@@ -480,13 +480,17 @@ typedef struct Vdpu382RegStatistic_t {
         RK_U32      reserve             : 7;
     } reg264;
 
-    struct SWREG265_DEBUG_PERF_SEL {
-        RK_U32      perf_cnt0_sel               : 6;
-        RK_U32      reserve0                    : 2;
-        RK_U32      perf_cnt1_sel               : 6;
-        RK_U32      reserve1                    : 2;
-        RK_U32      perf_cnt2_sel               : 6;
-        RK_U32      reserve2                    : 10;
+    union {
+        struct {
+            RK_U32      perf_cnt0_sel               : 6;
+            RK_U32      reserve0                    : 2;
+            RK_U32      perf_cnt1_sel               : 6;
+            RK_U32      reserve1                    : 2;
+            RK_U32      perf_cnt2_sel               : 6;
+            RK_U32      reserve2                    : 10;
+        };
+
+        RK_U32 link_perf_cnt0;
     } reg265;
 
     RK_U32          reg266_perf_cnt0;
