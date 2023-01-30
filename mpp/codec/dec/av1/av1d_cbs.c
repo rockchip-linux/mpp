@@ -2624,7 +2624,7 @@ static RK_S32 mpp_av1_metadata_obu(AV1Context *ctx, BitReadCtx_t *gb,
         break;
     default:
         // Unknown metadata type.
-        return MPP_ERR_UNKNOW;
+        return MPP_OK;
     }
 
     return 0;
@@ -2975,6 +2975,7 @@ MPP_RET mpp_av1_read_unit(AV1Context *ctx, Av1ObuUnit *unit)
             return err;
     } break;
     case AV1_OBU_METADATA: {
+        ctx->frame_tag_size += obu->obu_size;
         err = mpp_av1_metadata_obu(ctx, &gbc, &obu->obu.metadata);
         if (err < 0)
             return err;
