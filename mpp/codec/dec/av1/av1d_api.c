@@ -194,6 +194,12 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     } else {
         task->valid = 0;
         task->flags.eos = av1_ctx->eos;
+        if (av1_ctx->eos) {
+            task->input_packet = av1_ctx->pkt;
+            mpp_packet_set_length(av1_ctx->pkt, 0);
+            mpp_packet_set_pts(av1_ctx->pkt, pts);
+            mpp_packet_set_dts(av1_ctx->pkt, dts);
+        }
     }
 
     (void)pts;

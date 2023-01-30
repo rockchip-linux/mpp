@@ -990,11 +990,15 @@ MPP_RET av1d_paser_reset(Av1CodecContext *ctx)
     av1d_dbg_func("enter ctx %p\n", ctx);
     for ( i = 0; i < MPP_ARRAY_ELEMS(s->ref); i++) {
         AV1Frame *f = &s->ref[i];
-        if (f->ref) {
-            av1d_frame_unref(ctx, &s->ref[i]);
-        }
 
+        if (f->ref)
+            av1d_frame_unref(ctx, &s->ref[i]);
     }
+
+    if (s->cur_frame.ref) {
+        av1d_frame_unref(ctx, &s->cur_frame);
+    }
+
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
 
