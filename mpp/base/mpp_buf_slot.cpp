@@ -260,10 +260,7 @@ static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
     RK_S32 n_blocks, hdr_alignment, size;
 
     /* AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 and !AFBC_FORMAT_MOD_TILED */
-    if (*compat_ext_fbc_hdr_256_odd)
-        width = MPP_ALIGN(width, 256) | 256;
-    else
-        width = MPP_ALIGN(width, 16);
+    width = MPP_ALIGN(width, 16);
     height = MPP_ALIGN(height, 16);
     hdr_alignment = AFBC_HDR_ALIGN;
 
@@ -298,7 +295,10 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         /*fbc stride default 64 align*/
-        hal_hor_stride = MPP_ALIGN(width, 64) * depth >> 3;
+        if (*compat_ext_fbc_hdr_256_odd)
+            hal_hor_stride = (MPP_ALIGN(width, 256) | 256) * depth >> 3;
+        else
+            hal_hor_stride = MPP_ALIGN(width, 64) * depth >> 3;
     }
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
