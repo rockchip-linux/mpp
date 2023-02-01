@@ -260,10 +260,6 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
                 ret = hal_task_get_hnd(group, TASK_IDLE, &hnd);
                 if (ret) {
                     if (dec->reset_flag) {
-                        MppBuffer buffer = NULL;
-                        mpp_buf_slot_get_prop(slots, index, SLOT_BUFFER, &buffer);
-                        if (buffer)
-                            mpp_buffer_put(buffer);
                         return;
                     } else {
                         msleep(10);
