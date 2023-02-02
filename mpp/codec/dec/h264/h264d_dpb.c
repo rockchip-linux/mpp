@@ -1487,7 +1487,7 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
         }
         //!< used for reference, but not find, then flush a frame in the first
         if ((!find_flag) || (p->poc < min_poc)) {
-            //min_pos = 0;
+            min_pos = 0;
             unmark_for_reference(p_Vid->p_Dec, p_Dpb->fs[min_pos]);
             if (!p_Dpb->fs[min_pos]->is_output) {
                 H264D_WARNNING("write_stored_frame, line %d", __LINE__);
