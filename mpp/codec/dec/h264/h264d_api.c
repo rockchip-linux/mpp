@@ -543,7 +543,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
         RK_U8 *pdata = p_Inp->in_buf;
 
-        p_Inp->is_nalff = (p_Inp->in_length > 3) && (pdata[0] == 1 && (pdata[4] & 0xFC) == 0xFC);
+        p_Inp->is_nalff = (p_Inp->in_length > 3) && (pdata[0] == 1);
         mpp_log("is_avcC=%d\n", p_Inp->is_nalff);
         if (p_Inp->is_nalff) {
             (ret = parse_prepare_avcC_header(p_Inp, p_Dec->p_Cur));
