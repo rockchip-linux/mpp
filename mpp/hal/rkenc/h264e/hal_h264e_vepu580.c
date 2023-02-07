@@ -79,11 +79,9 @@ typedef struct HalH264eVepu580Ctx_t {
     H264eSps                *sps;
     H264ePps                *pps;
     H264eDpb                *dpb;
-    H264eSlice              *slice;
     H264eFrmInfo            *frms;
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
-    H264ePrefixNal          *prefix;
 
     /* syntax for output to enc_impl */
     EncRcTaskInfo           hal_rc_cfg;
@@ -107,12 +105,18 @@ typedef struct HalH264eVepu580Ctx_t {
     HalVepu580RegSet        *regs_sets;
     HalH264eVepuStreamAmend *amend_sets;
 
+    H264ePrefixNal          *prefix_sets;
+    H264eSlice              *slice_sets;
+
     /* frame parallel info */
     RK_S32                  task_idx;
     RK_S32                  curr_idx;
     RK_S32                  prev_idx;
     HalVepu580RegSet        *regs_set;
     HalH264eVepuStreamAmend *amend;
+    H264ePrefixNal          *prefix;
+    H264eSlice              *slice;
+
     MppBuffer               ext_line_buf;
 
     /* slice low delay output callback */
@@ -213,6 +217,8 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
 
     MPP_FREE(p->regs_sets);
     MPP_FREE(p->amend_sets);
+    MPP_FREE(p->prefix_sets);
+    MPP_FREE(p->slice_sets);
     MPP_FREE(p->poll_cfgs);
 
     if (p->ext_line_buf_grp) {
@@ -296,6 +302,21 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
         ret = MPP_ERR_MALLOC;
         mpp_err_f("init amend data failed\n");
         goto DONE;
+    }
+
+    if (p->task_cnt > 1) {
+        p->prefix_sets = mpp_malloc(H264ePrefixNal, p->task_cnt);
+        if (NULL == p->prefix_sets) {
+            ret = MPP_ERR_MALLOC;
+            mpp_err_f("init amend data failed\n");
+            goto DONE;
+        }
+        p->slice_sets = mpp_malloc(H264eSlice, p->task_cnt);
+        if (NULL == p->slice_sets) {
+            ret = MPP_ERR_MALLOC;
+            mpp_err_f("init amend data failed\n");
+            goto DONE;
+        }
     }
 
     p->poll_slice_max = 8;
@@ -503,6 +524,8 @@ static RK_U32 update_vepu580_syntax(HalH264eVepu580Ctx *ctx, MppSyntax *syntax)
 static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
+    MppEncCfgSet *cfg_set = ctx->cfg;
+    MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
     RK_U32 updated = update_vepu580_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
     H264eFrmInfo *frms = ctx->frms;
@@ -536,11 +559,22 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     ctx->amend = &ctx->amend_sets[ctx->task_idx];
     ctx->osd_cfg.reg_base = &ctx->regs_set->reg_osd;
 
+    if (ctx->task_cnt > 1 && (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)) {
+        //store async encode TSVC info
+        if (ctx->prefix)
+            memcpy(&ctx->prefix_sets[ctx->task_idx], ctx->prefix, sizeof(H264ePrefixNal));
+        if (ctx->slice)
+            memcpy(&ctx->slice_sets[ctx->task_idx], ctx->slice, sizeof(H264eSlice));
+
+        h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
+                                       &ctx->slice_sets[ctx->task_idx], &ctx->prefix_sets[ctx->task_idx]);
+    } else {
+        h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
+                                       ctx->slice, ctx->prefix);
+    }
+
     if (ctx->task_cnt > 1)
         ctx->task_idx = !ctx->task_idx;
-
-    h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
-                                   ctx->slice, ctx->prefix);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 

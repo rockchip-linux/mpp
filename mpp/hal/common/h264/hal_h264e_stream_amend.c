@@ -217,12 +217,16 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, RK_U32 poc_ty
         memcpy(&slice_rd, slice, sizeof(slice_rd));
         slice_rd.log2_max_frame_num = 16;
         slice_rd.pic_order_cnt_type = poc_type;
+        h264e_reorder_init(slice_rd.reorder);
+        h264e_marking_init(slice_rd.marking);
 
         hw_len_bit = h264e_slice_read(&slice_rd, ctx->src_buf, size);
 
         // write new header to header buffer
         slice->qp_delta = slice_rd.qp_delta;
         slice->first_mb_in_slice = slice_rd.first_mb_in_slice;
+        slice->reorder = slice_rd.reorder;
+        slice->marking = slice_rd.marking;
         sw_len_bit = h264e_slice_write(slice, dst_buf, buf_size);
 
         hw_len_byte = (hw_len_bit + 7) / 8;
