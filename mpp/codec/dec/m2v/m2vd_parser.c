@@ -1177,10 +1177,14 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                 tmp_frame_period = (tmp_frame_period * 256) / ctx->GroupFrameCnt;
                 if ((tmp_frame_period > 4200) && (tmp_frame_period < 11200) &&
                     (fabs(ctx->frame_period - tmp_frame_period) > 128)) {
-                    if (fabs(ctx->preframe_period - tmp_frame_period) > 128)
+                    if (fabs(ctx->preframe_period - tmp_frame_period) > 128) {
                         ctx->preframe_period = tmp_frame_period;
-                    else
+                    } else {
                         ctx->frame_period = tmp_frame_period;
+                        ctx->preframe_period = 0;
+                    }
+                } else {
+                    ctx->preframe_period = 0;
                 }
             }
 
