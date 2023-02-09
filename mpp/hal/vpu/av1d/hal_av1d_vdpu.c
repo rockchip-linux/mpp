@@ -751,6 +751,8 @@ void set_frame_sign_bias(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
             RK_S32 ref_frame_offset = dxva->frame_refs[i].order_hint;
             RK_S32 rel_off = GetRelativeDist(dxva, ref_frame_offset, dxva->order_hint);
             reg_ctx->ref_frame_sign_bias[i + 1] = (rel_off <= 0) ? 0 : 1;
+            AV1D_DBG(AV1D_DBG_LOG, "frame_refs[%d] order_hint %d ref_frame_offset %d\n",
+                     i, dxva->order_hint, ref_frame_offset);
         }
     }
 }
@@ -1449,6 +1451,12 @@ void vdpu_av1d_set_global_model(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         dst += 2;
         *(RK_S16 *)(dst) = dxva->frame_refs[ref_frame].delta;//-32768;
         dst += 2;
+        AV1D_DBG(AV1D_DBG_LOG, "ref_frame[%d] alpa %d beta %d gamma %d delta %d\n",
+                 ref_frame,
+                 dxva->frame_refs[ref_frame].alpha,
+                 dxva->frame_refs[ref_frame].beta,
+                 dxva->frame_refs[ref_frame].gamma,
+                 dxva->frame_refs[ref_frame].delta);
     }
 
     regs->addr_cfg.swreg82.sw_global_model_base_msb = 0;
@@ -1963,13 +1971,12 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         fflush(fp);
         fclose(fp);
 
-        data = mpp_buffer_get_ptr(streambuf);// + (dxva->frame_tag_size & (~0xf));
-        size = MPP_ALIGN(p_hal->strm_len, 128);//mpp_buffer_get_size(streambuf);
+        data = mpp_buffer_get_ptr(streambuf);
+        size = MPP_ALIGN(p_hal->strm_len, 1);
         memset(name, 0, sizeof(name));
         sprintf(name, "%s/stream_%d.txt", path, g_frame_num);
         fp = fopen(name, "wb");
-        for ( i = 0; i < size / 4; i++)
-            fprintf(fp, "%08x\n", data[i]);
+        fwrite((RK_U8*)data, 1, size, fp);
         fflush(fp);
         fclose(fp);
 
@@ -2213,11 +2220,9 @@ MPP_RET vdpu_av1d_start(void *hal, HalTaskInfo *task)
 
         sprintf(fname, "/data/video/reg_%d_in.txt", g_frame_no++);
         fp_in = fopen(fname, "wb");
-        for (i = 0; i < sizeof(*regs) / 4; i ++ ) {
+        for (i = 0; i < sizeof(*regs) / 4; i++, p++)
             fprintf(fp_in, "reg[%3d] = %08x\n", i, *p);
-            AV1D_LOG("reg[%3d] = %08x", i, *p);
-            p++;
-        }
+
         fflush(fp_in);
         fclose(fp_in);
     }
@@ -2285,11 +2290,9 @@ MPP_RET vdpu_av1d_wait(void *hal, HalTaskInfo *task)
 
         sprintf(fname, "/data/video/reg_%d_out.txt", g_frame_no++);
         fp_in = fopen(fname, "wb");
-        for (i = 0; i < sizeof(*p_regs) / 4; i ++ ) {
+        for (i = 0; i < sizeof(*p_regs) / 4; i++, p++)
             fprintf(fp_in, "reg[%3d] = %08x\n", i, *p);
-            AV1D_LOG("reg[%3d] = %08x", i, *p);
-            p++;
-        }
+
         fflush(fp_in);
         fclose(fp_in);
     }
