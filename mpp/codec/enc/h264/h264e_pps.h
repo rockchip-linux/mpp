@@ -23,8 +23,8 @@
 #include "h264_syntax.h"
 
 typedef struct H264ePps_t {
-    RK_S32      pps_id;
-    RK_S32      sps_id;
+    RK_U32      pps_id;
+    RK_U32      sps_id;
 
     // 0 - CAVLC 1 - CABAC
     RK_S32      entropy_coding_mode;

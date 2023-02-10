@@ -285,8 +285,8 @@ typedef struct H265eSps_e {
 } H265eSps;
 
 typedef struct H265ePps_e {
-    RK_S32      m_PPSId;                  // pic_parameter_set_id
-    RK_S32      m_SPSId;                  // seq_parameter_set_id
+    RK_U32      m_PPSId;                  // pic_parameter_set_id
+    RK_U32      m_SPSId;                  // seq_parameter_set_id
     RK_S32      m_picInitQPMinus26;
     RK_U32      m_useDQP;
     RK_U32      m_bConstrainedIntraPred;  // constrained_intra_pred_flag

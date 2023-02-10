@@ -336,8 +336,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
 
     //!< use parameter set
-    if (currSlice->pic_parameter_set_id >= 0 &&
-        currSlice->pic_parameter_set_id < MAXPPS) {
+    if (currSlice->pic_parameter_set_id < MAXPPS) {
         cur_pps = p_Vid->ppsSet[currSlice->pic_parameter_set_id];
         cur_pps = (cur_pps && cur_pps->Valid) ? cur_pps : NULL;
     }

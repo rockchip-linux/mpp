@@ -91,7 +91,7 @@ typedef struct H264eSps_t {
     RK_S32      constraint_set5;
 
     RK_S32      level_idc;
-    RK_S32      sps_id;
+    RK_U32      sps_id;
 
     RK_S32      chroma_format_idc;
     /* scaling list is in pps */

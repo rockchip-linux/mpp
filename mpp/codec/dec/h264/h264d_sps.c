@@ -203,7 +203,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     ASSERT(temp == 0);
     READ_BITS(p_bitctx, 8, &cur_sps->level_idc);
     READ_UE(p_bitctx, &cur_sps->seq_parameter_set_id);
-    if (cur_sps->seq_parameter_set_id < 0 || cur_sps->seq_parameter_set_id >= MAXSPS) {
+    if (cur_sps->seq_parameter_set_id >= MAXSPS) {
         cur_sps->seq_parameter_set_id = 0;
     }
     if (cur_sps->profile_idc == 100 || cur_sps->profile_idc == 110
@@ -576,7 +576,6 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
         p_Vid->active_subsps = subset_sps;
         p_Vid->active_sps_id[0] = 0;
         p_Vid->active_sps_id[1] = subset_sps->sps.seq_parameter_set_id;
-        VAL_CHECK(ret, subset_sps->sps.seq_parameter_set_id >= 0);
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 1)) {
             FUN_CHECK(ret = flush_dpb(p_Vid->p_Dpb_layer[1], 2));
             FUN_CHECK(ret = init_dpb(p_Vid, p_Vid->p_Dpb_layer[1], 2));
@@ -593,7 +592,6 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
     } else { //!< layer_id == 0
         p_Vid->active_sps = sps;
         p_Vid->active_subsps = NULL;
-        VAL_CHECK(ret, sps->seq_parameter_set_id >= 0);
         p_Vid->active_sps_id[0] = sps->seq_parameter_set_id;
         p_Vid->active_sps_id[1] = 0;
         if (video_pars_changed(p_Vid, p_Vid->active_sps, 0)) {

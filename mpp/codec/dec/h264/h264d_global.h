@@ -522,7 +522,7 @@ typedef struct h264_sps_t {
     RK_S32    constrained_set5_flag;                             // u(2)
 
     RK_S32    level_idc;                                         // u(8)
-    RK_S32    seq_parameter_set_id;                              // ue(v)
+    RK_U32    seq_parameter_set_id;                              // ue(v)
     RK_S32    chroma_format_idc;                                 // ue(v)
 
     RK_S32    seq_scaling_matrix_present_flag;                   // u(1)
@@ -602,8 +602,8 @@ typedef struct h264_subsps_t {
 
 typedef struct h264_pps_t {
     RK_S32   Valid;                  // indicates the parameter set is valid
-    RK_S32   pic_parameter_set_id;                             // ue(v)
-    RK_S32   seq_parameter_set_id;                             // ue(v)
+    RK_U32   pic_parameter_set_id;                             // ue(v)
+    RK_U32   seq_parameter_set_id;                             // ue(v)
     RK_S32   entropy_coding_mode_flag;                            // u(1)
     RK_S32   transform_8x8_mode_flag;                             // u(1)
 
@@ -744,7 +744,7 @@ typedef struct h264_sei_t {
     // Placeholder; in future more supported types will contribute to more
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
-    RK_S32  seq_parameter_set_id;
+    RK_U32 seq_parameter_set_id;
 
     H264_SEI_PIC_TIMING_t pic_timing;
 
@@ -762,7 +762,7 @@ typedef struct h264_slice_t {
     RK_S32       nal_reference_idc;            //!< nal_reference_idc from NAL unit
     RK_U32       start_mb_nr;                  //!< MUST be set by NAL even in case of ei_flag == 1
     RK_S32       slice_type;                   //!< slice type
-    RK_S32       pic_parameter_set_id;
+    RK_U32       pic_parameter_set_id;
     RK_S32       colour_plane_id;
     RK_S32       frame_num;
     RK_S32       field_pic_flag;
@@ -847,7 +847,7 @@ typedef struct h264_old_slice_par_t {
     RK_U8   bottom_field_flag;
     RK_U8   idr_flag;
     RK_S32  idr_pic_id;
-    RK_S32  pps_id;
+    RK_U32  pps_id;
     RK_S32  view_id;
     RK_S32  inter_view_flag;
     RK_S32  anchor_pic_flag;
@@ -1002,7 +1002,7 @@ typedef struct h264d_video_ctx_t {
     RK_S32     no_output_of_prior_pics_flag;
     RK_S32     last_has_mmco_5;
     RK_S32     max_frame_num;
-    RK_S32     active_sps_id[MAX_NUM_DPB_LAYERS];
+    RK_U32     active_sps_id[MAX_NUM_DPB_LAYERS];
     RK_U32     PicWidthInMbs;
     RK_U32     FrameHeightInMbs;
     RK_S32     frame_mbs_only_flag;
@@ -1021,8 +1021,8 @@ typedef struct h264d_video_ctx_t {
     RK_S32     last_pic_height_in_map_units_minus1[2];
     RK_S32     last_profile_idc[2];
     RK_S32     last_level_idc[2];
-    RK_S32     last_sps_id;
-    RK_S32     last_pps_id;
+    RK_U32     last_sps_id;
+    RK_U32     last_pps_id;
     RK_S32     PrevPicOrderCntMsb;
     RK_S32     PrevPicOrderCntLsb;
     RK_U32     PreviousFrameNum;

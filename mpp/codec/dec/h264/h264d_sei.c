@@ -37,7 +37,7 @@ static MPP_RET interpret_picture_timing_info(
     H264_SEI_PIC_TIMING_t *pic_timing = NULL;
     RK_U32 num_clock_ts[9] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
     struct h264_vui_t *vui_seq_parameters = NULL;
-    RK_S32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
+    RK_U32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
 
     if (seq_parameter_set_id >= MAXSPS || !p_videoctx->spsSet[seq_parameter_set_id]) {
         H264D_ERR("seq_parameter_set_id %d may be invalid\n", seq_parameter_set_id);
@@ -162,7 +162,7 @@ static MPP_RET interpret_buffering_period_info(
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 i = 0;
-    RK_S32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
+    RK_U32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
     struct h264_vui_t *vui_seq_parameters = NULL;
 
     READ_UE(p_bitctx, &seq_parameter_set_id);
