@@ -558,6 +558,11 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
         p_Vid->active_dpb_mark[layer_id] = cur_mark;
     }
     cur_mark = p_Vid->active_dpb_mark[layer_id];
+    if (cur_mark->slot_idx < 0) {
+        H264D_WARNNING("[dpb_mark_malloc] error, current mark slot idx is nagative.");
+        ret = MPP_NOK;
+        goto __FAILED;
+    }
     if (structure == FRAME || structure == TOP_FIELD) {
         cur_mark->top_used += 1;
     }
