@@ -704,7 +704,8 @@ static RK_S32 hls_slice_header(HEVCContext *s)
     BitReadCtx_t *gb = &s->HEVClc->gb;
     SliceHeader *sh   = &s->sh;
     RK_S32 i, ret;
-    RK_S32 value, pps_id;
+    RK_S32 value;
+    RK_U32 pps_id;
     RK_S32 bit_begin;
 
 #ifdef JCTVC_M0458_INTERLAYER_RPS_SIG

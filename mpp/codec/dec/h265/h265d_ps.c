@@ -1025,7 +1025,7 @@ int mpp_hevc_decode_nal_vps(HEVCContext *s)
 {
     RK_S32 i, j;
     BitReadCtx_t *gb = &s->HEVClc->gb;
-    RK_S32 vps_id = 0;
+    RK_U32 vps_id = 0;
     HEVCVPS *vps = NULL;
     RK_U8 *vps_buf = mpp_calloc(RK_U8, sizeof(HEVCVPS));
     RK_S32 value = 0;
@@ -1396,7 +1396,7 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     // const AVPixFmtDescriptor *desc;
     BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 ret    = 0;
-    RK_S32 sps_id = 0;
+    RK_U32 sps_id = 0;
     RK_S32 log2_diff_max_min_transform_block_size;
     RK_S32 bit_depth_chroma, start, vui_present, sublayer_ordering_info;
     RK_S32 i;
@@ -1891,7 +1891,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     HevcPpsBufInfo *bufs = NULL;
     RK_S32 buf_size = 0;
     RK_S32 new_pps = 0;
-    RK_S32 pps_id = 0;
+    RK_U32 pps_id = 0;
     RK_S32 ret = 0;
     RK_S32 i;
 

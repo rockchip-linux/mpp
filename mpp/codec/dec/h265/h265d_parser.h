@@ -191,7 +191,7 @@ typedef struct ScalingList {
 
 typedef struct HEVCSPS {
     RK_U32 vps_id;
-    RK_S32 sps_id;
+    RK_U32 sps_id;
     RK_S32 chroma_format_idc;
     RK_U8 separate_colour_plane_flag;
 
@@ -287,8 +287,8 @@ typedef struct HevcPpsBufInfo_t {
 } HevcPpsBufInfo;
 
 typedef struct HEVCPPS {
-    RK_S32 sps_id;
-    RK_S32 pps_id;
+    RK_U32 sps_id;
+    RK_U32 pps_id;
 
     RK_U8 sign_data_hiding_flag;
 
