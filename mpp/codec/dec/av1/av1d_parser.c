@@ -1003,6 +1003,7 @@ MPP_RET av1d_paser_reset(Av1CodecContext *ctx)
 
     ctx->frame_header = 0;
     ctx->stream_offset = 0;
+    ctx->eos = 0;
 
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
