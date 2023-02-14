@@ -114,6 +114,7 @@ static MPP_RET allocator_std_close(void *ctx)
 }
 
 os_allocator allocator_std = {
+    .type = MPP_BUFFER_TYPE_NORMAL,
     .open = allocator_std_open,
     .close = allocator_std_close,
     .alloc = allocator_std_alloc,

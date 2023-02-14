@@ -482,6 +482,7 @@ static MPP_RET allocator_ion_close(void *ctx)
 }
 
 os_allocator allocator_ion = {
+    .type = MPP_BUFFER_TYPE_ION,
     .open = allocator_ion_open,
     .close = allocator_ion_close,
     .alloc = allocator_ion_alloc,

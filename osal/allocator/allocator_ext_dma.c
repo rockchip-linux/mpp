@@ -135,6 +135,7 @@ static MPP_RET allocator_ext_dma_close(void *ctx)
 }
 
 os_allocator allocator_ext_dma = {
+    .type = MPP_BUFFER_TYPE_EXT_DMA,
     .open = allocator_ext_dma_open,
     .close = allocator_ext_dma_close,
     .alloc = allocator_ext_dma_alloc,

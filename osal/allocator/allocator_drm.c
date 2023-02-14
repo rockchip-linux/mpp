@@ -322,6 +322,7 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
 }
 
 os_allocator allocator_drm = {
+    .type = MPP_BUFFER_TYPE_DRM,
     .open = os_allocator_drm_open,
     .close = os_allocator_drm_close,
     .alloc = os_allocator_drm_alloc,

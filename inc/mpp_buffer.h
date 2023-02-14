@@ -142,9 +142,14 @@ typedef enum {
  * DRM SECURE buffer: MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_SECURE
  *                  = 0x00080003
  *
+ * The dma buffer source can also be set by format: flags | type.
+ * dma buffer source flags:
+ * MPP_BUFFER_FLAGS_CONTIG means cma
+ * MPP_BUFFER_FLAGS_CACHABLE means cachable
+ * MPP_BUFFER_FLAGS_DMA32 means dma32
+ *
  * flags originate from drm_rockchip_gem_mem_type
  */
-
 #define MPP_BUFFER_FLAGS_MASK           0x003f0000      //ROCKCHIP_BO_MASK << 16
 #define MPP_BUFFER_FLAGS_CONTIG         0x00010000      //ROCKCHIP_BO_CONTIG << 16
 #define MPP_BUFFER_FLAGS_CACHABLE       0x00020000      //ROCKCHIP_BO_CACHABLE << 16

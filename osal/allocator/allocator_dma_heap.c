@@ -100,7 +100,7 @@ static int dma_heap_alloc(int fd, size_t len, RK_S32 *dmabuf_fd, RK_U32 flags)
     memset(&data, 0, sizeof(data));
     data.len = len;
     data.fd_flags = O_RDWR | O_CLOEXEC;
-    data.heap_flags = flags;
+    data.heap_flags = 0; // heap_flags should be set to 0
 
     ret = ioctl(fd, DMA_HEAP_IOCTL_ALLOC, &data);
 
@@ -132,7 +132,7 @@ static int heap_fd_open(DmaHeapType type)
         int fd;
 
         snprintf(name, sizeof(name) - 1, "%s%s", heap_path, heap_names[type]);
-        fd = open(name, O_RDWR | O_CLOEXEC);
+        fd = open(name, O_RDONLY | O_CLOEXEC); // read authority is enough
         mpp_assert(fd > 0);
 
         dma_heap_dbg(DMA_HEAP_DEVICE, "open dma heap dev %s fd %d\n", name, fd);
@@ -320,6 +320,7 @@ static MPP_RET os_allocator_dma_heap_mmap(void *ctx, MppBufferInfo *data)
 }
 
 os_allocator allocator_dma_heap = {
+    .type = MPP_BUFFER_TYPE_DMA_HEAP,
     .open = os_allocator_dma_heap_open,
     .close = os_allocator_dma_heap_close,
     .alloc = os_allocator_dma_heap_alloc,
