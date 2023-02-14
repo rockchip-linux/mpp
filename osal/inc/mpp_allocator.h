@@ -46,6 +46,7 @@ extern "C" {
 MPP_RET mpp_allocator_get(MppAllocator *allocator,
                           MppAllocatorApi **api, MppBufferType type);
 MPP_RET mpp_allocator_put(MppAllocator *allocator);
+MppBufferType get_real_allocator_type(const MppAllocator allocator);
 
 #ifdef __cplusplus
 }

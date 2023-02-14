@@ -208,8 +208,11 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 
         mpp_assert(ctx_ext);
 
-        if (!ctx_ext->partions_group)
-            mpp_buffer_group_get_internal(&ctx_ext->partions_group, MPP_BUFFER_TYPE_ION);
+        if (!ctx_ext->partions_group) {
+            mpp_buffer_group_get_internal(&ctx_ext->partions_group, MPP_BUFFER_TYPE_DMA_HEAP | MPP_BUFFER_FLAGS_CACHABLE);
+            if (!ctx_ext->partions_group)
+                mpp_buffer_group_get_internal(&ctx_ext->partions_group, MPP_BUFFER_TYPE_ION);
+        }
 
         mpp_assert(ctx_ext->partions_group);
 
