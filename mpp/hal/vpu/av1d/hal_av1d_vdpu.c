@@ -2149,17 +2149,11 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
             vir_right = 16 - ((vir_left + width) % 16);
         else
             vir_right = 0;
-        if (!bypass_filter) {
-            if (16 - (56 % 16))
-                vir_top = 16 - (56 % 16);
-            else
-                vir_top = 0;
-        } else {
-            if (((64 - (height % 64))) % 16)
-                vir_top = 16 - (((64 - (height % 64))) % 16);
-            else
-                vir_top = 0;
-        }
+
+        if (!bypass_filter)
+            vir_top = 8;
+        else
+            vir_top = 0;
 
         if (((vir_top + height) % 16))
             vir_bottom = 16 - ((vir_top + height) % 16);
@@ -2172,7 +2166,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->vdpu_av1d_pp_cfg.swreg503.sw_pp0_virtual_right = vir_right;
         mpp_frame_set_offset_y(mframe, vir_top);
         mpp_frame_set_ver_stride(mframe, vir_top + height + vir_bottom);
-        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 3;
+        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 0;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg505.sw_pp0_afbc_tile_base_lsb = mpp_buffer_get_fd(buffer);
@@ -2180,6 +2174,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 out_w = hor_stride;
         RK_U32 out_h = ver_stride;
         RK_U32 y_stride = out_w * out_h;
+
         regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 0;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
