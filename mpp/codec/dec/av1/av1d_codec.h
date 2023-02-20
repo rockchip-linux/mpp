@@ -124,6 +124,7 @@ typedef struct Av1CodecContext_t {
     RK_U32 stream_offset;
 
     RK_S32 eos;
+    RK_U32 usr_set_fmt;
 } Av1CodecContext;
 
 #endif /*__AV1D_CODEC_H__*/
