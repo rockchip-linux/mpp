@@ -2174,17 +2174,21 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 out_w = hor_stride;
         RK_U32 out_h = ver_stride;
         RK_U32 y_stride = out_w * out_h;
+        RK_U32 out_fmt = 0;
 
-        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = 0;
+        if (mpp_frame_get_fmt(mframe) == MPP_FMT_YUV420SP)
+            out_fmt = 3;
+
+        /*
+         * out_fmt:
+         * 0 is 8bit or 10bit output by syntax
+         * 3 is force 8bit output
+         */
+        regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = out_fmt;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
         mpp_dev_set_reg_offset(p_hal->dev, 328, y_stride);
     }
-
-    /* RK_U32 i = 0;
-    for (i = 0; i < sizeof(VdpuAv1dRegSet) / sizeof(RK_U32); i++)
-        mpp_log("regs[%04d]=%08X\n", i, ((RK_U32 *)regs)[i]); */
-
 
 __RETURN:
     return ret = MPP_OK;

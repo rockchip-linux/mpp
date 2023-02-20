@@ -239,6 +239,32 @@ MPP_RET av1d_parser(void *ctx, HalDecTask *in_task)
     av1d_parser_frame(av1_ctx, in_task);
     return ret;
 }
+
+/*!
+ ***********************************************************************
+ * \brief
+ *   control
+ ***********************************************************************
+ */
+MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
+{
+    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
+    MPP_RET ret = MPP_OK;
+
+    if (!ctx)
+        return MPP_ERR_VALUE;
+
+    switch (cmd) {
+    case MPP_DEC_SET_OUTPUT_FORMAT : {
+        av1_ctx->usr_set_fmt = 1;
+    } break;
+    default:
+        break;
+    }
+
+    return ret;
+}
+
 /*!
  ***********************************************************************
  * \brief
@@ -272,6 +298,6 @@ const ParserApi api_av1d_parser = {
     .parse = av1d_parser,
     .reset = av1d_reset,
     .flush = av1d_flush,
-    .control = NULL,
+    .control = av1d_control,
     .callback = av1d_callback,
 };
