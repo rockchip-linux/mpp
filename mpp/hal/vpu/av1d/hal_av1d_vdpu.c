@@ -1044,14 +1044,17 @@ void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ctx, DXVA
             dxva->primary_ref_frame < ALLOWED_REFS_PER_FRAME_EX) {
             // Primary ref frame is zero based
             RK_S32 prim_buf_idx = dxva->frame_refs[dxva->primary_ref_frame].Index;
+
             if (prim_buf_idx >= 0) {
-                MppBuffer buffer = NULL;
+                HalBuf *tile_out_buf;
+
                 y_stride = ctx->luma_size ;
                 uv_stride = y_stride / 2;
                 mv_offset = y_stride + uv_stride + 64;
-                mpp_buf_slot_get_prop(p_hal->slots, dxva->RefFrameMapTextureIndex[dxva->primary_ref_frame], SLOT_BUFFER, &buffer);
+
+                tile_out_buf = hal_bufs_get_buf(ctx->tile_out_bufs, prim_buf_idx);
                 regs->addr_cfg.swreg80.sw_segment_read_base_msb = 0;
-                regs->addr_cfg.swreg81.sw_segment_read_base_lsb = mpp_buffer_get_fd(buffer);
+                regs->addr_cfg.swreg81.sw_segment_read_base_lsb = mpp_buffer_get_fd(tile_out_buf->buf[0]);
                 mpp_dev_set_reg_offset(p_hal->dev, 81, mv_offset);
                 regs->swreg11.sw_use_temporal3_mvs = 1;
             }
@@ -1429,6 +1432,7 @@ void vdpu_av1d_set_global_model(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     VdpuAv1dRegSet *regs = ctx->regs;
     RK_U8 *dst = (RK_U8 *) mpp_buffer_get_ptr(ctx->global_model);
     RK_S32 ref_frame, i;
+
     for (ref_frame = 0; ref_frame < GM_GLOBAL_MODELS_PER_FRAME; ++ref_frame) {
         mpp_assert(dxva->frame_refs[ref_frame].wmtype <= 3);
 
