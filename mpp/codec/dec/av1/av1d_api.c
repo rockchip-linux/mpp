@@ -251,12 +251,12 @@ MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
     Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
     MPP_RET ret = MPP_OK;
 
-    if (!ctx)
+    if (!ctx || !param)
         return MPP_ERR_VALUE;
 
     switch (cmd) {
     case MPP_DEC_SET_OUTPUT_FORMAT : {
-        av1_ctx->usr_set_fmt = 1;
+        av1_ctx->usr_set_fmt = *(MppFrameFormat*)param;
     } break;
     default:
         break;
