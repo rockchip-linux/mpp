@@ -730,6 +730,8 @@ static RK_S32 mpp_av1_temporal_delimiter_obu(AV1Context *ctx, BitReadCtx_t *gb)
 
     return 0;
 }
+
+/* spec 7.8 */
 static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
                                      AV1RawFrameHeader *current)
 {
@@ -749,11 +751,19 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
     ref_frame_idx[AV1_REF_FRAME_LAST - AV1_REF_FRAME_LAST] = current->last_frame_idx;
     ref_frame_idx[AV1_REF_FRAME_GOLDEN - AV1_REF_FRAME_LAST] = current->golden_frame_idx;
 
+    /*
+     * An array usedFrame marking which reference frames
+     * have been used is prepared as follows:
+     */
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++)
         used_frame[i] = 0;
     used_frame[current->last_frame_idx] = 1;
     used_frame[current->golden_frame_idx] = 1;
 
+    /*
+     * An array shiftedOrderHints (containing the expected output order shifted
+     * such that the current frame has hint equal to curFrameHint) is prepared as follows:
+     */
     cur_frame_hint = 1 << (seq->order_hint_bits_minus_1);
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++)
         shifted_order_hints[i] = cur_frame_hint +
@@ -763,6 +773,7 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
     latest_order_hint = shifted_order_hints[current->last_frame_idx];
     earliest_order_hint = shifted_order_hints[current->golden_frame_idx];
 
+    /* find_latest_backward */
     ref = -1;
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         RK_S32 hint = shifted_order_hints[i];
@@ -772,11 +783,16 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
             latest_order_hint = hint;
         }
     }
+    /*
+     * The ALTREF_FRAME reference is set to be a backward reference to the frame
+     * with highest output order as follows:
+     */
     if (ref >= 0) {
         ref_frame_idx[AV1_REF_FRAME_ALTREF - AV1_REF_FRAME_LAST] = ref;
         used_frame[ref] = 1;
     }
 
+    /* find_earliest_backward */
     ref = -1;
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         RK_S32 hint = shifted_order_hints[i];
@@ -786,6 +802,10 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
             earliest_order_hint = hint;
         }
     }
+    /*
+     * The BWDREF_FRAME reference is set to be a backward reference to
+     * the closest frame as follows:
+     */
     if (ref >= 0) {
         ref_frame_idx[AV1_REF_FRAME_BWDREF - AV1_REF_FRAME_LAST] = ref;
         used_frame[ref] = 1;
@@ -800,14 +820,24 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
             earliest_order_hint = hint;
         }
     }
+
+    /*
+     * The ALTREF2_FRAME reference is set to the next closest
+     * backward reference as follows:
+     */
     if (ref >= 0) {
         ref_frame_idx[AV1_REF_FRAME_ALTREF2 - AV1_REF_FRAME_LAST] = ref;
         used_frame[ref] = 1;
     }
 
+    /*
+     * The remaining references are set to be forward references
+     * in anti-chronological order as follows:
+     */
     for (i = 0; i < AV1_REFS_PER_FRAME - 2; i++) {
         RK_S32 ref_frame = ref_frame_list[i];
         if (ref_frame_idx[ref_frame - AV1_REF_FRAME_LAST] < 0 ) {
+            /* find_latest_forward */
             ref = -1;
             for (j = 0; j < AV1_NUM_REF_FRAMES; j++) {
                 RK_S32 hint = shifted_order_hints[j];
@@ -824,6 +854,10 @@ static RK_S32 mpp_av1_set_frame_refs(AV1Context *ctx, BitReadCtx_t *gb,
         }
     }
 
+    /*
+     * Finally, any remaining references are set to the reference
+     * frame with smallest output order as follows:
+     */
     ref = -1;
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         RK_S32 hint = shifted_order_hints[i];
@@ -1537,6 +1571,10 @@ static RK_S32 mpp_av1_global_motion_param(AV1Context *ctx, BitReadCtx_t *gb,
     return 0;
 }
 
+/*
+ * Actual gm_params value is not reconstructed here.
+ * Real gm_params update in av1d_parser.c->global_motion_params()
+ */
 static RK_S32 mpp_av1_global_motion_params(AV1Context *ctx, BitReadCtx_t *gb,
                                            AV1RawFrameHeader *current)
 {
