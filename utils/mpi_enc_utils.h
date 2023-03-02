@@ -34,6 +34,7 @@ typedef struct MpiEncTestArgs_t {
     RK_S32              frame_num;
     RK_S32              loop_cnt;
     RK_S32              nthreads;
+    RK_S32              frm_step;
 
     RK_S32              width;
     RK_S32              height;

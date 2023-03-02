@@ -94,8 +94,10 @@ MpiEncTestArgs *mpi_enc_test_cmd_get(void)
 {
     MpiEncTestArgs *args = mpp_calloc(MpiEncTestArgs, 1);
 
-    if (args)
+    if (args) {
         args->nthreads = 1;
+        args->frm_step = 1;
+    }
 
     return args;
 }
@@ -475,6 +477,19 @@ RK_S32 mpi_enc_opt_slt(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_step(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->frm_step = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid input frame step\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_sm(void *ctx, const char *next)
 {
     MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
@@ -745,6 +760,7 @@ static MppOptInfo enc_opts[] = {
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
     {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
     {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
+    {"step",    "frame step",           "frame step, only for NV12 in slt test",    mpi_enc_opt_step},
     {"sm",      "scene mode",           "scene_mode, 0:default 1:ipc",              mpi_enc_opt_sm},
     {"qpdd",    "cu_qp_delta_depth",    "cu_qp_delta_depth, 0:1:2",                 mpi_enc_opt_qpdd},
     {"dbe",     "deblur enable",        "deblur_en or qpmap_en, 0:close 1:open",           mpi_enc_opt_dbe},
@@ -834,7 +850,6 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
     cmd->rc_mode = MPP_ENC_RC_MODE_BUTT;
 
     mpp_opt_init(&opts);
-    /* should change node count when option increases */
     mpp_opt_setup(opts, cmd);
 
     for (i = 0; i < enc_opt_cnt; i++)
@@ -1262,8 +1277,10 @@ MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
     mpp_log("height     : %d\n", cmd->height);
     mpp_log("format     : %d\n", cmd->format);
     mpp_log("type       : %d\n", cmd->type);
-    if (cmd->file_slt)
+    if (cmd->file_slt) {
         mpp_log("verify     : %s\n", cmd->file_slt);
+        mpp_log("frame step : %d\n", cmd->frm_step);
+    }
 
     return MPP_OK;
 }

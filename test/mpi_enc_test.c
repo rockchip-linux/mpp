@@ -75,6 +75,8 @@ typedef struct {
     RK_U32 frm_pkt_cnt;
     RK_S32 frame_num;
     RK_S32 frame_count;
+    RK_S32 frm_step;
+
     RK_U64 stream_size;
     /* end of encoding flag when set quit the loop */
     volatile RK_U32 loop_end;
@@ -284,6 +286,8 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
         mpp_log("jpege default encode only one frame. Use -n [num] for rc case\n");
         p->frame_num = 1;
     }
+
+    p->frm_step     = cmd->frm_step;
     p->gop_mode     = cmd->gop_mode;
     p->gop_len      = cmd->gop_len;
     p->vi_len       = cmd->vi_len;
@@ -807,7 +811,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
             if (p->cam_ctx == NULL) {
                 mpp_buffer_sync_begin(p->frm_buf);
                 ret = fill_image(buf, p->width, p->height, p->hor_stride,
-                                 p->ver_stride, p->fmt, p->frame_count);
+                                 p->ver_stride, p->fmt, p->frame_count * p->frm_step);
                 if (ret)
                     goto RET;
                 mpp_buffer_sync_end(p->frm_buf);
