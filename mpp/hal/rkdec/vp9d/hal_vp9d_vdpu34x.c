@@ -941,25 +941,10 @@ static MPP_RET hal_vp9d_vdpu34x_start(void *hal, HalTaskInfo *task)
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
+
         /* rcb info for sram */
-        {
-            RK_U32 i = 0;
-            MppDevRcbInfoCfg rcb_cfg;
-            Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
+        vdpu34x_set_rcbinfo(dev, hw_ctx->rcb_info);
 
-            memcpy(rcb_info, hw_ctx->rcb_info, sizeof(rcb_info));
-            qsort(rcb_info, MPP_ARRAY_ELEMS(rcb_info),
-                  sizeof(rcb_info[0]), vdpu34x_compare_rcb_size);
-
-            for (i = 0; i < MPP_ARRAY_ELEMS(rcb_info); i++) {
-                rcb_cfg.reg_idx = rcb_info[i].reg;
-                rcb_cfg.size = rcb_info[i].size;
-                if (rcb_cfg.size > 0) {
-                    mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
-                } else
-                    break;
-            }
-        }
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);

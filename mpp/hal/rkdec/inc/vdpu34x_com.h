@@ -48,6 +48,11 @@ typedef enum Vdpu34x_RCB_TYPE_E {
     RCB_BUF_COUNT,
 } Vdpu34xRcbType_e;
 
+typedef enum Vdpu34x_RCB_SET_MODE_E {
+    RCB_SET_BY_SIZE_SORT_MODE,
+    RCB_SET_BY_PRIORITY_MODE,
+} Vdpu34xRcbSetMode_e;
+
 /* base: OFFSET_COMMON_REGS */
 typedef struct Vdpu34xRegCommon_t {
     struct SWREG8_IN_OUT {
@@ -493,9 +498,9 @@ extern "C" {
 
 RK_S32 vdpu34x_get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu34xRcbInfo *info);
-RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b);
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
 void vdpu34x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
+RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info);
 
 #ifdef  __cplusplus
 }
