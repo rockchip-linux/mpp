@@ -49,6 +49,7 @@ MPP_RET av1d_init(void *ctx, ParserCfg *init)
     }
 
     av1_ctx->pix_fmt = MPP_FMT_BUTT;
+    av1_ctx->usr_set_fmt = MPP_FMT_BUTT;
 
     if ((ret = av1d_parser_init(av1_ctx, init)) != MPP_OK)
         goto _err_exit;
@@ -252,12 +253,12 @@ MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
     Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
     MPP_RET ret = MPP_OK;
 
-    if (!ctx || !param)
+    if (!ctx)
         return MPP_ERR_VALUE;
 
     switch (cmd) {
     case MPP_DEC_SET_OUTPUT_FORMAT : {
-        av1_ctx->usr_set_fmt = *(MppFrameFormat*)param;
+        av1_ctx->usr_set_fmt = param ? *((MppFrameFormat *)param) : MPP_FMT_YUV420SP;
     } break;
     default:
         break;
