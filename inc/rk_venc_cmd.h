@@ -739,7 +739,9 @@ typedef struct MppEncH264Cfg_t {
      * When CABAC is select cabac_init_idc can be range 0~2
      */
     RK_S32              entropy_coding_mode;
+    RK_S32              entropy_coding_mode_ex;
     RK_S32              cabac_init_idc;
+    RK_S32              cabac_init_idc_ex;
 
     /*
      * 8x8 intra prediction and 8x8 transform enable flag
@@ -748,6 +750,7 @@ typedef struct MppEncH264Cfg_t {
      * 1 : enable  (HP)
      */
     RK_S32              transform8x8_mode;
+    RK_S32              transform8x8_mode_ex;
 
     /*
      * 0 : disable

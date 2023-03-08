@@ -368,112 +368,164 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
     RK_U32 change = src->change;
 
     // TODO: do codec check first
-    if (change & MPP_ENC_H264_CFG_STREAM_TYPE)
-        dst->stream_type = src->stream_type;
-    if ((change & MPP_ENC_H264_CFG_CHANGE_PROFILE) &&
-        ((dst->profile != src->profile) || (dst->level != src->level))) {
-        dst->profile = src->profile;
-        dst->level = src->level;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_PROFILE;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_POC_TYPE) &&
-        (dst->poc_type != src->poc_type)) {
-        dst->poc_type = src->poc_type;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_POC_TYPE;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB) &&
-        (dst->log2_max_poc_lsb != src->log2_max_poc_lsb)) {
-        dst->log2_max_poc_lsb = src->log2_max_poc_lsb;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM) &&
-        (dst->log2_max_frame_num != src->log2_max_frame_num)) {
-        dst->log2_max_frame_num = src->log2_max_frame_num;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM) &&
-        (dst->gaps_not_allowed != src->gaps_not_allowed)) {
-        dst->gaps_not_allowed = src->gaps_not_allowed;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) &&
-        ((dst->entropy_coding_mode != src->entropy_coding_mode) ||
-         (dst->cabac_init_idc != src->cabac_init_idc))) {
-        dst->entropy_coding_mode = src->entropy_coding_mode;
-        dst->cabac_init_idc = src->cabac_init_idc;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_ENTROPY;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_TRANS_8x8) &&
-        (dst->transform8x8_mode != src->transform8x8_mode)) {
-        dst->transform8x8_mode = src->transform8x8_mode;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_TRANS_8x8;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_CONST_INTRA) &&
-        (dst->constrained_intra_pred_mode != src->constrained_intra_pred_mode)) {
-        dst->constrained_intra_pred_mode = src->constrained_intra_pred_mode;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_CONST_INTRA;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_CHROMA_QP) &&
-        (dst->chroma_cb_qp_offset != src->chroma_cb_qp_offset ||
-         dst->chroma_cr_qp_offset != src->chroma_cr_qp_offset)) {
-        dst->chroma_cb_qp_offset = src->chroma_cb_qp_offset;
-        dst->chroma_cr_qp_offset = src->chroma_cr_qp_offset;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_CHROMA_QP;
-    }
-    if ((change & MPP_ENC_H264_CFG_CHANGE_DEBLOCKING) &&
-        ((dst->deblock_disable != src->deblock_disable) ||
-         (dst->deblock_offset_alpha != src->deblock_offset_alpha) ||
-         (dst->deblock_offset_beta != src->deblock_offset_beta))) {
-        dst->deblock_disable = src->deblock_disable;
-        dst->deblock_offset_alpha = src->deblock_offset_alpha;
-        dst->deblock_offset_beta = src->deblock_offset_beta;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_DEBLOCKING;
-    }
-    if (change & MPP_ENC_H264_CFG_CHANGE_LONG_TERM)
-        dst->use_longterm = src->use_longterm;
+    if (change) {
+        RK_S32 entropy_coding_mode;
+        RK_S32 cabac_init_idc;
+        RK_S32 transform8x8_mode;
+        RK_U32 disable_cabac;
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_SCALING_LIST) &&
-        (dst->scaling_list_mode != src->scaling_list_mode)) {
-        dst->scaling_list_mode = src->scaling_list_mode;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_SCALING_LIST;
-    }
+        if (change & MPP_ENC_H264_CFG_STREAM_TYPE)
+            dst->stream_type = src->stream_type;
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH) &&
-        ((dst->intra_refresh_mode != src->intra_refresh_mode) ||
-         (dst->intra_refresh_arg != src->intra_refresh_arg))) {
-        dst->intra_refresh_mode = src->intra_refresh_mode;
-        dst->intra_refresh_arg = src->intra_refresh_arg;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH;
-    }
+        if ((change & MPP_ENC_H264_CFG_CHANGE_PROFILE) &&
+            ((dst->profile != src->profile) || (dst->level != src->level))) {
+            dst->profile = src->profile;
+            dst->level = src->level;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_PROFILE;
+        }
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_LTR) &&
-        (dst->max_ltr_frames != src->max_ltr_frames)) {
-        dst->max_ltr_frames = src->max_ltr_frames;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_LTR;
-    }
+        if ((change & MPP_ENC_H264_CFG_CHANGE_POC_TYPE) &&
+            (dst->poc_type != src->poc_type)) {
+            dst->poc_type = src->poc_type;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_POC_TYPE;
+        }
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_TID) &&
-        (dst->max_tid != src->max_tid)) {
-        dst->max_tid = src->max_tid;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_TID;
-    }
+        if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB) &&
+            (dst->log2_max_poc_lsb != src->log2_max_poc_lsb)) {
+            dst->log2_max_poc_lsb = src->log2_max_poc_lsb;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB;
+        }
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX) &&
-        (dst->prefix_mode != src->prefix_mode)) {
-        dst->prefix_mode = src->prefix_mode;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX;
-    }
+        if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM) &&
+            (dst->log2_max_frame_num != src->log2_max_frame_num)) {
+            dst->log2_max_frame_num = src->log2_max_frame_num;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM;
+        }
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID) &&
-        (dst->base_layer_pid != src->base_layer_pid)) {
-        dst->base_layer_pid = src->base_layer_pid;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID;
-    }
+        if ((change & MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM) &&
+            (dst->gaps_not_allowed != src->gaps_not_allowed)) {
+            dst->gaps_not_allowed = src->gaps_not_allowed;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM;
+        }
 
-    if ((change & MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET) &&
-        (dst->constraint_set != src->constraint_set)) {
-        dst->constraint_set = src->constraint_set;
-        dst->change |= MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET;
+        if ((change & MPP_ENC_H264_CFG_CHANGE_ENTROPY) &&
+            ((dst->entropy_coding_mode_ex != src->entropy_coding_mode_ex) ||
+             (dst->cabac_init_idc_ex != src->cabac_init_idc_ex))) {
+            dst->entropy_coding_mode_ex = src->entropy_coding_mode_ex;
+            dst->cabac_init_idc_ex = src->cabac_init_idc_ex;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_ENTROPY;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_TRANS_8x8) &&
+            (dst->transform8x8_mode_ex != src->transform8x8_mode_ex)) {
+            dst->transform8x8_mode_ex = src->transform8x8_mode_ex;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_TRANS_8x8;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_CONST_INTRA) &&
+            (dst->constrained_intra_pred_mode != src->constrained_intra_pred_mode)) {
+            dst->constrained_intra_pred_mode = src->constrained_intra_pred_mode;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_CONST_INTRA;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_CHROMA_QP) &&
+            (dst->chroma_cb_qp_offset != src->chroma_cb_qp_offset ||
+             dst->chroma_cr_qp_offset != src->chroma_cr_qp_offset)) {
+            dst->chroma_cb_qp_offset = src->chroma_cb_qp_offset;
+            dst->chroma_cr_qp_offset = src->chroma_cr_qp_offset;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_CHROMA_QP;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_DEBLOCKING) &&
+            ((dst->deblock_disable != src->deblock_disable) ||
+             (dst->deblock_offset_alpha != src->deblock_offset_alpha) ||
+             (dst->deblock_offset_beta != src->deblock_offset_beta))) {
+            dst->deblock_disable = src->deblock_disable;
+            dst->deblock_offset_alpha = src->deblock_offset_alpha;
+            dst->deblock_offset_beta = src->deblock_offset_beta;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_DEBLOCKING;
+        }
+
+        if (change & MPP_ENC_H264_CFG_CHANGE_LONG_TERM)
+            dst->use_longterm = src->use_longterm;
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_SCALING_LIST) &&
+            (dst->scaling_list_mode != src->scaling_list_mode)) {
+            dst->scaling_list_mode = src->scaling_list_mode;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_SCALING_LIST;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH) &&
+            ((dst->intra_refresh_mode != src->intra_refresh_mode) ||
+             (dst->intra_refresh_arg != src->intra_refresh_arg))) {
+            dst->intra_refresh_mode = src->intra_refresh_mode;
+            dst->intra_refresh_arg = src->intra_refresh_arg;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_INTRA_REFRESH;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_LTR) &&
+            (dst->max_ltr_frames != src->max_ltr_frames)) {
+            dst->max_ltr_frames = src->max_ltr_frames;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_LTR;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_MAX_TID) &&
+            (dst->max_tid != src->max_tid)) {
+            dst->max_tid = src->max_tid;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_MAX_TID;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX) &&
+            (dst->prefix_mode != src->prefix_mode)) {
+            dst->prefix_mode = src->prefix_mode;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID) &&
+            (dst->base_layer_pid != src->base_layer_pid)) {
+            dst->base_layer_pid = src->base_layer_pid;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID;
+        }
+
+        if ((change & MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET) &&
+            (dst->constraint_set != src->constraint_set)) {
+            dst->constraint_set = src->constraint_set;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET;
+        }
+
+        // check user h.264 config. If valid, set to HAL.
+        entropy_coding_mode = dst->entropy_coding_mode_ex;
+        cabac_init_idc = dst->cabac_init_idc_ex;
+        transform8x8_mode = dst->transform8x8_mode_ex;
+
+        disable_cabac = (H264_PROFILE_FREXT_CAVLC444 == dst->profile ||
+                         H264_PROFILE_BASELINE == dst->profile ||
+                         H264_PROFILE_EXTENDED == dst->profile);
+
+        if (disable_cabac && entropy_coding_mode) {
+            mpp_err("Warning: invalid cabac_en %d for profile %d, set to 0.\n",
+                    entropy_coding_mode, dst->profile);
+
+            entropy_coding_mode = 0;
+        }
+
+        if (disable_cabac && cabac_init_idc >= 0) {
+            mpp_err("Warning: invalid cabac_init_idc %d for profile %d, set to -1.\n",
+                    cabac_init_idc, dst->profile);
+
+            cabac_init_idc = -1;
+        }
+
+        if (dst->profile < H264_PROFILE_HIGH && transform8x8_mode) {
+            mpp_err("Warning: invalid transform8x8_mode %d for profile %d, set to 0.\n",
+                    transform8x8_mode, dst->profile);
+
+            transform8x8_mode = 0;
+        }
+
+        dst->entropy_coding_mode = entropy_coding_mode;
+        dst->cabac_init_idc = cabac_init_idc;
+        dst->transform8x8_mode = transform8x8_mode;
     }
 
     src->change = 0;
