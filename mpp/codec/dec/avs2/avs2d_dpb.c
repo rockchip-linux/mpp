@@ -566,7 +566,7 @@ static MPP_RET dpb_output_next_frame(Avs2dCtx_t *p_dec, RK_S32 continuous)
                       poi, pos, mgr->output_poi, mgr->poi_interval);
 
         if ((poi - mgr->output_poi <= mgr->poi_interval) ||
-            (mgr->dpb[pos]->doi + mgr->dpb[pos]->out_delay < p_dec->ph.doi) ||
+            (mgr->dpb[pos]->doi + mgr->dpb[pos]->out_delay < mgr->cur_frm->doi) ||
             !continuous) {
             FUN_CHECK(ret = output_display_frame(p_dec, mgr->dpb[pos]));
             if (!is_refered(mgr->dpb[pos])) {
