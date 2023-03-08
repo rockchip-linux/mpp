@@ -365,7 +365,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1644, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1724, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;
@@ -376,6 +376,8 @@ MppEncCfgService::MppEncCfgService() :
 
     mInfo = mpp_enc_cfg_flaten(trie, cfgs);
     mCfgSize = mInfo->head.cfg_size;
+
+    mpp_enc_cfg_dbg_func("node cnt: %d\n", get_node_count());
 
     mpp_trie_deinit(trie);
 }
@@ -420,6 +422,8 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
         return MPP_ERR_NULL_PTR;
     }
 
+    mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
+
     cfg_size = MppEncCfgService::get()->get_cfg_size();
     p = mpp_calloc_size(MppEncCfgImpl, cfg_size + sizeof(p->size));
     if (NULL == p) {
@@ -431,8 +435,6 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     mpp_assert(cfg_size == sizeof(p->cfg));
     p->size = cfg_size;
     mpp_enc_cfg_set_default(&p->cfg);
-
-    mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
     *cfg = p;
 
