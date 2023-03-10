@@ -195,7 +195,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
     if (ctx->type == VPU_CLIENT_VEPU2_JPEG && !ctx->cfg->split.split_mode) {
         RK_U32 width = ctx->cfg->prep.width;
         RK_U32 height = ctx->cfg->prep.height;
-        RK_U32 buf_size = width * height / 4;
+        RK_U32 buf_size = width * height / 2;
 
         /* small image do not need to split into four segments */
         if (width * height <= 1280 * 720 && (height <= 720 || width <= 720))
