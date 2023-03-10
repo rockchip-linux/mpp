@@ -38,7 +38,7 @@ if( ENABLE_H264D )
     add_definitions(-DHAVE_H264D)
 endif()
 option(ENABLE_FASTPLAY_ONCE  "Enable h.264 decoder fast play once" OFF)
-if( ENABLE_FASTPLAY_ONCE )
+if( ENABLE_FASTPLAY_ONCE OR ANDROID)
     add_definitions(-DENABLE_FASTPLAY_ONCE)
 endif()
 
