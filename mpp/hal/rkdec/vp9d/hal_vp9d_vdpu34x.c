@@ -403,6 +403,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 sw_uv_hor_virstride;
     RK_U32 sw_y_virstride;
     RK_U8  ref_idx = 0;
+    RK_U8  ref_frame_idx = 0;
     RK_U32 *reg_ref_base = 0;
     RK_S32 intraFlag = 0;
     MppBuffer framebuf = NULL;
@@ -479,7 +480,6 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     /* set info for multi core */
     {
         MppFrame mframe = NULL;
-        RK_U8 ref_frame_idx = 0;
 
         mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         vp9_hw_regs->vp9d_param.reg65.cur_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
@@ -622,14 +622,13 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         fbc_en = MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe));
 
         if (fbc_en) {
-            RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
             RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
-            RK_U32 fbd_offset = MPP_ALIGN(mpp_frame_get_fbc_hdr_stride(mframe) *
-                                          (h + 16) / 16, SZ_4K);
+            RK_U32 fbd_offset = MPP_ALIGN(fbc_hdr_stride * (h + 16) / 16, SZ_4K);
 
             vp9_hw_regs->common.reg012.fbc_e = 1;
-            vp9_hw_regs->common.reg018.y_hor_virstride = w >> 4;
-            vp9_hw_regs->common.reg019.uv_hor_virstride = w >> 4;
+            vp9_hw_regs->common.reg018.y_hor_virstride = fbc_hdr_stride >> 4;
+            vp9_hw_regs->common.reg019.uv_hor_virstride = fbc_hdr_stride >> 4;
             vp9_hw_regs->common.reg020_fbc_payload_off.payload_st_offset = fbd_offset >> 4;
         } else {
             sw_y_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
@@ -667,17 +666,29 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->vp9d_param.reg64.cprheader_offset = 0;
     reg_ref_base = (RK_U32*)&vp9_hw_regs->vp9d_addr.reg164_ref_last_base;
     for (i = 0; i < 3; i++) {
+        MppFrame frame = NULL;
+
         ref_idx = pic_param->frame_refs[i].Index7Bits;
+        ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         ref_frame_width_y = pic_param->ref_frame_coded_width[ref_idx];
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
         pic_h[0] = vp9_ver_align(ref_frame_height_y);
         pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
-        if (fbc_en) {
-            y_hor_virstride = uv_hor_virstride = MPP_ALIGN(ref_frame_width_y, 64) >> 4;
+
+        if (ref_frame_idx < 0x7f)
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &frame);
+
+        if (fbc_en && frame) {
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(frame);
+            RK_U32 h = MPP_ALIGN(mpp_frame_get_height(frame), 64);
+            RK_U32 fbd_offset = MPP_ALIGN(fbc_hdr_stride * (h + 16) / 16, SZ_4K);
+
+            y_hor_virstride = uv_hor_virstride = fbc_hdr_stride >> 4;
+            y_virstride = fbd_offset;
         } else {
             y_hor_virstride = uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
+            y_virstride = y_hor_virstride * pic_h[0];
         }
-        y_virstride = y_hor_virstride * pic_h[0];
 
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
             mpp_buf_slot_get_prop(p_hal ->slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
