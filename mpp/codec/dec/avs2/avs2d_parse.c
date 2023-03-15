@@ -684,6 +684,7 @@ MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
             break;
         case AVS2_VIDEO_EDIT_CODE:
             p_dec->vec_flag = 0;
+            avs2d_dpb_flush(p_dec);
             break;
         default:
             if (AVS2_IS_SLICE_START_CODE(startcode)) {

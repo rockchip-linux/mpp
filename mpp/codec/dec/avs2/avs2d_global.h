@@ -128,6 +128,7 @@ do {\
 #define AVS2_MAX_BUF_NUM                19
 #define AVS2_MAX_DPB_SIZE               15
 #define AVS2_DOI_CYCLE                  256
+#define AVS2_MAX_POC_DISTANCE           128
 
 #define ALF_MAX_FILTERS                 16
 #define ALF_MAX_COEFS                   9
@@ -340,6 +341,7 @@ typedef struct avs2d_memory_t {
 
 typedef struct avs2d_frame_mgr_t {
     RK_U32                  dpb_size;
+    RK_U32                  dpb_specific_size;
     RK_U32                  used_size;
     Avs2dFrame_t          **dpb;
     RK_U8                   num_of_ref;
@@ -351,7 +353,6 @@ typedef struct avs2d_frame_mgr_t {
     RK_S32                  prev_doi;
     RK_S32                  output_poi;
     RK_S32                  tr_wrap_cnt;
-    RK_U8                   poi_interval;
     RK_U8                   initial_flag;
 } Avs2dFrameMgr_t;
 
