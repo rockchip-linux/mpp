@@ -650,6 +650,7 @@ static MPP_RET parse_picture_header_intra(Avs2dCtx_t *p_dec)
     } else {
         FUN_CHECK(ret = parse_one_rps(bitctx, &p_dec->frm_mgr.cur_rps));
     }
+    AVS2D_PARSE_TRACE("num_of_remove %d", p_dec->frm_mgr.cur_rps.num_to_remove);
 
     if (vsh->low_delay) {
         READ_UE(bitctx, &ph->bbv_check_times);
@@ -749,6 +750,7 @@ static MPP_RET parse_picture_header_inter(Avs2dCtx_t *p_dec)
     }
 
     READ_ONEBIT(bitctx, &predict);
+    AVS2D_PARSE_TRACE("predict %d\n", predict);
     if (predict) {
         RK_U8 rcs_index = 0;
         READ_BITS(bitctx, 5, &rcs_index);
@@ -756,6 +758,7 @@ static MPP_RET parse_picture_header_inter(Avs2dCtx_t *p_dec)
     } else {
         FUN_CHECK(ret = parse_one_rps(bitctx, &p_dec->frm_mgr.cur_rps));
     }
+    AVS2D_PARSE_TRACE("num_of_remove %d", p_dec->frm_mgr.cur_rps.num_to_remove);
 
     if (vsh->low_delay) {
         READ_UE(bitctx, &ph->bbv_check_times);
