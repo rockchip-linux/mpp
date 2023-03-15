@@ -604,7 +604,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
                                   hal_buf_out);
     }
 
-    dec_dbg_detail("detail: %p check output buffer %p\n", hal_buf_out, dec);
+    dec_dbg_detail("detail: %p check output buffer %p\n", dec, hal_buf_out);
 
     // update codec info
     if (!dec->info_updated && dec->dev) {
