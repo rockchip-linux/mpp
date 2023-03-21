@@ -137,6 +137,7 @@ public:
     ENTRY(rc,   fps_out_num,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_num) \
     ENTRY(rc,   fps_out_denorm, S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denorm) \
     ENTRY(rc,   gop,            S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_GOP,              rc, gop) \
+    ENTRY(rc,   ref_cfg,        Ptr, void *,            MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG,      rc, ref_cfg) \
     ENTRY(rc,   max_reenc_times,U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_MAX_REENC,        rc, max_reenc_times) \
     ENTRY(rc,   priority,       U32, MppEncRcPriority,  MPP_ENC_RC_CFG_CHANGE_PRIORITY,         rc, rc_priority) \
     ENTRY(rc,   drop_mode,      U32, MppEncRcDropFrmMode, MPP_ENC_RC_CFG_CHANGE_DROP_FRM,       rc, drop_mode) \
@@ -365,7 +366,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1724, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1732, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;

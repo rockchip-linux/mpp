@@ -237,6 +237,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_HIER_QP       = (1 << 25),
     MPP_ENC_RC_CFG_CHANGE_ST_TIME       = (1 << 26),
     MPP_ENC_RC_CFG_CHANGE_REFRESH       = (1 << 27),
+    MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG   = (1 << 28),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -339,6 +340,7 @@ typedef struct MppEncRcCfg_t {
      * etc...
      */
     RK_S32  gop;
+    void    *ref_cfg;
 
     /*
      * skip_cnt - max continuous frame skip count
