@@ -578,6 +578,9 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             dst->gop = src->gop;
         }
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG)
+            dst->ref_cfg = src->ref_cfg;
+
         if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
             dst->max_reenc_times = src->max_reenc_times;
 
@@ -852,6 +855,36 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
     return ret;
 }
 
+static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param)
+{
+    MPP_RET ret = MPP_OK;
+    MppEncRefCfg src = (MppEncRefCfg)param;
+    MppEncRefCfg dst = enc->cfg.ref_cfg;
+
+    if (NULL == src)
+        src = mpp_enc_ref_default();
+
+    if (NULL == dst) {
+        mpp_enc_ref_cfg_init(&dst);
+        enc->cfg.ref_cfg = dst;
+    }
+
+    ret = mpp_enc_ref_cfg_copy(dst, src);
+    if (ret) {
+        mpp_err_f("failed to copy ref cfg ret %d\n", ret);
+    }
+
+    ret = mpp_enc_refs_set_cfg(enc->refs, dst);
+    if (ret) {
+        mpp_err_f("failed to set ref cfg ret %d\n", ret);
+    }
+
+    if (mpp_enc_refs_update_hdr(enc->refs))
+        enc->hdr_status.val = 0;
+
+    return ret;
+}
+
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
@@ -875,6 +908,12 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         /* process rc cfg at mpp_enc module */
         if (src->rc.change) {
             ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, &src->rc);
+
+            // update ref cfg
+            if ((enc->cfg.rc.change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG) &&
+                (enc->cfg.rc.gop > 0))
+                mpp_enc_control_set_ref_cfg(enc, enc->cfg.rc.ref_cfg);
+
             src->rc.change = 0;
         }
 
@@ -895,8 +934,14 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_RC_CFG : {
         MppEncRcCfg *src = (MppEncRcCfg *)param;
-        if (src)
+        if (src) {
             ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, src);
+
+            // update ref cfg
+            if ((enc->cfg.rc.change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG) &&
+                (enc->cfg.rc.gop > 0))
+                mpp_enc_control_set_ref_cfg(enc, enc->cfg.rc.ref_cfg);
+        }
     } break;
     case MPP_ENC_SET_IDR_FRAME : {
         enc->frm_cfg.force_idr++;
@@ -998,29 +1043,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         }
     } break;
     case MPP_ENC_SET_REF_CFG : {
-        MppEncRefCfg src = (MppEncRefCfg)param;
-        MppEncRefCfg dst = enc->cfg.ref_cfg;
-
-        if (NULL == src)
-            src = mpp_enc_ref_default();
-
-        if (NULL == dst) {
-            mpp_enc_ref_cfg_init(&dst);
-            enc->cfg.ref_cfg = dst;
-        }
-
-        ret = mpp_enc_ref_cfg_copy(dst, src);
-        if (ret) {
-            mpp_err_f("failed to copy ref cfg ret %d\n", ret);
-        }
-
-        ret = mpp_enc_refs_set_cfg(enc->refs, dst);
-        if (ret) {
-            mpp_err_f("failed to set ref cfg ret %d\n", ret);
-        }
-
-        if (mpp_enc_refs_update_hdr(enc->refs))
-            enc->hdr_status.val = 0;
+        ret = mpp_enc_control_set_ref_cfg(enc, param);
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
         MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)param;
