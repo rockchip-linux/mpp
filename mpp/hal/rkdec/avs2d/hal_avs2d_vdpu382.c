@@ -522,6 +522,17 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
     if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) && p_hal->cfg->base.enable_hdr_meta)
         fill_hdr_meta_to_frame(mframe, HDR_AVS2);
 
+    /* set scale down info */
+    if (mpp_frame_get_thumbnail_en(mframe)) {
+        p_regs->avs2d_addr.scale_down_luma_base = p_regs->common_addr.reg130_decout_base;
+        p_regs->avs2d_addr.scale_down_chorme_base = p_regs->common_addr.reg130_decout_base;
+        vdpu382_setup_down_scale(mframe, p_hal->dev, &p_regs->common);
+    } else {
+        p_regs->avs2d_addr.scale_down_luma_base = 0;
+        p_regs->avs2d_addr.scale_down_chorme_base = 0;
+        p_regs->common.reg012.scale_down_en = 0;
+    }
+
     return ret;
 }
 
