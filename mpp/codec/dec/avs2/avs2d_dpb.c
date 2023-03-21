@@ -517,6 +517,11 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     if (p_dec->is_hdr)
         mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | MPP_FRAME_HDR);
 
+    if (p_dec->init.cfg->base.enable_thumbnail && p_dec->init.hw_info->cap_down_scale)
+        mpp_frame_set_thumbnail_en(mframe, 1);
+    else
+        mpp_frame_set_thumbnail_en(mframe, 0);
+
     mpp_frame_set_width(mframe, vsh->horizontal_size);
     mpp_frame_set_height(mframe, vsh->vertical_size);
     mpp_frame_set_hor_stride(mframe, (MPP_ALIGN(vsh->horizontal_size, ctu_size) * bitdepth + 7) / 8);
