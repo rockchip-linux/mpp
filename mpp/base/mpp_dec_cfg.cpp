@@ -283,7 +283,7 @@ MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
     }
 
     cfg_size = MppDecCfgService::get()->get_cfg_size();
-    p = mpp_calloc_size(MppDecCfgImpl, cfg_size + sizeof(p->size));
+    p = mpp_calloc(MppDecCfgImpl, 1);
     if (NULL == p) {
         mpp_err_f("create decoder config failed %p\n", p);
         *cfg = NULL;
