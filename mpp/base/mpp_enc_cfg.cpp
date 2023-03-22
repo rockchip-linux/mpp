@@ -426,7 +426,7 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
     cfg_size = MppEncCfgService::get()->get_cfg_size();
-    p = mpp_calloc_size(MppEncCfgImpl, cfg_size + sizeof(p->size));
+    p = mpp_calloc(MppEncCfgImpl, 1);
     if (NULL == p) {
         mpp_err_f("create encoder config failed %p\n", p);
         *cfg = NULL;
