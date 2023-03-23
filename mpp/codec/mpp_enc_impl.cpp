@@ -197,14 +197,17 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncAsyncWait *wait)
     RK_U32 last_wait = enc->status_flag;
     RK_U32 curr_wait = wait->val;
     RK_U32 wait_chg  = last_wait & (~curr_wait);
+    RK_U32 keep_notify = 0;
 
     do {
         if (enc->reset_flag)
             break;
 
         // NOTE: User control should always be processed
-        if (notify & MPP_ENC_CONTROL)
+        if (notify & MPP_ENC_CONTROL) {
+            keep_notify = notify & (~MPP_ENC_CONTROL);
             break;
+        }
 
         // NOTE: When condition is not fulfilled check nofify flag again
         if (!curr_wait || (curr_wait & notify))
@@ -217,7 +220,7 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncAsyncWait *wait)
                    last_wait, curr_wait, wait_chg, notify, (ret) ? ("wait") : ("work"));
 
     enc->status_flag = wait->val;
-    enc->notify_flag = 0;
+    enc->notify_flag = keep_notify;
 
     if (ret) {
         enc->wait_count++;
@@ -2823,14 +2826,17 @@ static MPP_RET check_enc_async_wait(MppEncImpl *enc, EncAsyncWait *wait)
     RK_U32 last_wait = enc->status_flag;
     RK_U32 curr_wait = wait->val;
     RK_U32 wait_chg  = last_wait & (~curr_wait);
+    RK_U32 keep_notify = 0;
 
     do {
         if (enc->reset_flag)
             break;
 
         // NOTE: User control should always be processed
-        if (notify & MPP_ENC_CONTROL)
+        if (notify & MPP_ENC_CONTROL) {
+            keep_notify = notify & (~MPP_ENC_CONTROL);
             break;
+        }
 
         // NOTE: When condition is not fulfilled check nofify flag again
         if (!curr_wait || (curr_wait & notify))
@@ -2843,7 +2849,7 @@ static MPP_RET check_enc_async_wait(MppEncImpl *enc, EncAsyncWait *wait)
                    last_wait, curr_wait, wait_chg, notify, (ret) ? ("wait") : ("work"));
 
     enc->status_flag = wait->val;
-    enc->notify_flag = 0;
+    enc->notify_flag = keep_notify;
 
     if (ret) {
         enc->wait_count++;
