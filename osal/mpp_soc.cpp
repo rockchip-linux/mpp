@@ -556,6 +556,17 @@ static const MppEncHwCap vepu540c = {
     .reserved           = 0,
 };
 
+static const MppEncHwCap vepu540c_no_hevc = {
+    .cap_coding         = (HAVE_AVC | HAVE_MJPEG),
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
 /*
  * NOTE:
  * vpu1 = vdpu1 + vepu1
@@ -834,7 +845,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3562,
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu382_lite, &rkjpegd, NULL, NULL, NULL, NULL, },
-        {   &vepu540c, NULL, NULL, NULL, },
+        {   &vepu540c_no_hevc, NULL, NULL, NULL, },
     },
 };
 
