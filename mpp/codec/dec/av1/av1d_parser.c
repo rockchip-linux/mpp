@@ -120,6 +120,7 @@ static MPP_RET get_pixel_format(Av1CodecContext *ctx)
                 pix_fmt = MPP_FMT_YUV420SP;
             else if (bit_depth == 10) {
                 pix_fmt = MPP_FMT_YUV420SP_10BIT;
+                /* rk3588, allow user config 8bit for 10bit source. */
                 if ((ctx->usr_set_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP &&
                     (s->cfg->base.out_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP)
                     pix_fmt = MPP_FMT_YUV420SP;
@@ -727,7 +728,16 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     mpp_frame_set_width(frame->f, s->frame_width);
     mpp_frame_set_height(frame->f, s->frame_height);
 
-    mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(s->frame_width * s->bit_depth / 8, 8));
+    /*
+     * rk3588, user can set 8bit for 10bit source.
+     * If user config 8bit output when input video is 10bti,
+     * here should set hor_stride according to 8bit.
+     */
+    if (MPP_FRAME_FMT_IS_YUV_10BIT(ctx->pix_fmt))
+        mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(s->frame_width * s->bit_depth / 8, 8));
+    else
+        mpp_frame_set_hor_stride(frame->f, MPP_ALIGN(s->frame_width, 8));
+
     mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(s->frame_height, 8));
     mpp_frame_set_errinfo(frame->f, 0);
     mpp_frame_set_discard(frame->f, 0);
