@@ -71,7 +71,7 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
     if (MPP_FRAME_FMT_IS_RGB(fmt) && MPP_FRAME_FMT_IS_LE(fmt)) {
         fmt &= MPP_FRAME_FMT_MASK;
     }
-    switch (fmt) {
+    switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV422SP : {
         /* YUV422SP -> YUV422P for better display */
         RK_U32 i, j;
