@@ -180,7 +180,7 @@ RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
         RCB_TRANSD_COL,
     };
 
-    mpp_env_get_u32("rcb_mode", &set_rcb_mode, RCB_SET_BY_SIZE_SORT_MODE);
+    mpp_env_get_u32("rcb_mode", &set_rcb_mode, RCB_SET_BY_PRIORITY_MODE);
 
     switch (set_rcb_mode) {
     case RCB_SET_BY_SIZE_SORT_MODE : {
@@ -206,6 +206,14 @@ RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
 
         for (i = 0; i < MPP_ARRAY_ELEMS(rcb_priority); i ++) {
             index = rcb_priority[i];
+            /*
+             * If the inter row rcb buffer is placed in sram,
+             * may conflict with other buffer in ddr,
+             * will result in slower access to data and degraded decoding performance.
+             * The issue will be resolved in chips after rk3588.
+             */
+            if (index == RCB_INTER_ROW)
+                continue;
 
             rcb_cfg.reg_idx = info[index].reg;
             rcb_cfg.size = info[index].size;
