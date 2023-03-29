@@ -153,7 +153,7 @@ static RK_U8 fetch_data(RK_U32 fmt, RK_U8 *line, RK_U32 num)
 static void dump_frame(FILE *fp, MppFrame frame, RK_U8 *tmp, RK_U32 w, RK_U32 h)
 {
     RK_U32 i = 0, j = 0;
-    RK_U32 fmt = mpp_frame_get_fmt(frame);
+    RK_U32 fmt = (mpp_frame_get_fmt(frame) & MPP_FRAME_FMT_MASK);
     RK_U32 width = mpp_frame_get_width(frame);
     RK_U32 height = mpp_frame_get_height(frame);
     RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
