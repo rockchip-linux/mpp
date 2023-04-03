@@ -89,6 +89,7 @@ static MPP_RET free_cur_ctx(H264dCurCtx_t *p_Cur)
 
         MPP_FREE(p_Cur->subsps);
         MPP_FREE(p_Cur->sei);
+        MPP_FREE(p_Cur->hdr_dynamic_meta);
     }
 
 __RETURN:

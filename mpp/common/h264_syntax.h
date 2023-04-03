@@ -94,7 +94,8 @@ typedef enum H264NaluType_e {
     H264_NALU_TYPE_SUB_SPS          = 15,
     H264_NALU_TYPE_SLICE_AUX        = 19,
     H264_NALU_TYPE_SLC_EXT          = 20,   // slice extensive
-    H264_NALU_TYPE_VDRD             = 24    // View and Dependency Representation Delimiter NAL Unit
+    H264_NALU_TYPE_VDRD             = 24,    // View and Dependency Representation Delimiter NAL Unit
+    H264_NALU_TYPE_UNSPECIFIED28    = 28,
 } H264NaluType;
 
 typedef enum H264ChromaFmt_e {

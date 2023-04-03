@@ -546,11 +546,19 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                     impl->color_primaries = p->colour_primaries;
                     impl->color_trc = p->transfer_characteristics;
                     impl->colorspace = p->matrix_coefficients;
+                    if (impl->color_trc == MPP_FRAME_TRC_SMPTEST2084)
+                        impl->fmt |= MPP_FRAME_HDR;
                 } else {
                     impl->color_primaries = MPP_FRAME_PRI_UNSPECIFIED;
                     impl->color_trc = MPP_FRAME_TRC_UNSPECIFIED;
                     impl->colorspace = MPP_FRAME_SPC_UNSPECIFIED;
                 }
+            }
+
+            if (p_Vid->p_Cur->hdr_dynamic && p_Vid->p_Cur->hdr_dynamic_meta) {
+                impl->hdr_dynamic_meta = p_Vid->p_Cur->hdr_dynamic_meta;
+                p_Vid->p_Cur->hdr_dynamic = 0;
+                impl->fmt |= MPP_FRAME_HDR;
             }
 
             impl->poc = dec_pic->poc;

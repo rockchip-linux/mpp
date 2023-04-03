@@ -32,6 +32,7 @@
 #include "h264d_sei.h"
 #include "h264d_init.h"
 #include "h264d_fill.h"
+#include "rk_hdr_meta_com.h"
 
 #define  HEAD_SYNTAX_MAX_SIZE        (12800)
 #define NALU_TYPE_NORMAL_LENGTH      (1)
@@ -336,6 +337,41 @@ __FAILED:
     return ret;
 }
 
+void mpp_h264d_fill_dynamic_meta(H264dCurCtx_t *p_Cur, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt)
+{
+    MppFrameHdrDynamicMeta *hdr_dynamic_meta = p_Cur->hdr_dynamic_meta;
+
+    if (hdr_fmt == DOLBY)
+        size += 4;
+
+    if (hdr_dynamic_meta && (hdr_dynamic_meta->size < size)) {
+        mpp_free(hdr_dynamic_meta);
+        hdr_dynamic_meta = NULL;
+    }
+
+    if (!hdr_dynamic_meta) {
+        hdr_dynamic_meta = mpp_calloc_size(MppFrameHdrDynamicMeta,
+                                           sizeof(MppFrameHdrDynamicMeta) + size);
+        if (!hdr_dynamic_meta) {
+            mpp_err_f("malloc hdr dynamic data failed!\n");
+            return;
+        }
+    }
+    if (size && data) {
+        if (hdr_fmt == DOLBY) {
+            RK_U8 start_code[4] = {0, 0, 0, 1};
+
+            memcpy((RK_U8*)hdr_dynamic_meta->data, start_code, 4);
+            memcpy((RK_U8*)hdr_dynamic_meta->data + 4, (RK_U8*)data, size - 4);
+        } else
+            memcpy((RK_U8*)hdr_dynamic_meta->data, (RK_U8*)data, size);
+        hdr_dynamic_meta->size = size;
+        hdr_dynamic_meta->hdr_fmt = hdr_fmt;
+    }
+    p_Cur->hdr_dynamic_meta = hdr_dynamic_meta;
+    p_Cur->hdr_dynamic = 1;
+}
+
 static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H264dDxvaCtx_t *dxva_ctx)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -405,6 +441,11 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
         memcpy(p_des + sizeof(g_start_precode), p_strm->nalu_buf, p_strm->nalu_len);
         dxva_ctx->strm_offset += add_size;
     }
+
+    /* Dolby Vision RPUs masquerade as unregistered NALs of type 28. */
+    if (p_strm->nalu_type == H264_NALU_TYPE_UNSPECIFIED28)
+        mpp_h264d_fill_dynamic_meta(p_Cur, p_strm->nalu_buf + 2, p_strm->nalu_len - 2, DOLBY);
+
     if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
         H264dInputCtx_t *p_Inp = p_Cur->p_Inp;
         if ((p_strm->nalu_type == H264_NALU_TYPE_SPS)

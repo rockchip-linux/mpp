@@ -971,6 +971,8 @@ typedef struct h264d_cur_ctx_t {
     RK_S32                    abs_diff_view_idx_minus1[2][MAX_REORDER_TIMES];
 
     struct h264_drpm_t        *dec_ref_pic_marking_buffer[MAX_MARKING_TIMES];
+    MppFrameHdrDynamicMeta    *hdr_dynamic_meta;
+    RK_U32                    hdr_dynamic;
 } H264dCurCtx_t;
 
 //!< parameters for video decoder
