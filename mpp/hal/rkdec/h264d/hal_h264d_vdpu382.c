@@ -25,6 +25,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_bitput.h"
+#include "mpp_service.h"
 
 #include "mpp_device.h"
 #include "mpp_frame_impl.h"
@@ -162,6 +163,8 @@ typedef struct Vdpu382H264dRegCtx_t {
     RK_S32              rcb_buf_size;
     Vdpu382RcbInfo      rcb_info[RCB_BUF_COUNT];
     MppBuffer           rcb_buf[VDPU382_FAST_REG_SET_CNT];
+
+    RK_U32              err_ref_hack;
 
     Vdpu382H264dRegSet  *regs;
 } Vdpu382H264dRegCtx;
@@ -533,6 +536,7 @@ static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
 
 static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, HalTaskInfo *task)
 {
+    Vdpu382H264dRegCtx *ctx = (Vdpu382H264dRegCtx *)p_hal->reg_ctx;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     Vdpu382RegCommon *common = &regs->common;
     HalBuf *mv_buf = NULL;
@@ -544,6 +548,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
     common->reg012.colmv_compress_en =
         (p_hal->hw_info && p_hal->hw_info->cap_colmv_compress && pp->frame_mbs_only_flag) ? 1 : 0;
     common->reg012.info_collect_en = 1;
+    common->reg013.h26x_error_mode = ctx->err_ref_hack ? 0 : 1;
 
     //!< caculate the yuv_frame_size
     {
@@ -603,7 +608,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
 
         task->dec.flags.ref_miss = 0;
 
-        for (i = 0; i < 15; i++) {
+        for (i = 0; i <= 15; i++) {
             RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
             RK_U32 top_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
             RK_U32 bot_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
@@ -639,33 +644,22 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu382H264dRegSet *regs, Hal
             }
 
             RK_S32 fd = mpp_buffer_get_fd(mbuffer);
+            /*
+             * if ref is err frame, set fd = 0,
+             * in order for trigger pagefault if the cur frame use the err ref.
+             * This makes it possible to accurately identify whether an err ref
+             * frame is being used.
+             */
+            if (ctx->err_ref_hack && mpp_frame_get_errinfo(mframe)) {
+                regs->h264d_param.reg67_98_ref_poc[2 * i] = 0;
+                regs->h264d_param.reg67_98_ref_poc[2 * i + 1] = 0;
+                fd = 0;
+            }
             regs->h264d_addr.ref_base[i] = fd;
             mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
             regs->h264d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
         }
-        regs->h264d_param.reg67_98_ref_poc[30] = pp->FieldOrderCntList[15][0];
-        regs->h264d_param.reg67_98_ref_poc[31] = pp->FieldOrderCntList[15][1];
-        regs->h264d_param.reg102.ref15_field = (pp->RefPicFiledFlags >> 15) & 0x01;
-        regs->h264d_param.reg102.ref15_topfield_used = (pp->UsedForReferenceFlags >> 30) & 0x01;
-        regs->h264d_param.reg102.ref15_botfield_used = (pp->UsedForReferenceFlags >> 31) & 0x01;
-        regs->h264d_param.reg102.ref15_colmv_use_flag = (pp->RefPicColmvUsedFlags >> 15) & 0x01;
-
-        if (pp->RefFrameList[15].bPicEntry != 0xff) {
-            ref_index = pp->RefFrameList[15].Index7Bits;
-        } else {
-            ref_index = (near_index < 0) ? pp->CurrPic.Index7Bits : near_index;
-        }
-        /* mark 3 to differ from current frame */
-        if (ref_index == pp->CurrPic.Index7Bits) {
-            regs->h264d_highpoc.reg203.ref30_poc_highbit = 3;
-            regs->h264d_highpoc.reg203.ref31_poc_highbit = 3;
-        }
-        mpp_buf_slot_get_prop(p_hal->frame_slots, ref_index, SLOT_BUFFER, &mbuffer);
-        RK_S32 fd = mpp_buffer_get_fd(mbuffer);
-        regs->h264d_addr.ref_base[15] = fd;
-        mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
-        regs->h264d_addr.colmv_base[15] = mpp_buffer_get_fd(mv_buf->buf[0]);
     }
     {
         MppBuffer mbuffer = NULL;
@@ -789,6 +783,15 @@ MPP_RET vdpu382_h264d_init(void *hal, MppHalCfg *cfg)
         cfg->hw_info = hw_info;
 
         p_hal->hw_info = hw_info;
+    }
+
+    {
+        /* check kernel support err ref hack process */
+        const MppServiceCmdCap *cap = mpp_get_mpp_service_cmd_cap();
+
+        reg_ctx->err_ref_hack = cap->ctrl_cmd > MPP_CMD_SET_ERR_REF_HACK;
+        if (reg_ctx->err_ref_hack)
+            mpp_dev_ioctl(p_hal->dev, MPP_DEV_SET_ERR_REF_HACK, &reg_ctx->err_ref_hack);
     }
 
 __RETURN:
@@ -1267,7 +1270,8 @@ MPP_RET vdpu382_h264d_wait(void *hal, HalTaskInfo *task)
              p_regs->irq_status.reg227.colmv_error_ref_picidx ||
              p_regs->irq_status.reg226.strmd_detect_error_flag;
 
-    ref_used = vdpu382_h264_get_ref_used(hal, task);
+    /* the hw ref may not correct*/
+    ref_used = reg_ctx->err_ref_hack ? 0 : vdpu382_h264_get_ref_used(hal, task);
     task->dec.flags.ref_info_valid = 1;
     task->dec.flags.ref_used = ref_used;
 
