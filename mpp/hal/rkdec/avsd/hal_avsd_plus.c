@@ -593,9 +593,9 @@ MPP_RET hal_avsd_plus_init(void *decoder, MppHalCfg *cfg)
     p_hal->work_out = -1;
     p_hal->work0 = -1;
     p_hal->work1 = -1;
+    p_hal->cfg = cfg;
 
     AVSD_HAL_TRACE("Out.");
-    (void)cfg;
     return ret = MPP_OK;
 __FAILED:
     return ret;

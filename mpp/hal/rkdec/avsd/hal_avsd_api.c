@@ -202,9 +202,22 @@ MPP_RET hal_avsd_gen_regs(void *decoder, HalTaskInfo *task)
 
             p_hal->dev = NULL;
         }
+
+        ret = p_hal->hal_api.deinit(decoder);
+        if (ret) {
+            mpp_err_f("deinit decoder failed, ret %d\n", ret);
+            return ret;
+        }
+
         ret = init_hard_platform(p_hal, coding);
         if (ret) {
             mpp_err_f("change paltform %x -> %x error\n", p_hal->coding, coding);
+            return ret;
+        }
+
+        ret = p_hal->hal_api.init(decoder, p_hal->cfg);
+        if (ret) {
+            mpp_err_f("init decoder failed, ret %d\n", ret);
             return ret;
         }
     }
