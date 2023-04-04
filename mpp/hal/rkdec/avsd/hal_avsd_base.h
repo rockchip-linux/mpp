@@ -109,9 +109,10 @@ typedef struct avsd_hal_ctx_t {
     MppDev                   dev;
 
     AvsdSyntax_t             syn;
-    RK_U32                  *p_regs;
+    RK_U32                   *p_regs;
     RK_U32                   regs_num;
     MppBuffer                mv_buf;
+    MppHalCfg                *cfg;
 
     AvsdHalPic_t             pic[3];
     //!< add for control
