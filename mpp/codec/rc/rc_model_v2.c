@@ -1092,15 +1092,6 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     } else {
         usr_cfg->igop = gop_len = mpp_clip(usr_cfg->igop, usr_cfg->igop, 500);
     }
-
-    if (!ctx->min_still_percent) {
-        if (usr_cfg->bps_min && usr_cfg->bps_max) {
-            ctx->min_still_percent = usr_cfg->bps_min * 100 / usr_cfg->bps_max;
-        } else {
-            ctx->min_still_percent = 25;
-        }
-        rc_dbg_rc("min_still_percent  %d", ctx->min_still_percent);
-    }
     ctx->max_still_qp = 35;
     ctx->motion_sensitivity = 90;
 
@@ -1124,6 +1115,12 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     }
     case RC_AVBR: {
         ctx->calc_ratio = calc_avbr_ratio;
+        if (usr_cfg->bps_min && usr_cfg->bps_max) {
+            ctx->min_still_percent = (RK_S64)usr_cfg->bps_min * 100 / usr_cfg->bps_max;
+        } else {
+            ctx->min_still_percent = 25;
+        }
+        rc_dbg_rc("min_still_percent  %d", ctx->min_still_percent);
     } break;
     default:
         mpp_log("rc mode set error");
