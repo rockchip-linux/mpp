@@ -139,7 +139,6 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator,
         p->flags = flags;
     }
 
-
     MPP_RET ret = os_allocator_get(&p->os_api, buffer_type);
 
     if (MPP_OK == ret) {

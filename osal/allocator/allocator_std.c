@@ -29,39 +29,29 @@ typedef struct {
 
 static MPP_RET allocator_std_open(void **ctx, MppAllocatorCfg *cfg)
 {
-    MPP_RET ret = MPP_OK;
-    allocator_ctx *p = NULL;
-
     if (NULL == ctx) {
         mpp_err_f("do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = mpp_malloc(allocator_ctx, 1);
-    if (NULL == p) {
-        mpp_err_f("failed to allocate context\n");
-        ret = MPP_ERR_MALLOC;
-    } else
-        p->alignment = cfg->alignment;
+    mpp_err_f("Warning: std allocator should be used on simulation mode only\n");
+    (void)cfg;
 
-    p->fd_count = 0;
-
-    *ctx = p;
-    return ret;
+    *ctx = NULL;
+    return MPP_NOK;
 }
 
 static MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info)
 {
-    allocator_ctx *p = NULL;
-
     if (NULL == ctx) {
         mpp_err_f("found NULL context input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_ctx *)ctx;
-    info->fd = p->fd_count++;
-    return (MPP_RET)os_malloc(&info->ptr, p->alignment, info->size);
+    mpp_err_f("Warning: std allocator should be used on simulation mode only\n");
+    (void)info;
+
+    return MPP_NOK;
 }
 
 static MPP_RET allocator_std_free(void *ctx, MppBufferInfo *info)
