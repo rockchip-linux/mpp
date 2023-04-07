@@ -91,6 +91,7 @@ do {\
         AVS2D_DBG(AVS2D_DBG_WARNNING, "expected marker_bit 1 while received 0(%d).\n", __LINE__); \
 }} while (0)
 
+#define MAX_NALU_NUM                        (20)
 #define MAX_HEADER_SIZE                     (2*1024)
 #define MAX_STREAM_SIZE                     (2*1024*1024)
 
@@ -162,10 +163,8 @@ typedef enum avs2d_picture_type_e {
 
 typedef struct avs2d_nalu_t {
     RK_U32      header;
-    RK_U32      size;
     RK_U32      length;
-    RK_U8      *pdata;
-    RK_U8       start_pos;
+    RK_U32      data_pos;
     RK_U8       eof; //!< end of frame stream
 } Avs2dNalu_t;
 
@@ -335,6 +334,7 @@ typedef struct avs2d_stream_buf_t {
 } Avs2dStreamBuf_t;
 
 typedef struct avs2d_memory_t {
+    Avs2dStreamBuf_t        nals_buf;
     Avs2dStreamBuf_t        headerbuf;
     Avs2dStreamBuf_t        streambuf;
 } Avs2dMemory_t;
@@ -380,8 +380,9 @@ typedef struct avs2_dec_ctx_t {
     RK_U8                   has_get_eos;
 
     //-------- current --------------
-    Avs2dNalu_t            *nal; //!< current nalu
+    Avs2dNalu_t             *p_nals;
     RK_U32                  nal_cnt;
+    RK_U32                  nal_allocated;
 
     //--------  video  --------------
     BitReadCtx_t            bitctx;

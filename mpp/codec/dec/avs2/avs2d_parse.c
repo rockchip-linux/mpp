@@ -81,27 +81,31 @@ static RK_U32 avs2_find_start_code(RK_U8 *buf_start, RK_U8* buf_end, RK_U8 **pos
 static MPP_RET avs2_add_nalu_header(Avs2dCtx_t *p_dec, RK_U32 header)
 {
     MPP_RET ret = MPP_OK;
+    Avs2dNalu_t *p_nal = NULL;
 
-    Avs2dStreamBuf_t *p_buf = p_dec->p_header;
-    RK_U32 add_size = sizeof(Avs2dNalu_t);
+    if (p_dec->nal_cnt + 1 > p_dec->nal_allocated) {
+        Avs2dNalu_t *new_buffer = mpp_realloc(p_dec->p_nals, Avs2dNalu_t, p_dec->nal_allocated + MAX_NALU_NUM);
 
-    if ((p_buf->len + add_size) > p_buf->size) {
-        ret = MPP_NOK;
-        mpp_err_f("buffer is larger than %d", p_buf->size);
-        //TODO realloc
-        goto __FAILED;
+        if (!new_buffer) {
+            mpp_err_f("Realloc NALU buffer failed, could not add more NALU!");
+            ret = MPP_ERR_NOMEM;
+        } else {
+            p_dec->p_nals = new_buffer;
+            memset(&p_dec->p_nals[p_dec->nal_allocated], 0, MAX_NALU_NUM * sizeof(Avs2dNalu_t));
+            p_dec->nal_allocated += MAX_NALU_NUM;
+            AVS2D_PARSE_TRACE("Realloc NALU buffer, current allocated %d", p_dec->nal_allocated);
+        }
     }
-    p_dec->nal = (Avs2dNalu_t *)&p_buf->pbuf[p_buf->len];
-    p_dec->nal->eof = 0;
-    p_dec->nal->header = header;
-    p_dec->nal->pdata = NULL;
-    p_dec->nal->length = 0;
-    p_dec->nal->start_pos = 4;
-    p_buf->len += add_size;
+
+    p_nal = p_dec->p_nals + p_dec->nal_cnt;
+    p_nal->header = header;
+    p_nal->length = 0;
+    p_nal->data_pos = 0;
+    p_nal->eof = 0;
+
     p_dec->nal_cnt++;
     AVS2D_PARSE_TRACE("add header 0x%x, nal_cnt %d", header, p_dec->nal_cnt);
 
-__FAILED:
     return ret;
 }
 
@@ -118,10 +122,10 @@ __FAILED:
 static MPP_RET store_nalu(Avs2dCtx_t *p_dec, RK_U8 *p_start, RK_U32 len, RK_U32 start_code)
 {
     MPP_RET ret = MPP_OK;
-    Avs2dNalu_t *p_nalu = p_dec->nal;
+    Avs2dNalu_t *p_nalu = &p_dec->p_nals[p_dec->nal_cnt - 1];
     Avs2dStreamBuf_t *p_header = NULL;;
     RK_U32 add_size = SZ_1K;
-    RK_U32 new_size = 0;
+    RK_U8 *data_ptr = NULL;
 
     if (AVS2_IS_SLICE_START_CODE(start_code)) {
         p_header = p_dec->p_stream;
@@ -132,24 +136,28 @@ static MPP_RET store_nalu(Avs2dCtx_t *p_dec, RK_U8 *p_start, RK_U32 len, RK_U32 
     }
 
     if ((p_header->len + len) > p_header->size) {
-        new_size = p_header->size + add_size;
+        mpp_log_f("realloc %p p_header->pbuf, size %d, len %d %d", p_header->pbuf, p_header->size, p_header->len, len);
+        RK_U32 new_size = p_header->size + add_size + len;
         RK_U8 * new_buffer = mpp_realloc(p_header->pbuf, RK_U8, new_size);
+        mpp_log_f("realloc %p, size %d", p_header->pbuf, new_size);
         if (!new_buffer) {
-            p_header->size = 0;
+            mpp_err_f("Realloc header buffer with size %d failed", new_size);
             return MPP_ERR_NOMEM;
         } else {
-            memset(p_header + p_header->size, 0, new_size - p_header->size);
+            p_header->pbuf = new_buffer;
+            memset(p_header->pbuf + p_header->size, 0, new_size - p_header->size);
             p_header->size = new_size;
         }
     }
 
+    data_ptr = p_header->pbuf + p_header->len;
+
     if (p_nalu->length == 0) {
-        p_nalu->pdata = &p_header->pbuf[p_header->len];
+        p_nalu->data_pos = p_header->len;
     }
 
     if (len > 0) {
-        memcpy(p_nalu->pdata + p_nalu->length, p_start, len);
-        // memcpy(p_nalu->pdata, p_start, len);
+        memcpy(data_ptr, p_start, len);
         p_nalu->length += len;
         p_header->len += len;
     }
@@ -171,16 +179,6 @@ static MPP_RET reset_nalu_buf(Avs2dCtx_t *p_dec)
     p_dec->prev_start_code = 0;
     p_dec->new_frame_flag = 0;
 
-    if (p_dec->nal) {
-        p_dec->nal->eof = 0;
-        p_dec->nal->header = 0;
-        p_dec->nal->pdata = NULL;
-        p_dec->nal->length = 0;
-        p_dec->nal->start_pos = 0;
-
-        p_dec->nal = NULL;
-    }
-
     memset(p_dec->prev_tail_data, 0xff, AVS2D_PACKET_SPLIT_CHECKER_BUFFER_SIZE);
 
     if (p_dec->p_stream) {
@@ -193,7 +191,10 @@ static MPP_RET reset_nalu_buf(Avs2dCtx_t *p_dec)
         p_dec->p_header->len = 0;
     }
 
-    p_dec->nal_cnt = 0;
+    if (p_dec->p_nals) {
+        memset(p_dec->p_nals, 0, sizeof(Avs2dNalu_t) * p_dec->nal_allocated);
+        p_dec->nal_cnt = 0;
+    }
 
     AVS2D_PARSE_TRACE("Out.");
     return ret;
@@ -457,7 +458,7 @@ MPP_RET avs2_split_nalu(Avs2dCtx_t *p_dec, RK_U8 *buf_start, RK_U32 buf_length, 
                 AVS2D_PARSE_TRACE("Found repeated video_sequence_start_code");
             }
 
-            if (AVS2_IS_START_CODE(p_dec->prev_start_code)) {
+            if (AVS2_IS_START_CODE(p_dec->prev_start_code) && p_dec->prev_start_code != AVS2_USER_DATA_START_CODE) {
                 nalu_len = start_code_ptr - buf_start - 3;
                 if (nalu_len > over_read) {
                     store_nalu(p_dec, buf_start + over_read, nalu_len - over_read, p_dec->prev_start_code);
@@ -466,16 +467,17 @@ MPP_RET avs2_split_nalu(Avs2dCtx_t *p_dec, RK_U8 *buf_start, RK_U32 buf_length, 
 
             if (AVS2_IS_SLICE_START_CODE(p_dec->prev_start_code) && !AVS2_IS_SLICE_START_CODE(start_code)) {
                 p_dec->new_frame_flag = 1;
-                p_dec->nal->eof = 1;
+                p_dec->p_nals[p_dec->nal_cnt - 1].eof = 1;
                 *remain = buf_end - start_code_ptr + 4;
             } else {
-                avs2_add_nalu_header(p_dec, start_code);
+                if (start_code != AVS2_USER_DATA_START_CODE)
+                    avs2_add_nalu_header(p_dec, start_code);
 
                 // need to put slice start code to stream buffer
                 if (AVS2_IS_SLICE_START_CODE(start_code)) {
                     store_nalu(p_dec, start_code_ptr - 3, 4, start_code);
                 } else if (start_code == AVS2_VIDEO_SEQUENCE_END_CODE) {
-                    p_dec->nal->eof = 1;
+                    p_dec->p_nals[p_dec->nal_cnt - 1].eof = 1;
                 }
 
                 *remain = buf_end - start_code_ptr;
@@ -558,7 +560,7 @@ MPP_RET avs2d_parse_prepare_split(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask 
             p_curdata = p_end - remain + 1;
         }
 
-        if (p_dec->new_frame_flag || (p_dec->nal && p_dec->nal->eof == 1)) {
+        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)) {
             task->valid = 1;
             break;
         }
@@ -628,7 +630,7 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
             p_curdata = p_end - remain + 1;
         }
 
-        if (p_dec->new_frame_flag || (p_dec->nal && p_dec->nal->eof == 1)) {
+        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)) {
             task->valid = 1;
             break;
         }
@@ -643,17 +645,18 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
 MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
 {
     MPP_RET ret = MPP_OK;
-    Avs2dNalu_t *p_nalu = (Avs2dNalu_t *)p_dec->p_header->pbuf;
+    Avs2dNalu_t *p_nalu = p_dec->p_nals;
     AVS2D_PARSE_TRACE("In.");
-
-    while (p_dec->nal_cnt > 0) {
+    RK_U32 i = 0;
+    for (i = 0 ; i < p_dec->nal_cnt; i++) {
         RK_U32 startcode = p_nalu->header;
 
         AVS2D_PARSE_TRACE("start code 0x%08x\n", startcode);
         if (!AVS2_IS_SLICE_START_CODE(startcode)) {
+            RK_U8 *data_ptr = p_dec->p_header->pbuf + p_nalu->data_pos;
             memset(&p_dec->bitctx, 0, sizeof(BitReadCtx_t));
-            AVS2D_PARSE_TRACE("bitread ctx, pos %d, length %d\n", p_nalu->start_pos, p_nalu->length);
-            mpp_set_bitread_ctx(&p_dec->bitctx, p_nalu->pdata, p_nalu->length);
+            AVS2D_PARSE_TRACE("bitread ctx, pos %d, length %d\n", p_nalu->data_pos, p_nalu->length);
+            mpp_set_bitread_ctx(&p_dec->bitctx, data_ptr, p_nalu->length);
             mpp_set_bitread_pseudo_code_type(&p_dec->bitctx, PSEUDO_CODE_AVS2);
         }
 
@@ -662,10 +665,10 @@ MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
             ret = avs2d_parse_sequence_header(p_dec);
             if (ret == MPP_OK) {
                 p_dec->got_vsh = 1;
-            }
 
-            if (p_dec->new_seq_flag && !p_dec->frm_mgr.initial_flag) {
-                avs2d_dpb_create(p_dec);
+                if (p_dec->new_seq_flag && !p_dec->frm_mgr.initial_flag) {
+                    avs2d_dpb_create(p_dec);
+                }
             }
             p_dec->got_exh = 0;
             break;
@@ -694,17 +697,8 @@ MPP_RET avs2d_parse_stream(Avs2dCtx_t *p_dec, HalDecTask *task)
             break;
         }
 
-        if (p_dec->nal_cnt > 1) {
-            if (!AVS2_IS_SLICE_START_CODE(startcode) && p_nalu->length) {
-                p_nalu = (Avs2dNalu_t *)(p_nalu->pdata + p_nalu->length);
-                AVS2D_PARSE_TRACE("next startcode 0x%08x, eof %d", p_nalu->header, p_nalu->eof);
-            } else {
-                p_nalu++;
-            }
-        }
-
-        p_dec->nal_cnt--;
-    };
+        p_nalu++;
+    }
 
     reset_nalu_buf(p_dec);
 
