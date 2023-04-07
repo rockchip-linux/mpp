@@ -46,6 +46,7 @@ MPP_RET avs2d_deinit(void *decoder)
     MPP_FREE(p_dec->p_stream->pbuf);
     MPP_FREE(p_dec->p_header->pbuf);
     MPP_FREE(p_dec->mem);
+    MPP_FREE(p_dec->p_nals);
     mpp_packet_deinit(&p_dec->task_pkt);
     avs2d_dpb_destroy(p_dec);
 
@@ -76,19 +77,22 @@ MPP_RET avs2d_init(void *decoder, ParserCfg *init)
     MEM_CHECK(ret, p_dec->mem);
     p_dec->p_header = &p_dec->mem->headerbuf;
     p_dec->p_header->size = MAX_HEADER_SIZE;
-    p_dec->p_header->pbuf = mpp_malloc(RK_U8, p_dec->p_header->size);
+    p_dec->p_header->pbuf = mpp_calloc(RK_U8, p_dec->p_header->size);
     MEM_CHECK(ret, p_dec->p_header->pbuf);
 
     p_dec->p_stream = &p_dec->mem->streambuf;
     p_dec->p_stream->size = MAX_STREAM_SIZE;
-    p_dec->p_stream->pbuf = mpp_malloc(RK_U8, p_dec->p_stream->size);
+    p_dec->p_stream->pbuf = mpp_calloc(RK_U8, p_dec->p_stream->size);
     MEM_CHECK(ret, p_dec->p_stream->pbuf);
+
+    p_dec->p_nals = mpp_calloc(Avs2dNalu_t, MAX_NALU_NUM);
+    MEM_CHECK(ret, p_dec->p_nals);
+    p_dec->nal_allocated = MAX_NALU_NUM;
+    p_dec->nal_cnt = 0;
 
     mpp_packet_init(&p_dec->task_pkt, p_dec->p_stream->pbuf, p_dec->p_stream->size);
     mpp_packet_set_length(p_dec->task_pkt, 0);
     MEM_CHECK(ret, p_dec->task_pkt);
-
-    // avs2d_dpb_create(p_dec);
 
 __RETURN:
     AVS2D_PARSE_TRACE("Out.");
@@ -116,7 +120,6 @@ MPP_RET avs2d_reset(void *decoder)
     p_dec->pkt_no      = 0;
     p_dec->frame_no    = 0;
     p_dec->has_get_eos = 0;
-    p_dec->nal         = NULL;
 
     AVS2D_PARSE_TRACE("Out.");
     return ret;
@@ -231,7 +234,10 @@ MPP_RET avs2d_parse(void *decoder, HalDecTask *task)
 
     task->valid = 0;
 
-    avs2d_parse_stream(p_dec, task);
+    ret = avs2d_parse_stream(p_dec, task);
+    if (ret) {
+        mpp_err_f("Parse stream failed!");
+    }
     if (task->valid) {
         AVS2D_PARSE_TRACE("-------- Frame %lld--------", p_dec->frame_no);
         avs2d_dpb_insert(p_dec, task);
