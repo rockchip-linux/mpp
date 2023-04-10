@@ -510,24 +510,13 @@ MPP_RET avs2d_parse_prepare_split(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask 
     RK_U8 *p_start = NULL;
     RK_U8 *p_end = NULL;
     RK_U32 pkt_length = 0;
-    RK_U32 pkt_eos = 0;
     RK_U32 first_read_length = 0;
 
     AVS2D_PARSE_TRACE("In.");
 
-    pkt_eos = mpp_packet_get_eos(pkt);
     pkt_length = (RK_U32) mpp_packet_get_length(pkt);
 
-    // check eos
-    if (pkt_eos && !pkt_length) {
-        // EOS packet without data, end of stream
-        task->valid = 0;
-        task->flags.eos = 1;
-        return ret;
-    }
-
     if (!pkt_length) {
-        AVS2D_PARSE_TRACE("Input have no stream.");
     }
 
     p_curdata = p_start = (RK_U8 *) mpp_packet_get_pos(pkt);
@@ -603,20 +592,7 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
 
     AVS2D_PARSE_TRACE("In.");
 
-    pkt_eos = mpp_packet_get_eos(pkt);
     pkt_length = (RK_U32) mpp_packet_get_length(pkt);
-
-    // check eos
-    if (pkt_eos && !pkt_length) {
-        // EOS packet without data, end of stream
-        task->valid = 0;
-        task->flags.eos = 1;
-        return ret;
-    }
-
-    if (!pkt_length) {
-        AVS2D_PARSE_TRACE("Input have no stream.");
-    }
 
     p_curdata = p_start = (RK_U8 *) mpp_packet_get_pos(pkt);
     p_end = p_start + pkt_length - 1;
