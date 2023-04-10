@@ -367,7 +367,7 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
         memcpy(p_des + sizeof(g_start_precode), p_strm->nalu_buf, p_strm->nalu_len);
         dxva_ctx->strm_offset += add_size;
     }
-    if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
+    if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
         H264dInputCtx_t *p_Inp = p_Cur->p_Inp;
         if ((p_strm->nalu_type == H264_NALU_TYPE_SPS)
             || (p_strm->nalu_type == H264_NALU_TYPE_PPS)) {
@@ -463,7 +463,7 @@ static RK_U64 global_flie_size = 0;
 */
 MPP_RET open_stream_file(H264dInputCtx_t *p_Inp, char *path)
 {
-    if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
+    if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
 
         sprintf(p_Inp->fname[0], "%s/rkv_h264d_file_00.h264", path);
         sprintf(p_Inp->fname[1], "%s/rkv_h264d_file_01.h264", path);
@@ -485,7 +485,7 @@ MPP_RET open_stream_file(H264dInputCtx_t *p_Inp, char *path)
 */
 MPP_RET fwrite_stream_to_file(H264dInputCtx_t *p_Inp, RK_U8 *pdata, RK_U32 len)
 {
-    if (p_Inp->fp && (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN)) {
+    if (p_Inp->fp && (h264d_debug & H264D_DBG_WRITE_ES_EN)) {
         if (p_Inp->fp) {
             fwrite(pdata, sizeof(RK_U8), len, p_Inp->fp);
             fflush(p_Inp->fp);
@@ -515,7 +515,7 @@ MPP_RET fwrite_stream_to_file(H264dInputCtx_t *p_Inp, RK_U8 *pdata, RK_U32 len)
 */
 MPP_RET close_stream_file(H264dInputCtx_t *p_Inp)
 {
-    if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
+    if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
         if (p_Inp->fp) {
             fflush(p_Inp->fp);
             MPP_FCLOSE(p_Inp->fp);

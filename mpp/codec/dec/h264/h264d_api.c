@@ -33,7 +33,7 @@
 #include "h264d_init.h"
 #include "mpp_dec_cb_param.h"
 
-RK_U32 rkv_h264d_parse_debug = 0;
+RK_U32 h264d_debug = 0;
 
 static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 {
@@ -53,7 +53,7 @@ static MPP_RET init_input_ctx(H264dInputCtx_t *p_Inp, ParserCfg *init)
     INP_CHECK(ret, !p_Inp && !init);
 
     open_stream_file(p_Inp, "/sdcard");
-    if (rkv_h264d_parse_debug & H264D_DBG_WRITE_ES_EN) {
+    if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
         p_Inp->spspps_size = HEAD_BUF_MAX_SIZE;
         p_Inp->spspps_buf = mpp_malloc_size(RK_U8, p_Inp->spspps_size);
         MEM_CHECK(ret, p_Inp->spspps_buf);
@@ -316,7 +316,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
     INP_CHECK(ret, !p_Dec);
     memset(p_Dec, 0, sizeof(H264_DecCtx_t));
 
-    mpp_env_get_u32("rkv_h264d_debug", &rkv_h264d_parse_debug, H264D_DBG_ERROR);
+    mpp_env_get_u32("h264d_debug", &h264d_debug, H264D_DBG_ERROR);
 
     //!< get init frame_slots and packet_slots
     p_Dec->frame_slots  = init->frame_slots;
