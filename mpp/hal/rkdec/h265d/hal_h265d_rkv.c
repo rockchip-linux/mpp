@@ -731,8 +731,8 @@ static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
                       i, dxva_cxt->slice_short[i].BSNALunitDataLocation, dxva_cxt->slice_count,
                       dxva_cxt->slice_short[i].SliceBytesInBuffer, dxva_cxt->bitstream_size);
 
-            memcpy(buf + start_byte + 1, buf + end_byte,
-                   stream_size - dxva_cxt->slice_short[i].BSNALunitDataLocation - end_byte);
+            memmove(buf + start_byte + 1, buf + end_byte,
+                    stream_size - dxva_cxt->slice_short[i].BSNALunitDataLocation - end_byte);
 
             cut_byte = end_byte - start_byte - 1;
             dxva_cxt->slice_short[i].SliceBytesInBuffer -= cut_byte;
