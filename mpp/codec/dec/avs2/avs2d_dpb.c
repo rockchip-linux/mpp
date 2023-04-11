@@ -536,6 +536,7 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     if (p_dec->got_exh) {
         mpp_frame_set_color_primaries(mframe, exh->color_primaries);
         mpp_frame_set_color_trc(mframe, exh->transfer_characteristics);
+        mpp_frame_set_colorspace(mframe, exh->matrix_coefficients);
     }
     mpp_frame_set_content_light(mframe, p_dec->content_light);
     mpp_frame_set_mastering_display(mframe, p_dec->display_meta);

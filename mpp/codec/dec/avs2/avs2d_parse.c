@@ -304,6 +304,9 @@ static MPP_RET parse_extension_header(Avs2dCtx_t *p_dec, BitReadCtx_t *bitctx)
     case AVS2_SEQUENCE_DISPLAY_EXT_ID:
         FUN_CHECK(ret = parse_seq_dispay_ext_header(bitctx, &p_dec->exh));
         p_dec->got_exh = 1;
+        if (p_dec->exh.transfer_characteristics == MPP_FRAME_TRC_BT2020_10 ||
+            p_dec->exh.transfer_characteristics == MPP_FRAME_TRC_BT1361_ECG)
+            p_dec->is_hdr = 1;
         break;
     case AVS2_MASTERING_DISPLAY_AND_CONTENT_METADATA_EXT_ID:
         FUN_CHECK(ret = parse_mastering_display_and_content_meta(bitctx,
