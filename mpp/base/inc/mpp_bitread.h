@@ -67,7 +67,7 @@
 
 #define SKIP_BITS(bitctx, num_bits)\
     do {\
-        bitctx->ret = mpp_skip_bits(bitctx, num_bits); \
+        bitctx->ret = mpp_skip_longbits(bitctx, num_bits); \
         if (bitctx->ret) { goto __BITREAD_ERR; }\
     } while (0)
 

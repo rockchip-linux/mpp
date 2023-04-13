@@ -168,6 +168,9 @@ MPP_RET mpp_skip_bits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 */
 MPP_RET mpp_skip_longbits(BitReadCtx_t *bitctx, RK_S32 num_bits)
 {
+    if (num_bits < 32)
+        return mpp_skip_bits(bitctx, num_bits);
+
     if (mpp_skip_bits(bitctx, 16)) {
         return  MPP_ERR_READ_BIT;
     }
