@@ -1703,16 +1703,18 @@ RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *task)
     task->output = s->frames[CUR_FRAME].slot_index;
     task->input_packet = ctx->pkt;
 
-    for (i = 0; i < 3; i++) {
-        if (s->refs[s->refidx[i]].slot_index < 0x7f) {
-            MppFrame mframe = NULL;
-            mpp_buf_slot_set_flag(s->slots, s->refs[s->refidx[i]].slot_index, SLOT_HAL_INPUT);
-            task->refer[i] = s->refs[s->refidx[i]].slot_index;
-            mpp_buf_slot_get_prop(s->slots, task->refer[i], SLOT_FRAME_PTR, &mframe);
-            if (mframe)
-                task->flags.ref_err |= mpp_frame_get_errinfo(mframe);
-        } else {
-            task->refer[i] = -1;
+    if (!s->keyframe && !s->intraonly) {
+        for (i = 0; i < 3; i++) {
+            if (s->refs[s->refidx[i]].slot_index < 0x7f) {
+                MppFrame mframe = NULL;
+                mpp_buf_slot_set_flag(s->slots, s->refs[s->refidx[i]].slot_index, SLOT_HAL_INPUT);
+                task->refer[i] = s->refs[s->refidx[i]].slot_index;
+                mpp_buf_slot_get_prop(s->slots, task->refer[i], SLOT_FRAME_PTR, &mframe);
+                if (mframe)
+                    task->flags.ref_err |= mpp_frame_get_errinfo(mframe);
+            } else {
+                task->refer[i] = -1;
+            }
         }
     }
     vp9d_dbg(VP9D_DBG_REF, "ref_errinfo=%d\n", task->flags.ref_err);
