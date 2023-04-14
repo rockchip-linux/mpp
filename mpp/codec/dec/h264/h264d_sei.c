@@ -23,6 +23,7 @@
 #include "h264d_global.h"
 #include "h264d_sps.h"
 #include "h264d_sei.h"
+#include "h2645d_sei.h"
 
 static MPP_RET interpret_picture_timing_info(
     BitReadCtx_t *p_bitctx,
@@ -248,6 +249,12 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
             break;
         case H264_SEI_PIC_TIMING:
             FUN_CHECK(interpret_picture_timing_info(&payload_bitctx, sei_msg, currSlice->p_Vid));
+            break;
+        case H264_SEI_USER_DATA_UNREGISTERED:
+            FUN_CHECK(check_encoder_sei_info(&payload_bitctx, sei_msg->payload_size, &currSlice->p_Vid->deny_flag));
+
+            if (currSlice->p_Vid->deny_flag)
+                H264D_DBG(H264D_DBG_SEI, "Bitstream is encoded by special encoder.");
             break;
         default:
             H264D_DBG(H264D_DBG_SEI, "Skip parsing SEI type %d\n", sei_msg->type);

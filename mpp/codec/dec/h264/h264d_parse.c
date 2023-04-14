@@ -226,6 +226,13 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     FUN_CHECK(ret = parser_nalu_header(currSlice));
+
+    if (currSlice->p_Vid->deny_flag &&
+        currSlice->p_Cur->nalu.nalu_type != H264_NALU_TYPE_SPS) {
+        currSlice->p_Dec->nalu_ret = NaluNotSupport;
+        return MPP_OK;
+    }
+
     //!< nalu_parse
     switch (currSlice->p_Cur->nalu.nalu_type) {
     case H264_NALU_TYPE_SLICE:
@@ -240,6 +247,7 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
         FUN_CHECK(ret = process_sps(currSlice));
         currSlice->p_Dec->nalu_ret = NALU_SPS;
+        currSlice->p_Vid->deny_flag = 0;
         break;
     case H264_NALU_TYPE_PPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=PPS");
@@ -922,6 +930,9 @@ MPP_RET parse_loop(H264_DecCtx_t *p_Dec)
                 p_Dec->next_state = SliceSTATE_InitPicture;
             }  else if (p_Dec->nalu_ret == MvcDisAble) {
                 H264D_LOG("xxxxxxxx MVC disable");
+                goto __FAILED;
+            } else if (p_Dec->nalu_ret == NaluNotSupport) {
+                H264D_LOG("NALU not support, abort decoding");
                 goto __FAILED;
             } else {
                 p_Dec->next_state = SliceSTATE_ReadNalu;

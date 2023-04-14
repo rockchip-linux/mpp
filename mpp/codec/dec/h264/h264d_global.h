@@ -740,7 +740,6 @@ typedef struct h264_sei_t {
         //-- for adding
     } scalable_nesting;
 
-    RK_U32 user_data_DivX_flag;
     // Placeholder; in future more supported types will contribute to more
     //---- follow is used in other parts
     RK_S32 mvc_scalable_nesting_flag;
@@ -1050,6 +1049,7 @@ typedef struct h264d_video_ctx_t {
     RK_U32     dpb_fast_out;
     RK_U32     dpb_first_fast_played;
     RK_U32     last_ref_frame_num;
+    RK_U32     deny_flag;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
