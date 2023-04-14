@@ -1,5 +1,6 @@
 # vim: syntax=cmake
 include_directories(.)
+include_directories(../common)
 
 # h264 decoder api
 set(H264D_API
@@ -44,6 +45,6 @@ add_library(${CODEC_H264D} STATIC
     ${H264D_SRC}
     )
 
-target_link_libraries(${CODEC_H264D} mpp_base)
+target_link_libraries(${CODEC_H264D} dec_common mpp_base)
 set_target_properties(${CODEC_H264D} PROPERTIES FOLDER "mpp/codec")
 
