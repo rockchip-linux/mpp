@@ -1297,6 +1297,11 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
     s->nuh_layer_id = ret;
     h265d_dbg(H265D_DBG_GLOBAL, "s->nal_unit_type = %d,len = %d \n", s->nal_unit_type, length);
 
+    if (s->deny_flag && (s->nal_unit_type != NAL_VPS && s->nal_unit_type != NAL_SPS)) {
+        ret = MPP_ERR_STREAM;
+        goto fail;
+    }
+
     switch (s->nal_unit_type) {
     case NAL_VPS:
         ret = mpp_hevc_decode_nal_vps(s);
@@ -1311,6 +1316,8 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             mpp_err("mpp_hevc_decode_nal_sps error ret = %d", ret);
             goto fail;
         }
+
+        s->deny_flag = 0;
         break;
     case NAL_PPS:
         if (s->pre_pps_data == NULL) {

@@ -1,4 +1,6 @@
 # vim: syntax=cmake
+include_directories(../common)
+
 set(H265D_PARSER_HDR
     h265d_defs.h
     h265d_parser.h
@@ -19,4 +21,4 @@ add_library(${CODEC_H265D} STATIC
     )
 
 set_target_properties(${CODEC_H265D} PROPERTIES FOLDER "mpp/codec")
-target_link_libraries(${CODEC_H265D} mpp_base)
+target_link_libraries(${CODEC_H265D} dec_common mpp_base)
