@@ -29,6 +29,7 @@
 
 #include "h265d_parser.h"
 #include "rk_hdr_meta_com.h"
+#include "h2645d_sei.h"
 
 
 static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
@@ -418,6 +419,11 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
                 h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
             } else if (payload_type == 4) {
                 ret = user_data_registered_itu_t_t35(s, &payload_bitctx, payload_size);
+            } else if (payload_type == 5) {
+                ret = check_encoder_sei_info(&payload_bitctx, payload_size, &s->deny_flag);
+
+                if (s->deny_flag)
+                    h265d_dbg(H265D_DBG_SEI, "Bitstream is encoded by special encoder.");
             } else if (payload_type == 129) {
                 ret = active_parameter_sets(s, &payload_bitctx);
                 h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);

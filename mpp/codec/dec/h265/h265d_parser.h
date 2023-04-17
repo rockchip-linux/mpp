@@ -625,6 +625,8 @@ typedef struct HEVCContext {
     /* hdr info */
     RK_U32  is_hdr;
     RK_U32  hdr_dynamic;
+
+    RK_U32  deny_flag;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
