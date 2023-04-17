@@ -31,13 +31,10 @@
 #include "rk_hdr_meta_com.h"
 
 
-static RK_S32 decode_nal_sei_decoded_picture_hash(HEVCContext *s)
+static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
 {
     RK_S32 cIdx, i;
     RK_U8 hash_type;
-    //uint16_t picture_crc;
-    //RK_U32 picture_checksum;
-    BitReadCtx_t*gb = &s->HEVClc->gb;
     READ_BITS(gb, 8, &hash_type);
 
     for (cIdx = 0; cIdx < 3/*((s->sps->chroma_format_idc == 0) ? 1 : 3)*/; cIdx++) {
@@ -56,9 +53,8 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_nal_sei_frame_packing_arrangement(HEVCContext *s)
+static RK_S32 decode_nal_sei_frame_packing_arrangement(HEVCContext *s, BitReadCtx_t *gb)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 value = 0;
 
     READ_UE(gb, &value);                  // frame_packing_arrangement_id
@@ -86,9 +82,8 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_pic_timing(HEVCContext *s)
+static RK_S32 decode_pic_timing(HEVCContext *s, BitReadCtx_t *gb)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     HEVCSPS *sps;
 
     if (!s->sps_list[s->active_seq_parameter_set_id])
@@ -115,14 +110,13 @@ static RK_S32 decode_pic_timing(HEVCContext *s)
         SKIP_BITS(gb, 2);                   // source_scan_type
         SKIP_BITS(gb, 1);                   // duplicate_flag
     }
-    return 1;
+    return 0;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 active_parameter_sets(HEVCContext *s)
+static RK_S32 active_parameter_sets(HEVCContext *s, BitReadCtx_t *gb)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     RK_S32 num_sps_ids_minus1;
     RK_S32 i, value;
     RK_U32 active_seq_parameter_set_id;
@@ -147,12 +141,11 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 mastering_display_colour_volume(HEVCContext *s)
+static RK_S32 mastering_display_colour_volume(HEVCContext *s, BitReadCtx_t *gb)
 {
     RK_S32 i = 0;
     RK_U16 value = 0;
     RK_U32 lum = 0;
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     for (i = 0; i < 3; i++) {
         READ_BITS(gb, 16, &value);
         s->mastering_display.display_primaries[i][0] = value;
@@ -174,10 +167,9 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 content_light_info(HEVCContext *s)
+static RK_S32 content_light_info(HEVCContext *s, BitReadCtx_t *gb)
 {
     RK_U32 value = 0;
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     mpp_read_longbits(gb, 16, &value);
     s->content_light.MaxCLL = value;
     mpp_read_longbits(gb, 16, &value);
@@ -185,14 +177,13 @@ static RK_S32 content_light_info(HEVCContext *s)
     return 0;
 }
 
-static RK_S32 colour_remapping_info(HEVCContext *s)
+static RK_S32 colour_remapping_info(BitReadCtx_t *gb)
 {
     RK_U32 i = 0, j = 0;
     RK_U32 value = 0;
     RK_U32 in_bit_depth = 0;
     RK_U32 out_bit_depth = 0;
 
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     READ_UE(gb, &value); //colour_remap ID
     READ_ONEBIT(gb, &value); //colour_remap_cancel_flag
     if (!value) {
@@ -242,18 +233,18 @@ static RK_S32 colour_remapping_info(HEVCContext *s)
 
     }
 
+    return MPP_OK;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 tone_mapping_info(HEVCContext *s)
+static RK_S32 tone_mapping_info(BitReadCtx_t *gb)
 {
     RK_U32 i = 0;
     RK_U32 value = 0;
     RK_U32 codec_bit_depth = 0;
     RK_U32 target_bit_depth = 0;
 
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     READ_UE(gb, &value); //tone_map ID
     READ_ONEBIT(gb, &value); //tone_map_cancel_flag
     if (!value) {
@@ -317,6 +308,8 @@ static RK_S32 tone_mapping_info(HEVCContext *s)
             break;
         }
     }
+
+    return MPP_OK;
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
@@ -330,10 +323,8 @@ static RK_S32 vivid_display_info(HEVCContext *s, RK_U32 size)
     return 0;
 }
 
-static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, int size)
+static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, int size)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
-
     RK_S32 country_code, provider_code;
     RK_U16 terminal_provide_oriented_code;
 
@@ -353,8 +344,7 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, int size)
     /* usa country_code or china country_code */
     if (country_code != 0xB5 && country_code != 0x26) {
         mpp_log("Unsupported User Data Registered ITU-T T35 SEI message (country_code = %d)", country_code);
-        SKIP_BITS(gb, 8 * size);
-        return 0;
+        return MPP_ERR_STREAM;
     }
 
     READ_BITS(gb, 16, &provider_code);
@@ -367,16 +357,14 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, int size)
         vivid_display_info(s, size);
     }
 
-    SKIP_BITS(gb, 8 * size);
     return 0;
 
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_nal_sei_alternative_transfer(HEVCContext *s)
+static RK_S32 decode_nal_sei_alternative_transfer(HEVCContext *s, BitReadCtx_t *gb)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
     HEVCSEIAlternativeTransfer *alternative_transfer = &s->alternative_transfer;
     RK_S32 val;
 
@@ -389,102 +377,89 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_nal_sei_message(HEVCContext *s)
+MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
 {
+    MPP_RET ret = MPP_OK;
     BitReadCtx_t *gb = &s->HEVClc->gb;
 
-    int payload_type = 0;
-    int payload_size = 0;
-    int byte = 0xFF;
+    RK_S32 payload_type = 0;
+    RK_S32 payload_size = 0;
+    RK_S32 byte = 0xFF;
+    RK_S32 i = 0;
+    BitReadCtx_t payload_bitctx;
     h265d_dbg(H265D_DBG_SEI, "Decoding SEI\n");
 
-    while (byte == 0xFF) {
-        READ_BITS(gb, 8, &byte);
-        payload_type += byte;
-    }
-    byte = 0xFF;
-    while (byte == 0xFF) {
-        READ_BITS(gb, 8, &byte);
-        payload_size += byte;
-    }
+    do {
+        payload_type = 0;
+        payload_size = 0;
+        byte = 0xFF;
+        while (byte == 0xFF) {
+            READ_BITS(gb, 8, &byte);
+            payload_type += byte;
+        }
+        byte = 0xFF;
+        while (byte == 0xFF) {
+            READ_BITS(gb, 8, &byte);
+            payload_size += byte;
+        }
 
-    h265d_dbg(H265D_DBG_SEI, "s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
+        memset(&payload_bitctx, 0, sizeof(payload_bitctx));
+        mpp_set_bitread_ctx(&payload_bitctx, s->HEVClc->gb.data_, payload_size);
 
-    if (s->nal_unit_type == NAL_SEI_PREFIX) {
-        if (payload_type == 256 /*&& s->decode_checksum_sei*/) {
-            decode_nal_sei_decoded_picture_hash(s);
-            return 1;
-        } else if (payload_type == 45) {
-            decode_nal_sei_frame_packing_arrangement(s);
-            return 1;
-        } else if (payload_type == 1) {
-            int ret = decode_pic_timing(s);
-            h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
-            SKIP_BITS(gb, 8 * payload_size);
+        h265d_dbg(H265D_DBG_SEI, "s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
+
+        if (s->nal_unit_type == NAL_SEI_PREFIX) {
+            if (payload_type == 256 /*&& s->decode_checksum_sei*/) {
+                ret = decode_nal_sei_decoded_picture_hash(&payload_bitctx);
+            } else if (payload_type == 45) {
+                ret = decode_nal_sei_frame_packing_arrangement(s, &payload_bitctx);
+            } else if (payload_type == 1) {
+                ret = decode_pic_timing(s, &payload_bitctx);
+                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+            } else if (payload_type == 4) {
+                ret = user_data_registered_itu_t_t35(s, &payload_bitctx, payload_size);
+            } else if (payload_type == 129) {
+                ret = active_parameter_sets(s, &payload_bitctx);
+                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+            } else if (payload_type == 137) {
+                h265d_dbg(H265D_DBG_SEI, "mastering_display_colour_volume in\n");
+                ret = mastering_display_colour_volume(s, &payload_bitctx);
+                s->is_hdr = 1;
+            } else if (payload_type == 144) {
+                h265d_dbg(H265D_DBG_SEI, "content_light_info in\n");
+                ret = content_light_info(s, &payload_bitctx);
+            } else if (payload_type == 143) {
+                h265d_dbg(H265D_DBG_SEI, "colour_remapping_info in\n");
+                ret = colour_remapping_info(&payload_bitctx);
+            } else if (payload_type == 23) {
+                h265d_dbg(H265D_DBG_SEI, "tone_mapping_info in\n");
+                ret = tone_mapping_info(&payload_bitctx);
+            } else if (payload_type == 6) {
+                h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
+                s->max_ra = INT_MIN;
+            }  else if (payload_type == 147) {
+                h265d_dbg(H265D_DBG_SEI, "alternative_transfer in\n");
+                ret = decode_nal_sei_alternative_transfer(s, &payload_bitctx);
+            } else {
+                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+            }
+        } else { /* nal_unit_type == NAL_SEI_SUFFIX */
+            if (payload_type == 132 /* && s->decode_checksum_sei */)
+                ret = decode_nal_sei_decoded_picture_hash(&payload_bitctx);
+            else {
+                h265d_dbg(H265D_DBG_SEI, "Skipped SUFFIX SEI %d\n", payload_type);
+            }
+        }
+
+        for (i = 0; i < payload_size; i++)
+            SKIP_BITS(gb, 8);
+
+        if (ret)
             return ret;
-        } else if (payload_type == 4) {
-            return user_data_registered_itu_t_t35(s, payload_size);
-        } else if (payload_type == 129) {
-            active_parameter_sets(s);
-            h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
-            return 1;
-        } else if (payload_type == 137) {
-            h265d_dbg(H265D_DBG_SEI, "mastering_display_colour_volume in\n");
-            mastering_display_colour_volume(s);
-            s->is_hdr = 1;
-            return 1;
-        } else if (payload_type == 144) {
-            h265d_dbg(H265D_DBG_SEI, "content_light_info in\n");
-            content_light_info(s);
-            return 1;
-        } else if (payload_type == 143) {
-            h265d_dbg(H265D_DBG_SEI, "colour_remapping_info in\n");
-            colour_remapping_info(s);
-            return 1;
-        } else if (payload_type == 23) {
-            h265d_dbg(H265D_DBG_SEI, "tone_mapping_info in\n");
-            tone_mapping_info(s);
-            return 1;
-        } else if (payload_type == 6) {
-            h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
-            SKIP_BITS(gb, 8 * payload_size);
-            s->max_ra = INT_MIN;
-            return 1;
-        }  else if (payload_type == 147) {
-            h265d_dbg(H265D_DBG_SEI, "alternative_transfer in\n");
-            decode_nal_sei_alternative_transfer(s);
-            return 1;
-        } else {
-            h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
-            SKIP_BITS(gb, 8 * payload_size);
-            return 1;
-        }
-    } else { /* nal_unit_type == NAL_SEI_SUFFIX */
-        if (payload_type == 132 /* && s->decode_checksum_sei */)
-            decode_nal_sei_decoded_picture_hash(s);
-        else {
-            h265d_dbg(H265D_DBG_SEI, "Skipped SUFFIX SEI %d\n", payload_type);
-            SKIP_BITS(gb, 8 * payload_size);
-        }
-        return 1;
-    }
+    } while (gb->bytes_left_ > 1 &&  gb->data_[0] != 0x80);
+
+    return ret;
+
 __BITREAD_ERR:
     return  MPP_ERR_STREAM;
-}
-
-static RK_S32 more_rbsp_data(BitReadCtx_t *gb)
-{
-    return gb->bytes_left_ > 1 &&  gb->data_[0] != 0x80;
-}
-
-RK_S32 mpp_hevc_decode_nal_sei(HEVCContext *s)
-{
-    RK_S32 ret;
-
-    do {
-        ret = decode_nal_sei_message(s);
-        if (ret < 0)
-            return MPP_ERR_NOMEM;
-    } while (more_rbsp_data(&s->HEVClc->gb));
-    return 1;
 }
