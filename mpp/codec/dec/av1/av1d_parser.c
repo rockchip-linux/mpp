@@ -306,7 +306,7 @@ static void global_motion_params(AV1Context *s)
     for (ref = AV1_REF_FRAME_LAST; ref <= AV1_REF_FRAME_ALTREF; ref++) {
         RK_U8 ref_uses_scaling = ctx->frame_width != ctx->ref_s[ref].frame_width ||
                                  ctx->frame_height != ctx->ref_s[ref].frame_height;
-        RK_U32 shear_params_valid;
+        RK_U32 shear_params_valid = 0;
 
         if (header->is_global[ref]) {
             if (header->is_rot_zoom[ref]) {

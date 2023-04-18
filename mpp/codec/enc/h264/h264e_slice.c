@@ -523,7 +523,7 @@ RK_S32 h264e_slice_read(H264eSlice *slice, void *p, RK_S32 size)
     }
     bit_cnt = bit.used_bits;
 
-    h264e_dbg_slice("used bit %2d total aligned length\n", bit.used_bits);
+    h264e_dbg_slice("used bit %2d total aligned length, read result %d\n", bit.used_bits, ret);
 
     if (h264e_debug & H264E_DBG_SLICE) {
         RK_S32 pos = 0;

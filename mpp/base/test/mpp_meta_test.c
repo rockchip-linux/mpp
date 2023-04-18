@@ -112,6 +112,8 @@ void *meta_test(void *param)
         ret |= mpp_meta_put(meta);
     }
 
+    mpp_log("meta setting and getting, ret %d\n", ret);
+
     time_end = mpp_time();
 
     *((RK_S64 *)param) = (time_end - time_start) / loop_max;

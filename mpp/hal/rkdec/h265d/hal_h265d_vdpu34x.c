@@ -843,7 +843,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 aglin_offset = 0;
     RK_S32 valid_ref = -1;
     MppBuffer framebuf = NULL;
-    RK_U32  sw_ref_valid = 0;
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
@@ -1074,7 +1073,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
             mv_buf = hal_bufs_get_buf(reg_cxt->cmv_bufs, dxva_cxt->pp.RefPicList[i].Index7Bits);
             hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
-            sw_ref_valid          |=   (1 << i);
             SET_REF_VALID(hw_regs->h265d_param, i, 1);
         }
     }

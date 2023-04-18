@@ -1669,7 +1669,7 @@ void mpp_hevc_fill_dynamic_meta(HEVCContext *s, const RK_U8 *data, RK_U32 size, 
             return;
         }
     }
-    if (hdr_dynamic_meta->data && data) {
+    if (size && data) {
         if (hdr_fmt == DOLBY) {
             RK_U8 start_code[4] = {0, 0, 0, 1};
 

@@ -2399,27 +2399,26 @@ static RK_S32 mpp_av1_get_dolby_rpu(AV1Context *ctx, BitReadCtx_t *gb)
         }
     }
 
-    if (hdr_dynamic_meta->data) {
-        RK_U32 i;
-        MppWriteCtx bit_ctx;
+    RK_U32 i;
+    MppWriteCtx bit_ctx;
 
-        mpp_writer_init(&bit_ctx, hdr_dynamic_meta->data, SZ_1K);
+    mpp_writer_init(&bit_ctx, hdr_dynamic_meta->data, SZ_1K);
 
-        mpp_writer_put_raw_bits(&bit_ctx, 0, 24);
-        mpp_writer_put_raw_bits(&bit_ctx, 1, 8);
-        mpp_writer_put_raw_bits(&bit_ctx, 0x19, 8);
-        for (i = 0; i < emdf_payload_size; i++) {
-            RK_U8 data;
+    mpp_writer_put_raw_bits(&bit_ctx, 0, 24);
+    mpp_writer_put_raw_bits(&bit_ctx, 1, 8);
+    mpp_writer_put_raw_bits(&bit_ctx, 0x19, 8);
+    for (i = 0; i < emdf_payload_size; i++) {
+        RK_U8 data;
 
-            READ_BITS(gb, 8, &data);
-            mpp_writer_put_bits(&bit_ctx, data, 8);
-        }
-
-        hdr_dynamic_meta->size = mpp_writer_bytes(&bit_ctx);
-        hdr_dynamic_meta->hdr_fmt = DOLBY;
-        av1d_dbg(AV1D_DBG_STRMIN, "dolby rpu size %d -> %d\n",
-                 emdf_payload_size, hdr_dynamic_meta->size);
+        READ_BITS(gb, 8, &data);
+        mpp_writer_put_bits(&bit_ctx, data, 8);
     }
+
+    hdr_dynamic_meta->size = mpp_writer_bytes(&bit_ctx);
+    hdr_dynamic_meta->hdr_fmt = DOLBY;
+    av1d_dbg(AV1D_DBG_STRMIN, "dolby rpu size %d -> %d\n",
+             emdf_payload_size, hdr_dynamic_meta->size);
+
     ctx->hdr_dynamic_meta = hdr_dynamic_meta;
     ctx->hdr_dynamic = 1;
     ctx->is_hdr = 1;
