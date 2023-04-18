@@ -120,8 +120,8 @@ static MPP_RET h265e_encapsulate_nals(H265eExtraInfo *out)
         nal_buffer += nal[i].i_payload;
     }
 
-    h265e_dbg(H265E_DBG_HEADER, "nals total size: %d bytes",
-              nal_buffer - out->nal_buf);
+    h265e_dbg(H265E_DBG_HEADER, "nals total size: %d bytes, necessary_size %d",
+              nal_buffer - out->nal_buf, necessary_size);
 
     h265e_dbg_func("leave\n");
     return MPP_OK;

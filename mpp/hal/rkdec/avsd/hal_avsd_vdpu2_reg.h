@@ -118,9 +118,9 @@ typedef struct {
     RK_U32 sw58;
     struct {
         RK_U32 reserve : 2;
-        RK_S32 pred_bc_tap_0_2 : 10;
-        RK_S32 pred_bc_tap_0_1 : 10;
-        RK_S32 pred_bc_tap_0_0 : 10;
+        RK_U32 pred_bc_tap_0_2 : 10;
+        RK_U32 pred_bc_tap_0_1 : 10;
+        RK_U32 pred_bc_tap_0_0 : 10;
     } sw59;
     RK_U32 sw60;
     RK_U32 sw61;

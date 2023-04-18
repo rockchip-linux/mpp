@@ -163,7 +163,6 @@ RK_S32 vdpu382_compare_rcb_size(const void *a, const void *b)
 RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info)
 {
     MppDevRcbInfoCfg rcb_cfg;
-    RK_U32 total_size = 0;
     RK_U32 i;
     /*
      * RCB_SET_BY_SIZE_SORT_MODE: by size sort
@@ -197,7 +196,6 @@ RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info)
             rcb_cfg.reg_idx = info[i].reg;
             rcb_cfg.size = info[i].size;
             if (rcb_cfg.size > 0) {
-                total_size += rcb_cfg.size;
                 mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
             } else
                 break;
@@ -213,7 +211,6 @@ RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info)
             rcb_cfg.reg_idx = info[index].reg;
             rcb_cfg.size = info[index].size;
             if (rcb_cfg.size > 0) {
-                total_size += rcb_cfg.size;
                 mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
             }
         }

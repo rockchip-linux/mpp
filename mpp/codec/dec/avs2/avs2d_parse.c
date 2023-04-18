@@ -516,9 +516,6 @@ MPP_RET avs2d_parse_prepare_split(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask 
 
     pkt_length = (RK_U32) mpp_packet_get_length(pkt);
 
-    if (!pkt_length) {
-    }
-
     p_curdata = p_start = (RK_U8 *) mpp_packet_get_pos(pkt);
     p_end = p_start + pkt_length - 1;
 
@@ -587,7 +584,6 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
     RK_U8 *p_start = NULL;
     RK_U8 *p_end = NULL;
     RK_U32 pkt_length = 0;
-    RK_U32 pkt_eos = 0;
     RK_U32 remain = 0;
 
     AVS2D_PARSE_TRACE("In.");

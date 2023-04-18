@@ -500,6 +500,7 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
             READ_BITS(cb, 15, &val);
             occupancy |= val;                               /* latter_half_vbv_occupancy */
             SKIP_BITS(cb, 1);
+            mpg4d_dbg_bit("bitrate %d, buffer_size %d, occupancy %d", bitrate, buffer_size, occupancy);
         }
     } else {
         mp4Hdr->vol.low_delay = 0;

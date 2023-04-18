@@ -19,9 +19,6 @@
 #include "hal_vp8e_base.h"
 #include "hal_vp8e_putbit.h"
 
-#define TRACE_BIT_STREAM(v,n)
-
-
 MPP_RET vp8e_set_buffer(Vp8ePutBitBuf *bitbuf, RK_U8 *data, RK_S32 size)
 {
     if ((bitbuf == NULL) || (data == NULL) || (size < 1))
@@ -42,9 +39,6 @@ MPP_RET vp8e_set_buffer(Vp8ePutBitBuf *bitbuf, RK_U8 *data, RK_S32 size)
 
 MPP_RET vp8e_put_bool(Vp8ePutBitBuf *bitbuf, RK_S32 prob, RK_S32 bool_value)
 {
-    RK_S32 bits = 0;
-    RK_S32 length_bits = 0;
-
     RK_S32 split = 1 + ((bitbuf->range - 1) * prob >> 8);
 
     if (bool_value) {
@@ -66,10 +60,6 @@ MPP_RET vp8e_put_bool(Vp8ePutBitBuf *bitbuf, RK_S32 prob, RK_S32 bool_value)
         bitbuf->bottom <<= 1;
 
         if (!--bitbuf->bits_left) {
-            length_bits += 8;
-            bits <<= 8;
-            bits |= (bitbuf->bottom >> 24) & 0xff;
-            TRACE_BIT_STREAM(bits & 0xff, 8);
             *bitbuf->data++ = (bitbuf->bottom >> 24) & 0xff;
             bitbuf->byte_cnt++;
             bitbuf->bottom &= 0xffffff;     /* Keep 3 bytes */
