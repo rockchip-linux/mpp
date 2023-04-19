@@ -276,7 +276,7 @@ static MPP_RET jpegd_decode_dht(JpegdCtx *ctx)
         if (table_type == HUFFMAN_TABLE_TYPE_DC) {
             DcTable *ptr = &(syntax->dc_table[table_id]);
 
-            syntax->htbl_entry++;
+            syntax->htbl_entry |= 1 << (table_id * 2);
 
             for (i = 0; i < num; i++) {
                 READ_BITS(gb, 8, &value);
@@ -287,7 +287,7 @@ static MPP_RET jpegd_decode_dht(JpegdCtx *ctx)
         } else {
             AcTable *ptr = &(syntax->ac_table[table_id]);
 
-            syntax->htbl_entry++;
+            syntax->htbl_entry |= 1 << ((table_id * 2) + 1);
 
             for (i = 0; i < num; i++) {
                 READ_BITS(gb, 8, &value);
@@ -337,9 +337,9 @@ static MPP_RET jpegd_decode_dqt(JpegdCtx *ctx)
         }
 
         READ_BITS(gb, 4, &index);
-        if (index >= 4) {
+        if (index >= QUANTIZE_TABLE_ID_BUTT) {
             mpp_err_f("dqt: invalid quantize tables ID\n");
-            return -1;
+            return MPP_ERR_STREAM;
         }
         jpegd_dbg_marker("quantize tables ID=%d\n", index);
 
@@ -775,6 +775,12 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             jpegd_dbg_syntax("restart marker: %d\n", start_code & 0x0f);
         }
 
+        if (start_code > SOF0 && start_code <= SOF15 && start_code != DHT) {
+            mpp_err_f("Only baseline DCT is supported, unsupported entropy encoding 0x%x", start_code);
+            ret = MPP_ERR_STREAM;
+            goto fail;
+        }
+
         switch (start_code) {
         case SOI:
             /* nothing to do on SOI */
@@ -882,9 +888,7 @@ done:
     if (!syntax->dht_found) {
         jpegd_dbg_marker("sorry, DHT is not found!\n");
         jpegd_setup_default_dht(ctx);
-        syntax->htbl_entry = syntax->nb_components;
-    } else {
-        syntax->htbl_entry /= 2;
+        syntax->htbl_entry = 0x0f;
     }
     if (!syntax->eoi_found) {
         if (MPP_OK != jpegd_find_eoi(&buf_ptr, buf_end)) {
