@@ -290,12 +290,19 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
     else if (hw_info && hw_info->cap_4k)
         max_mb_width  = MAX_MBW_4Kx2K;
 
-    ret |= (sps->pic_width_in_mbs_minus1 < 3 || sps->pic_width_in_mbs_minus1 > max_mb_width);
-
+    ret |= (sps->pic_width_in_mbs_minus1 < 3);
     if (ret) {
-        H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
+        H264D_ERR("sps %d too small width %d\n", sps->seq_parameter_set_id,
+                  (sps->pic_width_in_mbs_minus1 + 1) * 16);
         goto __FAILED;
     }
+    ret |= (sps->pic_width_in_mbs_minus1 > max_mb_width);
+    if (ret) {
+        H264D_ERR("width %d is larger than soc max support %d\n",
+                  (sps->pic_width_in_mbs_minus1 + 1) * 16, max_mb_width * 16);
+        goto __FAILED;
+    }
+
     if (subset_sps) { //!< MVC
         ret |= (subset_sps->num_views_minus1 != 1);
         if (subset_sps->num_anchor_refs_l0[0] > 0)
