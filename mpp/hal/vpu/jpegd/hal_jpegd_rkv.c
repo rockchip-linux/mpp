@@ -389,7 +389,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     regs->reg3_pic_size.pic_width_m1 = s->width - 1;
     regs->reg3_pic_size.pic_height_m1 = s->height - 1;
 
-    if (s->sample_precision != DCT_SAMPLE_PRECISION_8 || s->htbl_entry > TBL_ENTRY_3
+    if (s->sample_precision != DCT_SAMPLE_PRECISION_8 || (s->htbl_entry & 0x0f) != 0x0f
         || s->qtbl_entry > TBL_ENTRY_3)
         return MPP_NOK;
 
@@ -400,7 +400,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 
     if (s->nb_components > 1) {
         regs->reg4_pic_fmt.qtables_sel = (s->qtbl_entry > 1) ? s->qtbl_entry : TBL_ENTRY_2;
-        regs->reg4_pic_fmt.htables_sel = (s->htbl_entry > 1) ? s->htbl_entry : TBL_ENTRY_2;
+        regs->reg4_pic_fmt.htables_sel = (s->htbl_entry > 0x0f) ? s->htbl_entry : TBL_ENTRY_2;
     } else {
         regs->reg4_pic_fmt.qtables_sel = TBL_ENTRY_1;
         regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_1;
