@@ -314,7 +314,8 @@ static MPP_RET output_display_frame(Avs2dCtx_t *p_dec, Avs2dFrame_t *p)
         p_dec->frm_mgr.output_poi = p->poi;
         mpp_buf_slot_set_flag(p_dec->frame_slots, p->slot_idx, SLOT_QUEUE_USE);
         mpp_buf_slot_enqueue(p_dec->frame_slots, p->slot_idx, QUEUE_DISPLAY);
-        avs2d_dbg_dpb("output display frame poi %d slot_idx %d", p->poi, p->slot_idx);
+        avs2d_dbg_dpb("output display frame poi %d slot_idx %d, pts %lld", p->poi, p->slot_idx,
+                      mpp_frame_get_pts(p->frame));
     }
 
     avs2d_dbg_dpb("Out. ret = %d", ret);
