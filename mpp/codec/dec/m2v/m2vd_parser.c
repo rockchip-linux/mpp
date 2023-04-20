@@ -1448,6 +1448,11 @@ MPP_RET m2vd_parser_parse(void *ctx, HalDecTask *in_task)
         }
     }
 
+    if (p->seq_head.decode_width > 1920 || p->seq_head.decode_height > 1088) {
+        mpp_err("Warning: unsupport larger than 1920x1088\n");
+        goto __FAILED;
+    }
+
     p->mb_width = (p->seq_head.decode_width + 15) >> 4;
     p->mb_height = (p->seq_head.decode_height + 15) >> 4;
 
