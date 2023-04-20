@@ -36,7 +36,7 @@
 
 #define AVS2_IS_SLICE_START_CODE(x) ((x) >= AVS2_SLICE_MIN_START_CODE && (x) <= AVS2_SLICE_MAX_START_CODE)
 #define AVS2_IS_HEADER(x) ((x) >= AVS2_VIDEO_SEQUENCE_START_CODE && (x) <= AVS2_VIDEO_EDIT_CODE)
-#define AVS2_IS_PIC_START_CODE(x) ((x) == AVS2_I_PICUTRE_START_CODE || (x) == AVS2_PB_PICTURE_START_CODE)
+#define AVS2_IS_PIC_START_CODE(x) ((x) == AVS2_I_PICTURE_START_CODE || (x) == AVS2_PB_PICTURE_START_CODE)
 
 /**
  * @brief Find start code 00 00 01 xx
@@ -602,7 +602,8 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
             p_curdata = p_end - remain + 1;
         }
 
-        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)) {
+        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)
+            || p_curdata >= p_end) {
             task->valid = 1;
             break;
         }
