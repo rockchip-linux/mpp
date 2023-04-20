@@ -552,6 +552,11 @@ static MPP_RET mpg4d_parse_vol_header(Mpg4dParserImpl *p, BitReadCtx_t *cb)
 
             mpg4d_dbg_bit("width %4d height %4d\n", width, height);
 
+            if (width > 1920 || height > 1088) {
+                mpp_err("Warning: unsupport larger than 1920x1088\n");
+                return MPP_NOK;
+            }
+
             mp4Hdr->vol.width  = width;
             mp4Hdr->vol.height = height;
             mp4Hdr->vol.mb_width  = (mp4Hdr->vol.width  + 15) >> 4;
