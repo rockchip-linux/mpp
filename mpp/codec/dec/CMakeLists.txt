@@ -2,6 +2,8 @@
 
 add_subdirectory(dummy)
 
+add_subdirectory(common)
+
 if( HAVE_AVSD )
     add_subdirectory(avs)
 endif()
