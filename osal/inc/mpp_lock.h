@@ -48,9 +48,13 @@ extern "C" {
 
 typedef struct {
     RK_U32  lock;
+    RK_U32  debug;
+    RK_S64  count;
+    RK_S64  time;
 } spinlock_t;
 
 void mpp_spinlock_init(spinlock_t *lock);
+void mpp_spinlock_deinit(spinlock_t *lock, const char *name);
 void mpp_spinlock_lock(spinlock_t *lock);
 void mpp_spinlock_unlock(spinlock_t *lock);
 bool mpp_spinlock_trylock(spinlock_t *lock);
