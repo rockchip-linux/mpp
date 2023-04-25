@@ -205,6 +205,7 @@ void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
             impl->unused_count--;
             impl->used_count++;
             ptr = node->ptr;
+            node->check = node;
             goto DONE;
         }
     }
@@ -255,6 +256,7 @@ void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
     list_add(&node->list, &impl->unused);
     impl->used_count--;
     impl->unused_count++;
+    node->check = NULL;
 
     pthread_mutex_unlock(&impl->lock);
 }
