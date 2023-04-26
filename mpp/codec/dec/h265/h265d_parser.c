@@ -36,6 +36,7 @@
 #include "h265d_parser.h"
 #include "h265d_syntax.h"
 #include "h265d_api.h"
+#include "h2645d_sei.h"
 
 #define START_CODE 0x000001 ///< start_code_prefix_one_3bytes
 
@@ -1237,7 +1238,9 @@ static RK_S32 hevc_frame_start(HEVCContext *s)
         goto fail;
 
     if (!s->h265dctx->cfg->base.disable_error && s->miss_ref_flag) {
-        if (!IS_IRAP(s)) {
+        if (!IS_IRAP(s) && (!s->recovery.valid_flag ||
+                            (s->recovery.valid_flag && s->recovery.first_frm_valid &&
+                             s->recovery.first_frm_id != s->poc))) {
             mpp_frame_set_errinfo(s->frame, MPP_FRAME_ERR_UNKNOW);
             s->ref->error_flag = 1;
         } else {
@@ -1388,8 +1391,22 @@ static RK_S32 parser_nal_unit(HEVCContext *s, const RK_U8 *nal, int length)
             return ret;
         }
 
+        if (s->recovery.valid_flag) {
+            if (!s->recovery.first_frm_valid) {
+                s->recovery.first_frm_id = s->poc;
+                s->recovery.first_frm_valid = 1;
+                s->recovery.recovery_pic_id = s->recovery.first_frm_id + s->recovery.recovery_frame_cnt;
+                h265d_dbg(H265D_DBG_SEI, "First recovery frame found, poc %d", s->recovery.first_frm_id);
+            } else {
+                if (s->recovery.recovery_pic_id < s->poc)
+                    memset(&s->recovery, 0, sizeof(RecoveryPoint));
+            }
+        }
+
         if (s->max_ra == INT_MAX) {
-            if (s->nal_unit_type == NAL_CRA_NUT || IS_BLA(s)) {
+            if (s->nal_unit_type == NAL_CRA_NUT || IS_BLA(s) ||
+                (s->recovery.valid_flag && s->recovery.first_frm_valid &&
+                 s->recovery.first_frm_id == s->poc)) {
                 s->max_ra = s->poc;
             } else {
                 if (IS_IDR(s))

@@ -27,6 +27,7 @@
 
 #define MODULE_TAG "h265d_sei"
 
+#include "mpp_bitread.h"
 #include "h265d_parser.h"
 #include "rk_hdr_meta_com.h"
 #include "h2645d_sei.h"
@@ -384,6 +385,26 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
+MPP_RET decode_recovery_point(BitReadCtx_t *gb, HEVCContext *s)
+{
+    RK_S32 val = -1;
+
+    READ_SE(gb, &val);
+    if (val > 32767 || val < -32767) {
+        h265d_dbg(H265D_DBG_SEI, "recovery_poc_cnt %d, is out of range");
+        return MPP_ERR_STREAM;
+    }
+
+    memset(&s->recovery, 0, sizeof(RecoveryPoint));
+    s->recovery.valid_flag = 1;
+    s->recovery.recovery_frame_cnt = val;
+
+    h265d_dbg(H265D_DBG_SEI, "Recovery point: poc_cnt %d", s->recovery.recovery_frame_cnt);
+    return MPP_OK;
+__BITREAD_ERR:
+    return MPP_ERR_STREAM;
+}
+
 MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
 {
     MPP_RET ret = MPP_OK;
@@ -450,6 +471,7 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
             } else if (payload_type == 6) {
                 h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
                 s->max_ra = INT_MIN;
+                ret = decode_recovery_point(&payload_bitctx, s);
             }  else if (payload_type == 147) {
                 h265d_dbg(H265D_DBG_SEI, "alternative_transfer in\n");
                 ret = decode_nal_sei_alternative_transfer(s, &payload_bitctx);

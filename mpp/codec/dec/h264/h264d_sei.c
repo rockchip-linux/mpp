@@ -201,6 +201,28 @@ __BITREAD_ERR:
 
 }
 
+static MPP_RET interpret_recovery_point(BitReadCtx_t *p_bitctx, H264dVideoCtx_t *p_videoctx)
+{
+    RK_S32 recovery_frame_cnt = 0;
+
+    READ_UE(p_bitctx, &recovery_frame_cnt);
+
+    if (recovery_frame_cnt >= (1 << 16) || recovery_frame_cnt < 0) {
+        H264D_DBG(H264D_DBG_SEI, "recovery_frame_cnt %d, is out of range %d",
+                  recovery_frame_cnt, p_videoctx->max_frame_num);
+        return MPP_ERR_STREAM;
+    }
+
+    memset(&p_videoctx->recovery, 0, sizeof(RecoveryPoint));
+
+    p_videoctx->recovery.valid_flag = 1;
+    p_videoctx->recovery.recovery_frame_cnt = recovery_frame_cnt;
+    H264D_DBG(H264D_DBG_SEI, "Recovery point: frame_cnt %d", p_videoctx->recovery.recovery_frame_cnt);
+    return MPP_OK;
+__BITREAD_ERR:
+    return p_bitctx->ret;
+}
+
 /*!
 ***********************************************************************
 * \brief
@@ -255,6 +277,9 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 
             if (currSlice->p_Vid->deny_flag)
                 H264D_DBG(H264D_DBG_SEI, "Bitstream is encoded by special encoder.");
+            break;
+        case H264_SEI_RECOVERY_POINT:
+            FUN_CHECK(interpret_recovery_point(&payload_bitctx, currSlice->p_Vid));
             break;
         default:
             H264D_DBG(H264D_DBG_SEI, "Skip parsing SEI type %d\n", sei_msg->type);

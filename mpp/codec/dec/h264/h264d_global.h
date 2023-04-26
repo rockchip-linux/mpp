@@ -19,6 +19,7 @@
 #define __H264D_GLOBAL_H__
 
 #include <stdio.h>
+#include "h2645d_sei.h"
 #include "rk_type.h"
 
 #include "mpp_debug.h"
@@ -1050,6 +1051,7 @@ typedef struct h264d_video_ctx_t {
     RK_U32     dpb_first_fast_played;
     RK_U32     last_ref_frame_num;
     RK_U32     deny_flag;
+    RecoveryPoint recovery;
 } H264dVideoCtx_t;
 
 typedef struct h264d_mem_t {
