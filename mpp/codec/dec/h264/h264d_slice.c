@@ -17,12 +17,15 @@
 
 #define MODULE_TAG "h264d_slice"
 
+#include <string.h>
+
 #include "mpp_mem.h"
 
 #include "h264d_global.h"
 #include "h264d_slice.h"
 #include "h264d_sps.h"
 #include "h264d_pps.h"
+#include "h2645d_sei.h"
 
 #define PIXW_1080P      (1920)
 #define PIXH_1080P      (1088)
@@ -453,6 +456,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     H264dCurCtx_t *p_Cur = currSlice->p_Cur;
     BitReadCtx_t *p_bitctx = &p_Cur->bitctx;
+    RecoveryPoint *recovery = &p_Vid->recovery;
 
     //!< initial value
     currSlice->p_Dpb_layer[0] = p_Vid->p_Dpb_layer[0];
@@ -472,6 +476,20 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
     //!< read rest slice header syntax
     {
         READ_BITS(p_bitctx, currSlice->active_sps->log2_max_frame_num_minus4 + 4, &currSlice->frame_num);
+
+        if (recovery->valid_flag) {
+            if (!recovery->first_frm_valid) {
+                recovery->first_frm_id = currSlice->frame_num;
+                recovery->first_frm_valid = 1;
+                recovery->recovery_pic_id = recovery->first_frm_id + recovery->recovery_frame_cnt;
+                H264D_DBG(H264D_DBG_SEI, "First recovery frame found, frame_num %d", currSlice->frame_num);
+            } else {
+                // It may be too early to reset recovery point info when frame_num is wrapped
+                if (recovery->recovery_pic_id % p_Vid->max_frame_num <= currSlice->frame_num)
+                    memset(&p_Vid->recovery, 0, sizeof(RecoveryPoint));
+            }
+        }
+
         if (currSlice->active_sps->frame_mbs_only_flag) { //!< user in_slice info
             p_Vid->structure = FRAME;
             currSlice->field_pic_flag = 0;

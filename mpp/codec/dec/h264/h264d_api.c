@@ -31,6 +31,7 @@
 #include "h264d_slice.h"
 #include "h264d_dpb.h"
 #include "h264d_init.h"
+#include "h2645d_sei.h"
 #include "mpp_dec_cb_param.h"
 
 RK_U32 h264d_debug = 0;
@@ -417,6 +418,7 @@ MPP_RET h264d_reset(void *decoder)
     p_Dec->p_Vid->g_framecnt           = 0;
     p_Dec->p_Vid->dec_pic = NULL;
     p_Dec->p_Vid->last_pic = NULL;
+    memset(&p_Dec->p_Vid->recovery, 0, sizeof(RecoveryPoint));
     memset(&p_Dec->p_Vid->old_pic, 0, sizeof(H264_StorePic_t));
     memset(&p_Dec->errctx, 0, sizeof(H264dErrCtx_t));
     //!< reset current time stamp

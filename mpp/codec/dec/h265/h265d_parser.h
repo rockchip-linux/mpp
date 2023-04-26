@@ -40,6 +40,7 @@
 #include "hal_dec_task.h"
 #include "h265d_codec.h"
 #include "h265_syntax.h"
+#include "h2645d_sei.h"
 
 extern RK_U32 h265d_debug;
 
@@ -627,6 +628,7 @@ typedef struct HEVCContext {
     RK_U32  hdr_dynamic;
 
     RK_U32  deny_flag;
+    RecoveryPoint recovery;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,

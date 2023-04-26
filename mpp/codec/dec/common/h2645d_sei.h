@@ -10,6 +10,14 @@
 #include "mpp_err.h"
 #include "mpp_bitread.h"
 
+typedef struct SEI_Recovery_Point_t {
+    RK_U32 valid_flag;              // Whether this SEI is valid or not
+    RK_S32 recovery_frame_cnt;      // H.264: recovery_frame_cnt; H.265: recovery_poc_cnt
+    RK_S32 first_frm_id;            // The frame_num or poc of the frame associated with this SEI
+    RK_U32 first_frm_valid;         // The frame associated with this SEI is valid or not
+    RK_S32 recovery_pic_id;         // first_frm_id + recovery_frame_cnt;
+} RecoveryPoint;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
