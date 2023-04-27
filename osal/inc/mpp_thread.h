@@ -58,6 +58,7 @@ typedef void *(*MppThreadFunc)(void *);
 
 typedef enum {
     MPP_THREAD_UNINITED,
+    MPP_THREAD_READY,
     MPP_THREAD_RUNNING,
     MPP_THREAD_WAITING,
     MPP_THREAD_STOPPING,
@@ -293,5 +294,77 @@ private:
 };
 
 #endif
+
+/*
+ * status transaction:
+ *                  new
+ *                   v
+ *           MPP_THREAD_UNINITED
+ *                   v
+ *                 setup
+ *                   v
+ * delete <-  MPP_THREAD_READY  <-------------------+
+ *                   v                              |
+ *                 start                            |
+ *                   v                              |
+ *           MPP_THREAD_RUNNING -> stop -> MPP_THREAD_STOPPING
+ *                   v                              |
+ *                 wait                             |
+ *                   v                              |
+ *           MPP_THREAD_WAITING -> stop ------------+
+ *
+ */
+typedef enum MppSThdStatus_e {
+    MPP_STHD_UNINITED,
+    MPP_STHD_READY,
+    MPP_STHD_RUNNING,
+    MPP_STHD_WAITING,
+    MPP_STHD_STOPPING,
+    MPP_STHD_BUTT,
+} MppSThdStatus;
+
+/* MppSThd for Mpp Simple Thread */
+typedef void* MppSThd;
+typedef void* MppSThdGrp;
+
+typedef struct MppSThdCtx_t {
+    MppSThd     thd;
+    void        *ctx;
+} MppSThdCtx;
+
+typedef void *(*MppSThdFunc)(MppSThdCtx *);
+
+MppSThd mpp_sthd_get(const char *name);
+void mpp_sthd_put(MppSThd thd);
+
+MppSThdStatus mpp_sthd_get_status(MppSThd thd);
+const char* mpp_sthd_get_name(MppSThd thd);
+RK_S32 mpp_sthd_get_idx(MppSThd thd);
+RK_S32 mpp_sthd_check(MppSThd thd);
+
+void mpp_sthd_setup(MppSThd thd, MppSThdFunc func, void *ctx);
+
+void mpp_sthd_start(MppSThd thd);
+void mpp_sthd_stop(MppSThd thd);
+void mpp_sthd_stop_sync(MppSThd thd);
+
+void mpp_sthd_lock(MppSThd thd);
+void mpp_sthd_unlock(MppSThd thd);
+int  mpp_sthd_trylock(MppSThd thd);
+
+void mpp_sthd_wait(MppSThd thd);
+void mpp_sthd_signal(MppSThd thd);
+void mpp_sthd_broadcast(MppSThd thd);
+
+/* multi-thread group with same callback and context */
+MppSThdGrp mpp_sthd_grp_get(const char *name, RK_S32 count);
+void mpp_sthd_grp_put(MppSThdGrp grp);
+
+void mpp_sthd_grp_setup(MppSThdGrp grp, MppSThdFunc func, void *ctx);
+MppSThd mpp_sthd_grp_get_each(MppSThdGrp grp, RK_S32 idx);
+
+void mpp_sthd_grp_start(MppSThdGrp grp);
+void mpp_sthd_grp_stop(MppSThdGrp grp);
+void mpp_sthd_grp_stop_sync(MppSThdGrp grp);
 
 #endif /*__MPP_THREAD_H__*/
