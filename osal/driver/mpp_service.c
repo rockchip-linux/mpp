@@ -40,8 +40,8 @@ typedef struct MppServiceQueryCfg_t {
 static const MppServiceQueryCfg query_cfg[] = {
     {   MPP_CMD_QUERY_BASE,     "query_cmd",    },
     {   MPP_CMD_INIT_BASE,      "init_cmd",     },
-    {   MPP_CMD_SEND_BASE,      "query_cmd",    },
-    {   MPP_CMD_POLL_BASE,      "init_cmd",     },
+    {   MPP_CMD_SEND_BASE,      "send_cmd",     },
+    {   MPP_CMD_POLL_BASE,      "poll_cmd",     },
     {   MPP_CMD_CONTROL_BASE,   "control_cmd",  },
 };
 
