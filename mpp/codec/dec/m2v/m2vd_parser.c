@@ -1161,14 +1161,14 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             else
                 ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
 
-            tmp_frame_period = pts - ctx->PreGetFrameTime;
+            tmp_frame_period = (pts - ctx->PreGetFrameTime) / 90;
 
             if ((pts > ctx->PreGetFrameTime) && (pic_head->temporal_reference > (RK_S32)ctx->PreChangeTime_index)) {
                 RK_S32 theshold_frame_period = tmp_frame_period * 2 ;
                 RK_S32 last_frame_period = ctx->preframe_period ? ctx->preframe_period : ctx->frame_period;
                 RK_S32 predict_frame_period = (pic_head->temporal_reference - ctx->PreChangeTime_index) * last_frame_period / 256;
                 if (theshold_frame_period < predict_frame_period) {
-                    pts = ctx->PreGetFrameTime + predict_frame_period;
+                    pts = ctx->PreGetFrameTime + predict_frame_period * 90;
                     tmp_frame_period = predict_frame_period;
                 }
             }
@@ -1188,14 +1188,14 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                 }
             }
 
-            ctx->Group_start_Time = pts - (pic_head->temporal_reference * ctx->frame_period / 256);
+            ctx->Group_start_Time = pts - (pic_head->temporal_reference * ctx->frame_period * 90 / 256);
             if (ctx->Group_start_Time < 0)
                 ctx->Group_start_Time = 0;
             ctx->PreGetFrameTime = pts;
             ctx->PreChangeTime_index = pic_head->temporal_reference;
             ctx->GroupFrameCnt = 0;
         } else if ((RK_S32)ctx->pretemporal_reference > pic_head->temporal_reference + 5) {
-            ctx->Group_start_Time += ((ctx->max_temporal_reference + 1) * ctx->frame_period / 256);
+            ctx->Group_start_Time += ((ctx->max_temporal_reference + 1) * ctx->frame_period * 90 / 256);
             ctx->GroupFrameCnt = ctx->max_temporal_reference - ctx->PreChangeTime_index + 1;
             ctx->max_temporal_reference = 0;
         }
@@ -1212,7 +1212,7 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
                 Group_start_Time = Video_Bitsream.Slice_Time.low_part;
         }*/
         frm_pts = ctx->Group_start_Time;
-        frm_pts += ((pic_head->temporal_reference * ctx->frame_period) / 256);
+        frm_pts += ((pic_head->temporal_reference * ctx->frame_period * 90) / 256);
         if (frm_pts < 0) {
             frm_pts = 0;
         }
