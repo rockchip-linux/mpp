@@ -132,7 +132,10 @@ static int heap_fd_open(DmaHeapType type)
         int fd;
 
         snprintf(name, sizeof(name) - 1, "%s%s", heap_path, heap_names[type]);
-        fd = open(name, O_RDONLY | O_CLOEXEC); // read authority is enough
+        fd = open(name, O_RDONLY | O_CLOEXEC); // read permission is enough
+        if (fd <= 0)
+            mpp_err("dma-heap open %s %s\n", name, strerror(errno));
+
         mpp_assert(fd > 0);
 
         dma_heap_dbg(DMA_HEAP_DEVICE, "open dma heap dev %s fd %d\n", name, fd);
