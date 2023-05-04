@@ -372,6 +372,8 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
                    ((fmt_cfg.r_mask & 0x1f) << 16) | coeffF;
     }
 
+    regs[20] = ((syntax->part_rows & 0xff) << 16) | jpege_restart_marker[0];
+
     regs[14] |= 0x001;
 
     {
