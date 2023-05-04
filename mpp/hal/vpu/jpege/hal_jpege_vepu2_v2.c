@@ -192,7 +192,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
     if (ctx_ext)
         ctx_ext->multi_core_enabled = 0;
 
-    if (ctx->type == VPU_CLIENT_VEPU2_JPEG && !ctx->cfg->split.split_mode) {
+    if (ctx->type == VPU_CLIENT_VEPU2_JPEG) {
         RK_U32 width = ctx->cfg->prep.width;
         RK_U32 height = ctx->cfg->prep.height;
         RK_U32 buf_size = width * height / 2;
@@ -257,21 +257,64 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 
             ctx_ext->partion_num = 0;
 
-            for (i = 0; i < MAX_CORE_NUM; i++) {
-                part_rows = (mb_h >= part_rows) ? part_rows : mb_h;
+            if (ctx->cfg->split.split_mode == MPP_ENC_SPLIT_BY_CTU) {
+                RK_U32 ecs_num = (mb_h + syntax->part_rows - 1) / syntax->part_rows;
+                RK_U32 core_ecs[MAX_CORE_NUM] = {0, 0, 0, 0};
 
-                ctx_ext->part_rows[i] = part_rows;
+                if (ecs_num > 24 || ecs_num <= 8) {
+                    RK_U32 divider = ecs_num > 24 ? 8 : 1;
+                    RK_U32 quotient = ecs_num / divider;
+                    RK_U32 remainder = ecs_num % divider;
+                    RK_U32 runs = quotient  / MAX_CORE_NUM;
+                    RK_U32 runs_left = quotient % MAX_CORE_NUM;
 
-                hal_jpege_dbg_detail("part %d row %d restart %d\n",
-                                     i, part_rows, mb_w * part_rows);
+                    if (runs > 0) {
+                        for (i = 0; i < MAX_CORE_NUM; i++)
+                            core_ecs[i] = runs * divider;
+                    }
 
-                if (part_rows)
-                    ctx_ext->partion_num++;
+                    for (i = 0; i < runs_left; i++)
+                        core_ecs[i] += divider;
 
-                if (i == 0)
-                    ctx->syntax.restart_ri = mb_w * part_rows;
+                    core_ecs[MAX_CORE_NUM - 1] += remainder;
+                } else if (ecs_num > 20) {
+                    core_ecs[0] = core_ecs[1] = 8;
+                    core_ecs[2] = (ecs_num - 8 * 2) / 2;
+                    core_ecs[3] = ecs_num - 8 * 2 - core_ecs[2];
+                } else if (ecs_num > 16) {
+                    core_ecs[0] = 8;
+                    core_ecs[1] = core_ecs[2] = 4;
+                    core_ecs[3] = ecs_num - 8 - 4 * 2;
+                } else if (ecs_num > 8) {
+                    core_ecs[0] = core_ecs[1] = 4;
+                    core_ecs[2] = (ecs_num - 4 * 2) / 2;
+                    core_ecs[3] = ecs_num - 4 * 2 - core_ecs[2];
+                }
 
-                mb_h -= part_rows;
+                for (i = 0; i < MAX_CORE_NUM; i++) {
+                    ctx_ext->part_rows[i] = core_ecs[i] * syntax->part_rows;
+                    hal_jpege_dbg_detail("part %d, ecs %d, rows %d", i, core_ecs[i],
+                                         ctx_ext->part_rows[i]);
+                    if (core_ecs[i])
+                        ctx_ext->partion_num++;
+                }
+            } else {
+                for (i = 0; i < MAX_CORE_NUM; i++) {
+                    part_rows = (mb_h >= part_rows) ? part_rows : mb_h;
+
+                    ctx_ext->part_rows[i] = part_rows;
+
+                    hal_jpege_dbg_detail("part %d row %d restart %d\n",
+                                         i, part_rows, mb_w * part_rows);
+
+                    if (part_rows)
+                        ctx_ext->partion_num++;
+
+                    if (i == 0 && !ctx->syntax.restart_ri)
+                        ctx->syntax.restart_ri = mb_w * part_rows;
+
+                    mb_h -= part_rows;
+                }
             }
         }
 
@@ -606,8 +649,11 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
                     (2 << 4) |  /* format jpeg   */
                     1;          /* encoder start */
 
-        regs[107] = part_not_end << 24 | jpege_restart_marker[ctx->rst_marker_idx & 7];
-        ctx->rst_marker_idx++;
+        hal_jpege_dbg_detail("part %d, part_not_end 0x%x, rst_marker_idx %d",
+                             i, part_not_end, ctx->rst_marker_idx);
+        regs[107] = part_not_end << 24 | ((syntax->part_rows & 0xff) << 16) |
+                    jpege_restart_marker[ctx->rst_marker_idx & 7];
+        ctx->rst_marker_idx += ctx_ext->part_rows[i];
 
         VepuOffsetCfg cfg;
 
@@ -898,6 +944,8 @@ MPP_RET hal_jpege_vepu2_part_start(void *hal, HalEncTask *task)
                 (2 << 4) |  /* format jpeg   */
                 1;          /* encoder start */
 
+    hal_jpege_dbg_detail("part_not_end 0x%x, rst_marker_idx %d",
+                         part_not_end, ctx->rst_marker_idx);
     regs[107] = part_not_end << 24 | jpege_restart_marker[ctx->rst_marker_idx & 7];
     ctx->rst_marker_idx++;
 

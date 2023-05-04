@@ -527,6 +527,8 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
             syntax->part_rows   = part_rows;
             syntax->restart_ri  = syntax->mcu_w * part_rows;
             syntax->low_delay   = cfg->base.low_delay && part_rows;
+            jpege_dbg_func("Split by CTU, part_rows %d, restart_ri %d",
+                           syntax->part_rows, syntax->restart_ri);
         }
     }
 
