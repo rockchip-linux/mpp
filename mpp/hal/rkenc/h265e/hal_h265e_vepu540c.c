@@ -475,9 +475,9 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
         regs->reg_wgt.me_sqi_cfg.cime_fuse   = 1;
         regs->reg_wgt.me_sqi_cfg.itp_mode    = 0;
         regs->reg_wgt.me_sqi_cfg.move_lambda = 2;
-        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 0;
-        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 3;
-        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 3;
+        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 1;
+        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 0;
+        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 0;
 
         /* 0x1764 */
         regs->reg_wgt.cime_mvd_th.cime_mvd_th0 = 8;
@@ -758,7 +758,7 @@ static MPP_RET vepu540c_h265_set_rc_regs(H265eV540cHalContext *ctx, H265eV540cRe
         reg_base->reg0240_synt_sli1.sli_qp  = rc_cfg->quality_target;
         reg_base->reg212_rc_cfg.rc_en      = 1;
         reg_base->reg212_rc_cfg.aq_en  = 1;
-        reg_base->reg212_rc_cfg.aq_mode    = 1;
+        reg_base->reg212_rc_cfg.aq_mode    = 0;
         reg_base->reg212_rc_cfg.rc_ctu_num = mb_wd32;
         reg_base->reg213_rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ?
                                              hw->qp_delta_row_i : hw->qp_delta_row;
@@ -1066,7 +1066,7 @@ static void vepu540c_h265_set_me_regs(H265eV540cHalContext *ctx, H265eSyntax_new
 
         regs->reg0222_me_cach.cime_size_rama = ((cur_srch_h - ctu_2_h) * regs->reg0222_me_cach.cme_linebuf_w + ctu_2_h * cur_srch_8_w) / 4;
         regs->reg0222_me_cach.cime_hgt_rama = cur_srch_h / 2;
-        regs->reg0222_me_cach.fme_prefsu_en = 1;
+        regs->reg0222_me_cach.fme_prefsu_en = 0;
     }
 
 }
@@ -1234,9 +1234,9 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
 
     vepu540c_h265_set_me_regs(ctx, syn, reg_base);
 
-    reg_base->reg0232_rdo_cfg.chrm_spcl   = 1;
-    reg_base->reg0232_rdo_cfg.cu_inter_e    = 0x06db;
-    reg_base->reg0232_rdo_cfg.cu_intra_e    = 0xf;
+    reg_base->reg0232_rdo_cfg.chrm_spcl   = 0;
+    reg_base->reg0232_rdo_cfg.cu_inter_e    = 0x0092;
+    reg_base->reg0232_rdo_cfg.cu_intra_e    = 0xe;
 
     if (syn->pp.num_long_term_ref_pics_sps) {
         reg_base->reg0232_rdo_cfg.ltm_col   = 0;
