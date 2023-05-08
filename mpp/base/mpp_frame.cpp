@@ -190,8 +190,12 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
         return MPP_ERR_UNKNOW;
     }
 
+    MppFrameImpl *p = (MppFrameImpl *)dst;
+    if (p->meta)
+        mpp_meta_put(p->meta);
+
     memcpy(dst, src, sizeof(MppFrameImpl));
-    MppFrameImpl *p = (MppFrameImpl *)src;
+    p = (MppFrameImpl *)src;
     if (p->meta)
         mpp_meta_inc_ref(p->meta);
 
