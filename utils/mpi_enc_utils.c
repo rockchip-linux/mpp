@@ -354,9 +354,9 @@ RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
         } break;
         default : {
             mpp_err("invalid in/out frame rate,"
-                    " use \"-r numerator:denominator:flex\""
+                    " use \"-fps numerator:denominator:flex\""
                     " for set the input to the same fps as the output, such as 50:1:1\n"
-                    " or \"-r numerator:denominator/flex-numerator:denominator:flex\""
+                    " or \"-fps numerator:denominator:flex/numerator:denominator:flex\""
                     " for set input and output separately, such as 40:1:1/30:1:0\n");
         } break;
         }
@@ -380,7 +380,7 @@ RK_S32 mpi_enc_opt_qc(void *ctx, const char *next)
             return 1;
     }
 
-    mpp_err("invalid quality control usage -qc qp_init/min/max/min_i/max_i\n");
+    mpp_err("invalid quality control usage -qc qp_init:min:max:min_i:max_i\n");
     return 0;
 }
 
@@ -485,10 +485,10 @@ static MppOptInfo enc_opts[] = {
     {"tsrc",    "source type",          "input file source coding type",            mpi_enc_opt_tsrc},
     {"n",       "max frame number",     "max encoding frame number",                mpi_enc_opt_n},
     {"g",       "gop reference mode",   "gop_mode:gop_len:vi_len",                  mpi_enc_opt_g},
-    {"rc",      "rate control mode",    "set rc_mode",                              mpi_enc_opt_rc},
-    {"bps",     "bps target:min:max",   "set tareget/min/max bps and rc_mode",      mpi_enc_opt_bps},
+    {"rc",      "rate control mode",    "set rc_mode, 0:vbr 1:cbr 2:fixqp 3:avbr",  mpi_enc_opt_rc},
+    {"bps",     "bps target:min:max",   "set tareget:min:max bps",                  mpi_enc_opt_bps},
     {"fps",     "in/output fps",        "set input and output frame rate",          mpi_enc_opt_fps},
-    {"qc",      "quality control",      "set qp_init/min/max/min_i/max_i",          mpi_enc_opt_qc},
+    {"qc",      "quality control",      "set qp_init:min:max:min_i:max_i",          mpi_enc_opt_qc},
     {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
