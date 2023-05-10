@@ -162,6 +162,10 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
         if (api->set_info)
             ret = api->set_info(impl_ctx, param);
     } break;
+    case MPP_DEV_SET_ERR_REF_HACK : {
+        if (api->set_err_ref_hack)
+            ret = api->set_err_ref_hack(impl_ctx, param);
+    } break;
     case MPP_DEV_CMD_SEND : {
         if (api->cmd_send)
             ret = api->cmd_send(impl_ctx);
