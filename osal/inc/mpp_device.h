@@ -35,6 +35,7 @@ typedef enum MppDevIoctlCmd_e {
     MPP_DEV_REG_OFFS,
     MPP_DEV_RCB_INFO,
     MPP_DEV_SET_INFO,
+    MPP_DEV_SET_ERR_REF_HACK,
 
     MPP_DEV_CMD_SEND,
     MPP_DEV_CMD_POLL,
@@ -118,6 +119,7 @@ typedef struct MppDevApi_t {
     MPP_RET     (*reg_offs)(void *ctx, MppDevRegOffCfgs *cfg);
     MPP_RET     (*rcb_info)(void *ctx, MppDevRcbInfoCfg *cfg);
     MPP_RET     (*set_info)(void *ctx, MppDevInfoCfg *cfg);
+    MPP_RET     (*set_err_ref_hack)(void *ctx, RK_U32 *enable);
 
     /* send cmd to hardware */
     MPP_RET     (*cmd_send)(void *ctx);

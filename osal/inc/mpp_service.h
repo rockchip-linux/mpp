@@ -88,7 +88,7 @@ typedef enum MppServiceCmdType_e {
     MPP_CMD_TRANS_FD_TO_IOVA        = MPP_CMD_CONTROL_BASE + 1,
     MPP_CMD_RELEASE_FD              = MPP_CMD_CONTROL_BASE + 2,
     MPP_CMD_SEND_CODEC_INFO         = MPP_CMD_CONTROL_BASE + 3,
-    MPP_CMD_BAT_CMD                 = MPP_CMD_CONTROL_BASE + 4,
+    MPP_CMD_SET_ERR_REF_HACK        = MPP_CMD_CONTROL_BASE + 4,
     MPP_CMD_CONTROL_BUTT,
 
     MPP_CMD_BUTT,
