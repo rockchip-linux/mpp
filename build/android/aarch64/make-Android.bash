@@ -10,6 +10,15 @@ ANDROID_STL="system"
 #Specify cmake if needed
 #CMAKE_PROGRAM=
 
+while [ $# -gt 0 ]; do
+    case $1 in
+        -c)
+            clear
+            ;;
+    esac
+    shift
+done
+
 source ../env_setup.sh
 
 ${CMAKE_PROGRAM} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                   \
