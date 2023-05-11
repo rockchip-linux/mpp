@@ -760,7 +760,8 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count)
     } else {
         // record the slot count for info changed ready config
         if (count > impl->buf_count) {
-            mpp_realloc(impl->slots, MppBufSlotEntry, count);
+            impl->slots = mpp_realloc(impl->slots, MppBufSlotEntry, count);
+            mpp_assert(impl->slots);
             init_slot_entry(impl, impl->buf_count, (count - impl->buf_count));
         }
         impl->new_count = count;
@@ -798,7 +799,8 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 
     // ready mean the info_set will be copy to info as the new configuration
     if (impl->buf_count != impl->new_count) {
-        mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
+        impl->slots = mpp_realloc(impl->slots, MppBufSlotEntry, impl->new_count);
+        mpp_assert(impl->slots);
         init_slot_entry(impl, 0, impl->new_count);
     }
     impl->buf_count = impl->new_count;
