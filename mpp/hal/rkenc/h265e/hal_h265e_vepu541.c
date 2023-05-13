@@ -1497,6 +1497,54 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     regs->pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 }
 
+static void setup_vepu541_split(H265eV541RegSet *regs, MppEncSliceSplit *cfg)
+{
+    hal_h265e_dbg_func("enter\n");
+
+    switch (cfg->split_mode) {
+    case MPP_ENC_SPLIT_NONE : {
+        regs->sli_spl.sli_splt = 0;
+        regs->sli_spl.sli_splt_mode = 0;
+        regs->sli_spl.sli_splt_cpst = 0;
+        regs->sli_spl.sli_max_num_m1 = 0;
+        regs->sli_spl.sli_flsh = 0;
+        regs->sli_spl.sli_splt_cnum_m1 = 0;
+
+        regs->sli_spl_byte.sli_splt_byte = 0;
+        regs->enc_pic.slen_fifo = 0;
+    } break;
+    case MPP_ENC_SPLIT_BY_BYTE : {
+        regs->sli_spl.sli_splt = 1;
+        regs->sli_spl.sli_splt_mode = 0;
+        regs->sli_spl.sli_splt_cpst = 0;
+        regs->sli_spl.sli_max_num_m1 = 500;
+        regs->sli_spl.sli_flsh = 1;
+        regs->sli_spl.sli_splt_cnum_m1 = 0;
+
+        regs->sli_spl_byte.sli_splt_byte = cfg->split_arg;
+        regs->enc_pic.slen_fifo = 0;
+    } break;
+    case MPP_ENC_SPLIT_BY_CTU : {
+        regs->sli_spl.sli_splt = 1;
+        regs->sli_spl.sli_splt_mode = 1;
+        regs->sli_spl.sli_splt_cpst = 0;
+        regs->sli_spl.sli_max_num_m1 = 500;
+        regs->sli_spl.sli_flsh = 1;
+        regs->sli_spl.sli_splt_cnum_m1 = cfg->split_arg - 1;
+
+        regs->sli_spl_byte.sli_splt_byte = 0;
+        regs->enc_pic.slen_fifo = 0;
+    } break;
+    default : {
+        mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
+    } break;
+    }
+
+    cfg->change = 0;
+
+    hal_h265e_dbg_func("leave\n");
+}
+
 MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 {
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
@@ -1589,13 +1637,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->adr_srcu_hevc     = regs->adr_srcy_hevc;
     regs->adr_srcv_hevc     = regs->adr_srcy_hevc;
 
-    regs->sli_spl.sli_splt_mode     = syn->sp.sli_splt_mode;
-    regs->sli_spl.sli_splt_cpst     = syn->sp.sli_splt_cpst;
-    regs->sli_spl.sli_splt          = syn->sp.sli_splt;
-    regs->sli_spl.sli_flsh         = syn->sp.sli_flsh;
-    regs->sli_spl.sli_max_num_m1   = syn->sp.sli_max_num_m1;
-    regs->sli_spl.sli_splt_cnum_m1  = syn->sp.sli_splt_cnum_m1;
-    regs->sli_spl_byte.sli_splt_byte = syn->sp.sli_splt_byte;
+    setup_vepu541_split(regs, &ctx->cfg->split);
 
     vepu541_h265_set_me_regs(ctx, syn, regs);
 
