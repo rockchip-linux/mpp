@@ -20,6 +20,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_debug.h"
+#include "mpp_dmabuf.h"
 #include "mpp_buffer_impl.h"
 
 MPP_RET mpp_buffer_import_with_tag(MppBufferGroup group, MppBufferInfo *info, MppBuffer *buffer,
@@ -275,6 +276,77 @@ MPP_RET mpp_buffer_info_get_with_caller(MppBuffer buffer, MppBufferInfo *info, c
     return MPP_OK;
 }
 
+static MPP_RET check_buf_need_sync(MppBuffer buffer, MPP_RET *ret, const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err("check buffer found NULL pointer from %s\n", caller);
+        return MPP_NOK;
+    }
+
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    if (impl->info.fd <= 0) {
+        mpp_err("check fd found invalid fd %d from %s\n", impl->info.fd, caller);
+        return MPP_NOK;
+    }
+
+    /* uncached buffer do not need to sync */
+    if (impl->uncached) {
+        *ret = MPP_OK;
+        return MPP_NOK;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_buffer_sync_begin_f(MppBuffer buffer, RK_S32 ro, const char* caller)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (check_buf_need_sync(buffer, &ret, caller))
+        return ret;
+
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    return mpp_dmabuf_sync_begin(impl->info.fd, ro, caller);
+}
+
+MPP_RET mpp_buffer_sync_end_f(MppBuffer buffer, RK_S32 ro, const char* caller)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (check_buf_need_sync(buffer, &ret, caller))
+        return ret;
+
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    return mpp_dmabuf_sync_end(impl->info.fd, ro, caller);
+}
+
+MPP_RET mpp_buffer_sync_partial_begin_f(MppBuffer buffer, RK_S32 ro, RK_U32 offset, RK_U32 length, const char* caller)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (check_buf_need_sync(buffer, &ret, caller))
+        return ret;
+
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    return mpp_dmabuf_sync_partial_begin(impl->info.fd, ro, impl->offset + offset, length, caller);
+}
+
+MPP_RET mpp_buffer_sync_partial_end_f(MppBuffer buffer, RK_S32 ro, RK_U32 offset, RK_U32 length, const char* caller)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (check_buf_need_sync(buffer, &ret, caller))
+        return ret;
+
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+
+    return mpp_dmabuf_sync_partial_end(impl->info.fd, ro, impl->offset + offset, length, caller);
+}
+
 MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBufferMode mode,
                              const char *tag, const char *caller)
 {
@@ -376,4 +448,3 @@ MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 
     p->limit_count    = count;
     return MPP_OK;
 }
-
