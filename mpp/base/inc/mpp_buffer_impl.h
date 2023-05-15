@@ -96,6 +96,9 @@ struct MppBufferImpl_t {
     size_t              offset;
     size_t              length;
 
+    /* cacheable flag */
+    RK_U32              uncached;
+
     /*
      * discard:
      * used for buf on group reset mode
@@ -121,6 +124,7 @@ struct MppBufferGroupImpl_t {
     RK_U32              group_id;
     MppBufferMode       mode;
     MppBufferType       type;
+    RK_U32              type_flags;
 
     /* group status flag */
     // buffer force clear mode flag

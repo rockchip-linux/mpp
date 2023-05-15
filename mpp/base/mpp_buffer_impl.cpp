@@ -402,6 +402,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     p->group_id = group->group_id;
     p->mode = group->mode;
     p->type = group->type;
+    p->uncached = (group->type_flags & MPP_BUFFER_FLAGS_CACHABLE) ? 0 : 1;
     p->logs = group->logs;
     p->info = *info;
 
@@ -891,6 +892,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     p->mode     = mode;
     p->type     = buffer_type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
+    p->type_flags    = flags;
     p->clear_on_exit = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
     p->dump_on_exit  = (mpp_buffer_debug & MPP_BUF_DBG_DUMP_ON_EXIT) ? (1) : (0);
 

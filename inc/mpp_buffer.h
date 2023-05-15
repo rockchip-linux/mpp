@@ -265,11 +265,29 @@ typedef struct MppBufferInfo_t {
 #define mpp_buffer_set_offset(buffer, offset) \
         mpp_buffer_set_offset_with_caller(buffer, offset, __FUNCTION__)
 
+#define mpp_buffer_sync_begin(buffer) \
+        mpp_buffer_sync_begin_f(buffer, 0, __FUNCTION__)
+#define mpp_buffer_sync_end(buffer) \
+        mpp_buffer_sync_end_f(buffer, 0, __FUNCTION__)
+#define mpp_buffer_sync_partial_begin(buffer, offset, length) \
+        mpp_buffer_sync_partial_begin_f(buffer, 0, offset, length, __FUNCTION__)
+#define mpp_buffer_sync_partial_end(buffer, offset, length) \
+        mpp_buffer_sync_partial_end_f(buffer, 0, offset, length, __FUNCTION__)
+
+#define mpp_buffer_sync_ro_begin(buffer) \
+        mpp_buffer_sync_begin_f(buffer, 1, __FUNCTION__)
+#define mpp_buffer_sync_ro_end(buffer) \
+        mpp_buffer_sync_end_f(buffer, 1, __FUNCTION__)
+#define mpp_buffer_sync_ro_partial_begin(buffer, offset, length) \
+        mpp_buffer_sync_partial_begin_f(buffer, 1, offset, length, __FUNCTION__)
+#define mpp_buffer_sync_ro_partial_end(buffer, offset, length) \
+        mpp_buffer_sync_partial_end_f(buffer, 1, offset, length, __FUNCTION__)
+
 #define mpp_buffer_group_get_internal(group, type, ...) \
-        mpp_buffer_group_get(group, type, MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
+        mpp_buffer_group_get(group, (MppBufferType)(type), MPP_BUFFER_INTERNAL, MODULE_TAG, __FUNCTION__)
 
 #define mpp_buffer_group_get_external(group, type, ...) \
-        mpp_buffer_group_get(group, type, MPP_BUFFER_EXTERNAL, MODULE_TAG, __FUNCTION__)
+        mpp_buffer_group_get(group, (MppBufferType)(type), MPP_BUFFER_EXTERNAL, MODULE_TAG, __FUNCTION__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -301,6 +319,18 @@ int     mpp_buffer_get_index_with_caller(MppBuffer buffer, const char *caller);
 MPP_RET mpp_buffer_set_index_with_caller(MppBuffer buffer, int index, const char *caller);
 size_t  mpp_buffer_get_offset_with_caller(MppBuffer buffer, const char *caller);
 MPP_RET mpp_buffer_set_offset_with_caller(MppBuffer buffer, size_t offset, const char *caller);
+
+/**
+ * @brief MppBuffer cache operation function
+ * @param buffer The MppBuffer to run the cache operation
+ * @param ro for readonly option
+ * @param offset partial sync data start offset
+ * @param length partial sync data length
+ */
+MPP_RET mpp_buffer_sync_begin_f(MppBuffer buffer, RK_S32 ro, const char* caller);
+MPP_RET mpp_buffer_sync_end_f(MppBuffer buffer, RK_S32 ro, const char* caller);
+MPP_RET mpp_buffer_sync_partial_begin_f(MppBuffer buffer, RK_S32 ro, RK_U32 offset, RK_U32 length, const char* caller);
+MPP_RET mpp_buffer_sync_partial_end_f(MppBuffer buffer, RK_S32 ro, RK_U32 offset, RK_U32 length, const char* caller);
 
 MPP_RET mpp_buffer_group_get(MppBufferGroup *group, MppBufferType type, MppBufferMode mode,
                              const char *tag, const char *caller);
