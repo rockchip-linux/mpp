@@ -95,9 +95,12 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
                                        H264eSlice *slice, H264ePrefixNal *prefix)
 {
     MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg->ref_cfg;
+    MppEncH264Cfg    *h264 = &cfg->codec.h264;
+    MppEncH264HwCfg  *hw_cfg = &h264->hw_cfg;
 
     if (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1 ||
-        cfg->codec.h264.hw_poc_type != cfg->codec.h264.poc_type) {
+        hw_cfg->hw_poc_type != h264->poc_type ||
+        hw_cfg->hw_log2_max_frame_num_minus4 != h264->log2_max_frame_num) {
         ctx->enable = 1;
         ctx->slice_enabled = 0;
         ctx->diable_split_out = 1;
@@ -126,7 +129,7 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
     return MPP_OK;
 }
 
-MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, RK_U32 poc_type)
+MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwCfg *hw_cfg)
 {
     H264ePrefixNal *prefix = ctx->prefix;
     H264eSlice *slice = ctx->slice;
@@ -215,8 +218,11 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, RK_U32 poc_ty
         H264eSlice slice_rd;
 
         memcpy(&slice_rd, slice, sizeof(slice_rd));
-        slice_rd.log2_max_frame_num = 16;
-        slice_rd.pic_order_cnt_type = poc_type;
+
+        /* update slice by hw_cfg */
+        slice_rd.pic_order_cnt_type = hw_cfg->hw_poc_type;
+        slice_rd.log2_max_frame_num = hw_cfg->hw_log2_max_frame_num_minus4 + 4;
+
         h264e_reorder_init(slice_rd.reorder);
         h264e_marking_init(slice_rd.marking);
 

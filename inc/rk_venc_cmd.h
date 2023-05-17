@@ -692,6 +692,20 @@ typedef enum MppEncH264CfgChange_e {
     MPP_ENC_H264_CFG_CHANGE_ALL             = (0xFFFFFFFF),
 } MppEncH264CfgChange;
 
+/* default H.264 hardware config */
+typedef struct MppEncH264HwCfg_t {
+    /*
+     * VEPU 1/2 : 2
+     * others   : 0
+     */
+    RK_U32 hw_poc_type;
+    /*
+     * VEPU 1/2 : fixed to 12
+     * others   : changeable, default 12
+     */
+    RK_U32 hw_log2_max_frame_num_minus4;
+} MppEncH264HwCfg;
+
 typedef struct MppEncH264Cfg_t {
     RK_U32              change;
 
@@ -711,10 +725,11 @@ typedef struct MppEncH264Cfg_t {
      * log2_max_frame_num   - used in sps
      */
     RK_U32              poc_type;
-    RK_U32              hw_poc_type;
     RK_U32              log2_max_poc_lsb;
-    RK_U32              log2_max_frame_num;
+    RK_U32              log2_max_frame_num; /* actually log2_max_frame_num_minus4 */
     RK_U32              gaps_not_allowed;
+
+    MppEncH264HwCfg     hw_cfg;
 
     /*
      * H.264 profile_idc parameter

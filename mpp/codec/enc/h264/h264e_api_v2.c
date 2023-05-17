@@ -105,23 +105,26 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     case VPU_CLIENT_VEPU1 :
     case VPU_CLIENT_VEPU2 : {
         h264->poc_type = 2;
-        h264->hw_poc_type = 2;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
+        h264->hw_cfg.hw_poc_type = 2;
+        h264->hw_cfg.hw_log2_max_frame_num_minus4 = 12;
     } break;
     case VPU_CLIENT_RKVENC : {
         h264->poc_type = 0;
-        h264->hw_poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
         h264->chroma_cb_qp_offset = -6;
         h264->chroma_cr_qp_offset = -6;
+        h264->hw_cfg.hw_poc_type = 0;
+        h264->hw_cfg.hw_log2_max_frame_num_minus4 = 12;
     } break;
     default : {
         h264->poc_type = 0;
-        h264->hw_poc_type = 0;
         h264->log2_max_poc_lsb = 12;
         h264->log2_max_frame_num = 12;
+        h264->hw_cfg.hw_poc_type = 0;
+        h264->hw_cfg.hw_log2_max_frame_num_minus4 = 12;
     } break;
     }
 
