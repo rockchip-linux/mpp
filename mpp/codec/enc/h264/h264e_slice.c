@@ -586,7 +586,7 @@ void h264e_slice_write_header(H264eSlice *slice, MppWriteCtx *s)
                     mpp_writer_bits(s), slice->pic_parameter_set_id);
 
     /* frame_num */
-    mpp_writer_put_bits(s, slice->frame_num, 16);
+    mpp_writer_put_bits(s, slice->frame_num, slice->log2_max_frame_num);
     h264e_dbg_slice("used bit %2d frame_num %d\n",
                     mpp_writer_bits(s), slice->frame_num);
 

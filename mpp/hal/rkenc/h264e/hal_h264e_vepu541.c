@@ -337,6 +337,7 @@ static RK_U32 update_vepu541_syntax(HalH264eVepu541Ctx *ctx, MppSyntax *syntax)
 static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
+    MppEncH264HwCfg *hw_cfg = &ctx->cfg->codec.h264.hw_cfg;
     RK_U32 updated = update_vepu541_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
 
@@ -354,6 +355,9 @@ static MPP_RET hal_h264e_vepu541_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr_d(meta, KEY_OSD_DATA2, (void **)&ctx->osd_cfg.osd_data2, NULL);
         mpp_meta_get_buffer_d(meta, KEY_QPMAP0, &ctx->qpmap, NULL);
     }
+
+    /* if not VEPU1/2, update log2_max_frame_num_minus4 in hw_cfg */
+    hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
 
     h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
                                    ctx->slice, ctx->prefix);
@@ -1734,7 +1738,7 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
         if (amend->enable) {
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
-            h264e_vepu_stream_amend_proc(amend, ctx->cfg->codec.h264.hw_poc_type);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
             task->hw_length = amend->new_length;
         } else if (amend->prefix) {
             /* check prefix value */

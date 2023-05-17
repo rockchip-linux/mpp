@@ -526,6 +526,7 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     MppEncCfgSet *cfg_set = ctx->cfg;
     MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
+    MppEncH264HwCfg *hw_cfg = &cfg_set->codec.h264.hw_cfg;
     RK_U32 updated = update_vepu580_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
     H264eFrmInfo *frms = ctx->frms;
@@ -558,6 +559,9 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     ctx->regs_set = &ctx->regs_sets[ctx->task_idx];
     ctx->amend = &ctx->amend_sets[ctx->task_idx];
     ctx->osd_cfg.reg_base = &ctx->regs_set->reg_osd;
+
+    /* if not VEPU1/2, update log2_max_frame_num_minus4 in hw_cfg */
+    hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
 
     if (ctx->task_cnt > 1 && (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)) {
         //store async encode TSVC info
@@ -2461,7 +2465,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
             amend->diable_split_out = !split_out;
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
-            h264e_vepu_stream_amend_proc(amend, ctx->cfg->codec.h264.hw_poc_type);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
             task->hw_length = amend->new_length;
         } else if (amend->prefix) {
             /* check prefix value */

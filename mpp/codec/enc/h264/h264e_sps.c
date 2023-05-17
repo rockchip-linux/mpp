@@ -161,7 +161,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     sps->chroma_format_idc = H264_CHROMA_420;
 
     // set max frame number and poc lsb according to gop size
-    sps->pic_order_cnt_type = h264->hw_poc_type;
+    sps->pic_order_cnt_type = h264->hw_cfg.hw_poc_type;
     sps->log2_max_poc_lsb_minus4 = h264->log2_max_poc_lsb;
     sps->log2_max_frame_num_minus4 = h264->log2_max_frame_num;
 

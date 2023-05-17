@@ -41,7 +41,7 @@ MPP_RET h264e_vepu_stream_amend_deinit(HalH264eVepuStreamAmend *ctx);
 MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
                                        MppPacket packet, MppEncCfgSet *cfg,
                                        H264eSlice *slice, H264ePrefixNal *prefix);
-MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, RK_U32 poc_type);
+MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwCfg *hw_cfg);
 MPP_RET h264e_vepu_stream_amend_sync_ref_idc(HalH264eVepuStreamAmend *ctx);
 
 #endif /* __HAL_H264E_STREAM_AMEND_H__ */
