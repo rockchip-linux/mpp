@@ -115,7 +115,7 @@ MPP_RET vp8e_init_entropy(void *hal)
 
                     for (l = 2; l--;) {
                         old_p = entropy->coeff_prob[i][j][k][l];
-                        old_p = coeff_update_prob_tbl[i][j][k][l];
+                        upd_p = coeff_update_prob_tbl[i][j][k][l];
 
                         tmp -= 4 * 7 * 3;
                         ii = offset_tbl[tmp];
