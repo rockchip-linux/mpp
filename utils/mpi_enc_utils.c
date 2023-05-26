@@ -562,6 +562,8 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
     if ((argc < 2) || NULL == cmd || NULL == argv)
         goto done;
 
+    cmd->rc_mode = MPP_ENC_RC_MODE_BUTT;
+
     mpp_opt_init(&opts);
     /* should change node count when option increases */
     mpp_opt_setup(opts, cmd, 67, enc_opt_cnt);
@@ -579,6 +581,10 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
         mpp_err("invalid type %d\n", cmd->type);
         ret = MPP_NOK;
     }
+
+    if (cmd->rc_mode == MPP_ENC_RC_MODE_BUTT)
+        cmd->rc_mode = (cmd->type == MPP_VIDEO_CodingMJPEG) ?
+                       MPP_ENC_RC_MODE_FIXQP : MPP_ENC_RC_MODE_VBR;
 
     if (!cmd->hor_stride)
         cmd->hor_stride = mpi_enc_width_default_stride(cmd->width, cmd->format);
