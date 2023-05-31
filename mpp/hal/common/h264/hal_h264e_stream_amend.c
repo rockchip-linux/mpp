@@ -223,16 +223,26 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
         slice_rd.pic_order_cnt_type = hw_cfg->hw_poc_type;
         slice_rd.log2_max_frame_num = hw_cfg->hw_log2_max_frame_num_minus4 + 4;
 
-        h264e_reorder_init(slice_rd.reorder);
-        h264e_marking_init(slice_rd.marking);
+        if (ctx->reorder) {
+            slice_rd.reorder = ctx->reorder;
+            h264e_reorder_init(slice_rd.reorder);
+        }
+        if (ctx->marking) {
+            slice_rd.marking = ctx->marking;
+            h264e_marking_init(slice_rd.marking);
+        }
 
         hw_len_bit = h264e_slice_read(&slice_rd, ctx->src_buf, size);
 
         // write new header to header buffer
         slice->qp_delta = slice_rd.qp_delta;
         slice->first_mb_in_slice = slice_rd.first_mb_in_slice;
-        slice->reorder = slice_rd.reorder;
-        slice->marking = slice_rd.marking;
+
+        if (ctx->reorder)
+            slice->reorder = slice_rd.reorder;
+        if (ctx->marking)
+            slice->marking = slice_rd.marking;
+
         sw_len_bit = h264e_slice_write(slice, dst_buf, buf_size);
 
         hw_len_byte = (hw_len_bit + 7) / 8;

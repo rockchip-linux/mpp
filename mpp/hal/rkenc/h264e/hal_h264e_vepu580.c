@@ -80,6 +80,8 @@ typedef struct HalH264eVepu580Ctx_t {
     H264ePps                *pps;
     H264eDpb                *dpb;
     H264eFrmInfo            *frms;
+
+    /* async encode TSVC info */
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
 
@@ -219,6 +221,8 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
     MPP_FREE(p->amend_sets);
     MPP_FREE(p->prefix_sets);
     MPP_FREE(p->slice_sets);
+    MPP_FREE(p->reorder);
+    MPP_FREE(p->marking);
     MPP_FREE(p->poll_cfgs);
 
     if (p->ext_line_buf_grp) {
@@ -311,8 +315,23 @@ static MPP_RET hal_h264e_vepu580_init(void *hal, MppEncHalCfg *cfg)
             mpp_err_f("init amend data failed\n");
             goto DONE;
         }
+
         p->slice_sets = mpp_malloc(H264eSlice, p->task_cnt);
         if (NULL == p->slice_sets) {
+            ret = MPP_ERR_MALLOC;
+            mpp_err_f("init amend data failed\n");
+            goto DONE;
+        }
+
+        p->reorder = mpp_malloc(H264eReorderInfo, 1);
+        if (NULL == p->reorder) {
+            ret = MPP_ERR_MALLOC;
+            mpp_err_f("init amend data failed\n");
+            goto DONE;
+        }
+
+        p->marking = mpp_malloc(H264eMarkingInfo, 1);
+        if (NULL == p->marking) {
             ret = MPP_ERR_MALLOC;
             mpp_err_f("init amend data failed\n");
             goto DONE;
@@ -564,14 +583,26 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
 
     if (ctx->task_cnt > 1 && (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)) {
+        H264ePrefixNal *prefix = &ctx->prefix_sets[ctx->task_idx];
+        H264eSlice *slice = &ctx->slice_sets[ctx->task_idx];
+
         //store async encode TSVC info
         if (ctx->prefix)
-            memcpy(&ctx->prefix_sets[ctx->task_idx], ctx->prefix, sizeof(H264ePrefixNal));
-        if (ctx->slice)
-            memcpy(&ctx->slice_sets[ctx->task_idx], ctx->slice, sizeof(H264eSlice));
+            memcpy(prefix, ctx->prefix, sizeof(H264ePrefixNal));
+        if (ctx->slice) {
+            memcpy(slice, ctx->slice, sizeof(H264eSlice));
+
+            /*
+             * Generally, reorder and marking are shared by dpb and slice.
+             * However, async encoding TSVC will change reorder and marking in each task.
+             * Therefore, malloc a special space for async encoding TSVC.
+             */
+            ctx->amend->reorder = ctx->reorder;
+            ctx->amend->marking = ctx->marking;
+        }
 
         h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
-                                       &ctx->slice_sets[ctx->task_idx], &ctx->prefix_sets[ctx->task_idx]);
+                                       slice, prefix);
     } else {
         h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
                                        ctx->slice, ctx->prefix);
