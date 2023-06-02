@@ -695,11 +695,11 @@ void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
     scalingList_t sl;
     RK_U32 i, j, pos;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
-    HalH265dCtx *reg_cxt = ( HalH265dCtx *)hal;
+    HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
     if (!dxva_cxt->pp.scaling_list_enabled_flag) {
         return;
     }
-    if (memcmp((void*)&dxva_cxt->qm, reg_cxt->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
+    if (memcmp((void*)&dxva_cxt->qm, reg_ctx->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
         memset(&sl, 0, sizeof(scalingList_t));
         for (i = 0; i < 6; i++) {
             for (j = 0; j < 16; j++) {
@@ -720,9 +720,9 @@ void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
             if (i < 2)
                 sl.sl_dc[1][i] =  dxva_cxt->qm.ucScalingListDCCoefSizeID3[i];
         }
-        hal_record_scaling_list((scalingFactor_t *)reg_cxt->scaling_rk, &sl);
+        hal_record_scaling_list((scalingFactor_t *)reg_ctx->scaling_rk, &sl);
     }
-    memcpy(ptr, reg_cxt->scaling_rk, sizeof(scalingFactor_t));
+    memcpy(ptr, reg_ctx->scaling_rk, sizeof(scalingFactor_t));
 }
 
 RK_U8 cabac_table[27456] = {
