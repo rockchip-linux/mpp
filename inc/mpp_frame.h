@@ -172,10 +172,9 @@ typedef enum {
 #define MPP_FRAME_FBC_MASK          (0x00f00000)
 #define MPP_FRAME_FBC_NONE          (0x00000000)
 
-#define MPP_FRAME_HDR_MASK          (0x0f000000)
+#define MPP_FRAME_HDR_MASK          (0x0c000000)
 #define MPP_FRAME_HDR_NONE          (0x00000000)
-
-#define MPP_FRAME_HDR               (0x01000000)
+#define MPP_FRAME_HDR               (0x04000000)
 
 /*
  * AFBC_V1 is for ISP output.
