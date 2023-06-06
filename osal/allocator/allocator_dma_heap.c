@@ -103,11 +103,12 @@ static int dma_heap_alloc(int fd, size_t len, RK_S32 *dmabuf_fd, RK_U32 flags)
     data.heap_flags = 0; // heap_flags should be set to 0
 
     ret = ioctl(fd, DMA_HEAP_IOCTL_ALLOC, &data);
-
-    dma_heap_dbg(DMA_HEAP_IOCTL, "ioctl alloc ret %d %s\n", ret, strerror(errno));
-
-    if (ret < 0)
+    if (ret < 0) {
+        mpp_err("ioctl alloc failed for %s\n", strerror(errno));
         return ret;
+    }
+
+    dma_heap_dbg(DMA_HEAP_IOCTL, "ioctl alloc get fd %d\n", data.fd);
 
     *dmabuf_fd = data.fd;
 
