@@ -182,8 +182,6 @@ RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info)
         RCB_TRANSD_COL,
     };
 
-    mpp_env_get_u32("rcb_mode", &set_rcb_mode, RCB_SET_BY_PRIORITY_MODE);
-
     switch (set_rcb_mode) {
     case RCB_SET_BY_SIZE_SORT_MODE : {
         Vdpu382RcbInfo info[RCB_BUF_COUNT];
