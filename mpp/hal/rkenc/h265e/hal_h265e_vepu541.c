@@ -581,11 +581,20 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
         regs->thd_540.atf_sad_wgt0.atf_thd1_p16 = 63;
         vepu540_h265_set_l2_regs(regs);
     }
-    regs->atf_sad_wgt1.atf_wgt_i16 = 19;
-    regs->atf_sad_wgt1.atf_wgt_i32 = 19;
-    regs->atf_sad_wgt2.atf_wgt_p32 = 13;
-    regs->atf_sad_wgt2.atf_wgt_p64 = 13;
-    regs->atf_sad_ofst0.atf_wgt_p16 = 13;
+
+    if (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) {
+        regs->atf_sad_wgt1.atf_wgt_i16 = 19;
+        regs->atf_sad_wgt1.atf_wgt_i32 = 19;
+        regs->atf_sad_wgt2.atf_wgt_p32 = 13;
+        regs->atf_sad_wgt2.atf_wgt_p64 = 13;
+        regs->atf_sad_ofst0.atf_wgt_p16 = 13;
+    } else {
+        regs->atf_sad_wgt1.atf_wgt_i16 = 16;
+        regs->atf_sad_wgt1.atf_wgt_i32 = 16;
+        regs->atf_sad_wgt2.atf_wgt_p32 = 16;
+        regs->atf_sad_wgt2.atf_wgt_p64 = 16;
+        regs->atf_sad_ofst0.atf_wgt_p16 = 16;
+    }
 
     memcpy(&regs->atf_sad_ofst1, atf_sad_ofst, sizeof(atf_sad_ofst));
     memcpy(&regs->lamd_satd_qp[0], lamd_satd_qp, sizeof(lamd_satd_qp));
@@ -1034,8 +1043,8 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
             ctu_target_bits_mul_16 = 0x50000;
         }
         ctu_target_bits = (ctu_target_bits_mul_16 * mb_wd64) >> 4;
-        negative_bits_thd = 0 - ctu_target_bits / 5;
-        positive_bits_thd = ctu_target_bits / 4;
+        negative_bits_thd = 0 - 5 * ctu_target_bits / 16;
+        positive_bits_thd = 5 * ctu_target_bits / 16;
 
         regs->enc_pic.pic_qp    = rc_cfg->quality_target;
         regs->synt_sli1.sli_qp  = rc_cfg->quality_target;
@@ -1051,25 +1060,25 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
         regs->rc_qp.rc_min_qp   = rc_cfg->quality_min;
         regs->rc_tgt.ctu_ebits  = ctu_target_bits_mul_16;
 
-        regs->rc_erp0.bits_thd0 = negative_bits_thd;
-        regs->rc_erp1.bits_thd1 = positive_bits_thd;
+        regs->rc_erp0.bits_thd0 = 2 * negative_bits_thd;
+        regs->rc_erp1.bits_thd1 = negative_bits_thd;
         regs->rc_erp2.bits_thd2 = positive_bits_thd;
-        regs->rc_erp3.bits_thd3 = positive_bits_thd;
-        regs->rc_erp4.bits_thd4 = positive_bits_thd;
-        regs->rc_erp5.bits_thd5 = positive_bits_thd;
-        regs->rc_erp6.bits_thd6 = positive_bits_thd;
-        regs->rc_erp7.bits_thd7 = positive_bits_thd;
-        regs->rc_erp8.bits_thd8 = positive_bits_thd;
+        regs->rc_erp3.bits_thd3 = 2 * positive_bits_thd;
+        regs->rc_erp4.bits_thd4 = 0x7FFFFFFF;
+        regs->rc_erp5.bits_thd5 = 0x7FFFFFFF;
+        regs->rc_erp6.bits_thd6 = 0x7FFFFFFF;
+        regs->rc_erp7.bits_thd7 = 0x7FFFFFFF;
+        regs->rc_erp8.bits_thd8 = 0x7FFFFFFF;
 
-        regs->rc_adj0.qp_adjust0    = -1;
-        regs->rc_adj0.qp_adjust1    = 0;
+        regs->rc_adj0.qp_adjust0    = -2;
+        regs->rc_adj0.qp_adjust1    = -1;
         regs->rc_adj0.qp_adjust2    = 0;
-        regs->rc_adj0.qp_adjust3    = 0;
-        regs->rc_adj0.qp_adjust4    = 0;
+        regs->rc_adj0.qp_adjust3    = 1;
+        regs->rc_adj0.qp_adjust4    = 2;
         regs->rc_adj1.qp_adjust5    = 0;
         regs->rc_adj1.qp_adjust6    = 0;
         regs->rc_adj1.qp_adjust7    = 0;
-        regs->rc_adj1.qp_adjust8    = 1;
+        regs->rc_adj1.qp_adjust8    = 0;
 
         regs->qpmap0.qpmin_area0 = h265->qpmin_map[0] > 0 ? h265->qpmin_map[0] : rc_cfg->quality_min;
         regs->qpmap0.qpmax_area0 = h265->qpmax_map[0] > 0 ? h265->qpmax_map[0] : rc_cfg->quality_max;
