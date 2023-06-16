@@ -1522,7 +1522,7 @@ static void mpp_enc_add_sw_header(MppEncImpl *enc, HalEncTask *hal_task)
             hdr_status->added_by_mode = 1;
         }
 
-        if (add_header & 2) {
+        if ((add_header & 2) && enc->sei_mode >= MPP_ENC_SEI_MODE_ONE_SEQ) {
             RK_S32 length = 0;
 
             enc_impl_add_prefix(impl, packet, &length, uuid_refresh_cfg,
