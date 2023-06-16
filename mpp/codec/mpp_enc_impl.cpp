@@ -2234,6 +2234,13 @@ TASK_DONE:
             mpp_meta_set_frame(meta, KEY_INPUT_FRAME, enc->frame);
     }
 
+    /* enc failed force idr */
+    if (ret) {
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+        enc->hdr_status.val = 0;
+        mpp_packet_set_length(packet, 0);
+        mpp_err_f("enc failed force idr!\n");
+    }
     /*
      * First return output packet.
      * Then enqueue task back to input port.
@@ -2903,6 +2910,27 @@ TASK_DONE:
     mpp_meta_set_frame(meta, KEY_INPUT_FRAME, hal_task->frame);
 
     enc_dbg_detail("task %d output packet pts %lld\n", info->seq_idx, info->pts);
+
+    /*
+     * async encode process, there may have multiple frames encoding.
+     * if last frame enc failed, drop non-idr frames and force idr for next frame.
+     */
+    if (enc->enc_failed_drop && !hal_task->rc_task->frm.is_idr) {
+        mpp_packet_set_length(pkt, 0);
+        mpp_err_f("last frame enc failed, drop this P frame\n");
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+        enc->hdr_status.val = 0;
+    } else
+        enc->enc_failed_drop = 0;
+    /* enc failed, force idr for next frame */
+    if (ret) {
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+        enc->hdr_status.val = 0;
+        mpp_packet_set_length(pkt, 0);
+        enc->enc_failed_drop = 1;
+
+        mpp_err_f("enc failed force idr!\n");
+    }
 
     if (mpp->mPktOut) {
         mpp_list *pkt_out = mpp->mPktOut;

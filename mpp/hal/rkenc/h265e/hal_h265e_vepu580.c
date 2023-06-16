@@ -2960,6 +2960,50 @@ void dump_files(H265eV580HalContext *ctx, HalEncTask *enc_task)
     save_to_file(name, dws_ptr, dws_size);
 }
 
+static MPP_RET hal_h265e_vepu580_status_check(RK_U32 hw_status)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
+        hal_h265e_dbg_detail("RKV_ENC_INT_LINKTABLE_FINISH");
+
+    if (hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
+        hal_h265e_dbg_detail("RKV_ENC_INT_ONE_FRAME_FINISH");
+
+    if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
+        hal_h265e_dbg_detail("RKV_ENC_INT_ONE_SLICE_FINISH");
+
+    if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
+        hal_h265e_dbg_detail("RKV_ENC_INT_SAFE_CLEAR_FINISH");
+
+    if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW) {
+        hal_h265e_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
+        ret = MPP_NOK;
+    }
+
+    if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL) {
+        hal_h265e_err("RKV_ENC_INT_BUS_WRITE_FULL");
+        ret = MPP_NOK;
+    }
+
+    if (hw_status & RKV_ENC_INT_BUS_WRITE_ERROR) {
+        hal_h265e_err("RKV_ENC_INT_BUS_WRITE_ERROR");
+        ret = MPP_NOK;
+    }
+
+    if (hw_status & RKV_ENC_INT_BUS_READ_ERROR) {
+        hal_h265e_err("RKV_ENC_INT_BUS_READ_ERROR");
+        ret = MPP_NOK;
+    }
+
+    if (hw_status & RKV_ENC_INT_TIMEOUT_ERROR) {
+        hal_h265e_err("RKV_ENC_INT_TIMEOUT_ERROR");
+        ret = MPP_NOK;
+    }
+
+    return ret;
+}
+
 MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
@@ -3062,6 +3106,9 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
             RK_U32 hw_status = elem_ret->hw_status;
             RK_U32 tile_size = elem_ret->st.bs_lgth_l32;
 
+            ret = hal_h265e_vepu580_status_check(hw_status);
+            if (ret)
+                break;
             mpp_packet_add_segment_info(pkt, type, offset, tile_size);
             offset += tile_size;
 
@@ -3077,6 +3124,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
     }
 
     hal_h265e_leave();
+
     return ret;
 }
 

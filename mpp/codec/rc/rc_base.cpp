@@ -108,7 +108,6 @@ void mpp_data_preset_v2(MppDataV2 *p, RK_S32 val)
 
 void mpp_data_update_v2(MppDataV2 *p, RK_S32 val)
 {
-    mpp_assert(p->pos_ahead >= 0 && p->pos_ahead <= 2);
     if (p->pos_ahead) {
         p->sum += val - p->val[p->pos_w];
         p->val[p->pos_w] = val;
