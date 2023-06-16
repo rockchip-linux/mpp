@@ -2394,6 +2394,8 @@ static MPP_RET hal_h264e_vepu580_start(void *hal, HalEncTask *task)
 
 static MPP_RET hal_h264e_vepu580_status_check(HalVepu580RegSet *regs)
 {
+    MPP_RET ret = MPP_OK;
+
     if (regs->reg_ctl.int_sta.lkt_node_done_sta)
         hal_h264e_dbg_detail("lkt_done finish");
 
@@ -2406,22 +2408,32 @@ static MPP_RET hal_h264e_vepu580_status_check(HalVepu580RegSet *regs)
     if (regs->reg_ctl.int_sta.sclr_done_sta)
         hal_h264e_dbg_detail("safe clear finsh");
 
-    if (regs->reg_ctl.int_sta.bsf_oflw_sta)
+    if (regs->reg_ctl.int_sta.bsf_oflw_sta) {
         mpp_err_f("bit stream overflow");
+        ret = MPP_NOK;
+    }
 
-    if (regs->reg_ctl.int_sta.brsp_otsd_sta)
+    if (regs->reg_ctl.int_sta.brsp_otsd_sta) {
         mpp_err_f("bus write full");
+        ret = MPP_NOK;
+    }
 
-    if (regs->reg_ctl.int_sta.wbus_err_sta)
+    if (regs->reg_ctl.int_sta.wbus_err_sta) {
         mpp_err_f("bus write error");
+        ret = MPP_NOK;
+    }
 
-    if (regs->reg_ctl.int_sta.rbus_err_sta)
+    if (regs->reg_ctl.int_sta.rbus_err_sta) {
         mpp_err_f("bus read error");
+        ret = MPP_NOK;
+    }
 
-    if (regs->reg_ctl.int_sta.wdg_sta)
+    if (regs->reg_ctl.int_sta.wdg_sta) {
+        ret = MPP_NOK;
         mpp_err_f("wdg timeout");
+    }
 
-    return MPP_OK;
+    return ret;
 }
 
 static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
@@ -2474,16 +2486,18 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
             }
         } while (!slice_last);
 
-        hal_h264e_vepu580_status_check(regs);
-        task->hw_length += regs->reg_st.bs_lgth_l32;
+        ret = hal_h264e_vepu580_status_check(regs);
+        if (!ret)
+            task->hw_length += regs->reg_st.bs_lgth_l32;
     } else {
         ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
         if (ret) {
             mpp_err_f("poll cmd failed %d\n", ret);
             ret = MPP_ERR_VPUHW;
         } else {
-            hal_h264e_vepu580_status_check(regs);
-            task->hw_length += regs->reg_st.bs_lgth_l32;
+            ret = hal_h264e_vepu580_status_check(regs);
+            if (!ret)
+                task->hw_length += regs->reg_st.bs_lgth_l32;
         }
 
         mpp_packet_add_segment_info(pkt, type, offset, regs->reg_st.bs_lgth_l32);
