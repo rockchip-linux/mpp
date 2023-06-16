@@ -878,6 +878,10 @@ static void hal_h264d_rcb_info_update(void *hal, Vdpu34xH264dRegSet *regs)
             mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
             ctx->rcb_buf[i] = rcb_buf;
         }
+
+        if (mbaff && 2 == chroma_format_idc)
+            mpp_err("Warning: rkv do not support H.264 4:2:2 MBAFF decoding.");
+
         ctx->bit_depth      = bit_depth;
         ctx->width          = width;
         ctx->height         = height;
