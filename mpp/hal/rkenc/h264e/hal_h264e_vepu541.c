@@ -758,7 +758,7 @@ static void setup_vepu541_codec(Vepu541H264eRegSet *regs, H264eSps *sps,
 }
 
 static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
-                                   H264ePps *pps, H264eSlice *slice)
+                                   H264ePps *pps, H264eSlice *slice, MppEncCfgSet *cfg)
 {
     hal_h264e_dbg_func("enter\n");
 
@@ -767,26 +767,38 @@ static void setup_vepu541_rdo_pred(Vepu541H264eRegSet *regs, H264eSps *sps,
         memcpy(&regs->reg026, &h264e_klut_weight[0], CHROMA_KLUT_TAB_SIZE);
     } else {
         regs->reg025.chrm_klut_ofst = 3;
-        memcpy(&regs->reg026, &h264e_klut_weight[4], CHROMA_KLUT_TAB_SIZE);
+        if (cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC)
+            memcpy(&regs->reg026, &h264e_klut_weight[3], CHROMA_KLUT_TAB_SIZE);
+        else
+            memcpy(&regs->reg026, &h264e_klut_weight[0], CHROMA_KLUT_TAB_SIZE);
     }
 
-    regs->reg101.vthd_y         = 9;
-    regs->reg101.vthd_c         = 63;
+    if (cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) {
+        regs->reg101.vthd_y         = 9;
+        regs->reg101.vthd_c         = 63;
+        regs->reg102.inter_4x4      = 0;
+        regs->reg102.rdo_mask       = 24;
+        regs->reg102.atf_intra_e    = 1;
+    } else {
+        regs->reg101.vthd_y         = 2501;
+        regs->reg101.vthd_c         = 2501;
+        regs->reg102.inter_4x4      = 1;
+        regs->reg102.rdo_mask       = 0;
+        regs->reg102.atf_intra_e    = 0;
+    }
 
     regs->reg102.rect_size      = (sps->profile_idc == H264_PROFILE_BASELINE &&
                                    sps->level_idc <= H264_LEVEL_3_0) ? 1 : 0;
-    regs->reg102.inter_4x4      = 0;
+
     regs->reg102.vlc_lmt        = (sps->profile_idc < H264_PROFILE_MAIN) &&
                                   !pps->entropy_coding_mode;
     regs->reg102.chrm_spcl      = 1;
-    regs->reg102.rdo_mask       = 24;
     regs->reg102.ccwa_e         = 1;
     regs->reg102.scl_lst_sel    = pps->pic_scaling_matrix_present;
     regs->reg102.scl_lst_sel_   = pps->pic_scaling_matrix_present;
     regs->reg102.atr_e          = 1;
     regs->reg102.atf_edg        = 0;
     regs->reg102.atf_lvl_e      = 0;
-    regs->reg102.atf_intra_e    = 1;
     regs->reg102.satd_byps_flg  = 0;
 
     hal_h264e_dbg_func("leave\n");
@@ -816,8 +828,8 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
     }
 
     mb_target_bits = (mb_target_bits_mul_16 * mb_w) >> 4;
-    negative_bits_thd = 0 - mb_target_bits / 4;
-    positive_bits_thd = mb_target_bits / 4;
+    negative_bits_thd = 0 - mb_target_bits  * 5 / 16;
+    positive_bits_thd = mb_target_bits  * 5 / 16;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -835,25 +847,25 @@ static void setup_vepu541_rc_base(Vepu541H264eRegSet *regs, H264eSps *sps,
 
     regs->reg052.ctu_ebit       = mb_target_bits_mul_16;
 
-    regs->reg053.qp_adj0        = -1;
-    regs->reg053.qp_adj1        = 0;
+    regs->reg053.qp_adj0        = -2;
+    regs->reg053.qp_adj1        = -1;
     regs->reg053.qp_adj2        = 0;
-    regs->reg053.qp_adj3        = 0;
-    regs->reg053.qp_adj4        = 0;
+    regs->reg053.qp_adj3        = 1;
+    regs->reg053.qp_adj4        = 2;
     regs->reg054.qp_adj5        = 0;
     regs->reg054.qp_adj6        = 0;
     regs->reg054.qp_adj7        = 0;
-    regs->reg054.qp_adj8        = 1;
+    regs->reg054.qp_adj8        = 0;
 
-    regs->reg055_063.rc_dthd[0] = negative_bits_thd;
-    regs->reg055_063.rc_dthd[1] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[0] = 2 * negative_bits_thd;
+    regs->reg055_063.rc_dthd[1] = negative_bits_thd;
     regs->reg055_063.rc_dthd[2] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[3] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[4] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[5] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[6] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[7] = positive_bits_thd;
-    regs->reg055_063.rc_dthd[8] = positive_bits_thd;
+    regs->reg055_063.rc_dthd[3] = 2 * positive_bits_thd;
+    regs->reg055_063.rc_dthd[4] = 0x7fffffff;
+    regs->reg055_063.rc_dthd[5] = 0x7fffffff;
+    regs->reg055_063.rc_dthd[6] = 0x7fffffff;
+    regs->reg055_063.rc_dthd[7] = 0x7fffffff;
+    regs->reg055_063.rc_dthd[8] = 0x7fffffff;
 
     regs->reg064.qpmin_area0    = qp_min;
     regs->reg064.qpmax_area0    = qp_max;
@@ -1382,7 +1394,7 @@ static RK_U32 h264e_lambda_default[58] = {
     0x0016dbcb, 0x001ccccc,
 };
 
-static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppEncHwCfg *hw)
+static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppEncHwCfg *hw, MppEncCfgSet *cfg)
 {
     RK_U32 i;
 
@@ -1405,8 +1417,6 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
     regs->iprd_tthdy8[2] = 9;
     regs->iprd_tthdy8[3] = 36;
 
-    regs->iprd_tthd_ul = 0x0;
-
     regs->iprd_wgty8[0] = 0x30;
     regs->iprd_wgty8[1] = 0x3c;
     regs->iprd_wgty8[2] = 0x28;
@@ -1427,42 +1437,79 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
     regs->iprd_wgtc8[2] = 0x1c;
     regs->iprd_wgtc8[3] = 0x20;
 
+    if (cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) {
+        regs->iprd_tthd_ul = 0x0;
+        regs->rme_mvd_penalty.mvd_pnlt_e    = 1;
+        regs->rme_mvd_penalty.mvd_pnlt_coef = 1;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->qnt_bias_comb.qnt_bias_i = 683;
+            regs->atr_thd1_h264.atr_thd2 = 36;
+            regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
+            regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
+            regs->atr_wgt16_h264.atr_lv16_wgt2 = 16;
+
+            regs->atr_wgt8_h264.atr_lv8_wgt0 = 32;
+            regs->atr_wgt8_h264.atr_lv8_wgt1 = 32;
+            regs->atr_wgt8_h264.atr_lv8_wgt2 = 32;
+
+            regs->atr_wgt4_h264.atr_lv4_wgt0 = 20;
+            regs->atr_wgt4_h264.atr_lv4_wgt1 = 18;
+            regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
+        } else {
+            regs->qnt_bias_comb.qnt_bias_i = 583;
+            regs->atr_thd1_h264.atr_thd2 = 81;
+            regs->atr_wgt16_h264.atr_lv16_wgt0 = 28;
+            regs->atr_wgt16_h264.atr_lv16_wgt1 = 27;
+            regs->atr_wgt16_h264.atr_lv16_wgt2 = 23;
+
+            regs->atr_wgt8_h264.atr_lv8_wgt0 = 32;
+            regs->atr_wgt8_h264.atr_lv8_wgt1 = 32;
+            regs->atr_wgt8_h264.atr_lv8_wgt2 = 32;
+
+            regs->atr_wgt4_h264.atr_lv4_wgt0 = 28;
+            regs->atr_wgt4_h264.atr_lv4_wgt1 = 27;
+            regs->atr_wgt4_h264.atr_lv4_wgt2 = 23;
+        }
+    } else {
+        regs->iprd_tthd_ul = 0x9c5;
+        regs->rme_mvd_penalty.mvd_pnlt_e    = 0;
+        regs->rme_mvd_penalty.mvd_pnlt_coef = 0;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->qnt_bias_comb.qnt_bias_i = 683;
+            regs->atr_thd1_h264.atr_thd2 = 36;
+            regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
+            regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
+            regs->atr_wgt16_h264.atr_lv16_wgt2 = 16;
+
+            regs->atr_wgt8_h264.atr_lv8_wgt0 = 20;
+            regs->atr_wgt8_h264.atr_lv8_wgt1 = 20;
+            regs->atr_wgt8_h264.atr_lv8_wgt2 = 20;
+
+            regs->atr_wgt4_h264.atr_lv4_wgt0 = 20;
+            regs->atr_wgt4_h264.atr_lv4_wgt1 = 18;
+            regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
+        } else {
+            regs->qnt_bias_comb.qnt_bias_i = 583;
+            regs->atr_thd1_h264.atr_thd2 = 81;
+            regs->atr_wgt16_h264.atr_lv16_wgt0 = 18;
+            regs->atr_wgt16_h264.atr_lv16_wgt1 = 17;
+            regs->atr_wgt16_h264.atr_lv16_wgt2 = 16;
+
+            regs->atr_wgt8_h264.atr_lv8_wgt0 = 20;
+            regs->atr_wgt8_h264.atr_lv8_wgt1 = 20;
+            regs->atr_wgt8_h264.atr_lv8_wgt2 = 20;
+
+            regs->atr_wgt4_h264.atr_lv4_wgt0 = 18;
+            regs->atr_wgt4_h264.atr_lv4_wgt1 = 17;
+            regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
+        }
+    }
+
     /* 000556ab */
     regs->qnt_bias_comb.qnt_bias_p = 171;
 
     regs->atr_thd0_h264.atr_thd0 = 1;
     regs->atr_thd0_h264.atr_thd1 = 4;
-
-    if (slice->slice_type == H264_I_SLICE) {
-        regs->qnt_bias_comb.qnt_bias_i = 683;
-        regs->atr_thd1_h264.atr_thd2 = 36;
-        regs->atr_wgt16_h264.atr_lv16_wgt0 = 16;
-        regs->atr_wgt16_h264.atr_lv16_wgt1 = 16;
-        regs->atr_wgt16_h264.atr_lv16_wgt2 = 16;
-
-        regs->atr_wgt8_h264.atr_lv8_wgt0 = 32;
-        regs->atr_wgt8_h264.atr_lv8_wgt1 = 32;
-        regs->atr_wgt8_h264.atr_lv8_wgt2 = 32;
-
-        regs->atr_wgt4_h264.atr_lv4_wgt0 = 20;
-        regs->atr_wgt4_h264.atr_lv4_wgt1 = 18;
-        regs->atr_wgt4_h264.atr_lv4_wgt2 = 16;
-    } else {
-        regs->qnt_bias_comb.qnt_bias_i = 583;
-        regs->atr_thd1_h264.atr_thd2 = 81;
-        regs->atr_wgt16_h264.atr_lv16_wgt0 = 28;
-        regs->atr_wgt16_h264.atr_lv16_wgt1 = 27;
-        regs->atr_wgt16_h264.atr_lv16_wgt2 = 23;
-
-        regs->atr_wgt8_h264.atr_lv8_wgt0 = 32;
-        regs->atr_wgt8_h264.atr_lv8_wgt1 = 32;
-        regs->atr_wgt8_h264.atr_lv8_wgt2 = 32;
-
-        regs->atr_wgt4_h264.atr_lv4_wgt0 = 28;
-        regs->atr_wgt4_h264.atr_lv4_wgt1 = 27;
-        regs->atr_wgt4_h264.atr_lv4_wgt2 = 23;
-    }
-
     regs->atr_thd1_h264.atr_qp = 45;
     regs->atf_tthd[0] = 0;
     regs->atf_tthd[1] = 64;
@@ -1516,8 +1563,6 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
         }
     }
 
-    regs->rme_mvd_penalty.mvd_pnlt_e    = 1;
-    regs->rme_mvd_penalty.mvd_pnlt_coef = 1;
     regs->rme_mvd_penalty.mvd_pnlt_cnst = 16000;
     regs->rme_mvd_penalty.mvd_pnlt_lthd = 0;
     regs->rme_mvd_penalty.mvd_pnlt_hthd = 0;
@@ -1565,7 +1610,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
         return ret;
 
     setup_vepu541_codec(regs, sps, pps, slice);
-    setup_vepu541_rdo_pred(regs, sps, pps, slice);
+    setup_vepu541_rdo_pred(regs, sps, pps, slice, cfg);
     setup_vepu541_rc_base(regs, sps, slice, &cfg->hw, task->rc_task);
     setup_vepu541_io_buf(regs, ctx->dev, task);
     setup_vepu541_roi(regs, ctx);
@@ -1591,7 +1636,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     else
         vepu541_set_osd(&ctx->osd_cfg);
 
-    setup_vepu541_l2(&ctx->regs_l2_set, slice, &cfg->hw);
+    setup_vepu541_l2(&ctx->regs_l2_set, slice, &cfg->hw, cfg);
 
     mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
 
