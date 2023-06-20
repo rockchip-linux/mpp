@@ -48,13 +48,14 @@ void h264e_dpb_dump_frm(H264eDpb *dpb, const char *caller, RK_S32 line)
     mpp_log_f("dump dpb frame info in %s line %d\n", caller, line);
 
     mpp_log_f("dpb %p total count %d size %d\n", dpb, dpb->total_cnt, dpb->dpb_size);
-    mpp_log_f("dpb slot use seq type tid ref idx mode arg\n");
+    mpp_log_f("dpb %5s %5s %5s %5s %5s %5s %5s %5s %5s\n",
+              "slot", "use", "seq", "type", "tid", "ref", "idx", "mode", "arg");
 
     for (i = 0; i < dpb->total_cnt; i++) {
         H264eDpbFrm *frm = &dpb->frames[i];
         EncFrmStatus *status = &frm->status;
 
-        mpp_log_f("frm  %2d   %d  %-3d %s    %-3d %-3s %-3d %-4x %-3d\n",
+        mpp_log_f("frm %5d %5d %5d %5s %5d %5s %5d %5x %5d\n",
                   i, frm->on_used, status->seq_idx,
                   (status->is_intra) ? (status->is_idr ? "I" : "i" ) :
                       status->is_non_ref ? "p" : "P",
