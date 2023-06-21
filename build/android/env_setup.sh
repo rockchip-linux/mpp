@@ -5,7 +5,7 @@
 #################################################
 while [ $# -gt 0 ]; do
     case $1 in
-        --help)
+        --help | -h)
             echo "Execute make-Android.sh in *arm/* or *aarch64/* with some args."
             echo "  use --ndk to set ANDROID_NDK"
             echo "  use --cmake to specify which cmake to use"
@@ -14,6 +14,11 @@ while [ $# -gt 0 ]; do
             ;;
         --debug)
             BUILD_TYPE="Debug"
+            ;;
+        -B)
+            if [ -f "CMakeCache.txt" ]; then
+                rm CMakeCache.txt
+            fi
             ;;
         --ndk)
             ANDROID_NDK=$2
@@ -56,27 +61,103 @@ if [ ${CMAKE_MAJOR_VERSION} -ge 3 ] && [ ${CMAKE_MINOR_VERSION} -ge 12 ]; then
 fi
 
 #################################################
-# Detect ndk version
+# Detect ndk path and version
 #################################################
 
-NDK_R16B_PATHS=(
-            /home/pub/ndk/android-ndk-r16b/
-            ~/work/android/ndk/android-ndk-r16b/
-            )
-NDK_R10D_PATHS=(
-            /home/pub/ndk/android-ndk-r10d/
-            ~/work/android/ndk/android-ndk-r10d/
-            )
+NDK_SEARCH_PATH=(
+    /home/pub/ndk/
+    ~/work/android/ndk/
+)
 
 FOUND_NDK=0
 
 if [ -z "$ANDROID_NDK" ]; then
-    FOUND_NDK=0
-    echo "Going to find ANDROID_NDK in the following paths:"
-    echo "NDK 16 in: ${NDK_R16B_PATHS[@]}"
-    echo "NDK 10 in: ${NDK_R10D_PATHS[@]}"
+    # try find ndk path in CMakeCache.txt
+    if [ -f "CMakeCache.txt" ]; then
+        ANDROID_NDK=`grep ANDROID_NDK CMakeCache.txt | awk -F '=' '{ print $2 }'`
+
+        if [ -d "${ANDROID_NDK}" ]; then
+            echo "use android ndk from CMakeCache.txt : ${ANDROID_NDK}"
+            FOUND_NDK=1
+        fi
+    fi
 else
     FOUND_NDK=1
+fi
+
+#################################################
+# search possible path to get ndk with higher version
+#################################################
+NDK_OPTION=""
+NDK_COUNT=0
+
+if [ "${FOUND_NDK}" = "0" ]; then
+    echo "trying to find android ndk in the following paths:"
+    for NDK_BASE in ${NDK_SEARCH_PATH[@]};
+    do
+        echo "${NDK_BASE}"
+    done
+
+    echo "find valid android ndk:"
+
+    for NDK_BASE in ${NDK_SEARCH_PATH[@]};
+    do
+        if [ -d ${NDK_BASE} ]; then
+            NDKS=`ls -r -d ${NDK_BASE}android-ndk-r*/`
+
+            for NDK_PATH in ${NDKS[@]};
+            do
+                if [ -d ${NDK_PATH} ]; then
+                    NDK_COUNT=$[${NDK_COUNT}+1]
+                    NDK_OPT="${NDK_COUNT} - ${NDK_PATH}"
+
+                    echo ${NDK_OPT}
+
+                    NDK_OPTION+="${NDK_PATH} "
+                fi
+            done
+        fi
+
+        if [ "${FOUND_NDK}" = "1" ]; then
+            break
+        fi
+    done
+fi
+
+case ${NDK_COUNT} in
+    0)
+        ;;
+    1)
+        ANDROID_NDK=${NDK_PATH[0]}
+        FOUND_NDK=1
+
+        echo "use ndk: ${ANDROID_NDK}"
+        ;;
+    *)
+        read -p "select [1-${NDK_COUNT}] ndk used for compiling: " -ra NDK_INTPUT
+
+        NDK_INDEX=0
+
+        for NDK_PATH in ${NDK_OPTION[@]};
+        do
+            NDK_INDEX=$[${NDK_INDEX}+1]
+
+            if [ "${NDK_INDEX}" -eq "${NDK_INTPUT}" ]; then
+                echo "${NDK_INTPUT} - ${NDK_PATH} selected as ANDROID_NDK"
+                ANDROID_NDK=${NDK_PATH}
+                FOUND_NDK=1
+                break
+            fi
+        done
+
+        if [ $FOUND_NDK -eq 0 ]; then
+            echo "invalid input option ${NDK_INTPUT}"
+        fi
+esac
+
+if [ $FOUND_NDK -eq 0 ]; then
+    echo "can not found any valid android ndk"
+    exit 1
 fi
 
 #################################################
@@ -104,34 +185,9 @@ detect_ndk_version()
     echo $RET
 }
 
-# Search r16b ndk # NOTE: r16b use ndk toolchain file
-if [ "${FOUND_NDK}" = "0" ]; then
-
-    for NDK_PATH in ${NDK_R16B_PATHS[@]};
-    do
-        if [ -d ${NDK_PATH} ]; then
-            FOUND_NDK=1
-            ANDROID_NDK=${NDK_PATH}
-        fi
-    done
-fi
-
-# Search r10d ndk
-# NOTE: r10d ndk do not have toolchain file
-if [ "${FOUND_NDK}" = "0" ]; then
-
-    for NDK_PATH in ${NDK_R10D_PATHS[@]};
-    do
-        if [ -d ${NDK_PATH} ]; then
-            FOUND_NDK=1
-            ANDROID_NDK=${NDK_PATH}
-        fi
-    done
-fi
-
 NDK_VERSION=$(detect_ndk_version ${ANDROID_NDK})
 
-echo "Found NDK in: ${ANDROID_NDK}, version: ${NDK_VERSION}"
+echo "NDK: ${ANDROID_NDK} version: ${NDK_VERSION}"
 
 if [ $NDK_VERSION -eq 0 ]; then
     echo "NDK version isn't detected, please check $ANDROID_NDK"
@@ -161,10 +217,12 @@ else
             TOOLCHAIN_NAME="aarch64-linux-android-4.9"
             PLATFORM=$ANDROID_NDK/platforms/${NATIVE_API_LEVEL}/arch-arm64
         fi
+        ANDROID_STL="system"
     else
         # From NDK 18, GCC is deprecated
         TOOLCHAIN_NAME=""
         PLATFORM=""
+        ANDROID_STL="c++_static"
     fi
 fi
 
