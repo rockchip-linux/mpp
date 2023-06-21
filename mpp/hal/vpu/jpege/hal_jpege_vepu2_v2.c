@@ -51,6 +51,7 @@ typedef struct JpegeMultiCoreCtx_t {
     RK_U32              buf_size;
 
     RK_U32              part_rows[MAX_CORE_NUM];
+    RK_U32              ecs_cnt[MAX_CORE_NUM];
 
     void                *regs_base;
     void                *regs[MAX_CORE_NUM];
@@ -259,7 +260,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 
             if (ctx->cfg->split.split_mode == MPP_ENC_SPLIT_BY_CTU) {
                 RK_U32 ecs_num = (mb_h + syntax->part_rows - 1) / syntax->part_rows;
-                RK_U32 core_ecs[MAX_CORE_NUM] = {0, 0, 0, 0};
+                RK_U32 *core_ecs = ctx_ext->ecs_cnt;
 
                 if (ecs_num > 24 || ecs_num <= 8) {
                     RK_U32 divider = ecs_num > 24 ? 8 : 1;
@@ -303,6 +304,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
                     part_rows = (mb_h >= part_rows) ? part_rows : mb_h;
 
                     ctx_ext->part_rows[i] = part_rows;
+                    ctx_ext->ecs_cnt[i] = 1;
 
                     hal_jpege_dbg_detail("part %d row %d restart %d\n",
                                          i, part_rows, mb_w * part_rows);
@@ -653,7 +655,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
                              i, part_not_end, ctx->rst_marker_idx);
         regs[107] = part_not_end << 24 | ((syntax->part_rows & 0xff) << 16) |
                     jpege_restart_marker[ctx->rst_marker_idx & 7];
-        ctx->rst_marker_idx += ctx_ext->part_rows[i];
+        ctx->rst_marker_idx += ctx_ext->ecs_cnt[i];
 
         VepuOffsetCfg cfg;
 
