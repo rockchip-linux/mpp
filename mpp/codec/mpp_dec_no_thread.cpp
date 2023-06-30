@@ -368,6 +368,9 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
         task_dec->input = -1;
     }
 
+    // external packet release by user
+    dec->mpp_pkt_in = NULL;
+
     task->status.task_parsed_rdy = 0;
     dec_task_init(task);
 
