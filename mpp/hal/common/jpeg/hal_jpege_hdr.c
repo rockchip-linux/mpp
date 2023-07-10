@@ -20,8 +20,6 @@
 
 #include "hal_jpege_hdr.h"
 
-#define MAX_NUMBER_OF_COMPONENTS 3
-
 /* JPEG markers, table B.1 */
 enum {
     SOI = 0xFFD8,   /* Start of Image                    */
@@ -319,23 +317,6 @@ typedef struct {
     RK_U32 Vi[MAX_NUMBER_OF_COMPONENTS];
     RK_U32 Tqi[MAX_NUMBER_OF_COMPONENTS];
 } JpegeColorInfo;
-
-static const JpegeColorInfo color_info[2] = {
-    {
-        /* YUV420 */
-        {   1,  2,  3,  },
-        {   2,  1,  1,  },
-        {   2,  1,  1,  },
-        {   0,  1,  1,  },
-    },
-    {
-        /* YUV422 */
-        {   1,  2,  3,  },
-        {   2,  1,  1,  },
-        {   1,  1,  1,  },
-        {   0,  1,  1,  },
-    },
-};
 
 typedef struct {
     RK_U32  val_y;
@@ -691,10 +672,9 @@ static void write_jpeg_comment_header(JpegeBits *bits, JpegeSyntax *syntax)
     }
 }
 
-static void write_jpeg_dqt_header(JpegeBits *bits, const RK_U8 *qtables[2])
+static void write_jpeg_dqt_header(JpegeBits *bits, const RK_U8 *qtable, RK_U32 tbl_idx)
 {
     RK_S32 i;
-    const RK_U8 *qtable = qtables[0];
 
     /* DQT */
     jpege_bits_put(bits, DQT, 16);
@@ -703,42 +683,25 @@ static void write_jpeg_dqt_header(JpegeBits *bits, const RK_U8 *qtables[2])
     /* Pq */
     jpege_bits_put(bits, 0, 4);
     /* Tq */
-    jpege_bits_put(bits, 0, 4);
+    jpege_bits_put(bits, tbl_idx, 4);
 
     for (i = 0; i < 64; i++) {
         /* Qk table 0 */
-        jpege_bits_put(bits, qtable[zigzag[i]], 8);
-    }
-
-    /* DQT */
-    jpege_bits_put(bits, DQT, 16);
-    /* Lq */
-    jpege_bits_put(bits, 2 + 65, 16);
-    /* Pq */
-    jpege_bits_put(bits, 0, 4);
-    /* Tq */
-    jpege_bits_put(bits, 1, 4);
-
-    qtable = qtables[1];
-
-    for (i = 0; i < 64; i++) {
-        /* Qk table 1 */
         jpege_bits_put(bits, qtable[zigzag[i]], 8);
     }
 }
 
 static void write_jpeg_SOFO_header(JpegeBits *bits, JpegeSyntax *syntax)
 {
-    RK_S32 i;
+    RK_U32 i;
     RK_U32 width = syntax->width;
     RK_U32 height = syntax->height;
-    const JpegeColorInfo *info = &color_info[0];
 
     /* SOF0 */
     jpege_bits_put(bits, SOF0, 16);
 
     /* Lf */
-    jpege_bits_put(bits, (8 + 3 * 3), 16);
+    jpege_bits_put(bits, (8 + 3 * syntax->nb_components), 16);
     /* P */
     jpege_bits_put(bits, 8, 8);
     /* Y */
@@ -746,22 +709,21 @@ static void write_jpeg_SOFO_header(JpegeBits *bits, JpegeSyntax *syntax)
     /* X */
     jpege_bits_put(bits, width, 16);
     /* Nf */
-    jpege_bits_put(bits, 3, 8);
+    jpege_bits_put(bits, syntax->nb_components, 8);
 
-    /* NOTE: only output 420 bits */
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < syntax->nb_components; i++) {
         /* Ci */
-        jpege_bits_put(bits, info->Ci[i], 8);
+        jpege_bits_put(bits, syntax->comp_info[i].component_id, 8);
         /* Hi */
-        jpege_bits_put(bits, info->Hi[i], 4);
+        jpege_bits_put(bits, syntax->comp_info[i].h_sample_factor, 4);
         /* Vi */
-        jpege_bits_put(bits, info->Vi[i], 4);
+        jpege_bits_put(bits, syntax->comp_info[i].v_sample_factor, 4);
         /* Tqi */
-        jpege_bits_put(bits, info->Tqi[i], 8);
+        jpege_bits_put(bits, syntax->comp_info[i].tbl_selector, 8);
     }
 }
 
-static void write_jpeg_dht_header(JpegeBits *bits)
+static void write_jpeg_dht_header(JpegeBits *bits, JpegeSyntax *syntax)
 {
     RK_S32 i;
 
@@ -772,9 +734,9 @@ static void write_jpeg_dht_header(JpegeBits *bits)
     /* Lh  */
     jpege_bits_put(bits, 2 + ((17 * 1) + ((1 * 12))), 16);
     /* TC */
-    jpege_bits_put(bits, 0, 4);
+    jpege_bits_put(bits, TABLE_DC, 4);
     /* TH */
-    jpege_bits_put(bits, 0, 4);
+    jpege_bits_put(bits, syntax->comp_info[0].tbl_selector, 4);
 
     for (i = 0; i < 16; i++) {
         /* Dc_Li */
@@ -793,9 +755,9 @@ static void write_jpeg_dht_header(JpegeBits *bits)
     /* Lh */
     jpege_bits_put(bits, 2 + ((17 * 1) + ((1 * 162))), 16);
     /* TC */
-    jpege_bits_put(bits, 1, 4);
+    jpege_bits_put(bits, TABLE_AC, 4);
     /* TH */
-    jpege_bits_put(bits, 0, 4);
+    jpege_bits_put(bits, syntax->comp_info[0].tbl_selector, 4);
 
     for (i = 0; i < 16; i++) {
         /* Ac_Li */
@@ -807,15 +769,18 @@ static void write_jpeg_dht_header(JpegeBits *bits)
         jpege_bits_put(bits, ac_vij[i].val_y, 8);
     }
 
+    if (syntax->nb_components == 1)
+        return;
+
     /* Huffman table for chrominance DC components */
     /* DHT  */
     jpege_bits_put(bits, DHT, 16);
     /* Lh */
     jpege_bits_put(bits, 2 + ((17 * 1) + ((1 * 12))), 16);
     /* TC */
-    jpege_bits_put(bits, 0, 4);
+    jpege_bits_put(bits, TABLE_DC, 4);
     /* TH */
-    jpege_bits_put(bits, 1, 4);
+    jpege_bits_put(bits, syntax->comp_info[1].tbl_selector, 4);
 
     for (i = 0; i < 16; i++) {
         /* Dc_Li */
@@ -833,9 +798,9 @@ static void write_jpeg_dht_header(JpegeBits *bits)
     /* Lh */
     jpege_bits_put(bits, 2 + ((17 * 1) + ((1 * 162))), 16);
     /* TC */
-    jpege_bits_put(bits, 1, 4);
+    jpege_bits_put(bits, TABLE_AC, 4);
     /* TH */
-    jpege_bits_put(bits, 1, 4);
+    jpege_bits_put(bits, syntax->comp_info[1].tbl_selector, 4);
 
     for (i = 0; i < 16; i++) {
         /* Ac_Li */
@@ -848,10 +813,10 @@ static void write_jpeg_dht_header(JpegeBits *bits)
     }
 }
 
-static void write_jpeg_sos_header(JpegeBits *bits)
+static void write_jpeg_sos_header(JpegeBits *bits, JpegeSyntax *syntax)
 {
     RK_U32 i;
-    RK_U32 Ns = 3;
+    RK_U32 Ns = syntax->nb_components;
     RK_U32 Ls = (6 + (2 * Ns));
 
     /* SOS  */
@@ -863,19 +828,11 @@ static void write_jpeg_sos_header(JpegeBits *bits)
 
     for (i = 0; i < Ns; i++) {
         /* Csj */
-        jpege_bits_put(bits, i + 1, 8);
-
-        if (i == 0) {
-            /* Tdj */
-            jpege_bits_put(bits, 0, 4);
-            /* Taj */
-            jpege_bits_put(bits, 0, 4);
-        } else {
-            /* Tdj */
-            jpege_bits_put(bits, 1, 4);
-            /* Taj */
-            jpege_bits_put(bits, 1, 4);
-        }
+        jpege_bits_put(bits, syntax->comp_info[i].component_id, 8);
+        /* Tdj */
+        jpege_bits_put(bits, syntax->comp_info[i].tbl_selector, 4);
+        /* Taj */
+        jpege_bits_put(bits, syntax->comp_info[i].tbl_selector, 4);
     }
 
     /* Ss */
@@ -900,6 +857,9 @@ void write_jpeg_RestartInterval(JpegeBits *bits, JpegeSyntax *syntax)
 
 MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qtables[2])
 {
+    RK_U32 i = 0;
+    RK_U32 qtable_number = syntax->nb_components == 1 ? 1 : 2;
+
     /* Com header */
     if (syntax->comment_length)
         write_jpeg_comment_header(bits, syntax);
@@ -919,7 +879,8 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
             qtables[1] = qtable_c[syntax->quality];
     }
 
-    write_jpeg_dqt_header(bits, qtables);
+    for (i = 0; i < qtable_number; i++)
+        write_jpeg_dqt_header(bits, qtables[i], i);
 
     /* Frame header */
     write_jpeg_SOFO_header(bits, syntax);
@@ -928,10 +889,10 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
     write_jpeg_RestartInterval(bits, syntax);
 
     /* Huffman header */
-    write_jpeg_dht_header(bits);
+    write_jpeg_dht_header(bits, syntax);
 
     /* Scan header */
-    write_jpeg_sos_header(bits);
+    write_jpeg_sos_header(bits, syntax);
 
     jpege_bits_align_byte(bits);
     return MPP_OK;
