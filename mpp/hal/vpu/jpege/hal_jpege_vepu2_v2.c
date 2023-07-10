@@ -182,7 +182,7 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
 
     /* prepare for part encoding */
     ctx->mcu_y = 0;
-    ctx->mcu_h = syntax->mcu_h;
+    ctx->mcu_h = syntax->mcu_ver_cnt;
     ctx->sw_bit = 0;
     ctx->part_bytepos = 0;
     ctx->part_x_fill = 0;
@@ -662,7 +662,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
                        (part_y_fill);
         }
 
-        regs[103] = syntax->mcu_w << 8  |
+        regs[103] = syntax->mcu_hor_cnt << 8  |
                     (part_enc_mcu_h) << 20 |
                     (1 << 6) |  /* intra coding  */
                     (2 << 4) |  /* format jpeg   */
@@ -688,7 +688,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
 
         if (syntax->rotation == MPP_ENC_ROT_90 || syntax->rotation == MPP_ENC_ROT_270) {
             regs[103] = part_enc_mcu_h << 8  |
-                        (syntax->mcu_w) << 20 |
+                        (syntax->mcu_hor_cnt) << 20 |
                         (1 << 6) |  /* intra coding  */
                         (2 << 4) |  /* format jpeg   */
                         1;          /* encoder start */
@@ -699,7 +699,7 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
              */
             if (syntax->rotation == MPP_ENC_ROT_270)
                 cfg.offset_x = syntax->offset_x +
-                               (syntax->mcu_h - ctx_ext->part_rows[0] - mcu_y) * 16;
+                               (syntax->mcu_ver_cnt - ctx_ext->part_rows[0] - mcu_y) * 16;
             else
                 cfg.offset_x = syntax->offset_x + mcu_y * 16;
 
@@ -925,8 +925,8 @@ MPP_RET hal_jpege_vepu2_part_start(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
     JpegeSyntax *syntax = (JpegeSyntax *)task->syntax.data;
-    RK_U32 mcu_w = syntax->mcu_w;
-    RK_U32 mcu_h = syntax->mcu_h;
+    RK_U32 mcu_w = syntax->mcu_hor_cnt;
+    RK_U32 mcu_h = syntax->mcu_ver_cnt;
     RK_U32 mcu_y = ctx->mcu_y;
     RK_U32 part_mcu_h = syntax->part_rows;
     RK_S32 reg_idx = task->flags.reg_idx;
