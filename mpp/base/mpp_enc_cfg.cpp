@@ -178,11 +178,17 @@ public:
     ENTRY(prep, hor_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, hor_stride) \
     ENTRY(prep, ver_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, ver_stride) \
     ENTRY(prep, format,         S32, MppFrameFormat,    MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, format) \
+    ENTRY(prep, format_out,     S32, MppFrameChromaFormat, MPP_ENC_PREP_CFG_CHANGE_FORMAT,      prep, format_out) \
+    ENTRY(prep, chroma_ds_mode, S32, MppFrameChromaDownSampleMode, MPP_ENC_PREP_CFG_CHANGE_FORMAT, prep, chroma_ds_mode) \
+    ENTRY(prep, fix_chroma_en,  S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_en) \
+    ENTRY(prep, fix_chroma_u,   S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_u) \
+    ENTRY(prep, fix_chroma_v,   S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_v) \
     ENTRY(prep, colorspace,     S32, MppFrameColorSpace,MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE,    prep, color) \
     ENTRY(prep, colorprim,      S32, MppFrameColorPrimaries, MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME, prep, colorprim) \
     ENTRY(prep, colortrc,       S32, MppFrameColorTransferCharacteristic, MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC, prep, colortrc) \
     ENTRY(prep, colorrange,     S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
     ENTRY(prep, range,          S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
+    ENTRY(prep, range_out,      S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range_out) \
     ENTRY(prep, rotation,       S32, MppEncRotationCfg, MPP_ENC_PREP_CFG_CHANGE_ROTATION,       prep, rotation_ext) \
     ENTRY(prep, mirroring,      S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_MIRRORING,      prep, mirroring_ext) \
     ENTRY(prep, flip,           S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FLIP,           prep, flip) \
@@ -414,6 +420,10 @@ static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
     cfg->prep.color = MPP_FRAME_SPC_UNSPECIFIED;
     cfg->prep.colorprim = MPP_FRAME_PRI_UNSPECIFIED;
     cfg->prep.colortrc = MPP_FRAME_TRC_UNSPECIFIED;
+    cfg->prep.format_out = MPP_CHROMA_UNSPECIFIED;
+    cfg->prep.chroma_ds_mode = MPP_FRAME_CHROMA_DOWN_SAMPLE_MODE_NONE;
+    cfg->prep.fix_chroma_en = 0;
+    cfg->prep.range_out = MPP_FRAME_RANGE_UNSPECIFIED;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(cfg->hw.mode_bias); i++)
         cfg->hw.mode_bias[i] = 8;
