@@ -562,13 +562,19 @@ typedef struct MppEncPrepCfg_t {
     RK_S32              ver_stride;
 
     /*
-     * Mpp encoder input data format config
+     * Mpp encoder input/output color config
      */
     MppFrameFormat      format;
     MppFrameColorSpace  color;
     MppFrameColorPrimaries colorprim;
     MppFrameColorTransferCharacteristic colortrc;
     MppFrameColorRange  range;
+    MppFrameChromaFormat format_out;
+    MppFrameChromaDownSampleMode chroma_ds_mode;
+    MppFrameColorRange  range_out;
+    RK_S32              fix_chroma_en;
+    RK_S32              fix_chroma_u;
+    RK_S32              fix_chroma_v;
 
     /* suffix ext means the user set config externally */
     MppEncRotationCfg   rotation;
