@@ -96,6 +96,7 @@
 typedef enum  PseudoCodeType_e {
     PSEUDO_CODE_NONE = 0,
     PSEUDO_CODE_H264_H265,
+    PSEUDO_CODE_H264_H265_SEI,
     PSEUDO_CODE_AVS2,
     PSEUDO_CODE_BUT
 } PseudoCodeType;
