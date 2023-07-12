@@ -147,6 +147,7 @@ static RK_S32 mastering_display_colour_volume(HEVCContext *s, BitReadCtx_t *gb)
     RK_S32 i = 0;
     RK_U16 value = 0;
     RK_U32 lum = 0;
+
     for (i = 0; i < 3; i++) {
         READ_BITS(gb, 16, &value);
         s->mastering_display.display_primaries[i][0] = value;
@@ -161,6 +162,18 @@ static RK_S32 mastering_display_colour_volume(HEVCContext *s, BitReadCtx_t *gb)
     s->mastering_display.max_luminance = lum;
     mpp_read_longbits(gb, 32, &lum);
     s->mastering_display.min_luminance = lum;
+
+    h265d_dbg(H265D_DBG_SEI, "dis_prim [%d %d] [%d %d] [%d %d] white point %d %d luminance %d %d\n",
+              s->mastering_display.display_primaries[0][0],
+              s->mastering_display.display_primaries[0][1],
+              s->mastering_display.display_primaries[1][0],
+              s->mastering_display.display_primaries[1][1],
+              s->mastering_display.display_primaries[2][0],
+              s->mastering_display.display_primaries[2][1],
+              s->mastering_display.white_point[0],
+              s->mastering_display.white_point[1],
+              s->mastering_display.max_luminance,
+              s->mastering_display.min_luminance);
 
     return 0;
 
@@ -406,6 +419,7 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
 
         memset(&payload_bitctx, 0, sizeof(payload_bitctx));
         mpp_set_bitread_ctx(&payload_bitctx, s->HEVClc->gb.data_, payload_size);
+        mpp_set_bitread_pseudo_code_type(&payload_bitctx, PSEUDO_CODE_H264_H265_SEI);
 
         h265d_dbg(H265D_DBG_SEI, "s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
 
