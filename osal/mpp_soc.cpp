@@ -485,6 +485,17 @@ static const MppEncHwCap vepu2 = {
     .reserved           = 0,
 };
 
+static const MppEncHwCap vepu2_no_vp8 = {
+    .cap_coding         = HAVE_AVC | HAVE_MJPEG,
+    .type               = VPU_CLIENT_VEPU2,
+    .cap_fbc            = 0,
+    .cap_4k             = 0,
+    .cap_8k             = 0,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 0,
+    .reserved           = 0,
+};
+
 static const MppEncHwCap vepu2_no_jpeg = {
     .cap_coding         = HAVE_AVC | HAVE_VP8,
     .type               = VPU_CLIENT_VEPU2,
@@ -812,7 +823,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3566,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp_fix, NULL, NULL, },
-        {   &vepu540, &vepu2, NULL, NULL, },
+        {   &vepu540, &vepu2_no_vp8, NULL, NULL, },
     },
     {   /*
          * rk3566/rk3568 has codec:
@@ -825,7 +836,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3568,
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp_fix, NULL, NULL, },
-        {   &vepu540, &vepu2, NULL, NULL, },
+        {   &vepu540, &vepu2_no_vp8, NULL, NULL, },
     },
     {   /*
          * rk3588 has codec:
