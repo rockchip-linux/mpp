@@ -45,6 +45,7 @@ typedef struct JpegeSyntax_t {
     RK_U32              ver_stride;
     RK_U32              mcu_hor_cnt;
     RK_U32              mcu_ver_cnt;
+    RK_U32              mcu_cnt;
     RK_U32              mcu_width;
     RK_U32              mcu_height;
     MppFrameFormat      format;
@@ -80,7 +81,6 @@ typedef struct JpegeSyntax_t {
     /* For slice encoding mode */
     RK_U32              slice_enable;
     RK_U32              slice_size_mb_rows;
-    RK_U32              restart_interval;
 
     /*
      * For unit type and density

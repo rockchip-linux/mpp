@@ -262,6 +262,8 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
+    ctx->hw_id = mpp_get_client_hw_id(VPU_CLIENT_JPEG_DEC);
+
     /* allocate regs buffer */
     if (ctx->regs == NULL) {
         ctx->regs = mpp_calloc_size(void, sizeof(JpegRegSet));
@@ -363,6 +365,11 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
         ctx->output_fmt = s->output_fmt;
     }
 
+    if (MPP_FRAME_FMT_IS_TILE(ctx->output_fmt))
+        regs->reg2_sys.dec_out_sequence = OUTPUT_TILE;
+    else
+        regs->reg2_sys.dec_out_sequence = OUTPUT_RASTER;
+
     jpegd_dbg_hal("convert format %d to format %d\n", s->output_fmt, ctx->output_fmt);
 
     if ((s->yuv_mode == YUV_MODE_420 && regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_NO_TRANS) ||
@@ -392,8 +399,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     regs->reg3_pic_size.pic_width_m1 = s->width - 1;
     regs->reg3_pic_size.pic_height_m1 = s->height - 1;
 
-    if (s->sample_precision != DCT_SAMPLE_PRECISION_8 || (s->htbl_entry & 0x0f) != 0x0f
-        || s->qtbl_entry > TBL_ENTRY_3)
+    if (s->sample_precision != DCT_SAMPLE_PRECISION_8 || s->qtbl_entry > TBL_ENTRY_3)
         return MPP_NOK;
 
     regs->reg4_pic_fmt.pixel_depth = BIT_DEPTH_8;
@@ -402,8 +408,8 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     }
 
     if (s->nb_components > 1) {
-        regs->reg4_pic_fmt.qtables_sel = (s->qtbl_entry > 1) ? s->qtbl_entry : TBL_ENTRY_2;
-        regs->reg4_pic_fmt.htables_sel = (s->htbl_entry > 0x0f) ? s->htbl_entry : TBL_ENTRY_2;
+        regs->reg4_pic_fmt.qtables_sel = (s->qtbl_entry > 1) ? TBL_ENTRY_3 : TBL_ENTRY_2;
+        regs->reg4_pic_fmt.htables_sel = (s->htbl_entry > 0x0f) ? TBL_ENTRY_3 : TBL_ENTRY_2;
     } else {
         regs->reg4_pic_fmt.qtables_sel = TBL_ENTRY_1;
         regs->reg4_pic_fmt.htables_sel = TBL_ENTRY_1;
@@ -478,8 +484,42 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
 
     y_virstride = y_hor_stride * out_height;
     if (regs->reg2_sys.dec_out_sequence == OUTPUT_TILE) {
-        y_hor_stride <<= 3;
-        uv_hor_virstride <<= 3;
+        if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
+            switch (regs->reg2_sys.yuv_out_format) {
+            case YUV_OUT_FMT_2_YUYV:
+                y_hor_stride = y_hor_stride * 4 * 2;
+                break;
+            case YUV_OUT_FMT_NO_TRANS:
+                switch (regs->reg4_pic_fmt.jpeg_mode) {
+                case YUV_MODE_422:
+                case YUV_MODE_440:
+                    y_hor_stride = y_hor_stride * 4 * 2;
+                    break;
+                case YUV_MODE_444:
+                    y_hor_stride = y_hor_stride * 4 * 3;
+                    break;
+                case YUV_MODE_411:
+                case YUV_MODE_420:
+                    y_hor_stride = y_hor_stride * 4 * 3 / 2;
+                    break;
+                case YUV_MODE_400:
+                    y_hor_stride = y_hor_stride * 4;
+                    break;
+                default:
+                    return MPP_NOK;
+                    break;
+                }
+                break;
+            case YUV_OUT_FMT_2_NV12:
+                y_hor_stride = y_hor_stride * 4 * 3 / 2;
+                break;
+            }
+
+            uv_hor_virstride = 0;
+        } else {
+            y_hor_stride <<= 3;
+            uv_hor_virstride <<= 3;
+        }
     }
 
     regs->reg5_hor_virstride.y_hor_virstride = y_hor_stride & 0xffff;
@@ -818,10 +858,15 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
     case MPP_DEC_SET_OUTPUT_FORMAT: {
         MppFrameFormat output_fmt = *((MppFrameFormat *)param);
         RockchipSocType soc_type = mpp_get_soc_type();
+        MppFrameFormat frm_fmt = output_fmt & MPP_FRAME_FMT_MASK;
 
         ret = MPP_NOK;
+        if (MPP_FRAME_FMT_IS_RGB(output_fmt) && (soc_type == ROCKCHIP_SOC_RK3576)) {
+            mpp_err_f("RGB format is not supported!\n");
+            return ret = MPP_NOK;
+        }
 
-        switch ((RK_S32)output_fmt) {
+        switch ((RK_U32)frm_fmt) {
         case MPP_FMT_YUV420SP :
         case MPP_FMT_YUV420SP_VU :
         case MPP_FMT_YUV422_YUYV :
@@ -829,7 +874,7 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
         case MPP_FMT_RGB888 : {
             ret = MPP_OK;
         } break;
-        case (MPP_FMT_RGB565) : { // rgb565be
+        case MPP_FMT_RGB565 : { // rgb565be
             if (soc_type >= ROCKCHIP_SOC_RK3588 &&
                 soc_type < ROCKCHIP_SOC_BUTT)
                 ret = MPP_OK;

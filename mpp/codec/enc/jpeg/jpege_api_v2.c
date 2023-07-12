@@ -527,6 +527,7 @@ static MPP_RET init_jpeg_component_info(JpegeSyntax *syntax)
     syntax->mcu_height = comp_info[0].v_sample_factor * DCT_SIZE;
     syntax->mcu_hor_cnt = (syntax->width + syntax->mcu_width - 1) / syntax->mcu_width;
     syntax->mcu_ver_cnt = (syntax->height + syntax->mcu_height - 1) / syntax->mcu_height;
+    syntax->mcu_cnt = syntax->mcu_hor_cnt * syntax->mcu_ver_cnt;
 
     return ret;
 }
@@ -567,21 +568,20 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     init_jpeg_component_info(syntax);
 
     if (split->split_mode) {
-        RK_U32 mb_h = MPP_ALIGN(prep->height, 16) / 16;
+        RK_U32 mb_w = syntax->mcu_hor_cnt;
+        RK_U32 mb_h = syntax->mcu_ver_cnt;
         RK_U32 part_rows = 0;
 
         if (split->split_mode == MPP_ENC_SPLIT_BY_CTU) {
             RK_U32 part_mbs = split->split_arg;
-            RK_U32 mb_w = MPP_ALIGN(prep->width, 16) / 16;
-            RK_U32 mb_all = mb_w * mb_h;
 
-            if (part_mbs > 0 && part_mbs <= mb_all) {
+            if (part_mbs > 0 && part_mbs <= syntax->mcu_cnt) {
                 part_rows = (part_mbs + mb_w - 1) / mb_w;
                 if (part_rows >= mb_h)
                     part_rows = 0;
             } else {
                 mpp_err_f("warning: invalid split arg %d > max %d\n",
-                          part_mbs, mb_all);
+                          part_mbs, syntax->mcu_cnt);
             }
         } else {
             mpp_err_f("warning: only mcu split is supported\n");
@@ -589,7 +589,10 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
 
         if (part_rows) {
             syntax->part_rows   = part_rows;
-            syntax->restart_ri  = syntax->mcu_hor_cnt * part_rows;
+            if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576 && split->split_arg <= syntax->mcu_cnt)
+                syntax->restart_ri = split->split_arg;
+            else
+                syntax->restart_ri  = syntax->mcu_hor_cnt * part_rows;
             syntax->low_delay   = cfg->base.low_delay && part_rows;
             jpege_dbg_func("Split by CTU, part_rows %d, restart_ri %d",
                            syntax->part_rows, syntax->restart_ri);
