@@ -59,6 +59,7 @@ typedef struct JpegdHalCtx {
 
     RK_U32                 have_pp;
     PPInfo                 pp_info;
+    RK_U32                 hw_id;
 } JpegdHalCtx;
 
 #endif /* __HAL_JPEGD_COMMON_H__ */
