@@ -328,12 +328,10 @@ __BITREAD_ERR:
     return  MPP_ERR_STREAM;
 }
 
-static RK_S32 vivid_display_info(HEVCContext *s, RK_U32 size)
+static RK_S32 vivid_display_info(HEVCContext *s, BitReadCtx_t *gb, RK_U32 size)
 {
-    BitReadCtx_t *gb = &s->HEVClc->gb;
-
     if (gb)
-        mpp_hevc_fill_dynamic_meta(s, gb->buf + mpp_get_bits_count(gb) / 8, size, HDRVIVID);
+        mpp_hevc_fill_dynamic_meta(s, gb->data_, size, HDRVIVID);
     return 0;
 }
 
@@ -344,7 +342,6 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
 
     if (size < 3)
         return 0;
-    size -= 3;
 
     READ_BITS(gb, 8, &country_code);
     if (country_code == 0xFF) {
@@ -352,7 +349,6 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
             return 0;
 
         SKIP_BITS(gb, 8);
-        size--;
     }
 
     /* usa country_code or china country_code */
@@ -363,13 +359,10 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
 
     READ_BITS(gb, 16, &provider_code);
     READ_BITS(gb, 16, &terminal_provide_oriented_code);
-
     h265d_dbg(H265D_DBG_SEI, "country_code=%d provider_code=%d terminal_provider_code %d\n",
               country_code, provider_code, terminal_provide_oriented_code);
-    if (provider_code == 4) {
-        size -= 2;
-        vivid_display_info(s, size);
-    }
+    if (provider_code == 4)
+        vivid_display_info(s, gb, mpp_get_bits_left(gb) >> 3);
 
     return 0;
 
