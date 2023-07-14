@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
-./astyle --quiet --options=astylerc ../*.cpp ../*.c ../*.h
+./astyle --quiet --options=astylerc --recursive "../*.cpp" "../*.c" "../*.h"
 
