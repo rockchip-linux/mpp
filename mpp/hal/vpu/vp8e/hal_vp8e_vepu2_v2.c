@@ -358,8 +358,8 @@ static MPP_RET hal_vp8e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
     if (!ctx->buffer_ready) {
         ret = hal_vp8e_setup(hal);
         if (ret) {
-            hal_vp8e_vepu2_deinit_v2(hal);
             mpp_err("failed to init hal vp8e\n");
+            return ret;
         } else {
             ctx->buffer_ready = 1;
         }
