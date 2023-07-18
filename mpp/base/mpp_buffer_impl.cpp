@@ -29,7 +29,7 @@
 #define MAX_GROUP_BIT                   8
 #define MAX_MISC_GROUP_BIT              3
 #define BUFFER_OPS_MAX_COUNT            1024
-#define MPP_BUFFER_SPECIAL_DMA_HEAP_NUM 8
+#define MPP_ALLOCATOR_WITH_FLAG_NUM     8
 
 #define SEARCH_GROUP_BY_ID(id)  ((MppBufferService::get_instance())->get_group_by_id(id))
 
@@ -62,10 +62,8 @@ private:
     RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
     RK_U32              misc_count;
     /* preset allocator apis */
-    MppAllocator        mAllocator[MPP_BUFFER_TYPE_BUTT];
+    MppAllocator        mAllocator[MPP_BUFFER_TYPE_BUTT][MPP_ALLOCATOR_WITH_FLAG_NUM];
     MppAllocatorApi     *mAllocatorApi[MPP_BUFFER_TYPE_BUTT];
-    /* special dma heap allocator apis */
-    MppAllocator        mAllocatorDmaHeapWithFlag[MPP_BUFFER_SPECIAL_DMA_HEAP_NUM];
 
     struct list_head    mListGroup;
     DECLARE_HASHTABLE(mHashGroup, MAX_GROUP_BIT);
@@ -830,11 +828,12 @@ MppBufferService::~MppBufferService()
     }
     finished = 1;
 
-    for (i = 0; i < MPP_BUFFER_TYPE_BUTT; i++)
-        mpp_allocator_put(&mAllocator[i]);
-
-    for (i = 1; i < MPP_BUFFER_SPECIAL_DMA_HEAP_NUM; i++)
-        mpp_allocator_put(&mAllocatorDmaHeapWithFlag[i]);
+    for (i = 0; i < MPP_BUFFER_TYPE_BUTT; i++) {
+        for (j = 0; j < MPP_ALLOCATOR_WITH_FLAG_NUM; j++) {
+            if (mAllocator[i][j])
+                mpp_allocator_put(&(mAllocator[i][j]));
+        }
+    }
 }
 
 RK_U32 MppBufferService::get_group_id()
@@ -871,6 +870,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
 {
     MppBufferType buffer_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     RK_U32 flags = (type & MPP_BUFFER_FLAGS_MASK);
+    RK_U32 allocator_idx = 0;
     MppBufferGroupImpl *p = (MppBufferGroupImpl *)mpp_mem_pool_get_f(caller, mpp_buf_grp_pool);
     if (NULL == p) {
         mpp_err("MppBufferService failed to allocate group context\n");
@@ -903,34 +903,21 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     {
         AutoMutex auto_lock(get_lock());
 
+        if (flags & MPP_BUFFER_FLAGS_CONTIG)
+            allocator_idx |= 1 << 0;
+
+        if (flags & MPP_BUFFER_FLAGS_CACHABLE)
+            allocator_idx |= 1 << 1;
+
+        if (flags & MPP_BUFFER_FLAGS_DMA32)
+            allocator_idx |= 1 << 2;
+
         // allocate general buffer first
-        if (!mAllocator[buffer_type])
-            mpp_allocator_get(&mAllocator[buffer_type], &mAllocatorApi[buffer_type], buffer_type);
+        if (!mAllocator[buffer_type][allocator_idx])
+            mpp_allocator_get(&mAllocator[buffer_type][allocator_idx], &mAllocatorApi[buffer_type], type);
 
-        p->allocator = mAllocator[buffer_type];
+        p->allocator = mAllocator[buffer_type][allocator_idx];
         p->alloc_api = mAllocatorApi[buffer_type];
-
-        // allocate extra dma heap buffer if necessary
-        if (flags && MPP_BUFFER_TYPE_DMA_HEAP == get_real_allocator_type(p->allocator)) {
-            RK_U32 extra_allocator_idx = 0;
-
-            // calculate index of extra allocator
-            if (flags & MPP_BUFFER_FLAGS_CONTIG)
-                extra_allocator_idx |= 1 << 0;
-
-            if (flags & MPP_BUFFER_FLAGS_CACHABLE)
-                extra_allocator_idx |= 1 << 1;
-
-            if (flags & MPP_BUFFER_FLAGS_DMA32)
-                extra_allocator_idx |= 1 << 2;
-
-            if (!mAllocatorDmaHeapWithFlag[extra_allocator_idx])
-                mpp_allocator_get(&mAllocatorDmaHeapWithFlag[extra_allocator_idx],
-                                  &p->alloc_api, type);
-
-            if (mAllocatorDmaHeapWithFlag[extra_allocator_idx])
-                p->allocator = mAllocatorDmaHeapWithFlag[extra_allocator_idx];
-        }
     }
 
     mpp_assert(p->allocator);
