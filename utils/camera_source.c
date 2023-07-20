@@ -214,9 +214,6 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
             goto FAIL;
         }
 
-        ctx->fbuf[i].start = mmap(NULL, buf.length,
-                                  PROT_READ | PROT_WRITE, MAP_SHARED,
-                                  ctx->fd, buf.m.offset);
         if (V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == buf.type) {
             // tmp_buffers[n_buffers].length = buf.m.planes[0].length;
             buf_len = buf.m.planes[0].length;
@@ -239,6 +236,9 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
             mpp_err_f("ERROR: Failed to map device frame buffers\n");
             goto FAIL;
         }
+
+        ctx->fbuf[i].length = buf_len; // record buffer length for unmap
+
         struct v4l2_exportbuffer expbuf = (struct v4l2_exportbuffer) {0} ;
         // xcam_mem_clear (expbuf);
         expbuf.type = type;
@@ -331,7 +331,7 @@ MPP_RET camera_source_deinit(CamSource *ctx)
         if (ctx->fbuf[buf.index].buffer) {
             mpp_buffer_put(ctx->fbuf[buf.index].buffer);
         }
-        munmap(ctx->fbuf[buf.index].start, buf.length);
+        munmap(ctx->fbuf[buf.index].start, ctx->fbuf[buf.index].length);
         close(ctx->fbuf[i].export_fd);
     }
 
