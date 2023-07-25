@@ -58,6 +58,7 @@
 #define CAP_CODING_VDPU341      (HAVE_AVC|HAVE_HEVC|HAVE_VP9)
 #define CAP_CODING_VDPU341_LITE (HAVE_AVC|HAVE_HEVC)
 #define CAP_CODING_VDPU381      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
+#define CAP_CODING_VDPU382      (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
 
 #define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
@@ -354,8 +355,26 @@ static const MppDecHwCap vdpu38x = {
     .reserved           = 0,
 };
 
-static const MppDecHwCap vdpu382 = {
+static const MppDecHwCap vdpu382a = {
     .cap_coding         = CAP_CODING_VDPU381,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_compress = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 1,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
+static const MppDecHwCap vdpu382 = {
+    .cap_coding         = CAP_CODING_VDPU382,
     .type               = VPU_CLIENT_RKVDEC,
     .cap_fbc            = 2,
     .cap_4k             = 1,
@@ -823,9 +842,22 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
     },
     {   /*
-         * rk3528 has codec:
+         * rk3528a has codec:
          * 1 - vpu2 for jpeg/vp8 decoder
          * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - RK H.264/H.265 1080P encoder
+         * 4 - RK jpeg decoder
+         */
+        "rk3528a",
+        ROCKCHIP_SOC_RK3528,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC | HAVE_AVSDEC,
+        {   &vdpu382a, &rkjpegd, &vdpu2, &avspd, NULL, NULL, },
+        {   &vepu540c, NULL, NULL, NULL, },
+    },
+    {   /*
+         * rk3528 has codec:
+         * 1 - vpu2 for jpeg/vp8 decoder
+         * 2 - RK H.264/H.265 4K decoder
          * 3 - RK H.264/H.265 1080P encoder
          * 4 - RK jpeg decoder
          */
