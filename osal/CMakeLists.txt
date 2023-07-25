@@ -86,7 +86,12 @@ set_target_properties(osal PROPERTIES FOLDER "osal")
 if(ANDROID)
     add_definitions(-static)
     # in Android pthread is in libc, also need liblog
-    target_link_libraries(osal log m)
+    # Android 14 requires libc++ not libstdc++
+    if("${ANDROID_STL}" STREQUAL "c++_static")
+        target_link_libraries(osal log m)
+    else()
+        target_link_libraries(osal log stdc++ m)
+    endif()
 endif(ANDROID)
 
 # unit test

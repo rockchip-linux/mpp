@@ -74,7 +74,7 @@ FOUND_NDK=0
 if [ -z "$ANDROID_NDK" ]; then
     # try find ndk path in CMakeCache.txt
     if [ -f "CMakeCache.txt" ]; then
-        ANDROID_NDK=`grep ANDROID_NDK CMakeCache.txt | awk -F '=' '{ print $2 }'`
+        ANDROID_NDK=`grep ANDROID_NDK\: CMakeCache.txt | awk -F '=' '{ print $2 }'`
 
         if [ -d "${ANDROID_NDK}" ]; then
             echo "use android ndk from CMakeCache.txt : ${ANDROID_NDK}"
