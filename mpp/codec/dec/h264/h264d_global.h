@@ -917,17 +917,22 @@ typedef struct h264d_input_ctx_t {
 
 //!< current stream
 typedef struct h264d_curstrm_t {
-    RK_U32    nalu_offset;     //!< The offset of the input stream
-    RK_U32    nalu_max_size;   //!< Cur Unit Buffer size
+    RK_U32    nalu_offset;       //!< The offset of the input stream
+    RK_U32    nalu_max_size;     //!< Cur Unit Buffer size
     RK_U8     *curdata;
 
     RK_S32    nalu_type;
     RK_U32    nalu_len;
-    RK_U8     *nalu_buf;       //!< store read nalu data
+    RK_U8     *nalu_buf;         //!< store read nalu data
 
     RK_U32    head_offset;
     RK_U32    head_max_size;
-    RK_U8     *head_buf;       //!< store header data, sps/pps/slice header
+    RK_U8     *head_buf;         //!< store header data, sps/pps/slice header
+
+    RK_U32    first_mb_in_slice; //!< mark current slice
+    RK_U32    tmp_offset;
+    RK_U32    tmp_max_size;
+    RK_U8     *tmp_buf;          //!< store temporary header data
 
     RK_U32    prefixdata;
     RK_U8     startcode_found;
