@@ -264,6 +264,7 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 
         memset(&payload_bitctx, 0, sizeof(payload_bitctx));
         mpp_set_bitread_ctx(&payload_bitctx, p_bitctx->data_, sei_msg->payload_size);
+        mpp_set_bitread_pseudo_code_type(&payload_bitctx, PSEUDO_CODE_H264_H265_SEI);
 
         switch (sei_msg->type) {
         case H264_SEI_BUFFERING_PERIOD:
