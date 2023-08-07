@@ -32,6 +32,7 @@
 #include "hal_bufs.h"
 #include "mpp_enc_hal.h"
 #include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "vepu540c_common.h"
 
 #include "hal_h264e_vepu540c_reg.h"
@@ -471,40 +472,43 @@ static MPP_RET setup_vepu540c_prep(HalVepu540cRegSet *regs, MppEncPrepCfg *prep)
                y_stride : y_stride / 2;
 
     if (hw_fmt < VEPU541_FMT_NONE) {
-        regs->reg_base.src_udfy.csc_wgt_b2y    = 25;
-        regs->reg_base.src_udfy.csc_wgt_g2y    = 129;
-        regs->reg_base.src_udfy.csc_wgt_r2y    = 66;
+        const VepuRgb2YuvCfg *cfg_coeffs = get_rgb2yuv_cfg(prep->range, prep->color);
 
-        regs->reg_base.src_udfu.csc_wgt_b2u    = 112;
-        regs->reg_base.src_udfu.csc_wgt_g2u    = -74;
-        regs->reg_base.src_udfu.csc_wgt_r2u    = -38;
+        hal_h264e_dbg_flow("input color range %d colorspace %d", prep->range, prep->color);
 
-        regs->reg_base.src_udfv.csc_wgt_b2v    = -18;
-        regs->reg_base.src_udfv.csc_wgt_g2v    = -94;
-        regs->reg_base.src_udfv.csc_wgt_r2v    = 112;
+        regs->reg_base.src_udfy.csc_wgt_b2y = cfg_coeffs->_2y.b_coeff;
+        regs->reg_base.src_udfy.csc_wgt_g2y = cfg_coeffs->_2y.g_coeff;
+        regs->reg_base.src_udfy.csc_wgt_r2y = cfg_coeffs->_2y.r_coeff;
 
-        regs->reg_base.src_udfo.csc_ofst_y     = 15;
-        regs->reg_base.src_udfo.csc_ofst_u     = 128;
-        regs->reg_base.src_udfo.csc_ofst_v     = 128;
+        regs->reg_base.src_udfu.csc_wgt_b2u = cfg_coeffs->_2u.b_coeff;
+        regs->reg_base.src_udfu.csc_wgt_g2u = cfg_coeffs->_2u.g_coeff;
+        regs->reg_base.src_udfu.csc_wgt_r2u = cfg_coeffs->_2u.r_coeff;
+
+        regs->reg_base.src_udfv.csc_wgt_b2v = cfg_coeffs->_2v.b_coeff;
+        regs->reg_base.src_udfv.csc_wgt_g2v = cfg_coeffs->_2v.g_coeff;
+        regs->reg_base.src_udfv.csc_wgt_r2v = cfg_coeffs->_2v.r_coeff;
+
+        regs->reg_base.src_udfo.csc_ofst_y  = cfg_coeffs->_2y.offset;
+        regs->reg_base.src_udfo.csc_ofst_u  = cfg_coeffs->_2u.offset;
+        regs->reg_base.src_udfo.csc_ofst_v  = cfg_coeffs->_2v.offset;
+
+        hal_h264e_dbg_flow("use color range %d colorspace %d", cfg_coeffs->dst_range, cfg_coeffs->color);
     } else {
-        regs->reg_base.src_udfy.csc_wgt_b2y    = cfg.weight[0];
-        regs->reg_base.src_udfy.csc_wgt_g2y    = cfg.weight[1];
-        regs->reg_base.src_udfy.csc_wgt_r2y    = cfg.weight[2];
+        regs->reg_base.src_udfy.csc_wgt_b2y = cfg.weight[0];
+        regs->reg_base.src_udfy.csc_wgt_g2y = cfg.weight[1];
+        regs->reg_base.src_udfy.csc_wgt_r2y = cfg.weight[2];
 
+        regs->reg_base.src_udfu.csc_wgt_b2u = cfg.weight[3];
+        regs->reg_base.src_udfu.csc_wgt_g2u = cfg.weight[4];
+        regs->reg_base.src_udfu.csc_wgt_r2u = cfg.weight[5];
 
-        regs->reg_base.src_udfu.csc_wgt_b2u    = cfg.weight[3];
-        regs->reg_base.src_udfu.csc_wgt_g2u    = cfg.weight[4];
-        regs->reg_base.src_udfu.csc_wgt_r2u    = cfg.weight[5];
+        regs->reg_base.src_udfv.csc_wgt_b2v = cfg.weight[6];
+        regs->reg_base.src_udfv.csc_wgt_g2v = cfg.weight[7];
+        regs->reg_base.src_udfv.csc_wgt_r2v = cfg.weight[8];
 
-
-        regs->reg_base.src_udfv.csc_wgt_b2v    = cfg.weight[6];
-        regs->reg_base.src_udfv.csc_wgt_g2v    = cfg.weight[7];
-        regs->reg_base.src_udfv.csc_wgt_r2v    = cfg.weight[8];
-
-
-        regs->reg_base.src_udfo.csc_ofst_y     = cfg.offset[0];
-        regs->reg_base.src_udfo.csc_ofst_u     = cfg.offset[1];
-        regs->reg_base.src_udfo.csc_ofst_v     = cfg.offset[2];
+        regs->reg_base.src_udfo.csc_ofst_y  = cfg.offset[0];
+        regs->reg_base.src_udfo.csc_ofst_u  = cfg.offset[1];
+        regs->reg_base.src_udfo.csc_ofst_v  = cfg.offset[2];
     }
 
     regs->reg_base.src_strd0.src_strd0  = y_stride;
