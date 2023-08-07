@@ -33,6 +33,7 @@
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
 #include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "vepu540c_common.h"
 #include "hal_h265e_vepu540c.h"
 #include "hal_h265e_vepu540c_reg.h"
@@ -843,21 +844,27 @@ static MPP_RET vepu540c_h265_set_pp_regs(H265eV540cRegSet *regs, VepuFmtCfg *fmt
               stridey : stridey / 2;
 
     if (reg_base->reg0198_src_fmt.src_cfmt < VEPU541_FMT_NONE) {
-        reg_base->reg0199_src_udfy.csc_wgt_r2y = 66;
-        reg_base->reg0199_src_udfy.csc_wgt_g2y = 129;
-        reg_base->reg0199_src_udfy.csc_wgt_b2y = 25;
+        const VepuRgb2YuvCfg *cfg_coeffs = cfg_coeffs = get_rgb2yuv_cfg(prep_cfg->range, prep_cfg->color);
 
-        reg_base->reg0200_src_udfu.csc_wgt_r2u = -38;
-        reg_base->reg0200_src_udfu.csc_wgt_g2u = -74;
-        reg_base->reg0200_src_udfu.csc_wgt_b2u = 112;
+        hal_h265e_dbg_simple("input color range %d colorspace %d", prep_cfg->range, prep_cfg->color);
 
-        reg_base->reg0201_src_udfv.csc_wgt_r2v = 112;
-        reg_base->reg0201_src_udfv.csc_wgt_g2v = -94;
-        reg_base->reg0201_src_udfv.csc_wgt_b2v = -18;
+        reg_base->reg0199_src_udfy.csc_wgt_r2y = cfg_coeffs->_2y.r_coeff;
+        reg_base->reg0199_src_udfy.csc_wgt_g2y = cfg_coeffs->_2y.g_coeff;
+        reg_base->reg0199_src_udfy.csc_wgt_b2y = cfg_coeffs->_2y.b_coeff;
 
-        reg_base->reg0202_src_udfo.csc_ofst_y = 16;
-        reg_base->reg0202_src_udfo.csc_ofst_u = 128;
-        reg_base->reg0202_src_udfo.csc_ofst_v = 128;
+        reg_base->reg0200_src_udfu.csc_wgt_r2u = cfg_coeffs->_2u.r_coeff;
+        reg_base->reg0200_src_udfu.csc_wgt_g2u = cfg_coeffs->_2u.g_coeff;
+        reg_base->reg0200_src_udfu.csc_wgt_b2u = cfg_coeffs->_2u.b_coeff;
+
+        reg_base->reg0201_src_udfv.csc_wgt_r2v = cfg_coeffs->_2v.r_coeff;
+        reg_base->reg0201_src_udfv.csc_wgt_g2v = cfg_coeffs->_2v.g_coeff;
+        reg_base->reg0201_src_udfv.csc_wgt_b2v = cfg_coeffs->_2v.b_coeff;
+
+        reg_base->reg0202_src_udfo.csc_ofst_y = cfg_coeffs->_2y.offset;
+        reg_base->reg0202_src_udfo.csc_ofst_u = cfg_coeffs->_2u.offset;
+        reg_base->reg0202_src_udfo.csc_ofst_v = cfg_coeffs->_2v.offset;
+
+        hal_h265e_dbg_simple("use color range %d colorspace %d", cfg_coeffs->dst_range, cfg_coeffs->color);
     }
 
     reg_base->reg0205_src_strd0.src_strd0  = stridey;
