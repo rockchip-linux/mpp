@@ -292,8 +292,7 @@ static MPP_RET h264d_flush_dpb_eos(H264_DecCtx_t *p_Dec)
         // layer_id == 1
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        p_Dec->p_Vid->p_Dpb_layer[0]->size = MPP_MIN(p_Dec->p_Vid->p_Dpb_layer[1]->size, MAX_DPB_SIZE / 2);
-        p_Dec->p_Vid->dpb_size[0] = p_Dec->p_Vid->p_Dpb_layer[0]->size;
+        FUN_CHECK(ret = check_mvc_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], p_Dec->p_Vid->p_Dpb_layer[1]));
     }
 
     flush_dpb_buf_slot(p_Dec);
@@ -400,8 +399,7 @@ MPP_RET h264d_reset(void *decoder)
         // layer_id == 1
         FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
         FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        p_Dec->p_Vid->p_Dpb_layer[0]->size = MPP_MIN(p_Dec->p_Vid->p_Dpb_layer[1]->size, MAX_DPB_SIZE / 2);
-        p_Dec->p_Vid->dpb_size[0] = p_Dec->p_Vid->p_Dpb_layer[0]->size;
+        FUN_CHECK(ret = check_mvc_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], p_Dec->p_Vid->p_Dpb_layer[1]));
     }
     flush_dpb_buf_slot(p_Dec);
     //!< reset input parameter

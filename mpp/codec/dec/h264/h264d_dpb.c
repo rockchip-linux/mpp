@@ -1862,6 +1862,89 @@ RK_U32 get_field_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p)
     return combine_flag;
 }
 
+static MPP_RET enlarge_dpb(H264_DpbBuf_t *p_Dpb, RK_U32 size)
+{
+    RK_U32 i = 0;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+    void *tmp;
+
+    if (!p_Dpb || !size || !p_Dpb->init_done)
+        return MPP_ERR_VALUE;
+
+    if (p_Dpb->size >= size) {
+        H264D_WARNNING("DPB could not be shrinked!\n");
+        return MPP_ERR_VALUE;
+    }
+
+    tmp = mpp_calloc(H264_FrameStore_t*, size);
+    memcpy(tmp, p_Dpb->fs, sizeof(H264_FrameStore_t*) * p_Dpb->size);
+    mpp_free(p_Dpb->fs);
+    p_Dpb->fs = tmp;
+
+    tmp = mpp_calloc(H264_FrameStore_t*, size);
+    memcpy(tmp, p_Dpb->fs_ref, sizeof(H264_FrameStore_t*) * p_Dpb->size);
+    mpp_free(p_Dpb->fs_ref);
+    p_Dpb->fs_ref = tmp;
+
+    tmp = mpp_calloc(H264_FrameStore_t*, size);
+    memcpy(tmp, p_Dpb->fs_ltref, sizeof(H264_FrameStore_t*) * p_Dpb->size);
+    mpp_free(p_Dpb->fs_ltref);
+    p_Dpb->fs_ltref = tmp;
+
+    tmp = mpp_calloc(H264_FrameStore_t*, size);
+    memcpy(tmp, p_Dpb->fs_ilref, sizeof(H264_FrameStore_t*) * p_Dpb->size);
+    mpp_free(p_Dpb->fs_ilref);
+    p_Dpb->fs_ilref = tmp;
+
+    for (i = p_Dpb->size; i < size; i++) {
+        p_Dpb->fs[i] = alloc_frame_store();
+        MEM_CHECK(ret, p_Dpb->fs[i]);
+        p_Dpb->fs_ref[i] = NULL;
+        p_Dpb->fs_ltref[i] = NULL;
+        p_Dpb->fs[i]->layer_id = -1;
+        p_Dpb->fs[i]->view_id = -1;
+        p_Dpb->fs[i]->inter_view_flag[0] = p_Dpb->fs[i]->inter_view_flag[1] = 0;
+        p_Dpb->fs[i]->anchor_pic_flag[0] = p_Dpb->fs[i]->anchor_pic_flag[1] = 0;
+    }
+
+    p_Dpb->size = size;
+    p_Dpb->allocated_size = size;
+    return ret = MPP_OK;
+
+__FAILED:
+    return ret;
+}
+
+MPP_RET check_mvc_dpb(H264dVideoCtx_t *p_Vid, H264_DpbBuf_t *p_Dpb_layer_0,  H264_DpbBuf_t* p_Dpb_layer_1)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (!p_Vid || !p_Dpb_layer_0 || !p_Dpb_layer_1 || !p_Dpb_layer_0->init_done) {
+        return ret = MPP_ERR_VALUE;
+    }
+
+    H264D_DBG(H264D_DBG_DPB_INFO, "p_Dpb[0].size %d vs p_Dpb[1].size %d\n",
+              p_Dpb_layer_0->size, p_Dpb_layer_1->size);
+
+    p_Dpb_layer_0->size = MPP_MIN(p_Dpb_layer_0->size, MAX_DPB_SIZE / 2);
+    p_Dpb_layer_1->size = MPP_MIN(p_Dpb_layer_1->size, MAX_DPB_SIZE / 2);
+
+    if (p_Dpb_layer_0->size == p_Dpb_layer_1->size) {
+        ret = MPP_OK;
+    } else if (p_Dpb_layer_0->size > p_Dpb_layer_1->size) {
+        ret = enlarge_dpb(p_Dpb_layer_1, p_Dpb_layer_0->size);
+        H264D_DBG(H264D_DBG_DPB_INFO, "Enlarge DPB[1] to %d", p_Dpb_layer_0->size);
+    } else {
+        ret = enlarge_dpb(p_Dpb_layer_0, p_Dpb_layer_1->size);
+        H264D_DBG(H264D_DBG_DPB_INFO, "Enlarge DPB[0] to %d", p_Dpb_layer_1->size);
+    }
+
+    p_Vid->dpb_size[0] = p_Dpb_layer_0->size;
+    p_Vid->dpb_size[1] = p_Dpb_layer_1->size;
+
+    return ret;
+}
+
 /*!
 ***********************************************************************
 * \brief
