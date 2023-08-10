@@ -2194,6 +2194,58 @@ TASK_DONE:
     return ret;
 }
 
+static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
+{
+    Mpp *mpp = (Mpp*)enc->mpp;
+    EncRcTask *rc_task = hal_task->rc_task;
+    EncFrmStatus *frm = &rc_task->frm;
+    MppPacket packet = hal_task->packet;
+    MppMeta meta = mpp_packet_get_meta(packet);
+
+    if (!meta) {
+        mpp_err_f("failed to get meta from packet\n");
+        return MPP_NOK;
+    }
+
+    if (enc->coding == MPP_VIDEO_CodingHEVC || enc->coding == MPP_VIDEO_CodingAVC) {
+        RK_U32 is_pskip = !(rc_task->info.lvl64_inter_num ||
+                            rc_task->info.lvl32_inter_num ||
+                            rc_task->info.lvl16_inter_num ||
+                            rc_task->info.lvl8_inter_num  ||
+                            rc_task->info.lvl32_intra_num ||
+                            rc_task->info.lvl16_intra_num ||
+                            rc_task->info.lvl8_intra_num  ||
+                            rc_task->info.lvl4_intra_num);
+
+        /* num of inter different size predicted block */
+        mpp_meta_set_s32(meta, KEY_LVL64_INTER_NUM, rc_task->info.lvl64_inter_num);
+        mpp_meta_set_s32(meta, KEY_LVL32_INTER_NUM, rc_task->info.lvl32_inter_num);
+        mpp_meta_set_s32(meta, KEY_LVL16_INTER_NUM, rc_task->info.lvl16_inter_num);
+        mpp_meta_set_s32(meta, KEY_LVL8_INTER_NUM,  rc_task->info.lvl8_inter_num);
+        /* num of intra different size predicted block */
+        mpp_meta_set_s32(meta, KEY_LVL32_INTRA_NUM, rc_task->info.lvl32_intra_num);
+        mpp_meta_set_s32(meta, KEY_LVL16_INTRA_NUM, rc_task->info.lvl16_intra_num);
+        mpp_meta_set_s32(meta, KEY_LVL8_INTRA_NUM,  rc_task->info.lvl8_intra_num);
+        mpp_meta_set_s32(meta, KEY_LVL4_INTRA_NUM,  rc_task->info.lvl4_intra_num);
+
+        mpp_meta_set_s64(meta, KEY_ENC_SSE,  rc_task->info.sse);
+        /* frame type */
+        mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA,    frm->is_intra);
+        mpp_meta_set_s32(meta, KEY_OUTPUT_PSKIP,    frm->force_pskip || is_pskip);
+    }
+    /* start qp and average qp */
+    mpp_meta_set_s32(meta, KEY_ENC_START_QP,    rc_task->info.quality_target);
+    mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP,  rc_task->info.quality_real);
+
+    if (hal_task->md_info)
+        mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
+
+    if (mpp->mEncAyncIo)
+        mpp_meta_set_frame(meta, KEY_INPUT_FRAME, enc->frame);
+
+    return MPP_OK;
+}
+
 static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
 {
     Mpp *mpp = (Mpp*)enc->mpp;
@@ -2228,7 +2280,7 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
             mpp_enc_reenc_force_pskip(mpp, task);
             break;
         }
-
+        frm->force_pskip = 0;
         mpp_enc_reenc_simple(mpp, task);
     }
     enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
@@ -2253,27 +2305,14 @@ TASK_DONE:
         mpp_packet_set_length(packet, hal_task->length);
     }
 
-    {
-        MppMeta meta = mpp_packet_get_meta(packet);
-
-        if (hal_task->md_info)
-            mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
-
-        mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
-        if (rc_task->info.quality_real)
-            mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP, rc_task->info.quality_real);
-
-        if (mpp->mEncAyncIo)
-            mpp_meta_set_frame(meta, KEY_INPUT_FRAME, enc->frame);
-    }
-
     /* enc failed force idr */
     if (ret) {
         enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->hdr_status.val = 0;
         mpp_packet_set_length(packet, 0);
         mpp_err_f("enc failed force idr!\n");
-    }
+    } else
+        set_enc_info_to_packet(enc, hal_task);
     /*
      * First return output packet.
      * Then enqueue task back to input port.
@@ -2908,7 +2947,6 @@ static MPP_RET enc_async_wait_task(MppEncImpl *enc, EncAsyncTaskInfo *info)
     EncRcTask *rc_task = hal_task->rc_task;
     EncFrmStatus *frm = &info->rc.frm;
     MppPacket pkt = hal_task->packet;
-    MppMeta meta = mpp_packet_get_meta(pkt);
     MPP_RET ret = MPP_OK;
 
     if (hal_task->flags.drop_by_fps)
@@ -2936,12 +2974,6 @@ TASK_DONE:
         check_hal_task_pkt_len(hal_task, "hw finish");
     }
 
-    mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, frm->is_intra);
-    if (rc_task->info.quality_real)
-        mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP, rc_task->info.quality_real);
-
-    mpp_meta_set_frame(meta, KEY_INPUT_FRAME, hal_task->frame);
-
     enc_dbg_detail("task %d output packet pts %lld\n", info->seq_idx, info->pts);
 
     /*
@@ -2963,7 +2995,8 @@ TASK_DONE:
         enc->enc_failed_drop = 1;
 
         mpp_err_f("enc failed force idr!\n");
-    }
+    } else
+        set_enc_info_to_packet(enc, hal_task);
 
     if (mpp->mPktOut) {
         mpp_list *pkt_out = mpp->mPktOut;

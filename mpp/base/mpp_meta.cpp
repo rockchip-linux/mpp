@@ -54,6 +54,7 @@ static MppMetaDef meta_defs[] = {
     {   KEY_TEMPORAL_ID,        TYPE_S32,       },
     {   KEY_LONG_REF_IDX,       TYPE_S32,       },
     {   KEY_ENC_AVERAGE_QP,     TYPE_S32,       },
+    {   KEY_ENC_START_QP,       TYPE_S32,       },
 
     {   KEY_ROI_DATA,           TYPE_PTR,       },
     {   KEY_ROI_DATA2,          TYPE_PTR,       },
@@ -63,6 +64,17 @@ static MppMetaDef meta_defs[] = {
     {   KEY_USER_DATAS,         TYPE_PTR,       },
     {   KEY_QPMAP0,             TYPE_BUFFER,    },
     {   KEY_MV_LIST,            TYPE_PTR,       },
+
+    {   KEY_LVL64_INTER_NUM,    TYPE_S32,       },
+    {   KEY_LVL32_INTER_NUM,    TYPE_S32,       },
+    {   KEY_LVL16_INTER_NUM,    TYPE_S32,       },
+    {   KEY_LVL8_INTER_NUM,     TYPE_S32,       },
+    {   KEY_LVL32_INTRA_NUM,    TYPE_S32,       },
+    {   KEY_LVL16_INTRA_NUM,    TYPE_S32,       },
+    {   KEY_LVL8_INTRA_NUM,     TYPE_S32,       },
+    {   KEY_LVL4_INTRA_NUM,     TYPE_S32,       },
+    {   KEY_OUTPUT_PSKIP,       TYPE_S32,       },
+    {   KEY_ENC_SSE,            TYPE_S64,       },
 
     {   KEY_ENC_MARK_LTR,       TYPE_S32,       },
     {   KEY_ENC_USE_LTR,        TYPE_S32,       },

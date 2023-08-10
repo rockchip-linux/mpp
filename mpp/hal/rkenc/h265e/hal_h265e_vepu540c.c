@@ -1621,9 +1621,22 @@ MPP_RET hal_h265e_v540c_ret_task(void *hal, HalEncTask *task)
     H265eV540cHalContext *ctx = (H265eV540cHalContext *)hal;
     HalEncTask *enc_task = task;
     vepu540c_h265_fbk *fb = &ctx->feedback;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
+
     hal_h265e_enter();
 
     vepu540c_h265_set_feedback(ctx, enc_task);
+
+    rc_info->sse = fb->sse_sum;
+    rc_info->lvl64_inter_num = fb->st_lvl64_inter_num;
+    rc_info->lvl32_inter_num = fb->st_lvl32_inter_num;
+    rc_info->lvl16_inter_num = fb->st_lvl16_inter_num;
+    rc_info->lvl8_inter_num  = fb->st_lvl8_inter_num;
+    rc_info->lvl32_intra_num = fb->st_lvl32_intra_num;
+    rc_info->lvl16_intra_num = fb->st_lvl16_intra_num;
+    rc_info->lvl8_intra_num  = fb->st_lvl8_intra_num;
+    rc_info->lvl4_intra_num  = fb->st_lvl4_intra_num;
+
     enc_task->hw_length = fb->out_strm_size;
     enc_task->length += fb->out_strm_size;
 

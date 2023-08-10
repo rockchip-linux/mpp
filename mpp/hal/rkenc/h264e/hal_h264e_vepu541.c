@@ -1827,6 +1827,14 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
                            ctx->regs_ret.st_lvl8_intra_num +
                            ctx->regs_ret.st_lvl16_intra_num) * 256 / mbs;
 
+    rc_info->sse = ((RK_S64)(ctx->regs_ret.st_sse_qp.sse_h8 & 0xff) << 32) +
+                   ctx->regs_ret.st_sse_l32.sse_l32;
+    rc_info->lvl16_inter_num = ctx->regs_ret.st_lvl16_inter_num;
+    rc_info->lvl8_inter_num  = ctx->regs_ret.st_lvl8_inter_num;
+    rc_info->lvl16_intra_num = ctx->regs_ret.st_lvl16_intra_num;
+    rc_info->lvl8_intra_num  = ctx->regs_ret.st_lvl8_intra_num;
+    rc_info->lvl4_intra_num  = ctx->regs_ret.st_lvl4_intra_num;
+
     ctx->hal_rc_cfg.bit_real = rc_info->bit_real;
     ctx->hal_rc_cfg.quality_real = rc_info->quality_real;
     ctx->hal_rc_cfg.iblk4_prop = rc_info->iblk4_prop;
