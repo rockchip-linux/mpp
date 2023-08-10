@@ -2473,6 +2473,13 @@ static MPP_RET hal_h264e_vepu580_ret_task(void * hal, HalEncTask * task)
                            regs->reg_st.st_pnum_i8.pnum_i8 +
                            regs->reg_st.st_pnum_i16.pnum_i16) * 256 / mbs;
 
+    rc_info->sse = ((RK_S64)regs->reg_st.sse_h32 << 16) + (regs->reg_st.st_sse_bsl.sse_l16 & 0xffff);
+    rc_info->lvl16_inter_num = regs->reg_st.st_pnum_p16.pnum_p16;
+    rc_info->lvl8_inter_num  = regs->reg_st.st_pnum_p8.pnum_p8;
+    rc_info->lvl16_intra_num = regs->reg_st.st_pnum_i16.pnum_i16;
+    rc_info->lvl8_intra_num  = regs->reg_st.st_pnum_i8.pnum_i8;
+    rc_info->lvl4_intra_num  = regs->reg_st.st_pnum_i4.pnum_i4;
+
     ctx->hal_rc_cfg.bit_real = rc_info->bit_real;
     ctx->hal_rc_cfg.quality_real = rc_info->quality_real;
     ctx->hal_rc_cfg.iblk4_prop = rc_info->iblk4_prop;
