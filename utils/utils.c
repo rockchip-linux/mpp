@@ -17,6 +17,7 @@
 #define MODULE_TAG "utils"
 
 #include <ctype.h>
+#include <errno.h>
 #include <limits.h>
 #include <string.h>
 
@@ -230,6 +231,16 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
         for (i = 0; i < height; i++, base_y += h_stride)
             fwrite(base_y, 1, width * 2, fp);
+
+        mpp_free(tmp);
+    } break;
+    case MPP_FMT_RGB888: {
+        RK_U32 i;
+        RK_U8 *base_y = base;
+        RK_U8 *tmp = mpp_malloc(RK_U8, width * height * 3);
+
+        for (i = 0; i < height; i++, base_y += h_stride)
+            fwrite(base_y, 1, width * 3, fp);
 
         mpp_free(tmp);
     } break;
@@ -1510,4 +1521,55 @@ MPP_RET fps_calc_inc(FpsCalc ctx)
         impl->callback(total_time, total_count, last_time, last_count);
 
     return MPP_OK;
+}
+
+/*
+ * @brief convert a string that discribes decimal, octal and hexadecimal
+ *        number to a long integer.
+ * @param[in] nptr - a string to convert to long integer
+ * @param[out] number - long integer converted from a string
+ */
+MPP_RET str_to_frm_fmt(const char *nptr, long *number)
+{
+    MPP_RET ret = MPP_NOK;
+
+    if (NULL == nptr || NULL == number) {
+        mpp_err_f("invalid input nptr %p number %p is_valid %p\n", nptr, number);
+        ret = MPP_ERR_NULL_PTR;
+        goto RET;
+    }
+
+    if (nptr) {
+        char *endptr = NULL;  /* pointer to additional chars  */
+        long  tmp = 0;
+
+        /* reset errno to 0 before call */
+        errno = 0;
+
+        tmp = strtol(nptr, &endptr, 0);
+
+        if (nptr == endptr)
+            mpp_err("format: 0x%lx  invalid  (no digits found, 0 returned)", tmp);
+        else if (errno == ERANGE && tmp == LONG_MIN)
+            mpp_err("format: 0x%lx  invalid  (underflow occurred)", tmp);
+        else if (errno == ERANGE && tmp == LONG_MAX)
+            mpp_err("format: 0x%lx  invalid  (overflow occurred)", tmp);
+        else if (errno == EINVAL)  /* not in all c99 implementations - gcc OK */
+            mpp_err("format: 0x%lx  invalid  (base contains unsupported value)", tmp);
+        else if (errno != 0 && tmp == 0)
+            mpp_err("format: 0x%lx  invalid  (unspecified error occurred)", tmp);
+        else if (errno == 0 && nptr && *endptr != 0)
+            mpp_err("format: 0x%lx  invalid  (additional characters remain)", tmp);
+        else if (errno == 0 && nptr && !*endptr) {
+            if (tmp < UINT_MAX && tmp >= 0) {
+                *number = tmp;
+                ret = MPP_OK;
+            } else {
+                mpp_err("format: 0x%lx  invalid  (not format value)", tmp);
+            }
+        }
+    }
+
+RET:
+    return ret;
 }

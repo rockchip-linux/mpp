@@ -92,6 +92,8 @@ MPP_RET fps_calc_deinit(FpsCalc ctx);
 MPP_RET fps_calc_set_cb(FpsCalc ctx, FpsCalcCb cb);
 MPP_RET fps_calc_inc(FpsCalc ctx);
 
+MPP_RET str_to_frm_fmt(const char *nptr, long *number);
+
 #ifdef __cplusplus
 }
 #endif

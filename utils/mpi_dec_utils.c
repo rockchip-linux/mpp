@@ -514,15 +514,21 @@ RK_S32 mpi_dec_opt_f(void *ctx, const char *next)
     MpiDecTestCmd *cmd = (MpiDecTestCmd *)ctx;
 
     if (next) {
-        cmd->format = (MppFrameFormat)atoi(next);
+        long number = 0;
+        MppFrameFormat format = MPP_FMT_BUTT;
 
-        if (MPP_FRAME_FMT_IS_YUV(cmd->format) ||
-            MPP_FRAME_FMT_IS_RGB(cmd->format))
-            return 1;
+        if (MPP_OK == str_to_frm_fmt(next, &number)) {
+            format = (MppFrameFormat)number;
+
+            if (MPP_FRAME_FMT_IS_YUV(format) || MPP_FRAME_FMT_IS_RGB(format)) {
+                cmd->format = format;
+                return 1;
+            }
+        }
     }
 
     mpp_err("invalid output format\n");
-    cmd->format = MPP_FMT_BUTT;
+    cmd->format = MPP_FMT_YUV420SP;
     return 0;
 }
 
