@@ -499,7 +499,7 @@ void *thread_decode(void *arg)
         if (MPP_FRAME_FMT_IS_YUV(cmd->format) || MPP_FRAME_FMT_IS_RGB(cmd->format)) {
             MPP_RET ret = mpi->control(ctx, MPP_DEC_SET_OUTPUT_FORMAT, &cmd->format);
             if (ret) {
-                mpp_err("Failed to set output format %d\n", cmd->format);
+                mpp_err("Failed to set output format 0x%x\n", cmd->format);
                 return NULL;
             }
         }
