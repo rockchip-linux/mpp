@@ -341,7 +341,8 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
             if (ctx->output_fmt == MPP_FMT_RGB888) {
                 regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_RGB888;
                 mpp_frame_set_hor_stride(frm, stride * 3);
-            } else if (ctx->output_fmt == MPP_FMT_BGR565) { //bgr565le
+            } else if (ctx->output_fmt == (MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK) ||
+                       ctx->output_fmt == MPP_FMT_RGB565) { // bgr565le or rgb565be
                 regs->reg2_sys.yuv_out_format = YUV_OUT_FMT_2_RGB565;
                 mpp_frame_set_hor_stride(frm, stride * 2);
             } else {
@@ -777,14 +778,39 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
 
     switch (cmd_type) {
     case MPP_DEC_SET_OUTPUT_FORMAT: {
-        JpegHalCtx->output_fmt = *((MppFrameFormat *)param);
-        JpegHalCtx->set_output_fmt_flag = 1;
-        jpegd_dbg_hal("output_format:%d\n", JpegHalCtx->output_fmt);
+        MppFrameFormat output_fmt = *((MppFrameFormat *)param);
+        RockchipSocType soc_type = mpp_get_soc_type();
 
-        if ((!MPP_FRAME_FMT_IS_YUV(JpegHalCtx->output_fmt) && !MPP_FRAME_FMT_IS_RGB(JpegHalCtx->output_fmt))
-            || MPP_FRAME_FMT_IS_FBC(JpegHalCtx->output_fmt)) {
-            mpp_err_f("output format %d is invalid.\n", JpegHalCtx->output_fmt);
-            ret = MPP_ERR_VALUE;
+        ret = MPP_NOK;
+
+        switch ((RK_S32)output_fmt) {
+        case MPP_FMT_YUV420SP :
+        case MPP_FMT_YUV420SP_VU :
+        case MPP_FMT_YUV422_YUYV :
+        case MPP_FMT_YUV422_YVYU :
+        case MPP_FMT_RGB888 : {
+            ret = MPP_OK;
+        } break;
+        case (MPP_FMT_RGB565) : { // rgb565be
+            if (soc_type >= ROCKCHIP_SOC_RK3588 &&
+                soc_type < ROCKCHIP_SOC_BUTT)
+                ret = MPP_OK;
+        } break;
+        case (MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK) : { // bgr565le
+            if (soc_type < ROCKCHIP_SOC_RK3588 &&
+                soc_type > ROCKCHIP_SOC_AUTO)
+                ret = MPP_OK;
+        } break;
+        default:
+            break;
+        }
+
+        if (ret) {
+            mpp_err_f("invalid output format 0x%x\n", output_fmt);
+        } else {
+            JpegHalCtx->output_fmt = output_fmt;
+            JpegHalCtx->set_output_fmt_flag = 1;
+            jpegd_dbg_hal("output_format: 0x%x\n", JpegHalCtx->output_fmt);
         }
     } break;
     //TODO support scale and tile output

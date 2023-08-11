@@ -1055,16 +1055,17 @@ MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
     case MPP_DEC_SET_OUTPUT_FORMAT: {
         JpegHalCtx->output_fmt = *((MppFrameFormat *)param);
         JpegHalCtx->set_output_fmt_flag = 1;
-        jpegd_dbg_hal("output_format:%d\n", JpegHalCtx->output_fmt);
+        jpegd_dbg_hal("output_format: 0x%x\n", JpegHalCtx->output_fmt);
 
         if (!MPP_FRAME_FMT_IS_YUV(JpegHalCtx->output_fmt) && !MPP_FRAME_FMT_IS_RGB(JpegHalCtx->output_fmt)) {
-            mpp_err_f("output format %d is invalid.\n", JpegHalCtx->output_fmt);
+            mpp_err_f("invalid output format 0x%x\n", JpegHalCtx->output_fmt);
             ret = MPP_ERR_VALUE;
         }
     } break;
     default :
         break;
     }
+
     jpegd_dbg_func("exit ret %d\n", ret);
     return  ret;
 }
