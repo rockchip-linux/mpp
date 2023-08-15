@@ -1550,7 +1550,7 @@ static MPP_RET setup_vepu580_intra_refresh(HalVepu580RegSet *regs, HalH264eVepu5
     RK_U32 refresh_num = ctx->cfg->rc.refresh_num;
     RK_U32 stride_h = MPP_ALIGN(mb_w, 4);
     RK_U32 stride_v = MPP_ALIGN(mb_h, 4);
-    RK_U32 roi_base_buf_size = mb_w * mb_h * 8;
+    RK_U32 roi_base_buf_size = stride_h * stride_v * 8;
     RK_U32 i = 0;
 
     hal_h264e_dbg_func("enter\n");
