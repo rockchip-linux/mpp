@@ -452,7 +452,16 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
 
     // TODO: do codec check first
     if (change & MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE) {
-        dst->profile = src->profile;
+        RK_S32 profile = src->profile;
+
+        if (MPP_PROFILE_HEVC_MAIN == profile ||
+            MPP_PROFILE_HEVC_MAIN_STILL_PICTURE == profile) {
+            dst->profile = profile;
+            // TODO: proc main still profile
+        } else {
+            mpp_err("invalid profile_idc %d, keep %d", profile, dst->profile);
+        }
+
         dst->level = src->level;
     }
 
