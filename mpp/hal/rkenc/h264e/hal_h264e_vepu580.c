@@ -589,6 +589,9 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
         //store async encode TSVC info
         if (ctx->prefix)
             memcpy(prefix, ctx->prefix, sizeof(H264ePrefixNal));
+        else
+            prefix = NULL;
+
         if (ctx->slice) {
             memcpy(slice, ctx->slice, sizeof(H264eSlice));
 
