@@ -852,7 +852,7 @@ MPP_RET mpi_enc_gen_smart_gop_ref_cfg(MppEncRefCfg ref, RK_S32 gop_len, RK_S32 v
     /* st 1 layer 1 - non-ref */
     if (vi_len > 1) {
         st_ref[pos].is_non_ref  = 0;
-        st_ref[pos].temporal_id = 1;
+        st_ref[pos].temporal_id = 0;
         st_ref[pos].ref_mode    = REF_TO_PREV_REF_FRM;
         st_ref[pos].ref_arg     = 0;
         st_ref[pos].repeat      = vi_len - 2;
