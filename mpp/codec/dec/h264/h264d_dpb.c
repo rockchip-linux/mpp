@@ -1500,8 +1500,9 @@ MPP_RET store_picture_in_dpb(H264_DpbBuf_t *p_Dpb, H264_StorePic_t *p)
             }
             FUN_CHECK(ret = remove_frame_from_dpb(p_Dpb, min_pos));
             p->is_long_term = 0;
+        } else {
+            FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
         }
-        FUN_CHECK(ret = output_one_frame_from_dpb(p_Dpb));
     }
     H264D_DBG(H264D_DBG_DPB_INFO, "after out, dpb[%d] used_size %d, size %d",
               p_Dpb->layer_id, p_Dpb->used_size, p_Dpb->size);
