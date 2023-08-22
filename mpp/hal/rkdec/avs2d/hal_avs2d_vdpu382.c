@@ -266,7 +266,7 @@ static MPP_RET init_common_regs(Vdpu382Avs2dRegSet *regs)
     common->reg026.cru_auto_gating_e = 1;
     common->reg026.reg_cfg_gating_en = 1;
 
-    common->reg032_timeout_threshold = 0x0fffffff;
+    common->reg032_timeout_threshold = 0x3fffff;
 
     common->reg011.dec_clkgate_e = 1;
 
@@ -444,6 +444,7 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
         RK_S32 valid_slot = -1;
         RK_U32 *ref_low = (RK_U32 *)&p_regs->avs2d_param.reg99;
         RK_U32 *ref_hight = (RK_U32 *)&p_regs->avs2d_param.reg100;
+        RK_U32 err_ref_base = 0;
 
         AVS2D_HAL_TRACE("num of ref %d", refp->ref_pic_num);
 
@@ -461,7 +462,8 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
             RK_S32 slot_idx = task_dec->refer[i] < 0 ? valid_slot : task_dec->refer[i];
 
             if (slot_idx < 0) {
-                AVS2D_HAL_TRACE("missing ref, could not found valid ref");
+                AVS2D_HAL_DBG(AVS2D_HAL_DBG_ERROR, "missing ref, could not found valid ref");
+                task->dec.flags.ref_err = 1;
                 return ret = MPP_ERR_UNKNOW;
             }
 
@@ -483,6 +485,8 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
                 p_regs->avs2d_addr.colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 
                 p_regs->avs2d_param.reg67_098_ref_poc[i] = mpp_frame_get_poc(frame_ref);
+                if (!err_ref_base && !mpp_frame_get_errinfo(frame_ref))
+                    err_ref_base = p_regs->avs2d_addr.ref_base[i];
 
                 AVS2D_HAL_TRACE("ref_base[%d] index=%d, fd = %d, colmv %d, poc %d",
                                 i, slot_idx, p_regs->avs2d_addr.ref_base[i],
@@ -508,7 +512,7 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu382Avs2dRegSet *p_regs, 
         *ref_low = (RK_U32) (ref_flag & 0xffffffff);
         *ref_hight = (RK_U32) ((ref_flag >> 32) & 0xffffffff);
 
-        p_regs->common_addr.reg132_error_ref_base = p_regs->avs2d_addr.ref_base[0];
+        p_regs->common_addr.reg132_error_ref_base = err_ref_base;
     }
 
     // set rlc
