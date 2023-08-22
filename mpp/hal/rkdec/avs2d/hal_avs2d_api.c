@@ -109,13 +109,14 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
         mpp_err("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
+    cfg->support_fast_mode = 1;
 
     p_hal->cfg = cfg->cfg;
     p_hal->dev = cfg->dev;
     p_hal->dec_cb = cfg->dec_cb;
     p_hal->frame_slots  = cfg->frame_slots;
     p_hal->packet_slots = cfg->packet_slots;
-    p_hal->fast_mode    = cfg->cfg->base.fast_parse;
+    p_hal->fast_mode    = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
 
     //< get buffer group
     if (p_hal->buf_group == NULL)
