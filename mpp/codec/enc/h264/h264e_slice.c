@@ -602,7 +602,7 @@ void h264e_slice_write_header(H264eSlice *slice, MppWriteCtx *s)
     // Force to use poc type 0 here
     if (slice->pic_order_cnt_type == 0) {
         RK_S32 pic_order_cnt_lsb = slice->pic_order_cnt_lsb;
-        RK_S32 max_poc_lsb = (1 << slice->log2_max_poc_lsb) - 1;
+        RK_S32 max_poc_lsb = (1 << slice->log2_max_poc_lsb);
 
         if (pic_order_cnt_lsb >= max_poc_lsb)
             pic_order_cnt_lsb -= max_poc_lsb;
