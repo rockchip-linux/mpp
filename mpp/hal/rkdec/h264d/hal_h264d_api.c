@@ -88,6 +88,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(H264dHalCtx_t));
 
+    mpp_env_get_u32("hal_h264d_debug", &hal_h264d_debug, 0);
 
     //!< choose hard mode
     {
@@ -190,8 +191,6 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         mpp_assert(0);
     } break;
     }
-
-    mpp_env_get_u32("hal_h264d_debug", &hal_h264d_debug, 0);
 
     ret = mpp_dev_init(&cfg->dev, client_type);
     if (ret) {
