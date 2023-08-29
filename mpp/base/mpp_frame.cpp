@@ -33,6 +33,14 @@ static void setup_mpp_frame_name(MppFrameImpl *frame)
     frame->name = module_name;
 }
 
+static void setup_mpp_frame_defaults(MppFrameImpl *frame)
+{
+    frame->color_range = MPP_FRAME_RANGE_UNSPECIFIED;
+    frame->color_primaries = MPP_FRAME_PRI_UNSPECIFIED;
+    frame->color_trc = MPP_FRAME_TRC_UNSPECIFIED;
+    frame->colorspace = MPP_FRAME_SPC_UNSPECIFIED;
+}
+
 #define check_is_mpp_frame(frame) _check_is_mpp_frame(__FUNCTION__, frame)
 
 MPP_RET _check_is_mpp_frame(const char *func, void *frame)
@@ -59,6 +67,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
     }
 
     setup_mpp_frame_name(p);
+    setup_mpp_frame_defaults(p);
     *frame = p;
 
     return MPP_OK;
