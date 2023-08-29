@@ -66,7 +66,6 @@ typedef struct Vepu540cSclCfg_t {
     RK_U32  q_dc_y32;
     RK_U32  iq_dc_0;
     RK_U32  iq_dc_1;
-    RK_U32  scal_clk_sel;
 
     /* 0x000021f8 reg2174 */
     struct {
