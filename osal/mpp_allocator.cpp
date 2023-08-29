@@ -147,6 +147,9 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator,
             .flags = flags,
         };
         ret = p->os_api.open(&p->ctx, &cfg);
+
+        /* NOTE: allocator may update the flags for compatibility */
+        p->flags = cfg.flags;
     }
     if (MPP_OK == ret) {
         pthread_mutexattr_t attr;
