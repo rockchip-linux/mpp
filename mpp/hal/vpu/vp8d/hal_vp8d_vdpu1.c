@@ -25,8 +25,6 @@
 #include "hal_vp8d_vdpu1.h"
 #include "hal_vp8d_vdpu1_reg.h"
 
-static RK_U32 vp8h_debug;
-
 #define CLIP3(l, h, v) ((v) < (l) ? (l) : ((v) > (h) ? (h) : (v)))
 
 static const RK_U32 mcFilter[8][6] = {
@@ -46,8 +44,6 @@ MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 
     FUN_T("enter\n");
-
-    mpp_env_get_u32("vp8h_debug", &vp8h_debug, 0);
 
     ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU1);
     if (ret) {
@@ -629,7 +625,7 @@ MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
 
     FUN_T("enter\n");
 
-    if (vp8h_debug & VP8H_DBG_REG) {
+    if (hal_vp8d_debug & VP8H_DBG_REG) {
         RK_U32 *p = ctx->regs;
         RK_U32 i = 0;
 

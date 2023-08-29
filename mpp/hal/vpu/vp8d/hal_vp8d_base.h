@@ -32,12 +32,14 @@
 #define VP8H_DBG_DUMP_REG          (0x00000004)
 #define VP8H_DBG_IRQ               (0x00000008)
 
+extern RK_U32 hal_vp8d_debug;
+
 #define vp8h_dbg(flag, fmt, ...) \
-     _mpp_dbg_f(vp8h_debug, flag, fmt, ## __VA_ARGS__)
+     _mpp_dbg_f(hal_vp8d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define FUN_T(tag) \
     do {\
-        if (VP8H_DBG_FUNCTION & vp8h_debug)\
+        if (VP8H_DBG_FUNCTION & hal_vp8d_debug)\
             { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
     } while (0)
 
