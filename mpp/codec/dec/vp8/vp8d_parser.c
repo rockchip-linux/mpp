@@ -17,6 +17,7 @@
 #define MODULE_TAG "vp8d_parser"
 
 #include <string.h>
+#include <unistd.h>
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
@@ -215,6 +216,7 @@ MPP_RET vp8d_parser_init(void *ctx, ParserCfg *parser_cfg)
     VP8DContext *c = (VP8DContext *)ctx;
     VP8DParserContext_t *p = (VP8DParserContext_t *)c->parse_ctx;
 
+    mpp_env_get_u32("vp8d_debug", &vp8d_debug, 0);
     FUN_T("FUN_IN");
     if (p == NULL) {
         p = (VP8DParserContext_t*)mpp_calloc(VP8DParserContext_t, 1);
@@ -331,6 +333,9 @@ MPP_RET vp8d_parser_deinit(void *ctx)
         mpp_packet_deinit(&p->input_packet);
         p->input_packet = NULL;
     }
+
+    if (p->stream_fp)
+        fclose(p->stream_fp);
 
     if ( NULL != p) {
         mpp_free(p);
@@ -1219,6 +1224,62 @@ decoder_frame_header(VP8DParserContext_t *p, RK_U8 *pbase, RK_U32 size)
     return MPP_OK;
 }
 
+#define IVF_HDR_BYTES       32
+#define IVF_FRM_BYTES       12
+
+static void write_ivf_header(VP8DParserContext_t *ctx, FILE *fp)
+{
+    RK_U8 data[IVF_HDR_BYTES] = {0};
+
+    data[0] = 'D';
+    data[1] = 'K';
+    data[2] = 'I';
+    data[3] = 'F';
+
+    data[6] = 32;
+
+    data[8] = 'V';
+    data[9] = 'P';
+    data[10] = '8';
+    data[11] = '0';
+
+    data[12] = ctx->width & 0xff;
+    data[13] = (ctx->width >> 8) & 0xff;
+    data[14] = ctx->height & 0xff;
+    data[15] = (ctx->height >> 8) & 0xff;
+
+    data[16] = 30;
+    data[17] = data[18] = data[19] = 0;
+
+    data[20] = 1;
+    data[21] = data[22] = data[23] = 0;
+
+    data[24] = data[25] = data[26] = data[27] = 0xff;
+
+    fwrite(data, IVF_HDR_BYTES, 1, fp);
+}
+
+static void write_ivf_frame(FILE *fp, RK_U32 frame_size, RK_U64 frame_cnt)
+{
+    RK_U8 data[IVF_FRM_BYTES];
+
+    data[0] = frame_size & 0xff;
+    data[1] = (frame_size >> 8) & 0xff;
+    data[2] = (frame_size >> 16) & 0xff;
+    data[3] = (frame_size >> 24) & 0xff;
+
+    data[4]  = frame_cnt & 0xff;
+    data[5]  = (frame_cnt >> 8) & 0xff;
+    data[6]  = (frame_cnt >> 16) & 0xff;
+    data[7]  = (frame_cnt >> 24) & 0xff;
+    data[8]  = (frame_cnt >> 32) & 0xff;
+    data[9]  = (frame_cnt >> 40) & 0xff;
+    data[10] = (frame_cnt >> 48) & 0xff;
+    data[11] = (frame_cnt >> 56) & 0xff;
+
+    fwrite(data, IVF_FRM_BYTES, 1, fp);
+}
+
 MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
 {
     MPP_RET ret = MPP_OK;
@@ -1259,6 +1320,25 @@ MPP_RET vp8d_parser_parse(void *ctx, HalDecTask *in_task)
         in_task->flags.eos = p->eos;
     }
     vp8d_ref_update(p);
+
+    if (vp8d_debug & VP8D_DBG_DUMP_STREAM) {
+        if (!p->stream_fp) {
+            char name[256];
+
+            sprintf(name, "/data/video/mpp_dec_vp8_%d.bin", getpid());
+            p->stream_fp = fopen(name, "wb");
+        }
+        if (p->stream_fp) {
+            if (!p->ivf_header_flag) {
+                write_ivf_header(p, p->stream_fp);
+                p->ivf_header_flag = 1;
+            }
+            write_ivf_frame(p->stream_fp, p->stream_size, p->frame_cnt);
+            fwrite(p->bitstream_sw_buf, 1, p->stream_size, p->stream_fp);
+            fflush(p->stream_fp);
+        }
+    }
+    p->frame_cnt++;
 
     FUN_T("FUN_OUT");
     return ret;

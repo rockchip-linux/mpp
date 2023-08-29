@@ -25,8 +25,6 @@
 #include "hal_vp8d_vdpu2.h"
 #include "hal_vp8d_vdpu2_reg.h"
 
-static RK_U32 vp8h_debug;
-
 #define CLIP3(l, h, v) ((v) < (l) ? (l) : ((v) > (h) ? (h) : (v)))
 
 static const RK_U32 mcFilter[8][6] = {
@@ -46,8 +44,6 @@ MPP_RET hal_vp8d_vdpu2_init(void *hal, MppHalCfg *cfg)
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
 
     FUN_T("FUN_IN");
-
-    mpp_env_get_u32("vp8h_debug", &vp8h_debug, 0);
 
     ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU2);
     if (ret) {
@@ -623,6 +619,47 @@ MPP_RET hal_vp8d_vdpu2_gen_regs(void* hal, HalTaskInfo *task)
     return ret;
 }
 
+static void hal_vp8d_vdpu2_dump_info(void *hal, HalTaskInfo *task)
+{
+    VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
+    (void)task;
+    FILE *fp;
+    char name[256];
+    static RK_U32 frame_cnt = 0;
+    RK_U32 i;
+    RK_U32 *p;
+
+    sprintf(name, "/data/video/reg_%d.bin", frame_cnt++);
+    fp = fopen(name, "ab+");
+    if (fp) {
+        p = (RK_U32*)ctx->regs;
+
+        for (i = 0; i < VP8D_REG_NUM; i++)
+            fprintf(fp, "reg[%d] %#08x\n", i, p[i]);
+        fclose(fp);
+    }
+
+    sprintf(name, "/data/video/seg_map_%d.bin", frame_cnt);
+    fp = fopen(name, "ab+");
+    if (fp) {
+        p = (RK_U32*)mpp_buffer_get_ptr(ctx->seg_map);
+
+        for (i = 0; i < mpp_buffer_get_size(ctx->seg_map) / 4; i++)
+            fprintf(fp, "%#08x\n", p[i]);
+        fclose(fp);
+    }
+
+    sprintf(name, "/data/video/probe_%d.bin", frame_cnt);
+    fp = fopen(name, "ab+");
+    if (fp) {
+        p = (RK_U32*)mpp_buffer_get_ptr(ctx->probe_table);
+
+        for (i = 0; i < mpp_buffer_get_size(ctx->probe_table) / 4; i++)
+            fprintf(fp, "%#08x\n", p[i]);
+        fclose(fp);
+    }
+}
+
 MPP_RET hal_vp8d_vdpu2_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
@@ -630,14 +667,8 @@ MPP_RET hal_vp8d_vdpu2_start(void *hal, HalTaskInfo *task)
     VP8DRegSet_t *regs = (VP8DRegSet_t *)ctx->regs;
 
     FUN_T("FUN_IN");
-
-    if (vp8h_debug & VP8H_DBG_REG) {
-        RK_U32 *p = ctx->regs;
-        RK_U32 i = 0;
-
-        for (i = 0; i < VP8D_REG_NUM; i++)
-            mpp_log_f("vp8d: regs[%02d]=%08X\n", i, *p++);
-    }
+    if (hal_vp8d_debug & VP8H_DBG_DUMP_REG)
+        hal_vp8d_vdpu2_dump_info(hal, task);
 
     do {
         MppDevRegWrCfg wr_cfg;

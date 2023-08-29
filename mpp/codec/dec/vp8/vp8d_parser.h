@@ -48,6 +48,7 @@
 #define VP8D_DBG_WARNNING          (0x00000004)
 #define VP8D_DBG_LOG               (0x00000008)
 #define VP8D_DBG_SEC_HEADER        (0x00000010)
+#define VP8D_DBG_DUMP_STREAM       (0x00001000)
 
 
 typedef enum {
@@ -177,9 +178,9 @@ typedef struct VP8DParserContext {
 
     MppBufSlots packet_slots;
     MppBufSlots frame_slots;
-
-    // FILE *fp_dbg_file[VP8D_DBG_FILE_NUM];
-    FILE *fp_dbg_yuv;
+    /* for debug */
+    FILE *stream_fp;
+    RK_U32 ivf_header_flag;
 } VP8DParserContext_t;
 
 MPP_RET  vp8d_parser_init   (void *ctx, ParserCfg *cfg);

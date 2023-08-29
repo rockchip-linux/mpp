@@ -21,8 +21,11 @@
 #include "rk_type.h"
 #include "mpp_hal.h"
 #include "mpp_platform.h"
+#include "mpp_env.h"
 #include "hal_vp8d_vdpu1.h"
 #include "hal_vp8d_vdpu2.h"
+
+RK_U32 hal_vp8d_debug = 0;
 
 static MPP_RET hal_vp8d_reg_gen (void *hal, HalTaskInfo *task)
 {
@@ -94,7 +97,7 @@ static MPP_RET hal_vp8d_deinit (void *hal)
     return self->hal_api.deinit(hal);
 }
 
-static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
+static MPP_RET hal_vp8d_init(void *hal, MppHalCfg *cfg)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
     MppHalApi *p_api = NULL;
@@ -103,8 +106,10 @@ static MPP_RET hal_vp8d_init (void *hal, MppHalCfg *cfg)
 
     if (NULL == self)
         return MPP_ERR_VALUE;
-    memset(self, 0, sizeof(VP8DHalContext_t));
 
+    mpp_env_get_u32("hal_vp8d_debug", &hal_vp8d_debug, 0);
+
+    memset(self, 0, sizeof(VP8DHalContext_t));
     p_api = &self->hal_api;
 
     hw_flag = mpp_get_vcodec_type();
