@@ -52,12 +52,15 @@ static RK_U32 dma_heap_debug = 0;
 #define DMA_HEAP_OPS                    (0x00000001)
 #define DMA_HEAP_DEVICE                 (0x00000002)
 #define DMA_HEAP_IOCTL                  (0x00000004)
+#define DMA_HEAP_CHECK                  (0x00000008)
 
 #define dma_heap_dbg(flag, fmt, ...)    _mpp_dbg(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
 #define dma_heap_dbg_f(flag, fmt, ...)  _mpp_dbg_f(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
 
 #define dma_heap_dbg_ops(fmt, ...)      dma_heap_dbg(DMA_HEAP_OPS, fmt, ## __VA_ARGS__)
 #define dma_heap_dbg_dev(fmt, ...)      dma_heap_dbg(DMA_HEAP_DEVICE, fmt, ## __VA_ARGS__)
+#define dma_heap_dbg_ioctl(fmt, ...)    dma_heap_dbg(DMA_HEAP_IOCTL, fmt, ## __VA_ARGS__)
+#define dma_heap_dbg_chk(fmt, ...)      dma_heap_dbg(DMA_HEAP_CHECK, fmt, ## __VA_ARGS__)
 
 typedef struct {
     RK_U32  alignment;
@@ -66,36 +69,133 @@ typedef struct {
 } allocator_ctx_dmaheap;
 
 typedef enum DmaHeapType_e {
-    DMA_HEAP_CMA        = (1 << 0),
-    DMA_HEAP_CACHABLE   = (1 << 1),
-    DMA_HEAP_DMA32      = (1 << 2),
+    DMA_HEAP_CACHABLE   = (1 << 0),
+    DMA_HEAP_DMA32      = (1 << 1),
+    DMA_HEAP_CMA        = (1 << 2),
     DMA_HEAP_TYPE_MASK  = DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA32,
     DMA_HEAP_TYPE_NB,
 } DmaHeapType;
 
-static const char *heap_names[] = {
-    "system-uncached",          /* 0 - default */
-    "cma-uncached",             /* 1 -                                      DMA_HEAP_CMA */
-    "system",                   /* 2 -                  DMA_HEAP_CACHABLE                */
-    "cma",                      /* 3 -                  DMA_HEAP_CACHABLE | DMA_HEAP_CMA */
-    "system-uncached-dma32",    /* 4 - DMA_HEAP_DMA32                                    */
-    "cma-uncached",             /* 5 - DMA_HEAP_DMA32                     | DMA_HEAP_CMA */
-    "system-dma32",             /* 6 - DMA_HEAP_DMA32 | DMA_HEAP_CACHABLE                */
-    "cma",                      /* 7 - DMA_HEAP_DMA32 | DMA_HEAP_CACHABLE | DMA_HEAP_CMA */
+typedef struct DmaHeapInfo_t {
+    const char  *name;
+    RK_S32      fd;
+    RK_U32      flags;
+} DmaHeapInfo;
+
+static DmaHeapInfo heap_infos[DMA_HEAP_TYPE_NB] = {
+    {   "system-uncached",          -1,                                                 0, },   /* 0 */
+    {   "system-uncached-dma32",    -1,                                    DMA_HEAP_DMA32, },   /* 1 */
+    {   "system",                   -1,                DMA_HEAP_CACHABLE                 , },   /* 2 */
+    {   "system-dma32",             -1,                DMA_HEAP_CACHABLE | DMA_HEAP_DMA32, },   /* 3 */
+    {   "cma-uncached",             -1, DMA_HEAP_CMA                                     , },   /* 4 */
+    {   "cma-uncached-dma32",       -1, DMA_HEAP_CMA                     | DMA_HEAP_DMA32, },   /* 5 */
+    {   "cma",                      -1, DMA_HEAP_CMA | DMA_HEAP_CACHABLE                 , },   /* 6 */
+    {   "cma-dma32",                -1, DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA32, },   /* 7 */
 };
 
-static int heap_fds[DMA_HEAP_TYPE_NB];
-static pthread_once_t dma_heap_once = PTHREAD_ONCE_INIT;
-static spinlock_t dma_heap_lock;
+static int try_open_path(const char *name)
+{
+    static const char *heap_path = "/dev/dma_heap/";
+    char buf[64];
+    int fd;
+
+    snprintf(buf, sizeof(buf) - 1, "%s%s", heap_path, name);
+    fd = open(buf, O_RDONLY | O_CLOEXEC); // read permission is enough
+
+    dma_heap_dbg_ops("open dma_heap %-24s -> fd %d\n", name, fd);
+
+    return fd;
+}
+
+static MPP_RET try_flip_flag(DmaHeapType orig, DmaHeapType flag)
+{
+    DmaHeapInfo *dst = &heap_infos[orig];
+    DmaHeapInfo *src;
+    DmaHeapType used;
+
+    if (orig & flag)
+        used = (DmaHeapType)(orig & (~flag));
+    else
+        used = (DmaHeapType)(orig | flag);
+
+    src = &heap_infos[used];
+    if (src->fd > 0) {
+        /* found valid heap use it */
+        dst->fd = dup(src->fd);
+        dst->flags = src->flags;
+
+        dma_heap_dbg_chk("dma-heap type %x %s remap to %x %s\n",
+                         orig, dst->name, used, src->name);
+    }
+
+    return dst->fd > 0 ? MPP_OK : MPP_NOK;
+}
+
+__attribute__ ((constructor))
+void dma_heap_init(void)
+{
+    DmaHeapInfo *info = NULL;
+    RK_U32 all_success = 1;
+    RK_U32 i;
+
+    mpp_env_get_u32("dma_heap_debug", &dma_heap_debug, 0);
+
+    /* go through all heap first */
+    for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+        info = &heap_infos[i];
+
+        if (info->fd > 0)
+            continue;
+
+        info->fd = try_open_path(info->name);
+        if (info->fd <= 0)
+            all_success = 0;
+    }
+
+    if (!all_success) {
+        /* check remaining failed heap mapping */
+        for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+            info = &heap_infos[i];
+
+            if (info->fd > 0)
+                continue;
+
+            /* if original heap failed then try revert cacheable flag */
+            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_CACHABLE))
+                continue;
+
+            /* if cacheable heap failed then try revert dma32 flag */
+            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_DMA32))
+                continue;
+
+            /* if dma32 heap failed then try revert both cacheable and dma32 flag */
+            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_CACHABLE | DMA_HEAP_DMA32))
+                continue;
+
+            dma_heap_dbg_chk("dma-heap type %x - %s remap failed\n", i, info->name);
+        }
+    }
+}
+
+__attribute__ ((destructor))
+void dma_heap_deinit(void)
+{
+    RK_U32 i;
+
+    for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+        DmaHeapInfo *info = &heap_infos[i];
+
+        if (info->fd > 0) {
+            close(info->fd);
+            info->fd = -1;
+        }
+    }
+}
 
 static int dma_heap_alloc(int fd, size_t len, RK_S32 *dmabuf_fd, RK_U32 flags)
 {
+    struct dma_heap_allocation_data data;
     int ret;
-    struct dma_heap_allocation_data data = {
-        .len = len,
-        .fd_flags = O_RDWR | O_CLOEXEC,
-        .heap_flags = flags,
-    };
 
     memset(&data, 0, sizeof(data));
     data.len = len;
@@ -108,56 +208,21 @@ static int dma_heap_alloc(int fd, size_t len, RK_S32 *dmabuf_fd, RK_U32 flags)
         return ret;
     }
 
-    dma_heap_dbg(DMA_HEAP_IOCTL, "ioctl alloc get fd %d\n", data.fd);
+    dma_heap_dbg_ioctl("ioctl alloc get fd %d\n", data.fd);
 
     *dmabuf_fd = data.fd;
 
+    (void) flags;
     return ret;
 }
-
-static void heap_fds_init(void)
-{
-    memset(heap_fds, -1, sizeof(heap_fds));
-    mpp_spinlock_init(&dma_heap_lock);
-}
-
-static int heap_fd_open(DmaHeapType type)
-{
-    mpp_assert(type < DMA_HEAP_TYPE_NB);
-
-    mpp_spinlock_lock(&dma_heap_lock);
-
-    if (heap_fds[type] <= 0) {
-        static const char *heap_path = "/dev/dma_heap/";
-        char name[64];
-        int fd;
-
-        snprintf(name, sizeof(name) - 1, "%s%s", heap_path, heap_names[type]);
-        fd = open(name, O_RDONLY | O_CLOEXEC); // read permission is enough
-        if (fd <= 0)
-            mpp_err("dma-heap open %s %s\n", name, strerror(errno));
-
-        mpp_assert(fd > 0);
-
-        dma_heap_dbg(DMA_HEAP_DEVICE, "open dma heap dev %s fd %d\n", name, fd);
-        heap_fds[type] = fd;
-    }
-
-    mpp_spinlock_unlock(&dma_heap_lock);
-
-    return heap_fds[type];
-}
-
 
 static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
 {
     allocator_ctx_dmaheap *p;
+    DmaHeapInfo *info = NULL;
     DmaHeapType type = 0;
-    RK_S32 fd;
 
-    mpp_env_get_u32("dma_heap_debug", &dma_heap_debug, 0);
-
-    pthread_once(&dma_heap_once, heap_fds_init);
+    mpp_env_get_u32("dma_heap_debug", &dma_heap_debug, dma_heap_debug);
 
     if (NULL == ctx) {
         mpp_err_f("does not accept NULL input\n");
@@ -175,28 +240,38 @@ static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
     if (cfg->flags & (MPP_BUFFER_FLAGS_DMA32 >> 16))
         type |= DMA_HEAP_DMA32;
 
-    fd = heap_fd_open(type);
-    if (fd < 0) {
-        mpp_err_f("open dma heap type %x failed!\n", type);
+    info = &heap_infos[type];
+    if (info->fd <= 0) {
+        mpp_err_f("open dma heap type %x %s failed!\n", type, info->name);
         return MPP_ERR_UNKNOW;
     }
 
     p = mpp_malloc(allocator_ctx_dmaheap, 1);
     if (NULL == p) {
-        close(fd);
         mpp_err_f("failed to allocate context\n");
         return MPP_ERR_MALLOC;
     } else {
-        /*
-         * default drm use cma, do nothing here
-         */
         p->alignment    = cfg->alignment;
-        p->flags        = cfg->flags;
-        p->device       = fd;
+        p->flags        = info->flags;
+        p->device       = info->fd;
         *ctx = p;
     }
 
-    dma_heap_dbg_ops("dev %d open heap type %x:%x\n", fd, cfg->flags, type);
+    dma_heap_dbg_ops("dev %d open heap type %x:%x\n", p->device, cfg->flags, info->flags);
+
+    if (type != info->flags) {
+        type = cfg->flags;
+        /* update read dma_heap back to config */
+        if (info->flags & DMA_HEAP_CACHABLE)
+            cfg->flags |= (MPP_BUFFER_FLAGS_CACHABLE >> 16);
+        else
+            cfg->flags &= ~(MPP_BUFFER_FLAGS_CACHABLE >> 16);
+
+        if (info->flags & DMA_HEAP_DMA32)
+            cfg->flags |= (MPP_BUFFER_FLAGS_DMA32 >> 16);
+        else
+            cfg->flags &= ~(MPP_BUFFER_FLAGS_DMA32 >> 16);
+    }
 
     return MPP_OK;
 }
@@ -270,21 +345,12 @@ static MPP_RET os_allocator_dma_heap_free(void *ctx, MppBufferInfo *data)
 
 static MPP_RET os_allocator_dma_heap_close(void *ctx)
 {
-    int ret;
-    allocator_ctx_dmaheap *p;
-
     if (NULL == ctx) {
         mpp_err("os_allocator_close doesn't accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    p = (allocator_ctx_dmaheap *)ctx;
-    dma_heap_dbg_ops("dev %d close", p->device);
-
-    ret = close(p->device);
-    mpp_free(p);
-    if (ret < 0)
-        return (MPP_RET) - errno;
+    MPP_FREE(ctx);
 
     return MPP_OK;
 }
