@@ -36,6 +36,7 @@
 #include "vepu540c_common.h"
 
 #include "hal_h264e_vepu540c_reg.h"
+#include "hal_h264e_stream_amend.h"
 
 #define DUMP_REG 0
 #define MAX_CORE_NUM 2
@@ -68,6 +69,7 @@ typedef struct HalH264eVepu540cCtx_t {
     H264eReorderInfo        *reorder;
     H264eMarkingInfo        *marking;
     H264ePrefixNal          *prefix;
+    HalH264eVepuStreamAmend  amend;
 
     /* syntax for output to enc_impl */
     EncRcTaskInfo           hal_rc_cfg;
@@ -112,6 +114,8 @@ static MPP_RET hal_h264e_vepu540c_deinit(void *hal)
 {
     HalH264eVepu540cCtx *p = (HalH264eVepu540cCtx *)hal;
     hal_h264e_dbg_func("enter %p\n", p);
+
+    h264e_vepu_stream_amend_deinit(&p->amend);
 
     if (p->dev) {
         mpp_dev_deinit(p->dev);
@@ -186,6 +190,8 @@ static MPP_RET hal_h264e_vepu540c_init(void *hal, MppEncHalCfg *cfg)
 DONE:
     if (ret)
         hal_h264e_vepu540c_deinit(hal);
+
+    h264e_vepu_stream_amend_init(&p->amend);
 
     hal_h264e_dbg_func("leave %p\n", p);
     return ret;
@@ -343,6 +349,7 @@ static RK_U32 update_vepu540c_syntax(HalH264eVepu540cCtx *ctx, MppSyntax *syntax
 static MPP_RET hal_h264e_vepu540c_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu540cCtx *ctx = (HalH264eVepu540cCtx *)hal;
+    MppEncH264HwCfg *hw_cfg = &ctx->cfg->codec.h264.hw_cfg;
     RK_U32 updated = update_vepu540c_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -356,6 +363,13 @@ static MPP_RET hal_h264e_vepu540c_get_task(void *hal, HalEncTask *task)
 
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
     }
+
+    /* if not VEPU1/2, update log2_max_frame_num_minus4 in hw_cfg */
+    hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
+
+    h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
+                                   ctx->slice, ctx->prefix);
+
     hal_h264e_dbg_func("leave %p\n", hal);
 
     return MPP_OK;
@@ -1725,6 +1739,21 @@ static MPP_RET hal_h264e_vepu540c_wait(void *hal, HalEncTask *task)
     } else {
         hal_h264e_vepu540c_status_check(hal);
         task->hw_length += regs_set->reg_st.bs_lgth_l32;
+    }
+
+    {
+        HalH264eVepuStreamAmend *amend = &ctx->amend;
+
+        if (amend->enable) {
+            amend->old_length = task->hw_length;
+            amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
+            task->hw_length = amend->new_length;
+        } else if (amend->prefix) {
+            /* check prefix value */
+            amend->old_length = task->hw_length;
+            h264e_vepu_stream_amend_sync_ref_idc(amend);
+        }
     }
 
     hal_h264e_dbg_func("leave %p\n", hal);
