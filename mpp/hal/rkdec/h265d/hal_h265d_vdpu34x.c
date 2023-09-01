@@ -176,6 +176,12 @@ static MPP_RET hal_h265d_vdpu34x_init(void *hal, MppHalCfg *cfg)
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
     }
+
+    if (cfg->hal_fbc_adj_cfg) {
+        cfg->hal_fbc_adj_cfg->func = vdpu34x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->expand = 16;
+    }
+
     (void)cfg;
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");

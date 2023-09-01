@@ -49,6 +49,7 @@ typedef struct MppHalCfg_t {
     // codec dev
     MppDev              dev;
     RK_S32              support_fast_mode;
+    SlotHalFbcAdjCfg    *hal_fbc_adj_cfg;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {

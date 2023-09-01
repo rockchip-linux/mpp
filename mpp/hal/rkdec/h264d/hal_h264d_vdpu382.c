@@ -793,6 +793,10 @@ MPP_RET vdpu382_h264d_init(void *hal, MppHalCfg *cfg)
         if (reg_ctx->err_ref_hack)
             mpp_dev_ioctl(p_hal->dev, MPP_DEV_SET_ERR_REF_HACK, &reg_ctx->err_ref_hack);
     }
+    if (cfg->hal_fbc_adj_cfg) {
+        cfg->hal_fbc_adj_cfg->func = vdpu382_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->expand = 16;
+    }
 
 __RETURN:
     return MPP_OK;
