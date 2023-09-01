@@ -756,6 +756,10 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
         mpp_assert(hw_info);
         cfg->hw_info = hw_info;
     }
+    if (cfg->hal_fbc_adj_cfg) {
+        cfg->hal_fbc_adj_cfg->func = vdpu34x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->expand = 16;
+    }
 
 __RETURN:
     return MPP_OK;

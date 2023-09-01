@@ -113,6 +113,10 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_FRAME_INFO : {
         MppFrame frame = (MppFrame)param;
 
+        /* update output frame format */
+        dec->cfg.base.out_fmt = mpp_frame_get_fmt(frame);
+        mpp_log_f("found MPP_DEC_SET_FRAME_INFO fmt %x\n", dec->cfg.base.out_fmt);
+
         mpp_slots_set_prop(dec->frame_slots, SLOTS_FRAME_INFO, frame);
 
         mpp_log("setting default w %4d h %4d h_str %4d v_str %4d\n",
@@ -598,6 +602,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     MppDecCfgSet *dec_cfg = NULL;
     RK_U32 hal_task_count = 2;
     RK_U32 support_fast_mode = 0;
+    SlotHalFbcAdjCfg hal_fbc_adj_cfg;
 
     mpp_env_get_u32("mpp_dec_debug", &mpp_dec_debug, 0);
 
@@ -660,13 +665,19 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             NULL,
             NULL,
             0,
+            &hal_fbc_adj_cfg,
         };
+
+        memset(&hal_fbc_adj_cfg, 0, sizeof(hal_fbc_adj_cfg));
 
         ret = mpp_hal_init(&hal, &hal_cfg);
         if (ret) {
             mpp_err_f("could not init hal\n");
             break;
         }
+
+        if (hal_fbc_adj_cfg.func)
+            mpp_slots_set_prop(frame_slots, SLOTS_HAL_FBC_ADJ, &hal_fbc_adj_cfg);
 
         support_fast_mode = hal_cfg.support_fast_mode;
 

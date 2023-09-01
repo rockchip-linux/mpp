@@ -240,10 +240,17 @@ typedef enum SlotsPropType_e {
     SLOTS_COUNT,
     SLOTS_SIZE,
     SLOTS_FRAME_INFO,
+    SLOTS_HAL_FBC_ADJ,
     SLOTS_PROP_BUTT,
 } SlotsPropType;
 
 typedef RK_U32 (*AlignFunc)(RK_U32 val);
+/* for fbc mode change on info change and external user set frame info */
+typedef void (*HalFbcAdjFunc)(MppBufSlots slots, MppFrame frame, RK_U32 expand);
+typedef struct SlotHalFbcAdjCfg_t {
+    HalFbcAdjFunc   func;
+    RK_U32          expand;
+} SlotHalFbcAdjCfg;
 
 RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type);
 RK_S32  mpp_slots_get_used_count(MppBufSlots slots);

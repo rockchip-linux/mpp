@@ -207,6 +207,7 @@ struct MppBufSlotsImpl_t {
 
     // if slot changed, all will be hold until all slot is unused
     RK_U32              info_changed;
+    RK_S32              info_change_slot_idx;
     RK_S32              new_count;
 
     // slot infomation for info change and eos
@@ -216,6 +217,7 @@ struct MppBufSlotsImpl_t {
     AlignFunc           hal_hor_align;          // default NULL
     AlignFunc           hal_ver_align;          // default NULL
     AlignFunc           hal_len_align;          // default NULL
+    SlotHalFbcAdjCfg    hal_fbc_adj_cfg;        // hal fbc frame adjust config
     size_t              buf_size;
     RK_S32              buf_count;
     RK_S32              used_count;
@@ -717,6 +719,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         impl->numerator     = 9;
         impl->denominator   = 5;
         impl->slots_idx     = buf_slot_idx++;
+        impl->info_change_slot_idx = -1;
 
         *slots = impl;
         return MPP_OK;
@@ -810,7 +813,8 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     if (impl->logs)
         buf_slot_logs_reset(impl->logs);
 
-    impl->info_changed  = 0;
+    impl->info_changed = 0;
+    impl->info_change_slot_idx = -1;
     return MPP_OK;
 }
 
@@ -1020,6 +1024,7 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             MppFrameImpl *old = (MppFrameImpl *)impl->info;
 
             impl->info_changed = 1;
+            impl->info_change_slot_idx = index;
 
             if (old->width || old->height) {
                 mpp_dbg_info("info change found\n");
@@ -1229,6 +1234,24 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
             mpp_log("set frame info: w %4d h %4d hor %4d ver %4d\n", p->width, p->height, p->hor_stride, p->ver_stride);
         }
         mpp_frame_copy((MppFrame)val, impl->info_set);
+        if (impl->info_change_slot_idx >= 0) {
+            MppBufSlotEntry *slot = &impl->slots[impl->info_change_slot_idx];
+
+            if (slot->frame) {
+                MppFrameImpl *dst = (MppFrameImpl *)slot->frame;
+                MppFrameImpl *src = (MppFrameImpl *)val;
+
+                dst->fmt = src->fmt;
+
+                if (MPP_FRAME_FMT_IS_FBC(dst->fmt) && impl->hal_fbc_adj_cfg.func)
+                    impl->hal_fbc_adj_cfg.func(impl, dst, impl->hal_fbc_adj_cfg.expand);
+            }
+
+            impl->info_change_slot_idx = -1;
+        }
+    } break;
+    case SLOTS_HAL_FBC_ADJ : {
+        impl->hal_fbc_adj_cfg = *((SlotHalFbcAdjCfg *)val);
     } break;
     default : {
     } break;
