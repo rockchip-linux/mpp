@@ -1462,7 +1462,7 @@ static RK_U32 check_ref_pic_list(H264_SLICE_t *currSlice, RK_S32 cur_list)
             if (get_short_term_pic(currSlice, picNumLX, &tmp)) { //!< find short reference
                 MppFrame mframe = NULL;
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "find short reference, slot_idx=%d.\n", tmp->mem_mark->slot_idx);
-                if (tmp && tmp->mem_mark) {
+                if (tmp && tmp->mem_mark && tmp->mem_mark->slot_idx >= 0) {
                     mpp_buf_slot_get_prop(p_Vid->p_Dec->frame_slots, tmp->mem_mark->slot_idx, SLOT_FRAME_PTR, &mframe);
                     if (mframe && !mpp_frame_get_errinfo(mframe)) {
                         error_flag = 0;
