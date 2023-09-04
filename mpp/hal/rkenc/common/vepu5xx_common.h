@@ -46,4 +46,11 @@ typedef struct VepuRgb2YuvCfg_t {
  */
 const VepuRgb2YuvCfg* get_rgb2yuv_cfg(MppFrameColorRange range, MppFrameColorSpace color);
 
+extern const RK_U32 vepu580_540_h264_flat_scl_tab[576];
+
+extern const RK_U32 klut_weight[24];
+extern const RK_U32 lamd_satd_qp[52];
+extern const RK_U32 lamd_moda_qp[52];
+extern const RK_U32 lamd_modb_qp[52];
+
 #endif /* __VEPU5XX_COMMON_H__ */
