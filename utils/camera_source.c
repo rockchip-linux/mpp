@@ -131,6 +131,16 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
         goto FAIL;
     }
 
+    {
+        struct v4l2_input input;
+
+        input.index = 0;
+        while (!camera_source_ioctl(ctx->fd, VIDIOC_ENUMINPUT, &input)) {
+            mpp_log("input devices:%s\n", input.name);
+            ++input.index;
+        }
+    }
+
     // Determine if fd is a V4L2 Device
     if (0 != camera_source_ioctl(ctx->fd, VIDIOC_QUERYCAP, &cap)) {
         mpp_err_f("Not v4l2 compatible\n");
@@ -156,6 +166,20 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
 
     vfmt.fmt.pix.width = width;
     vfmt.fmt.pix.height = height;
+
+    {
+        struct v4l2_fmtdesc fmtdesc;
+
+        fmtdesc.index = 0;
+        fmtdesc.type = vfmt.type;
+        while (!camera_source_ioctl(ctx->fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
+            mpp_log("fmt name: [%s]\n", fmtdesc.description);
+            mpp_log("fmt pixelformat: '%c%c%c%c', description = '%s'\n", fmtdesc.pixelformat & 0xFF,
+                    (fmtdesc.pixelformat >> 8) & 0xFF, (fmtdesc.pixelformat >> 16) & 0xFF,
+                    (fmtdesc.pixelformat >> 24) & 0xFF, fmtdesc.description);
+            fmtdesc.index++;
+        }
+    }
 
     if (MPP_FRAME_FMT_IS_YUV(format)) {
         vfmt.fmt.pix.pixelformat = V4L2_yuv_cfg[format - MPP_FRAME_FMT_YUV];
