@@ -135,7 +135,6 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
     H264eSlice *slice = ctx->slice;
     MppPacket pkt = ctx->packet;
     RK_U8 *p = mpp_packet_get_pos(pkt);
-    RK_S32 size = mpp_packet_get_size(pkt);
     RK_S32 base = ctx->buf_base;
     RK_S32 len = ctx->old_length;
     RK_S32 hw_len_bit = 0;
@@ -232,7 +231,7 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
             h264e_marking_init(slice_rd.marking);
         }
 
-        hw_len_bit = h264e_slice_read(&slice_rd, ctx->src_buf, size);
+        hw_len_bit = h264e_slice_read(&slice_rd, ctx->src_buf, nal_len);
 
         // write new header to header buffer
         slice->qp_delta = slice_rd.qp_delta;
