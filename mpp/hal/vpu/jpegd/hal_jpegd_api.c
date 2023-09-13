@@ -107,6 +107,10 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
             client_type = VPU_CLIENT_VDPU2;
         if (hw_flag & HAVE_VDPU1)
             client_type = VPU_CLIENT_VDPU1;
+        if (hw_flag & HAVE_VDPU2_PP)
+            client_type = VPU_CLIENT_VDPU2_PP;
+        if (hw_flag & HAVE_VDPU1_PP)
+            client_type = VPU_CLIENT_VDPU1_PP;
         if (hw_flag & HAVE_JPEG_DEC)
             client_type = VPU_CLIENT_JPEG_DEC;
     }
