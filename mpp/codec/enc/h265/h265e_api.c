@@ -207,10 +207,11 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
         h265e_dpb_init(&p->dpb);
 
     /*
-     * After gen_hdr, the change of codec must be cleared to 0,
+     * After gen_hdr, the change of codec/prep must be cleared to 0,
      * otherwise the change will affect the next idr frame
      */
     p->cfg->codec.h265.change = 0;
+    p->cfg->prep.change = 0;
 
     h265e_dbg_func("leave ctx %p\n", ctx);
 

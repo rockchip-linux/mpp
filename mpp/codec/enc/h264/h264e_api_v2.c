@@ -669,10 +669,11 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     }
 
     /*
-     * After gen_hdr, the change of codec must be cleared to 0,
+     * After gen_hdr, the change of codec/prep must be cleared to 0,
      * otherwise the change will affect the next idr frame
      */
     p->cfg->codec.h264.change = 0;
+    p->cfg->prep.change = 0;
 
     h264e_dbg_func("leave\n");
     return MPP_OK;
