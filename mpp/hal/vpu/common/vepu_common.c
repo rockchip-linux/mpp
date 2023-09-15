@@ -173,11 +173,11 @@ static RK_S32 check_8_pixel_aligned(RK_S32 workaround, RK_S32 hor_stride,
                                     RK_S32 pixel_aign, RK_S32 pixel_size,
                                     const char *fmt_name)
 {
-    if (!workaround && hor_stride != MPP_ALIGN(hor_stride, pixel_aign * pixel_size)) {
+    if (!workaround && hor_stride != MPP_ALIGN_GEN(hor_stride, pixel_aign * pixel_size)) {
         mpp_log("warning: vepu only support 8 aligned horizontal stride in pixel for %s with pixel size %d\n",
                 fmt_name, pixel_size);
         mpp_log("set byte stride to %d to match the requirement\n",
-                MPP_ALIGN(hor_stride, pixel_aign * pixel_size));
+                MPP_ALIGN_GEN(hor_stride, pixel_aign * pixel_size));
         workaround = 1;
     }
 

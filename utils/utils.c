@@ -1024,11 +1024,11 @@ static RK_S32 util_check_8_pixel_aligned(RK_S32 workaround, RK_S32 hor_stride,
                                          RK_S32 pixel_aign, RK_S32 pixel_size,
                                          const char *fmt_name)
 {
-    if (!workaround && hor_stride != MPP_ALIGN(hor_stride, pixel_aign * pixel_size)) {
+    if (!workaround && hor_stride != MPP_ALIGN_GEN(hor_stride, pixel_aign * pixel_size)) {
         mpp_log("warning: vepu only support 8 aligned horizontal stride in pixel for %s with pixel size %d\n",
                 fmt_name, pixel_size);
         mpp_log("set byte stride to %d to match the requirement\n",
-                MPP_ALIGN(hor_stride, pixel_aign * pixel_size));
+                MPP_ALIGN_GEN(hor_stride, pixel_aign * pixel_size));
         workaround = 1;
     }
 
@@ -1301,7 +1301,7 @@ MPP_RET fill_image(RK_U8 *buf, RK_U32 width, RK_U32 height,
 
         if (util_check_8_pixel_aligned(not_8_pixel, hor_stride,
                                        8, pix_w, "24bit RGB")) {
-            hor_stride = MPP_ALIGN(hor_stride, 24);
+            hor_stride = MPP_ALIGN_GEN(hor_stride, 24);
             not_8_pixel = 1;
         }
 
