@@ -28,6 +28,7 @@
 
 #include "jpegd_api.h"
 #include "jpegd_parser.h"
+#include "mpp_dec_cb_param.h"
 
 RK_U32 jpegd_debug = 0x0;
 
@@ -757,6 +758,7 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
         start_code = jpegd_find_marker(&buf_ptr, buf_end);
         if (start_code <= 0) {
             jpegd_dbg_marker("start code not found\n");
+            ret = MPP_ERR_STREAM;
             break;
         } else {
             buf_ptr += 2;
@@ -1134,7 +1136,8 @@ static MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
         task->valid = 1;
 
         jpegd_update_frame(JpegCtx);
-    }
+    } else
+        task->flags.parse_err = 1;
 
     jpegd_dbg_func("exit\n");
     return ret;
@@ -1299,12 +1302,32 @@ static MPP_RET jpegd_control(void *ctx, MpiCmd cmd, void *param)
     return ret;
 }
 
-static MPP_RET jpegd_callback(void *ctx, void *err_info)
+static MPP_RET jpegd_callback(void *decoder, void *err_info)
 {
-    jpegd_dbg_func("enter\n");
-    (void) ctx;
-    (void) err_info;
-    jpegd_dbg_func("exit\n");
+    JpegdCtx *JpegCtx = (JpegdCtx *)decoder;
+    DecCbHalDone *ctx = (DecCbHalDone *)err_info;
+    HalDecTask *task_dec = (HalDecTask *)ctx->task;
+    RK_U32 task_err = task_dec->flags.parse_err;
+    RK_U32 hw_dec_err = ctx->hard_err;
+    RK_S32 output = task_dec->output;
+    RK_U32 err_mark = 0;
+    MppFrame frame = NULL;
+
+    if (output >= 0)
+        mpp_buf_slot_get_prop(JpegCtx->frame_slots, output, SLOT_FRAME_PTR, &frame);
+
+    if (!frame)
+        goto __RETURN;
+
+    /* check and mark current frame */
+    if (task_err)
+        err_mark |= MPP_FRAME_ERR_DEC_INVALID;
+    else if (hw_dec_err)
+        err_mark |= MPP_FRAME_ERR_DEC_HW_ERR;
+    if (err_mark)
+        mpp_frame_set_errinfo(frame, err_mark);
+
+__RETURN:
     return MPP_OK;
 }
 

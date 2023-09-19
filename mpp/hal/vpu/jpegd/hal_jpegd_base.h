@@ -45,6 +45,7 @@ typedef struct JpegdHalCtx {
     MppBuffer              frame_buf;
     MppBuffer              pTableBase;
     MppHalApi              hal_api;
+    MppCbCtx               *dec_cb;
 
     MppFrameFormat         output_fmt;
     RK_U32                 set_output_fmt_flag;

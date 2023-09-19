@@ -29,6 +29,7 @@
 #include "hal_jpegd_common.h"
 #include "hal_jpegd_rkv.h"
 #include "hal_jpegd_rkv_reg.h"
+#include "mpp_dec_cb_param.h"
 
 // Support 8-bit precision only
 #define NB_COMPONENTS (3)
@@ -250,6 +251,7 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
         }
     }
 
+    ctx->dec_cb       = cfg->dec_cb;
     ctx->packet_slots = cfg->packet_slots;
     ctx->frame_slots  = cfg->frame_slots;
     ctx->dev_type     = VPU_CLIENT_JPEG_DEC;
@@ -516,6 +518,11 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     RK_U8 start_byte = 0;
     RK_U32 table_fd = mpp_buffer_get_fd(ctx->pTableBase);
 
+    if (table_fd <= 0) {
+        mpp_err_f("get table_fd failed\n");
+        return MPP_NOK;
+    }
+
     strm_offset = s->strm_offset;
     hw_strm_offset = strm_offset - strm_offset % 16;
     start_byte = strm_offset % 16;
@@ -626,11 +633,23 @@ MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer strm_buf = NULL;
     MppBuffer output_buf = NULL;
 
+    if (syn->dec.flags.parse_err)
+        goto __RETURN;
+
     mpp_buf_slot_get_prop(ctx->packet_slots, syn->dec.input, SLOT_BUFFER, & strm_buf);
     mpp_buf_slot_get_prop(ctx->frame_slots, syn->dec.output, SLOT_BUFFER, &output_buf);
 
     ctx->pkt_fd = mpp_buffer_get_fd(strm_buf);
+    if (ctx->pkt_fd <= 0) {
+        mpp_err_f("get pkt_fd failed\n");
+        goto __RETURN;
+    }
+
     ctx->frame_fd = mpp_buffer_get_fd(output_buf);
+    if (ctx->frame_fd <= 0) {
+        mpp_err_f("get frame_fd failed\n");
+        goto __RETURN;
+    }
 
     memset(ctx->regs, 0, sizeof(JpegRegSet));
 
@@ -640,20 +659,28 @@ MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 
     if (ret != MPP_OK) {
         mpp_err_f("generate registers failed\n");
-        return ret;
+        goto __RETURN;
     }
 
     syn->dec.valid = 1;
+    jpegd_dbg_func("exit\n");
+    return ret;
+
+__RETURN:
+    syn->dec.flags.parse_err = 1;
     jpegd_dbg_func("exit\n");
     return ret;
 }
 
 MPP_RET hal_jpegd_rkv_start(void *hal, HalTaskInfo *task)
 {
-    jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
     JpegdHalCtx * ctx = (JpegdHalCtx *)hal;
     RK_U32 *regs = (RK_U32 *)ctx->regs;
+
+    jpegd_dbg_func("enter\n");
+    if (task->dec.flags.parse_err)
+        goto __RETURN;
 
     MppDevRegWrCfg wr_cfg;
     MppDevRegRdCfg rd_cfg;
@@ -695,8 +722,11 @@ MPP_RET hal_jpegd_rkv_start(void *hal, HalTaskInfo *task)
         goto __RETURN;
     }
 
+    jpegd_dbg_func("exit\n");
+    return ret;
+
 __RETURN:
-    (void)task;
+    task->dec.flags.parse_err = 1;
     jpegd_dbg_func("exit\n");
     return ret;
 }
@@ -707,16 +737,35 @@ MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task)
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
     JpegRegSet *reg_out = ctx->regs;
     RK_U32 errinfo = 0;
-    MppFrame tmp = NULL;
     RK_U8 i = 0;
 
     jpegd_dbg_func("enter\n");
+    if (task->dec.flags.parse_err)
+        goto __SKIP_HARD;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
 
-    if (ret)
+    if (ret) {
+        task->dec.flags.parse_err = 1;
         mpp_err_f("poll cmd failed %d\n", ret);
+    }
 
+__SKIP_HARD:
+    if (ctx->dec_cb) {
+        DecCbHalDone param;
+
+        param.task = (void *)&task->dec;
+        param.regs = (RK_U32 *)reg_out;
+        if (!reg_out->reg1_int.dec_irq || !reg_out->reg1_int.dec_rdy_sta
+            || reg_out->reg1_int.dec_bus_sta || reg_out->reg1_int.dec_error_sta
+            || reg_out->reg1_int.dec_timeout_sta
+            || reg_out->reg1_int.dec_buf_empty_sta) {
+            mpp_err("decode result: failed, irq 0x%08x\n", ((RK_U32 *)reg_out)[1]);
+            errinfo = 1;
+        }
+        param.hard_err = errinfo;
+        mpp_callback(ctx->dec_cb, &param);
+    }
     if (jpegd_debug & JPEGD_DBG_HAL_INFO) {
         for (i = 0; i < JPEGD_REG_NUM; i++) {
             mpp_log_f("read regs[%d]=0x%08x\n", i, ((RK_U32*)reg_out)[i]);
@@ -724,18 +773,6 @@ MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task)
     }
 
     jpegd_dbg_hal("decode one frame in cycles: %d\n", reg_out->reg39_perf_working_cnt);
-
-    if (!reg_out->reg1_int.dec_irq || !reg_out->reg1_int.dec_rdy_sta
-        || reg_out->reg1_int.dec_bus_sta || reg_out->reg1_int.dec_error_sta
-        || reg_out->reg1_int.dec_timeout_sta
-        || reg_out->reg1_int.dec_buf_empty_sta) {
-        mpp_err("decode result: failed, irq 0x%08x\n", ((RK_U32 *)reg_out)[1]);
-        errinfo = 1;
-    }
-
-    mpp_buf_slot_get_prop(ctx->frame_slots, task->dec.output, SLOT_FRAME_PTR, &tmp);
-    mpp_frame_set_errinfo(tmp, errinfo);
-
     if (jpegd_debug & JPEGD_DBG_IO) {
         FILE *jpg_file;
         char name[32];
