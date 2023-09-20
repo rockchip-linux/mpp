@@ -345,8 +345,7 @@ void h264e_dpb_build_list(H264eDpb *dpb, EncCpbStatus *cpb)
 
                 h264e_dbg_list("reorder lt idx %d \n", op.long_term_pic_idx);
             } else {
-                /* Only support refr pic num less than current pic num case */
-                op.modification_of_pic_nums_idc = 0;
+                op.modification_of_pic_nums_idc = curr->frame_num > refr->frame_num ? 0 : 1;
                 op.abs_diff_pic_num_minus1 = MPP_ABS(curr->frame_num - refr->frame_num) - 1;
 
                 h264e_dbg_list("reorder st cur %d refr %d diff - 1 %d\n",
