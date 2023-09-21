@@ -110,6 +110,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->merge_cfg.max_mrg_cnd = 2;
     h265->merge_cfg.merge_left_flag = 1;
     h265->merge_cfg.merge_up_flag = 1;
+    p->cfg->tune.scene_mode = MPP_ENC_SCENE_MODE_DEFAULT;
 
     /*
      * default prep:
@@ -163,6 +164,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->qp_min_i = 15;
     rc_cfg->qp_delta_ip = 4;
     rc_cfg->qp_delta_vi = 2;
+    rc_cfg->fqp_min_i = 10;
+    rc_cfg->fqp_min_p = 10;
+    rc_cfg->fqp_max_i = 51;
+    rc_cfg->fqp_max_p = 51;
 
     INIT_LIST_HEAD(&p->rc_list);
 

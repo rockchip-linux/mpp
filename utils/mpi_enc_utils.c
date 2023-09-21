@@ -375,6 +375,22 @@ RK_S32 mpi_enc_opt_qc(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_fqc(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    RK_S32 cnt = 0;
+
+    if (next) {
+        cnt = sscanf(next, "%d:%d:%d:%d", &cmd->fqp_min_i, &cmd->fqp_max_i,
+                     &cmd->fqp_min_p, &cmd->fqp_max_p);
+        if (cnt)
+            return 1;
+    }
+
+    mpp_err("invalid frame quality control usage -fqc min_i:max_i:min_p:max_p\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_s(void *ctx, const char *next)
 {
     MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
@@ -457,6 +473,19 @@ RK_S32 mpi_enc_opt_slt(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_sm(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->scene_mode = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid scene mode\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
@@ -480,11 +509,13 @@ static MppOptInfo enc_opts[] = {
     {"bps",     "bps target:min:max",   "set tareget:min:max bps",                  mpi_enc_opt_bps},
     {"fps",     "in/output fps",        "set input and output frame rate",          mpi_enc_opt_fps},
     {"qc",      "quality control",      "set qp_init:min:max:min_i:max_i",          mpi_enc_opt_qc},
+    {"fqc",     "frm quality control",  "set fqp min_i:max_i:min_p:max_p",          mpi_enc_opt_fqc},
     {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
     {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
     {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
+    {"sm",      "scene mode",           "scene_mode, 0:default 1:ipc",              mpi_enc_opt_sm},
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);

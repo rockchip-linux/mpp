@@ -1524,7 +1524,10 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         }
     }
 
-    p->start_qp = mpp_clip(p->start_qp, info->quality_min, info->quality_max);
+    if (frm->is_intra)
+        p->start_qp = mpp_clip(p->start_qp, usr_cfg->fqp_min_i, usr_cfg->fqp_max_i);
+    else
+        p->start_qp = mpp_clip(p->start_qp, usr_cfg->fqp_min_p, usr_cfg->fqp_max_p);
     info->quality_target = p->start_qp;
 
     rc_dbg_rc("bitrate [%d : %d : %d] -> [%d : %d : %d]\n",
