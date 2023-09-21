@@ -653,6 +653,13 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
         if (change & MPP_ENC_RC_CFG_CHANGE_QP_VI)
             dst->qp_delta_vi = src->qp_delta_vi;
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_FQP) {
+            dst->fqp_min_i = src->fqp_min_i;
+            dst->fqp_min_p = src->fqp_min_p;
+            dst->fqp_max_i = src->fqp_max_i;
+            dst->fqp_max_p = src->fqp_max_p;
+        }
+
         if (change & MPP_ENC_RC_CFG_CHANGE_HIER_QP) {
             dst->hier_qp_en = src->hier_qp_en;
             memcpy(dst->hier_qp_delta, src->hier_qp_delta, sizeof(src->hier_qp_delta));
@@ -1217,10 +1224,15 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->max_i_bit_prop     = rc->max_i_prop;
     cfg->min_i_bit_prop     = rc->min_i_prop;
     cfg->init_ip_ratio      = rc->init_ip_ratio;
+    cfg->fqp_min_p          = rc->fqp_min_p;
+    cfg->fqp_min_i          = rc->fqp_min_i;
+    cfg->fqp_max_p          = rc->fqp_max_p;
+    cfg->fqp_max_i          = rc->fqp_max_i;
 
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
+    cfg->scene_mode = cfg_set->tune.scene_mode;
 
     cfg->hier_qp_cfg.hier_qp_en = rc->hier_qp_en;
     memcpy(cfg->hier_qp_cfg.hier_frame_num, rc->hier_frame_num, sizeof(rc->hier_frame_num));

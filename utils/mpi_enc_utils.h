@@ -63,10 +63,19 @@ typedef struct MpiEncTestArgs_t {
     RK_S32              qp_min_i;
     RK_S32              qp_max_i;
 
+    /* -fqc */
+    RK_S32              fqp_min_i;
+    RK_S32              fqp_min_p;
+    RK_S32              fqp_max_i;
+    RK_S32              fqp_max_p;
+
     /* -g gop mode */
     RK_S32              gop_mode;
     RK_S32              gop_len;
     RK_S32              vi_len;
+
+    /* -sm scene_mode */
+    RK_S32              scene_mode;
 
     /* -v q runtime log disable flag */
     RK_U32              quiet;

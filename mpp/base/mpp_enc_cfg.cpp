@@ -166,6 +166,10 @@ public:
     ENTRY(rc,   refresh_en,     U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_REFRESH,          rc, refresh_en) \
     ENTRY(rc,   refresh_mode,   U32, MppEncRcRefreshMode, MPP_ENC_RC_CFG_CHANGE_REFRESH,        rc, refresh_mode) \
     ENTRY(rc,   refresh_num,    U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_REFRESH,          rc, refresh_num) \
+    ENTRY(rc,   fqp_min_i,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_min_i) \
+    ENTRY(rc,   fqp_min_p,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_min_p) \
+    ENTRY(rc,   fqp_max_i,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_i) \
+    ENTRY(rc,   fqp_max_p,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_p) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \

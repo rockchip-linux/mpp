@@ -33,6 +33,7 @@
 #include "mpi_enc_utils.h"
 #include "camera_source.h"
 #include "mpp_enc_roi_utils.h"
+#include "mpp_rc_api.h"
 
 typedef struct {
     // base flow context
@@ -116,6 +117,7 @@ typedef struct {
     RK_S32 gop_mode;
     RK_S32 gop_len;
     RK_S32 vi_len;
+    RK_S32 scene_mode;
 
     RK_S64 first_frm;
     RK_S64 first_pkt;
@@ -175,6 +177,7 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_flex = cmd->fps_out_flex;
     p->fps_out_den  = cmd->fps_out_den;
     p->fps_out_num  = cmd->fps_out_num;
+    p->scene_mode   = cmd->scene_mode;
     p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
                       (MPP_ALIGN(p->hor_stride, 32) >> 5) *
                       (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
@@ -311,6 +314,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
+    mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
+
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
     mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
@@ -370,6 +375,10 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", fix_qp);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", fix_qp);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 0);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", fix_qp);
         } break;
         case MPP_ENC_RC_MODE_CBR :
         case MPP_ENC_RC_MODE_VBR :
@@ -380,6 +389,10 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", cmd->qp_max_i ? cmd->qp_max_i : 51);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", cmd->qp_min_i ? cmd->qp_min_i : 10);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", cmd->fqp_min_i ? cmd->fqp_min_i : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", cmd->fqp_max_i ? cmd->fqp_max_i : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", cmd->fqp_min_p ? cmd->fqp_min_p : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", cmd->fqp_max_p ? cmd->fqp_max_p : 51);
         } break;
         default : {
             mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
