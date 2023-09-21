@@ -207,7 +207,8 @@ static MPP_RET hal_h264e_vepu1_get_task_v2(void *hal, HalEncTask *task)
         h264e_vepu_buf_set_frame_size(hw_bufs, prep->width, prep->height);
 
         /* preprocess setup */
-        h264e_vepu_prep_setup(hw_prep, prep);
+        if (h264e_vepu_prep_setup(hw_prep, prep))
+            return MPP_NOK;
 
         h264e_vepu_mbrc_setup(ctx->rc_ctx, ctx->cfg);
     }
