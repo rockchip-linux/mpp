@@ -1449,6 +1449,9 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i = 2;
         hw->qp_delta_row   = 2;
+        hw->qbias_i = 171;
+        hw->qbias_p = 85;
+        hw->qbias_en = 0;
 
         memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));

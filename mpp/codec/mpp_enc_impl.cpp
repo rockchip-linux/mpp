@@ -800,6 +800,15 @@ MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
         if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P)
             memcpy(dst->aq_step_p, src->aq_step_p, sizeof(dst->aq_step_p));
 
+        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_I)
+            dst->qbias_i = src->qbias_i;
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_P)
+            dst->qbias_p = src->qbias_p;
+
+        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_EN)
+            dst->qbias_en = src->qbias_en;
+
         if (change & MPP_ENC_HW_CFG_CHANGE_MB_RC)
             dst->mb_rc_disable = src->mb_rc_disable;
 

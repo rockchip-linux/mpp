@@ -124,6 +124,7 @@ static void vepu580_h264e_tune_reg_patch(void *p)
     HalVepu580RegSet *regs = ctx->regs_set;
     tune->ap_motion_flag = scene_mode;
     RK_U32 scene_motion_flag = tune->ap_motion_flag * 2 + tune->curr_scene_motion_flag;
+    MppEncHwCfg *hw = &ctx->cfg->hw;
 
     if (scene_motion_flag > 3) {
         mpp_err_f("scene_motion_flag is a wrong value %d\n", scene_motion_flag);
@@ -212,6 +213,11 @@ static void vepu580_h264e_tune_reg_patch(void *p)
     regs->reg_s3.rime_sqi_multi.rime_multi0 = rime_multi[scene_motion_flag][0];
     regs->reg_s3.rime_sqi_multi.rime_multi1 = rime_multi[scene_motion_flag][1];
     regs->reg_s3.rime_sqi_multi.rime_multi2 = rime_multi[scene_motion_flag][2];
+
+    if (hw->qbias_en) {
+        regs->reg_s3.RDO_QUANT.quant_f_bias_I = hw->qbias_i;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_P = hw->qbias_p;
+    }
 }
 
 static void vepu580_h264e_tune_stat_update(void *p, HalEncTask *task)

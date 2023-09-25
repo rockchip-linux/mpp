@@ -122,8 +122,8 @@ static RK_U32 aq_thd_default[16] = {
 static RK_S32 aq_qp_dealt_default[16] = {
     -8, -7, -6, -5,
     -4, -3, -2, -1,
-    0,  1,  2,  2,
-    3,  3,  4,  4,
+    0,  1,  2,  3,
+    4,  5,  7,  8,
 };
 
 static RK_U16 lvl32_intra_cst_thd[4] = {2, 6, 16, 36};
@@ -514,8 +514,8 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
     memcpy(&regs->lvl16_intra_CST_THD0, lvl16_intra_cst_thd, sizeof(lvl16_intra_cst_thd));
     memcpy(&regs->lvl32_intra_CST_WGT0, lvl32_intra_cst_wgt, sizeof(lvl32_intra_cst_wgt));
     memcpy(&regs->lvl16_intra_CST_WGT0, lvl16_intra_cst_wgt, sizeof(lvl16_intra_cst_wgt));
-    regs->rdo_quant.quant_f_bias_I = 0;
-    regs->rdo_quant.quant_f_bias_P = 0;
+    regs->rdo_quant.quant_f_bias_I = 171;
+    regs->rdo_quant.quant_f_bias_P = 85;
     memcpy(&regs->atr_thd0, atr_thd, sizeof(atr_thd));
     memcpy(&regs->lvl16_atr_wgt, lvl16_4_atr_wgt, sizeof(lvl16_4_atr_wgt));
     if (!ctx->is_vepu540) {
@@ -572,9 +572,6 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
             thd[i]  = hw->aq_thrd_i[i];
             step[i] = hw->aq_step_i[i] & 0x3f;
         }
-
-        regs->rdo_quant.quant_f_bias_I = 171;
-        regs->rdo_quant.quant_f_bias_P = 85;
     } else {
         RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
         RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
@@ -583,6 +580,11 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
             thd[i]  = hw->aq_thrd_p[i];
             step[i] = hw->aq_step_p[i] & 0x3f;
         }
+    }
+
+    if (hw->qbias_en) {
+        regs->rdo_quant.quant_f_bias_I = hw->qbias_i;
+        regs->rdo_quant.quant_f_bias_P = hw->qbias_p;
     }
 
     MppDevRegWrCfg cfg;
@@ -642,6 +644,9 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i  = 0;
         hw->qp_delta_row    = 1;
+        hw->qbias_i         = 171;
+        hw->qbias_p         = 85;
+        hw->qbias_en        = 0;
 
         memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
