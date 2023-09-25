@@ -200,6 +200,9 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i  = 0;
         hw->qp_delta_row    = 2;
+        hw->qbias_i         = 683;
+        hw->qbias_p         = 341;
+        hw->qbias_en        = 0;
 
         memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
@@ -1507,6 +1510,10 @@ static void setup_vepu541_l2(Vepu541H264eRegL2Set *regs, H264eSlice *slice, MppE
 
     /* 000556ab */
     regs->qnt_bias_comb.qnt_bias_p = 171;
+    if (hw->qbias_en) {
+        regs->qnt_bias_comb.qnt_bias_i = hw->qbias_i;
+        regs->qnt_bias_comb.qnt_bias_p = hw->qbias_p;
+    }
 
     regs->atr_thd0_h264.atr_thd0 = 1;
     regs->atr_thd0_h264.atr_thd1 = 4;

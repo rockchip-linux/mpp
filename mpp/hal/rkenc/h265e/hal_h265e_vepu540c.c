@@ -449,6 +449,10 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
     }
     reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = 171;
     reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = 85;
+    if (hw->qbias_en) {
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = hw->qbias_i;
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = hw->qbias_p;
+    }
     /* CIME */
     {
         /* 0x1760 */
@@ -535,6 +539,9 @@ MPP_RET hal_h265e_v540c_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i  = 2;
         hw->qp_delta_row    = 2;
+        hw->qbias_i         = 171;
+        hw->qbias_p         = 85;
+        hw->qbias_en        = 0;
 
         memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));

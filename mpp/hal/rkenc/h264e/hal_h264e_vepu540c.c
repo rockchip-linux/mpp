@@ -173,6 +173,9 @@ static MPP_RET hal_h264e_vepu540c_init(void *hal, MppEncHalCfg *cfg)
 
         hw->qp_delta_row_i  = 1;
         hw->qp_delta_row    = 2;
+        hw->qbias_i = 683;
+        hw->qbias_p = 341;
+        hw->qbias_en = 0;
 
         memcpy(hw->aq_thrd_i, h264_aq_tthd_default, sizeof(hw->aq_thrd_i));
         memcpy(hw->aq_thrd_p, h264_aq_tthd_default, sizeof(hw->aq_thrd_p));
@@ -1278,8 +1281,13 @@ static void setup_vepu540c_l2(HalVepu540cRegSet *regs, H264eSlice *slice, MppEnc
 
     memcpy(regs->reg_s3.rdo_wgta_qp_grpa_0_51, &h264e_lambda_default[6], H264E_LAMBDA_TAB_SIZE);
 
-    regs->reg_s3.RDO_QUANT.quant_f_bias_I = 683;
-    regs->reg_s3.RDO_QUANT.quant_f_bias_P = 341;
+    if (hw->qbias_en) {
+        regs->reg_s3.RDO_QUANT.quant_f_bias_I = hw->qbias_i;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_P = hw->qbias_p;
+    } else {
+        regs->reg_s3.RDO_QUANT.quant_f_bias_I = 683;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_P = 341;
+    }
     regs->reg_s3.iprd_tthdy4_0.iprd_tthdy4_0 = 1;
     regs->reg_s3.iprd_tthdy4_0.iprd_tthdy4_1 = 3;
     regs->reg_s3.iprd_tthdy4_1.iprd_tthdy4_2 = 6;

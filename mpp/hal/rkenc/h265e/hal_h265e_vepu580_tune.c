@@ -247,6 +247,7 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     RdoAtfSkipCfg *p_rdo_atf_skip;
     RdoAtfCfg* p_rdo_atf;
     RK_U32 scene_motion_flag = tune->ap_motion_flag * 2 + tune->curr_scene_motion_flag;
+    MppEncHwCfg *hw = &ctx->cfg->hw;
 
     if (scene_motion_flag > 3) {
         mpp_err_f("scene_motion_flag is a wrong value %d\n", scene_motion_flag);
@@ -451,8 +452,13 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp3 = intra_lvl32_sobel_c[scene_motion_flag][3];
     reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp4 = intra_lvl32_sobel_c[scene_motion_flag][4];
 
-    reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = qnt_bias_i[scene_motion_flag];
-    reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = qnt_bias_p[scene_motion_flag];
+    if (hw->qbias_en) {
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = hw->qbias_i;
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = hw->qbias_p;
+    } else {
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = qnt_bias_i[scene_motion_flag];
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = qnt_bias_p[scene_motion_flag];
+    }
     reg_wgt->rime_sqi_thd.cime_sad_th0 = rime_sqi_cime_sad_th[scene_motion_flag];
     reg_wgt->fme_sqi_thd0.cime_sad_pu16_th = fme_sqi_cime_sad_pu16_th[scene_motion_flag];
     reg_wgt->fme_sqi_thd0.cime_sad_pu32_th = fme_sqi_cime_sad_pu32_th[scene_motion_flag];
