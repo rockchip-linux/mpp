@@ -1263,6 +1263,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->min_quality = jpeg->qf_min;
         cfg->max_i_quality = jpeg->qf_max;
         cfg->min_i_quality = jpeg->qf_min;
+        cfg->fqp_min_i = jpeg->qf_min;
+        cfg->fqp_max_i = jpeg->qf_max;
+        cfg->fqp_min_p = jpeg->qf_min;
+        cfg->fqp_max_p = jpeg->qf_max;
     } break;
     default : {
         mpp_err_f("unsupport coding type %d\n", codec->coding);
