@@ -913,6 +913,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
         MppEncCfgSet *src = &impl->cfg;
         RK_U32 change = src->base.change;
+        MPP_RET ret_tmp = MPP_OK;
 
         /* get base cfg here */
         if (change) {
@@ -926,8 +927,9 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 
         /* process rc cfg at mpp_enc module */
         if (src->rc.change) {
-            ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, &src->rc);
-
+            ret_tmp = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, &src->rc);
+            if (ret_tmp != MPP_OK)
+                ret = ret_tmp;
             // update ref cfg
             if ((enc->cfg.rc.change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG) &&
                 (enc->cfg.rc.gop > 0))
@@ -938,18 +940,24 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 
         /* process hardware cfg at mpp_enc module */
         if (src->hw.change) {
-            ret = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
+            ret_tmp = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
+            if (ret_tmp != MPP_OK)
+                ret = ret_tmp;
             src->hw.change = 0;
         }
 
         /* process hardware cfg at mpp_enc module */
         if (src->tune.change) {
-            ret = mpp_enc_proc_tune_cfg(&enc->cfg.tune, &src->tune);
+            ret_tmp = mpp_enc_proc_tune_cfg(&enc->cfg.tune, &src->tune);
+            if (ret_tmp != MPP_OK)
+                ret = ret_tmp;
             src->tune.change = 0;
         }
 
         /* Then process the rest config */
-        ret = enc_impl_proc_cfg(enc->impl, cmd, param);
+        ret_tmp = enc_impl_proc_cfg(enc->impl, cmd, param);
+        if (ret_tmp != MPP_OK)
+            ret = ret_tmp;
     } break;
     case MPP_ENC_SET_RC_CFG : {
         MppEncRcCfg *src = (MppEncRcCfg *)param;
