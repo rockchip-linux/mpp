@@ -1232,10 +1232,6 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->max_i_bit_prop     = rc->max_i_prop;
     cfg->min_i_bit_prop     = rc->min_i_prop;
     cfg->init_ip_ratio      = rc->init_ip_ratio;
-    cfg->fqp_min_p          = rc->fqp_min_p;
-    cfg->fqp_min_i          = rc->fqp_min_i;
-    cfg->fqp_max_p          = rc->fqp_max_p;
-    cfg->fqp_max_i          = rc->fqp_max_i;
 
     cfg->bps_target = rc->bps_target;
     cfg->bps_max    = rc->bps_max;
@@ -1262,6 +1258,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->min_i_quality = rc->qp_min_i ? rc->qp_min_i : rc->qp_min;
         cfg->i_quality_delta = rc->qp_delta_ip;
         cfg->vi_quality_delta = rc->qp_delta_vi;
+        cfg->fqp_min_p = rc->fqp_min_p == INT_MAX ? cfg->min_quality : rc->fqp_min_p;
+        cfg->fqp_min_i = rc->fqp_min_i == INT_MAX ? cfg->min_i_quality : rc->fqp_min_i;
+        cfg->fqp_max_p = rc->fqp_max_p == INT_MAX ? cfg->max_quality : rc->fqp_max_p;
+        cfg->fqp_max_i = rc->fqp_max_i == INT_MAX ? cfg->max_i_quality : rc->fqp_max_i;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         MppEncJpegCfg *jpeg = &codec->jpeg;
@@ -1271,10 +1271,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->min_quality = jpeg->qf_min;
         cfg->max_i_quality = jpeg->qf_max;
         cfg->min_i_quality = jpeg->qf_min;
-        cfg->fqp_min_i = jpeg->qf_min;
-        cfg->fqp_max_i = jpeg->qf_max;
-        cfg->fqp_min_p = jpeg->qf_min;
-        cfg->fqp_max_p = jpeg->qf_max;
+        cfg->fqp_min_i = 100 - jpeg->qf_max;
+        cfg->fqp_max_i = 100 - jpeg->qf_min;
+        cfg->fqp_min_p = 100 - jpeg->qf_max;
+        cfg->fqp_max_p = 100 - jpeg->qf_min;
     } break;
     default : {
         mpp_err_f("unsupport coding type %d\n", codec->coding);
