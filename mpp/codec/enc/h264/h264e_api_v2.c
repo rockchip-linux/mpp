@@ -17,6 +17,7 @@
 #define MODULE_TAG "h264e_api_v2"
 
 #include <string.h>
+#include <limits.h>
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
@@ -180,10 +181,10 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     rc_cfg->qp_max_i = 0;
     rc_cfg->qp_min_i = 0;
     rc_cfg->qp_delta_ip = 2;
-    rc_cfg->fqp_min_i = 10;
-    rc_cfg->fqp_min_p = 10;
-    rc_cfg->fqp_max_i = 51;
-    rc_cfg->fqp_max_p = 51;
+    rc_cfg->fqp_min_i = INT_MAX;
+    rc_cfg->fqp_min_p = INT_MAX;
+    rc_cfg->fqp_max_i = INT_MAX;
+    rc_cfg->fqp_max_p = INT_MAX;
 }
 
 static void h264e_add_syntax(H264eCtx *ctx, H264eSyntaxType type, void *p)

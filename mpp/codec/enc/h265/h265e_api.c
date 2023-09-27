@@ -17,6 +17,7 @@
 #define MODULE_TAG "h265e_api"
 
 #include <string.h>
+#include <limits.h>
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
@@ -164,10 +165,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->qp_min_i = 15;
     rc_cfg->qp_delta_ip = 4;
     rc_cfg->qp_delta_vi = 2;
-    rc_cfg->fqp_min_i = 10;
-    rc_cfg->fqp_min_p = 10;
-    rc_cfg->fqp_max_i = 51;
-    rc_cfg->fqp_max_p = 51;
+    rc_cfg->fqp_min_i = INT_MAX;
+    rc_cfg->fqp_min_p = INT_MAX;
+    rc_cfg->fqp_max_i = INT_MAX;
+    rc_cfg->fqp_max_p = INT_MAX;
 
     INIT_LIST_HEAD(&p->rc_list);
 
