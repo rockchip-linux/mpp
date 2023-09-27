@@ -181,7 +181,7 @@ RK_S32 mpp_av1_read_unsigned(BitReadCtx_t *gbc,
         return MPP_NOK;
     }
 
-    READ_BITS(gbc, width, &value);
+    READ_BITS_LONG(gbc, width, &value);
 
     if (value < range_min || value > range_max) {
         mpp_err_f("%s out of range: "
@@ -220,7 +220,7 @@ RK_S32 mpp_av1_read_signed(BitReadCtx_t *gbc,
         return MPP_NOK;
     }
 
-    READ_BITS(gbc, width, &value);
+    READ_BITS_LONG(gbc, width, &value);
     value = sign_extend(value, width);
     if (value < range_min || value > range_max) {
         mpp_err_f("%s out of range: "
@@ -2522,7 +2522,7 @@ static RK_S32 mpp_av1_metadata_obu(AV1Context *ctx, BitReadCtx_t *gb,
     RK_S32 err;
 
     leb128(metadata_type);
-    av1d_dbg(AV1D_DBG_STRMIN, "%s meta type %d\n", __func__, current->metadata_type);
+    av1d_dbg(AV1D_DBG_STRMIN, "%s meta type %lld\n", __func__, current->metadata_type);
     switch (current->metadata_type) {
     case AV1_METADATA_TYPE_HDR_CLL:
         CHECK(mpp_av1_metadata_hdr_cll(ctx, gb, &current->metadata.hdr_cll));
@@ -2540,8 +2540,8 @@ static RK_S32 mpp_av1_metadata_obu(AV1Context *ctx, BitReadCtx_t *gb,
         CHECK(mpp_av1_metadata_timecode(ctx, gb, &current->metadata.timecode));
         break;
     default:
-        // Unknown metadata type.
-        return MPP_OK;
+        mpp_err_f("unknown metadata type %lld\n", current->metadata_type);
+        break;
     }
 
     return 0;
