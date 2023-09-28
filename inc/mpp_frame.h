@@ -164,6 +164,7 @@ typedef enum {
 } MppFrameChromaLocation;
 
 #define MPP_FRAME_FMT_MASK          (0x000fffff)
+#define MPP_FRAME_FMT_PROP_MASK     (0x0ff00000)
 
 #define MPP_FRAME_FMT_COLOR_MASK    (0x000f0000)
 #define MPP_FRAME_FMT_YUV           (0x00000000)

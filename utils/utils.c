@@ -1561,7 +1561,7 @@ MPP_RET str_to_frm_fmt(const char *nptr, long *number)
         else if (errno == 0 && nptr && *endptr != 0)
             mpp_err("format: 0x%lx  invalid  (additional characters remain)", tmp);
         else if (errno == 0 && nptr && !*endptr) {
-            if (tmp < UINT_MAX && tmp >= 0) {
+            if ((tmp < (MPP_FMT_BUTT | MPP_FRAME_FMT_PROP_MASK)) && tmp >= 0) {
                 *number = tmp;
                 ret = MPP_OK;
             } else {
