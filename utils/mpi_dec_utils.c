@@ -524,10 +524,11 @@ RK_S32 mpi_dec_opt_f(void *ctx, const char *next)
                 cmd->format = format;
                 return 1;
             }
+
+            mpp_err("invalid input format 0x%x\n", format);
         }
     }
 
-    mpp_err("invalid output format\n");
     cmd->format = MPP_FMT_YUV420SP;
     return 0;
 }
