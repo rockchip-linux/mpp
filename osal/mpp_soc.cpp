@@ -813,8 +813,8 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
-         * rk3566/rk3568 has codec:
-         * 1 - vpu2 for jpeg/vp8 encoder and decoder
+         * rk3566/rk3567/rk3568 has codec:
+         * 1 - vpu2 for jpeg encoder and decoder
          * 2 - RK H.264/H.265/VP9 4K decoder
          * 3 - RK H.264/H.265 4K encoder
          * 3 - RK jpeg decoder
@@ -826,8 +826,21 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu540, &vepu2_no_vp8, NULL, NULL, },
     },
     {   /*
-         * rk3566/rk3568 has codec:
-         * 1 - vpu2 for jpeg/vp8 encoder and decoder
+         * rk3566/rk3567/rk3568 has codec:
+         * 1 - vpu2 for jpeg encoder and decoder
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - RK H.264/H.265 4K encoder
+         * 3 - RK jpeg decoder
+         */
+        "rk3567",
+        ROCKCHIP_SOC_RK3567,
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
+        {   &vdpu34x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp_fix, NULL, NULL, },
+        {   &vepu540, &vepu2_no_vp8, NULL, NULL, },
+    },
+    {   /*
+         * rk3566/rk3567/rk3568 has codec:
+         * 1 - vpu2 for jpeg encoder and decoder
          * 2 - RK H.264/H.265/VP9 4K decoder
          * 3 - RK H.264/H.265 4K encoder
          * 3 - RK jpeg decoder
