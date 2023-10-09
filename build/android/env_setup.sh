@@ -117,10 +117,6 @@ if [ "${FOUND_NDK}" = "0" ]; then
                 fi
             done
         fi
-
-        if [ "${FOUND_NDK}" = "1" ]; then
-            break
-        fi
     done
 fi
 
