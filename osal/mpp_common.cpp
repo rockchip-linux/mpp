@@ -116,3 +116,13 @@ RK_U32 mpp_align_64(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
+
+RK_U32 mpp_align_128(RK_U32 val)
+{
+    return MPP_ALIGN(val, 128);
+}
+
+RK_U32 mpp_align_256_odd(RK_U32 val)
+{
+    return MPP_ALIGN(val, 256) | 256;
+}
