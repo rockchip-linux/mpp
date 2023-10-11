@@ -180,6 +180,7 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
     cur_sps->separate_colour_plane_flag           = 0;
     cur_sps->log2_max_pic_order_cnt_lsb_minus4    = 0;
     cur_sps->delta_pic_order_always_zero_flag     = 0;
+    p_Dec->errctx.un_spt_flag = 0; // init unspport flag first
 
     READ_BITS(p_bitctx, 8, &cur_sps->profile_idc);
     VAL_CHECK (ret, (cur_sps->profile_idc == H264_PROFILE_BASELINE)
@@ -222,6 +223,11 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         READ_UE(p_bitctx, &cur_sps->bit_depth_chroma_minus8);
         ASSERT(cur_sps->bit_depth_chroma_minus8 < 7);
         READ_ONEBIT(p_bitctx, &cur_sps->qpprime_y_zero_transform_bypass_flag);
+        if (cur_sps->qpprime_y_zero_transform_bypass_flag == 1) {
+            H264D_ERR("ERROR: Not support high 4:4:4 lossless mode");
+            p_Dec->errctx.un_spt_flag = MPP_FRAME_ERR_UNSUPPORT;
+            goto __FAILED;
+        }
         READ_ONEBIT(p_bitctx, &cur_sps->seq_scaling_matrix_present_flag);
         if (cur_sps->seq_scaling_matrix_present_flag) {
             H264D_WARNNING("Scaling matrix present.");
