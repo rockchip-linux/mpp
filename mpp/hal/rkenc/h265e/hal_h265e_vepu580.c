@@ -138,8 +138,6 @@ typedef struct H265eV580HalContext_t {
     void                *tune;
 } H265eV580HalContext;
 
-#define TILE_BUF_SIZE  MPP_ALIGN(128 * 1024, 256)
-
 static RK_U32 aq_thd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
@@ -2297,6 +2295,7 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
     if (syn->pp.tiles_enabled_flag) {
         RK_U32 tile_num = (syn->pp.num_tile_columns_minus1 + 1) * (syn->pp.num_tile_rows_minus1 + 1);
         RK_U32 i = 0;
+        RK_U32 max_tile_buf_size = MPP_ALIGN(((MPP_ALIGN(syn->pp.pic_height, 64) + 64) << 5), 256);
 
         if (NULL == ctx->tile_grp)
             mpp_buffer_group_get_internal(&ctx->tile_grp, MPP_BUFFER_TYPE_ION);
@@ -2305,7 +2304,7 @@ void vepu580_h265_set_hw_address(H265eV580HalContext *ctx, hevc_vepu580_base *re
 
         for (i = 0; i < MAX_TILE_NUM; i++) {
             if (NULL == ctx->hw_tile_buf[i]) {
-                mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_buf[i], TILE_BUF_SIZE);
+                mpp_buffer_get(ctx->tile_grp, &ctx->hw_tile_buf[i], max_tile_buf_size);
             }
         }
 
@@ -2631,7 +2630,13 @@ void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *s
         RK_S32 tile_width = (index + 1) * mb_w / (syn->pp.num_tile_columns_minus1 + 1) -
                             index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
 
-        if (syn->sp.non_reference_flag) {
+        if (!regs->reg0192_enc_pic.cur_frm_ref &&
+            !(regs->reg0238_synt_pps.lpf_fltr_acrs_til &&
+              regs->reg0238_synt_pps.lp_fltr_acrs_sli &&
+              regs->reg0240_synt_sli1.sli_lp_fltr_acrs_sli &&
+              regs->reg0237_synt_sps.smpl_adpt_ofst_e &&
+              (regs->reg0239_synt_sli0.sli_sao_luma_flg ||
+               (regs->reg0239_synt_sli0.sli_sao_chrm_flg && regs->reg0198_src_fmt.out_fmt)))) {
             regs->reg0193_dual_core.dchs_txe = 0;
             regs->reg0193_dual_core.dchs_rxe = 0;
         } else if (index > 0) {
