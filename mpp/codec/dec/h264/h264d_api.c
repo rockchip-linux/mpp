@@ -538,6 +538,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         p_Inp->has_get_eos = 1;
         p_Inp->in_buf = NULL;
         p_Inp->in_length = 0;
+        mpp_packet_set_length(p_Inp->in_pkt, 0);
         task->flags.eos = p_Inp->pkt_eos;
     }
 
