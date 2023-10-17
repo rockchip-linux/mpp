@@ -2241,7 +2241,7 @@ static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
         mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
 
     if (mpp->mEncAyncIo)
-        mpp_meta_set_frame(meta, KEY_INPUT_FRAME, enc->frame);
+        mpp_meta_set_frame(meta, KEY_INPUT_FRAME, hal_task->frame);
 
     return MPP_OK;
 }
