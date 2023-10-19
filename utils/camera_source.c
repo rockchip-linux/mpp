@@ -300,7 +300,6 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
 
         if (-1 == camera_source_ioctl(ctx->fd, VIDIOC_QBUF, &buf)) {
             mpp_err_f("ERROR: VIDIOC_QBUF %d\n", i);
-            camera_source_deinit(ctx);
             goto FAIL;
         }
     }
@@ -308,7 +307,6 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
     // Start capturing
     if (-1 == camera_source_ioctl(ctx->fd, VIDIOC_STREAMON, &type)) {
         mpp_err_f("ERROR: VIDIOC_STREAMON\n");
-        camera_source_deinit(ctx);
         goto FAIL;
     }
 
