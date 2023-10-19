@@ -1130,6 +1130,9 @@ MPP_RET mpp_dec_notify_normal(MppDecImpl *dec, RK_U32 flag)
     MppThread *thd_dec  = dec->thread_parser;
     RK_U32 notify = 0;
 
+    if (!thd_dec)
+        return MPP_NOK;
+
     thd_dec->lock();
     if (flag == MPP_DEC_CONTROL) {
         dec->parser_notify_flag |= flag;
