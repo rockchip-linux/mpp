@@ -231,12 +231,12 @@ static void vepu540c_h265_rdo_cfg (vepu540c_rdo_cfg *reg)
     rdo_noskip_par *p_rdo_noskip = NULL;
     pre_cst_par    *p_pre_cst = NULL;
 
-    reg->rdo_segment_cfg.rdo_segment_multi    = 0;
-    reg->rdo_segment_cfg.rdo_segment_en       = 0;
+    reg->rdo_segment_cfg.rdo_segment_multi    = 28;
+    reg->rdo_segment_cfg.rdo_segment_en       = 1;
     reg->rdo_smear_cfg_comb.rdo_smear_en      =  0;
-    reg->rdo_smear_cfg_comb.rdo_smear_lvl16_multi = 12;
-    reg->rdo_segment_cfg.rdo_smear_lvl8_multi     = 10;
-    reg->rdo_segment_cfg.rdo_smear_lvl4_multi     = 8 ;
+    reg->rdo_smear_cfg_comb.rdo_smear_lvl16_multi = 9;
+    reg->rdo_segment_cfg.rdo_smear_lvl8_multi     = 8;
+    reg->rdo_segment_cfg.rdo_smear_lvl4_multi     = 8;
     reg->rdo_smear_cfg_comb.rdo_smear_dlt_qp      = 0 ;
     reg->rdo_smear_cfg_comb.rdo_smear_order_state = 0;
     reg->rdo_smear_cfg_comb.stated_mode           = 0;
@@ -255,39 +255,39 @@ static void vepu540c_h265_rdo_cfg (vepu540c_rdo_cfg *reg)
     reg->rdo_smear_madp_thd5_comb.rdo_smear_madp_ref_thd0 =  96;
     reg->rdo_smear_madp_thd5_comb.rdo_smear_madp_ref_thd1 =  48;
     reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd0    = 1 ;
-    reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd1    = 4 ;
+    reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd1    = 3;
     reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd2    = 1 ;
-    reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd3    = 4 ;
+    reg->rdo_smear_cnt_thd0_comb.rdo_smear_cnt_cur_thd3    = 3;
     reg->rdo_smear_cnt_thd1_comb.rdo_smear_cnt_around_thd0 = 1 ;
     reg->rdo_smear_cnt_thd1_comb.rdo_smear_cnt_around_thd1 = 4 ;
     reg->rdo_smear_cnt_thd1_comb.rdo_smear_cnt_around_thd2 = 1 ;
     reg->rdo_smear_cnt_thd1_comb.rdo_smear_cnt_around_thd3 = 4 ;
-    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd4 = 1 ;
-    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd5 = 4 ;
-    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd6 = 1 ;
-    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd7 = 4 ;
-    reg->rdo_smear_cnt_thd3_comb.rdo_smear_cnt_ref_thd0    = 1 ;
-    reg->rdo_smear_cnt_thd3_comb.rdo_smear_cnt_ref_thd1    = 4 ;
+    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd4 = 0;
+    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd5 = 3;
+    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd6 = 0;
+    reg->rdo_smear_cnt_thd2_comb.rdo_smear_cnt_around_thd7 = 3;
+    reg->rdo_smear_cnt_thd3_comb.rdo_smear_cnt_ref_thd0    = 1;
+    reg->rdo_smear_cnt_thd3_comb.rdo_smear_cnt_ref_thd1    = 3;
     reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_small_cur_th0    = 6;
-    reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_big_cur_th0      = 8;
+    reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_big_cur_th0      = 9;
     reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_small_cur_th1    = 6;
-    reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_big_cur_th1      = 11;
+    reg->rdo_smear_resi_thd0_comb.rdo_smear_resi_big_cur_th1      = 9;
     reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_small_around_th0 = 6;
-    reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_big_around_th0   = 8;
+    reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_big_around_th0   = 11;
     reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_small_around_th1 = 6;
-    reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_big_around_th1   = 11;
+    reg->rdo_smear_resi_thd1_comb.rdo_smear_resi_big_around_th1   = 8;
     reg->rdo_smear_resi_thd2_comb.rdo_smear_resi_small_around_th2 = 9;
     reg->rdo_smear_resi_thd2_comb.rdo_smear_resi_big_around_th2   = 20;
-    reg->rdo_smear_resi_thd2_comb.rdo_smear_resi_small_around_th3 = 9;
+    reg->rdo_smear_resi_thd2_comb.rdo_smear_resi_small_around_th3 = 6;
     reg->rdo_smear_resi_thd2_comb.rdo_smear_resi_big_around_th3  = 20;
-    reg->rdo_smear_resi_thd3_comb.rdo_smear_resi_small_ref_th0  = 9;
-    reg->rdo_smear_resi_thd3_comb.rdo_smear_resi_big_ref_th0 = 20;
-    reg->rdo_smear_st_thd0_comb.rdo_smear_resi_th0 = 12;
-    reg->rdo_smear_st_thd0_comb.rdo_smear_resi_th1 = 12;
+    reg->rdo_smear_resi_thd3_comb.rdo_smear_resi_small_ref_th0  = 7;
+    reg->rdo_smear_resi_thd3_comb.rdo_smear_resi_big_ref_th0 = 16;
+    reg->rdo_smear_st_thd0_comb.rdo_smear_resi_th0 = 9;
+    reg->rdo_smear_st_thd0_comb.rdo_smear_resi_th1 = 6;
     reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th0 = 1;
-    reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th1 = 2;
+    reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th1 = 5;
     reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th2 = 1;
-    reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th3 = 2;
+    reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th3 = 3;
     reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th4 = 1;
     reg->rdo_smear_st_thd1_comb.rdo_smear_madp_cnt_th5 = 2;
 
@@ -295,12 +295,12 @@ static void vepu540c_h265_rdo_cfg (vepu540c_rdo_cfg *reg)
     p_rdo_skip->atf_thd0.madp_thd0 = 5  ;
     p_rdo_skip->atf_thd0.madp_thd1 = 10 ;
     p_rdo_skip->atf_thd1.madp_thd2 = 15 ;
-    p_rdo_skip->atf_thd1.madp_thd3 = 25 ;
-    p_rdo_skip->atf_wgt0.wgt0 =      14 ;
-    p_rdo_skip->atf_wgt0.wgt1 =      15 ;
-    p_rdo_skip->atf_wgt0.wgt2 =      16 ;
-    p_rdo_skip->atf_wgt0.wgt3 =      16 ;
-    p_rdo_skip->atf_wgt1.wgt4 =      20 ;
+    p_rdo_skip->atf_thd1.madp_thd3 = 72;
+    p_rdo_skip->atf_wgt0.wgt0 =      20;
+    p_rdo_skip->atf_wgt0.wgt1 =      16;
+    p_rdo_skip->atf_wgt0.wgt2 =      16;
+    p_rdo_skip->atf_wgt0.wgt3 =      16;
+    p_rdo_skip->atf_wgt1.wgt4 =      16;
 
     p_rdo_noskip = &reg->rdo_b32_inter;
     p_rdo_noskip->ratf_thd0.madp_thd0 = 20;
@@ -318,18 +318,18 @@ static void vepu540c_h265_rdo_cfg (vepu540c_rdo_cfg *reg)
     p_rdo_noskip->atf_wgt.wgt0 =        27;
     p_rdo_noskip->atf_wgt.wgt1 =        25;
     p_rdo_noskip->atf_wgt.wgt2 =        20;
-    p_rdo_noskip->atf_wgt.wgt3 =        16;
+    p_rdo_noskip->atf_wgt.wgt3 =        19;
 
     p_rdo_skip = &reg->rdo_b16_skip;
-    p_rdo_skip->atf_thd0.madp_thd0 = 5  ;
+    p_rdo_skip->atf_thd0.madp_thd0 = 1;
     p_rdo_skip->atf_thd0.madp_thd1 = 10 ;
     p_rdo_skip->atf_thd1.madp_thd2 = 15 ;
     p_rdo_skip->atf_thd1.madp_thd3 = 25 ;
     p_rdo_skip->atf_wgt0.wgt0 =      20 ;
-    p_rdo_skip->atf_wgt0.wgt1 =      14 ;
-    p_rdo_skip->atf_wgt0.wgt2 =      15 ;
-    p_rdo_skip->atf_wgt0.wgt3 =      16 ;
-    p_rdo_skip->atf_wgt1.wgt4 =      16 ;
+    p_rdo_skip->atf_wgt0.wgt1 =      16;
+    p_rdo_skip->atf_wgt0.wgt2 =      16;
+    p_rdo_skip->atf_wgt0.wgt3 =      16;
+    p_rdo_skip->atf_wgt1.wgt4 =      16;
 
     p_rdo_noskip = &reg->rdo_b16_inter;
     p_rdo_noskip->ratf_thd0.madp_thd0 = 20;
@@ -349,72 +349,72 @@ static void vepu540c_h265_rdo_cfg (vepu540c_rdo_cfg *reg)
     p_rdo_noskip->atf_wgt.wgt2 =        20;
     p_rdo_noskip->atf_wgt.wgt3 =        16;
 
-    reg->rdo_b32_intra_atf_cnt_thd.thd0      = 14 ;
-    reg->rdo_b32_intra_atf_cnt_thd.thd1      = 15 ;
-    reg->rdo_b32_intra_atf_cnt_thd.thd2      = 16 ;
-    reg->rdo_b32_intra_atf_cnt_thd.thd3      = 17 ;
+    reg->rdo_b32_intra_atf_cnt_thd.thd0      = 1;
+    reg->rdo_b32_intra_atf_cnt_thd.thd1      = 4;
+    reg->rdo_b32_intra_atf_cnt_thd.thd2      = 1;
+    reg->rdo_b32_intra_atf_cnt_thd.thd3      = 4;
 
-    reg->rdo_b16_intra_atf_cnt_thd_comb.thd0 = 8 ;
-    reg->rdo_b16_intra_atf_cnt_thd_comb.thd1 = 9 ;
-    reg->rdo_b16_intra_atf_cnt_thd_comb.thd2 = 10 ;
-    reg->rdo_b16_intra_atf_cnt_thd_comb.thd3 = 11 ;
-    reg->rdo_atf_resi_thd_comb.big_th0     = 10;
-    reg->rdo_atf_resi_thd_comb.big_th1     = 12;
-    reg->rdo_atf_resi_thd_comb.small_th0   = 11;
-    reg->rdo_atf_resi_thd_comb.small_th1   = 13;
+    reg->rdo_b16_intra_atf_cnt_thd_comb.thd0 = 1;
+    reg->rdo_b16_intra_atf_cnt_thd_comb.thd1 = 4;
+    reg->rdo_b16_intra_atf_cnt_thd_comb.thd2 = 1;
+    reg->rdo_b16_intra_atf_cnt_thd_comb.thd3 = 4;
+    reg->rdo_atf_resi_thd_comb.big_th0     = 16;
+    reg->rdo_atf_resi_thd_comb.big_th1     = 16;
+    reg->rdo_atf_resi_thd_comb.small_th0   = 8;
+    reg->rdo_atf_resi_thd_comb.small_th1   = 8;
 
     p_pre_cst = &reg->preintra32_cst;
-    p_pre_cst->cst_madi_thd0.madi_thd0 = 2  ;
-    p_pre_cst->cst_madi_thd0.madi_thd1 = 6  ;
-    p_pre_cst->cst_madi_thd0.madi_thd2 = 16 ;
-    p_pre_cst->cst_madi_thd0.madi_thd3 = 36 ;
-    p_pre_cst->cst_madi_thd1.madi_thd4 = 16 ;
-    p_pre_cst->cst_madi_thd1.madi_thd5 = 16 ;
-    p_pre_cst->cst_wgt0.wgt0          =  16 ;
-    p_pre_cst->cst_wgt0.wgt1          =  16 ;
-    p_pre_cst->cst_wgt0.wgt2          =  16 ;
-    p_pre_cst->cst_wgt0.wgt3          =  16 ;
-    p_pre_cst->cst_wgt1.wgt4          =  16 ;
-    p_pre_cst->cst_wgt1.wgt5          =  16 ;
-    p_pre_cst->cst_wgt1.wgt6          =  16 ;
-    p_pre_cst->cst_wgt1.wgt7          =  16 ;
-    p_pre_cst->cst_wgt2.wgt8          =  16 ;
-    p_pre_cst->cst_wgt2.wgt9          =  16 ;
-    p_pre_cst->cst_wgt2.mode_th       =  5  ;
+    p_pre_cst->cst_madi_thd0.madi_thd0 = 5;
+    p_pre_cst->cst_madi_thd0.madi_thd1 = 3;
+    p_pre_cst->cst_madi_thd0.madi_thd2 = 3;
+    p_pre_cst->cst_madi_thd0.madi_thd3 = 6;
+    p_pre_cst->cst_madi_thd1.madi_thd4 = 7;
+    p_pre_cst->cst_madi_thd1.madi_thd5 = 10;
+    p_pre_cst->cst_wgt0.wgt0          =  20;
+    p_pre_cst->cst_wgt0.wgt1          =  18;
+    p_pre_cst->cst_wgt0.wgt2          =  19;
+    p_pre_cst->cst_wgt0.wgt3          =  18;
+    p_pre_cst->cst_wgt1.wgt4          =  6;
+    p_pre_cst->cst_wgt1.wgt5          =  9;
+    p_pre_cst->cst_wgt1.wgt6          =  14;
+    p_pre_cst->cst_wgt1.wgt7          =  18;
+    p_pre_cst->cst_wgt2.wgt8          =  17;
+    p_pre_cst->cst_wgt2.wgt9          =  17;
+    p_pre_cst->cst_wgt2.mode_th       =  5;
 
     p_pre_cst = &reg->preintra16_cst;
-    p_pre_cst->cst_madi_thd0.madi_thd0 = 2 ;
-    p_pre_cst->cst_madi_thd0.madi_thd1 = 6 ;
-    p_pre_cst->cst_madi_thd0.madi_thd2 = 16;
-    p_pre_cst->cst_madi_thd0.madi_thd3 = 36;
-    p_pre_cst->cst_madi_thd1.madi_thd4 = 16;
-    p_pre_cst->cst_madi_thd1.madi_thd5 = 16;
-    p_pre_cst->cst_wgt0.wgt0          =  16;
-    p_pre_cst->cst_wgt0.wgt1          =  16;
-    p_pre_cst->cst_wgt0.wgt2          =  16;
-    p_pre_cst->cst_wgt0.wgt3          =  16;
-    p_pre_cst->cst_wgt1.wgt4          =  16;
-    p_pre_cst->cst_wgt1.wgt5          =  16;
-    p_pre_cst->cst_wgt1.wgt6          =  16;
-    p_pre_cst->cst_wgt1.wgt7          =  16;
-    p_pre_cst->cst_wgt2.wgt8          =  16;
-    p_pre_cst->cst_wgt2.wgt9          =  16;
-    p_pre_cst->cst_wgt2.mode_th       =  5 ;
+    p_pre_cst->cst_madi_thd0.madi_thd0 = 5;
+    p_pre_cst->cst_madi_thd0.madi_thd1 = 3;
+    p_pre_cst->cst_madi_thd0.madi_thd2 = 3;
+    p_pre_cst->cst_madi_thd0.madi_thd3 = 6;
+    p_pre_cst->cst_madi_thd1.madi_thd4 = 5;
+    p_pre_cst->cst_madi_thd1.madi_thd5 = 7;
+    p_pre_cst->cst_wgt0.wgt0          =  20;
+    p_pre_cst->cst_wgt0.wgt1          =  18;
+    p_pre_cst->cst_wgt0.wgt2          =  19;
+    p_pre_cst->cst_wgt0.wgt3          =  18;
+    p_pre_cst->cst_wgt1.wgt4          =  6;
+    p_pre_cst->cst_wgt1.wgt5          =  9;
+    p_pre_cst->cst_wgt1.wgt6          =  14;
+    p_pre_cst->cst_wgt1.wgt7          =  18;
+    p_pre_cst->cst_wgt2.wgt8          =  17;
+    p_pre_cst->cst_wgt2.wgt9          =  17;
+    p_pre_cst->cst_wgt2.mode_th       =  5;
 
-    reg->preintra_sqi_cfg.pre_intra_qp_thd          = 18;
+    reg->preintra_sqi_cfg.pre_intra_qp_thd          = 28;
     reg->preintra_sqi_cfg.pre_intra4_lambda_mv_bit  = 3;
-    reg->preintra_sqi_cfg.pre_intra8_lambda_mv_bit  = 3;
-    reg->preintra_sqi_cfg.pre_intra16_lambda_mv_bit = 3;
-    reg->preintra_sqi_cfg.pre_intra32_lambda_mv_bit = 3;
-    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd0 = 1;
-    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd1 = 1;
-    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd2 = 1;
-    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_cnt_thd3   = 1;
-    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_thd4       = 1;
-    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_cost_multi = 16;
-    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd0       = 1;
-    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd1       = 1;
-    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_cost_multi = 16;
+    reg->preintra_sqi_cfg.pre_intra8_lambda_mv_bit  = 4;
+    reg->preintra_sqi_cfg.pre_intra16_lambda_mv_bit = 4;
+    reg->preintra_sqi_cfg.pre_intra32_lambda_mv_bit = 5;
+    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd0 = 3;
+    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd1 = 35;
+    reg->rdo_atr_i_cu32_madi_cfg0.i_cu32_madi_thd2 = 25;
+    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_cnt_thd3   = 0;
+    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_thd4       = 20;
+    reg->rdo_atr_i_cu32_madi_cfg1.i_cu32_madi_cost_multi = 24;
+    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd0       = 4;
+    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd1       = 6;
+    reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_cost_multi = 24;
 
 }
 
@@ -435,7 +435,7 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
             thd[i]  = hw->aq_thrd_i[i];
             step[i] = hw->aq_step_i[i] & 0x3f;
         }
-        reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 3;
+        reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 11;
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_moda_qp, sizeof(lamd_moda_qp));
     } else {
         RK_U8 *thd  = (RK_U8 *)&rc_regs->aq_tthd0;
@@ -444,7 +444,7 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
             thd[i]  = hw->aq_thrd_p[i];
             step[i] = hw->aq_step_p[i] & 0x3f;
         }
-        reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 3;
+        reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 11;
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_modb_qp, sizeof(lamd_modb_qp));
     }
     reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = 171;
@@ -460,9 +460,9 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
         regs->reg_wgt.me_sqi_cfg.cime_fuse   = 1;
         regs->reg_wgt.me_sqi_cfg.itp_mode    = 0;
         regs->reg_wgt.me_sqi_cfg.move_lambda = 2;
-        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 1;
-        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 0;
-        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 0;
+        regs->reg_wgt.me_sqi_cfg.rime_lvl_mrg     = 0;
+        regs->reg_wgt.me_sqi_cfg.rime_prelvl_en   = 3;
+        regs->reg_wgt.me_sqi_cfg.rime_prersu_en   = 3;
 
         /* 0x1764 */
         regs->reg_wgt.cime_mvd_th.cime_mvd_th0 = 8;
@@ -754,10 +754,10 @@ static MPP_RET vepu540c_h265_set_rc_regs(H265eV540cHalContext *ctx, H265eV540cRe
         reg_base->reg213_rc_qp.rc_min_qp   = rc_cfg->quality_min;
         reg_base->reg214_rc_tgt.ctu_ebit  = ctu_target_bits_mul_16;
 
-        reg_rc->rc_dthd_0_8[0] = 2 * negative_bits_thd;
+        reg_rc->rc_dthd_0_8[0] = 4 * negative_bits_thd;
         reg_rc->rc_dthd_0_8[1] = negative_bits_thd;
         reg_rc->rc_dthd_0_8[2] = positive_bits_thd;
-        reg_rc->rc_dthd_0_8[3] = 2 * positive_bits_thd;
+        reg_rc->rc_dthd_0_8[3] = 4 * positive_bits_thd;
         reg_rc->rc_dthd_0_8[4] = 0x7FFFFFFF;
         reg_rc->rc_dthd_0_8[5] = 0x7FFFFFFF;
         reg_rc->rc_dthd_0_8[6] = 0x7FFFFFFF;
@@ -1060,7 +1060,7 @@ static void vepu540c_h265_set_me_regs(H265eV540cHalContext *ctx, H265eSyntax_new
 
         regs->reg0222_me_cach.cime_size_rama = ((cur_srch_h - ctu_2_h) * regs->reg0222_me_cach.cme_linebuf_w + ctu_2_h * cur_srch_8_w) / 4;
         regs->reg0222_me_cach.cime_hgt_rama = cur_srch_h / 2;
-        regs->reg0222_me_cach.fme_prefsu_en = 0;
+        regs->reg0222_me_cach.fme_prefsu_en = 1;
     }
 
 }
@@ -1190,11 +1190,16 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->reg0012_dtrns_map.roir_bus_edin    = 0x0;
     reg_ctl->reg0012_dtrns_map.lktw_bus_edin    = 0x0;
     reg_ctl->reg0012_dtrns_map.rec_nfbc_bus_edin   = 0x0;
+    /* enable rdo clk gating */
+    {
+        RK_U32 *rdo_ckg = (RK_U32*)&reg_ctl->reg0022_rdo_ckg;
 
+        *rdo_ckg = 0xffffffff;
+    }
 //   reg_ctl->reg0013_dtrns_cfg.dspr_otsd        = (ctx->frame_type == INTER_P_FRAME);
     reg_ctl->reg0013_dtrns_cfg.axi_brsp_cke     = 0x0;
     reg_ctl->reg0014_enc_wdg.vs_load_thd        = 0x1fffff;
-    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0;
+    reg_ctl->reg0014_enc_wdg.rfp_load_thd       = 0xff;
 
     reg_ctl->reg0021_func_en.cke                = 1;
     reg_ctl->reg0021_func_en.resetn_hw_en       = 1;
@@ -1215,7 +1220,9 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     reg_base->reg0203_src_proc.src_mirr = 0;
     reg_base->reg0203_src_proc.src_rot  = 0;
 
-    reg_klut->klut_ofst.chrm_klut_ofst = (ctx->frame_type == INTRA_FRAME) ? 0 : 3;
+    reg_klut->klut_ofst.chrm_klut_ofst = (ctx->frame_type == INTRA_FRAME) ? 6 :
+                                         (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 9 : 6);
+    reg_klut->klut_ofst.inter_chrm_dist_multi = 4;
 
     reg_base->reg0216_sli_splt.sli_splt_mode     = syn->sp.sli_splt_mode;
     reg_base->reg0216_sli_splt.sli_splt_cpst     = syn->sp.sli_splt_cpst;
@@ -1225,12 +1232,17 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
 
     reg_base->reg0218_sli_cnum.sli_splt_cnum_m1  = syn->sp.sli_splt_cnum_m1;
     reg_base->reg0217_sli_byte.sli_splt_byte = syn->sp.sli_splt_byte;
+    reg_base->reg0248_sao_cfg.sao_lambda_multi = 5;
 
     vepu540c_h265_set_me_regs(ctx, syn, reg_base);
 
     reg_base->reg0232_rdo_cfg.chrm_spcl   = 0;
     reg_base->reg0232_rdo_cfg.cu_inter_e    = 0x0092;
     reg_base->reg0232_rdo_cfg.cu_intra_e    = 0xe;
+    reg_base->reg0232_rdo_cfg.lambda_qp_use_avg_cu16_flag = 1;
+    reg_base->reg0232_rdo_cfg.yuvskip_calc_en = 1;
+    reg_base->reg0232_rdo_cfg.atf_e = 1;
+    reg_base->reg0232_rdo_cfg.atr_e = 1;
 
     if (syn->pp.num_long_term_ref_pics_sps) {
         reg_base->reg0232_rdo_cfg.ltm_col   = 0;
