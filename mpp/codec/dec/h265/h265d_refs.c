@@ -114,6 +114,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
                 fbc_hdr_stride = MPP_ALIGN(s->h265dctx->width, 256) | 256;
 
             mpp_frame_set_fbc_hdr_stride(frame->frame, fbc_hdr_stride);
+        } else if (MPP_FRAME_FMT_IS_TILE(s->h265dctx->pix_fmt)) {
+            /* nothing todo */
         } else {
             if ((s->h265dctx->cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) &&
                 s->h265dctx->width <= 1920 &&  s->h265dctx->height <= 1088)
