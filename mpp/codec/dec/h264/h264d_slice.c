@@ -285,6 +285,11 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
     ret |= (sps->max_num_ref_frames > 16);
     ret |= (sps->qpprime_y_zero_transform_bypass_flag == 1);
 
+    if (ret) {
+        H264D_ERR("sps has error, sps_id=%d", sps->seq_parameter_set_id);
+        goto __FAILED;
+    }
+
     if (hw_info && hw_info->cap_8k)
         max_mb_width  = MAX_MBW_8Kx4K * hw_info->cap_core_num;
     else if (hw_info && hw_info->cap_4k)
