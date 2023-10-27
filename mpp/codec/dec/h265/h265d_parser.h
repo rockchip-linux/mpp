@@ -254,6 +254,19 @@ typedef struct HEVCSPS {
     RK_S32 max_transform_hierarchy_depth_inter;
     RK_S32 max_transform_hierarchy_depth_intra;
 
+    // SPS extension
+    RK_S32 sps_extension_flag;
+    RK_S32 sps_range_extension_flag;
+    RK_S32 transform_skip_rotation_enabled_flag;
+    RK_S32 transform_skip_context_enabled_flag;
+    RK_S32 implicit_rdpcm_enabled_flag;
+    RK_S32 explicit_rdpcm_enabled_flag;
+    RK_S32 extended_precision_processing_flag;
+    RK_S32 intra_smoothing_disabled_flag;
+    RK_S32 high_precision_offsets_enabled_flag;
+    RK_S32 persistent_rice_adaptation_enabled_flag;
+    RK_S32 cabac_bypass_alignment_enabled_flag;
+
     ///< coded frame dimension in various units
     RK_S32 width;
     RK_S32 height;
@@ -338,9 +351,18 @@ typedef struct HEVCPPS {
     RK_S32 num_extra_slice_header_bits;
     RK_U8 slice_header_extension_present_flag;
 
+    // PPS extension
     RK_U8 pps_extension_flag;
     RK_U8 pps_range_extensions_flag;
-    RK_U8 pps_extension_data_flag;
+    RK_U8 log2_max_transform_skip_block_size;
+    RK_U8 cross_component_prediction_enabled_flag;
+    RK_U8 chroma_qp_offset_list_enabled_flag;
+    RK_U8 diff_cu_chroma_qp_offset_depth;
+    RK_U8 chroma_qp_offset_list_len_minus1;
+    RK_S8 cb_qp_offset_list[6];
+    RK_S8 cr_qp_offset_list[6];
+    RK_U8 log2_sao_offset_scale_luma;
+    RK_U8 log2_sao_offset_scale_chroma;
 
     // Inferred parameters
     HevcPpsBufInfo bufs;

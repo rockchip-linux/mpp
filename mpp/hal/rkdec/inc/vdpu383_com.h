@@ -8,7 +8,6 @@
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
-#include "vdpu383.h"
 
 #define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))

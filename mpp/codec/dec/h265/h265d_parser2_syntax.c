@@ -252,6 +252,31 @@ static void fill_picture_parameters(const HEVCContext *h,
     DO_REF_LIST(ST_CURR_AFT, RefPicSetStCurrAfter);
     DO_REF_LIST(LT_CURR, RefPicSetLtCurr);
 
+    // sps exension flags
+    pp->sps_extension_flag                          = sps->sps_extension_flag;;
+    pp->sps_range_extension_flag                    = sps->sps_range_extension_flag;;
+    pp->transform_skip_rotation_enabled_flag        = sps->transform_skip_rotation_enabled_flag;;
+    pp->transform_skip_context_enabled_flag         = sps->transform_skip_context_enabled_flag;;
+    pp->implicit_rdpcm_enabled_flag                 = sps->implicit_rdpcm_enabled_flag;;
+    pp->explicit_rdpcm_enabled_flag                 = sps->explicit_rdpcm_enabled_flag;;
+    pp->extended_precision_processing_flag          = sps->extended_precision_processing_flag;;
+    pp->intra_smoothing_disabled_flag               = sps->intra_smoothing_disabled_flag;;
+    pp->high_precision_offsets_enabled_flag         = sps->high_precision_offsets_enabled_flag;;
+    pp->persistent_rice_adaptation_enabled_flag     = sps->persistent_rice_adaptation_enabled_flag;;
+    pp->cabac_bypass_alignment_enabled_flag         = sps->cabac_bypass_alignment_enabled_flag;;
+
+    // pps exension flags
+    pp->cross_component_prediction_enabled_flag     = pps->cross_component_prediction_enabled_flag;
+    pp->chroma_qp_offset_list_enabled_flag          = pps->chroma_qp_offset_list_enabled_flag;
+
+    // PPS extension
+    pp->log2_max_transform_skip_block_size          = pps->log2_max_transform_skip_block_size;
+    pp->diff_cu_chroma_qp_offset_depth              = pps->diff_cu_chroma_qp_offset_depth;
+    pp->chroma_qp_offset_list_len_minus1            = pps->chroma_qp_offset_list_len_minus1;
+    for (i = 0; i < 6; i++) {
+        pp->cb_qp_offset_list[i] = pps->cb_qp_offset_list[i];
+        pp->cr_qp_offset_list[i] = pps->cr_qp_offset_list[i];
+    }
 }
 extern RK_U8 mpp_hevc_diag_scan4x4_x[16];
 extern RK_U8 mpp_hevc_diag_scan4x4_y[16];
