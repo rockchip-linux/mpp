@@ -251,6 +251,7 @@ typedef struct VP9Context {
     RK_U16 mvscale[3][2];
     RK_U8 mvstep[3][2];
 
+    RK_U32 uncompress_head_size_in_byte;
     RK_S32 first_partition_size;
     MppBufSlots slots;
     MppBufSlots packet_slots;
