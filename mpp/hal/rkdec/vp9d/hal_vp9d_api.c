@@ -26,6 +26,7 @@
 #include "hal_vp9d_rkv.h"
 #include "hal_vp9d_vdpu34x.h"
 #include "hal_vp9d_vdpu382.h"
+#include "hal_vp9d_vdpu383.h"
 
 RK_U32 hal_vp9d_debug = 0;
 
@@ -46,7 +47,10 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
     p->dev = cfg->dev;
     p->hw_id = hw_id;
     p->client_type = client_type;
-    if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562) {
+    if (hw_id == HWID_VDPU383) {
+        p->api = &hal_vp9d_vdpu383;
+        cfg->support_fast_mode = 1;
+    } else if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562) {
         p->api = &hal_vp9d_vdpu382;
         cfg->support_fast_mode = 1;
     } else if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {

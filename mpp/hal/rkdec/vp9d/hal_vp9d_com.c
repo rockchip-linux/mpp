@@ -1922,6 +1922,56 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
     return 0;
 }
 
+MPP_RET hal_vp9d_prob_kf(void *buf)
+{
+    RK_S32 i, j, k, m;
+    RK_S32 fifo_len = PROB_KF_SIZE >> 3;
+    RK_U64 *probe_packet = NULL;
+    BitputCtx_t bp;
+
+    memset(buf, 0, PROB_KF_SIZE);
+    probe_packet = mpp_calloc(RK_U64, fifo_len);
+    memset(probe_packet, 0, fifo_len);
+    mpp_set_bitput_ctx(&bp, probe_packet, fifo_len);
+
+    for (i = 0; i < 16; i++)//kf_partition_prob
+        for (j = 0; j < 3; j++)
+            mpp_put_bits(&bp, vp9_kf_partition_probs[i][j], 8);
+
+    //intra mode prob  80 x 128 bit, 10x 8x 128bit
+    for (i = 0; i < 10; i++) {
+        RK_S32 byte_count = 0;// 4x128 bit
+        RK_U8 val = 0;
+        for (j = 0; j < 10; j++)
+            for (k = 0; k < 9; k++) {
+                mpp_put_bits(&bp, vp9_kf_y_mode_prob[i][j][k], 8);
+                byte_count++;
+                if (byte_count == 27) {
+                    byte_count = 0;
+                    mpp_put_align(&bp, 128, 0);
+                }
+            }
+        // 6x128 bit, 23x4 bytes
+        if (i < 4) {
+            for (m = 0; m < (i < 3 ? 23 : 21); m++) {
+                val = ((RK_U8 *)(&vp9_kf_uv_mode_prob[0][0]))[i * 23 + m];
+                mpp_put_bits(&bp, val, 8);
+            }
+            for (; m < 23; m++)
+                mpp_put_bits(&bp, 0, 8);
+        } else {
+            for (m = 0; m < 23; m++)
+                mpp_put_bits(&bp, 0, 8);
+        }
+        mpp_put_align(&bp, 128, 0);
+    }
+
+    mpp_put_align(&bp, 128, 0);
+    memcpy(buf, probe_packet, PROB_KF_SIZE);
+
+    return MPP_OK;
+}
+
 void hal_vp9d_update_counts(void *buf, void *dxva)
 {
     DXVA_PicParams_VP9 *s = (DXVA_PicParams_VP9*)dxva;

@@ -43,7 +43,6 @@ static   RK_U32 av_clip_uintp2(RK_S32 a, RK_S32 p)
     else                   return  a;
 }
 
-
 RK_U32 vp9d_debug = 0;
 
 #define VP9_SYNCCODE 0x498342
@@ -410,7 +409,10 @@ static RK_S32 vp9_alloc_frame(Vp9CodecContext *ctx, VP9Frame *frame)
     } else {
         mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         mpp_slots_set_prop(s->slots, SLOTS_VER_ALIGN, mpp_align_64);
-        mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
+        if (MPP_FRAME_FMT_IS_TILE(s->cfg->base.out_fmt))
+            mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_TILE_FLAG))));
+        else
+            mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
     }
 
     if (s->cfg->base.enable_thumbnail && s->hw_info->cap_down_scale)
@@ -630,6 +632,7 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     RK_S32 fmt = ctx->pix_fmt;
     RK_S32 last_invisible;
     const RK_U8 *data2;
+
 #ifdef dump
     char filename[20] = "data/acoef";
     if (vp9_p_fp2 != NULL) {
@@ -646,21 +649,26 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
         mpp_err("Invalid frame marker\n");
         return MPP_ERR_STREAM;
     }
+
     ctx->profile  = mpp_get_bit1(&s->gb);
     ctx->profile |= mpp_get_bit1(&s->gb) << 1;
+
     if (ctx->profile == 3) ctx->profile += mpp_get_bit1(&s->gb);
     if (ctx->profile > 3) {
         mpp_err("Profile %d is not yet supported\n", ctx->profile);
         return MPP_ERR_STREAM;
     }
+
     vp9d_dbg(VP9D_DBG_HEADER, "profile %d", ctx->profile);
     s->show_existing_frame = mpp_get_bit1(&s->gb);
     vp9d_dbg(VP9D_DBG_HEADER, "show_existing_frame %d", s->show_existing_frame);
+
     if (s->show_existing_frame) {
         *refo = mpp_get_bits(&s->gb, 3);
         vp9d_dbg(VP9D_DBG_HEADER, "frame_to_show %d", *refo);
         return 0;
     }
+
     s->last_keyframe  = s->keyframe;
     s->keyframe       = !mpp_get_bit1(&s->gb);
     vp9d_dbg(VP9D_DBG_HEADER, "frame_type %d", s->keyframe);
@@ -673,10 +681,18 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     s->got_keyframes += s->keyframe ? 1 : 0;
     vp9d_dbg(VP9D_DBG_HEADER, "keyframe=%d, intraonly=%d, got_keyframes=%d\n",
              s->keyframe, s->intraonly, s->got_keyframes);
+
     if (!s->got_keyframes) {
         mpp_err_f("have not got keyframe.\n");
         return MPP_ERR_STREAM;
     }
+
+    /* set mvscale=16 default */
+    for (i = 0; i < 3; i++) {
+        s->mvscale[i][0] = 16;
+        s->mvscale[i][1] = 16;
+    }
+
     if (s->keyframe) {
         if (mpp_get_bits(&s->gb, 24) != VP9_SYNCCODE) { // synccode
             mpp_err("Invalid sync code\n");
@@ -1072,8 +1088,10 @@ static RK_S32 decode_parser_header(Vp9CodecContext *ctx,
     // next 16 bits is size of the rest of the header (arith-coded)
     size2 = mpp_get_bits(&s->gb, 16);
     vp9d_dbg(VP9D_DBG_HEADER, "first_partition_size %d", size2);
+    s->first_partition_size = size2;
     data2 = mpp_align_get_bits(&s->gb);
     vp9d_dbg(VP9D_DBG_HEADER, "offset %d", data2 - data);
+    s->uncompress_head_size_in_byte = data2 - data;
     if (size2 > size - (data2 - data)) {
         mpp_err("Invalid compressed header size\n");
         return MPP_ERR_STREAM;
