@@ -88,7 +88,7 @@ Mpp::Mpp(MppCtx ctx)
       mTaskGetCount(0),
       mPacketGroup(NULL),
       mFrameGroup(NULL),
-      mExternalFrameGroup(0),
+      mExternalBufferMode(0),
       mUsrInPort(NULL),
       mUsrOutPort(NULL),
       mMppInPort(NULL),
@@ -327,7 +327,7 @@ void Mpp::clear()
         mPacketGroup = NULL;
     }
 
-    if (mFrameGroup && !mExternalFrameGroup) {
+    if (mFrameGroup && !mExternalBufferMode) {
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
     }
@@ -1173,32 +1173,60 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         ret = mpp_dec_control(mDec, cmd, param);
     } break;
     case MPP_DEC_SET_EXT_BUF_GROUP: {
-        mFrameGroup = (MppBufferGroup)param;
-        if (param) {
-            mExternalFrameGroup = 1;
+        /*
+         * NOTE: If frame buffer group is configured before decoder init
+         * then the buffer limitation maybe not be correctly setup
+         * without infomation from InfoChange frame.
+         * And the thread signal connection may not be setup here. It
+         * may have a bad effect on MPP efficiency.
+         */
+        if (!mInitDone) {
+            mpp_err("WARNING: setup buffer group before decoder init\n");
+            break;
+        }
+
+        ret = MPP_OK;
+        if (!param) {
+            /* set to internal mode */
+            if (mExternalBufferMode) {
+                /* switch from external mode to internal mode */
+                mpp_assert(mFrameGroup);
+                mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
+                                              NULL, NULL);
+                mFrameGroup = NULL;
+            } else {
+                /* keep internal buffer mode cleanup old buffers */
+                if (mFrameGroup)
+                    mpp_buffer_group_clear(mFrameGroup);
+            }
+
+            mpp_dbg_info("using internal buffer group %p\n", mFrameGroup);
+            mExternalBufferMode = 0;
+        } else {
+            /* set to external mode */
+            if (mExternalBufferMode) {
+                /* keep external buffer mode */
+                if (mFrameGroup != param) {
+                    /* switch to new buffer group */
+                    mpp_assert(mFrameGroup);
+                    mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
+                                                  NULL, NULL);
+                } else {
+                    /* keep old group the external group user should cleanup its old buffers */
+                }
+            } else {
+                /* switch from intenal mode to external mode */
+                if (mFrameGroup)
+                    mpp_buffer_group_put(mFrameGroup);
+            }
 
             mpp_dbg_info("using external buffer group %p\n", mFrameGroup);
 
-            if (mInitDone) {
-                ret = mpp_buffer_group_set_callback((MppBufferGroupImpl *)param,
-                                                    mpp_notify_by_buffer_group,
-                                                    (void *)this);
-
-                notify(MPP_DEC_NOTIFY_EXT_BUF_GRP_READY);
-            } else {
-                /*
-                 * NOTE: If frame buffer group is configured before decoder init
-                 * then the buffer limitation maybe not be correctly setup
-                 * without infomation from InfoChange frame.
-                 * And the thread signal connection may not be setup here. It
-                 * may have a bad effect on MPP efficiency.
-                 */
-                mpp_err("WARNING: setup buffer group before decoder init\n");
-            }
-        } else {
-            /* The buffer group should be destroyed before */
-            mExternalFrameGroup = 0;
-            ret = MPP_OK;
+            mFrameGroup = (MppBufferGroup)param;
+            mpp_buffer_group_set_callback((MppBufferGroupImpl *)mFrameGroup,
+                                          mpp_notify_by_buffer_group, (void *)this);
+            mExternalBufferMode = 1;
+            notify(MPP_DEC_NOTIFY_EXT_BUF_GRP_READY);
         }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {

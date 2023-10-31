@@ -39,6 +39,7 @@ typedef struct {
     RK_U32          loop_end;
 
     /* input and output */
+    DecBufMgr       buf_mgr;
     MppBufferGroup  frm_grp;
     MppPacket       packet;
     MppFrame        frame;
@@ -116,100 +117,21 @@ static int dec_loop(MpiDecLoopData *data)
                 RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
                 RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                 RK_U32 buf_size = mpp_frame_get_buf_size(frame);
+                MppBufferGroup grp = NULL;
 
                 mpp_log_q(quiet, "%p decode_get_frame get info changed found\n", ctx);
                 mpp_log_q(quiet, "%p decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
                           ctx, width, height, hor_stride, ver_stride, buf_size);
 
-                /*
-                 * NOTE: We can choose decoder's buffer mode here.
-                 * There are three mode that decoder can support:
-                 *
-                 * Mode 1: Pure internal mode
-                 * In the mode user will NOT call MPP_DEC_SET_EXT_BUF_GROUP
-                 * control to decoder. Only call MPP_DEC_SET_INFO_CHANGE_READY
-                 * to let decoder go on. Then decoder will use create buffer
-                 * internally and user need to release each frame they get.
-                 *
-                 * Advantage:
-                 * Easy to use and get a demo quickly
-                 * Disadvantage:
-                 * 1. The buffer from decoder may not be return before
-                 * decoder is close. So memroy leak or crash may happen.
-                 * 2. The decoder memory usage can not be control. Decoder
-                 * is on a free-to-run status and consume all memory it can
-                 * get.
-                 * 3. Difficult to implement zero-copy display path.
-                 *
-                 * Mode 2: Half internal mode
-                 * This is the mode current test code using. User need to
-                 * create MppBufferGroup according to the returned info
-                 * change MppFrame. User can use mpp_buffer_group_limit_config
-                 * function to limit decoder memory usage.
-                 *
-                 * Advantage:
-                 * 1. Easy to use
-                 * 2. User can release MppBufferGroup after decoder is closed.
-                 *    So memory can stay longer safely.
-                 * 3. Can limit the memory usage by mpp_buffer_group_limit_config
-                 * Disadvantage:
-                 * 1. The buffer limitation is still not accurate. Memory usage
-                 * is 100% fixed.
-                 * 2. Also difficult to implement zero-copy display path.
-                 *
-                 * Mode 3: Pure external mode
-                 * In this mode use need to create empty MppBufferGroup and
-                 * import memory from external allocator by file handle.
-                 * On Android surfaceflinger will create buffer. Then
-                 * mediaserver get the file handle from surfaceflinger and
-                 * commit to decoder's MppBufferGroup.
-                 *
-                 * Advantage:
-                 * 1. Most efficient way for zero-copy display
-                 * Disadvantage:
-                 * 1. Difficult to learn and use.
-                 * 2. Player work flow may limit this usage.
-                 * 3. May need a external parser to get the correct buffer
-                 * size for the external allocator.
-                 *
-                 * The required buffer size caculation:
-                 * hor_stride * ver_stride * 3 / 2 for pixel data
-                 * hor_stride * ver_stride / 2 for extra info
-                 * Total hor_stride * ver_stride * 2 will be enough.
-                 *
-                 * For H.264/H.265 20+ buffers will be enough.
-                 * For other codec 10 buffers will be enough.
-                 */
-
-                if (NULL == data->frm_grp) {
-                    /* If buffer group is not set create one and limit it */
-                    ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
-                    if (ret) {
-                        mpp_err("%p get mpp buffer group failed ret %d\n", ctx, ret);
-                        break;
-                    }
-
-                    /* Set buffer to mpp decoder */
-                    ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
-                    if (ret) {
-                        mpp_err("%p set buffer group failed ret %d\n", ctx, ret);
-                        break;
-                    }
-                } else {
-                    /* If old buffer group exist clear it */
-                    ret = mpp_buffer_group_clear(data->frm_grp);
-                    if (ret) {
-                        mpp_err("%p clear buffer group failed ret %d\n", ctx, ret);
-                        break;
-                    }
-                }
-
-                /* Use limit config to limit buffer count to 24 with buf_size */
-                ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
+                grp = dec_buf_mgr_setup(data->buf_mgr, buf_size, 24, cmd->buf_mode);
+                /* Set buffer to mpp decoder */
+                ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, grp);
                 if (ret) {
-                    mpp_err("%p limit buffer group failed ret %d\n", ctx, ret);
+                    mpp_err("%p set buffer group failed ret %d\n", ctx, ret);
                     break;
                 }
+
+                data->frm_grp = grp;
 
                 /*
                  * All buffer group config done. Set info change ready to let
@@ -403,6 +325,12 @@ int dec_nt_decode(MpiDecTestCmd *cmd)
             mpp_err("failed to open verify file %s\n", cmd->file_slt);
     }
 
+    ret = dec_buf_mgr_init(&data.buf_mgr);
+    if (ret) {
+        mpp_err("dec_buf_mgr_init failed\n");
+        goto MPP_TEST_OUT;
+    }
+
     if (cmd->simple) {
         ret = mpp_packet_init(&packet, NULL, 0);
         mpp_err_f("mpp_packet_init get %p\n", packet);
@@ -414,15 +342,15 @@ int dec_nt_decode(MpiDecTestCmd *cmd)
         RK_U32 hor_stride = MPP_ALIGN(width, 16);
         RK_U32 ver_stride = MPP_ALIGN(height, 16);
 
-        ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("failed to get buffer group for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
         ret = mpp_frame_init(&frame); /* output frame */
         if (ret) {
             mpp_err("mpp_frame_init failed\n");
+            goto MPP_TEST_OUT;
+        }
+
+        data.frm_grp = dec_buf_mgr_setup(data.buf_mgr, hor_stride * ver_stride * 4, 4, cmd->buf_mode);
+        if (!data.frm_grp) {
+            mpp_err("failed to get buffer group for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;
         }
 
@@ -546,9 +474,10 @@ MPP_TEST_OUT:
         }
     }
 
-    if (data.frm_grp) {
-        mpp_buffer_group_put(data.frm_grp);
-        data.frm_grp = NULL;
+    data.frm_grp = NULL;
+    if (data.buf_mgr) {
+        dec_buf_mgr_deinit(data.buf_mgr);
+        data.buf_mgr = NULL;
     }
 
     if (data.fp_output) {
