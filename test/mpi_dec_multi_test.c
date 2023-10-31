@@ -42,6 +42,7 @@ typedef struct {
     RK_U32          loop_end;
 
     /* input and output */
+    DecBufMgr       buf_mgr;
     MppBufferGroup  frm_grp;
     MppPacket       packet;
     MppFrame        frame;
@@ -151,40 +152,20 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
                     RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
                     RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
                     RK_U32 buf_size = mpp_frame_get_buf_size(frame);
+                    MppBufferGroup grp = NULL;
 
                     mpp_log_q(quiet, "decode_get_frame get info changed found\n");
                     mpp_log_q(quiet, "decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
                               width, height, hor_stride, ver_stride, buf_size);
 
-                    if (NULL == data->frm_grp) {
-                        /* If buffer group is not set create one and limit it */
-                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
-                        if (ret) {
-                            mpp_err("get mpp buffer group failed ret %d\n", ret);
-                            break;
-                        }
-
-                        /* Set buffer to mpp decoder */
-                        ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
-                        if (ret) {
-                            mpp_err("set buffer group failed ret %d\n", ret);
-                            break;
-                        }
-                    } else {
-                        /* If old buffer group exist clear it */
-                        ret = mpp_buffer_group_clear(data->frm_grp);
-                        if (ret) {
-                            mpp_err("clear buffer group failed ret %d\n", ret);
-                            break;
-                        }
-                    }
-
-                    /* Use limit config to limit buffer count to 24 with buf_size */
-                    ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
+                    grp = dec_buf_mgr_setup(data->buf_mgr, buf_size, 24, cmd->buf_mode);
+                    /* Set buffer to mpp decoder */
+                    ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, grp);
                     if (ret) {
-                        mpp_err("limit buffer group failed ret %d\n", ret);
+                        mpp_err("%p set buffer group failed ret %d\n", ctx, ret);
                         break;
                     }
+                    data->frm_grp = grp;
 
                     /*
                      * All buffer group config done. Set info change ready to let
@@ -428,6 +409,12 @@ void* multi_dec_decode(void *cmd_ctx)
         }
     }
 
+    ret = dec_buf_mgr_init(&dec_ctx->buf_mgr);
+    if (ret) {
+        mpp_err("dec_buf_mgr_init failed\n");
+        goto MPP_TEST_OUT;
+    }
+
     if (cmd->simple) {
         ret = mpp_packet_init(&packet, NULL, 0);
         if (ret) {
@@ -438,15 +425,16 @@ void* multi_dec_decode(void *cmd_ctx)
         RK_U32 hor_stride = MPP_ALIGN(width, 16);
         RK_U32 ver_stride = MPP_ALIGN(height, 16);
 
-        ret = mpp_buffer_group_get_internal(&dec_ctx->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
-        if (ret) {
-            mpp_err("failed to get buffer group for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
         ret = mpp_frame_init(&frame); /* output frame */
         if (ret) {
             mpp_err("mpp_frame_init failed\n");
+            goto MPP_TEST_OUT;
+        }
+
+        dec_ctx->frm_grp = dec_buf_mgr_setup(dec_ctx->buf_mgr, hor_stride * ver_stride * 2, 4, cmd->buf_mode);
+        if (!dec_ctx->frm_grp) {
+            mpp_err("failed to get buffer group for input frame ret %d\n", ret);
+            ret = MPP_NOK;
             goto MPP_TEST_OUT;
         }
 
@@ -563,9 +551,10 @@ MPP_TEST_OUT:
         }
     }
 
-    if (dec_ctx->frm_grp) {
-        mpp_buffer_group_put(dec_ctx->frm_grp);
-        dec_ctx->frm_grp = NULL;
+    dec_ctx->frm_grp = NULL;
+    if (dec_ctx->buf_mgr) {
+        dec_buf_mgr_deinit(dec_ctx->buf_mgr);
+        dec_ctx->buf_mgr = NULL;
     }
 
     if (dec_ctx->fp_output) {

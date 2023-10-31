@@ -153,7 +153,7 @@ public:
      */
     MppBufferGroup  mPacketGroup;
     MppBufferGroup  mFrameGroup;
-    RK_U32          mExternalFrameGroup;
+    RK_U32          mExternalBufferMode;
 
     /*
      * Mpp task queue for advance task mode

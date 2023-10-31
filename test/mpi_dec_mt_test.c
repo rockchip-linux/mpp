@@ -43,6 +43,7 @@ typedef struct {
     char            *buf;
 
     /* input and output */
+    DecBufMgr       buf_mgr;
     MppBufferGroup  frm_grp;
     MppPacket       packet;
     size_t          packet_size;
@@ -147,40 +148,20 @@ void *thread_output(void *arg)
             RK_U32 hor_stride = mpp_frame_get_hor_stride(frame);
             RK_U32 ver_stride = mpp_frame_get_ver_stride(frame);
             RK_U32 buf_size = mpp_frame_get_buf_size(frame);
+            MppBufferGroup grp = NULL;
 
             mpp_log_q(quiet, "decode_get_frame get info changed found\n");
             mpp_log_q(quiet, "decoder require buffer w:h [%d:%d] stride [%d:%d] size %d\n",
                       width, height, hor_stride, ver_stride, buf_size);
 
-            if (NULL == data->frm_grp) {
-                /* If buffer group is not set create one and limit it */
-                ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
-                if (ret) {
-                    mpp_err("get mpp buffer group failed ret %d\n", ret);
-                    break;
-                }
-
-                /* Set buffer to mpp decoder */
-                ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, data->frm_grp);
-                if (ret) {
-                    mpp_err("set buffer group failed ret %d\n", ret);
-                    break;
-                }
-            } else {
-                /* If old buffer group exist clear it */
-                ret = mpp_buffer_group_clear(data->frm_grp);
-                if (ret) {
-                    mpp_err("clear buffer group failed ret %d\n", ret);
-                    break;
-                }
-            }
-
-            /* Use limit config to limit buffer count to 24 */
-            ret = mpp_buffer_group_limit_config(data->frm_grp, buf_size, 24);
+            grp = dec_buf_mgr_setup(data->buf_mgr, buf_size, 24, cmd->buf_mode);
+            /* Set buffer to mpp decoder */
+            ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, grp);
             if (ret) {
-                mpp_err("limit buffer group failed ret %d\n", ret);
+                mpp_err("%p set buffer group failed ret %d\n", ctx, ret);
                 break;
             }
+            data->frm_grp = grp;
 
             ret = mpi->control(ctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
             if (ret) {
@@ -269,6 +250,12 @@ int mt_dec_decode(MpiDecTestCmd *cmd)
             mpp_err("failed to open output file %s\n", cmd->file_output);
             goto MPP_TEST_OUT;
         }
+    }
+
+    ret = dec_buf_mgr_init(&data.buf_mgr);
+    if (ret) {
+        mpp_err("dec_buf_mgr_init failed\n");
+        goto MPP_TEST_OUT;
     }
 
     ret = mpp_packet_init(&packet, NULL, 0);
@@ -396,9 +383,10 @@ MPP_TEST_OUT:
         ctx = NULL;
     }
 
-    if (data.frm_grp) {
-        mpp_buffer_group_put(data.frm_grp);
-        data.frm_grp = NULL;
+    data.frm_grp = NULL;
+    if (data.buf_mgr) {
+        dec_buf_mgr_deinit(data.buf_mgr);
+        data.buf_mgr = NULL;
     }
 
     if (data.fp_output) {

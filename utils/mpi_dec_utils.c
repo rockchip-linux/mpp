@@ -71,23 +71,15 @@ typedef struct FileReader_t {
     FileBufSlot     **slots;
 } FileReaderImpl;
 
-#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
+typedef struct DecBufMgrImpl_t {
+    MppDecBufMode   buf_mode;
+    RK_U32          buf_count;
+    RK_U32          buf_size;
+    MppBufferGroup  group;
+    MppBuffer       *bufs;
+} DecBufMgrImpl;
 
-OptionInfo mpi_dec_cmd[] = {
-    {"i",               "input_file",           "input bitstream file"},
-    {"o",               "output_file",          "output bitstream file, "},
-    {"c",               "ops_file",             "input operation config file"},
-    {"w",               "width",                "the width of input bitstream"},
-    {"h",               "height",               "the height of input bitstream"},
-    {"t",               "type",                 "input stream coding type"},
-    {"f",               "format",               "output frame format type"},
-    {"x",               "timeout",              "output timeout interval"},
-    {"n",               "frame_number",         "max output frame number"},
-    {"s",               "instance_nb",          "number of instances"},
-    {"v",               "trace",                "q - quiet f - show fps"},
-    {"c",               "verify_file",          "verify file for slt check"},
-    {NULL,              NULL,                   NULL},
-};
+#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
 
 static MPP_RET add_new_slot(FileReaderImpl* impl, FileBufSlot *slot)
 {
@@ -600,6 +592,29 @@ RK_S32 mpi_dec_opt_slt(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_dec_opt_bufmode(void *ctx, const char *next)
+{
+    MpiDecTestCmd *cmd = (MpiDecTestCmd *)ctx;
+
+    if (next) {
+        if (strstr(next, "hi")) {
+            cmd->buf_mode = MPP_DEC_BUF_HALF_INT;
+        } else if (strstr(next, "i")) {
+            cmd->buf_mode = MPP_DEC_BUF_INTERNAL;
+        } else if (strstr(next, "e")) {
+            cmd->buf_mode = MPP_DEC_BUF_EXTERNAL;
+        } else {
+            cmd->buf_mode = MPP_DEC_BUF_HALF_INT;
+        }
+
+        return 1;
+    }
+
+    mpp_err("invalid ext buf mode value\n");
+    return 0;
+}
+
+
 RK_S32 mpi_dec_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
@@ -620,6 +635,7 @@ static MppOptInfo dec_opts[] = {
     {"v",       "trace option", "q - quiet f - show fps",           mpi_dec_opt_v},
     {"slt",     "slt file",     "slt verify data file",             mpi_dec_opt_slt},
     {"help",    "help",         "show help",                        mpi_dec_opt_help},
+    {"bufmode", "buffer mode",  "hi - half internal (default) i -internal e - external", mpi_dec_opt_bufmode},
 };
 
 static RK_U32 dec_opt_cnt = MPP_ARRAY_ELEMS(dec_opts);
@@ -680,7 +696,7 @@ RK_S32 mpi_dec_test_cmd_init(MpiDecTestCmd* cmd, int argc, char **argv)
 
     mpp_opt_init(&opts);
     /* should change node count when option increases */
-    mpp_opt_setup(opts, cmd, 22, dec_opt_cnt);
+    mpp_opt_setup(opts, cmd, 35, dec_opt_cnt);
 
     for (i = 0; i < dec_opt_cnt; i++)
         mpp_opt_add(opts, &dec_opts[i]);
@@ -747,4 +763,171 @@ void mpi_dec_test_cmd_options(MpiDecTestCmd* cmd)
     mpp_log("max frames : %4d\n", cmd->frame_num);
     if (cmd->file_slt)
         mpp_log("verify     : %s\n", cmd->file_slt);
+}
+
+MPP_RET dec_buf_mgr_init(DecBufMgr *mgr)
+{
+    DecBufMgrImpl *impl = NULL;
+    MPP_RET ret = MPP_NOK;
+
+    if (mgr) {
+        impl = mpp_calloc(DecBufMgrImpl, 1);
+        if (impl) {
+            ret = MPP_OK;
+        } else {
+            mpp_err_f("failed to create decoder buffer manager\n");
+        }
+
+        *mgr = impl;
+    }
+
+    return ret;
+}
+
+void dec_buf_mgr_deinit(DecBufMgr mgr)
+{
+    DecBufMgrImpl *impl = (DecBufMgrImpl *)mgr;
+
+    if (NULL == impl)
+        return;
+
+    /* release buffer group for half internal and external mode */
+    if (impl->group) {
+        mpp_buffer_group_put(impl->group);
+        impl->group = NULL;
+    }
+
+    /* release the buffers used in external mode */
+    if (impl->buf_count && impl->bufs) {
+        RK_U32 i;
+
+        for (i = 0; i < impl->buf_count; i++) {
+            if (impl->bufs[i]) {
+                mpp_buffer_put(impl->bufs[i]);
+                impl->bufs[i] = NULL;
+            }
+        }
+
+        MPP_FREE(impl->bufs);
+    }
+
+    MPP_FREE(impl);
+}
+
+MppBufferGroup dec_buf_mgr_setup(DecBufMgr mgr, RK_U32 size, RK_U32 count, MppDecBufMode mode)
+{
+    DecBufMgrImpl *impl = (DecBufMgrImpl *)mgr;
+    MPP_RET ret = MPP_NOK;
+
+    if (!impl)
+        return NULL;
+
+    /* cleanup old buffers if previous buffer group exists */
+    if (impl->group) {
+        if (mode != impl->buf_mode) {
+            /* switch to different buffer mode just release old buffer group */
+            mpp_buffer_group_put(impl->group);
+            impl->group = NULL;
+        } else {
+            /* otherwise just cleanup old buffers */
+            mpp_buffer_group_clear(impl->group);
+        }
+
+        /* if there are external mode old buffers do cleanup */
+        if (impl->bufs) {
+            RK_U32 i;
+
+            for (i = 0; i < impl->buf_count; i++) {
+                if (impl->bufs[i]) {
+                    mpp_buffer_put(impl->bufs[i]);
+                    impl->bufs[i] = NULL;
+                }
+            }
+
+            MPP_FREE(impl->bufs);
+        }
+    }
+
+    switch (mode) {
+    case MPP_DEC_BUF_HALF_INT : {
+        /* reuse previous half internal buffer group and just reconfig limit */
+        if (NULL == impl->group) {
+            ret = mpp_buffer_group_get_internal(&impl->group, MPP_BUFFER_TYPE_ION);
+            if (ret) {
+                mpp_err_f("get mpp internal buffer group failed ret %d\n", ret);
+                break;
+            }
+        }
+        /* Use limit config to limit buffer count and buffer size */
+        ret = mpp_buffer_group_limit_config(impl->group, size, count);
+        if (ret) {
+            mpp_err_f("limit buffer group failed ret %d\n", ret);
+        }
+    } break;
+    case MPP_DEC_BUF_INTERNAL : {
+        /* do nothing juse keep buffer group empty */
+        mpp_assert(NULL == impl->group);
+        ret = MPP_OK;
+    } break;
+    case MPP_DEC_BUF_EXTERNAL : {
+        RK_U32 i;
+        MppBufferInfo commit;
+
+        impl->bufs = mpp_calloc(MppBuffer, count);
+        if (!impl->bufs) {
+            mpp_err_f("create %d external buffer record failed\n", count);
+            break;
+        }
+
+        /* reuse previous external buffer group */
+        if (NULL == impl->group) {
+            ret = mpp_buffer_group_get_external(&impl->group, MPP_BUFFER_TYPE_ION);
+            if (ret) {
+                mpp_err_f("get mpp external buffer group failed ret %d\n", ret);
+                break;
+            }
+        }
+
+        /*
+         * NOTE: Use default misc allocater here as external allocator for demo.
+         * But in practical case the external buffer could be GraphicBuffer or gst dmabuf.
+         * The misc allocator will cause the print at the end like:
+         * ~MppBufferService cleaning misc group
+         */
+        commit.type = MPP_BUFFER_TYPE_ION;
+        commit.size = size;
+
+        for (i = 0; i < count; i++) {
+            ret = mpp_buffer_get(NULL, &impl->bufs[i], size);
+            if (ret || NULL == impl->bufs[i]) {
+                mpp_err_f("get misc buffer failed ret %d\n", ret);
+                break;
+            }
+
+            commit.index = i;
+            commit.ptr = mpp_buffer_get_ptr(impl->bufs[i]);
+            commit.fd = mpp_buffer_get_fd(impl->bufs[i]);
+
+            ret = mpp_buffer_commit(impl->group, &commit);
+            if (ret) {
+                mpp_err_f("external buffer commit failed ret %d\n", ret);
+                break;
+            }
+        }
+    } break;
+    default : {
+        mpp_err_f("unsupport buffer mode %d\n", mode);
+    } break;
+    }
+
+    if (ret) {
+        dec_buf_mgr_deinit(impl);
+        impl = NULL;
+    } else {
+        impl->buf_count = count;
+        impl->buf_size = size;
+        impl->buf_mode = mode;
+    }
+
+    return impl ? impl->group : NULL;
 }

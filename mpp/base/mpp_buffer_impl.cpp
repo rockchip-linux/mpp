@@ -678,10 +678,8 @@ MPP_RET mpp_buffer_group_reset(MppBufferGroupImpl *p)
 MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
                                       MppBufCallback callback, void *arg)
 {
-    if (NULL == p) {
-        mpp_err_f("found NULL pointer\n");
-        return MPP_ERR_NULL_PTR;
-    }
+    if (!p)
+        return MPP_OK;
 
     MPP_BUF_FUNCTION_ENTER();
 
