@@ -273,6 +273,15 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
     }
 
     p_Vid->spspps_update = 0;
+
+    //!< for fpga test
+    pp->seq_parameter_set_id        = p_Vid->active_sps->seq_parameter_set_id;
+    pp->pps_seq_parameter_set_id    = p_Vid->active_pps->seq_parameter_set_id;
+    pp->pps_pic_parameter_set_id    = p_Vid->active_pps->pic_parameter_set_id;
+    pp->profile_idc                 = p_Vid->active_sps->profile_idc;
+    pp->constraint_set3_flag        = p_Vid->active_sps->constrained_set3_flag;
+    pp->qpprime_y_zero_transform_bypass_flag = p_Vid->active_sps->qpprime_y_zero_transform_bypass_flag;;
+    pp->mvc_extension_enable        = p_Vid->active_subsps ? 1 : 0;
 }
 
 /*!
