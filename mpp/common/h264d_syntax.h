@@ -419,13 +419,14 @@ typedef struct _DXVA_PicParams_H264_MVC {
     //!< extensive
     RK_U32  spspps_update;
 
-    ////!< for fpga test
-    //USHORT seq_parameter_set_id;
-    //USHORT pps_seq_parameter_set_id;
-    //USHORT profile_idc;
-    //UCHAR  constraint_set3_flag;
-    //UCHAR  qpprime_y_zero_transform_bypass_flag;
-    //UCHAR  mvc_extension_enable;
+    //!< for fpga test
+    RK_U16 seq_parameter_set_id;
+    RK_U16 pps_seq_parameter_set_id;
+    RK_U16 pps_pic_parameter_set_id;
+    RK_U16 profile_idc;
+    RK_U8  constraint_set3_flag;
+    RK_U8  qpprime_y_zero_transform_bypass_flag;
+    RK_U8  mvc_extension_enable;
 
 } DXVA_PicParams_H264_MVC, *LPDXVA_PicParams_H264_MVC;
 
