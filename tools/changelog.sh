@@ -16,9 +16,7 @@ declare -g prev_tag
 declare -g curr_tag
 
 # changelog version define
-declare -g version_major
-declare -g version_minor
-declare -g version_patch
+declare -g version_tag
 
 function log_filter_and_print() {
     local title=$1
@@ -64,7 +62,9 @@ function log_filter_and_print() {
 }
 
 usage="changelog helper script
-  use --check to check the latest commit message using angularcommits rule
+  use -t / --version to create a new tag commit and update CHANGELOG.md
+  by insert new version on top,
+
   the basic commit message should be structured as follows:
   <type>[optional scope]: <description>
   [optional body]
@@ -83,16 +83,10 @@ usage="changelog helper script
 
   https://www.conventionalcommits.org/zh-hans/v1.0.0/
 
-  use --new version number to update CHANGELOG.md by insert new version on top
-  the version infomation should contain the following infomation
+  .option('-t, --version', 'create a version tag with changelog update')
+  .option('-f, --file [file]', 'file to write to, defaults to ./CHANGELOG.md, use - for stdout', './CHANGELOG.md')
+  .option('-u, --repo-url [url]', 'specify the repo URL for commit links')
 "
-#  .option('-p, --patch', 'create a patch changelog')
-#  .option('-m, --minor', 'create a minor changelog')
-#  .option('-M, --major', 'create a major changelog')
-#  .option('-t, --tag <range>', 'generate from specific tag or range (e.g. v1.2.3 or v1.2.3..v1.2.4)')
-#  .option('-x, --exclude <types>', 'exclude selected commit types (comma separated)', list)
-#  .option('-f, --file [file]', 'file to write to, defaults to ./CHANGELOG.md, use - for stdout', './CHANGELOG.md')
-#  .option('-u, --repo-url [url]', 'specify the repo URL for commit links')
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -100,20 +94,8 @@ while [ $# -gt 0 ]; do
             echo "$usage"
             exit 1
             ;;
-        --check)
-            # check the latest commit message is following the rule or not
-            shift
-            ;;
-        --major | -m)
-            version_major=$2
-            shift
-            ;;
-        --minor | -n)
-            version_minor=$2
-            shift
-            ;;
-        --patch | -p)
-            version_patch=$2
+        --version | -t)
+            version_tag=$2
             shift
             ;;
         --file | -f)
@@ -137,6 +119,7 @@ done
 # check git command
 if ! command -v git >/dev/null; then
     >&2 echo "ERROR: git command is not available"
+    echo "$usage"
     exit 1
 fi
 
@@ -148,11 +131,31 @@ fi
 # check repo root valid or not
 if [ -z ${git_repo_rootdir} ] || [ ! -d ${git_repo_rootdir} ]; then
     echo "ERROR: can not found repo root"
+    echo "$usage"
     exit 1
 fi
 
 # cd to rootdir
 cd $git_repo_rootdir
+
+# check version tag exist or not
+if [ -z ${version_tag} ]; then
+    echo "ERROR: can not run without a new version tag"
+    echo "$usage"
+    exit 1
+fi
+
+tag_log=$(git tag -v ${version_tag} | grep object)
+if [ ! -z ${tag_log} ]; then
+    echo "ERROR: can not run with an existing tag ${version_tag}"
+    echo "$usage"
+    exit 1
+fi
+
+# create new tag with empty commit
+git commit --allow-empty -s -m "docs: Update ${version_tag} CHANGELOG.md"
+tag_date=`date '+%Y-%m-%d'`
+git tag ${version_tag} -m "${version_tag} version at ${tag_date}"
 
 # if changelog file is not exist then create it
 if [[ ! -f ${changelog_file} ]]; then
@@ -211,5 +214,9 @@ log_filter_and_print "Test"     "test"
 log_filter_and_print "Chore"    "chore"
 
 echo -e "${prev_changelog}" >> ${changelog_file}
+
+# add CHANGELOG.md
+git add ${changelog_file}
+git commit --amend -C ${curr_ver}
 
 IFS=$OLDIFS
