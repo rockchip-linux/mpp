@@ -1,3 +1,34 @@
+## 1.0.2 (2023-11-01)
+### Feature
+- [mpp_lock]: Add spinlock timing statistic
+- [mpp_thread]: Add simple thread
+- add more enc info to meta
+
+### Fix
+- [vepu540c]: fix h265 config
+- [h264d]: Optimize sps check error
+- [utils]: adjust format range constraint
+- [h264d]: fix mpp split eos process err
+- [h264d]: add errinfo for 4:4:4 lossless mode
+- [h264d]: fix eos not updated err
+- [camera_source]: Fix memory double-free issue
+- [mpp_dec]:fix mpp_destroy crash
+- [mpp_enc]: Fix async multi-thread case error
+- [jpeg_dec]: Add parse & gen_reg err check for jpeg dec
+- [h265e_vepu580]: fix tile mode cfg
+- [vp9d]: Fix AFBC to non-FBC mode switch issue
+- [h264e_dpb]: fix modification_of_pic_nums_idc error issue
+- [allocator]: dma_heap allocator has the highest priority
+- [camera_source]: enumerate device and format
+- [utils]: fix hor_stride 24 aligned error
+
+### Docs
+- Update 1.0.2 CHANGELOG.md
+- Add mpp developer guide markdown
+
+### Chore
+- [scipt]: Update changelog.sh
+
 ## 1.0.1 (2023-09-28)
 ### Feature
 - [venc]: Modify fqp init value to invalid.
