@@ -9,13 +9,10 @@ ANDROID_ABI="armeabi-v7a with NEON"
 #Specify cmake if needed
 #CMAKE_PROGRAM=
 
-while [ $# -gt 0 ]; do
-    case $1 in
-        -c)
-            clear
-            ;;
-    esac
-    shift
+for ARG in "$@"; do
+  if [[ "$ARG" == "-c" ]]; then
+    clear
+  fi
 done
 
 source ../env_setup.sh
