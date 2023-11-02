@@ -232,6 +232,14 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_size(p->task_pkt, p->stream_size);
     }
 
+    if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
+        if (p->left_length > 0) {
+            p->left_length = 0;
+            task->valid = 1;
+            return MPP_OK;
+        }
+    }
+
     if (!p->need_split ||
         (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA)) {
         p->got_eos = eos;
