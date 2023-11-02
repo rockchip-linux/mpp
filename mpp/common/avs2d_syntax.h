@@ -50,6 +50,7 @@ typedef struct _DXVA_PicParams_AVS2 {
     RK_U32      loop_filter_disable_flag : 1;
     RK_S8       alpha_c_offset;                 //!< 5bits signed
     RK_S8       beta_offset;                    //!< 5bits signed
+    RK_S32      cur_poc;
 } PicParams_Avs2d, *LP_PicParams_Avs2d;
 
 typedef struct _DXVA_RefParams_AVS2 {

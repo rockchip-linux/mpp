@@ -32,6 +32,7 @@
 #include "hal_avs2d_api.h"
 #include "hal_avs2d_rkv.h"
 #include "hal_avs2d_vdpu382.h"
+#include "hal_avs2d_vdpu383.h"
 
 RK_U32 avs2d_hal_debug = 0;
 
@@ -86,7 +87,13 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
     RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVDEC);
 
     p_api          = &p_hal->hal_api;
-    if (hw_id == HWID_VDPU382_RK3528) {
+    if (hw_id == HWID_VDPU383) {
+        p_api->init    = hal_avs2d_vdpu383_init;
+        p_api->deinit  = hal_avs2d_vdpu383_deinit;
+        p_api->reg_gen = hal_avs2d_vdpu383_gen_regs;
+        p_api->start   = hal_avs2d_vdpu383_start;
+        p_api->wait    = hal_avs2d_vdpu383_wait;
+    } else if (hw_id == HWID_VDPU382_RK3528) {
         p_api->init    = hal_avs2d_vdpu382_init;
         p_api->deinit  = hal_avs2d_vdpu382_deinit;
         p_api->reg_gen = hal_avs2d_vdpu382_gen_regs;

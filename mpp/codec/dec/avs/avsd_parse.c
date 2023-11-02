@@ -262,11 +262,9 @@ static MPP_RET get_i_picture_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh, 
     READ_ONEBIT(bitctx, &ph->repeat_first_field);
     READ_ONEBIT(bitctx, &ph->fixed_picture_qp);
     READ_BITS(bitctx, 6, &ph->picture_qp);
-
     ph->skip_mode_flag = 0;
     if (!ph->progressive_frame && !ph->picture_structure)
         READ_ONEBIT(bitctx, &ph->skip_mode_flag);
-
     READ_BITS(bitctx, 4, &val_temp); //!< reserve 4 bits
     if (val_temp) {
         AVSD_DBG(AVSD_DBG_WARNNING, "reserve bits not equal to zeros.\n");

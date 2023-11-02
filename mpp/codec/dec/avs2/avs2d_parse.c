@@ -398,6 +398,9 @@ MPP_RET avs2d_fill_parameters(Avs2dCtx_t *p_dec, Avs2dSyntax_t *syntax)
     pp->alpha_c_offset              = ph->alpha_c_offset;
     pp->beta_offset                 = ph->beta_offset;
 
+    //!< current poc
+    pp->cur_poc = ph->poi;
+
     //!< picture reference params
     refp->ref_pic_num = mgr->num_of_ref;
     memset(refp->ref_poc_list, -1, sizeof(refp->ref_poc_list));
@@ -409,7 +412,7 @@ MPP_RET avs2d_fill_parameters(Avs2dCtx_t *p_dec, Avs2dSyntax_t *syntax)
     alfp->enable_pic_alf_y  = ph->enable_pic_alf_y;
     alfp->enable_pic_alf_cb = ph->enable_pic_alf_cb;
     alfp->enable_pic_alf_cr = ph->enable_pic_alf_cr;
-    alfp->alf_filter_num_minus1 = ph->alf_filter_num - 1;
+    alfp->alf_filter_num_minus1 = (ph->alf_filter_num > 0) ? (ph->alf_filter_num - 1) : 0;
     memcpy(alfp->alf_coeff_idx_tab, ph->alf_coeff_idx_tab, sizeof(ph->alf_coeff_idx_tab));
     memcpy(alfp->alf_coeff_y, ph->alf_coeff_y, sizeof(ph->alf_coeff_y));
     memcpy(alfp->alf_coeff_cb, ph->alf_coeff_cb, sizeof(ph->alf_coeff_cb));
@@ -546,7 +549,7 @@ MPP_RET avs2d_parse_prepare_split(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask 
             p_curdata = p_end - remain + 1;
         }
 
-        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)) {
+        if (p_dec->new_frame_flag || (p_dec->nal_cnt > 1 && p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)) {
             task->valid = 1;
             break;
         }
