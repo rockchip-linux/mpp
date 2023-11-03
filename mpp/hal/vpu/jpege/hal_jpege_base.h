@@ -44,6 +44,8 @@ typedef struct hal_jpege_ctx_s {
     void                *regs;
     void                *regs_out;
     RK_U32              reg_size;
+    RK_S32              task_cnt;
+    RK_S32              task_idx;
 
     MppEncCfgSet        *cfg;
     JpegeSyntax         syntax;
