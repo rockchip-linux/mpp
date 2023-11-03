@@ -80,6 +80,7 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
     }
     ctx->dev = cfg->dev;
     ctx->type = cfg->type;
+    ctx->task_cnt = cfg->task_cnt;
 
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
@@ -89,13 +90,13 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
 
     ctx->cfg = cfg->cfg;
     ctx->reg_size = sizeof(RK_U32) * VEPU_JPEGE_VEPU2_NUM_REGS;
-    ctx->regs = mpp_calloc_size(void, ctx->reg_size + EXTRA_INFO_SIZE);
+    ctx->regs = mpp_calloc_size(void, (ctx->reg_size + EXTRA_INFO_SIZE) * ctx->task_cnt);
     if (NULL == ctx->regs) {
         mpp_err_f("failed to malloc vepu2 regs\n");
         return MPP_NOK;
     }
 
-    ctx->regs_out = mpp_calloc_size(void, ctx->reg_size + EXTRA_INFO_SIZE);
+    ctx->regs_out = mpp_calloc_size(void, (ctx->reg_size + EXTRA_INFO_SIZE) *  ctx->task_cnt);
     if (NULL == ctx->regs_out) {
         mpp_err_f("failed to malloc vepu2 regs\n");
         return MPP_NOK;
@@ -188,6 +189,15 @@ MPP_RET hal_jpege_vepu2_get_task(void *hal, HalEncTask *task)
     ctx->rst_marker_idx = 0;
     task->part_first = 1;
     task->part_last = 0;
+    task->flags.reg_idx = 0;
+
+    /* rk3588 4 core frame parallel */
+    if (ctx->task_cnt > 1) {
+        task->flags.reg_idx = ctx->task_idx++;
+        if (ctx->task_idx >= ctx->task_cnt)
+            ctx->task_idx = 0;
+        goto MULTI_CORE_SPLIT_DONE;
+    }
 
     /* Split single task to multi cores on rk3588 */
     if (ctx_ext)
@@ -386,7 +396,8 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
     RK_U32 hor_stride   = 0;
     RK_U32 ver_stride   = MPP_ALIGN(height, 16);
     JpegeBits bits      = ctx->bits;
-    RK_U32 *regs = (RK_U32 *)ctx->regs;
+    RK_S32 reg_idx      = task->flags.reg_idx;
+    RK_U32 *regs = (RK_U32 *)((RK_U8 *)ctx->regs + ctx->reg_size * reg_idx);
     size_t length = mpp_packet_get_length(task->packet);
     RK_U8  *buf = mpp_buffer_get_ptr(output);
     size_t size = mpp_buffer_get_size(output);
@@ -592,7 +603,8 @@ static MPP_RET multi_core_start(HalJpegeCtx *ctx, HalEncTask *task)
     JpegeSyntax *syntax = &ctx->syntax;
     MppDevRegOffCfgs *reg_cfg = ctx_ext->reg_cfg;
     MppDev dev = ctx->dev;
-    RK_U32 *src = (RK_U32 *)ctx->regs;
+    RK_S32 reg_idx = task->flags.reg_idx;
+    RK_U32 *src = (RK_U32 *)((RK_U8 *)ctx->regs + ctx->reg_size * reg_idx);
     RK_U32 reg_size = ctx->reg_size;
     MPP_RET ret = MPP_OK;
     RK_U32 partion_num = ctx_ext->partion_num;
@@ -815,8 +827,10 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalEncTask *task)
             MppDevRegWrCfg wr_cfg;
             MppDevRegRdCfg rd_cfg;
             RK_U32 reg_size = ctx->reg_size;
+            RK_S32 reg_idx = task->flags.reg_idx;
+            RK_U32 *regs = (RK_U32 *)((RK_U8 *)ctx->regs + reg_size * reg_idx);
 
-            wr_cfg.reg = ctx->regs;
+            wr_cfg.reg = regs;
             wr_cfg.size = reg_size;
             wr_cfg.offset = 0;
 
@@ -826,7 +840,7 @@ MPP_RET hal_jpege_vepu2_start(void *hal, HalEncTask *task)
                 break;
             }
 
-            rd_cfg.reg = ctx->regs;
+            rd_cfg.reg = regs;
             rd_cfg.size = reg_size;
             rd_cfg.offset = 0;
 
@@ -861,7 +875,8 @@ MPP_RET hal_jpege_vepu2_wait(void *hal, HalEncTask *task)
     } else {
         JpegeFeedback *feedback = &ctx->feedback;
         JpegeBits bits = ctx->bits;
-        RK_U32 *regs = ctx->regs;
+        RK_S32 reg_idx = task->flags.reg_idx;
+        RK_U32 *regs = (RK_U32 *)((RK_U8 *)ctx->regs + ctx->reg_size * reg_idx);
         RK_U32 sw_bit = 0;
         RK_U32 hw_bit = 0;
         RK_U32 val;
@@ -902,7 +917,8 @@ MPP_RET hal_jpege_vepu2_part_start(void *hal, HalEncTask *task)
     RK_U32 mcu_h = syntax->mcu_h;
     RK_U32 mcu_y = ctx->mcu_y;
     RK_U32 part_mcu_h = syntax->part_rows;
-    RK_U32 *regs = (RK_U32 *)ctx->regs;
+    RK_S32 reg_idx = task->flags.reg_idx;
+    RK_U32 *regs = (RK_U32 *)((RK_U8 *)ctx->regs + ctx->reg_size * reg_idx);
     RK_U32 part_enc_h;
     RK_U32 part_enc_mcu_h;
     RK_U32 part_y_fill;
@@ -995,7 +1011,8 @@ MPP_RET hal_jpege_vepu2_part_wait(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalJpegeCtx *ctx = (HalJpegeCtx *)hal;
-    RK_U32 *regs = ctx->regs_out;
+    RK_S32 reg_idx = task->flags.reg_idx;
+    RK_U32 *regs = (RK_U32 *)((RK_U8 *)ctx->regs_out + ctx->reg_size * reg_idx);
     JpegeFeedback *feedback = &ctx->feedback;
     RK_U32 hw_bit = 0;
 
