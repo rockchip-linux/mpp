@@ -440,11 +440,11 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      * 6. copy prepared stream to hardware buffer
      */
     if (!task->status.dec_pkt_copy_rdy) {
-        void *dst = mpp_buffer_get_ptr(hal_buf_in);
         void *src = mpp_packet_get_data(task_dec->input_packet);
         size_t length = mpp_packet_get_length(task_dec->input_packet);
 
-        memcpy(dst, src, length);
+        mpp_buffer_write(hal_buf_in, 0, src, length);
+        mpp_buffer_sync_partial_end(hal_buf_in, 0, length);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         task->status.dec_pkt_copy_rdy = 1;
@@ -571,7 +571,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     /* 10. whether the frame buffer group is internal or external */
     if (NULL == mpp->mFrameGroup) {
         mpp_log("mpp_dec use internal frame buffer group\n");
-        mpp_buffer_group_get_internal(&mpp->mFrameGroup, MPP_BUFFER_TYPE_ION);
+        mpp_buffer_group_get_internal(&mpp->mFrameGroup, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
     }
 
     /* 10.1 look for a unused hardware buffer for output */
@@ -1064,6 +1064,7 @@ void *mpp_dec_advanced_thread(void *data)
         mpp_port_poll(output, MPP_POLL_BLOCK);
         mpp_port_dequeue(output, &mpp_task);
         mpp_task_meta_set_frame(mpp_task, KEY_OUTPUT_FRAME, frame);
+        mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(frame));
 
         // setup output task here
         mpp_port_enqueue(output, mpp_task);
