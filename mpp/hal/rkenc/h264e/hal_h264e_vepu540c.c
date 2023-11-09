@@ -86,9 +86,6 @@ typedef struct HalH264eVepu540cCtx_t {
     MppBuffer               ext_line_buf;
 } HalH264eVepu540cCtx;
 
-static RK_U32 dump_l1_reg = 0;
-static RK_U32 dump_l2_reg = 0;
-
 static RK_S32 h264_aq_tthd_default[16] = {
     0,  0,  0,  0,
     3,  3,  5,  5,
@@ -553,9 +550,6 @@ static void setup_vepu540c_codec(HalVepu540cRegSet *regs, H264eSps *sps,
     regs->reg_base.enc_pic.enc_stnd       = 0;
     regs->reg_base.enc_pic.cur_frm_ref    = slice->nal_reference_idc > 0;
     regs->reg_base.enc_pic.bs_scp         = 1;
-    //regs->reg013.lamb_mod_sel   = (slice->slice_type == H264_I_SLICE) ? 0 : 1;
-    //regs->reg013.atr_thd_sel    = 0;
-    // regs->reg_ctl.lkt_node_cfg.node_int       = 0;
 
     regs->reg_base.synt_nal.nal_ref_idc    = slice->nal_reference_idc;
     regs->reg_base.synt_nal.nal_unit_type  = slice->nalu_type;
@@ -572,7 +566,6 @@ static void setup_vepu540c_codec(HalVepu540cRegSet *regs, H264eSps *sps,
     regs->reg_base.synt_pps.pic_init_qp    = pps->pic_init_qp;
     regs->reg_base.synt_pps.cb_ofst        = pps->chroma_qp_index_offset;
     regs->reg_base.synt_pps.cr_ofst        = pps->second_chroma_qp_index_offset;
-//    regs->reg_base.synt_pps.wght_pred      = pps->weighted_pred;
     regs->reg_base.synt_pps.dbf_cp_flg     = pps->deblocking_filter_control;
 
     regs->reg_base.synt_sli0.sli_type       = (slice->slice_type == H264_I_SLICE) ? (2) : (0);
@@ -1443,18 +1436,6 @@ static void setup_vepu540c_l2(HalVepu540cRegSet *regs, H264eSlice *slice, MppEnc
         }
     }
 
-    mpp_env_get_u32("dump_l2_reg", &dump_l2_reg, 0);
-
-    if (dump_l2_reg) {
-        mpp_log("L2 reg dump start:\n");
-        RK_U32 *p = (RK_U32 *)regs;
-
-        for (i = 0; i < (sizeof(*regs) / sizeof(RK_U32)); i++)
-            mpp_log("%04x %08x\n", 4 + i * 4, p[i]);
-
-        mpp_log("L2 reg done\n");
-    }
-
     hal_h264e_dbg_func("leave\n");
 }
 
@@ -1519,20 +1500,6 @@ static MPP_RET hal_h264e_vepu540c_gen_regs(void *hal, HalEncTask *task)
     if (ctx->roi_data)
         vepu540c_set_roi(&ctx->regs_set->reg_rc_roi.roi_cfg, ctx->roi_data,
                          ctx->cfg->prep.width, ctx->cfg->prep.height);
-
-    mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
-
-    if (dump_l1_reg) {
-        mpp_log("L1 reg dump start:\n");
-        RK_U32 *p = (RK_U32 *)regs;
-        RK_S32 n = 0x1D0 / sizeof(RK_U32);
-        RK_S32 i;
-
-        for (i = 0; i < n; i++)
-            mpp_log("%04x %08x\n", i * 4, p[i]);
-
-        mpp_log("L1 reg done\n");
-    }
 
     ctx->frame_cnt++;
 

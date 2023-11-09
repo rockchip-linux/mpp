@@ -1135,9 +1135,6 @@ typedef struct HevcVepu540cWgt_t {
     /* wgt_qp48_grpa */
     /* 0x00001900 reg1600 */
     RK_U32 rdo_wgta_qp_grpa_0_51[52];
-
-    /* 0x19d0 - 0x1ffc */
-    // RK_U32 reserved1652_2047[396];
 } hevc_vepu540c_wgt;
 
 typedef struct H265eV540cRegSet_t {

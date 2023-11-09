@@ -141,8 +141,6 @@ static RK_U32 h264e_klut_weight[30] = {
     0xFF83FFFF, 0x000001FF,
 };
 
-static RK_U32 dump_l1_reg = 0;
-static RK_U32 dump_l2_reg = 0;
 static RK_U32 disable_rcb_buf = 0;
 
 static RK_U32 h264_mode_bias[16] = {
@@ -627,7 +625,6 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
 static void setup_vepu580_normal(HalVepu580RegSet *regs)
 {
     hal_h264e_dbg_func("enter\n");
-    /* reg000 VERSION is read only */
 
     /* reg001 ENC_STRT */
     regs->reg_ctl.enc_strt.lkt_num           = 0;
@@ -639,9 +636,6 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     /* reg002 ENC_CLR */
     regs->reg_ctl.enc_clr.safe_clr           = 0;
     regs->reg_ctl.enc_clr.force_clr          = 0;
-
-    /* reg003 LKT_ADDR */
-    // regs->reg_ctl.lkt_addr           = 0;
 
     /* reg004 INT_EN */
     regs->reg_ctl.int_en.enc_done_en         = 1;
@@ -665,9 +659,6 @@ static void setup_vepu580_normal(HalVepu580RegSet *regs)
     regs->reg_ctl.int_msk.rbus_err_msk       = 0;
     regs->reg_ctl.int_msk.wdg_msk            = 0;
 
-    /* reg006 INT_CLR is not set */
-    /* reg007 INT_STA is read only */
-    /* reg008 ~ reg0011 gap */
     regs->reg_ctl.enc_wdg.vs_load_thd        = 0x1fffff;
     regs->reg_ctl.enc_wdg.rfp_load_thd       = 0;
 
@@ -886,9 +877,6 @@ static void setup_vepu580_codec(HalVepu580RegSet *regs, H264eSps *sps,
     regs->reg_base.enc_pic.enc_stnd       = 0;
     regs->reg_base.enc_pic.cur_frm_ref    = slice->nal_reference_idc > 0;
     regs->reg_base.enc_pic.bs_scp         = 1;
-    //regs->reg013.lamb_mod_sel   = (slice->slice_type == H264_I_SLICE) ? 0 : 1;
-    //regs->reg013.atr_thd_sel    = 0;
-    // regs->reg_ctl.lkt_node_cfg.node_int       = 0;
 
     regs->reg_base.synt_nal.nal_ref_idc    = slice->nal_reference_idc;
     regs->reg_base.synt_nal.nal_unit_type  = slice->nalu_type;
@@ -2039,18 +2027,6 @@ static void setup_vepu580_l2(HalVepu580RegSet *regs, H264eSlice *slice, MppEncHw
         }
     }
 
-    mpp_env_get_u32("dump_l2_reg", &dump_l2_reg, 0);
-
-    if (dump_l2_reg) {
-        mpp_log("L2 reg dump start:\n");
-        RK_U32 *p = (RK_U32 *)regs;
-
-        for (i = 0; i < (sizeof(*regs) / sizeof(RK_U32)); i++)
-            mpp_log("%04x %08x\n", 4 + i * 4, p[i]);
-
-        mpp_log("L2 reg done\n");
-    }
-
     hal_h264e_dbg_func("leave\n");
 }
 
@@ -2178,20 +2154,6 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 
     if (frm->use_pass1)
         vepu580_h264e_use_pass1_patch(regs, ctx);
-
-    mpp_env_get_u32("dump_l1_reg", &dump_l1_reg, 0);
-
-    if (dump_l1_reg) {
-        mpp_log("L1 reg dump start:\n");
-        RK_U32 *p = (RK_U32 *)regs;
-        RK_S32 n = 0x1D0 / sizeof(RK_U32);
-        RK_S32 i;
-
-        for (i = 0; i < n; i++)
-            mpp_log("%04x %08x\n", i * 4, p[i]);
-
-        mpp_log("L1 reg done\n");
-    }
 
     ctx->frame_cnt++;
 
