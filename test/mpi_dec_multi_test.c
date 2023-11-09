@@ -158,7 +158,7 @@ static int multi_dec_simple(MpiDecMultiCtx *data)
 
                     if (NULL == data->frm_grp) {
                         /* If buffer group is not set create one and limit it */
-                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
                         if (ret) {
                             mpp_err("get mpp buffer group failed ret %d\n", ret);
                             break;
@@ -438,7 +438,7 @@ void* multi_dec_decode(void *cmd_ctx)
         RK_U32 hor_stride = MPP_ALIGN(width, 16);
         RK_U32 ver_stride = MPP_ALIGN(height, 16);
 
-        ret = mpp_buffer_group_get_internal(&dec_ctx->frm_grp, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&dec_ctx->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
         if (ret) {
             mpp_err("failed to get buffer group for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;

@@ -206,7 +206,7 @@ static int dec_simple(MpiDecLoopData *data)
 
                     if (NULL == data->frm_grp) {
                         /* If buffer group is not set create one and limit it */
-                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION);
+                        ret = mpp_buffer_group_get_internal(&data->frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
                         if (ret) {
                             mpp_err("%p get mpp buffer group failed ret %d\n", ctx, ret);
                             break;
@@ -580,7 +580,7 @@ int dec_decode(MpiDecTestCmd *cmd)
         RK_U32 hor_stride = MPP_ALIGN(width, 16);
         RK_U32 ver_stride = MPP_ALIGN(height, 16);
 
-        ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION);
+        ret = mpp_buffer_group_get_internal(&data.frm_grp, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
         if (ret) {
             mpp_err("failed to get buffer group for input frame ret %d\n", ret);
             goto MPP_TEST_OUT;

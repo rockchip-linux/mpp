@@ -136,7 +136,6 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
      * 6. copy data to hardware buffer
      */
     if (!status->dec_pkt_copy_rdy) {
-        void *dst = mpp_buffer_get_ptr(task->hal_pkt_buf_in);
         void *src = mpp_packet_get_data(task_dec->input_packet);
         size_t length = mpp_packet_get_length(task_dec->input_packet);
 
@@ -144,7 +143,8 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         mpp_assert(task_dec->input_packet);
 
         dec_dbg_detail("detail: %p copy to hw length %d\n", dec, length);
-        memcpy(dst, src, length);
+        mpp_buffer_write(task->hal_pkt_buf_in, 0, src, length);
+        mpp_buffer_sync_partial_end(task->hal_pkt_buf_in, 0, length);
 
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
