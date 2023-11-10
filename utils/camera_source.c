@@ -428,8 +428,14 @@ MPP_RET camera_source_put_frame(CamSource *ctx, RK_S32 idx)
 
 MppBuffer camera_frame_to_buf(CamSource *ctx, RK_S32 idx)
 {
-    if (idx < 0)
-        return NULL;
+    MppBuffer buf = NULL;
 
-    return ctx->fbuf[idx].buffer;
+    if (idx < 0)
+        return buf;
+
+    buf = ctx->fbuf[idx].buffer;
+    if (buf)
+        mpp_buffer_sync_end(buf);
+
+    return buf;
 }

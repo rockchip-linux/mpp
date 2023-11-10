@@ -733,6 +733,8 @@ RET:
 
 MPP_RET Mpp::get_packet(MppPacket *packet)
 {
+    MppPacket pkt = NULL;
+
     if (!mInitDone)
         return MPP_ERR_INIT;
 
@@ -766,12 +768,21 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
         goto RET;
     }
 
-    mpp_assert(*packet);
+    pkt = *packet;
+    if (!pkt) {
+        mpp_log_f("get invalid task without output packet\n");
+    } else {
+        MppPacketImpl *impl = (MppPacketImpl *)pkt;
+        MppBuffer buf = impl->buffer;
+        RK_U32 offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
 
-    mpp_dbg_pts("pts %lld\n", mpp_packet_get_pts(*packet));
+        mpp_buffer_sync_ro_partial_begin(buf, offset, impl->length);
+
+        mpp_dbg_pts("pts %lld\n", impl->pts);
+    }
 
     // dump output
-    mpp_ops_enc_get_pkt(mDump, *packet);
+    mpp_ops_enc_get_pkt(mDump, pkt);
 
     ret = enqueue(MPP_PORT_OUTPUT, task);
     if (ret)

@@ -22,6 +22,7 @@
 #include "mpp_common.h"
 #include "mpp_mem.h"
 #include "mpp_platform.h"
+#include "mpp_dmabuf.h"
 
 #include "mpp_enc_hal.h"
 #include "vcodec_service.h"
@@ -777,6 +778,8 @@ static MPP_RET multi_core_wait(HalJpegeCtx *ctx, HalEncTask *task)
             mpp_err_f("poll cmd failed %d\n", ret);
 
         if (i == 0) {
+            RK_S32 fd = mpp_buffer_get_fd(task->output);
+
             val = regs[109];
             hal_jpege_dbg_output("hw_status %08x\n", val);
             feedback->hw_status = val & 0x70;
@@ -787,17 +790,22 @@ static MPP_RET multi_core_wait(HalJpegeCtx *ctx, HalEncTask *task)
             hal_jpege_dbg_detail("partion len = %d", hw_bit / 8);
             task->length = feedback->stream_length;
             task->hw_length = task->length - ctx->hal_start_pos;
+
+            mpp_dmabuf_sync_partial_begin(fd, 1, 0, task->length, __FUNCTION__);
         } else {
             void *stream_ptr = mpp_buffer_get_ptr(task->output);
             void *partion_ptr = mpp_buffer_get_ptr(ctx_ext->partions_buf[i - 1]);
+            RK_S32 partion_fd = mpp_buffer_get_fd(ctx_ext->partions_buf[i - 1]);
             RK_U32 partion_len = 0;
 
             val = regs[109];
             hal_jpege_dbg_output("hw_status %08x\n", val);
             feedback->hw_status = val & 0x70;
             partion_len = regs[53] / 8;
-
             hal_jpege_dbg_detail("partion_len = %d", partion_len);
+
+            mpp_dmabuf_sync_partial_begin(partion_fd, 1, 0, partion_len, __FUNCTION__);
+
             memcpy(stream_ptr + feedback->stream_length, partion_ptr, partion_len);
             feedback->stream_length += partion_len;
             task->length = feedback->stream_length;

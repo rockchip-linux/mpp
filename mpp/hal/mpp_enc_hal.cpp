@@ -140,6 +140,23 @@ MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx)
     return MPP_NOK;
 }
 
+MPP_RET mpp_enc_hal_start(void *hal, HalEncTask *task)
+{
+    if (NULL == hal || NULL == task) {
+        mpp_err_f("found NULL input ctx %p task %p\n", hal, task);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    MppEncHalImpl *p = (MppEncHalImpl*)hal;
+    if (!p->api || !p->api->start)
+        return MPP_OK;
+
+    /* Add buffer sync process */
+    mpp_buffer_sync_partial_end(task->output, 0, task->length);
+
+    return p->api->start(p->ctx, task);
+}
+
 #define MPP_ENC_HAL_TASK_FUNC(func) \
     MPP_RET mpp_enc_hal_##func(void *hal, HalEncTask *task)             \
     {                                                                   \
@@ -157,7 +174,6 @@ MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx)
 
 MPP_ENC_HAL_TASK_FUNC(get_task)
 MPP_ENC_HAL_TASK_FUNC(gen_regs)
-MPP_ENC_HAL_TASK_FUNC(start)
 MPP_ENC_HAL_TASK_FUNC(wait)
 MPP_ENC_HAL_TASK_FUNC(part_start)
 MPP_ENC_HAL_TASK_FUNC(part_wait)
