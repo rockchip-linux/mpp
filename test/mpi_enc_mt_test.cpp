@@ -716,10 +716,11 @@ void *enc_test_input(void *arg)
                 break;
         } else {
             if (p->cam_ctx == NULL) {
-                ret = fill_image((RK_U8 *)buf, p->width, p->height, p->hor_stride,
-                                 p->ver_stride, p->fmt, p->frm_cnt_in);
-                if (ret)
-                    break;
+                ret = MPP_OK;
+                // ret = fill_image((RK_U8 *)buf, p->width, p->height, p->hor_stride,
+                //                  p->ver_stride, p->fmt, p->frm_cnt_in);
+                // if (ret)
+                //     break;
             } else {
                 cam_frm_idx = camera_source_get_frame(p->cam_ctx);
                 mpp_assert(cam_frm_idx >= 0);
@@ -1058,6 +1059,7 @@ int enc_test_mt(MpiEncTestArgs* cmd, const char *name)
         mpp_log("*******************************************\n");
 
         getc(stdin);
+        mpp_log_f("loop_end start");
         for (i = 0; i < cmd->nthreads; i++)
             ctxs[i].ctx.loop_end = 1;
     }
