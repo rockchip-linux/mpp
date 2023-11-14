@@ -172,5 +172,6 @@ enum {
 #define PROFILE_AV1_HIGH                         1
 #define PROFILE_AV1_PROFESSIONAL                 2
 #define AV1_MAX_TILES     128
+#define INVALID_IDX                              -1
 
 #endif /*__AV1_H__ */

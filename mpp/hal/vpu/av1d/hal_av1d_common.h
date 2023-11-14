@@ -34,7 +34,6 @@
 
 extern RK_U32 hal_av1d_debug;
 
-
 #define AV1D_DBG(level, fmt, ...)\
 do {\
     if (level & hal_av1d_debug)\
@@ -191,4 +190,4 @@ typedef struct av1d_hal_ctx_t {
     RK_U32                   fast_mode;
 } Av1dHalCtx;
 
-#endif /*__HAL_AV1D_GLOBAL_H__*/
+#endif /* __HAL_AV1D_GLOBAL_H__ */
