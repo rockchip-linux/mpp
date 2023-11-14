@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2021 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "av1d_parser2syntax"
@@ -41,38 +30,32 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     pp->max_width  = seq->max_frame_width_minus_1 + 1;
     pp->max_height = seq->max_frame_height_minus_1 + 1;
 
+    pp->CurrPic.Index7Bits  = h->cur_frame.slot_index;
     pp->CurrPicTextureIndex = h->cur_frame.slot_index;
     pp->superres_denom      = frame_header->use_superres ? frame_header->coded_denom : AV1_SUPERRES_NUM;
     pp->bitdepth            = h->bit_depth;
     pp->seq_profile         = seq->seq_profile;
+    pp->frame_header_size   = h->frame_header_size;
 
     /* Tiling info */
     pp->tiles.cols = frame_header->tile_cols;
     pp->tiles.rows = frame_header->tile_rows;
     pp->tiles.context_update_id = frame_header->context_update_tile_id;
 
-    {
-        RK_U8 val = 0;
-        for (i = 0; i < pp->tiles.cols; i++) {
-            pp->tiles.widths[i] = val;
-            val += frame_header->width_in_sbs_minus_1[i] + 1;
-        }
-        pp->tiles.widths[i] = val;
+    for (i = 0; i < pp->tiles.cols; i++)
+        pp->tiles.widths[i] = frame_header->width_in_sbs_minus_1[i] + 1;
 
-        val = 0;
-        for (i = 0; i < pp->tiles.rows; i++) {
-            pp->tiles.heights[i] = val;
-            val += frame_header->height_in_sbs_minus_1[i] + 1;
-        }
-        pp->tiles.heights[i] = val;
-    }
+    for (i = 0; i < pp->tiles.rows; i++)
+        pp->tiles.heights[i] = frame_header->height_in_sbs_minus_1[i] + 1;
 
     for (i = 0; i < AV1_MAX_TILES; i++) {
         pp->tiles.tile_offset_start[i] = h->tile_offset_start[i];
         pp->tiles.tile_offset_end[i] = h->tile_offset_end[i];
     }
+
     pp->tiles.tile_sz_mag = h->raw_frame_header->tile_size_bytes_minus1;
     /* Coding tools */
+    pp->coding.current_operating_point      = seq->operating_point_idc[h->operating_point_idc];
     pp->coding.use_128x128_superblock       = seq->use_128x128_superblock;
     pp->coding.intra_edge_filter            = seq->enable_intra_edge_filter;
     pp->coding.interintra_compound          = seq->enable_interintra_compound;
@@ -109,16 +92,21 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     pp->format.subsampling_x  = seq->color_config.subsampling_x;
     pp->format.subsampling_y  = seq->color_config.subsampling_y;
     pp->format.mono_chrome    = seq->color_config.mono_chrome;
-    pp->coded_lossless = h->cur_frame.coded_lossless;
+    pp->coded_lossless        = h->cur_frame.coded_lossless;
+    pp->all_lossless          = h->all_lossless;
     /* References */
     pp->primary_ref_frame = frame_header->primary_ref_frame;
     pp->order_hint        = frame_header->order_hint;
     pp->order_hint_bits   = seq->enable_order_hint ? seq->order_hint_bits_minus_1 + 1 : 0;
 
+    pp->ref_frame_valued = frame_header->ref_frame_valued;
+    for (i = 0; i < AV1_REFS_PER_FRAME; i++)
+        pp->ref_frame_idx[i] = frame_header->ref_frame_idx[i];
+
     memset(pp->RefFrameMapTextureIndex, 0xFF, sizeof(pp->RefFrameMapTextureIndex));
-    for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
-        int8_t ref_idx = frame_header->ref_frame_idx[i];
-        AV1Frame *ref_frame = &h->ref[ref_idx];
+    for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
+        // int8_t ref_idx = frame_header->ref_frame_idx[i];
+        AV1Frame *ref_frame = &h->ref[i];
         RefInfo *ref_i = ref_frame->ref;
 
         if (ref_frame->f) {
@@ -150,6 +138,23 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
         pp->frame_refs[i].delta = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].delta;
     }
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
+        pp->frame_ref_state[i].valid           = h->ref_s[i].valid         ;
+        pp->frame_ref_state[i].frame_id        = h->ref_s[i].frame_id      ;
+        pp->frame_ref_state[i].upscaled_width  = h->ref_s[i].upscaled_width;
+        pp->frame_ref_state[i].frame_width     = h->ref_s[i].frame_width   ;
+        pp->frame_ref_state[i].frame_height    = h->ref_s[i].frame_height  ;
+        pp->frame_ref_state[i].render_width    = h->ref_s[i].render_width  ;
+        pp->frame_ref_state[i].render_height   = h->ref_s[i].render_height ;
+        pp->frame_ref_state[i].frame_type      = h->ref_s[i].frame_type    ;
+        pp->frame_ref_state[i].subsampling_x   = h->ref_s[i].subsampling_x ;
+        pp->frame_ref_state[i].subsampling_y   = h->ref_s[i].subsampling_y ;
+        pp->frame_ref_state[i].bit_depth       = h->ref_s[i].bit_depth     ;
+        pp->frame_ref_state[i].order_hint      = h->ref_s[i].order_hint    ;
+    }
+    for (i = 0; i < AV1_NUM_REF_FRAMES; i++)
+        pp->ref_order_hint[i] = frame_header->ref_order_hint[i];
+
+    for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         AV1Frame *ref_frame = &h->ref[i];
         if (ref_frame->slot_index < 0x7f)
             pp->RefFrameMapTextureIndex[i] = ref_frame->slot_index;
@@ -179,9 +184,9 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     pp->loop_filter.frame_restoration_type[1]     = remap_lr_type[frame_header->lr_type[1]];
     pp->loop_filter.frame_restoration_type[2]     = remap_lr_type[frame_header->lr_type[2]];
     uses_lr = frame_header->lr_type[0] || frame_header->lr_type[1] || frame_header->lr_type[2];
-    pp->loop_filter.log2_restoration_unit_size[0] = uses_lr ? (1 + frame_header->lr_unit_shift) : 3;
-    pp->loop_filter.log2_restoration_unit_size[1] = uses_lr ? (1 + frame_header->lr_unit_shift - frame_header->lr_uv_shift) : 3;
-    pp->loop_filter.log2_restoration_unit_size[2] = uses_lr ? (1 + frame_header->lr_unit_shift - frame_header->lr_uv_shift) : 3;
+    pp->loop_filter.log2_restoration_unit_size[0] = uses_lr ? (1 + frame_header->lr_unit_shift) : 0;
+    pp->loop_filter.log2_restoration_unit_size[1] = uses_lr ? (1 + frame_header->lr_unit_shift - frame_header->lr_uv_shift) : 0;
+    pp->loop_filter.log2_restoration_unit_size[2] = uses_lr ? (1 + frame_header->lr_unit_shift - frame_header->lr_uv_shift) : 0;
 
     /* Quantization */
     pp->quantization.delta_q_present = frame_header->delta_q_present;
@@ -192,12 +197,13 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     pp->quantization.v_dc_delta_q    = frame_header->delta_q_v_dc;
     pp->quantization.u_ac_delta_q    = frame_header->delta_q_u_ac;
     pp->quantization.v_ac_delta_q    = frame_header->delta_q_v_ac;
+    pp->quantization.using_qmatrix   = frame_header->using_qmatrix;
     pp->quantization.qm_y            = frame_header->using_qmatrix ? frame_header->qm_y : 0xFF;
     pp->quantization.qm_u            = frame_header->using_qmatrix ? frame_header->qm_u : 0xFF;
     pp->quantization.qm_v            = frame_header->using_qmatrix ? frame_header->qm_v : 0xFF;
 
     /* Cdef parameters */
-    pp->cdef.damping = frame_header->cdef_damping_minus_3;
+    pp->cdef.damping = frame_header->cdef_damping_minus_3 + 3;
     pp->cdef.bits    = frame_header->cdef_bits;
     for (i = 0; i < 8; i++) {
         pp->cdef.y_strengths[i].primary    = frame_header->cdef_y_pri_strength[i];
@@ -220,8 +226,11 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
             pp->segmentation.feature_data[i][j]    = frame_header->feature_value[i][j];
         }
     }
+    pp->segmentation.last_active     = frame_header->segmentation_id_last_active;
+    pp->segmentation.last_active     = frame_header->segmentation_id_preskip;
 
     /* Film grain */
+    pp->film_grain.matrix_coefficients      = seq->color_config.matrix_coefficients;
     if (apply_grain) {
         pp->film_grain.apply_grain              = 1;
         pp->film_grain.scaling_shift_minus8     = film_grain->grain_scaling_minus_8;
@@ -234,6 +243,7 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
         pp->film_grain.matrix_coeff_is_identity = (seq->color_config.matrix_coefficients == MPP_FRAME_SPC_RGB);
 
         pp->film_grain.grain_seed               = film_grain->grain_seed;
+        pp->film_grain.update_grain             = film_grain->update_grain;
         pp->film_grain.num_y_points             = film_grain->num_y_points;
         for (i = 0; i < film_grain->num_y_points; i++) {
             pp->film_grain.scaling_points_y[i][0] = film_grain->point_y_value[i];
@@ -266,6 +276,7 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     }
     pp->upscaled_width = h->upscaled_width;
     pp->frame_to_show_map_idx = frame_header->frame_to_show_map_idx;
+    pp->show_existing_frame = frame_header->show_existing_frame;
     pp->frame_tag_size = h->frame_tag_size;
     pp->skip_ref0      = h->skip_ref0;
     pp->skip_ref1      = h->skip_ref1;
@@ -274,6 +285,7 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
     pp->cdfs = h->cdfs;
     pp->cdfs_ndvc = h->cdfs_ndvc;
     pp->tile_cols_log2 = frame_header->tile_cols_log2;
+    pp->tile_rows_log2 = frame_header->tile_rows_log2;
     // XXX: Setting the StatusReportFeedbackNumber breaks decoding on some drivers (tested on NVIDIA 457.09)
     // Status Reporting is not used by FFmpeg, hence not providing a number does not cause any issues
     //pp->StatusReportFeedbackNumber = 1 + DXVA_CONTEXT_REPORT_ID(avctx, ctx)++;

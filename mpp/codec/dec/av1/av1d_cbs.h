@@ -194,6 +194,7 @@ typedef struct AV1RawFrameHeader {
     RK_U8 frame_refs_short_signaling;
     RK_U8 last_frame_idx;
     RK_U8 golden_frame_idx;
+    RK_U8 ref_frame_valued;
     RK_S8  ref_frame_idx[AV1_REFS_PER_FRAME];
     RK_U32 delta_frame_id_minus1[AV1_REFS_PER_FRAME];
 
@@ -236,6 +237,8 @@ typedef struct AV1RawFrameHeader {
     RK_U8 segmentation_update_data;
     RK_U8 feature_enabled[AV1_MAX_SEGMENTS][AV1_SEG_LVL_MAX];
     RK_S16 feature_value[AV1_MAX_SEGMENTS][AV1_SEG_LVL_MAX];
+    RK_U8 segmentation_id_last_active;
+    RK_U8 segmentation_id_preskip;
 
     RK_U8 delta_q_present;
     RK_U8 delta_q_res;

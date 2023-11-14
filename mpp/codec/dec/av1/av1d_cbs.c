@@ -1226,6 +1226,18 @@ static RK_S32 mpp_av1_segmentation_params(AV1Context *ctx, BitReadCtx_t *gb,
         }
     }
 
+    infer(segmentation_id_last_active, 0);
+    infer(segmentation_id_preskip, 0);
+    for (i = 0; i < AV1_MAX_SEGMENTS; i++) {
+        for (j = 0; j < AV1_SEG_LVL_MAX; j++) {
+            if (current->feature_enabled[i][j]) {
+                infer(segmentation_id_last_active, i);
+                if ( j > AV1_SEG_LVL_REF_FRAME)
+                    infer(segmentation_id_preskip, 1);
+            }
+        }
+    }
+
     return 0;
 __BITREAD_ERR:
     return MPP_ERR_STREAM;
@@ -1441,7 +1453,8 @@ static RK_S32 mpp_av1_read_tx_mode(AV1Context *ctx, BitReadCtx_t *gb,
         infer(tx_mode, 0);
     else {
         flag(tx_mode);
-        current->tx_mode = current->tx_mode ? 4 : 3;
+        // current->tx_mode = current->tx_mode ? TX_MODE_SELECT : TX_MODE_LARGEST;
+        current->tx_mode = current->tx_mode ? 2 : 1;
     }
 
     return 0;
@@ -1467,6 +1480,9 @@ static RK_S32 mpp_av1_skip_mode_params(AV1Context *ctx, BitReadCtx_t *gb,
     const AV1RawSequenceHeader *seq = ctx->sequence_header;
     RK_S32 skip_mode_allowed;
     RK_S32 err;
+
+    ctx->skip_ref0 = 0;
+    ctx->skip_ref1 = 0;
 
     if (current->frame_type == AV1_FRAME_KEY ||
         current->frame_type == AV1_FRAME_INTRA_ONLY ||
@@ -1800,8 +1816,7 @@ static RK_S32 mpp_av1_uncompressed_header(AV1Context *ctx, BitReadCtx_t *gb,
             infer(render_width_minus_1,  ref->render_width - 1);
             infer(render_height_minus_1, ref->render_height - 1);
 
-            // Section 7.20
-            goto update_refs;
+            return 0;
         }
 
         fb(2, frame_type);
@@ -1940,6 +1955,7 @@ static RK_S32 mpp_av1_uncompressed_header(AV1Context *ctx, BitReadCtx_t *gb,
         }
     }
 
+    current->ref_frame_valued = 1;
     if (current->frame_type == AV1_FRAME_KEY ||
         current->frame_type == AV1_FRAME_INTRA_ONLY) {
         CHECK(mpp_av1_frame_size(ctx, gb, current));
@@ -1951,6 +1967,9 @@ static RK_S32 mpp_av1_uncompressed_header(AV1Context *ctx, BitReadCtx_t *gb,
         else
             infer(allow_intrabc, 0);
 
+        // for (i = 0; i < AV1_REFS_PER_FRAME; i++)
+        //     infer(ref_frame_idx[i], INVALID_IDX);
+        current->ref_frame_valued = 0;
     } else {
         if (!seq->enable_order_hint) {
             infer(frame_refs_short_signaling, 0);
@@ -2111,34 +2130,6 @@ static RK_S32 mpp_av1_uncompressed_header(AV1Context *ctx, BitReadCtx_t *gb,
              seq->color_config.subsampling_x + 1,
              seq->color_config.subsampling_y + 1, ctx->bit_depth,
              ctx->tile_rows, ctx->tile_cols);
-
-update_refs:
-    for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
-        if (current->refresh_frame_flags & (1 << i)) {
-            ctx->ref_s[i] = (AV1ReferenceFrameState) {
-                .valid          = 1,
-                 .frame_id       = current->current_frame_id,
-                  .upscaled_width = ctx->upscaled_width,
-                   .frame_width    = ctx->frame_width,
-                    .frame_height   = ctx->frame_height,
-                     .render_width   = ctx->render_width,
-                      .render_height  = ctx->render_height,
-                       .frame_type     = current->frame_type,
-                        .subsampling_x  = seq->color_config.subsampling_x,
-                         .subsampling_y  = seq->color_config.subsampling_y,
-                          .bit_depth      = ctx->bit_depth,
-                           .order_hint     = ctx->order_hint,
-            };
-            memcpy(ctx->ref_s[i].loop_filter_ref_deltas, current->loop_filter_ref_deltas,
-                   sizeof(current->loop_filter_ref_deltas));
-            memcpy(ctx->ref_s[i].loop_filter_mode_deltas, current->loop_filter_mode_deltas,
-                   sizeof(current->loop_filter_mode_deltas));
-            memcpy(ctx->ref_s[i].feature_enabled, current->feature_enabled,
-                   sizeof(current->feature_enabled));
-            memcpy(ctx->ref_s[i].feature_value, current->feature_value,
-                   sizeof(current->feature_value));
-        }
-    }
 
     return 0;
 }

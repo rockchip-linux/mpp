@@ -1,5 +1,7 @@
 # vim: syntax=cmake
-# hal jpeg reg
+# hal av1 reg
+
+include_directories(../../rkdec/inc)
 
 set(HAL_AV1D_HDR
     hal_av1d_common.h
@@ -8,6 +10,7 @@ set(HAL_AV1D_HDR
 set(HAL_AV1D_SRC
     hal_av1d_api.c
     hal_av1d_vdpu.c
+    hal_av1d_vdpu383.c
     film_grain_noise_table.c
     )
 

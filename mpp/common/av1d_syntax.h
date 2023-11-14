@@ -54,8 +54,10 @@ typedef struct _DXVA_PicParams_AV1 {
     USHORT superres_denom      ;
     USHORT bitdepth            ;
     USHORT seq_profile         ;
+    USHORT frame_header_size   ;
     union {
         struct {
+            UINT32 current_operating_point      : 12;
             UINT32 use_128x128_superblock       : 1;
             UINT32 intra_edge_filter            : 1;
             UINT32 interintra_compound          : 1;
@@ -83,6 +85,7 @@ typedef struct _DXVA_PicParams_AV1 {
             UINT32 enable_ref_frame_mvs         : 1;
             UINT32 reference_frame_update       : 1;
             UINT32 error_resilient_mode         : 1;
+            UINT32 film_grain_params_present    : 1;
         } coding;
     };
 
@@ -135,6 +138,7 @@ typedef struct _DXVA_PicParams_AV1 {
         CHAR  v_dc_delta_q   ;
         CHAR  u_ac_delta_q   ;
         CHAR  v_ac_delta_q   ;
+        CHAR  using_qmatrix  ;
         UCHAR qm_y           ;
         UCHAR qm_u           ;
         UCHAR qm_v           ;
@@ -161,6 +165,8 @@ typedef struct _DXVA_PicParams_AV1 {
         UCHAR  temporal_update   ;
         UCHAR  feature_mask[8]   ;
         INT    feature_data[8][8];
+        UCHAR  last_active       ;
+        UCHAR  preskip           ;
     } segmentation;
 
     struct {
@@ -172,6 +178,7 @@ typedef struct _DXVA_PicParams_AV1 {
         UCHAR grain_scale_shift        ;
         UCHAR overlap_flag             ;
         UCHAR clip_to_restricted_range ;
+        UCHAR matrix_coefficients      ;
         UCHAR matrix_coeff_is_identity ;
         UCHAR num_y_points             ;
         UCHAR num_cb_points            ;
@@ -188,10 +195,15 @@ typedef struct _DXVA_PicParams_AV1 {
         UCHAR cr_luma_mult             ;
 
         USHORT grain_seed              ;
+        USHORT update_grain            ;
         USHORT cb_offset               ;
         USHORT cr_offset               ;
     } film_grain;
 
+    UINT32 ref_frame_valued;
+    UINT32 ref_frame_idx[7];
+
+    UINT32 ref_order_hint[8];
     struct {
         UINT32  width;
         UINT32  height;
@@ -210,13 +222,32 @@ typedef struct _DXVA_PicParams_AV1 {
         UCHAR   wmtype;
         RK_S32  wmmat[6];
         USHORT  alpha, beta, gamma, delta;
-    } frame_refs[7];
+    } frame_refs[8];
+
+    struct {
+        RK_S32 valid;          // RefValid
+        RK_S32 frame_id;       // RefFrameId
+        RK_S32 upscaled_width; // RefUpscaledWidth
+        RK_S32 frame_width;    // RefFrameWidth
+        RK_S32 frame_height;   // RefFrameHeight
+        RK_S32 render_width;   // RefRenderWidth
+        RK_S32 render_height;  // RefRenderHeight
+        RK_S32 frame_type;     // RefFrameType
+        RK_S32 subsampling_x;  // RefSubsamplingX
+        RK_S32 subsampling_y;  // RefSubsamplingY
+        RK_S32 bit_depth;      // RefBitDepth
+        RK_S32 order_hint;     // RefOrderHint
+    } frame_ref_state[8];
+
+    RK_U8 ref_frame_sign_bias[8];
 
     UCHAR coded_lossless;
+    RK_S32 all_lossless;
     UCHAR interp_filter;
     UCHAR RefFrameMapTextureIndex[7];
     UINT32 upscaled_width;
     UINT32 frame_to_show_map_idx;
+    UINT32 show_existing_frame;
     UINT32 frame_tag_size;
     UINT32 offset_to_dct_parts;
     UCHAR  skip_ref0;
@@ -225,6 +256,7 @@ typedef struct _DXVA_PicParams_AV1 {
     void         *cdfs;
     void          *cdfs_ndvc;
     RK_U8 tile_cols_log2;
+    RK_U8 tile_rows_log2;
 } DXVA_PicParams_AV1, *LPDXVA_PicParams_AV1;
 
 typedef struct _DXVA_Slice_AV1_Short {
