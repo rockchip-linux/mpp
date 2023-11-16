@@ -125,3 +125,19 @@ MPP_RET mpp_dmabuf_sync_partial_end(RK_S32 fd, RK_S32 ro, RK_U32 offset, RK_U32 
 NOT_SUPPORT:
     return mpp_dmabuf_sync_end(fd, ro, caller);
 }
+
+MPP_RET mpp_dmabuf_set_name(RK_S32 fd, const char *name, const char *caller)
+{
+    RK_S32 ret = ioctl(fd, DMA_BUF_SET_NAME, name);
+    if (ret) {
+        mpp_err_f("ioctl failed for %s from %s\n", strerror(errno), caller);
+        return MPP_NOK;
+    }
+
+    return MPP_OK;
+}
+
+RK_U32 mpp_dmabuf_sync_partial_support(void)
+{
+    return has_partial_ops;
+}

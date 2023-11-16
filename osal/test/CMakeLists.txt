@@ -25,6 +25,9 @@ add_mpp_osal_test(mpp_log)
 # env system unit test
 add_mpp_osal_test(mpp_env)
 
+# dmabuf system unit test
+add_mpp_osal_test(mpp_dmabuf)
+
 # malloc system unit test
 add_mpp_osal_test(mpp_mem)
 
