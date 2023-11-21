@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <linux/dma-buf.h>
 
+#include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_dmabuf.h"
 
@@ -37,6 +38,18 @@ struct dma_buf_sync_partial {
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
 
 static RK_U32 has_partial_ops = 1;
+
+__attribute__ ((constructor))
+void mpp_dmabuf_init(void)
+{
+    /*
+     * update has_partial_ops by env
+     * NOTE: When dmaheap is enabled the dmaheap fd partial ops is fine.
+     * But the drm fd partial ops may have error when kernel version above 4.19
+     * So we provide the mpp_dmabuf_has_partial_ops env to disable partial ops.
+     */
+    mpp_env_get_u32("mpp_dmabuf_has_partial_ops", &has_partial_ops, has_partial_ops);
+}
 
 MPP_RET mpp_dmabuf_sync_begin(RK_S32 fd, RK_S32 ro, const char *caller)
 {

@@ -119,12 +119,12 @@ struct MppBufferGroupImpl_t {
     /* parameter store for MppBuffer */
     MppAllocator        allocator;
     MppAllocatorApi     *alloc_api;
+    MppAllocFlagType    flags;
     RK_U32              log_runtime_en;
     RK_U32              log_history_en;
     RK_U32              group_id;
     MppBufferMode       mode;
     MppBufferType       type;
-    RK_U32              type_flags;
 
     /* group status flag */
     // buffer force clear mode flag

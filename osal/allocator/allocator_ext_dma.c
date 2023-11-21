@@ -23,10 +23,11 @@
 #include "allocator_ext_dma.h"
 
 typedef struct {
-    size_t alignment;
+    size_t              alignment;
+    MppAllocFlagType    flags;
 } allocator_ctx;
 
-static MPP_RET allocator_ext_dma_open(void **ctx, MppAllocatorCfg *cfg)
+static MPP_RET allocator_ext_dma_open(void **ctx, size_t alignment, MppAllocFlagType flags)
 {
     MPP_RET ret = MPP_OK;
     allocator_ctx *p = NULL;
@@ -41,7 +42,8 @@ static MPP_RET allocator_ext_dma_open(void **ctx, MppAllocatorCfg *cfg)
         mpp_err_f("failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
     } else {
-        p->alignment = cfg->alignment;
+        p->alignment = alignment;
+        p->flags = flags;
     }
 
     *ctx = p;
@@ -134,6 +136,13 @@ static MPP_RET allocator_ext_dma_close(void *ctx)
     return MPP_ERR_VALUE;
 }
 
+static MppAllocFlagType os_allocator_ext_dma_flags(void *ctx)
+{
+    allocator_ctx *p = (allocator_ctx *)ctx;
+
+    return p ? (MppAllocFlagType)p->flags : MPP_ALLOC_FLAG_NONE;
+}
+
 os_allocator allocator_ext_dma = {
     .type = MPP_BUFFER_TYPE_EXT_DMA,
     .open = allocator_ext_dma_open,
@@ -143,4 +152,5 @@ os_allocator allocator_ext_dma = {
     .import = allocator_ext_dma_import,
     .release = allocator_ext_dma_release,
     .mmap = allocator_ext_dma_mmap,
+    .flags = os_allocator_ext_dma_flags,
 };

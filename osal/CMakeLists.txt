@@ -56,15 +56,12 @@ add_library(osal STATIC
     osal_2str.c
     # Those files have a compiler marco protection, so only target
     # OS will be built
-    android/os_allocator.c
     android/os_mem.c
     android/os_env.c
     android/os_log.c
-    linux/os_allocator.c
     linux/os_mem.c
     linux/os_env.c
     linux/os_log.cpp
-    windows/os_allocator.c
     windows/os_mem.c
     windows/os_env.c
     windows/os_log.c

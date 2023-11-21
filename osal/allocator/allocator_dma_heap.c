@@ -68,29 +68,21 @@ typedef struct {
     RK_U32  flags;
 } allocator_ctx_dmaheap;
 
-typedef enum DmaHeapType_e {
-    DMA_HEAP_CACHABLE   = (1 << 0),
-    DMA_HEAP_DMA32      = (1 << 1),
-    DMA_HEAP_CMA        = (1 << 2),
-    DMA_HEAP_TYPE_MASK  = DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA32,
-    DMA_HEAP_TYPE_NB,
-} DmaHeapType;
-
 typedef struct DmaHeapInfo_t {
     const char  *name;
     RK_S32      fd;
     RK_U32      flags;
 } DmaHeapInfo;
 
-static DmaHeapInfo heap_infos[DMA_HEAP_TYPE_NB] = {
-    {   "system-uncached",          -1,                                                 0, },   /* 0 */
-    {   "system-uncached-dma32",    -1,                                    DMA_HEAP_DMA32, },   /* 1 */
-    {   "system",                   -1,                DMA_HEAP_CACHABLE                 , },   /* 2 */
-    {   "system-dma32",             -1,                DMA_HEAP_CACHABLE | DMA_HEAP_DMA32, },   /* 3 */
-    {   "cma-uncached",             -1, DMA_HEAP_CMA                                     , },   /* 4 */
-    {   "cma-uncached-dma32",       -1, DMA_HEAP_CMA                     | DMA_HEAP_DMA32, },   /* 5 */
-    {   "cma",                      -1, DMA_HEAP_CMA | DMA_HEAP_CACHABLE                 , },   /* 6 */
-    {   "cma-dma32",                -1, DMA_HEAP_CMA | DMA_HEAP_CACHABLE | DMA_HEAP_DMA32, },   /* 7 */
+static DmaHeapInfo heap_infos[MPP_ALLOC_FLAG_TYPE_NB] = {
+    {   "system-uncached",          -1,                                                MPP_ALLOC_FLAG_NONE , },   /* 0 */
+    {   "system-uncached-dma32",    -1,                                                MPP_ALLOC_FLAG_DMA32, },   /* 1 */
+    {   "system",                   -1,                      MPP_ALLOC_FLAG_CACHABLE                       , },   /* 2 */
+    {   "system-dma32",             -1,                      MPP_ALLOC_FLAG_CACHABLE | MPP_ALLOC_FLAG_DMA32, },   /* 3 */
+    {   "cma-uncached",             -1, MPP_ALLOC_FLAG_CMA                                                 , },   /* 4 */
+    {   "cma-uncached-dma32",       -1, MPP_ALLOC_FLAG_CMA                           | MPP_ALLOC_FLAG_DMA32, },   /* 5 */
+    {   "cma",                      -1, MPP_ALLOC_FLAG_CMA | MPP_ALLOC_FLAG_CACHABLE                       , },   /* 6 */
+    {   "cma-dma32",                -1, MPP_ALLOC_FLAG_CMA | MPP_ALLOC_FLAG_CACHABLE | MPP_ALLOC_FLAG_DMA32, },   /* 7 */
 };
 
 static int try_open_path(const char *name)
@@ -107,16 +99,16 @@ static int try_open_path(const char *name)
     return fd;
 }
 
-static MPP_RET try_flip_flag(DmaHeapType orig, DmaHeapType flag)
+static MPP_RET try_flip_flag(RK_U32 orig, RK_U32 flag)
 {
     DmaHeapInfo *dst = &heap_infos[orig];
     DmaHeapInfo *src;
-    DmaHeapType used;
+    RK_U32 used;
 
     if (orig & flag)
-        used = (DmaHeapType)(orig & (~flag));
+        used = (RK_U32)(orig & (~flag));
     else
-        used = (DmaHeapType)(orig | flag);
+        used = (RK_U32)(orig | flag);
 
     src = &heap_infos[used];
     if (src->fd > 0) {
@@ -141,7 +133,7 @@ void dma_heap_init(void)
     mpp_env_get_u32("dma_heap_debug", &dma_heap_debug, 0);
 
     /* go through all heap first */
-    for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(heap_infos); i++) {
         info = &heap_infos[i];
 
         if (info->fd > 0)
@@ -154,22 +146,22 @@ void dma_heap_init(void)
 
     if (!all_success) {
         /* check remaining failed heap mapping */
-        for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(heap_infos); i++) {
             info = &heap_infos[i];
 
             if (info->fd > 0)
                 continue;
 
             /* if original heap failed then try revert cacheable flag */
-            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_CACHABLE))
+            if (MPP_OK == try_flip_flag((RK_U32)i, MPP_ALLOC_FLAG_CACHABLE))
                 continue;
 
             /* if cacheable heap failed then try revert dma32 flag */
-            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_DMA32))
+            if (MPP_OK == try_flip_flag((RK_U32)i, MPP_ALLOC_FLAG_DMA32))
                 continue;
 
             /* if dma32 heap failed then try revert both cacheable and dma32 flag */
-            if (MPP_OK == try_flip_flag((DmaHeapType)i, DMA_HEAP_CACHABLE | DMA_HEAP_DMA32))
+            if (MPP_OK == try_flip_flag((RK_U32)i, MPP_ALLOC_FLAG_CACHABLE | MPP_ALLOC_FLAG_DMA32))
                 continue;
 
             dma_heap_dbg_chk("dma-heap type %x - %s remap failed\n", i, info->name);
@@ -182,7 +174,7 @@ void dma_heap_deinit(void)
 {
     RK_U32 i;
 
-    for (i = 0; i < DMA_HEAP_TYPE_NB; i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(heap_infos); i++) {
         DmaHeapInfo *info = &heap_infos[i];
 
         if (info->fd > 0) {
@@ -216,11 +208,11 @@ static int dma_heap_alloc(int fd, size_t len, RK_S32 *dmabuf_fd, RK_U32 flags)
     return ret;
 }
 
-static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
+static MPP_RET os_allocator_dma_heap_open(void **ctx, size_t alignment, MppAllocFlagType flags)
 {
     allocator_ctx_dmaheap *p;
     DmaHeapInfo *info = NULL;
-    DmaHeapType type = 0;
+    RK_U32 type = 0;
 
     mpp_env_get_u32("dma_heap_debug", &dma_heap_debug, dma_heap_debug);
 
@@ -231,16 +223,7 @@ static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
 
     *ctx = NULL;
 
-    if (cfg->flags & (MPP_BUFFER_FLAGS_CONTIG >> 16))
-        type |= DMA_HEAP_CMA;
-
-    if (cfg->flags & (MPP_BUFFER_FLAGS_CACHABLE >> 16))
-        type |= DMA_HEAP_CACHABLE;
-
-    if (cfg->flags & (MPP_BUFFER_FLAGS_DMA32 >> 16))
-        type |= DMA_HEAP_DMA32;
-
-    info = &heap_infos[type];
+    info = &heap_infos[flags];
     if (info->fd <= 0) {
         mpp_err_f("open dma heap type %x %s failed!\n", type, info->name);
         return MPP_ERR_UNKNOW;
@@ -251,27 +234,13 @@ static MPP_RET os_allocator_dma_heap_open(void **ctx, MppAllocatorCfg *cfg)
         mpp_err_f("failed to allocate context\n");
         return MPP_ERR_MALLOC;
     } else {
-        p->alignment    = cfg->alignment;
+        p->alignment    = alignment;
         p->flags        = info->flags;
         p->device       = info->fd;
         *ctx = p;
     }
 
-    dma_heap_dbg_ops("dev %d open heap type %x:%x\n", p->device, cfg->flags, info->flags);
-
-    if (type != info->flags) {
-        type = cfg->flags;
-        /* update read dma_heap back to config */
-        if (info->flags & DMA_HEAP_CACHABLE)
-            cfg->flags |= (MPP_BUFFER_FLAGS_CACHABLE >> 16);
-        else
-            cfg->flags &= ~(MPP_BUFFER_FLAGS_CACHABLE >> 16);
-
-        if (info->flags & DMA_HEAP_DMA32)
-            cfg->flags |= (MPP_BUFFER_FLAGS_DMA32 >> 16);
-        else
-            cfg->flags &= ~(MPP_BUFFER_FLAGS_DMA32 >> 16);
-    }
+    dma_heap_dbg_ops("dev %d open heap type %x:%x\n", p->device, flags, info->flags);
 
     return MPP_OK;
 }
@@ -389,6 +358,13 @@ static MPP_RET os_allocator_dma_heap_mmap(void *ctx, MppBufferInfo *data)
     return ret;
 }
 
+static MppAllocFlagType os_allocator_dma_heap_flags(void *ctx)
+{
+    allocator_ctx_dmaheap *p = (allocator_ctx_dmaheap *)ctx;
+
+    return p ? (MppAllocFlagType)p->flags : MPP_ALLOC_FLAG_NONE;
+}
+
 os_allocator allocator_dma_heap = {
     .type = MPP_BUFFER_TYPE_DMA_HEAP,
     .open = os_allocator_dma_heap_open,
@@ -398,4 +374,5 @@ os_allocator allocator_dma_heap = {
     .import = os_allocator_dma_heap_import,
     .release = os_allocator_dma_heap_free,
     .mmap = os_allocator_dma_heap_mmap,
+    .flags = os_allocator_dma_heap_flags,
 };
