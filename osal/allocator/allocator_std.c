@@ -23,22 +23,31 @@
 #include "allocator_std.h"
 
 typedef struct {
-    size_t alignment;
-    RK_S32 fd_count;
+    size_t              alignment;
+    MppAllocFlagType    flags;
+    RK_S32              fd_count;
 } allocator_ctx;
 
-static MPP_RET allocator_std_open(void **ctx, MppAllocatorCfg *cfg)
+static MPP_RET allocator_std_open(void **ctx, size_t alignment, MppAllocFlagType flags)
 {
+    allocator_ctx *p = NULL;
+
     if (NULL == ctx) {
         mpp_err_f("do not accept NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     mpp_err_f("Warning: std allocator should be used on simulation mode only\n");
-    (void)cfg;
 
-    *ctx = NULL;
-    return MPP_NOK;
+    p = mpp_malloc(allocator_ctx, 1);
+    if (p) {
+        p->alignment = alignment;
+        p->flags = flags;
+        p->fd_count = 0;
+    }
+
+    *ctx = p;
+    return p ? MPP_OK : MPP_NOK;
 }
 
 static MPP_RET allocator_std_alloc(void *ctx, MppBufferInfo *info)
@@ -95,12 +104,14 @@ static MPP_RET allocator_std_mmap(void *ctx, MppBufferInfo *info)
 
 static MPP_RET allocator_std_close(void *ctx)
 {
-    if (ctx) {
-        mpp_free(ctx);
-        return MPP_OK;
-    }
-    mpp_err_f("found NULL context input\n");
-    return MPP_NOK;
+    MPP_FREE(ctx);
+    return MPP_OK;
+}
+
+static MppAllocFlagType os_allocator_std_flags(void *ctx)
+{
+    (void) ctx;
+    return MPP_ALLOC_FLAG_NONE;
 }
 
 os_allocator allocator_std = {
@@ -112,5 +123,5 @@ os_allocator allocator_std = {
     .import = allocator_std_import,
     .release = allocator_std_release,
     .mmap = allocator_std_mmap,
+    .flags = os_allocator_std_flags,
 };
-

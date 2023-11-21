@@ -123,7 +123,7 @@ int main()
 
     mpp_log("mpp_buffer_test commit mode with used status start\n");
 
-    ret = mpp_allocator_get(&allocator, &api, MPP_BUFFER_TYPE_ION);
+    ret = mpp_allocator_get(&allocator, &api, MPP_BUFFER_TYPE_ION, 0);
     if (MPP_OK != ret) {
         mpp_err("mpp_buffer_test mpp_allocator_get ion failed\n");
         goto MPP_BUFFER_failed;

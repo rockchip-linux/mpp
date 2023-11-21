@@ -17,7 +17,7 @@
 #ifndef __ALLOCATOR_ION_H__
 #define __ALLOCATOR_ION_H__
 
-#include "os_allocator.h"
+#include "mpp_allocator_api.h"
 
 extern os_allocator allocator_ion;
 

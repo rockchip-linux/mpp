@@ -17,16 +17,18 @@
 #ifndef __MPP_ALLOCATOR_H__
 #define __MPP_ALLOCATOR_H__
 
-#include "rk_type.h"
 #include "mpp_buffer.h"
 
-typedef void *MppAllocator;
+typedef enum MppAllocFlagType_e {
+    MPP_ALLOC_FLAG_NONE         = 0,
+    MPP_ALLOC_FLAG_DMA32        = (1 << 0),
+    MPP_ALLOC_FLAG_CACHABLE     = (1 << 1),
+    MPP_ALLOC_FLAG_CMA          = (1 << 2),
+    MPP_ALLOC_FLAG_TYPE_MASK    = MPP_ALLOC_FLAG_CMA | MPP_ALLOC_FLAG_CACHABLE | MPP_ALLOC_FLAG_DMA32,
+    MPP_ALLOC_FLAG_TYPE_NB,
+} MppAllocFlagType;
 
-typedef struct MppAllocatorCfg_t {
-    // input
-    size_t          alignment;
-    RK_U32          flags;
-} MppAllocatorCfg;
+typedef void *MppAllocator;
 
 typedef struct MppAllocatorApi_t {
     RK_U32  size;
@@ -43,14 +45,14 @@ typedef struct MppAllocatorApi_t {
 extern "C" {
 #endif
 
-MPP_RET mpp_allocator_get(MppAllocator *allocator,
-                          MppAllocatorApi **api, MppBufferType type);
+/* NOTE: flag may be updated by allocator */
+MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api,
+                          MppBufferType type, MppAllocFlagType flag);
 MPP_RET mpp_allocator_put(MppAllocator *allocator);
-MppBufferType get_real_allocator_type(const MppAllocator allocator);
+MppAllocFlagType mpp_allocator_get_flags(const MppAllocator allocator);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /*__MPP_ALLOCATOR_H__*/
-

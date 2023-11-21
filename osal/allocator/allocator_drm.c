@@ -39,11 +39,30 @@ static RK_U32 drm_debug = 0;
 
 #define DRM_FUNCTION                (0x00000001)
 #define DRM_DEVICE                  (0x00000002)
-#define DRM_CLIENT                  (0x00000004)
-#define DRM_IOCTL                   (0x00000008)
+#define DRM_IOCTL                   (0x00000004)
 
 #define drm_dbg(flag, fmt, ...)     _mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
 #define drm_dbg_func(fmt, ...)      drm_dbg(DRM_FUNCTION, fmt, ## __VA_ARGS__)
+#define drm_dbg_dev(fmt, ...)       drm_dbg(DRM_DEVICE, fmt, ## __VA_ARGS__)
+#define drm_dbg_ioctl(fmt, ...)     drm_dbg(DRM_IOCTL, fmt, ## __VA_ARGS__)
+
+/* memory type definitions. */
+enum drm_rockchip_gem_mem_type {
+    /* Physically Continuous memory. */
+    ROCKCHIP_BO_CONTIG      = 1 << 0,
+    /* cachable mapping. */
+    ROCKCHIP_BO_CACHABLE    = 1 << 1,
+    /* write-combine mapping. */
+    ROCKCHIP_BO_WC          = 1 << 2,
+    ROCKCHIP_BO_SECURE      = 1 << 3,
+    /* keep kmap for cma buffer or alloc kmap for other type memory */
+    ROCKCHIP_BO_ALLOC_KMAP  = 1 << 4,
+    /* alloc page with gfp_dma32 */
+    ROCKCHIP_BO_DMA32       = 1 << 5,
+    ROCKCHIP_BO_MASK        = ROCKCHIP_BO_CONTIG | ROCKCHIP_BO_CACHABLE |
+                              ROCKCHIP_BO_WC | ROCKCHIP_BO_SECURE | ROCKCHIP_BO_ALLOC_KMAP |
+                              ROCKCHIP_BO_DMA32,
+};
 
 typedef struct {
     RK_U32  alignment;
@@ -53,6 +72,22 @@ typedef struct {
 
 static const char *dev_drm = "/dev/dri/card0";
 
+static RK_U32 to_rockchip_gem_mem_flag(RK_U32 flags)
+{
+    RK_U32 ret = 0;
+
+    if (flags & MPP_ALLOC_FLAG_DMA32)
+        ret |= ROCKCHIP_BO_DMA32;
+
+    if (flags & MPP_ALLOC_FLAG_CACHABLE)
+        ret |= ROCKCHIP_BO_CACHABLE;
+
+    if (flags & MPP_ALLOC_FLAG_CMA)
+        ret |= ROCKCHIP_BO_CONTIG;
+
+    return ret;
+}
+
 static int drm_ioctl(int fd, int req, void *arg)
 {
     int ret;
@@ -61,8 +96,7 @@ static int drm_ioctl(int fd, int req, void *arg)
         ret = ioctl(fd, req, arg);
     } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
 
-    drm_dbg(DRM_IOCTL, "%x with code %d: %s\n", req,
-            ret, strerror(errno));
+    drm_dbg_ioctl("%x ret %d: %s\n", req, ret, strerror(errno));
 
     return ret;
 }
@@ -86,7 +120,7 @@ static int drm_handle_to_fd(int fd, RK_U32 handle, int *map_fd, RK_U32 flags)
 
     *map_fd = dph.fd;
 
-    drm_dbg_func("dev %d handle %d get fd %d\n", fd, handle, *map_fd);
+    drm_dbg_func("dev %d handle %d flags %x get fd %d\n", fd, handle, dph.flags, *map_fd);
 
     if (*map_fd < 0) {
         mpp_err_f("map ioctl returned negative fd\n");
@@ -105,7 +139,7 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 fl
     dmcb.bpp = 8;
     dmcb.width = (len + align - 1) & (~(align - 1));
     dmcb.height = 1;
-    dmcb.flags = flags;
+    dmcb.flags = to_rockchip_gem_mem_flag(flags);
 
     if (handle == NULL)
         return -EINVAL;
@@ -115,8 +149,8 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 fl
         return ret;
 
     *handle = dmcb.handle;
-    drm_dbg_func("dev %d alloc aligned %d handle %d size %lld\n", fd,
-                 align, dmcb.handle, dmcb.size);
+    drm_dbg_func("dev %d alloc aligned %d flags %x handle %d size %lld\n", fd,
+                 align, dmcb.flags, dmcb.handle, dmcb.size);
 
     return ret;
 }
@@ -129,12 +163,10 @@ static int drm_free(int fd, RK_U32 handle)
     return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
 }
 
-static MPP_RET os_allocator_drm_open(void **ctx, MppAllocatorCfg *cfg)
+static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment, MppAllocFlagType flags)
 {
     RK_S32 fd;
     allocator_ctx_drm *p;
-
-    drm_dbg_func("enter\n");
 
     if (NULL == ctx) {
         mpp_err_f("does not accept NULL input\n");
@@ -151,7 +183,7 @@ static MPP_RET os_allocator_drm_open(void **ctx, MppAllocatorCfg *cfg)
         return MPP_ERR_UNKNOW;
     }
 
-    drm_dbg(DRM_DEVICE, "open drm dev fd %d\n", fd);
+    drm_dbg_dev("open drm dev fd %d flags %x\n", fd, flags);
 
     p = mpp_malloc(allocator_ctx_drm, 1);
     if (NULL == p) {
@@ -162,13 +194,11 @@ static MPP_RET os_allocator_drm_open(void **ctx, MppAllocatorCfg *cfg)
         /*
          * default drm use cma, do nothing here
          */
-        p->alignment    = cfg->alignment;
-        p->flags        = cfg->flags;
+        p->alignment    = alignment;
+        p->flags        = flags;
         p->drm_device   = fd;
         *ctx = p;
     }
-
-    drm_dbg_func("leave dev %d\n", fd);
 
     return MPP_OK;
 }
@@ -321,6 +351,13 @@ static MPP_RET os_allocator_drm_mmap(void *ctx, MppBufferInfo *data)
     return ret;
 }
 
+static MppAllocFlagType os_allocator_drm_flags(void *ctx)
+{
+    allocator_ctx_drm *p = (allocator_ctx_drm *)ctx;
+
+    return p ? (MppAllocFlagType)p->flags : MPP_ALLOC_FLAG_NONE;
+}
+
 os_allocator allocator_drm = {
     .type = MPP_BUFFER_TYPE_DRM,
     .open = os_allocator_drm_open,
@@ -330,4 +367,5 @@ os_allocator allocator_drm = {
     .import = os_allocator_drm_import,
     .release = os_allocator_drm_free,
     .mmap = os_allocator_drm_mmap,
+    .flags = os_allocator_drm_flags,
 };
