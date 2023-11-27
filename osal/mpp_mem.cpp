@@ -38,7 +38,7 @@
 #define MEM_MAX_INDEX           (0x7fffffff)
 #define MEM_ALIGN               32
 #define MEM_ALIGN_MASK          (MEM_ALIGN - 1)
-#define MEM_ALIGNED(x)          (((x) + MEM_ALIGN) & (~MEM_ALIGN_MASK))
+#define MEM_ALIGNED(x)          (((x) + MEM_ALIGN_MASK) & (~MEM_ALIGN_MASK))
 #define MEM_HEAD_ROOM(debug)    ((debug & MEM_EXT_ROOM) ? (MEM_ALIGN) : (0))
 #define MEM_NODE_MAX            (1024)
 #define MEM_FREE_MAX            (512)
