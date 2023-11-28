@@ -29,8 +29,8 @@
 #define VPU_BITSTREAM_START_CODE    (0x42564b52)  /* RKVB, rockchip video bitstream */
 
 /* ignore unofficial frame poriod */
-#define MIN_FRAME_PERIOD_27M        450000  /* 60 fps */
-#define MAX_FRAME_PERIOD_27M        1126125 /* 23.976 fps */
+#define MIN_FRAME_PERIOD_27M        449000  /* more than 60 fps a little*/
+#define MAX_FRAME_PERIOD_27M        1130000  /* less than 23.976 fps a little */
 #define MAX_FRAME_PERIOD_DIFF       13500   /* 500us */
 
 RK_U32 m2vd_debug = 0x0;
@@ -951,7 +951,8 @@ static int m2vd_decode_gop_header(M2VDParserContext *ctx)
 
 static int m2vd_decode_seq_header(M2VDParserContext *ctx)
 {
-    RK_U32  i;
+    RK_U32 i;
+    RK_S32 pre_frame_rate_code = ctx->seq_head.frame_rate_code;
     BitReadCtx_t *bx = ctx->bitread_ctx;
     ctx->seq_head.decode_width = m2vd_read_bits(bx, 12);
     ctx->seq_head.decode_height = m2vd_read_bits(bx, 12);
@@ -959,7 +960,7 @@ static int m2vd_decode_seq_header(M2VDParserContext *ctx)
     ctx->display_height = ctx->seq_head.decode_height;
     ctx->seq_head.aspect_ratio_information = m2vd_read_bits(bx, 4);
     ctx->seq_head.frame_rate_code = m2vd_read_bits(bx, 4);
-    if (!ctx->frame_period)
+    if (!ctx->frame_period || pre_frame_rate_code != ctx->seq_head.frame_rate_code)
         ctx->frame_period = frame_period_Table_27M[ctx->seq_head.frame_rate_code];
     ctx->seq_head.bit_rate_value = m2vd_read_bits(bx, 18);
     mpp_skip_bits(bx, 1);
