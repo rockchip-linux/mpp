@@ -10,20 +10,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_REENTRANT -D_GNU_SOURCE")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
-if (HAVE_DRM)
-    add_definitions(-DHAVE_DRM)
-    set(DRM_FILES allocator/allocator_drm.c)
-    message(STATUS "compile with drm support")
-else()
-    message(STATUS "compile without drm support")
-endif()
-
 set(MPP_ALLOCATOR
     allocator/allocator_std.c
     allocator/allocator_ion.c
     allocator/allocator_ext_dma.c
     allocator/allocator_dma_heap.c
-    ${DRM_FILES}
+    allocator/allocator_drm.c
 )
 
 set(MPP_DRIVER
