@@ -29,5 +29,4 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DHAVE_DRM=ON \
 	-DARM_MIX_32_64=ON
