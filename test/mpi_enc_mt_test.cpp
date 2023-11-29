@@ -717,10 +717,10 @@ void *enc_test_input(void *arg)
         } else {
             if (p->cam_ctx == NULL) {
                 ret = MPP_OK;
-                // ret = fill_image((RK_U8 *)buf, p->width, p->height, p->hor_stride,
-                //                  p->ver_stride, p->fmt, p->frm_cnt_in);
-                // if (ret)
-                //     break;
+                ret = fill_image((RK_U8 *)buf, p->width, p->height, p->hor_stride,
+                                 p->ver_stride, p->fmt, p->frm_cnt_in);
+                if (ret)
+                    break;
             } else {
                 cam_frm_idx = camera_source_get_frame(p->cam_ctx);
                 mpp_assert(cam_frm_idx >= 0);
