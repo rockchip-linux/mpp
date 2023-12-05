@@ -873,6 +873,7 @@ static MPP_RET h264e_sw_enc(void *ctx, HalEncTask *task)
 
     rc_info->bit_real = task->length;
     rc_info->quality_real = rc_info->quality_target;
+    mpp_packet_add_segment_info(packet, H264_NALU_TYPE_SLICE, length, final_len);
 
     return MPP_OK;
 }
