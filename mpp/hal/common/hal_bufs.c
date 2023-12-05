@@ -222,6 +222,7 @@ MPP_RET hal_bufs_setup(HalBufs bufs, RK_S32 max_cnt, RK_S32 size_cnt, size_t siz
 HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
 {
     HalBufsImpl *impl = (HalBufsImpl *)bufs;
+    RK_S32 i;
 
     if (NULL == impl || buf_idx < 0 || buf_idx >= impl->max_cnt) {
         mpp_err_f("invalid input impl %p buf_idx %d\n", impl, buf_idx);
@@ -235,7 +236,6 @@ HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
 
     if (!(impl->valid & mask)) {
         MppBufferGroup group = impl->group;
-        RK_S32 i;
 
         for (i = 0; i < impl->size_cnt; i++) {
             size_t size = impl->sizes[i];
@@ -243,6 +243,8 @@ HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
 
             if (size && NULL == buf) {
                 mpp_buffer_get(group, &buf, size);
+                if (!buf)
+                    goto failed;
                 impl->size_sum += size;
             }
 
@@ -256,4 +258,13 @@ HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
     hal_bufs_leave();
 
     return hal_buf;
+
+failed:
+    for (i = 0; i < impl->size_cnt; i++) {
+        if (hal_buf->buf[i]) {
+            mpp_buffer_put(hal_buf->buf[i]);
+            hal_buf->buf[i] = NULL;
+        }
+    }
+    return NULL;
 }
