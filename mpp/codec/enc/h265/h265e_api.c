@@ -304,7 +304,7 @@ static MPP_RET h265e_proc_enc_skip(void *ctx, HalEncTask *task)
     new_length = h265e_code_slice_skip_frame(ctx, p->slice, ptr, len);
     task->length = new_length;
     task->rc_task->info.bit_real = 8 * new_length;
-    ///mpp_packet_set_length(pkt, offset + new_length);
+    mpp_packet_add_segment_info(pkt, NAL_TRAIL_R, offset, new_length);
 
     h265e_dbg_func("leave\n");
     return MPP_OK;
