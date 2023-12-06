@@ -6,34 +6,11 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include <linux/dma-buf.h>
 
 #include "mpp_env.h"
 #include "mpp_log.h"
 #include "mpp_dmabuf.h"
-
-/* SET_NAME and SYNC_PARTIAL are supported after 4.4 kernel */
-
-/* Add dma buffer name uapi */
-#ifndef DMA_BUF_SET_NAME
-/* 32/64bitness of this uapi was botched in android, there's no difference
- * between them in actual uapi, they're just different numbers.
- */
-#define DMA_BUF_SET_NAME                _IOW(DMA_BUF_BASE, 1, const char *)
-#define DMA_BUF_SET_NAME_A              _IOW(DMA_BUF_BASE, 1, __u32)
-#define DMA_BUF_SET_NAME_B              _IOW(DMA_BUF_BASE, 1, __u64)
-#endif
-
-/* Add dma buffer sync partial uapi */
-#ifndef DMA_BUF_IOCTL_SYNC_PARTIAL
-struct dma_buf_sync_partial {
-    __u64 flags;
-    __u32 offset;
-    __u32 len;
-};
-
-#define DMA_BUF_IOCTL_SYNC_PARTIAL      _IOW(DMA_BUF_BASE, 2, struct dma_buf_sync_partial)
-#endif
+#include "linux/dma-buf.h"
 
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
 
