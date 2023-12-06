@@ -712,8 +712,8 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep,
     regs->reg_base.src_fmt.src_cfmt   = hw_fmt;
     regs->reg_base.src_fmt.alpha_swap = cfg.alpha_swap;
     regs->reg_base.src_fmt.rbuv_swap  = cfg.rbuv_swap;
-    regs->reg_base.src_fmt.src_range  = (prep->range == MPP_FRAME_RANGE_JPEG ? 1 : 0);
-    regs->reg_base.src_fmt.out_fmt    = 1;
+    regs->reg_base.src_fmt.src_range  = (prep->range == MPP_FRAME_RANGE_JPEG) ? 1 : 0;
+    regs->reg_base.src_fmt.out_fmt    = (fmt == MPP_FMT_YUV400) ? 0 : 1;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
@@ -1383,6 +1383,7 @@ static void setup_vepu580_io_buf(HalVepu580RegSet *regs, MppDevRegOffCfgs *offse
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 5 / 4;
         } break;
+        case VEPU540_FMT_YUV400 :
         case VEPU541_FMT_YUYV422 :
         case VEPU541_FMT_UYVY422 : {
             off_in[0] = 0;

@@ -109,6 +109,7 @@
 #define MPP_PROFILE_HEVC_MAIN                        1
 #define MPP_PROFILE_HEVC_MAIN_10                     2
 #define MPP_PROFILE_HEVC_MAIN_STILL_PICTURE          3
+#define MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS     4
 
 #define LOG2_MAX_CTB_SIZE   6
 #define LOG2_MIN_CTB_SIZE   4
@@ -168,22 +169,6 @@ typedef enum H265NalPriority_t {
     H265_NAL_PRIORITY_HIGHEST    = 3,
 } H265NalPriority;
 
-
-enum RPSType {
-    ST_CURR_BEF = 0,
-    ST_CURR_AFT,
-    ST_FOLL,
-    LT_CURR,
-    LT_FOLL,
-    NB_RPS_TYPE,
-};
-
-typedef enum SliceType_t {
-    B_SLICE = 0,
-    P_SLICE = 1,
-    I_SLICE = 2,
-} SliceType;
-
 typedef enum {
     H265_LEVEL_NONE = 0,
     H265_LEVEL1 = 30,
@@ -201,5 +186,27 @@ typedef enum {
     H265_LEVEL6_2 = 186,
     H265_LEVEL8_5 = 255,
 } H265Level;
+
+typedef enum H265ChromaFmt_e {
+    H265_CHROMA_400                 = 0,    //!< Monochrome
+    H265_CHROMA_420                 = 1,    //!< 4:2:0
+    H265_CHROMA_422                 = 2,    //!< 4:2:2
+    H265_CHROMA_444                 = 3     //!< 4:4:4
+} H265ChromaFmt;
+
+typedef enum SliceType_t {
+    B_SLICE = 0,
+    P_SLICE = 1,
+    I_SLICE = 2,
+} SliceType;
+
+enum RPSType {
+    ST_CURR_BEF = 0,
+    ST_CURR_AFT,
+    ST_FOLL,
+    LT_CURR,
+    LT_FOLL,
+    NB_RPS_TYPE,
+};
 
 #endif

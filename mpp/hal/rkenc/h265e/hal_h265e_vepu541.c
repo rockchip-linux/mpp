@@ -163,6 +163,8 @@ static MPP_RET vepu54x_h265_setup_hal_bufs(H265eV541HalContext *ctx)
     vepu541_set_fmt(fmt, ctx->cfg->prep.format);
     input_fmt = (Vepu541Fmt)fmt->format;
     switch (input_fmt) {
+    case VEPU540_FMT_YUV400:
+        break;
     case VEPU541_FMT_YUV420P:
     case VEPU541_FMT_YUV420SP: {
         frame_size = frame_size * 3 / 2;

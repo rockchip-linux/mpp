@@ -1604,6 +1604,7 @@ vepu580_h265_set_patch_info(MppDevRegOffCfgs *cfgs, H265eSyntax_new *syn,
             u_offset = frame_size;
             v_offset = frame_size * 3 / 2;
         } break;
+        case VEPU540_FMT_YUV400:
         case VEPU541_FMT_YUYV422:
         case VEPU541_FMT_UYVY422: {
             u_offset = 0;
@@ -1932,8 +1933,8 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt,
     reg_base->reg0198_src_fmt.src_cfmt = fmt->format;
     reg_base->reg0198_src_fmt.alpha_swap = fmt->alpha_swap;
     reg_base->reg0198_src_fmt.rbuv_swap = fmt->rbuv_swap;
-    reg_base->reg0198_src_fmt.src_range = (prep_cfg->range == MPP_FRAME_RANGE_JPEG ? 1 : 0);
-    reg_base->reg0198_src_fmt.out_fmt = 1;
+    reg_base->reg0198_src_fmt.src_range = (prep_cfg->range == MPP_FRAME_RANGE_JPEG) ? 1 : 0;
+    reg_base->reg0198_src_fmt.out_fmt = (prep_cfg->format == MPP_FMT_YUV400) ? 0 : 1;
     reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 

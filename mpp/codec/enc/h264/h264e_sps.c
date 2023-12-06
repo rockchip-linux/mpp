@@ -66,6 +66,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     MppEncH264Cfg *h264 = &cfg->codec.h264;
     MppEncRefCfg ref = cfg->ref_cfg;
     MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref);
+    MppFrameFormat fmt = prep->format;
     RK_S32 gop = rc->gop;
     RK_S32 width = prep->width;
     RK_S32 height = prep->height;
@@ -158,7 +159,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     sps->level_idc = level_idc;
 
     sps->sps_id = 0;
-    sps->chroma_format_idc = H264_CHROMA_420;
+    sps->chroma_format_idc = (fmt == MPP_FMT_YUV400) ? H264_CHROMA_400 : H264_CHROMA_420;
 
     // set max frame number and poc lsb according to gop size
     sps->pic_order_cnt_type = h264->hw_cfg.hw_poc_type;
@@ -260,6 +261,8 @@ MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset,
     MppWriteCtx bit_ctx;
     MppWriteCtx *bit = &bit_ctx;
     RK_S32 sps_size = 0;
+    static const RK_U32 SubWidthC[4]  = { 1, 2, 2, 1};
+    static const RK_U32 SubHeightC[4] = { 1, 2, 1, 1};
 
     mpp_writer_init(bit, p, buf_size);
 
@@ -338,13 +341,13 @@ MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset,
     mpp_writer_put_bits(bit, sps->cropping, 1);
     if (sps->cropping) {
         /* frame_crop_left_offset */
-        mpp_writer_put_ue(bit, sps->crop.left / 2);
+        mpp_writer_put_ue(bit, sps->crop.left / SubWidthC[sps->chroma_format_idc]);
         /* frame_crop_right_offset */
-        mpp_writer_put_ue(bit, sps->crop.right / 2);
+        mpp_writer_put_ue(bit, sps->crop.right / SubWidthC[sps->chroma_format_idc]);
         /* frame_crop_top_offset */
-        mpp_writer_put_ue(bit, sps->crop.top / 2);
+        mpp_writer_put_ue(bit, sps->crop.top / SubHeightC[sps->chroma_format_idc]);
         /* frame_crop_bottom_offset */
-        mpp_writer_put_ue(bit, sps->crop.bottom / 2);
+        mpp_writer_put_ue(bit, sps->crop.bottom / SubHeightC[sps->chroma_format_idc]);
     }
 
     /* vui_parameters_present_flag */
