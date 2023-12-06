@@ -136,7 +136,7 @@ static VepuFmtCfg vepu541_yuv_cfg[MPP_FMT_YUV_BUTT] = {
         .offset     = zeros,
     },
     {   /* MPP_FMT_YUV400 */
-        .format     = VEPU541_FMT_NONE,
+        .format     = VEPU540_FMT_YUV400,
         .alpha_swap = 0,
         .rbuv_swap  = 0,
         .src_range  = 1,

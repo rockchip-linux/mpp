@@ -150,11 +150,24 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
         profileTierLevel->m_levelIdc = codec->level;
     }
     profileTierLevel->m_tierFlag = codec->tier ? 1 : 0;
+
+    if (prep->format == MPP_FMT_YUV400) {
+        /* general_profile_idc == 4 */
+        codec->profile = MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS;
+        profileTierLevel->m_max12bitConstraintFlag = 1;
+        profileTierLevel->m_max10bitConstraintFlag = 1;
+        profileTierLevel->m_max8bitConstraintFlag = 1;
+        profileTierLevel->m_max422chromaConstraintFlag = 1;
+        profileTierLevel->m_max420chromaConstraintFlag = 1;
+        profileTierLevel->m_maxMonochromaConstraintFlag = 1;
+        profileTierLevel->m_lowerBitRateConstraintFlag = 1;
+    } else {
+        /* general_profile_idc == 2 */
+        profileTierLevel->m_profileCompatibilityFlag[2] = 1;
+    }
+
     profileTierLevel->m_profileIdc = codec->profile;
-
     profileTierLevel->m_profileCompatibilityFlag[codec->profile] = 1;
-    profileTierLevel->m_profileCompatibilityFlag[2] = 1;
-
     profileTierLevel->m_progressiveSourceFlag = 1;
     profileTierLevel->m_nonPackedConstraintFlag = 0;
     profileTierLevel->m_frameOnlyConstraintFlag = 0;
@@ -169,6 +182,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     MppEncH265VuiCfg *vui = &codec->vui;
+    MppFrameFormat fmt = prep->format;
     RK_S32 i_timebase_num = rc->fps_out_denorm;
     RK_S32 i_timebase_den = rc->fps_out_num;
     RK_U8  convertToBit[MAX_CU_SIZE + 1];
@@ -230,7 +244,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 
     sps->m_SPSId = 0;
     sps->m_VPSId = 0;
-    sps->m_chromaFormatIdc = 0x1; //RKVE_CSP2_I420;
+    sps->m_chromaFormatIdc = (fmt == MPP_FMT_YUV400) ? H265_CHROMA_400 : H265_CHROMA_420;
     sps->m_maxTLayers = 1;
     sps->m_picWidthInLumaSamples = prep->width + pad[0];
     sps->m_picHeightInLumaSamples = prep->height + pad[1];

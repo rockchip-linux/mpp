@@ -244,9 +244,24 @@ void codeProfileTier(H265eStream *s, ProfileTierLevel* ptl)
     h265e_stream_write1_with_log(s, ptl->m_nonPackedConstraintFlag, "general_non_packed_constraint_flag");
     h265e_stream_write1_with_log(s, ptl->m_frameOnlyConstraintFlag, "general_frame_only_constraint_flag");
 
-    h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[0..15]");
-    h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[16..31]");
-    h265e_stream_write_with_log(s, 0, 12, "eserved_zero_44bits[32..43]");
+    if (ptl->m_profileIdc == MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS) {
+        h265e_stream_write1_with_log(s, ptl->m_max12bitConstraintFlag , "general_max_12_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max10bitConstraintFlag, "general_max_10_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max8bitConstraintFlag,  "general_max_8_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max422chromaConstraintFlag, "general_max_422chroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max420chromaConstraintFlag, "general_max_420chroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_maxMonochromaConstraintFlag, "general_max_monochroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_intraConstraintFlag, "general_intra_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_onePictureConstraintFlag, "general_one_picture_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_lowerBitRateConstraintFlag, "general_lower_bit_rate_constraint_flag");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_35bits[0..15]");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_35bits[16..31]");
+        h265e_stream_write_with_log(s, 0, 3, "eserved_zero_35bits[32..34]");
+    } else {
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[0..15]");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[16..31]");
+        h265e_stream_write_with_log(s, 0, 12, "eserved_zero_44bits[32..43]");
+    }
 }
 
 void codePTL(H265eStream *s, H265ePTL* ptl, RK_U32 profilePresentFlag, int maxNumSubLayersMinus1)
