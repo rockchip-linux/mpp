@@ -892,6 +892,10 @@ done:
         jpegd_setup_default_dht(ctx);
         syntax->htbl_entry = 0x0f;
     }
+    if (!syntax->sof0_found) {
+        mpp_err_f("sof marker not found!\n");
+        ret = MPP_ERR_STREAM;
+    }
     if (!syntax->eoi_found) {
         if (MPP_OK != jpegd_find_eoi(&buf_ptr, buf_end)) {
             mpp_err_f("EOI marker not found!\n");
