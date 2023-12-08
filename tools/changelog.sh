@@ -218,5 +218,7 @@ echo -e "${prev_changelog}" >> ${changelog_file}
 # add CHANGELOG.md
 git add ${changelog_file}
 git commit --amend -C ${curr_ver}
+# update tag message
+git tag -f ${version_tag} -m "${version_tag} version at ${tag_date}"
 
 IFS=$OLDIFS
