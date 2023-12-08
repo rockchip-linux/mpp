@@ -1,3 +1,37 @@
+## 1.0.3 (2023-12-08)
+### Feature
+- [dec_test]: Add buffer mode option
+- [mpp_dmabuf]: Add dmabuf sync operation
+- [jpege]: Allow rk3588 jpege 4 tasks async
+- [rc_v2]: Support flex fps rate control
+
+### Fix
+- [av1d_api]: fix loss last frame when empty eos
+- [h265e_dpb]: do not check frm status when pass1
+- [hal_bufs]: clear buffer when hal_bufs get failed
+- [dma-buf]: Add dma-buf.h for old ndk compiling
+- [enc]: Fix sw enc path segment_info issue
+- [cmake]: Remove HAVE_DRM option
+- [m2vd]: update frame period on frame rate code change
+- [test]: Fix mpi_enc_mt_test error
+- [dma_heap]: add dma heap uncached node checking
+- [mpp_mem]: Fix MEM_ALIGNED macro error
+- [mpeg4_api]: fix drop frame when two stream switch
+- [script]: fix shift clear input parameter error
+- [hal_h265e_vepu541]: fix roi buffer variables incorrect use
+
+### Docs
+- Update 1.0.3 CHANGELOG.md
+
+### Refactor
+- [allocator]: Refactor allocator flow
+
+### Chore
+- [vp8d]: optimize vp8d debug
+- [mpp_enc]: Encoder changes to cacheable buffer
+- [mpp_dec]: Decoder changes to cacheable buffer
+- [mpp_dmabuf]: Add dmabuf ioctl unit test
+
 ## 1.0.2 (2023-11-01)
 ### Feature
 - [mpp_lock]: Add spinlock timing statistic
