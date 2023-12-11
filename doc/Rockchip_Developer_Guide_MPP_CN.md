@@ -1087,15 +1087,17 @@ MPP源代码发布官方地址：<https://github.com/rockchip-linux/mpp>
 
 ## 5.2 编译
 
-MPP源代码编译脚本为cmake，需要依赖2.8.12以上的版本，建议使用2.8.12版，使用高版本的cmake工具可能会产生较多的warning。
+MPP源代码编译脚本为cmake，需要依赖2.8.12以上的版本，建议使用3.x版。cmake-3.28版本验证通过。使用高版本的cmake工具可能会产生较多的warning。
 
 ### 5.2.1 Android平台交叉编译
 
-编译Android库需要使用ndk环境，默认脚本使用android-ndk-r10d进行编译。
+编译Android库需要使用ndk环境，默认脚本使用android-ndk-r16b进行编译。android-ndk-r16b和android-ndk-r25c均验证通过，前者适用于android 14之前的sdk，后者适用于android 14及其之后的sdk。
 
-r10d ndk的下载路径可以在源代码目录下的build/android/ndk_links.md文件里查找。
+以r16b ndk为例进行说明：
 
-把下载好的ndk解压到/home/pub/ndk/android-ndk-r10d，或者手动修改build/android/目录下env_setup.sh脚本的ANDROID_NDK变量路径。
+r16b ndk的下载路径可以在源代码目录下的build/android/ndk_links.md文件里查找。
+
+把下载好的ndk解压到/home/pub/ndk/android-ndk-r16b，或者手动修改build/android/目录下env_setup.sh脚本的ANDROID_NDK变量路径。
 
 进入build/android/arm/目录，运行make-Android.bash脚本生成编译用Makefile，运行make –j16进行编译。
 

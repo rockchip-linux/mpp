@@ -1035,15 +1035,17 @@ The command of download: git clone [https://github.com/rockchip-linux/mpp.git](h
 
 # 5.2 Compiling
 
-The MPP source code compilation script is cmake. It depends on the version above 2.8.12. It is recommended to use the 2.8.12 version. Using the high version of the cmake tool may generate more warnings.
+The MPP source code compilation script is cmake. It depends on the version above 2.8.12. It is recommended to use the 3.x version. cmake-3.28 version verification passed. Using the high version of the cmake tool may generate more warnings.
 
 ## 5.2.1 Android platform cross-compiling
 
-Compiling the Android library requires the ndk environment, and the default script is compiled using android-ndk-r10d.
+Compiling the Android library requires the ndk environment, and the default script is compiled using android-ndk-r16b. Both android-ndk-r16b and android-ndk-r25c are verified. The former applies to sdks below android 14, and the latter applies to sdks above android 14.
 
-The download path for r10d ndk can be found in the build/android/ndk_links.md file in the source directory.
+Take the r16b ndk for example:
 
-Unzip the downloaded ndk to /home/pub/ndk/android-ndk-r10d, or manually modify the ANDROID_NDK variable path of the env_setup.sh script in the build/android/ directory.
+The download path for r16b ndk can be found in the build/android/ndk_links.md file in the source directory.
+
+Unzip the downloaded ndk to /home/pub/ndk/android-ndk-r16b, or manually modify the ANDROID_NDK variable path of the env_setup.sh script in the build/android/ directory.
 
 Go to the build/android/arm/ directory, run the make-Android.bash script to generate the Makefile for compilation, and run make –j16 to compile.
 
