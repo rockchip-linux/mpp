@@ -930,6 +930,7 @@ MPP_RET vdpu2_h264d_gen_regs(void *hal, HalTaskInfo *task)
     FUN_CHECK(ret = set_vlc_regs(p_hal, (H264dVdpuRegs_t *)reg_ctx->regs));
     FUN_CHECK(ret = set_ref_regs(p_hal, (H264dVdpuRegs_t *)reg_ctx->regs));
     FUN_CHECK(ret = set_asic_regs(p_hal, (H264dVdpuRegs_t *)reg_ctx->regs));
+    mpp_buffer_sync_end(reg_ctx->buf);
 
 __RETURN:
     return ret = MPP_OK;

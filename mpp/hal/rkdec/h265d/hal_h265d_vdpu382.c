@@ -947,6 +947,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
     vdpu382_setup_statistic(&hw_regs->common, &hw_regs->statistic);
+    mpp_buffer_sync_end(reg_ctx->bufs);
 
     return ret;
 }

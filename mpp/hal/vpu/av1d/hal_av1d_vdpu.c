@@ -770,6 +770,7 @@ void vdpu_av1d_set_prob(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         // Overwrite MV context area with intrabc MV context
         memcpy(prob_base + mv_cdf_offset, dxva->cdfs_ndvc, sizeof(MvCDFs));
     }
+    mpp_buffer_sync_end(reg_ctx->prob_tbl_base);
 
     regs->addr_cfg.swreg171.sw_prob_tab_out_base_lsb    = mpp_buffer_get_fd(reg_ctx->prob_tbl_out_base);
     regs->addr_cfg.swreg173.sw_prob_tab_base_lsb        = mpp_buffer_get_fd(reg_ctx->prob_tbl_base);
@@ -1462,6 +1463,7 @@ void vdpu_av1d_set_global_model(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
                  dxva->frame_refs[ref_frame].gamma,
                  dxva->frame_refs[ref_frame].delta);
     }
+    mpp_buffer_sync_end(ctx->global_model);
 
     regs->addr_cfg.swreg82.sw_global_model_base_msb = 0;
     regs->addr_cfg.swreg83.sw_global_model_base_lsb = mpp_buffer_get_fd(ctx->global_model);
@@ -1584,6 +1586,7 @@ void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
                      tile0, tile1, start, end, x0, x1, y0, y1);
         }
     }
+    mpp_buffer_sync_end(ctx->tile_info);
 }
 
 void vdpu_av1d_set_cdef(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
@@ -1786,6 +1789,7 @@ void vdpu_av1d_set_fgs(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
     }
 
     memcpy(ptr, &ctx->fgsmem, sizeof(FilmGrainMemory));
+    mpp_buffer_sync_end(ctx->film_grain_mem);
 
     regs->addr_cfg.swreg94.sw_filmgrain_base_msb = 0;
     regs->addr_cfg.swreg95.sw_filmgrain_base_lsb = mpp_buffer_get_fd(ctx->film_grain_mem);
@@ -2306,6 +2310,7 @@ __SKIP_HARD:
         DecCbHalDone m_ctx;
         RK_U32 *prob_out = (RK_U32*)mpp_buffer_get_ptr(reg_ctx->prob_tbl_out_base);
 
+        mpp_buffer_sync_ro_begin(reg_ctx->prob_tbl_out_base);
         m_ctx.task = mpp_buffer_get_ptr(reg_ctx->prob_tbl_out_base);//(void *)&task->dec;
         m_ctx.regs = (RK_U32 *)prob_out;
         if (!p_regs->swreg1.sw_dec_rdy_int/* decode err */)

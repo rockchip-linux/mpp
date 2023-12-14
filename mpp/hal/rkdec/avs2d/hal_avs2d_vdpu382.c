@@ -816,6 +816,8 @@ MPP_RET hal_avs2d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     vdpu382_setup_statistic(&regs->common, &regs->statistic);
+    mpp_buffer_sync_end(reg_ctx->bufs);
+
     /* enable reference frame usage feedback */
     regs->statistic.reg265.perf_cnt0_sel = 42;
 

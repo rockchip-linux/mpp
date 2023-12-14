@@ -905,11 +905,13 @@ MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
         }
 
         ret = jpegd_gen_regs(JpegHalCtx, syntax);
+        mpp_buffer_sync_end(JpegHalCtx->pTableBase);
         if (ret != MPP_OK) {
             mpp_err_f("generate registers failed\n");
             goto RET;
         }
     }
+
 
     jpegd_dbg_func("exit\n");
     return ret;

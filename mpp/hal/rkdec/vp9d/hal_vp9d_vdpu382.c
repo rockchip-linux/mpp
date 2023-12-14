@@ -475,8 +475,11 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     memset(hw_ctx->hw_regs, 0, sizeof(Vdpu382Vp9dRegSet));
 #if HW_PROB
     hal_vp9d_prob_flag_delta(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
-    if (intraFlag)
+    mpp_buffer_sync_end(hw_ctx->probe_base);
+    if (intraFlag) {
         hal_vp9d_prob_default(mpp_buffer_get_ptr(hw_ctx->prob_default_base), task->dec.syntax.data);
+        mpp_buffer_sync_end(hw_ctx->prob_default_base);
+    }
 
     /* config reg103 */
     vp9_hw_regs->vp9d_param.reg103.prob_update_en   = 1;
@@ -612,6 +615,7 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs->vp9d_addr.reg160_delta_prob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
 #else
     hal_vp9d_output_probe(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
+    mpp_buffer_sync_end(hw_ctx->probe_base);
 #endif
     vp9_hw_regs->common.reg013.cur_pic_is_idr = !pic_param->frame_type;
     vp9_hw_regs->common.reg009.dec_mode = 2; //set as vp9 dec
@@ -1038,6 +1042,8 @@ static MPP_RET hal_vp9d_vdpu382_wait(void *hal, HalTaskInfo *task)
 #if !HW_PROB
     if (p_hal->dec_cb && task->dec.flags.wait_done) {
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
+
+        mpp_buffer_sync_end(hw_ctx->count_base);
         hal_vp9d_update_counts(mpp_buffer_get_ptr(hw_ctx->count_base), task->dec.syntax.data);
         mpp_callback(p_hal->dec_cb, &pic_param->counts);
     }

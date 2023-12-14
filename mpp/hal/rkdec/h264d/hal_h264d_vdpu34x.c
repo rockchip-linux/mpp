@@ -1002,6 +1002,7 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
                       ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
                       ctx->rcb_info);
     vdpu34x_setup_statistic(&regs->common, &regs->statistic);
+    mpp_buffer_sync_end(ctx->bufs);
 
 __RETURN:
     return ret = MPP_OK;
