@@ -102,6 +102,8 @@ MPP_RET vp8e_init_entropy(void *hal)
 
         RK_U16 *p_cnt = (RK_U16 *)mpp_buffer_get_ptr(buffers->hw_prob_count_buf);
 
+        mpp_buffer_sync_end(buffers->hw_prob_count_buf);
+
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 7; j++) {
                 for (k = 0; k < 3; k++) {
@@ -327,6 +329,8 @@ MPP_RET vp8e_write_entropy_tables(void *hal)
         vp8e_swap_endian((RK_U32 *) table, 56 + 8 * 48 + 8 * 96);
     else
         vp8e_swap_endian((RK_U32 *) table, 56);
+
+    mpp_buffer_sync_end(buffers->hw_cabac_table_buf);
 
     return MPP_OK;
 }

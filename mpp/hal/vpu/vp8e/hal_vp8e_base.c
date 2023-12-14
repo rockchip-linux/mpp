@@ -145,6 +145,8 @@ static MPP_RET set_segmentation(void *hal)
         RK_U32 *map_bck = map;
         RK_U32 mapSize = (ctx->mb_per_frame + 15) / 16 * 8;
 
+        mpp_buffer_sync_begin(buffers->hw_segment_map_buf);
+
         if (hw_cfg->roi1_delta_qp || hw_cfg->roi2_delta_qp) {
             pps->segment_enabled = 1;
 
@@ -186,6 +188,8 @@ static MPP_RET set_segmentation(void *hal)
             }
             vp8e_swap_endian(map_bck, mapSize);
         }
+
+        mpp_buffer_sync_end(buffers->hw_segment_map_buf);
     }
     if (ctx->picbuf.cur_pic->i_frame || !pps->segment_enabled) {
         memset(ppss->qp_sgm, 0xff, sizeof(ppss->qp_sgm));
@@ -590,6 +594,7 @@ static MPP_RET set_new_frame(void *hal)
 
     memset(mpp_buffer_get_ptr(buffers->hw_prob_count_buf),
            0, VP8_PROB_COUNT_BUF_SIZE);
+    mpp_buffer_sync_end(buffers->hw_prob_count_buf);
 
     return MPP_OK;
 }
@@ -1274,6 +1279,7 @@ static MPP_RET alloc_buffer(void *hal)
     hw_cfg->mv_output_base = mpp_buffer_get_fd(buffers->hw_mv_output_buf);
 
     memset(mpp_buffer_get_ptr(buffers->hw_mv_output_buf), 0, sizeof(RK_U32) * mb_total);
+    mpp_buffer_sync_end(buffers->hw_mv_output_buf);
 
     ret = mpp_buffer_get(buffers->hw_buf_grp, &buffers->hw_prob_count_buf, VP8_PROB_COUNT_BUF_SIZE);
     if (ret) {
@@ -1294,7 +1300,7 @@ static MPP_RET alloc_buffer(void *hal)
 
         hw_cfg->segment_map_base = mpp_buffer_get_fd(buffers->hw_segment_map_buf);
         memset(mpp_buffer_get_ptr(buffers->hw_segment_map_buf), 0, segment_map_size / 4);
-
+        mpp_buffer_sync_end(buffers->hw_segment_map_buf);
     }
     {
         RK_U32 i = 0;
@@ -1531,6 +1537,8 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
     const RK_U32 hw_offset = ctx->hw_cfg.first_free_bit / 8;
     RK_U32 *part = (RK_U32 *)mpp_buffer_get_ptr(buffers->hw_size_table_buf);
 
+    mpp_buffer_sync_begin(buffers->hw_size_table_buf);
+
     ctx->bitbuf[1].byte_cnt += part[0] - hw_offset;
     ctx->bitbuf[1].data += part[0] - hw_offset;
 
@@ -1568,6 +1576,8 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
         RK_U8 *p_out = mpp_buffer_get_ptr(enc_task->output);
         RK_S32 disable_ivf = ctx->cfg->codec.vp8.disable_ivf;
 
+        mpp_buffer_sync_begin(buffers->hw_size_table_buf);
+
         if (!disable_ivf) {
             p_out += enc_task->length;
 
@@ -1590,6 +1600,8 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
         memcpy(p_out, ctx->p_out_buf[2], ctx->stream_size[2]);
         p_out += ctx->stream_size[2];
         enc_task->length += ctx->stream_size[2];
+
+        mpp_buffer_sync_end(buffers->hw_size_table_buf);
     }
     return MPP_OK;
 }

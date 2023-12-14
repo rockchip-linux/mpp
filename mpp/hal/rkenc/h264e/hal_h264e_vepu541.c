@@ -1067,6 +1067,8 @@ static MPP_RET setup_vepu541_intra_refresh(Vepu541H264eRegSet *regs, HalH264eVep
     regs->reg073.roi_addr = fd;
     vepu541_set_one_roi(buf, region, w, h);
     mpp_free(region);
+    mpp_buffer_sync_end(ctx->roi_buf);
+
 RET:
     hal_h264e_dbg_func("leave, ret %d\n", ret);
     return ret;
@@ -1121,6 +1123,7 @@ static void setup_vepu541_roi(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx)
             regs->reg073.roi_addr = fd;
 
             vepu541_set_roi(buf, roi, w, h);
+            mpp_buffer_sync_end(ctx->roi_buf);
         } else {
             regs->reg013.roi_enc = 0;
             regs->reg073.roi_addr = 0;

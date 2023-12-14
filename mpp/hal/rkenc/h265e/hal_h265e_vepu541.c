@@ -916,6 +916,8 @@ static MPP_RET setup_vepu541_intra_refresh(H265eV541RegSet *regs, H265eV541HalCo
     vepu541_set_one_roi(buf, region, w, h);
     vepu541_h265_set_roi(dst_buf, buf, w, h);
     mpp_free(region);
+    mpp_buffer_sync_end(ctx->roi_buf);
+
 RET:
     hal_h265e_dbg_func("leave, ret %d\n", ret);
     return ret;

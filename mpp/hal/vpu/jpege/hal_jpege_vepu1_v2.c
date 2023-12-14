@@ -248,6 +248,8 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
     ctx->part_x_fill = x_fill;
     ctx->part_y_fill = y_fill;
 
+    mpp_buffer_sync_begin(output);
+
     /* write header to output buffer */
     jpege_bits_setup(bits, buf, (RK_U32)size);
     /* seek length bytes data */
@@ -276,6 +278,8 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
     ctx->part_bytepos = bytepos;
 
     get_msb_lsb_at_pos(&regs[22], &regs[23], buf, bytepos);
+
+    mpp_buffer_sync_end(output);
 
     if (!get_vepu_fmt(&fmt_cfg, fmt)) {
         RK_U32 deflt_cfg = ((0  & (255)) << 24) |

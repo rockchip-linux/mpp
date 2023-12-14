@@ -1713,6 +1713,7 @@ static MPP_RET setup_intra_refresh(H265eV580RegSet *regs, H265eV580HalContext *c
 
     regs->reg_base.reg0192_enc_pic.roi_en = 1;
     regs->reg_base.reg0178_roi_addr = roi_base_cfg_buf_fd;
+    mpp_buffer_sync_end(ctx->roi_base_cfg_buf);
 
 __RET:
     hal_h265e_dbg_func("leave, ret %d\n", ret);

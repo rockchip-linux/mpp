@@ -1542,6 +1542,8 @@ static MPP_RET setup_vepu580_intra_refresh(HalVepu580RegSet *regs, HalH264eVepu5
     regs->reg_base.roi_addr = base_cfg_fd;
     vepu580_h264_set_one_roi(base_cfg_buf, region, w, h);
     mpp_free(region);
+    mpp_buffer_sync_end(ctx->roi_base_cfg_buf);
+
 RET:
     hal_h264e_dbg_func("leave, ret %d\n", ret);
     return ret;
