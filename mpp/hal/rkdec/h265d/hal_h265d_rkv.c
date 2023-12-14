@@ -202,6 +202,7 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
         mpp_err("h265d write cabac_table data failed\n");
         return ret;
     }
+    mpp_buffer_sync_end(reg_ctx->cabac_table_data);
 
     ret = hal_h265d_alloc_res(hal);
     if (ret) {
@@ -921,6 +922,9 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
         mpp_dev_set_reg_offset(reg_ctx->dev, 12, ((sw_ref_valid >> 8) & 0xf));
         mpp_dev_set_reg_offset(reg_ctx->dev, 13, ((sw_ref_valid >> 12) & 0xf));
     }
+    mpp_buffer_sync_end(reg_ctx->scaling_list_data);
+    mpp_buffer_sync_end(reg_ctx->pps_data);
+    mpp_buffer_sync_end(reg_ctx->rps_data);
 
     return ret;
 }

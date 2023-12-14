@@ -1074,6 +1074,7 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
                sizeof(p_hal->slice_long->RefPicList));
     }
     vdpu382_setup_statistic(&regs->common, &regs->statistic);
+    mpp_buffer_sync_end(ctx->bufs);
 
 __RETURN:
     return ret = MPP_OK;

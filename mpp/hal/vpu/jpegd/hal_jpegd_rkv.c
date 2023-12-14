@@ -656,6 +656,7 @@ MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     setup_output_fmt(ctx, s, syn->dec.output);
 
     ret = jpegd_gen_regs(ctx, s);
+    mpp_buffer_sync_end(ctx->pTableBase);
 
     if (ret != MPP_OK) {
         mpp_err_f("generate registers failed\n");

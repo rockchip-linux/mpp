@@ -613,6 +613,9 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
 
     hal_vp8d_dct_partition_cfg(ctx, task);
 
+    mpp_buffer_sync_end(ctx->probe_table);
+    mpp_buffer_sync_end(ctx->seg_map);
+
     FUN_T("leave\n");
     return ret;
 }

@@ -289,6 +289,7 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     VP9_REGS *vp9_hw_regs = (VP9_REGS*)hw_ctx->hw_regs;
     intraFlag = (!pic_param->frame_type || pic_param->intra_only);
     hal_vp9d_output_probe(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
+    mpp_buffer_sync_end(hw_ctx->count_base);
     stream_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);
     memset(hw_ctx->hw_regs, 0, sizeof(VP9_REGS));
     vp9_hw_regs->swreg2_sysctrl.sw_dec_mode = 2; //set as vp9 dec
@@ -611,6 +612,7 @@ MPP_RET hal_vp9d_rkv_wait(void *hal, HalTaskInfo *task)
     if (p_hal->dec_cb && task->dec.flags.wait_done) {
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
 
+        mpp_buffer_sync_ro_begin(hw_ctx->count_base);
         hal_vp9d_update_counts(mpp_buffer_get_ptr(hw_ctx->count_base), task->dec.syntax.data);
 
         mpp_callback(p_hal->dec_cb, &pic_param->counts);

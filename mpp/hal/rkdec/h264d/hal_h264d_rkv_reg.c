@@ -578,6 +578,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
     //!< copy cabac table bytes
     FUN_CHECK(ret = mpp_buffer_write(reg_ctx->cabac_buf, 0,
                                      (void *)rkv_cabac_table, sizeof(rkv_cabac_table)));
+    mpp_buffer_sync_end(reg_ctx->cabac_buf);
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
@@ -688,6 +689,9 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buffer_write(reg_ctx->sclst_buf, 0,
                      (void *)reg_ctx->sclst, sizeof(reg_ctx->sclst));
     reg_ctx->regs->sw75.errorinfo_base = mpp_buffer_get_fd(reg_ctx->errinfo_buf);
+    mpp_buffer_sync_end(reg_ctx->spspps_buf);
+    mpp_buffer_sync_end(reg_ctx->rps_buf);
+    mpp_buffer_sync_end(reg_ctx->sclst_buf);
 
 __RETURN:
     return ret = MPP_OK;

@@ -206,6 +206,7 @@ MPP_RET hal_m2vd_vdpu2_gen_regs(void *hal, HalTaskInfo *task)
         task->dec.valid = 0;
         q_table = mpp_buffer_get_ptr(ctx->qp_table);
         memcpy(q_table, dx->qp_tab, M2VD_BUF_SIZE_QPTAB);
+        mpp_buffer_sync_end(ctx->qp_table);
 
         hal_m2vd_vdpu2_init_hwcfg(ctx);
 

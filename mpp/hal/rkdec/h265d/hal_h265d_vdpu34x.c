@@ -1142,6 +1142,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
                       reg_ctx->rcb_buf[syn->dec.reg_index] : reg_ctx->rcb_buf[0],
                       (Vdpu34xRcbInfo*)reg_ctx->rcb_info);
     vdpu34x_setup_statistic(&hw_regs->common, &hw_regs->statistic);
+    mpp_buffer_sync_end(reg_ctx->bufs);
 
     return ret;
 }
