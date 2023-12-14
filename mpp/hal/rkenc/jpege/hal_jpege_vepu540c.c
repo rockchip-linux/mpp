@@ -166,6 +166,7 @@ MPP_RET hal_jpege_v540c_gen_regs(void *hal, HalEncTask *task)
 
     bitpos = jpege_bits_get_bitpos(bits);
     task->length = (bitpos + 7) >> 3;
+    mpp_buffer_sync_partial_end(task->output, 0, task->length);
     mpp_packet_set_length(task->packet, task->length);
     reg_ctl->reg0004_enc_strt.lkt_num      = 0;
     reg_ctl->reg0004_enc_strt.vepu_cmd     = ctx->enc_mode;

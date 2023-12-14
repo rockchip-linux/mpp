@@ -443,6 +443,8 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
     ctx->part_x_fill = x_fill;
     ctx->part_y_fill = y_fill;
 
+    mpp_buffer_sync_begin(output);
+
     /* write header to output buffer */
     jpege_bits_setup(bits, buf, (RK_U32)size);
     /* seek length bytes data */
@@ -473,6 +475,8 @@ MPP_RET hal_jpege_vepu2_gen_regs(void *hal, HalEncTask *task)
     ctx->part_bytepos = bytepos;
 
     get_msb_lsb_at_pos(&regs[51], &regs[52], buf, bytepos);
+
+    mpp_buffer_sync_end(output);
 
     regs[53] = size - bytepos;
 
