@@ -1423,8 +1423,6 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     if (!s->vps_list[sps->vps_id]) {
         mpp_err( "VPS %d does not exist\n",
                  sps->vps_id);
-        ret =  MPP_ERR_STREAM;
-        goto err;
     }
 
     READ_BITS(gb, 3, &sps->max_sub_layers);
