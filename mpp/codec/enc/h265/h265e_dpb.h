@@ -69,7 +69,13 @@ typedef struct  H265eDpbFrm_t {
     RK_S32              gop_cnt;
     EncFrmStatus        status;
 
-    RK_U32              on_used;
+    union {
+        RK_U32          on_used;
+        struct {
+            RK_U32      dpb_used    : 8;
+            RK_U32      hal_used    : 8;
+        };
+    };
     RK_U32              inited;
 
     RK_U32              is_long_term;
@@ -109,10 +115,10 @@ typedef struct H265eRpsList_e {
  * next frame encoding.
  */
 typedef struct H265eDpb_t {
-    RK_S32             seq_idx;
-    RK_S32             gop_idx;
-    // status and count for one gop structure
+    RK_S32              seq_idx;
+    RK_S32              gop_idx;
 
+    // status and count for one gop structure
     RK_S32              last_idr;
     RK_S32              poc_cra;
     RK_U32              refresh_pending;
@@ -135,6 +141,12 @@ MPP_RET h265e_dpb_setup_buf_size(H265eDpb *dpb, RK_U32 size[], RK_U32 count);
 MPP_RET h265e_dpb_get_curr(H265eDpb *dpb);
 void h265e_dpb_build_list(H265eDpb *dpb, EncCpbStatus *cpb);
 void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb);
+
+/*
+ * hal usage flag mark / unmark function
+ */
+MPP_RET h265e_dpb_hal_start(H265eDpb *dpb, RK_S32 slot_idx);
+MPP_RET h265e_dpb_hal_end(H265eDpb *dpb, RK_S32 slot_idx);
 
 #define h265e_dpb_dump_frms(dpb) h265e_dpb_dump_frm(dpb, __FUNCTION__)
 

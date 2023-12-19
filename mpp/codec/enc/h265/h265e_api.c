@@ -269,7 +269,6 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    H265eSyntax_new *syntax = NULL;
     EncFrmStatus *frm = &task->rc_task->frm;
     MppPacket packet = task->packet;
     MppMeta meta = mpp_packet_get_meta(packet);
@@ -281,10 +280,13 @@ static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 
     mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, frm->temporal_id);
     h265e_dbg_func("enter ctx %p \n", ctx);
-    syntax = &p->syntax;
+
     h265e_syntax_fill(ctx);
+
     task->valid = 1;
-    task->syntax.data = syntax;
+    task->syntax.number = 1;
+    task->syntax.data = &p->syntax;
+
     h265e_dbg_func("leave ctx %p \n", ctx);
     return MPP_OK;
 }

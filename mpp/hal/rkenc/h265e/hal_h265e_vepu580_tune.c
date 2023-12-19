@@ -240,7 +240,7 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     scene_mode = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 0 : 1;
     tune->ap_motion_flag = scene_mode;
     /* modify register here */
-    H265eV580RegSet *regs = (H265eV580RegSet *)ctx->regs[0];
+    H265eV580RegSet *regs = ctx->frm->regs_set[0];
     hevc_vepu580_rc_klut *rc_regs =  &regs->reg_rc_klut;
     hevc_vepu580_wgt *reg_wgt = &regs->reg_wgt;
     vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
@@ -482,10 +482,11 @@ static void vepu580_h265e_tune_stat_update(void *p)
     RK_S32 j;
     RK_S32 i = 0;
     RK_S32 mvbit = 10;
-    vepu580_h265_fbk *fb = &ctx->feedback;
+    Vepu580H265Fbk *fb = &ctx->frm->feedback;
 
     for (i = 0; i < (RK_S32)ctx->tile_num; i++) {
-        H265eV580StatusElem *elem = (H265eV580StatusElem *)ctx->reg_out[i];
+        H265eV580StatusElem *elem = ctx->frm->regs_ret[i];
+
         fb->st_md_sad_b16num0 += elem->st.md_sad_b16num0;
         fb->st_md_sad_b16num1 += elem->st.md_sad_b16num1;
         fb->st_md_sad_b16num2 += elem->st.md_sad_b16num2;
