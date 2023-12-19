@@ -356,8 +356,10 @@ RK_S32 h265e_syntax_fill(void *ctx)
 {
     H265eCtx *h = (H265eCtx *)ctx;
     H265eSyntax_new *syn = (H265eSyntax_new*)&h->syntax;
+
     fill_picture_parameters(h, &syn->pp);
     fill_slice_parameters(h, &syn->sp);
     fill_ref_parameters(h, &syn->sp);
+    syn->dpb = h->dpb;
     return 0;
 }

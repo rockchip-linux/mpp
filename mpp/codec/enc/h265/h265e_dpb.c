@@ -25,6 +25,23 @@
 #include "h265e_codec.h"
 #include "h265e_dpb.h"
 
+void h265e_dpb_dump_frm(H265eDpb *dpb, const char *fmt)
+{
+    RK_S32 i = 0;
+    char buf[256];
+    RK_S32 pos = 0;
+    RK_S32 frm_cnt = MPP_ARRAY_ELEMS(dpb->frame_list);
+
+    pos += snprintf(buf, sizeof(buf) - 1, "total %2d ", frm_cnt);
+
+    for (i = 0; i < frm_cnt; i++) {
+        H265eDpbFrm *frm = &dpb->frame_list[i];
+
+        pos += snprintf(buf + pos, sizeof(buf) - 1 - pos, "%04x ", frm->on_used);
+    }
+    mpp_log("%20s %s", fmt, buf);
+}
+
 void h265e_dpb_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_pRps, RK_S32 delta_poc)
 {
     RK_S32 i;
@@ -81,7 +98,7 @@ MPP_RET h265e_dpb_init_curr(H265eDpb *dpb, H265eDpbFrm *frm)
     }
 
     frm->inited = 1;
-    frm->on_used = 1;
+    frm->dpb_used = 1;
     frm->seq_idx = dpb->seq_idx;
     dpb->seq_idx++;
 
@@ -109,7 +126,6 @@ MPP_RET h265e_dpb_get_curr(H265eDpb *dpb)
 /* put buffer at deinit */
 MPP_RET h265e_dpb_frm_deinit(H265eDpbFrm *frm)
 {
-
     MPP_FREE(frm->slice);
     frm->inited = 0;
     h265e_dbg_func("leave\n");
@@ -224,6 +240,7 @@ void sort_delta_poc(H265eReferencePictureSet *rps)
         RK_S32 deltaPOC = rps->delta_poc[j];
         RK_U32 used = rps->m_used[j];
         RK_U32 refed = rps->m_ref[j];
+
         for (k = j - 1; k >= 0; k--) {
             int temp = rps->delta_poc[k];
             if (deltaPOC < temp) {
@@ -299,7 +316,7 @@ void h265e_dpb_apply_rps(H265eDpb *dpb, H265eReferencePictureSet *rps, int curPo
             h265e_dbg_dpb("free unreference buf poc %d", outPic->slice->poc);
             outPic->slice->is_referenced = 0;
             outPic->used_by_cur = 0;
-            outPic->on_used = 0;
+            outPic->dpb_used = 0;
             outPic->is_long_term = 0;
         }
     }
@@ -326,7 +343,7 @@ void h265e_dpb_dec_refresh_marking(H265eDpb *dpb, RK_S32 poc_cur, enum NALUnitTy
                 frame->is_long_term = 0;
                 if (frame->poc < poc_cur) {
                     frame->used_by_cur = 0;
-                    frame->on_used = 0;
+                    frame->dpb_used = 0;
                     frame->status.val = 0;
                 }
             }
@@ -345,7 +362,7 @@ void h265e_dpb_dec_refresh_marking(H265eDpb *dpb, RK_S32 poc_cur, enum NALUnitTy
                 H265eDpbFrm *frame = &frame_list[index];
                 if (frame->inited && frame->poc != poc_cur && frame->poc != dpb->poc_cra) {
                     frame->slice->is_referenced = 0;
-                    frame->on_used = 0;
+                    frame->dpb_used = 0;
                 }
             }
 
@@ -492,7 +509,7 @@ static H265eDpbFrm *h265e_find_cpb_frame(H265eDpbFrm *frms, RK_S32 cnt, EncFrmSt
 
     h265e_dbg_dpb("frm %d start finding slot \n", frm->seq_idx);
     for (i = 0; i < cnt; i++) {
-        if (!frms[i].on_used) {
+        if (!frms[i].dpb_used) {
             continue;
         }
 
@@ -664,20 +681,22 @@ void h265e_dpb_free_unsed(H265eDpb *dpb, EncCpbStatus *cpb)
             h265e_dbg_dpb("free curr unreference buf poc %d", frm->slice->poc);
             frm->is_long_term = 0;
             frm->used_by_cur = 0;
-            frm->on_used = 0;
+            frm->dpb_used = 0;
             frm->slice->is_referenced = 0;
         }
     }
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         H265eDpbFrm *frm = &dpb->frame_list[i];
-        if (!frm->on_used)
+
+        if (!frm->dpb_used)
             continue;
+
         if (h265e_check_frame_cpb(frm, MAX_REFS, &cpb->final[0])) {
             h265e_dbg_dpb("cpb final unreference buf poc %d", frm->slice->poc);
             frm->is_long_term = 0;
             frm->used_by_cur = 0;
-            frm->on_used = 0;
+            frm->dpb_used = 0;
             frm->slice->is_referenced = 0;
         }
     }
@@ -703,7 +722,7 @@ void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
                 frame->slice->is_referenced = 0;
                 frame->is_long_term = 0;
                 frame->used_by_cur = 0;
-                frame->on_used = 0;
+                frame->dpb_used = 0;
                 frame->status.val = 0;
             }
         }
@@ -722,8 +741,8 @@ void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
                       i, frm->seq_idx, frm->valid, frm->is_non_ref, frm->is_lt_ref);
 
         p = h265e_find_cpb_in_dpb(dpb->frame_list, MAX_REFS, frm);
-        if (!p->on_used) {
-            p->on_used = 1;
+        if (!p->dpb_used) {
+            p->dpb_used = 1;
             p->status.val = frm->val;
             p->slice->is_referenced = 1;
             need_rebuild = 1;
@@ -734,7 +753,8 @@ void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
         h265e_dbg_dpb("cpb roll back found");
         for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
             H265eDpbFrm *frame = &dpb->frame_list[index];
-            if (frame->on_used) {
+
+            if (frame->dpb_used) {
                 if (max_poc < frame->slice->poc) {
                     max_poc = frame->slice->poc;
                 }
@@ -743,12 +763,14 @@ void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
                 }
             }
         }
+
         H265eDpbFrm *frame = dpb->curr;
+
         if (frame->inited) {
             frame->slice->is_referenced = 0;
             frame->is_long_term = 0;
             frame->used_by_cur = 0;
-            frame->on_used = 0;
+            frame->dpb_used = 0;
             frame->status.val = 0;
         }
         dpb->seq_idx = max_poc;
@@ -757,8 +779,9 @@ void h265e_dpb_proc_cpb(H265eDpb *dpb, EncCpbStatus *cpb)
 
     for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
         H265eDpbFrm *frame = &dpb->frame_list[index];
-        if (frame->inited && !frame->on_used) {
-            h265e_dbg_dpb("reset index %d frame->inited %d rame->on_used %d",
+
+        if (frame->inited && !frame->dpb_used) {
+            h265e_dbg_dpb("reset index %d frame->inited %d rame->on_used %x",
                           index, frame->inited, frame->on_used);
             frame->status.val = 0;
         }
@@ -861,4 +884,22 @@ void h265e_dpb_build_list(H265eDpb *dpb, EncCpbStatus *cpb)
     }
     h265e_dpb_free_unsed(dpb, cpb);
     h265e_dbg_func("leave\n");
+}
+
+MPP_RET h265e_dpb_hal_start(H265eDpb *dpb, RK_S32 slot_idx)
+{
+    H265eDpbFrm *frm = &dpb->frame_list[slot_idx];
+
+    frm->hal_used++;
+    //h265e_dpb_dump_frms(dpb);
+    return MPP_OK;
+}
+
+MPP_RET h265e_dpb_hal_end(H265eDpb *dpb, RK_S32 slot_idx)
+{
+    H265eDpbFrm *frm = &dpb->frame_list[slot_idx];
+
+    frm->hal_used--;
+    //h265e_dpb_dump_frms(dpb);
+    return MPP_OK;
 }

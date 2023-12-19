@@ -2,6 +2,8 @@
 include_directories(.)
 include_directories(../../common/h265/)
 include_directories(../common/)
+# mpp/codec/enc/h265 for h265 syntax
+include_directories(../../../codec/enc/h265/)
 
 # hal h265 header
 set(HAL_H265E_HDR

@@ -63,7 +63,7 @@ static void *list_wraper_frame(void *arg)
 static RK_S32 check_frm_task_cnt_cap(MppCodingType coding)
 {
     if (strstr(mpp_get_soc_name(), "rk3588")) {
-        if (coding == MPP_VIDEO_CodingAVC)
+        if (coding == MPP_VIDEO_CodingAVC || coding == MPP_VIDEO_CodingHEVC)
             return 2;
 
         if (coding == MPP_VIDEO_CodingMJPEG)

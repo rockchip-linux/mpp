@@ -211,6 +211,7 @@ typedef struct H265eSyntax_new_t {
     RK_S32          idr_request;
     H265ePicParams  pp;
     H265eSlicParams sp;
+    void            *dpb;
 } H265eSyntax_new;
 
 #ifdef __cplusplus
