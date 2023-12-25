@@ -1885,15 +1885,17 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
 {
     BitReadCtx_t *gb = &s->HEVClc->gb;
     HEVCSPS *sps = NULL;
-    HEVCPPS *pps = NULL;
+    HEVCPPS *pps = mpp_calloc(HEVCPPS, 1);
     HevcPpsBufInfo *bufs = NULL;
     RK_S32 buf_size = 0;
-    RK_S32 new_pps = 0;
     RK_U32 pps_id = 0;
     RK_S32 ret = 0;
     RK_S32 i;
 
     h265d_dbg(H265D_DBG_FUNCTION, "Decoding PPS\n");
+
+    if (!pps)
+        return MPP_ERR_NOMEM;
 
     // Coded parameters
     READ_UE(gb, &pps_id);
@@ -1903,19 +1905,11 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         goto err;
     }
 
-    pps = (HEVCPPS *)s->pps_list[pps_id];
-    if (pps) {
-        // NOTE: keep tile buffers at the end
-        memset(pps, 0, sizeof(*pps) - sizeof(pps->bufs));
+    if (s->pps_list[pps_id]) {
+        bufs = &(((HEVCPPS *)s->pps_list[pps_id])->bufs);
     } else {
-        pps = (HEVCPPS *)mpp_calloc(RK_U8, sizeof(*pps));
-        new_pps = 1;
+        bufs = &pps->bufs;
     }
-
-    if (!pps)
-        return MPP_ERR_NOMEM;
-
-    bufs = &pps->bufs;
 
     pps->pps_id = pps_id;
     // Default values
@@ -2186,7 +2180,12 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
         }
     }
 
-    s->pps_list[pps_id] = (RK_U8 *)pps;
+    if (s->pps_list[pps_id]) {
+        memcpy(s->pps_list[pps_id], pps, sizeof(*pps) - sizeof(pps->bufs));
+        mpp_hevc_pps_free((RK_U8 *)pps);
+    } else {
+        s->pps_list[pps_id] = (RK_U8 *)pps;
+    }
     s->ps_need_upate = 1;
 
     if (s->pps_list[pps_id])
@@ -2195,7 +2194,7 @@ int mpp_hevc_decode_nal_pps(HEVCContext *s)
     return 0;
 __BITREAD_ERR:
 err:
-    if (new_pps)
+    if (pps)
         mpp_hevc_pps_free((RK_U8 *)pps);
 
     return ret;
