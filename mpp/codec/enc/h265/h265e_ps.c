@@ -97,7 +97,7 @@ void init_raster2pelxy(RK_U32 maxCUSize, RK_U32 maxDepth, RK_U32 *raster2pelx, R
     tempx++;
     for (i = 1; i < numPartInCUSize; i++) {
         tempx[0] = tempx[-1] + unitSize;
-        tempy++;
+        tempx++;
     }
 
     for (i = 1; i < numPartInCUSize; i++) {

@@ -756,7 +756,11 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
     h265e_dbg_func("enter\n");
     RK_U32 mb_wd = ((sps->m_picWidthInLumaSamples + 63) >> 6);
     RK_U32 mb_h = ((sps->m_picHeightInLumaSamples + 63) >> 6);
-    RK_U32 i = 0, j = 0, cu_cnt = 0;
+    RK_U32 cu_cnt;
+    RK_U32 offset_x = 0;
+    RK_U32 offset_y = 0;
+    RK_U32 mb_total = mb_wd * mb_h;
+
     if (!buf || !len) {
         mpp_err("buf or size no set");
         return MPP_NOK;
@@ -771,18 +775,26 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
     cu.mb_w = mb_wd;
     cu.mb_h = mb_h;
     slice->is_referenced = 0;
-    for (i = 0; i < mb_h; i++) {
-        for ( j = 0; j < mb_wd; j++) {
-            cu.pixelX = j * 64;
-            cu.pixelY = i * 64;
-            cu.cur_addr = cu_cnt;
-            proc_ctu(slice, &cu);
-            encode_cu(slice, 0, 0, &cu);
-            h265e_cabac_encodeBinTrm(cabac_ctx, 0);
-            cu_cnt++;
+    for (cu_cnt = 0; cu_cnt < mb_total - 1; cu_cnt++) {
+        cu.pixelX = offset_x;
+        cu.pixelY = offset_y;
+        cu.cur_addr = cu_cnt;
+        proc_ctu(slice, &cu);
+        encode_cu(slice, 0, 0, &cu);
+        h265e_cabac_encodeBinTrm(cabac_ctx, 0);
+        offset_x += 64;
+        if (offset_x >= sps->m_picWidthInLumaSamples) {
+            offset_x = 0;
+            offset_y += 64;
         }
     }
-
+    /* The last CTU handled independently, reducing the cost */
+    cu.pixelX = offset_x;
+    cu.pixelY = offset_y;
+    cu.cur_addr = cu_cnt;
+    proc_ctu(slice, &cu);
+    encode_cu(slice, 0, 0, &cu);
+    h265e_cabac_encodeBinTrm(cabac_ctx, 1);
     h265e_cabac_finish(cabac_ctx);
     h265e_write_algin(&bitIf);
     h265e_dbg_func("leave\n");
