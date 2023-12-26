@@ -1920,7 +1920,11 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg5.sw_allow_warp          = dxva->coding.warped_motion;
     regs->swreg5.sw_show_frame          = dxva->format.show_frame;
     regs->swreg5.sw_switchable_motion_mode  = dxva->coding.switchable_motion_mode;
-    regs->swreg5.sw_enable_cdef         = dxva->coding.cdef_en;
+    regs->swreg5.sw_enable_cdef         = !(dxva->cdef.bits == 0 && dxva->cdef.damping == 0 &&
+                                            dxva->cdef.y_strengths[0].primary == 0 &&
+                                            dxva->cdef.y_strengths[0].secondary == 0 &&
+                                            dxva->cdef.uv_strengths[0].primary == 0 &&
+                                            dxva->cdef.uv_strengths[0].secondary == 0);
     regs->swreg5.sw_allow_masked_compound   = dxva->coding.masked_compound;
     regs->swreg5.sw_allow_interintra    = dxva->coding.interintra_compound;
     regs->swreg5.sw_enable_intra_edge_filter = dxva->coding.intra_edge_filter;
