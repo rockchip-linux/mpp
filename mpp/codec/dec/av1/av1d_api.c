@@ -214,7 +214,8 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         task->flags.eos = av1_ctx->eos;
 
     if (av1_ctx->new_frame || (task->flags.eos)) {
-        task->valid = 1;
+        if (av1_ctx->stream_offset > 0)
+            task->valid = 1;
         av1_ctx->stream_offset = 0;
     }
 
