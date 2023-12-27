@@ -1797,6 +1797,41 @@ void vdpu_av1d_set_fgs(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
     if (regs->swreg7.sw_apply_grain) AV1D_DBG(AV1D_DBG_LOG, "NOTICE: filmgrain enabled.\n");
 }
 
+static MPP_RET vdpu_av1d_setup_tile_bufs(void *hal, DXVA_PicParams_AV1 *dxva)
+{
+    Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
+    VdpuAv1dRegCtx *ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
+    RK_U32 out_w = MPP_ALIGN(dxva->max_width * dxva->bitdepth, 16 * 8) / 8;
+    RK_U32 num_sbs = (MPP_ALIGN(dxva->max_width, 64) / 64 + 1) * (MPP_ALIGN(dxva->max_height, 64) / 64  + 1);
+    RK_U32 dir_mvs_size = MPP_ALIGN(num_sbs * 24 * 128 / 8, 16) * 2;
+    RK_U32 out_h = MPP_ALIGN(dxva->max_height, 16);
+    RK_U32 luma_size = out_w * out_h;
+    RK_U32 chroma_size = luma_size >> 1;
+    RK_U32 tile_out_size = luma_size + chroma_size + dir_mvs_size + 512;
+
+    if (tile_out_size <= ctx->tile_out_size)
+        return MPP_OK;
+
+    ctx->hor_stride = out_w;
+    ctx->luma_size = luma_size;
+    ctx->chroma_size = chroma_size;
+    ctx->tile_out_size = tile_out_size;
+
+    if (ctx->tile_out_bufs) {
+        hal_bufs_deinit(ctx->tile_out_bufs);
+        ctx->tile_out_bufs = NULL;
+    }
+    hal_bufs_init(&ctx->tile_out_bufs);
+    if (!ctx->tile_out_bufs) {
+        mpp_err_f("tile out bufs init fail\n");
+        return MPP_ERR_NOMEM;
+    }
+    ctx->tile_out_count = mpp_buf_slot_get_count(p_hal->slots);
+    hal_bufs_setup(ctx->tile_out_bufs, ctx->tile_out_count, 1, &ctx->tile_out_size);
+
+    return MPP_OK;
+}
+
 MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -1841,31 +1876,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     regs = ctx->regs;
     memset(regs, 0, sizeof(*regs));
 
-    if (!ctx->tile_out_bufs) {
-        RK_U32 out_w = MPP_ALIGN(dxva->max_width * dxva->bitdepth, 16 * 8) / 8;
-        RK_U32 num_sbs = ((dxva->max_width + 63) / 64 + 1) * ((dxva->max_height + 63) / 64  + 1);
-        RK_U32 dir_mvs_size = MPP_ALIGN(num_sbs * 24 * 128 / 8, 16) * 2;
-        RK_U32 out_h = MPP_ALIGN(dxva->max_height, 16);
-        RK_U32 luma_size = out_w * out_h;
-        RK_U32 chroma_size = luma_size / 2;
-
-        ctx->hor_stride = out_w;
-        ctx->luma_size = luma_size;
-        ctx->chroma_size = chroma_size;
-        ctx->tile_out_size = luma_size + chroma_size + dir_mvs_size + 512;
-
-        if (ctx->tile_out_bufs) {
-            hal_bufs_deinit(ctx->tile_out_bufs);
-            ctx->tile_out_bufs = NULL;
-        }
-        hal_bufs_init(&ctx->tile_out_bufs);
-        if (!ctx->tile_out_bufs) {
-            mpp_err_f("tile out bufs init fail\n");
-            goto __RETURN;
-        }
-        ctx->tile_out_count = mpp_buf_slot_get_count(p_hal->slots);
-        hal_bufs_setup(ctx->tile_out_bufs, ctx->tile_out_count, 1, &ctx->tile_out_size);
-    }
+    vdpu_av1d_setup_tile_bufs(p_hal, dxva);
 
     if (!ctx->filter_mem || height > ctx->height || num_tile_cols > ctx->num_tile_cols) {
         if (ctx->filter_mem)
