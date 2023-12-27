@@ -491,6 +491,9 @@ static RK_S32 mpp_av1_color_config(AV1Context *ctx, BitReadCtx_t *gb,
         fb(8, color_primaries);
         fb(8, transfer_characteristics);
         fb(8, matrix_coefficients);
+        if (current->transfer_characteristics == MPP_FRAME_TRC_BT2020_10 ||
+            current->transfer_characteristics == MPP_FRAME_TRC_SMPTEST2084)
+            ctx->is_hdr = 1;
     } else {
         infer(color_primaries,          MPP_FRAME_PRI_UNSPECIFIED);
         infer(transfer_characteristics, MPP_FRAME_TRC_UNSPECIFIED);
@@ -2276,6 +2279,9 @@ static RK_S32 mpp_av1_metadata_hdr_cll(AV1Context *ctx, BitReadCtx_t *gb,
     fb(16, max_cll);
     fb(16, max_fall);
 
+    ctx->content_light.MaxCLL = current->max_cll;
+    ctx->content_light.MaxFALL = current->max_fall;
+
     return 0;
 }
 
@@ -2297,6 +2303,15 @@ static RK_S32 mpp_av1_metadata_hdr_mdcv(AV1Context *ctx, BitReadCtx_t *gb,
     // 24.8 fixed point to 18.14 fixed point in order to compare them.
     fc(32, luminance_min, 0, MPP_MIN(((RK_U64)current->luminance_max << 6) - 1,
                                      MAX_UINT_BITS(32)));
+
+    for (i = 0; i < 3; i++) {
+        ctx->mastering_display.display_primaries[i][0] = current->primary_chromaticity_x[i];
+        ctx->mastering_display.display_primaries[i][1] = current->primary_chromaticity_y[i];
+    }
+    ctx->mastering_display.white_point[0] = current->white_point_chromaticity_x;
+    ctx->mastering_display.white_point[1] = current->white_point_chromaticity_y;
+    ctx->mastering_display.max_luminance = current->luminance_max;
+    ctx->mastering_display.min_luminance = current->luminance_min;
 
     return 0;
 }
@@ -2978,7 +2993,7 @@ int mpp_av1_set_context_with_sequence(Av1CodecContext *ctx,
     ctx->color_range =
         seq->color_config.color_range ? MPP_FRAME_RANGE_JPEG : MPP_FRAME_RANGE_MPEG;
     ctx->color_primaries = seq->color_config.color_primaries;
-    ctx->colorspace = seq->color_config.color_primaries;
+    ctx->colorspace = seq->color_config.matrix_coefficients;
     ctx->color_trc = seq->color_config.transfer_characteristics;
 
     switch (seq->color_config.chroma_sample_position) {

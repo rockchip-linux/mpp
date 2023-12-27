@@ -21,6 +21,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
+#include "mpp_frame.h"
 
 #include "parser_api.h"
 
@@ -92,6 +93,8 @@ typedef struct AV1Context_t {
     AV1Frame ref[AV1_NUM_REF_FRAMES];
     AV1Frame cur_frame;
 
+    MppFrameMasteringDisplayMetadata mastering_display;
+    MppFrameContentLightMetadata content_light;
     MppFrameHdrDynamicMeta *hdr_dynamic_meta;
     RK_U32 hdr_dynamic;
     RK_U32 is_hdr;
