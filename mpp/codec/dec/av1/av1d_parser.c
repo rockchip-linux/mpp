@@ -746,12 +746,10 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     if (s->is_hdr)
         ctx->pix_fmt |= MPP_FRAME_HDR;
 
-    if (s->sequence_header->color_config.color_description_present_flag) {
-        mpp_frame_set_color_trc(frame->f, ctx->color_trc);
-        mpp_frame_set_color_primaries(frame->f, ctx->color_primaries);
-        mpp_frame_set_colorspace(frame->f, ctx->colorspace);
-        mpp_frame_set_color_range(frame->f, ctx->color_range);
-    }
+    mpp_frame_set_color_trc(frame->f, ctx->color_trc);
+    mpp_frame_set_color_primaries(frame->f, ctx->color_primaries);
+    mpp_frame_set_colorspace(frame->f, ctx->colorspace);
+    mpp_frame_set_color_range(frame->f, ctx->color_range);
 
     mpp_frame_set_mastering_display(frame->f, s->mastering_display);
     mpp_frame_set_content_light(frame->f, s->content_light);
