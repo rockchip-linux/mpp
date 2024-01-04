@@ -14,6 +14,8 @@ check_system_arm_linux_gcc(){
     check_cmd aarch64-linux-gnu-gcc -v
 }
 
+source ../opt_proc.sh
+
 check_system_arm_linux_gcc
 if [ $? -eq 127 ];then
     MPP_TOOLCHAIN=/usr/bin

@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# Run this from within a bash shell
+MAKE_PROGRAM=`which make`
+
+# delete list
+FILES_TO_DELETE=(
+    "CMakeCache.txt"
+    "Makefile"
+    "cmake_install.cmake"
+    "compile_commands.json"
+    "rockchip_mpp.pc"
+    "rockchip_vpu.pc"
+)
+
+DIRS_TO_DELETE=(
+    "CMakeFiles"
+    "mpp"
+    "osal"
+    "test"
+    "utils"
+)
+
 #################################################
 # Arguments
 #################################################
@@ -10,6 +31,8 @@ while [ $# -gt 0 ]; do
             echo "  use --ndk to set ANDROID_NDK"
             echo "  use --cmake to specify which cmake to use"
             echo "  use --debug to enable debug build"
+            echo "  use --rebuild to rebuild after clean"
+            echo "  use --clean to clean all build file"
             exit 1
             ;;
         --debug)
@@ -28,14 +51,31 @@ while [ $# -gt 0 ]; do
             CMAKE_PROGRAM=$2
             shift
             ;;
+        --rebuild)
+            ${MAKE_PROGRAM} clean
+            if [ -f "CMakeCache.txt" ]; then
+                rm CMakeCache.txt
+            fi
+            shift
+            ;;
+        --clean)
+            for FILE_TO_DELETE in "${FILES_TO_DELETE[@]}"; do
+                if [ -f ${FILE_TO_DELETE} ]; then
+                    rm ${FILE_TO_DELETE}
+                fi
+            done
+            for DIR_TO_DELETE in "${DIRS_TO_DELETE[@]}"; do
+                if [ -d ${DIR_TO_DELETE} ]; then
+                    rm -rf ${DIR_TO_DELETE}
+                fi
+            done
+            exit 1
+            ;;
     esac
     shift
 done
 
 CMAKE_PARALLEL_ENABLE=0
-
-# Run this from within a bash shell
-MAKE_PROGRAM=`which make`
 
 #################################################
 # Detect cmake version
