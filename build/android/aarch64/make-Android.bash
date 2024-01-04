@@ -16,6 +16,8 @@ for ARG in "$@"; do
   fi
 done
 
+MPP_PWD=`pwd`
+
 source ../env_setup.sh
 
 ${CMAKE_PROGRAM} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                   \

@@ -14,6 +14,8 @@ check_system_arm_linux_gcc(){
     check_cmd arm-linux-gcc -v
 }
 
+source ../opt_proc.sh
+
 check_system_arm_linux_gcc
 if [ $? -eq 127 ];then
     MPP_TOOLCHAIN=${MPP_TOP}/../prebuilts/toolschain/usr/bin
