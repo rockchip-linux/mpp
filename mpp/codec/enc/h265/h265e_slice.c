@@ -584,7 +584,6 @@ static void encode_cu(H265eSlice *slice, RK_U32 abs_part_idx, RK_U32 depth, Data
     h265e_dbg_skip("EncodeCU depth %d, abs_part_idx %d", depth, abs_part_idx);
 
     if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples)) {
-
         h265e_dbg_skip("code_split_flag in depth %d", depth);
         code_split_flag(slice, abs_part_idx, depth, cu);
     } else {
@@ -595,7 +594,8 @@ static void encode_cu(H265eSlice *slice, RK_U32 abs_part_idx, RK_U32 depth, Data
     h265e_dbg_skip("m_cuDepth[%d] = %d maxCUDepth %d, m_addCUDepth %d", abs_part_idx, cu->m_cuDepth[sps->zscan2raster[abs_part_idx]], sps->m_maxCUDepth, sps->m_addCUDepth);
 
     if ((depth < cu->m_cuDepth[sps->zscan2raster[abs_part_idx]] && (depth < (sps->m_maxCUDepth - sps->m_addCUDepth))) || bBoundary) {
-        RK_U32 qNumParts = (256 >> (depth << 1)) >> 2;
+        RK_U32 numPartions = 1 << (sps->m_maxCUDepth << 1);
+        RK_U32 qNumParts = (numPartions >> (depth << 1)) >> 2;
         RK_U32 partUnitIdx = 0;
 
         for (partUnitIdx = 0; partUnitIdx < 4; partUnitIdx++, abs_part_idx += qNumParts) {
@@ -616,93 +616,86 @@ static void encode_cu(H265eSlice *slice, RK_U32 abs_part_idx, RK_U32 depth, Data
     return;
 }
 
-static void proc_cu8(DataCu *cu, RK_U32 pos_x, RK_U32 pos_y)
+static void proc_cu8(DataCu *cu, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
 {
-    RK_S32 nSize = 8;
-    RK_S32 nSubPart = nSize * nSize / 4 / 4;
-    RK_S32 puIdx = pos_x / 8 + pos_y / 8 * 8;
-
     h265e_dbg_skip("8 ctu puIdx %d no need split", puIdx);
 
-    memset(cu->m_cuDepth + puIdx * nSubPart, 3, nSubPart);
+    memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
 }
 
-static void proc_cu16(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y)
+static void proc_cu16(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
 {
     RK_U32 m;
     H265eSps *sps = slice->m_sps;
-    RK_S32 nSize = 16;
-    RK_S32 nSubPart = nSize * nSize / 4 / 4;
-    RK_S32 puIdx = pos_x / 16 + pos_y / 16 * 4;
-    RK_U32 cu_x_1, cu_y_1;
+    RK_S32 newPuIdx;
 
     h265e_dbg_skip("cu 16 pos_x %d pos_y %d", pos_x, pos_y);
 
     if ((cu->pixelX + pos_x + 15 < sps->m_picWidthInLumaSamples) &&
         (cu->pixelY + pos_y + 15 < sps->m_picHeightInLumaSamples)) {
         h265e_dbg_skip("16 ctu puIdx %d no need split", puIdx);
-        memset(cu->m_cuDepth + puIdx * nSubPart, 2, nSubPart);
+        memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
     } else if ((cu->pixelX + pos_x >=  sps->m_picWidthInLumaSamples) ||
                (cu->pixelY + pos_y  >= sps->m_picHeightInLumaSamples)) {
         h265e_dbg_skip("16 ctu puIdx %d out of pic", puIdx);
-        memset(cu->m_cuDepth + puIdx * nSubPart, 2, nSubPart);
+        memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
     }
 
     for (m = 0; m < 4; m ++) {
-        cu_x_1 = pos_x + (m & 1) * (nSize >> 1);
-        cu_y_1 = pos_y + (m >> 1) * (nSize >> 1);
-
-        proc_cu8(cu, cu_x_1, cu_y_1);
+        newPuIdx = puIdx * 4 + m;
+        proc_cu8(cu, nSubPart / 4, cuDepth + 1, newPuIdx);
     }
 }
 
 
-static void proc_cu32(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y)
+static void proc_cu32(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
 {
     RK_U32 m;
     H265eSps *sps = slice->m_sps;
     RK_S32 nSize = 32;
-    RK_S32 nSubPart = nSize * nSize / 4 / 4;
-    RK_S32 puIdx = pos_x / 32 + pos_y / 32 * 2;
     RK_U32 cu_x_1, cu_y_1;
+    RK_S32 newPuIdx;
 
     h265e_dbg_skip("cu 32 pos_x %d pos_y %d", pos_x, pos_y);
 
     if ((cu->pixelX + pos_x + 31 < sps->m_picWidthInLumaSamples) &&
         (cu->pixelY + pos_y + 31 < sps->m_picHeightInLumaSamples)) {
         h265e_dbg_skip("32 ctu puIdx %d no need split", puIdx);
-        memset(cu->m_cuDepth + puIdx * nSubPart, 1, nSubPart);
+        memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
     } else if ((cu->pixelX + pos_x >=  sps->m_picWidthInLumaSamples) ||
                (cu->pixelY + pos_y  >= sps->m_picHeightInLumaSamples)) {
         h265e_dbg_skip("32 ctu puIdx %d out of pic", puIdx);
-        memset(cu->m_cuDepth + puIdx * nSubPart, 1, nSubPart);
+        memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
     }
 
     for (m = 0; m < 4; m ++) {
         cu_x_1 = pos_x + (m & 1) * (nSize >> 1);
         cu_y_1 = pos_y + (m >> 1) * (nSize >> 1);
-
-        proc_cu16(slice, cu, cu_x_1, cu_y_1);
+        newPuIdx = puIdx * 4 + m;
+        proc_cu16(slice, cu, cu_x_1, cu_y_1, nSubPart / 4, cuDepth + 1, newPuIdx);
     }
 }
 
-static void proc_ctu(H265eSlice *slice, DataCu *cu)
+static void proc_ctu64(H265eSlice *slice, DataCu *cu)
 {
     H265eSps *sps = slice->m_sps;
     RK_U32 k, m;
-    RK_U32 cu_x_1, cu_y_1, m_nCtuSize = 64;
+    RK_U32 cu_x_1, cu_y_1;
+    RK_U32 m_nCtuSize = sps->m_maxCUSize;
     RK_U32 lpelx = cu->pixelX;
-    RK_U32 rpelx = lpelx + 63;
+    RK_U32 rpelx = lpelx + m_nCtuSize - 1;
     RK_U32 tpely = cu->pixelY;
-    RK_U32 bpely = tpely + 63;
+    RK_U32 bpely = tpely + m_nCtuSize - 1;
+    RK_U32 numPartions = 1 << (sps->m_maxCUDepth << 1);
+    RK_S32 cuDepth = 0;
 
-    for (k = 0; k < 256; k++) {
+    for (k = 0; k < numPartions; k++) {
         cu->m_cuDepth[k] = 0;
-        cu->m_cuSize[k] = 64;
+        cu->m_cuSize[k] = m_nCtuSize;
     }
     if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples))
         return;
@@ -710,10 +703,10 @@ static void proc_ctu(H265eSlice *slice, DataCu *cu)
     for (m = 0; m < 4; m ++) {
         cu_x_1 = (m & 1) * (m_nCtuSize >> 1);
         cu_y_1 = (m >> 1) * (m_nCtuSize >> 1);
-        proc_cu32(slice, cu, cu_x_1, cu_y_1);
+        proc_cu32(slice, cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
     }
 
-    for (k = 0; k < 256; k++) {
+    for (k = 0; k < numPartions; k++) {
         switch (cu->m_cuDepth[k]) {
         case 0: cu->m_cuSize[k] = 64; break;
         case 1: cu->m_cuSize[k] = 32; break;
@@ -745,17 +738,51 @@ static void h265e_write_algin(MppWriteCtx *bitIf)
     h265e_dbg_func("leave\n");
 }
 
+static void proc_ctu32(H265eSlice *slice, DataCu *cu)
+{
+    H265eSps *sps = slice->m_sps;
+    RK_U32 k, m;
+    RK_U32 cu_x_1, cu_y_1;
+    RK_U32 m_nCtuSize = sps->m_maxCUSize;
+    RK_U32 lpelx = cu->pixelX;
+    RK_U32 rpelx = lpelx + m_nCtuSize - 1;
+    RK_U32 tpely = cu->pixelY;
+    RK_U32 bpely = tpely + m_nCtuSize - 1;
+    RK_U32 numPartions = 1 << (sps->m_maxCUDepth << 1);
+    RK_S32 cuDepth = 0;
+
+    for (k = 0; k < numPartions; k++) {
+        cu->m_cuDepth[k] = 0;
+        cu->m_cuSize[k] = m_nCtuSize;
+    }
+    if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples))
+        return;
+
+    for (m = 0; m < 4; m ++) {
+        cu_x_1 = (m & 1) * (m_nCtuSize >> 1);
+        cu_y_1 = (m >> 1) * (m_nCtuSize >> 1);
+        proc_cu16(slice, cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
+    }
+
+    for (k = 0; k < numPartions; k++) {
+        switch (cu->m_cuDepth[k]) {
+        case 0: cu->m_cuSize[k] = 32; break;
+        case 1: cu->m_cuSize[k] = 16; break;
+        case 2: cu->m_cuSize[k] = 8;  break;
+        }
+    }
+}
 
 RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_S32 len)
 {
-
+    void (*proc_ctu)(H265eSlice *, DataCu *);
     MppWriteCtx bitIf;
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSps *sps = &p->sps;
     H265eCabacCtx *cabac_ctx = &slice->m_cabac;
     h265e_dbg_func("enter\n");
-    RK_U32 mb_wd = ((sps->m_picWidthInLumaSamples + 63) >> 6);
-    RK_U32 mb_h = ((sps->m_picHeightInLumaSamples + 63) >> 6);
+    RK_U32 mb_wd = (sps->m_picWidthInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
+    RK_U32 mb_h = (sps->m_picHeightInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
     RK_U32 cu_cnt;
     RK_U32 offset_x = 0;
     RK_U32 offset_y = 0;
@@ -765,6 +792,14 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
         mpp_err("buf or size no set");
         return MPP_NOK;
     }
+
+    if (sps->m_maxCUSize == 32)
+        /* rk3528 maxCUSize[32] depth[3], other chips maxCUSize[64] depth[4],
+           So special handling is required */
+        proc_ctu = proc_ctu32;
+    else
+        proc_ctu = proc_ctu64;
+
     mpp_writer_init(&bitIf, buf, len);
     h265e_write_nal(&bitIf);
     h265e_code_slice_header(slice, &bitIf);
@@ -782,10 +817,10 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
         proc_ctu(slice, &cu);
         encode_cu(slice, 0, 0, &cu);
         h265e_cabac_encodeBinTrm(cabac_ctx, 0);
-        offset_x += 64;
+        offset_x += sps->m_maxCUSize;
         if (offset_x >= sps->m_picWidthInLumaSamples) {
             offset_x = 0;
-            offset_y += 64;
+            offset_y += sps->m_maxCUSize;
         }
     }
     /* The last CTU handled independently, reducing the cost */
@@ -800,5 +835,3 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
     h265e_dbg_func("leave\n");
     return mpp_writer_bytes(&bitIf);
 }
-
-
