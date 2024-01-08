@@ -212,6 +212,10 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
         mpp_free(tmp);
     } break;
+    case MPP_FMT_YUV422_YUYV:
+    case MPP_FMT_YUV422_YVYU:
+    case MPP_FMT_YUV422_UYVY:
+    case MPP_FMT_YUV422_VYUY:
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR565:
     case MPP_FMT_RGB555:
@@ -535,6 +539,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     }
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420SP_VU:
     case MPP_FMT_YUV420SP : {
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride, 1, width, fp);
@@ -587,6 +592,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     } break;
     case MPP_FMT_YUV422P :
     case MPP_FMT_YUV422SP :
+    case MPP_FMT_YUV422SP_VU:
     case MPP_FMT_BGR444 :
     case MPP_FMT_RGB444 :
     case MPP_FMT_RGB555 :
