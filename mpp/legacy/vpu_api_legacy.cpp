@@ -16,7 +16,6 @@
 
 #define MODULE_TAG "vpu_api_legacy"
 
-#include <fcntl.h>
 #include "string.h"
 
 #include "mpp_mem.h"

@@ -17,7 +17,6 @@
 #define MODULE_TAG "vpu"
 
 #include <sys/ioctl.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 

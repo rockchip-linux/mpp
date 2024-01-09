@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
@@ -113,7 +112,7 @@ static MPP_RET try_flip_flag(RK_U32 orig, RK_U32 flag)
     src = &heap_infos[used];
     if (src->fd > 0) {
         /* found valid heap use it */
-        dst->fd = dup(src->fd);
+        dst->fd = mpp_dup(src->fd);
         dst->flags = src->flags;
 
         dma_heap_dbg_chk("dma-heap type %x %s remap to %x %s\n",
@@ -278,7 +277,7 @@ static MPP_RET os_allocator_dma_heap_import(void *ctx, MppBufferInfo *data)
 
     mpp_assert(fd_ext > 0);
 
-    data->fd = dup(fd_ext);
+    data->fd = mpp_dup(fd_ext);
     data->ptr = NULL;
 
     dma_heap_dbg_ops("dev %d import %3d -> %3d\n", p->device, fd_ext, data->fd);

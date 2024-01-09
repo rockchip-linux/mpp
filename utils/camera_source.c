@@ -125,7 +125,7 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
         return NULL;
 
     ctx->bufcnt = bufcnt;
-    ctx->fd = open(device, O_RDWR, 0);
+    ctx->fd = open(device, O_RDWR | O_CLOEXEC, 0);
     if (ctx->fd < 0) {
         mpp_err_f("Cannot open device\n");
         goto FAIL;
