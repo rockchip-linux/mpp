@@ -232,6 +232,7 @@ MPP_RET mt_test_ctx_init(MpiEncMtCtxInfo *info)
     case MPP_FMT_YUV422SP : {
         p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 2;
     } break;
+    case MPP_FMT_YUV400 :
     case MPP_FMT_RGB444 :
     case MPP_FMT_BGR444 :
     case MPP_FMT_RGB555 :
