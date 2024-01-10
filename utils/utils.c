@@ -612,6 +612,9 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     case MPP_FMT_BGR888 : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 3, fp);
     } break;
+    case MPP_FMT_YUV400 : {
+        ret = read_with_pixel_width(buf_y, width, height, hor_stride, 1, fp);
+    } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);
         ret = MPP_ERR_VALUE;
