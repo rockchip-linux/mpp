@@ -62,6 +62,9 @@ int main()
     if (vcodec_type & HAVE_JPEG_DEC)
         mpp_log("found rk jpeg decoder\n");
 
+    if (vcodec_type & HAVE_JPEG_ENC)
+        mpp_log("found rk jpeg encoder\n");
+
     if (vcodec_type & HAVE_RKVENC)
         mpp_log("found rkvenc encoder\n");
 
