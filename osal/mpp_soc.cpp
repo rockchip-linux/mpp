@@ -59,6 +59,7 @@
 #define CAP_CODING_VDPU341_LITE (HAVE_AVC|HAVE_HEVC)
 #define CAP_CODING_VDPU381      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
 #define CAP_CODING_VDPU382      (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
+#define CAP_CODING_VDPU383      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
 
 #define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
@@ -409,6 +410,24 @@ static const MppDecHwCap vdpu382_lite = {
     .reserved           = 0,
 };
 
+static const MppDecHwCap vdpu383 = {
+    .cap_coding         = CAP_CODING_VDPU383,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_compress = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 1,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
 static const MppDecHwCap avspd = {
     .cap_coding         = CAP_CODING_AVSPD,
     .type               = VPU_CLIENT_AVSPLUS_DEC,
@@ -594,6 +613,28 @@ static const MppEncHwCap vepu540c_no_hevc = {
     .cap_8k             = 1,
     .cap_hw_osd         = 0,
     .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
+static const MppEncHwCap vepu510 = {
+    .cap_coding         = CAP_CODING_VEPU54X,
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
+static const MppEncHwCap rkjpege_vpu720 = {
+    .cap_coding         = HAVE_MJPEG,
+    .type               = VPU_CLIENT_JPEG_ENC,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 0,
     .reserved           = 0,
 };
 
@@ -902,6 +943,18 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu382_lite, &rkjpegd, NULL, NULL, NULL, NULL, },
         {   &vepu540c_no_hevc, NULL, NULL, NULL, },
+    },
+    {   /*
+         * rk3576 has codec:
+         * 1 - RK H.264/H.265/VP9/AVS2/AV1 8K decoder
+         * 2 - RK H.264/H.265 8K encoder
+         * 3 - RK jpeg decoder/encoder
+         */
+        "rk3576",
+        ROCKCHIP_SOC_RK3576,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_JPEG_ENC,
+        {   &vdpu383, &rkjpegd, NULL, NULL, NULL, NULL},
+        {   &vepu510, &rkjpege_vpu720, NULL, NULL},
     },
 };
 

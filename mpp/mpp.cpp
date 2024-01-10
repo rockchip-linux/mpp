@@ -62,15 +62,16 @@ static void *list_wraper_frame(void *arg)
 
 static RK_S32 check_frm_task_cnt_cap(MppCodingType coding)
 {
-    if (strstr(mpp_get_soc_name(), "rk3588")) {
+    RockchipSocType soc_type = mpp_get_soc_type();
+
+    if (soc_type == ROCKCHIP_SOC_RK3588 || soc_type == ROCKCHIP_SOC_RK3576) {
         if (coding == MPP_VIDEO_CodingAVC || coding == MPP_VIDEO_CodingHEVC)
             return 2;
-
-        if (coding == MPP_VIDEO_CodingMJPEG)
+        if (coding == MPP_VIDEO_CodingMJPEG && soc_type == ROCKCHIP_SOC_RK3588)
             return 4;
     }
 
-    mpp_log("Only rk3588 h264/jpeg encoder can use frame parallel\n");
+    mpp_log("Only rk3588's h264/265/jpeg and rk3576's h264/265 encoder can use frame parallel\n");
 
     return 1;
 }

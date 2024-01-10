@@ -44,8 +44,8 @@ const char *strof_client_type(MppClientType type)
         /* VPU_CLIENT_VEPU1         */  "vepu1",
         /* VPU_CLIENT_VEPU2         */  "vepu2",
         /* VPU_CLIENT_VEPU2_JPEG    */  "vepu2_jpeg",
-        /* 20 ~ 23 */
-        /* VPU_CLIENT_BUTT          */  NULL,
+        /* VPU_CLIENT_JPEG_ENC      */  "rkjpege",
+        /* 21 ~ 23 */
         /* VPU_CLIENT_BUTT          */  NULL,
         /* VPU_CLIENT_BUTT          */  NULL,
         /* VPU_CLIENT_BUTT          */  NULL,

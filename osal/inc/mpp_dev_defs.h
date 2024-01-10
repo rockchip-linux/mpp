@@ -38,6 +38,8 @@ typedef enum MppClientType_e {
     VPU_CLIENT_VEPU1        = 17,   /* 0x00020000 */
     VPU_CLIENT_VEPU2        = 18,   /* 0x00040000 */
     VPU_CLIENT_VEPU2_JPEG   = 19,   /* 0x00080000 */
+    VPU_CLIENT_JPEG_ENC     = 20,   /* 0x00100000 */
+
     VPU_CLIENT_VEPU22       = 24,   /* 0x01000000 */
 
     IEP_CLIENT_TYPE         = 28,   /* 0x10000000 */
@@ -61,6 +63,7 @@ typedef enum MppClientType_e {
 #define HAVE_VEPU1          (1 << VPU_CLIENT_VEPU1)         /* 0x00020000 */
 #define HAVE_VEPU2          (1 << VPU_CLIENT_VEPU2)         /* 0x00040000 */
 #define HAVE_VEPU2_JPEG     (1 << VPU_CLIENT_VEPU2_JPEG)    /* 0x00080000 */
+#define HAVE_JPEG_ENC       (1 << VPU_CLIENT_JPEG_ENC)      /* 0x00100000 */
 /* External encoder */
 #define HAVE_VEPU22         (1 << VPU_CLIENT_VEPU22)        /* 0x01000000 */
 /* RK Image Enhance Processor for deinterlacing */
