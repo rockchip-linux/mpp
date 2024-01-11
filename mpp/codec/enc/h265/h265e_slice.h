@@ -367,6 +367,8 @@ typedef struct H265eSlice_e {
 
     enum NALUnitType m_nalUnitType;       ///< Nal unit type for the slice
     SliceType        m_sliceType;
+
+    RK_S32           temporal_id;
     RK_U32           m_IsGenB;
     RK_S32           m_sliceQp;
     RK_U32           m_dependentSliceSegmentFlag;
