@@ -220,15 +220,21 @@ void iep2_test(iep2_test_cfg *cfg)
     int idx = 0;
 
     mpp_assert(iep2);
+    MppBufferGroup memGroup;
+    MPP_RET ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_DRM);
+    if (MPP_OK != ret) {
+        mpp_err("memGroup mpp_buffer_group_get failed\n");
+        mpp_assert(0);
+    }
 
     memset(&checkcrc, 0, sizeof(checkcrc));
     checkcrc.sum = mpp_malloc(RK_ULONG, 512);
 
-    mpp_buffer_get(NULL, &srcbuf[0], srcfrmsize);
-    mpp_buffer_get(NULL, &srcbuf[1], srcfrmsize);
-    mpp_buffer_get(NULL, &srcbuf[2], srcfrmsize);
-    mpp_buffer_get(NULL, &dstbuf[0], dstfrmsize);
-    mpp_buffer_get(NULL, &dstbuf[1], dstfrmsize);
+    mpp_buffer_get(memGroup, &srcbuf[0], srcfrmsize);
+    mpp_buffer_get(memGroup, &srcbuf[1], srcfrmsize);
+    mpp_buffer_get(memGroup, &srcbuf[2], srcfrmsize);
+    mpp_buffer_get(memGroup, &dstbuf[0], dstfrmsize);
+    mpp_buffer_get(memGroup, &dstbuf[1], dstfrmsize);
     mpp_assert(srcbuf[0] && srcbuf[1] && srcbuf[2] && dstbuf[0] && dstbuf[1]);
 
     psrc[0] = mpp_buffer_get_ptr(srcbuf[0]);
@@ -327,14 +333,16 @@ void iep2_test(iep2_test_cfg *cfg)
 
         out_order = dei_info.dil_order == IEP2_FIELD_ORDER_BFF ? 1 : 0;
 
-        if (dstfrmsize > fwrite(pdst[out_order], 1, dstfrmsize, cfg->fp_dst)) {
-            mpp_err("destination dump failed\n");
-            break;
-        }
+        if (cfg->fp_dst) {
+            if (dstfrmsize > fwrite(pdst[out_order], 1, dstfrmsize, cfg->fp_dst)) {
+                mpp_err("destination dump failed\n");
+                break;
+            }
 
-        if (dstfrmsize > fwrite(pdst[1 - out_order], 1, dstfrmsize, cfg->fp_dst)) {
-            mpp_err("destination dump failed\n");
-            break;
+            if (dstfrmsize > fwrite(pdst[1 - out_order], 1, dstfrmsize, cfg->fp_dst)) {
+                mpp_err("destination dump failed\n");
+                break;
+            }
         }
 
         curr++;
@@ -350,6 +358,11 @@ ret:
     mpp_buffer_put(dstbuf[1]);
 
     MPP_FREE(checkcrc.sum);
+
+    if (memGroup) {
+        mpp_buffer_group_put(memGroup);
+        memGroup = NULL;
+    }
 
     iep2->ops->deinit(iep2->priv);
 
