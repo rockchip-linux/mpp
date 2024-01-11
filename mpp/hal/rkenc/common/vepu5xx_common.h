@@ -52,5 +52,6 @@ extern const RK_U32 klut_weight[24];
 extern const RK_U32 lamd_satd_qp[52];
 extern const RK_U32 lamd_moda_qp[52];
 extern const RK_U32 lamd_modb_qp[52];
+extern const RK_U32 lamd_satd_qp_510[52];
 
 #endif /* __VEPU5XX_COMMON_H__ */
