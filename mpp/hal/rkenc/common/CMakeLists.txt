@@ -7,6 +7,7 @@ add_library(hal_vepu541_common STATIC
             vepu5xx_common.c
             vepu540c_common.c
             vepu580_tune.c
+            vepu510_common.c
             )
 
 target_link_libraries(hal_vepu541_common mpp_base)
