@@ -16,7 +16,7 @@
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
 #define CACHE_LINE_SIZE  64
 
-static RK_U32 has_partial_ops = 1;
+static RK_U32 has_partial_ops = 0;
 
 __attribute__ ((constructor))
 void mpp_dmabuf_init(void)
