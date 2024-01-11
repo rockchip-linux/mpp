@@ -205,6 +205,9 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     minCUDepth = (codec->max_cu_size >> (maxCUDepth - 1));
 
     tuQTMaxLog2Size = convertToBit[codec->max_cu_size] + 2 - 1;
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
+        tuQTMaxLog2Size = tuQTMaxLog2Size + 1;
+    }
 
     addCUDepth = 0;
     while ((RK_U32)(codec->max_cu_size >> maxCUDepth) > (1u << (tuQTMinLog2Size + addCUDepth))) {
