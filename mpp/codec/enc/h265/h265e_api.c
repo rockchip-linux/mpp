@@ -43,6 +43,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     MppEncRcCfg *rc_cfg = &ctrlCfg->cfg->rc;
     MppEncPrepCfg *prep = &ctrlCfg->cfg->prep;
     MppEncH265Cfg *h265 = NULL;
+    RockchipSocType soc_type;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -87,7 +88,8 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->level = 120;
     h265->const_intra_pred = 0;           /* constraint intra prediction flag */
 
-    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3528) {
+    soc_type = mpp_get_soc_type();
+    if (soc_type == ROCKCHIP_SOC_RK3528 || soc_type == ROCKCHIP_SOC_RK3576) {
         h265->ctu_size = 32;
         h265->max_cu_size = 32;
     } else {

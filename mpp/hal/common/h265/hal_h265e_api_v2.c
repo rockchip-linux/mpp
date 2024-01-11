@@ -30,6 +30,7 @@
 #include "hal_h265e_vepu541.h"
 #include "hal_h265e_vepu580.h"
 #include "hal_h265e_vepu540c.h"
+#include "hal_h265e_vepu510.h"
 
 typedef struct HalH265eV2Ctx_t {
     const MppEncHalApi  *api;
@@ -55,6 +56,9 @@ static MPP_RET hal_h265ev2_init(void *hal, MppEncHalCfg *cfg)
         } break;
         case HWID_VEPU540C : {
             api = &hal_h265e_vepu540c;
+        } break;
+        case HWID_VEPU510 : {
+            api = &hal_h265e_vepu510;
         } break;
         default : {
             api = &hal_h265e_vepu541;
