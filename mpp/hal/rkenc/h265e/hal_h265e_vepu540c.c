@@ -30,6 +30,7 @@
 
 #include "hal_h265e_debug.h"
 #include "h265e_syntax_new.h"
+#include "hal_h265e_stream_amend.h"
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
 #include "vepu541_common.h"
@@ -1638,6 +1639,7 @@ MPP_RET hal_h265e_v540c_ret_task(void *hal, HalEncTask *task)
 
     hal_h265e_enter();
 
+    hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     vepu540c_h265_set_feedback(ctx, enc_task);
 
     rc_info->sse = fb->sse_sum;

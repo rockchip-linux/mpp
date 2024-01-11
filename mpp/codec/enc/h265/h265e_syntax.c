@@ -147,8 +147,6 @@ static void fill_slice_parameters( const H265eCtx *h,
         sp->sli_flsh = 1;
     }
 
-
-
     sp->cbc_init_flg        = slice->m_cabacInitFlag;
     sp->mvd_l1_zero_flg     = slice->m_bLMvdL1Zero;
     sp->merge_up_flag       = codec->merge_cfg.merge_up_flag;
@@ -181,6 +179,7 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->sli_cb_qp_ofst = slice->m_sliceQpDeltaCb;
     sp->sli_qp = slice->m_sliceQp;
     sp->max_mrg_cnd = slice->m_maxNumMergeCand;
+    sp->temporal_id = slice->temporal_id;
     sp->non_reference_flag = slice->m_temporalLayerNonReferenceFlag;
     sp->col_ref_idx = 0;
     sp->col_frm_l0_flg = slice->m_colFromL0Flag;

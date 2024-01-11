@@ -72,6 +72,7 @@ typedef struct  H265eNal_t {
     /* Size of padding in bytes. */
     RK_S32 i_padding;
     RK_S32 sh_head_len;
+    RK_S32 temporal_id;
 } H265eNal;
 
 typedef struct H265eExtraInfo_t {
@@ -82,6 +83,7 @@ typedef struct H265eExtraInfo_t {
     RK_U32          sei_change_flg;
     H265eStream     stream;
 //    H265eSei        sei;
+    RK_S32          temporal_id;
 } H265eExtraInfo;
 
 #ifdef __cplusplus

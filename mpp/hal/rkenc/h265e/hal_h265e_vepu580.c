@@ -30,6 +30,7 @@
 
 #include "hal_h265e_debug.h"
 #include "h265e_syntax_new.h"
+#include "hal_h265e_stream_amend.h"
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
 #include "h265e_dpb.h"
@@ -3295,6 +3296,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
     RK_S32 task_idx = task->flags.reg_idx;
     Vepu580H265eFrmCfg *frm = ctx->frms[task_idx];
     Vepu580H265Fbk *fb = &frm->feedback;
+    H265eSyntax_new *syn = (H265eSyntax_new *) enc_task->syntax.data;
 
     hal_h265e_enter();
 
@@ -3309,20 +3311,30 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
                 if (i) {  //copy tile 1 stream
                     RK_U32 len = fb->out_strm_size - stream_len;
                     MppBuffer buf = frm->hw_tile_stream[i - 1];
-                    void *tile1_ptr  = mpp_buffer_get_ptr(buf);
+                    RK_U8 *tile1_ptr  = mpp_buffer_get_ptr(buf);
 
                     mpp_buffer_sync_ro_partial_begin(buf, 0, len);
+
+                    if (syn->sp.temporal_id && len > 5)
+                        tile1_ptr[5] = (tile1_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
+
                     memcpy(ptr + stream_len + offset, tile1_ptr, len);
                 } else {
                     MppBuffer buf = enc_task->output;
                     RK_U32 len = fb->out_strm_size;
+                    RK_U8 *stream_ptr = (RK_U8 *) ptr;
 
                     mpp_buffer_sync_ro_partial_begin(buf, offset, len);
+
+                    if (syn->sp.temporal_id) {
+                        stream_ptr[5] = (stream_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
+                    }
                 }
                 stream_len = fb->out_strm_size;
             }
         }
     } else {
+        hal_h265e_amend_temporal_id(task, fb->out_strm_size);
         vepu580_h265_set_feedback(ctx, enc_task, ctx->tile_num - 1);
     }
 

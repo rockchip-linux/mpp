@@ -29,6 +29,7 @@
 
 #include "h265e_syntax_new.h"
 #include "hal_h265e_debug.h"
+#include "hal_h265e_stream_amend.h"
 #include "hal_h265e_vepu541_reg.h"
 #include "hal_h265e_vepu54x_reg_l2.h"
 #include "vepu541_common.h"
@@ -1885,6 +1886,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
     hal_h265e_leave();
     return ret;
 }
+
 MPP_RET hal_h265e_v54x_start(void *hal, HalEncTask *task)
 {
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
@@ -2060,6 +2062,7 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
 
     hal_h265e_enter();
 
+    hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     vepu541_h265_set_feedback(ctx, enc_task);
 
     rc_info->sse = fb->sse_sum;
