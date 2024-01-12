@@ -3145,6 +3145,10 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                     mpp_buffer_sync_ro_partial_begin(buf, tile1_offset, slice_len);
                     memcpy(ptr + seg_offset, tile1_ptr + tile1_offset, slice_len);
                     tile1_offset += slice_len;
+                } else {
+                    MppBuffer buf = enc_task->output;
+
+                    mpp_buffer_sync_ro_partial_begin(buf, offset, slice_len);
                 }
 
                 ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
@@ -3309,6 +3313,11 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
 
                     mpp_buffer_sync_ro_partial_begin(buf, 0, len);
                     memcpy(ptr + stream_len + offset, tile1_ptr, len);
+                } else {
+                    MppBuffer buf = enc_task->output;
+                    RK_U32 len = fb->out_strm_size;
+
+                    mpp_buffer_sync_ro_partial_begin(buf, offset, len);
                 }
                 stream_len = fb->out_strm_size;
             }
