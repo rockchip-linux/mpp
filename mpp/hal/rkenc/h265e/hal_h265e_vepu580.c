@@ -3270,13 +3270,13 @@ MPP_RET hal_h265e_v580_get_task(void *hal, HalEncTask *task)
 
         frm_cfg->hal_curr_idx = ctx->syn->sp.recon_pic.slot_idx;
         frm_cfg->hal_refr_idx = ctx->syn->sp.ref_pic.slot_idx;
-
-        h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_curr_idx);
-        h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_refr_idx);
     } else {
         /* reencode path may change the frame type */
         frm_cfg = ctx->frm;
     }
+
+    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_curr_idx);
+    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_refr_idx);
 
     ctx->frame_type = (frm_status->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
     frm_cfg->frame_type = ctx->frame_type;
