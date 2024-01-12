@@ -40,6 +40,7 @@
 #define MPP_SWAP(type, a, b)    do {type SWAP_tmp = b; b = a; a = SWAP_tmp;} while(0)
 #define MPP_ARRAY_ELEMS(a)      (sizeof(a) / sizeof((a)[0]))
 #define MPP_ALIGN(x, a)         (((x)+(a)-1)&~((a)-1))
+#define MPP_ALIGN_DOWN(x, a)    ((x)&~((a)-1))
 #define MPP_ALIGN_GEN(x, a)     (((x)+(a)-1)/(a)*(a))
 #define MPP_VSWAP(a, b)         { a ^= b; b ^= a; a ^= b; }
 
