@@ -1213,7 +1213,7 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
             }
 
             ctx->group_start_time_27M = pts_27M - pic_head->temporal_reference * ctx->frame_period;
-            if (ctx->group_start_time_27M < 0)
+            if (ctx->group_start_time_27M <= -ctx->frame_period)
                 ctx->group_start_time_27M = 0;
             ctx->pre_pts_27M = pts_27M;
             ctx->prechange_temporal_ref = pic_head->temporal_reference;
