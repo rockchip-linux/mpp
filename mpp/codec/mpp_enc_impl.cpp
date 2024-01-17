@@ -262,8 +262,7 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         "set cfg change codec",
     };
 
-    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG ||
-        cfg->codec.coding == MPP_VIDEO_CodingVP8)
+    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG)
         return 0;
 
     do {
