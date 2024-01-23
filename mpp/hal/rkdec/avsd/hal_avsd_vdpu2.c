@@ -413,7 +413,8 @@ static MPP_RET update_parameters(AvsdHalCtx_t *p_hal)
             p_hal->work1 =  p_hal->work0;
             p_hal->work0 =  p_hal->work_out;
 
-            p_hal->pic[p_hal->work_out].pic_type = p_syn->pp.picCodingType == IFRAME;
+            if (p_hal->work_out >= 0)
+                p_hal->pic[p_hal->work_out].pic_type = p_syn->pp.picCodingType == IFRAME;
             p_hal->work_out = temp;
             p_hal->prev_pic_structure = p_syn->pp.pictureStructure;
         }
