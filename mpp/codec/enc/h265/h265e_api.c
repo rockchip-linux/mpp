@@ -90,13 +90,12 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3528) {
         h265->ctu_size = 32;
         h265->max_cu_size = 32;
-        h265->tmvp_enable = 0;
     } else {
         h265->ctu_size = 64;
         h265->max_cu_size = 64;
-        h265->tmvp_enable = 1;
     }
 
+    h265->tmvp_enable = 0;
     h265->amp_enable = 0;
     h265->sao_enable = 1;
 

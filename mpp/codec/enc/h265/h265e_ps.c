@@ -321,6 +321,14 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     } else if (cpb_info->max_st_tid) {
         sps->m_TMVPFlagsPresent = 0;
     }
+
+    if (rc->drop_mode == MPP_ENC_RC_DROP_FRM_PSKIP) {
+        codec->tmvp_enable = 0;
+        sps->m_TMVPFlagsPresent = 0;
+        codec->sao_enable = 0;
+        sps->m_bUseSAO = 0;
+    }
+
     sps->m_ptl = &vps->m_ptl;
     sps->m_vuiParametersPresentFlag = 1;
     if (sps->m_vuiParametersPresentFlag) {
