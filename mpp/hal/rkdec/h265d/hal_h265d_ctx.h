@@ -74,6 +74,7 @@ typedef struct HalH265dCtx_t {
     RK_U32          mv_size;
     RK_S32          mv_count;
 
+    RK_U32          is_v341;
     RK_U32          is_v345;
     RK_U32          is_v34x;
     /* rcb info */

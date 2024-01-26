@@ -958,7 +958,8 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
-        RK_U32 reg_size = (reg_ctx->is_v345) ? V345_HEVC_REGISTERS :
+
+        RK_U32 reg_size = (reg_ctx->is_v341 || reg_ctx->is_v345) ? V345_HEVC_REGISTERS :
                           (reg_ctx->client_type == VPU_CLIENT_RKVDEC) ?
                           RKVDEC_V1_REGISTERS : RKVDEC_HEVC_REGISTERS;
 
