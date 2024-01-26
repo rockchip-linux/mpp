@@ -120,6 +120,10 @@ typedef enum {
  * ion      : use ion device under Android/Linux, MppBuffer will encapsulte ion file handle
  * ext_dma  : the DMABUF(DMA buffers) come from the application
  * drm      : use the drm device interface for memory management
+ *
+ * MPP default allocator select priority for kernel above 5.10:
+ * MPP_BUFFER_TYPE_DMA_HEAP > MPP_BUFFER_TYPE_DRM > MPP_BUFFER_TYPE_ION
+ * MPP_BUFFER_TYPE_EXT_DMA is only used for general external dma_buf fd import.
  */
 typedef enum {
     MPP_BUFFER_TYPE_NORMAL,
@@ -137,10 +141,10 @@ typedef enum {
  * 16 high bits of MppBufferType are used in flags
  *
  * eg:
- * DRM CMA buffer : MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_CONTIG
- *                  = 0x00010003
- * DRM SECURE buffer: MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_SECURE
- *                  = 0x00080003
+ * DMA_HEAP CMA buffer  : MPP_BUFFER_TYPE_DMA_HEAP | MPP_BUFFER_FLAGS_CONTIG
+ *                      = 0x00010004
+ * DRM SECURE buffer    : MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_SECURE
+ *                      = 0x00080003
  *
  * The dma buffer source can also be set by format: flags | type.
  * dma buffer source flags:
