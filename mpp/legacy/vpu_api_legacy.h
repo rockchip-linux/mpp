@@ -57,7 +57,7 @@ public:
 
     RK_S32 decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut_t *aDecOut);
     RK_S32 decode_sendstream(VideoPacket_t *pkt);
-    RK_S32 decode_getoutframe(DecoderOut_t *aDecOut);
+    RK_S32 decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut);
     RK_S32 preProcessPacket(VpuCodecContext *ctx, VideoPacket_t *pkt);
 
     RK_S32 encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, EncoderOut_t *aEncOut);

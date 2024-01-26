@@ -93,7 +93,7 @@ static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->decode_getoutframe(aDecOut);
+    return api->decode_getoutframe(ctx, aDecOut);
 }
 
 static RK_S32

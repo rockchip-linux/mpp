@@ -523,7 +523,7 @@ RK_S32 VpuApiLegacy::flush(VpuCodecContext *ctx)
     return 0;
 }
 
-static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
+static void setup_VPU_FRAME_from_mpp_frame(VpuCodecContext *ctx, VPU_FRAME *vframe, MppFrame mframe)
 {
     MppBuffer buf = mpp_frame_get_buffer(mframe);
     RK_U64 pts  = mpp_frame_get_pts(mframe);
@@ -537,6 +537,7 @@ static void setup_VPU_FRAME_from_mpp_frame(VPU_FRAME *vframe, MppFrame mframe)
     if (buf)
         mpp_buffer_inc_ref(buf);
 
+    vframe->CodingType = ctx->videoCoding;
     vframe->DisplayWidth = mpp_frame_get_width(mframe);
     vframe->DisplayHeight = mpp_frame_get_height(mframe);
     vframe->FrameWidth = mpp_frame_get_hor_stride(mframe);
@@ -879,7 +880,7 @@ RK_S32 VpuApiLegacy::decode(VpuCodecContext *ctx, VideoPacket_t *pkt, DecoderOut
                 aDecOut->size = sizeof(VPU_FRAME);
             }
 
-            setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
+            setup_VPU_FRAME_from_mpp_frame(ctx, vframe, mframe);
 
             aDecOut->timeUs = mpp_frame_get_pts(mframe);
             frame_count++;
@@ -955,7 +956,7 @@ RK_S32 VpuApiLegacy::decode_sendstream(VideoPacket_t *pkt)
     return MPP_OK;
 }
 
-RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
+RK_S32 VpuApiLegacy::decode_getoutframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
 {
     RK_S32 ret = 0;
     VPU_FRAME *vframe = NULL;
@@ -996,7 +997,7 @@ RK_S32 VpuApiLegacy::decode_getoutframe(DecoderOut_t *aDecOut)
             aDecOut->size = sizeof(VPU_FRAME);
         }
 
-        setup_VPU_FRAME_from_mpp_frame(vframe, mframe);
+        setup_VPU_FRAME_from_mpp_frame(ctx, vframe, mframe);
 
         aDecOut->timeUs = mpp_frame_get_pts(mframe);
         frame_count++;
