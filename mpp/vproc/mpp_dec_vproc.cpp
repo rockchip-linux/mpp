@@ -621,28 +621,31 @@ static void *dec_vproc_thread(void *data)
                 vproc_dbg_status("vproc thread wait %d", ctx->task_wait.val);
                 thd->wait();
             }
+        }
 
-            if (!ctx->task_status.task_rdy) {
-                if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
-                    if (ctx->reset) {
-                        /* reset only on all task finished */
-                        vproc_dbg_reset("reset start\n");
+        if (!ctx->task_status.task_rdy) {
+            if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
+                if (ctx->reset) {
+                    /* reset only on all task finished */
+                    vproc_dbg_reset("reset start\n");
 
-                        dec_vproc_clr_prev(ctx);
-                        ctx->reset = 0;
-                        sem_post(&ctx->reset_sem);
-                        ctx->task_wait.val = 0;
+                    dec_vproc_clr_prev(ctx);
 
-                        vproc_dbg_reset("reset done\n");
-                        continue;
-                    }
+                    thd->lock(THREAD_CONTROL);
+                    ctx->reset = 0;
+                    thd->unlock(THREAD_CONTROL);
+                    sem_post(&ctx->reset_sem);
+                    ctx->task_wait.val = 0;
 
-                    ctx->task_wait.task_in = 1;
+                    vproc_dbg_reset("reset done\n");
                     continue;
                 }
-                ctx->task_status.task_rdy = 1;
-                ctx->task_wait.task_in = 0;
+
+                ctx->task_wait.task_in = 1;
+                continue;
             }
+            ctx->task_status.task_rdy = 1;
+            ctx->task_wait.task_in = 0;
         }
 
         if (task) {
@@ -950,8 +953,10 @@ MPP_RET dec_vproc_reset(MppDecVprocCtx ctx)
         vproc_dbg_reset("reset contorl start\n");
         // wait reset finished
         thd->lock();
+        thd->lock(THREAD_CONTROL);
         p->reset = 1;
         thd->signal();
+        thd->unlock(THREAD_CONTROL);
         thd->unlock();
 
         vproc_dbg_reset("reset contorl wait\n");
