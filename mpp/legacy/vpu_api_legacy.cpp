@@ -69,10 +69,10 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
         ret = MPP_FMT_BGR444;
     } break;
     case ENC_INPUT_RGB888 : {
-        ret = MPP_FMT_RGBA8888;
+        ret = MPP_FMT_RGB888;
     } break;
     case ENC_INPUT_BGR888 : {
-        ret = MPP_FMT_BGRA8888;
+        ret = MPP_FMT_BGR888;
     } break;
     case ENC_INPUT_RGB101010 : {
         ret = MPP_FMT_RGB101010;
@@ -133,6 +133,10 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     case MPP_FMT_RGB555:
     case MPP_FMT_BGR555: {
         mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", 2 * MPP_ALIGN(width, 16));
+    } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 : {
+        mpp_enc_cfg_set_s32(enc_cfg, "prep:hor_stride", 3 * MPP_ALIGN(width, 16));
     } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
@@ -251,8 +255,16 @@ static int copy_align_raw_buffer_to_dest(RK_U8 *dst, RK_U8 *src, RK_U32 width,
             index += width / 2;
         }
     } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 : {
+        for (row = 0; row < height; row++) {
+            memcpy(dst_buf + row * hor_stride * 3, src_buf + row * width * 3, width * 3);
+        }
+    } break;
     case MPP_FMT_ABGR8888 :
-    case MPP_FMT_ARGB8888 : {
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 : {
         for (row = 0; row < height; row++) {
             memcpy(dst_buf + row * hor_stride * 4, src_buf + row * width * 4, width * 4);
         }
@@ -1075,6 +1087,10 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
     case MPP_FMT_BGR555: {
         mpp_frame_set_hor_stride(frame, hor_stride * 2);
     } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 : {
+        mpp_frame_set_hor_stride(frame, hor_stride * 3);
+    } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
     case MPP_FMT_BGRA8888 :
@@ -1329,6 +1345,10 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
     case MPP_FMT_RGB555:
     case MPP_FMT_BGR555: {
         mpp_frame_set_hor_stride(frame, hor_stride * 2);
+    } break;
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 : {
+        mpp_frame_set_hor_stride(frame, hor_stride * 3);
     } break;
     case MPP_FMT_ARGB8888 :
     case MPP_FMT_ABGR8888 :
