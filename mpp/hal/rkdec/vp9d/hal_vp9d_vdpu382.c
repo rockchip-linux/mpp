@@ -406,6 +406,39 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu382Vp9dRegSet *hw_regs, voi
     }
 }
 
+
+static MPP_RET hal_vp9d_vdpu382_setup_colmv_buf(void *hal, HalTaskInfo *task)
+{
+    HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
+    Vdpu382Vp9dCtx *hw_ctx = (Vdpu382Vp9dCtx*)p_hal->hw_ctx;
+    DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
+    RK_U32 width = pic_param->width;
+    RK_U32 height = pic_param->height;
+    RK_S32 mv_size = 0, colmv_size = 16, colmv_byte = 16;
+    RK_U32 compress = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
+
+    mv_size = vdpu382_get_colmv_size(width, height, VP9_CTU_SIZE, colmv_byte, colmv_size, compress);
+    if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
+        size_t size = mv_size;
+
+        if (hw_ctx->cmv_bufs) {
+            hal_bufs_deinit(hw_ctx->cmv_bufs);
+            hw_ctx->cmv_bufs = NULL;
+        }
+
+        hal_bufs_init(&hw_ctx->cmv_bufs);
+        if (hw_ctx->cmv_bufs == NULL) {
+            mpp_err_f("colmv bufs init fail");
+            return MPP_ERR_NOMEM;
+        }
+        hw_ctx->mv_size = mv_size;
+        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal ->slots);
+        hal_bufs_setup(hw_ctx->cmv_bufs, hw_ctx->mv_count, 1, &size);
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32   i;
@@ -431,7 +464,6 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu382Vp9dCtx *hw_ctx = (Vdpu382Vp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
-    RK_S32 mv_size = pic_param->width * pic_param->height / 2;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
 
     if (p_hal->fast_mode) {
@@ -451,23 +483,8 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
         }
     }
 
-    if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
-        size_t size = mv_size;
-
-        if (hw_ctx->cmv_bufs) {
-            hal_bufs_deinit(hw_ctx->cmv_bufs);
-            hw_ctx->cmv_bufs = NULL;
-        }
-
-        hal_bufs_init(&hw_ctx->cmv_bufs);
-        if (hw_ctx->cmv_bufs == NULL) {
-            mpp_err_f("colmv bufs init fail");
-            return MPP_NOK;
-        }
-        hw_ctx->mv_size = mv_size;
-        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal ->slots);
-        hal_bufs_setup(hw_ctx->cmv_bufs, hw_ctx->mv_count, 1, &size);
-    }
+    if (hal_vp9d_vdpu382_setup_colmv_buf(hal, task))
+        return MPP_ERR_NOMEM;
 
     Vdpu382Vp9dRegSet *vp9_hw_regs = (Vdpu382Vp9dRegSet*)hw_ctx->hw_regs;
     intraFlag = (!pic_param->frame_type || pic_param->intra_only);

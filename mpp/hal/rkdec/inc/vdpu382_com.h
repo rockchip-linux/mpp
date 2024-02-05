@@ -568,6 +568,8 @@ RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info);
 void vdpu382_setup_statistic(Vdpu382RegCommon *com, Vdpu382RegStatistic *sta);
 void vdpu382_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com);
+RK_U32 vdpu382_get_colmv_size(RK_U32 width, RK_U32 height, RK_U32 ctu_size,
+                              RK_U32 colmv_bytes, RK_U32 colmv_size, RK_U32 compress);
 
 #ifdef  __cplusplus
 }
