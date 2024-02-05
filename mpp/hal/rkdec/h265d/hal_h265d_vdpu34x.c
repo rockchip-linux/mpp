@@ -858,6 +858,9 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
     void *rps_ptr = NULL;
     RK_U32 stream_buf_size = 0;
+    DXVA_PicParams_HEVC *pp = &dxva_cxt->pp;
+    RK_U8 ctu_size = 1 << (pp->log2_diff_max_min_luma_coding_block_size +
+                           pp->log2_min_luma_coding_block_size_minus3 + 3);
 
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
@@ -916,7 +919,7 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
 
     width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
     height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
-    mv_size = (MPP_ALIGN(width, 64) * MPP_ALIGN(height, 64)) >> 3;
+    mv_size = vdpu34x_get_colmv_size(width, height, ctu_size, 16, 16, 1);
     if (reg_ctx->cmv_bufs == NULL || reg_ctx->mv_size < mv_size) {
         size_t size = mv_size;
 

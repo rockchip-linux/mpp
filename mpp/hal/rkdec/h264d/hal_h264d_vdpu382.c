@@ -938,14 +938,13 @@ static void hal_h264d_rcb_info_update(void *hal, Vdpu382H264dRegSet *regs)
 
 static MPP_RET vdpu382_h264d_setup_colmv_buf(void *hal)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
     RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+    RK_U32 ctu_size = 16, colmv_size = 4, colmv_byte = 16;
     RK_S32 mv_size;
 
-    /* the worst case is the frame is error with whole frame */
-    mv_size = width * height;
+    mv_size = vdpu382_get_colmv_size(width, height, ctu_size, colmv_byte, colmv_size, 1);
     if (p_hal->cmv_bufs == NULL || p_hal->mv_size < mv_size) {
         size_t size = mv_size;
 
@@ -957,15 +956,14 @@ static MPP_RET vdpu382_h264d_setup_colmv_buf(void *hal)
         hal_bufs_init(&p_hal->cmv_bufs);
         if (p_hal->cmv_bufs == NULL) {
             mpp_err_f("colmv bufs init fail");
-            goto __RETURN;
+            return MPP_OK;
         }
         p_hal->mv_size = mv_size;
         p_hal->mv_count = mpp_buf_slot_get_count(p_hal->frame_slots);
         hal_bufs_setup(p_hal->cmv_bufs, p_hal->mv_count, 1, &size);
     }
 
-__RETURN:
-    return ret;
+    return MPP_OK;
 }
 
 MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
@@ -997,7 +995,8 @@ MPP_RET vdpu382_h264d_gen_regs(void *hal, HalTaskInfo *task)
             }
         }
     }
-    vdpu382_h264d_setup_colmv_buf(hal);
+    if (vdpu382_h264d_setup_colmv_buf(hal))
+        goto __RETURN;
     prepare_spspps(p_hal, (RK_U64 *)&ctx->spspps, sizeof(ctx->spspps));
     prepare_framerps(p_hal, (RK_U64 *)&ctx->rps, sizeof(ctx->rps));
     prepare_scanlist(p_hal, ctx->sclst, sizeof(ctx->sclst));
