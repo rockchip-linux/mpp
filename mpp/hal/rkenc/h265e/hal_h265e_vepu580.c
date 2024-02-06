@@ -3334,8 +3334,8 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
             }
         }
     } else {
-        hal_h265e_amend_temporal_id(task, fb->out_strm_size);
         vepu580_h265_set_feedback(ctx, enc_task, ctx->tile_num - 1);
+        hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     }
 
     rc_info->sse = fb->sse_sum;
