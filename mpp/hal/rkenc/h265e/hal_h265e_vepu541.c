@@ -2062,8 +2062,8 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
 
     hal_h265e_enter();
 
-    hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     vepu541_h265_set_feedback(ctx, enc_task);
+    hal_h265e_amend_temporal_id(task, fb->out_strm_size);
 
     rc_info->sse = fb->sse_sum;
     rc_info->lvl64_inter_num = fb->st_lvl64_inter_num;
