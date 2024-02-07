@@ -261,7 +261,6 @@ MPP_RET avs2d_callback(void *decoder, void *info)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     Avs2dCtx_t *p_dec = (Avs2dCtx_t *)decoder;
-    Avs2dFrameMgr_t *mgr = &p_dec->frm_mgr;
     DecCbHalDone *ctx = (DecCbHalDone *)info;
     HalDecTask *task_dec = (HalDecTask *)ctx->task;
     MppFrame mframe = NULL;
@@ -295,10 +294,10 @@ MPP_RET avs2d_callback(void *decoder, void *info)
     }
 
     for (i = 0; i < AVS2_MAX_REFS; i++) {
-        if (!mgr->refs[i] || !mgr->refs[i]->frame || mgr->refs[i]->slot_idx < 0)
+        if (task_dec->refer[i] < 0)
             continue;
 
-        mpp_buf_slot_get_prop(p_dec->frame_slots, mgr->refs[i]->slot_idx, SLOT_FRAME_PTR, &ref_frm);
+        mpp_buf_slot_get_prop(p_dec->frame_slots, task_dec->refer[i], SLOT_FRAME_PTR, &ref_frm);
         if (!ref_frm)
             continue;
 
