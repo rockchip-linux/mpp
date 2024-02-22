@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef __MPP_FRAME_H__
@@ -162,6 +151,22 @@ typedef enum {
     MPP_CHROMA_LOC_BOTTOM      = 6,
     MPP_CHROMA_LOC_NB,                  ///< Not part of ABI
 } MppFrameChromaLocation;
+
+/*
+ * MppFrameFormat bit flag:
+ *
+ *  +-----------------------------------------------+
+ *  | 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 |
+ *  +-----------------------------------------------+
+ *  bit  0 ~ 15: YUV / RGB format value
+ *  bit 16 ~ 19: YUV / RGB flag    0 - YUV; 1 - RGB;
+ *  bit 20 ~ 23: Frame Buffer Compression (FBC) flag, 0 - No FBC; 1 - FBCv1; 2 - FBCv2;
+ *  bit 24     : Big / little end flag,               0 - big end; 1 - little end;
+ *  bit 25     : Tile format flag,                    0 - No tile; 1 - tile format;
+ *  bit 26 ~ 27: High Dynamic Range (HDR) flag,       0 - Standard Dynamic Range (SDR); 1 - HDR;
+ *
+ *  NOTE: FBC format and tile format can not exist at the same time.
+ */
 
 #define MPP_FRAME_FMT_MASK          (0x000fffff)
 #define MPP_FRAME_FMT_PROP_MASK     (0x0ff00000)
