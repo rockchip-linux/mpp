@@ -400,7 +400,7 @@ static MPP_RET hal_vp9d_vdpu34x_setup_colmv_buf(void *hal, HalTaskInfo *task)
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
     RK_U32 width = pic_param->width;
     RK_U32 height = pic_param->height;
-    RK_S32 mv_size = 0, colmv_size = 16, colmv_byte = 16;
+    RK_S32 mv_size = 0, colmv_size = 8, colmv_byte = 16;
     RK_U32 compress = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
 
     mv_size = vdpu34x_get_colmv_size(width, height, VP9_CTU_SIZE, colmv_byte, colmv_size, compress);
@@ -623,6 +623,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     hal_vp9d_output_probe(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
     mpp_buffer_sync_end(hw_ctx->probe_base);
 #endif
+    vp9_hw_regs->common.reg012.colmv_compress_en = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
     vp9_hw_regs->common.reg013.cur_pic_is_idr = !pic_param->frame_type;
     vp9_hw_regs->common.reg009.dec_mode = 2; //set as vp9 dec
     vp9_hw_regs->common.reg016_str_len = ((stream_len + 15) & (~15)) + 0x80;
