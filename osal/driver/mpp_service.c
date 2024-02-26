@@ -282,8 +282,10 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SEND_CODEC_INFO, p->cap))
         p->support_set_info = 1;
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_SET_RCB_INFO, p->cap)) {
-        p->support_set_rcb_info = 1;
-        mpp_env_get_u32("disable_rcb_info", &p->support_set_rcb_info, 1);
+        RK_U32 disable_rcb_info = 0;
+
+        mpp_env_get_u32("disable_rcb_info", &disable_rcb_info, 0);
+        p->support_set_rcb_info = !disable_rcb_info;
     }
     if (MPP_OK == mpp_service_check_cmd_valid(MPP_CMD_POLL_HW_IRQ, p->cap))
         p->support_hw_irq = 1;
