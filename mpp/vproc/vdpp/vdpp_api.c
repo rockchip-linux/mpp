@@ -8,6 +8,7 @@
 
 #include "vdpp_api.h"
 #include "vdpp.h"
+#include "vdpp2.h"
 
 vdpp_com_ctx *rockchip_vdpp_api_alloc_ctx(void)
 {
@@ -20,16 +21,24 @@ vdpp_com_ctx *rockchip_vdpp_api_alloc_ctx(void)
         goto __ERR;
     }
 
-    ctx = mpp_calloc(struct vdpp_api_ctx, 1);
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
+        ops->init = vdpp2_init;
+        ops->deinit = vdpp2_deinit;
+        ops->control = vdpp2_control;
+
+        ctx = mpp_calloc(struct vdpp2_api_ctx, 1);
+    } else {
+        ops->init = vdpp_init;
+        ops->deinit = vdpp_deinit;
+        ops->control = vdpp_control;
+
+        ctx = mpp_calloc(struct vdpp_api_ctx, 1);
+    }
 
     if (NULL == ctx) {
         mpp_err_f("failed to calloc vdpp_api_ctx %p\n", ctx);
         goto __ERR;
     }
-
-    ops->init = vdpp_init;
-    ops->deinit = vdpp_deinit;
-    ops->control = vdpp_control;
 
     com_ctx->ops = ops;
     com_ctx->priv = ctx;
