@@ -628,8 +628,7 @@ static void setup_vepu510_normal(HalVepu510RegSet *regs)
     hal_h264e_dbg_func("leave\n");
 }
 
-static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep,
-                                  HalEncTask *task)
+static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep)
 {
     VepuFmtCfg cfg;
     MppFrameFormat fmt = prep->format;
@@ -1891,7 +1890,7 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(*regs));
 
     setup_vepu510_normal(regs);
-    ret = setup_vepu510_prep(regs, &ctx->cfg->prep, task);
+    ret = setup_vepu510_prep(regs, &ctx->cfg->prep);
     if (ret)
         return ret;
 
