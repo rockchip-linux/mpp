@@ -43,6 +43,7 @@ typedef enum MppClientType_e {
     VPU_CLIENT_VEPU22       = 24,   /* 0x01000000 */
 
     IEP_CLIENT_TYPE         = 28,   /* 0x10000000 */
+    VDPP_CLIENT_TYPE        = 29,   /* 0x20000000 */
 
     VPU_CLIENT_BUTT,
 } MppClientType;
@@ -68,6 +69,8 @@ typedef enum MppClientType_e {
 #define HAVE_VEPU22         (1 << VPU_CLIENT_VEPU22)        /* 0x01000000 */
 /* RK Image Enhance Processor for deinterlacing */
 #define HAVE_IEP            (1 << IEP_CLIENT_TYPE)          /* 0x10000000 */
+/* RK Image Enhance Processor for dispaly */
+#define HAVE_VDPP           (1 << VDPP_CLIENT_TYPE)         /* 0x20000000 */
 
 /* Platform image process hardware feature */
 #define HAVE_IPP            (0x00000001)
