@@ -46,6 +46,10 @@ void mpp_put_bits(BitputCtx_t *bp, RK_U64 invalue, RK_S32 lbits)
         bp->bvalue = invalue >> (64 - bp->bitpos);  // low bits value
         bp->index++;
     }
+
+    if (bp->index >= bp->buflen)
+        return;
+
     bp->pbuf[bp->index] = bp->bvalue;
     bp->bitpos = (bp->bitpos + lbits) & 63;
     // mpp_log("bp->index = %d bp->bitpos = %d lbits = %d invalue 0x%x bp->hvalue 0x%x  bp->lvalue 0x%x",bp->index,bp->bitpos,lbits, (RK_U32)invalue,(RK_U32)(bp->bvalue >> 32),(RK_U32)bp->bvalue);
