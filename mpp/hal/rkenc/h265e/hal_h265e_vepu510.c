@@ -13,6 +13,8 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_frame_impl.h"
+#include "mpp_packet_impl.h"
+#include "mpp_enc_cb_param.h"
 
 #include "rkv_enc_def.h"
 #include "h265e_syntax_new.h"
@@ -99,6 +101,8 @@ typedef struct H265eV510HalContext_t {
     /* slice split poll cfg */
     RK_S32              poll_slice_max;
     RK_S32              poll_cfg_size;
+    MppDevPollCfg       *poll_cfgs;
+    MppCbCtx            *output_cb;
 
     /* @frame_cnt starts from ZERO */
     RK_U32              frame_count;
@@ -737,6 +741,64 @@ static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSe
     }
 }
 
+MPP_RET hal_h265e_v510_deinit(void *hal)
+{
+    H265eV510HalContext *ctx = (H265eV510HalContext *)hal;
+    RK_S32 i = 0;
+
+    hal_h265e_enter();
+    MPP_FREE(ctx->poll_cfgs);
+    MPP_FREE(ctx->input_fmt);
+    hal_bufs_deinit(ctx->dpb_bufs);
+
+    for (i = 0; i < ctx->task_cnt; i++) {
+        Vepu510H265eFrmCfg *frm = ctx->frms[i];
+
+        if (!frm)
+            continue;
+
+        if (frm->roi_base_cfg_buf) {
+            mpp_buffer_put(frm->roi_base_cfg_buf);
+            frm->roi_base_cfg_buf = NULL;
+            frm->roi_base_buf_size = 0;
+        }
+
+        MPP_FREE(frm->roi_base_cfg_sw_buf);
+
+        if (frm->reg_cfg) {
+            mpp_dev_multi_offset_deinit(frm->reg_cfg);
+            frm->reg_cfg = NULL;
+        }
+
+        MPP_FREE(ctx->frms[i]);
+    }
+
+    clear_ext_line_bufs(ctx);
+
+    if (ctx->ext_line_buf_grp) {
+        mpp_buffer_group_put(ctx->ext_line_buf_grp);
+        ctx->ext_line_buf_grp = NULL;
+    }
+
+    if (ctx->buf_pass1) {
+        mpp_buffer_put(ctx->buf_pass1);
+        ctx->buf_pass1 = NULL;
+    }
+
+    if (ctx->dev) {
+        mpp_dev_deinit(ctx->dev);
+        ctx->dev = NULL;
+    }
+
+    if (ctx->reg_cfg) {
+        mpp_dev_multi_offset_deinit(ctx->reg_cfg);
+        ctx->reg_cfg = NULL;
+    }
+
+    hal_h265e_leave();
+    return MPP_OK;
+}
+
 MPP_RET hal_h265e_v510_init(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
@@ -797,65 +859,25 @@ MPP_RET hal_h265e_v510_init(void *hal, MppEncHalCfg *cfg)
             hw->mode_bias[j] = 8;
     }
 
+    ctx->poll_slice_max = 8;
+    ctx->poll_cfg_size = (sizeof(ctx->poll_cfgs) + sizeof(RK_S32) * ctx->poll_slice_max) * 2;
+    ctx->poll_cfgs = mpp_malloc_size(MppDevPollCfg, ctx->poll_cfg_size);
+
+    if (NULL == ctx->poll_cfgs) {
+        ret = MPP_ERR_MALLOC;
+        mpp_err_f("init poll cfg buffer failed\n");
+        goto DONE;
+    }
+
+    ctx->output_cb = cfg->output_cb;
+    cfg->cap_recn_out = 1;
+
+DONE:
+    if (ret)
+        hal_h265e_v510_deinit(hal);
+
     hal_h265e_leave();
     return ret;
-}
-
-MPP_RET hal_h265e_v510_deinit(void *hal)
-{
-    H265eV510HalContext *ctx = (H265eV510HalContext *)hal;
-    RK_S32 i = 0;
-
-    hal_h265e_enter();
-    MPP_FREE(ctx->input_fmt);
-    hal_bufs_deinit(ctx->dpb_bufs);
-
-    for (i = 0; i < ctx->task_cnt; i++) {
-        Vepu510H265eFrmCfg *frm = ctx->frms[i];
-
-        if (!frm)
-            continue;
-
-        if (frm->roi_base_cfg_buf) {
-            mpp_buffer_put(frm->roi_base_cfg_buf);
-            frm->roi_base_cfg_buf = NULL;
-            frm->roi_base_buf_size = 0;
-        }
-
-        MPP_FREE(frm->roi_base_cfg_sw_buf);
-
-        if (frm->reg_cfg) {
-            mpp_dev_multi_offset_deinit(frm->reg_cfg);
-            frm->reg_cfg = NULL;
-        }
-
-        MPP_FREE(ctx->frms[i]);
-    }
-
-    clear_ext_line_bufs(ctx);
-
-    if (ctx->ext_line_buf_grp) {
-        mpp_buffer_group_put(ctx->ext_line_buf_grp);
-        ctx->ext_line_buf_grp = NULL;
-    }
-
-    if (ctx->buf_pass1) {
-        mpp_buffer_put(ctx->buf_pass1);
-        ctx->buf_pass1 = NULL;
-    }
-
-    if (ctx->dev) {
-        mpp_dev_deinit(ctx->dev);
-        ctx->dev = NULL;
-    }
-
-    if (ctx->reg_cfg) {
-        mpp_dev_multi_offset_deinit(ctx->reg_cfg);
-        ctx->reg_cfg = NULL;
-    }
-
-    hal_h265e_leave();
-    return MPP_OK;
 }
 
 static MPP_RET hal_h265e_vepu510_prepare(void *hal)
@@ -1462,43 +1484,60 @@ static MPP_RET setup_vepu510_dual_core(H265eV510HalContext *ctx)
     return MPP_OK;
 }
 
-static void setup_vepu510_split(H265eVepu510Frame *regs, MppEncSliceSplit *cfg)
+static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK_U32 title_en)
 {
+    MppEncSliceSplit *cfg = &enc_cfg->split;
+
     hal_h265e_dbg_func("enter\n");
 
     switch (cfg->split_mode) {
     case MPP_ENC_SPLIT_NONE : {
-        regs->common.sli_splt.sli_splt = 0;
-        regs->common.sli_splt.sli_splt_mode = 0;
-        regs->common.sli_splt.sli_splt_cpst = 0;
-        regs->common.sli_splt.sli_max_num_m1 = 0;
-        regs->common.sli_splt.sli_flsh = 0;
-        regs->common.sli_cnum.sli_splt_cnum_m1 = 0;
+        regs->reg_frm.common.sli_splt.sli_splt = 0;
+        regs->reg_frm.common.sli_splt.sli_splt_mode = 0;
+        regs->reg_frm.common.sli_splt.sli_splt_cpst = 0;
+        regs->reg_frm.common.sli_splt.sli_max_num_m1 = 0;
+        regs->reg_frm.common.sli_splt.sli_flsh = 0;
+        regs->reg_frm.common.sli_cnum.sli_splt_cnum_m1 = 0;
 
-        regs->common.sli_byte.sli_splt_byte = 0;
-        regs->common.enc_pic.slen_fifo = 0;
+        regs->reg_frm.common.sli_byte.sli_splt_byte = 0;
+        regs->reg_frm.common.enc_pic.slen_fifo = 0;
     } break;
     case MPP_ENC_SPLIT_BY_BYTE : {
-        regs->common.sli_splt.sli_splt = 1;
-        regs->common.sli_splt.sli_splt_mode = 0;
-        regs->common.sli_splt.sli_splt_cpst = 0;
-        regs->common.sli_splt.sli_max_num_m1 = 500;
-        regs->common.sli_splt.sli_flsh = 1;
-        regs->common.sli_cnum.sli_splt_cnum_m1 = 0;
+        regs->reg_frm.common.sli_splt.sli_splt = 1;
+        regs->reg_frm.common.sli_splt.sli_splt_mode = 0;
+        regs->reg_frm.common.sli_splt.sli_splt_cpst = 0;
+        regs->reg_frm.common.sli_splt.sli_max_num_m1 = 500;
+        regs->reg_frm.common.sli_splt.sli_flsh = 1;
+        regs->reg_frm.common.sli_cnum.sli_splt_cnum_m1 = 0;
 
-        regs->common.sli_byte.sli_splt_byte = cfg->split_arg;//4096
-        regs->common.enc_pic.slen_fifo = 0;
+        regs->reg_frm.common.sli_byte.sli_splt_byte = cfg->split_arg;
+        regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en = 1;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
-        regs->common.sli_splt.sli_splt = 1;
-        regs->common.sli_splt.sli_splt_mode = 1;
-        regs->common.sli_splt.sli_splt_cpst = 0;
-        regs->common.sli_splt.sli_max_num_m1 = 500;
-        regs->common.sli_splt.sli_flsh = 1;
-        regs->common.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
+        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 32) / 32;
+        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 32) / 32;
+        RK_U32 slice_num = 0;
 
-        regs->common.sli_byte.sli_splt_byte = 0;
-        regs->common.enc_pic.slen_fifo = 0;
+        if (title_en)
+            mb_w = mb_w / 2;
+
+        slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
+
+        regs->reg_frm.common.sli_splt.sli_splt = 1;
+        regs->reg_frm.common.sli_splt.sli_splt_mode = 1;
+        regs->reg_frm.common.sli_splt.sli_splt_cpst = 0;
+        regs->reg_frm.common.sli_splt.sli_max_num_m1 = 500;
+        regs->reg_frm.common.sli_splt.sli_flsh = 1;
+        regs->reg_frm.common.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
+
+        regs->reg_frm.common.sli_byte.sli_splt_byte = 0;
+        regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en = (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ? 1 : 0;;
+
+        if (slice_num > VEPU510_SLICE_FIFO_LEN)
+            regs->reg_ctl.int_en.vslc_done_en = 1;
+
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
@@ -1522,7 +1561,6 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 pic_wd32, pic_h32;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
-    MppEncSliceSplit *slice_cfg = &ctx->cfg->split;
     Vepu510ControlCfg *reg_ctl = &regs->reg_ctl;
     H265eVepu510Frame        *reg_frm = &regs->reg_frm;
     Vepu510RcRoi *reg_klut = &regs->reg_rc_roi;
@@ -1547,7 +1585,7 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->int_en.enc_done_en        = 1;
     reg_ctl->int_en.lkt_node_done_en   = 1;
     reg_ctl->int_en.sclr_done_en       = 1;
-    reg_ctl->int_en.vslc_done_en       = 1;
+    reg_ctl->int_en.vslc_done_en       = 0;
     reg_ctl->int_en.vbsf_oflw_en       = 1;
     reg_ctl->int_en.vbuf_lens_en       = 1;
     reg_ctl->int_en.enc_err_en         = 1;
@@ -1604,8 +1642,7 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_frm->common.sli_byte.sli_splt_byte     = syn->sp.sli_splt_byte;
     reg_frm->sao_cfg.sao_lambda_multi          = 5;
 
-    setup_vepu510_split(reg_frm, &ctx->cfg->split);
-    reg_frm->common.enc_pic.slen_fifo = slice_cfg->split_out ? 1 : 0;
+    setup_vepu510_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);
 
     if (ctx->task_cnt > 1)
         setup_vepu510_dual_core(ctx);
@@ -1904,6 +1941,44 @@ static MPP_RET vepu510_h265_set_feedback(H265eV510HalContext *ctx, HalEncTask *e
     return MPP_OK;
 }
 
+static MPP_RET hal_h265e_vepu510_status_check(H265eV510RegSet *regs)
+{
+    MPP_RET ret = MPP_OK;
+
+    if (regs->reg_ctl.int_sta.lkt_node_done_sta)
+        hal_h265e_dbg_detail("lkt_done finish");
+
+    if (regs->reg_ctl.int_sta.enc_done_sta)
+        hal_h265e_dbg_detail("enc_done finish");
+
+    if (regs->reg_ctl.int_sta.vslc_done_sta)
+        hal_h265e_dbg_detail("enc_slice finsh");
+
+    if (regs->reg_ctl.int_sta.sclr_done_sta)
+        hal_h265e_dbg_detail("safe clear finsh");
+
+    if (regs->reg_ctl.int_sta.vbsf_oflw_sta) {
+        mpp_err_f("bit stream overflow");
+        ret = MPP_NOK;
+    }
+
+    if (regs->reg_ctl.int_sta.vbuf_lens_sta) {
+        mpp_err_f("bus write full");
+        ret = MPP_NOK;
+    }
+
+    if (regs->reg_ctl.int_sta.enc_err_sta) {
+        mpp_err_f("bus error");
+        ret = MPP_NOK;
+    }
+
+    if (regs->reg_ctl.int_sta.wdg_sta) {
+        mpp_err_f("wdg timeout");
+        ret = MPP_NOK;
+    }
+
+    return ret;
+}
 
 //#define DUMP_DATA
 MPP_RET hal_h265e_v510_wait(void *hal, HalEncTask *task)
@@ -1911,9 +1986,17 @@ MPP_RET hal_h265e_v510_wait(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     H265eV510HalContext *ctx = (H265eV510HalContext *)hal;
     HalEncTask *enc_task = task;
+    MppPacket pkt = enc_task->packet;
+    RK_U32 split_out = ctx->cfg->split.split_out;
     RK_S32 task_idx = task->flags.reg_idx;
     Vepu510H265eFrmCfg *frm = ctx->frms[task_idx];
+    H265eV510RegSet *regs = frm->regs_set;
+    RK_U32 offset = mpp_packet_get_length(pkt);
+    RK_U32 seg_offset = offset;
+    H265eVepu510Frame *reg_frm = &regs->reg_frm;
+    RK_U32 type = reg_frm->synt_nal.nal_unit_type;
     H265eV510StatusElem *elem = (H265eV510StatusElem *)frm->regs_ret;
+
     hal_h265e_enter();
 
     if (enc_task->flags.err) {
@@ -1922,7 +2005,58 @@ MPP_RET hal_h265e_v510_wait(void *hal, HalEncTask *task)
         return MPP_NOK;
     }
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    if (split_out) {
+        EncOutParam param;
+        RK_U32 slice_len = 0;
+        RK_U32 slice_last = 0;
+        MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs);
+        param.task = task;
+        param.base = mpp_packet_get_data(task->packet);
+
+        do {
+            RK_S32 i = 0;
+            poll_cfg->poll_type = 0;
+            poll_cfg->poll_ret  = 0;
+            poll_cfg->count_max = ctx->poll_slice_max;
+            poll_cfg->count_ret = 0;
+
+            ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, poll_cfg);
+            for (i = 0; i < poll_cfg->count_ret; i++) {
+                slice_last = poll_cfg->slice_info[i].last;
+                slice_len = poll_cfg->slice_info[i].length;
+                param.length = slice_len;
+
+                mpp_packet_add_segment_info(pkt, type, seg_offset, slice_len);
+                seg_offset += slice_len;
+
+                if (split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) {
+                    param.length = slice_len;
+                    if (slice_last)
+                        ctx->output_cb->cmd = ENC_OUTPUT_FINISH;
+                    else
+                        ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
+
+                    mpp_callback(ctx->output_cb, &param);
+                }
+            }
+        } while (!slice_last);
+
+        ret = hal_h265e_vepu510_status_check(regs);
+        if (!ret)
+            task->hw_length += elem->st.bs_lgth_l32;
+
+    } else {
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+        if (ret) {
+            mpp_err_f("poll cmd failed %d\n", ret);
+            ret = MPP_ERR_VPUHW;
+        } else {
+            ret = hal_h265e_vepu510_status_check(regs);
+            if (!ret)
+                task->hw_length += elem->st.bs_lgth_l32;
+        }
+        mpp_packet_add_segment_info(pkt, type, offset, elem->st.bs_lgth_l32);
+    }
 
 #ifdef DUMP_DATA
     static FILE *fp_fbd = NULL;

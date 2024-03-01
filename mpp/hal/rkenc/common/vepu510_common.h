@@ -18,6 +18,7 @@
 #define VEPU510_DBG_OFFSET           (5120 * sizeof(RK_U32))    /* 0x00005000 reg5120 - 0x00005230 reg5260 */
 #define VEPU510_REG_BASE_HW_STATUS   (0x2c)
 #define VEPU510_MAX_ROI_NUM          8
+#define VEPU510_SLICE_FIFO_LEN       8
 
 typedef struct Vepu510Online_t {
     /* 0x00000270 reg156 */
