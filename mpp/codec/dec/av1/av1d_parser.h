@@ -61,6 +61,7 @@ typedef struct RefInfo {
 typedef struct GlobalMtionParams {
     RK_U32 wmtype;
     RK_S32 wmmat[6];
+    RK_S32 wmmat_val[6];
     RK_S32 alpha, beta, gamma, delta;
 } GlobalMtionParams;
 

@@ -121,29 +121,6 @@
         default: break;}\
     }while(0)
 
-
-#define SET_REF_COLMV_BASE(regs, ref_index, value)\
-    do{ \
-        switch(ref_index){\
-        case 0:  regs.reg217_colmv_ref0_base  = value; break; \
-        case 1:  regs.reg218_colmv_ref1_base  = value; break; \
-        case 2:  regs.reg219_colmv_ref2_base  = value; break; \
-        case 3:  regs.reg220_colmv_ref3_base  = value; break; \
-        case 4:  regs.reg221_colmv_ref4_base  = value; break; \
-        case 5:  regs.reg222_colmv_ref5_base  = value; break; \
-        case 6:  regs.reg223_colmv_ref6_base  = value; break; \
-        case 7:  regs.reg224_colmv_ref7_base  = value; break; \
-        case 8:  regs.reg225_colmv_ref8_base  = value; break; \
-        case 9:  regs.reg226_colmv_ref9_base  = value; break; \
-        case 10: regs.reg227_colmv_ref10_base = value; break; \
-        case 11: regs.reg228_colmv_ref11_base = value; break; \
-        case 12: regs.reg229_colmv_ref12_base = value; break; \
-        case 13: regs.reg230_colmv_ref13_base = value; break; \
-        case 14: regs.reg231_colmv_ref14_base = value; break; \
-        case 15: regs.reg232_colmv_ref15_base = value; break; \
-        default: break;}\
-    }while(0)
-
 #define VDPU_FAST_REG_SET_CNT    3
 
 #define OFFSET_CTRL_REGS          (8 * sizeof(RK_U32))
@@ -264,7 +241,8 @@ static MPP_RET flip_string(char *str)
     return MPP_OK;
 }
 
-static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_U32 line_bits, RK_U32 big_end)
+static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size,
+                         RK_U32 line_bits, RK_U32 big_end, RK_U32 append)
 {
     RK_U8 *buf_p = (RK_U8 *)data;
     RK_U8 cur_data;
@@ -274,12 +252,16 @@ static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_
     char line_tmp[256];
     RK_U32 str_idx = 0;
 
-    dump_fp = fopen(fname_path, "w+");
+    if (append)
+        dump_fp = fopen(fname_path, "aw+");
+    else
+        dump_fp = fopen(fname_path, "w+");
     if (!dump_fp) {
         mpp_err_f("open file: %s error!\n", fname_path);
         return MPP_NOK;
     }
-    fseek(dump_fp, 0, SEEK_END);
+    if (append)
+        fseek(dump_fp, 0, SEEK_END);
 
     if ((data_bit_size % 4 != 0) || (line_bits % 8 != 0)) {
         mpp_err_f("line bits not align to 4!\n");
@@ -331,6 +313,7 @@ static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_
         fprintf(dump_fp, "%s\n", line_tmp);
     }
 
+    fflush(dump_fp);
     fclose(dump_fp);
 
     return MPP_OK;
@@ -1659,13 +1642,9 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
     for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i)
         mpp_put_bits(&bp, dxva->frame_refs[i].wmtype, 2);
 
-    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i) {
-        for (j = 0; j < 6; j++) {
-            UINT32 wmmat_val = 0;
-            // TODO: fix here
-            mpp_put_bits(&bp, wmmat_val, 17);
-        }
-    }
+    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i)
+        for (j = 0; j < 6; j++)
+            mpp_put_bits(&bp, dxva->frame_refs[i].wmmat_val[j], 17);
 
     /* film_grain_params */
     {
@@ -1942,7 +1921,7 @@ static MPP_RET vdpu383_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
     size_t mv_size;
 
     /* the worst case is the frame is error with whole frame */
-    mv_size = MPP_ALIGN(dxva->width, 64) / 64 * MPP_ALIGN(dxva->height, 64) / 64 * 8192;
+    mv_size = MPP_ALIGN(dxva->width, 64) / 64 * MPP_ALIGN(dxva->height, 64) / 64 * 1024;
     if (reg_ctx->colmv_bufs == NULL || reg_ctx->colmv_size < mv_size) {
         if (reg_ctx->colmv_bufs) {
             hal_bufs_deinit(reg_ctx->colmv_bufs);
@@ -2030,9 +2009,10 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 #ifdef DUMP_DATA
         {
             dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base),
-                      434 * 128, 128, 0);
+                      8 * NON_COEF_CDF_SIZE, 128, 0, 0);
             dump_data(dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base)
-                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx, 354 * 128, 128, 0);
+                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx,
+                      8 * COEF_CDF_SIZE, 128, 0, 1);
         }
 #endif
     } else {
@@ -2045,9 +2025,10 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 #ifdef DUMP_DATA
         {
             dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cdf_buf->buf[0]),
-                      434 * 128, 128, 0);
+                      8 * NON_COEF_CDF_SIZE, 128, 0, 0);
             dump_data(dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(cdf_buf->buf[0])
-                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx, 354 * 128, 128, 0);
+                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx,
+                      8 * COEF_CDF_SIZE, 128, 0, 1);
         }
 #endif
     }
@@ -2095,7 +2076,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base),
-                  8 * mpp_buffer_get_size(reg_ctx->cdf_rd_def_base), 128, 0);
+                  (NON_COEF_CDF_SIZE + COEF_CDF_SIZE * 4) * 8, 128, 0, 0);
     }
 #endif
 
@@ -2206,8 +2187,8 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
             char *cur_fname = "global_cfg.dat";
             memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
             sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-            // dump_data(dump_cur_fname_path, ctx->bufs_ptr,
-            //           8 * regs->av1d_paras.reg67_global_len * 16, 64, 0);
+            dump_data(dump_cur_fname_path, ctx->bufs_ptr,
+                      8 * regs->av1d_paras.reg67_global_len * 16, 64, 0, 0);
         }
 #endif
         // input strm
@@ -2224,9 +2205,16 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
             char *cur_fname = "stream_in.dat";
             memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
             sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-            // dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer)
-            //           + ctx->offset_uncomps,
-            //           8 * p_hal->strm_len, 128, 0);
+            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer)
+                      + ctx->offset_uncomps,
+                      8 * p_hal->strm_len, 128, 0, 0);
+        }
+        {
+            char *cur_fname = "stream_in_no_offset.dat";
+            memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+            sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
+                      8 * p_hal->strm_len, 128, 0, 0);
         }
 #endif
     }
@@ -2345,10 +2333,22 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         vdpu383_av1d_colmv_setup(p_hal, dxva);
         mv_buf = hal_bufs_get_buf(ctx->colmv_bufs, dxva->CurrPic.Index7Bits);
         regs->av1d_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
+#ifdef DUMP_DATA
+        memset(mpp_buffer_get_ptr(mv_buf->buf[0]), 0, mpp_buffer_get_size(mv_buf->buf[0]));
+#endif
         for (i = 0; i < NUM_REF_FRAMES; i++) {
             if (dxva->frame_refs[i].Index != (CHAR)0xff && dxva->frame_refs[i].Index != 0x7f) {
                 mv_buf = hal_bufs_get_buf(ctx->colmv_bufs, dxva->frame_refs[i].Index);
                 regs->av1d_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+#ifdef DUMP_DATA
+                {
+                    char *cur_fname = "colmv_ref_frame";
+                    memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+                    sprintf(dump_cur_fname_path, "%s/%s%d.dat", dump_cur_dir, cur_fname, i);
+                    dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]),
+                              8 * 5120 * 8, 64, 0, 0);
+                }
+#endif
             }
         }
     }
@@ -2475,6 +2475,27 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
                                 reg_ctx->regs;
     (void) p_regs;
+#ifdef DUMP_DATA
+    {
+        char *cur_fname = "colmv_cur_frame.dat";
+        DXVA_PicParams_AV1 *dxva = (DXVA_PicParams_AV1*)task->dec.syntax.data;
+        HalBuf *mv_buf = NULL;
+        mv_buf = hal_bufs_get_buf(reg_ctx->colmv_bufs, dxva->CurrPic.Index7Bits);
+        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]),
+                  8 * 5120 * 8, 64, 0, 0);
+    }
+    {
+        char *cur_fname = "decout.dat";
+        MppBuffer mbuffer = NULL;
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_BUFFER, &mbuffer);
+        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
+                  8 * mpp_buffer_get_size(mbuffer), 64, 0, 0);
+    }
+#endif
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
@@ -2500,7 +2521,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->CurrPic.Index7Bits);
         dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cdf_buf->buf[0]),
-                  (NON_COEF_CDF_SIZE + COEF_CDF_SIZE * 4) * 8, 128, 0);
+                  (NON_COEF_CDF_SIZE + COEF_CDF_SIZE) * 8, 128, 0, 0);
     }
 #endif
 #if DUMP_AV1_DATAS

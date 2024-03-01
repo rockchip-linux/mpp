@@ -221,6 +221,7 @@ typedef struct _DXVA_PicParams_AV1 {
         UCHAR   wminvalid;
         UCHAR   wmtype;
         RK_S32  wmmat[6];
+        RK_S32  wmmat_val[6];
         USHORT  alpha, beta, gamma, delta;
     } frame_refs[8];
 
