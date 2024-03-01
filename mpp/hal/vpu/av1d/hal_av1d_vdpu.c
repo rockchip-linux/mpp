@@ -1530,6 +1530,25 @@ static void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
     RK_S32 size1 = transpose ? dxva->tiles.rows  :  dxva->tiles.cols;
     RK_S32 tile0, tile1;
     RK_U32 not_valid_tile_dimension = 0;
+    RK_U32 tiles[2][64];
+
+    /* convert to per tile position */
+    {
+        RK_U8 val = 0, i;
+
+        for (i = 0; i < dxva->tiles.cols; i++) {
+            tiles[0][i] = val;
+            val += dxva->tiles.widths[i];
+        }
+        tiles[0][i] = val;
+
+        val = 0;
+        for (i = 0; i < dxva->tiles.rows; i++) {
+            tiles[1][i] = val;
+            val += dxva->tiles.heights[i];
+        }
+        tiles[1][i] = val;
+    }
 
     // Write tile dimensions
     for (tile0 = 0; tile0 < size0; tile0++) {
@@ -1539,10 +1558,10 @@ static void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
             RK_S32 tile_id = transpose ? tile1 * size0 + tile0 : tile0 * size1 + tile1;
             RK_U32 start, end;
 
-            RK_U32 y0 = dxva->tiles.heights[tile_y];
-            RK_U32 y1 = dxva->tiles.heights[tile_y + 1];
-            RK_U32 x0 = dxva->tiles.widths[tile_x];
-            RK_U32 x1 = dxva->tiles.widths[tile_x + 1];
+            RK_U32 y0 = tiles[1][tile_y];
+            RK_U32 y1 = tiles[1][tile_y + 1];
+            RK_U32 x0 = tiles[0][tile_x];
+            RK_U32 x1 = tiles[0][tile_x + 1];
 
             RK_U8 leftmost = (tile_x == dxva->tiles.cols - 1);
             if (!not_valid_tile_dimension)
