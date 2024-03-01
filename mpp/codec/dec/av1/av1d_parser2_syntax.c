@@ -131,6 +131,7 @@ static int av1d_fill_picparams(Av1CodecContext *ctx, DXVA_PicParams_AV1 *pp)
         pp->frame_refs[i].wmtype    = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmtype;
         for (j = 0; j < 6; ++j) {
             pp->frame_refs[i].wmmat[j] = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmmat[j];
+            pp->frame_refs[i].wmmat_val[j] = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].wmmat_val[j];
         }
         pp->frame_refs[i].alpha = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].alpha;
         pp->frame_refs[i].beta = h->cur_frame.gm_params[AV1_REF_FRAME_LAST + i].beta;

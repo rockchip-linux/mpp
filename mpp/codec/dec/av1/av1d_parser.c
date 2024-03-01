@@ -206,9 +206,11 @@ static void read_global_param(AV1Context *s, RK_S32 type, RK_S32 ref, RK_S32 idx
     mx = 1 << abs_bits;
     r = (prev_gm_param >> prec_diff) - sub;
 
+    s->cur_frame.gm_params[ref].wmmat_val[idx] =
+        decode_signed_subexp_with_ref(s->raw_frame_header->gm_params[ref][idx],
+                                      -mx, mx + 1, r);
     s->cur_frame.gm_params[ref].wmmat[idx] =
-        (decode_signed_subexp_with_ref(s->raw_frame_header->gm_params[ref][idx],
-                                       -mx, mx + 1, r) << prec_diff) + round;
+        (s->cur_frame.gm_params[ref].wmmat_val[idx] << prec_diff) + round;
 }
 
 static RK_U16 round_two(RK_U64 x, RK_U16 n)
