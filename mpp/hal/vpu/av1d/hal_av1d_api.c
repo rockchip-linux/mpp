@@ -49,7 +49,7 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("hal_av1d_debug", &hal_av1d_debug, 0);
 
     // check codec_type first
-    if (!(vcodec_type & (HAVE_RKVDEC | HAVE_VDPU1 | HAVE_VDPU2))) {
+    if (!(vcodec_type & (HAVE_RKVDEC | HAVE_AV1DEC))) {
         mpp_err_f("can not found av1 decoder hardware on platform %x\n", vcodec_type);
         return ret;
     }
@@ -59,6 +59,7 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
         p_hal->api = &hal_av1d_vdpu383;
     } else {
         p_hal->api = &hal_av1d_vdpu;
+        type  = VPU_CLIENT_AV1DEC;
     }
 
     //!< callback function to parser module
