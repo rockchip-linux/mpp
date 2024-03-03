@@ -139,7 +139,7 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     RK_S32 i = 0;
     RK_S32 is_long_term = 0, voidx = 0;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
-
+    RK_U32 tmp = 0;
     BitputCtx_t bp;
 
     mpp_set_bitput_ctx(&bp, data, len);
@@ -179,9 +179,7 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
             mpp_put_bits(&bp, pp->view_id[0], 10);
             mpp_put_bits(&bp, pp->view_id[1], 10);
         } else {
-            mpp_put_bits(&bp, 0, 2);
-            mpp_put_bits(&bp, 0, 10);
-            mpp_put_bits(&bp, 0, 10);
+            mpp_put_bits(&bp, 0, 22);
         }
 
         // hw_fifo_align_bits(&bp, 128);
@@ -208,12 +206,13 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         //!< set dpb
         for (i = 0; i < 16; i++) {
             is_long_term = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefFrameList[i].AssociatedFlag : 0;
-            mpp_put_bits(&bp, is_long_term, 1);
+            tmp |= (RK_U32)(is_long_term & 0x1) << i;
         }
         for (i = 0; i < 16; i++) {
             voidx = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefPicLayerIdList[i] : 0;
-            mpp_put_bits(&bp, voidx, 1);
+            tmp |= (RK_U32)(voidx & 0x1) << (i + 16);
         }
+        mpp_put_bits(&bp, tmp, 32);
         /* set current frame */
         mpp_put_bits(&bp, pp->field_pic_flag, 1);
         mpp_put_bits(&bp, (pp->field_pic_flag && pp->CurrPic.AssociatedFlag), 1);
@@ -227,26 +226,31 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
             mpp_put_bits(&bp, pp->FieldOrderCntList[i][1], 32);
         }
 
+        tmp = 0;
         for (i = 0; i < 16; i++) {
             RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
 
-            mpp_put_bits(&bp, field_flag, 1);
+            tmp |= field_flag << i;
         }
         for (i = 0; i < 16; i++) {
             RK_U32 top_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
 
-            mpp_put_bits(&bp, top_used, 1);
+            tmp |= top_used << (i + 16);
         }
+        mpp_put_bits(&bp, tmp, 32);
+
+        tmp = 0;
         for (i = 0; i < 16; i++) {
             RK_U32 bot_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
 
-            mpp_put_bits(&bp, bot_used, 1);
+            tmp |= bot_used << i;
         }
         for (i = 0; i < 16; i++) {
             RK_U32 ref_colmv_used = (pp->RefPicColmvUsedFlags >> i) & 0x01;
 
-            mpp_put_bits(&bp, ref_colmv_used, 1);
+            tmp |= ref_colmv_used << (i + 16);
         }
+        mpp_put_bits(&bp, tmp, 32);
         mpp_put_align(&bp, 64, 0);//128
     }
 
@@ -260,6 +264,7 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     RK_S32 dpb_valid = 0, bottom_flag = 0;
     RK_U32 max_frame_num = 0;
     RK_U16 frame_num_wrap = 0;
+    RK_U32 tmp = 0;
 
     BitputCtx_t bp;
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
@@ -280,39 +285,39 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         }
         mpp_put_bits(&bp, frame_num_wrap, 16);
     }
-    mpp_put_bits(&bp, 0, 16); // vaild
 
-    for (i = 0; i < 16; i++)
-        mpp_put_bits(&bp, pp->RefPicLayerIdList[i], 1);
+    tmp = 0;
+    for (i = 0; i < 16; i++) {
+        tmp |= (RK_U32)pp->RefPicLayerIdList[i] << (i + 16);
+    }
+    mpp_put_bits(&bp, tmp, 32);
 
     for (i = 0; i < 32; i++) {
+        tmp = 0;
         dpb_valid = (p_hal->slice_long[0].RefPicList[0][i].bPicEntry == 0xff) ? 0 : 1;
         dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].Index7Bits : 0;
         bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].AssociatedFlag : 0;
         voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
 
-        mpp_put_bits(&bp, dpb_idx, 4);
-        mpp_put_bits(&bp, dpb_valid, 1);
-        mpp_put_bits(&bp, bottom_flag, 1);
+        tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
+        tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
         if (dpb_valid)
-            mpp_put_bits(&bp, voidx, 1);
-        else
-            mpp_put_bits(&bp, 0, 1);
+            tmp |= (RK_U32)(voidx & 0x1) << 6;
+        mpp_put_bits(&bp, tmp, 7);
     }
 
     for (j = 1; j < 3; j++) {
         for (i = 0; i < 32; i++) {
+            tmp = 0;
             dpb_valid = (p_hal->slice_long[0].RefPicList[j][i].bPicEntry == 0xff) ? 0 : 1;
             dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
             bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
             voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
-            mpp_put_bits(&bp, dpb_idx, 4);
-            mpp_put_bits(&bp, dpb_valid, 1);
-            mpp_put_bits(&bp, bottom_flag, 1);
+            tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
+            tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
             if (dpb_valid)
-                mpp_put_bits(&bp, voidx, 1);
-            else
-                mpp_put_bits(&bp, 0, 1);
+                tmp |= (RK_U32)(voidx & 0x1) << 6;
+            mpp_put_bits(&bp, tmp, 7);
         }
     }
 
