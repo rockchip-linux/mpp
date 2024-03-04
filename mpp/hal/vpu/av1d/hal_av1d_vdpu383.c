@@ -1406,8 +1406,8 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
 
     /* sequence header */
     mpp_put_bits(&bp, dxva->coding.current_operating_point, 12);
-    mpp_put_bits(&bp, dxva->coding.filter_intra, 1);
     mpp_put_bits(&bp, dxva->coding.use_128x128_superblock, 1);
+    mpp_put_bits(&bp, dxva->coding.filter_intra, 1);
     mpp_put_bits(&bp, dxva->coding.intra_edge_filter, 1);
     mpp_put_bits(&bp, dxva->coding.interintra_compound, 1);
     mpp_put_bits(&bp, dxva->coding.masked_compound, 1);
