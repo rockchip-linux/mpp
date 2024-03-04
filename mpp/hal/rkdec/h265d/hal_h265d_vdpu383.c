@@ -27,94 +27,6 @@
 #include "vdpu383_h265d.h"
 #include "vdpu383_com.h"
 
-// #define DUMP_DATA
-
-#ifdef DUMP_DATA
-static RK_U32 dump_cur_frame = 0;
-static char dump_cur_dir[128];
-static char dump_cur_fname_path[512];
-
-static flip_string(char *str)
-{
-    RK_U32 len = strlen(str);
-    RK_U32 i, j;
-
-    for (i = 0, j = len - 1; i <= j; i++, j--) {
-        // swapping characters
-        char c = str[i];
-        str[i] = str[j];
-        str[j] = c;
-    }
-}
-
-static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_U32 line_bits, RK_U32 big_end)
-{
-    RK_U8 *buf_p = (RK_U8 *)data;
-    RK_U8 cur_data;
-    RK_U32 i;
-    RK_U32 loop_cnt;
-    FILE *dump_fp = NULL;
-    char line_tmp[256];
-    RK_U32 str_idx = 0;
-
-    dump_fp = fopen(fname_path, "w+");
-
-    if ((data_bit_size % 4 != 0) || (line_bits % 8 != 0)) {
-        mpp_err_f("line bits not align to 4!\n");
-        return MPP_NOK;
-    }
-
-    loop_cnt = data_bit_size / 8;
-    for (i = 0; i < loop_cnt; i++) {
-        cur_data = buf_p[i];
-
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 4) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-        sprintf(&line_tmp[str_idx++], "%0x", (cur_data >> 4) & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-
-    // last line
-    if (data_bit_size % 4) {
-        cur_data = buf_p[i];
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-    if (data_bit_size % line_bits) {
-        loop_cnt = (line_bits - (data_bit_size % line_bits)) / 4;
-        for (i = 0; i < loop_cnt; i++)
-            sprintf(&line_tmp[str_idx++], "%0x", 0);
-        line_tmp[str_idx++] = '\0';
-        str_idx = 0;
-        if (!big_end)
-            flip_string(line_tmp);
-        fprintf(dump_fp, "%s\n", line_tmp);
-    }
-
-    fclose(dump_fp);
-
-    return MPP_OK;
-}
-#endif
-
 #define HW_RPS
 #define PPS_SIZE                (112 * 64)//(96x64)
 
@@ -702,12 +614,12 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         mpp_log("pps[%3d] = 0x%08x\n", i, tmp[i]);
     }
 #endif
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "global_cfg.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
     }
 #endif
 
@@ -907,12 +819,12 @@ static RK_S32 hal_h265d_vdpu383_rps(void *dxva, void *rps_buf, void* sw_rps_buf,
         mpp_put_bits(&bp,  0, 128);
     }
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "rps_128bit.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
     }
 #endif
 
@@ -1001,7 +913,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
         return MPP_ERR_NULL_PTR;
     }
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         memset(dump_cur_dir, 0, sizeof(dump_cur_dir));
         sprintf(dump_cur_dir, "hevc/Frame%04d", dump_cur_frame);
@@ -1119,12 +1031,13 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, dxva_ctx->pp.CurrPic.Index7Bits);
 
     hw_regs->h265d_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "colmv_cur_frame.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]), mpp_buffer_get_size(mv_buf->buf[0]), 64, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]),
+                          mpp_buffer_get_size(mv_buf->buf[0]), 64, 0);
     }
 #endif
 
@@ -1134,12 +1047,13 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
         dxva_ctx->bitstream = mpp_buffer_get_ptr(streambuf);
     }
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "stream_in_128bit.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(streambuf), mpp_buffer_get_size(streambuf), 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(streambuf),
+                          mpp_buffer_get_size(streambuf), 128, 0);
     }
 #endif
 

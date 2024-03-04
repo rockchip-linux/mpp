@@ -109,110 +109,6 @@ typedef struct Vdpu383H264dRegCtx_t {
     Vdpu383H264dRegSet  *regs;
 } Vdpu383H264dRegCtx;
 
-//#define DUMP_DATA
-
-#ifdef DUMP_DATA
-static RK_U32 dump_cur_frame = 0;
-static char dump_cur_dir[128];
-static char dump_cur_fname_path[512];
-
-static MPP_RET flip_string(char *str)
-{
-    RK_U32 len = strlen(str);
-    RK_U32 i, j;
-
-    for (i = 0, j = len - 1; i <= j; i++, j--) {
-        // swapping characters
-        char c = str[i];
-        str[i] = str[j];
-        str[j] = c;
-    }
-
-    return MPP_OK;
-}
-
-static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_U32 line_bits, RK_U32 big_end)
-{
-    RK_U8 *buf_p = (RK_U8 *)data;
-    RK_U8 cur_data;
-    RK_U32 i;
-    RK_U32 loop_cnt;
-    FILE *dump_fp = NULL;
-    char line_tmp[256];
-    RK_U32 str_idx = 0;
-
-    dump_fp = fopen(fname_path, "w+");
-    if (!dump_fp) {
-        mpp_err_f("open file: %s error!\n", fname_path);
-        return MPP_NOK;
-    }
-
-    if ((data_bit_size % 4 != 0) || (line_bits % 8 != 0)) {
-        mpp_err_f("line bits not align to 4!\n");
-        return MPP_NOK;
-    }
-
-    loop_cnt = data_bit_size / 8;
-    for (i = 0; i < loop_cnt; i++) {
-        cur_data = buf_p[i];
-
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 4) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-        sprintf(&line_tmp[str_idx++], "%0x", (cur_data >> 4) & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-
-    // last line
-    if (data_bit_size % 4) {
-        cur_data = buf_p[i];
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-    if (data_bit_size % line_bits) {
-        loop_cnt = (line_bits - (data_bit_size % line_bits)) / 4;
-        for (i = 0; i < loop_cnt; i++)
-            sprintf(&line_tmp[str_idx++], "%0x", 0);
-        line_tmp[str_idx++] = '\0';
-        str_idx = 0;
-        if (!big_end)
-            flip_string(line_tmp);
-        fprintf(dump_fp, "%s\n", line_tmp);
-    }
-
-    fclose(dump_fp);
-
-    return MPP_OK;
-}
-
-static MPP_RET dump_reg(RK_U32 *reg_s, RK_U32 count, RK_U32 log_start_idx)
-{
-    RK_U32 loop;
-    for (loop = 0; loop < count; loop++) {
-        mpp_log("reg[%03d]: 0%08x", log_start_idx + loop, reg_s[loop]);
-    }
-
-    return MPP_OK;
-}
-#endif
-
 static RK_U32 rkv_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
@@ -577,13 +473,13 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
         mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
         regs->common_addr.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
         // regs->h264d_paras.reg65_strm_start_bit = 2 * 8;
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
         {
             char *cur_fname = "stream_in.dat";
             memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
             sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
-                      8 * p_hal->strm_len, 128, 0);
+            dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
+                              8 * p_hal->strm_len, 128, 0);
         }
 #endif
 
@@ -883,15 +779,15 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
         }
     }
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
-        dump_cur_frame++;
         memset(dump_cur_dir, 0, sizeof(dump_cur_dir));
         sprintf(dump_cur_dir, "avc/Frame%04d", dump_cur_frame);
         if (access(dump_cur_dir, 0)) {
             if (mkdir(dump_cur_dir))
                 mpp_err_f("error: mkdir %s\n", dump_cur_dir);
         }
+        dump_cur_frame++;
     }
 #endif
 
