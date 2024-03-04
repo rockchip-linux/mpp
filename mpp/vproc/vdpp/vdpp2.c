@@ -397,7 +397,7 @@ static void set_es_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_re
 
     update_es_tan(p_es_param);
 
-    dst_reg->es.reg0.es_enable     = p_es_param->es_bEnabledES;
+    dst_reg->es.reg0.es_enable = p_es_param->es_bEnabledES;
     dst_reg->es.reg1.dir_th    = p_es_param->es_iGradNoDirTh;
     dst_reg->es.reg1.flat_th   = p_es_param->es_iGradFlatTh;
 
@@ -483,8 +483,9 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     RK_S32 peaking_ctrl_ratio_N01[7] = { 0 };
     RK_S32 peaking_ctrl_ratio_N12[7] = { 0 };
     RK_S32 peaking_ctrl_ratio_N23[7] = { 0 };
-    RK_S32 ii;
 
+    RK_S32 global_gain_slp_temp[5] = { 0 };
+    RK_S32 ii;
     dst_reg->sharp.reg0.sw_sharp_enable            = p_shp_param->sharp_enable;
     dst_reg->sharp.reg0.sw_lti_enable              = p_shp_param->lti_h_enable || p_shp_param->lti_v_enable;
     dst_reg->sharp.reg0.sw_cti_enable              = p_shp_param->cti_h_enable;
@@ -502,7 +503,7 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     if ((dst_reg->sharp.reg0.sw_lti_enable == 1) && (p_shp_param->lti_h_enable == 0))
         p_shp_param->lti_h_gain = 0;
 
-    if ((dst_reg->sharp.reg0.sw_lti_enable == 1) && (p_shp_param->lti_h_enable == 0))
+    if ((dst_reg->sharp.reg0.sw_lti_enable == 1) && (p_shp_param->lti_v_enable == 0))
         p_shp_param->lti_v_gain = 0;
 
     dst_reg->sharp.reg162.sw_ltih_radius        = p_shp_param->lti_h_radius;
@@ -779,6 +780,7 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg3.sw_peaking_usm0 = p_shp_param->peaking_filt_core_USM[0];
     dst_reg->sharp.reg3.sw_peaking_usm1 = p_shp_param->peaking_filt_core_USM[1];
     dst_reg->sharp.reg3.sw_peaking_usm2 = p_shp_param->peaking_filt_core_USM[2];
+    dst_reg->sharp.reg3.sw_diag_coef    = p_shp_param->peaking_filter_cfg_diag_enh_coef;
     dst_reg->sharp.reg4.sw_peaking_h00  = p_shp_param->peaking_filt_core_H0[0];
     dst_reg->sharp.reg4.sw_peaking_h01  = p_shp_param->peaking_filt_core_H0[1];
     dst_reg->sharp.reg4.sw_peaking_h02  = p_shp_param->peaking_filt_core_H0[2];
@@ -838,7 +840,8 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg109.sw_edge_delta_offset_d0           = p_shp_param->peaking_estc_delta_offset_d0;
     dst_reg->sharp.reg109.sw_edge_delta_offset_d1           = p_shp_param->peaking_estc_delta_offset_d1;
 
-
+    dst_reg->sharp.reg110.sw_shoot_filt_radius            = p_shp_param->shootctrl_filter_radius;
+    dst_reg->sharp.reg110.sw_shoot_delta_offset           = p_shp_param->shootctrl_delta_offset;
     dst_reg->sharp.reg110.sw_shoot_alpha_over             = p_shp_param->shootctrl_alpha_over;
     dst_reg->sharp.reg110.sw_shoot_alpha_under            = p_shp_param->shootctrl_alpha_under;
     dst_reg->sharp.reg111.sw_shoot_alpha_over_unlimit     = p_shp_param->shootctrl_alpha_over_unlimit;
@@ -855,21 +858,21 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg114.sw_adp_gain2  = p_shp_param->global_gain_adp_val[2];
     dst_reg->sharp.reg114.sw_adp_gain3  = p_shp_param->global_gain_adp_val[3];
     dst_reg->sharp.reg114.sw_adp_gain4  = p_shp_param->global_gain_adp_val[4];
-    dst_reg->sharp.reg115.sw_adp_slp01  = ROUND(128 * (float)(dst_reg->sharp.reg113.sw_adp_gain1 - dst_reg->sharp.reg113.sw_adp_gain0)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx0 - 0), 1));
-    dst_reg->sharp.reg115.sw_adp_slp12  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain2 - dst_reg->sharp.reg113.sw_adp_gain1)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx1 - dst_reg->sharp.reg112.sw_adp_idx0), 1));
-    dst_reg->sharp.reg128.sw_adp_slp23  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain3 - dst_reg->sharp.reg114.sw_adp_gain2)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx2 - dst_reg->sharp.reg112.sw_adp_idx1), 1));
-    dst_reg->sharp.reg128.sw_adp_slp34  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain4 - dst_reg->sharp.reg114.sw_adp_gain3)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg113.sw_adp_idx3 - dst_reg->sharp.reg112.sw_adp_idx2), 1));
-    dst_reg->sharp.reg129.sw_adp_slp45  = ROUND(128 * (float)(p_shp_param->global_gain_adp_val[5] - dst_reg->sharp.reg114.sw_adp_gain4)
-                                                / MPP_MAX((float)(255 - dst_reg->sharp.reg113.sw_adp_idx3), 1));
-    dst_reg->sharp.reg115.sw_adp_slp01     = mpp_clip(dst_reg->sharp.reg115.sw_adp_slp01, -1024, 1023);
-    dst_reg->sharp.reg115.sw_adp_slp12     = mpp_clip(dst_reg->sharp.reg115.sw_adp_slp12, -1024, 1023);
-    dst_reg->sharp.reg128.sw_adp_slp23     = mpp_clip(dst_reg->sharp.reg128.sw_adp_slp23, -1024, 1023);
-    dst_reg->sharp.reg128.sw_adp_slp34     = mpp_clip(dst_reg->sharp.reg128.sw_adp_slp34, -1024, 1023);
-    dst_reg->sharp.reg129.sw_adp_slp45     = mpp_clip(dst_reg->sharp.reg129.sw_adp_slp45, -1024, 1023);
+    global_gain_slp_temp[0]  = ROUND(128 * (float)(dst_reg->sharp.reg113.sw_adp_gain1 - dst_reg->sharp.reg113.sw_adp_gain0)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx0 - 0), 1));
+    global_gain_slp_temp[1]  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain2 - dst_reg->sharp.reg113.sw_adp_gain1)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx1 - dst_reg->sharp.reg112.sw_adp_idx0), 1));
+    global_gain_slp_temp[2]  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain3 - dst_reg->sharp.reg114.sw_adp_gain2)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg112.sw_adp_idx2 - dst_reg->sharp.reg112.sw_adp_idx1), 1));
+    global_gain_slp_temp[3]  = ROUND(128 * (float)(dst_reg->sharp.reg114.sw_adp_gain4 - dst_reg->sharp.reg114.sw_adp_gain3)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg113.sw_adp_idx3 - dst_reg->sharp.reg112.sw_adp_idx2), 1));
+    global_gain_slp_temp[4]  = ROUND(128 * (float)(p_shp_param->global_gain_adp_val[5] - dst_reg->sharp.reg114.sw_adp_gain4)
+                                     / MPP_MAX((float)(255 - dst_reg->sharp.reg113.sw_adp_idx3), 1));
+    dst_reg->sharp.reg115.sw_adp_slp01     = mpp_clip(global_gain_slp_temp[0], -1024, 1023);
+    dst_reg->sharp.reg115.sw_adp_slp12     = mpp_clip(global_gain_slp_temp[1], -1024, 1023);
+    dst_reg->sharp.reg128.sw_adp_slp23     = mpp_clip(global_gain_slp_temp[2], -1024, 1023);
+    dst_reg->sharp.reg128.sw_adp_slp34     = mpp_clip(global_gain_slp_temp[3], -1024, 1023);
+    dst_reg->sharp.reg129.sw_adp_slp45     = mpp_clip(global_gain_slp_temp[4], -1024, 1023);
 
     dst_reg->sharp.reg129.sw_var_idx0       = p_shp_param->global_gain_var_grd[1] >> 2;
     dst_reg->sharp.reg129.sw_var_idx1       = p_shp_param->global_gain_var_grd[2] >> 2;
@@ -880,21 +883,21 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg131.sw_var_gain2  = p_shp_param->global_gain_var_val[2];
     dst_reg->sharp.reg131.sw_var_gain3  = p_shp_param->global_gain_var_val[3];
     dst_reg->sharp.reg131.sw_var_gain4  = p_shp_param->global_gain_var_val[4];
-    dst_reg->sharp.reg132.sw_var_slp01  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain1 - dst_reg->sharp.reg130.sw_var_gain0)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg129.sw_var_idx0 - 0), 1));
-    dst_reg->sharp.reg132.sw_var_slp12  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain2 - dst_reg->sharp.reg131.sw_var_gain1)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg129.sw_var_idx1 - dst_reg->sharp.reg129.sw_var_idx0), 1));
-    dst_reg->sharp.reg133.sw_var_slp23  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain3 - dst_reg->sharp.reg131.sw_var_gain2)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg130.sw_var_idx2 - dst_reg->sharp.reg129.sw_var_idx1), 1));
-    dst_reg->sharp.reg133.sw_var_slp34  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain4 - dst_reg->sharp.reg131.sw_var_gain3)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg130.sw_var_idx3 - dst_reg->sharp.reg130.sw_var_idx2), 1));
-    dst_reg->sharp.reg134.sw_var_slp45  = ROUND(128 * (float)(p_shp_param->global_gain_var_val[5] - dst_reg->sharp.reg131.sw_var_gain4)
-                                                / MPP_MAX((float)(255 - dst_reg->sharp.reg130.sw_var_idx3), 1));
-    dst_reg->sharp.reg132.sw_var_slp01     = mpp_clip(dst_reg->sharp.reg132.sw_var_slp01, -1024, 1023);
-    dst_reg->sharp.reg132.sw_var_slp12     = mpp_clip(dst_reg->sharp.reg132.sw_var_slp12, -1024, 1023);
-    dst_reg->sharp.reg133.sw_var_slp23     = mpp_clip(dst_reg->sharp.reg133.sw_var_slp23, -1024, 1023);
-    dst_reg->sharp.reg133.sw_var_slp34     = mpp_clip(dst_reg->sharp.reg133.sw_var_slp34, -1024, 1023);
-    dst_reg->sharp.reg134.sw_var_slp45    = mpp_clip(dst_reg->sharp.reg134.sw_var_slp45, -1024, 1023);
+    global_gain_slp_temp[0]  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain1 - dst_reg->sharp.reg130.sw_var_gain0)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg129.sw_var_idx0 - 0), 1));
+    global_gain_slp_temp[1]  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain2 - dst_reg->sharp.reg131.sw_var_gain1)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg129.sw_var_idx1 - dst_reg->sharp.reg129.sw_var_idx0), 1));
+    global_gain_slp_temp[2]  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain3 - dst_reg->sharp.reg131.sw_var_gain2)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg130.sw_var_idx2 - dst_reg->sharp.reg129.sw_var_idx1), 1));
+    global_gain_slp_temp[3]  = ROUND(128 * (float)(dst_reg->sharp.reg131.sw_var_gain4 - dst_reg->sharp.reg131.sw_var_gain3)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg130.sw_var_idx3 - dst_reg->sharp.reg130.sw_var_idx2), 1));
+    global_gain_slp_temp[4]  = ROUND(128 * (float)(p_shp_param->global_gain_var_val[5] - dst_reg->sharp.reg131.sw_var_gain4)
+                                     / MPP_MAX((float)(255 - dst_reg->sharp.reg130.sw_var_idx3), 1));
+    dst_reg->sharp.reg132.sw_var_slp01     = mpp_clip(global_gain_slp_temp[0], -1024, 1023);
+    dst_reg->sharp.reg132.sw_var_slp12     = mpp_clip(global_gain_slp_temp[1], -1024, 1023);
+    dst_reg->sharp.reg133.sw_var_slp23     = mpp_clip(global_gain_slp_temp[2], -1024, 1023);
+    dst_reg->sharp.reg133.sw_var_slp34     = mpp_clip(global_gain_slp_temp[3], -1024, 1023);
+    dst_reg->sharp.reg134.sw_var_slp45     = mpp_clip(global_gain_slp_temp[4], -1024, 1023);
 
     dst_reg->sharp.reg134.sw_lum_select     = p_shp_param->global_gain_lum_mode;
     dst_reg->sharp.reg134.sw_lum_idx0     = p_shp_param->global_gain_lum_grd[1] >> 2;
@@ -906,21 +909,21 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg136.sw_lum_gain2  = p_shp_param->global_gain_lum_val[2];
     dst_reg->sharp.reg136.sw_lum_gain3  = p_shp_param->global_gain_lum_val[3];
     dst_reg->sharp.reg137.sw_lum_gain4  = p_shp_param->global_gain_lum_val[4];
-    dst_reg->sharp.reg137.sw_lum_slp01  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain1 - dst_reg->sharp.reg136.sw_lum_gain0)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg134.sw_lum_idx0 - 0), 1));
-    dst_reg->sharp.reg137.sw_lum_slp12  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain2 - dst_reg->sharp.reg136.sw_lum_gain1)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx1 - dst_reg->sharp.reg134.sw_lum_idx0), 1));
-    dst_reg->sharp.reg138.sw_lum_slp23  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain3 - dst_reg->sharp.reg136.sw_lum_gain2)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx2 - dst_reg->sharp.reg135.sw_lum_idx1), 1));
-    dst_reg->sharp.reg138.sw_lum_slp34  = ROUND(128 * (float)(dst_reg->sharp.reg137.sw_lum_gain4 - dst_reg->sharp.reg136.sw_lum_gain3)
-                                                / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx3 - dst_reg->sharp.reg135.sw_lum_idx2), 1));
-    dst_reg->sharp.reg139.sw_lum_slp45  = ROUND(128 * (float)(p_shp_param->global_gain_lum_val[5] - dst_reg->sharp.reg137.sw_lum_gain4)
-                                                / MPP_MAX((float)(255 - dst_reg->sharp.reg135.sw_lum_idx3), 1));
-    dst_reg->sharp.reg137.sw_lum_slp01     = mpp_clip(dst_reg->sharp.reg137.sw_lum_slp01, -1024, 1023);
-    dst_reg->sharp.reg137.sw_lum_slp12     = mpp_clip(dst_reg->sharp.reg137.sw_lum_slp12, -1024, 1023);
-    dst_reg->sharp.reg138.sw_lum_slp23     = mpp_clip(dst_reg->sharp.reg138.sw_lum_slp23, -1024, 1023);
-    dst_reg->sharp.reg138.sw_lum_slp34     = mpp_clip(dst_reg->sharp.reg138.sw_lum_slp34, -1024, 1023);
-    dst_reg->sharp.reg139.sw_lum_slp45     = mpp_clip(dst_reg->sharp.reg139.sw_lum_slp45, -1024, 1023);
+    global_gain_slp_temp[0]  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain1 - dst_reg->sharp.reg136.sw_lum_gain0)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg134.sw_lum_idx0 - 0), 1));
+    global_gain_slp_temp[1]  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain2 - dst_reg->sharp.reg136.sw_lum_gain1)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx1 - dst_reg->sharp.reg134.sw_lum_idx0), 1));
+    global_gain_slp_temp[2]  = ROUND(128 * (float)(dst_reg->sharp.reg136.sw_lum_gain3 - dst_reg->sharp.reg136.sw_lum_gain2)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx2 - dst_reg->sharp.reg135.sw_lum_idx1), 1));
+    global_gain_slp_temp[3]  = ROUND(128 * (float)(dst_reg->sharp.reg137.sw_lum_gain4 - dst_reg->sharp.reg136.sw_lum_gain3)
+                                     / MPP_MAX((float)(dst_reg->sharp.reg135.sw_lum_idx3 - dst_reg->sharp.reg135.sw_lum_idx2), 1));
+    global_gain_slp_temp[4]  = ROUND(128 * (float)(p_shp_param->global_gain_lum_val[5] - dst_reg->sharp.reg137.sw_lum_gain4)
+                                     / MPP_MAX((float)(255 - dst_reg->sharp.reg135.sw_lum_idx3), 1));
+    dst_reg->sharp.reg137.sw_lum_slp01     = mpp_clip(global_gain_slp_temp[0], -1024, 1023);
+    dst_reg->sharp.reg137.sw_lum_slp12     = mpp_clip(global_gain_slp_temp[1], -1024, 1023);
+    dst_reg->sharp.reg138.sw_lum_slp23     = mpp_clip(global_gain_slp_temp[2], -1024, 1023);
+    dst_reg->sharp.reg138.sw_lum_slp34     = mpp_clip(global_gain_slp_temp[3], -1024, 1023);
+    dst_reg->sharp.reg139.sw_lum_slp45     = mpp_clip(global_gain_slp_temp[4], -1024, 1023);
 
 
     dst_reg->sharp.reg140.sw_adj_point_x0      = p_shp_param->color_ctrl_p0_point_u;
@@ -1015,21 +1018,21 @@ static void set_shp_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_r
     dst_reg->sharp.reg158.sw_tex_gain2      = p_shp_param->tex_adj_val[2];
     dst_reg->sharp.reg158.sw_tex_gain3      = p_shp_param->tex_adj_val[3];
     dst_reg->sharp.reg158.sw_tex_gain4      = p_shp_param->tex_adj_val[4];
-    dst_reg->sharp.reg159.sw_tex_slp01      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain1 - dst_reg->sharp.reg157.sw_tex_gain0)
-                                                    / MPP_MAX((float)(dst_reg->sharp.reg156.sw_tex_idx0 - 0), 1));
-    dst_reg->sharp.reg159.sw_tex_slp12      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain2 - dst_reg->sharp.reg158.sw_tex_gain1)
-                                                    / MPP_MAX((float)(dst_reg->sharp.reg156.sw_tex_idx1 - dst_reg->sharp.reg156.sw_tex_idx0), 1));
-    dst_reg->sharp.reg160.sw_tex_slp23      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain3 - dst_reg->sharp.reg158.sw_tex_gain2)
-                                                    / MPP_MAX((float)(dst_reg->sharp.reg157.sw_tex_idx2 - dst_reg->sharp.reg156.sw_tex_idx1), 1));
-    dst_reg->sharp.reg160.sw_tex_slp34      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain4 - dst_reg->sharp.reg158.sw_tex_gain3)
-                                                    / MPP_MAX((float)(dst_reg->sharp.reg157.sw_tex_idx3 - dst_reg->sharp.reg157.sw_tex_idx2), 1));
-    dst_reg->sharp.reg161.sw_tex_slp45      = ROUND(128 * (float)(p_shp_param->tex_adj_val[5] - dst_reg->sharp.reg158.sw_tex_gain4)
-                                                    / MPP_MAX((float)(255 - dst_reg->sharp.reg157.sw_tex_idx3), 1));
-    dst_reg->sharp.reg159.sw_tex_slp01      = mpp_clip(dst_reg->sharp.reg159.sw_tex_slp01, -1024, 1023);
-    dst_reg->sharp.reg159.sw_tex_slp12      = mpp_clip(dst_reg->sharp.reg159.sw_tex_slp12, -1024, 1023);
-    dst_reg->sharp.reg160.sw_tex_slp23      = mpp_clip(dst_reg->sharp.reg160.sw_tex_slp23, -1024, 1023);
-    dst_reg->sharp.reg160.sw_tex_slp34      = mpp_clip(dst_reg->sharp.reg160.sw_tex_slp34, -1024, 1023);
-    dst_reg->sharp.reg161.sw_tex_slp45      = mpp_clip(dst_reg->sharp.reg161.sw_tex_slp45, -1024, 1023);
+    global_gain_slp_temp[0]      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain1 - dst_reg->sharp.reg157.sw_tex_gain0)
+                                         / MPP_MAX((float)(dst_reg->sharp.reg156.sw_tex_idx0 - 0), 1));
+    global_gain_slp_temp[1]      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain2 - dst_reg->sharp.reg158.sw_tex_gain1)
+                                         / MPP_MAX((float)(dst_reg->sharp.reg156.sw_tex_idx1 - dst_reg->sharp.reg156.sw_tex_idx0), 1));
+    global_gain_slp_temp[2]      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain3 - dst_reg->sharp.reg158.sw_tex_gain2)
+                                         / MPP_MAX((float)(dst_reg->sharp.reg157.sw_tex_idx2 - dst_reg->sharp.reg156.sw_tex_idx1), 1));
+    global_gain_slp_temp[3]      = ROUND(128 * (float)(dst_reg->sharp.reg158.sw_tex_gain4 - dst_reg->sharp.reg158.sw_tex_gain3)
+                                         / MPP_MAX((float)(dst_reg->sharp.reg157.sw_tex_idx3 - dst_reg->sharp.reg157.sw_tex_idx2), 1));
+    global_gain_slp_temp[4]      = ROUND(128 * (float)(p_shp_param->tex_adj_val[5] - dst_reg->sharp.reg158.sw_tex_gain4)
+                                         / MPP_MAX((float)(255 - dst_reg->sharp.reg157.sw_tex_idx3), 1));
+    dst_reg->sharp.reg159.sw_tex_slp01      = mpp_clip(global_gain_slp_temp[0], -1024, 1023);
+    dst_reg->sharp.reg159.sw_tex_slp12      = mpp_clip(global_gain_slp_temp[1], -1024, 1023);
+    dst_reg->sharp.reg160.sw_tex_slp23      = mpp_clip(global_gain_slp_temp[2], -1024, 1023);
+    dst_reg->sharp.reg160.sw_tex_slp34      = mpp_clip(global_gain_slp_temp[3], -1024, 1023);
+    dst_reg->sharp.reg161.sw_tex_slp45      = mpp_clip(global_gain_slp_temp[4], -1024, 1023);
 
 }
 
