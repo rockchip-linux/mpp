@@ -83,6 +83,8 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
 {
     RK_U32  i;
     MPP_RET ret = MPP_OK;
+    MppFrameFormat fmt = s->h265dctx->cfg->base.out_fmt & (~MPP_FRAME_FMT_MASK);
+
     for (i = 0; i < MPP_ARRAY_ELEMS(s->DPB); i++) {
         HEVCFrame *frame = &s->DPB[i];
         if (frame->slot_index != 0xff) {
@@ -98,6 +100,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         if (s->is_hdr) {
             s->h265dctx->pix_fmt |= MPP_FRAME_HDR;
         }
+        s->h265dctx->pix_fmt |= fmt;
         mpp_frame_set_fmt(frame->frame, s->h265dctx->pix_fmt);
 
         if (MPP_FRAME_FMT_IS_FBC(s->h265dctx->pix_fmt)) {
