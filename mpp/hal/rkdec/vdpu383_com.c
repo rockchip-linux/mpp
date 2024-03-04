@@ -168,3 +168,96 @@ RK_S32 vdpu383_set_rcbinfo(MppDev dev, Vdpu383RcbInfo *rcb_info)
 
     return 0;
 }
+
+#ifdef DUMP_VDPU383_DATAS
+RK_U32 dump_cur_frame = 0;
+char dump_cur_dir[128];
+char dump_cur_fname_path[512];
+
+MPP_RET flip_string(char *str)
+{
+    RK_U32 len = strlen(str);
+    RK_U32 i, j;
+
+    for (i = 0, j = len - 1; i <= j; i++, j--) {
+        // swapping characters
+        char c = str[i];
+        str[i] = str[j];
+        str[j] = c;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET dump_data_to_file(char *fname_path, void *data, RK_U32 data_bit_size,
+                          RK_U32 line_bits, RK_U32 big_end)
+{
+    RK_U8 *buf_p = (RK_U8 *)data;
+    RK_U8 cur_data;
+    RK_U32 i;
+    RK_U32 loop_cnt;
+    FILE *dump_fp = NULL;
+    char line_tmp[256];
+    RK_U32 str_idx = 0;
+
+    dump_fp = fopen(fname_path, "w+");
+    if (!dump_fp) {
+        mpp_err_f("open file: %s error!\n", fname_path);
+        return MPP_NOK;
+    }
+
+    if ((data_bit_size % 4 != 0) || (line_bits % 8 != 0)) {
+        mpp_err_f("line bits not align to 4!\n");
+        return MPP_NOK;
+    }
+
+    loop_cnt = data_bit_size / 8;
+    for (i = 0; i < loop_cnt; i++) {
+        cur_data = buf_p[i];
+
+        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
+        if ((i * 8 + 4) % line_bits == 0) {
+            line_tmp[str_idx++] = '\0';
+            str_idx = 0;
+            if (!big_end)
+                flip_string(line_tmp);
+            fprintf(dump_fp, "%s\n", line_tmp);
+        }
+        sprintf(&line_tmp[str_idx++], "%0x", (cur_data >> 4) & 0xf);
+        if ((i * 8 + 8) % line_bits == 0) {
+            line_tmp[str_idx++] = '\0';
+            str_idx = 0;
+            if (!big_end)
+                flip_string(line_tmp);
+            fprintf(dump_fp, "%s\n", line_tmp);
+        }
+    }
+
+    // last line
+    if (data_bit_size % 4) {
+        cur_data = buf_p[i];
+        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
+        if ((i * 8 + 8) % line_bits == 0) {
+            line_tmp[str_idx++] = '\0';
+            str_idx = 0;
+            if (!big_end)
+                flip_string(line_tmp);
+            fprintf(dump_fp, "%s\n", line_tmp);
+        }
+    }
+    if (data_bit_size % line_bits) {
+        loop_cnt = (line_bits - (data_bit_size % line_bits)) / 4;
+        for (i = 0; i < loop_cnt; i++)
+            sprintf(&line_tmp[str_idx++], "%0x", 0);
+        line_tmp[str_idx++] = '\0';
+        str_idx = 0;
+        if (!big_end)
+            flip_string(line_tmp);
+        fprintf(dump_fp, "%s\n", line_tmp);
+    }
+
+    fclose(dump_fp);
+
+    return MPP_OK;
+}
+#endif

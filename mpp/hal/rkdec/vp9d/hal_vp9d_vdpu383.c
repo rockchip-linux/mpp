@@ -71,99 +71,9 @@ typedef struct Vdpu383Vp9dCtx_t {
     RK_U8           header_data[168];
 } Vdpu383Vp9dCtx;
 
-// #define DUMP_DATA
-
-#ifdef DUMP_DATA
-static RK_U32 dump_cur_frame = 0;
-static char dump_cur_dir[128];
-static char dump_cur_fname_path[512];
+#ifdef DUMP_VDPU383_DATAS
 static RK_U32 cur_last_segid_flag;
 static MppBuffer cur_last_prob_base;
-
-static MPP_RET flip_string(char *str)
-{
-    RK_U32 len = strlen(str);
-    RK_U32 i, j;
-
-    for (i = 0, j = len - 1; i <= j; i++, j--) {
-        // swapping characters
-        char c = str[i];
-        str[i] = str[j];
-        str[j] = c;
-    }
-    return MPP_OK;
-}
-
-static MPP_RET dump_data(char *fname_path, void *data, RK_U32 data_bit_size, RK_U32 line_bits, RK_U32 big_end)
-{
-    RK_U8 *buf_p = (RK_U8 *)data;
-    RK_U8 cur_data;
-    RK_U32 i;
-    RK_U32 loop_cnt;
-    FILE *dump_fp = NULL;
-    char line_tmp[256];
-    RK_U32 str_idx = 0;
-
-    dump_fp = fopen(fname_path, "w+");
-    if (!dump_fp) {
-        mpp_err_f("open file: %s error!\n", fname_path);
-        return MPP_NOK;
-    }
-
-    if ((data_bit_size % 4 != 0) || (line_bits % 8 != 0)) {
-        mpp_err_f("line bits not align to 4!\n");
-        return MPP_NOK;
-    }
-
-    loop_cnt = data_bit_size / 8;
-    for (i = 0; i < loop_cnt; i++) {
-        cur_data = buf_p[i];
-
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 4) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-        sprintf(&line_tmp[str_idx++], "%0x", (cur_data >> 4) & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-
-    // last line
-    if (data_bit_size % 4) {
-        cur_data = buf_p[i];
-        sprintf(&line_tmp[str_idx++], "%0x", cur_data & 0xf);
-        if ((i * 8 + 8) % line_bits == 0) {
-            line_tmp[str_idx++] = '\0';
-            str_idx = 0;
-            if (!big_end)
-                flip_string(line_tmp);
-            fprintf(dump_fp, "%s\n", line_tmp);
-        }
-    }
-    if (data_bit_size % line_bits) {
-        loop_cnt = (line_bits - (data_bit_size % line_bits)) / 4;
-        for (i = 0; i < loop_cnt; i++)
-            sprintf(&line_tmp[str_idx++], "%0x", 0);
-        line_tmp[str_idx++] = '\0';
-        str_idx = 0;
-        if (!big_end)
-            flip_string(line_tmp);
-        fprintf(dump_fp, "%s\n", line_tmp);
-    }
-
-    fclose(dump_fp);
-
-    return MPP_OK;
-}
 #endif
 
 static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
@@ -742,12 +652,12 @@ static MPP_RET prepare_uncompress_header(HalVp9dCtx *p_hal, DXVA_PicParams_VP9 *
 
     mpp_put_align(&bp, 64, 0);//128
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "global_cfg.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)bp.pbuf, 64 * (bp.index - 1) + bp.bitpos, 64, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * (bp.index - 1) + bp.bitpos, 64, 0);
     }
 #endif
 
@@ -810,15 +720,15 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     vp9_hw_regs = (Vdpu383Vp9dRegSet*)hw_ctx->hw_regs;
     memset(vp9_hw_regs, 0, sizeof(Vdpu383Vp9dRegSet));
 
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
-        dump_cur_frame++;
         memset(dump_cur_dir, 0, sizeof(dump_cur_dir));
-        sprintf(dump_cur_dir, "vp9/Frame%04d", p_hal->frame_no);
+        sprintf(dump_cur_dir, "vp9/Frame%04d", dump_cur_frame);
         if (access(dump_cur_dir, 0)) {
             if (mkdir(dump_cur_dir))
                 mpp_err_f("error: mkdir %s\n", dump_cur_dir);
         }
+        dump_cur_frame++;
     }
 #endif
 
@@ -871,13 +781,13 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         if (hw_ctx->prob_ctx_valid[frame_ctx_id]) {
             vp9_hw_regs->vp9d_addrs.reg184_lastprob_base =
                 mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
             { cur_last_prob_base = hw_ctx->prob_loop_base[frame_ctx_id]; }
 #endif
         } else {
             vp9_hw_regs->vp9d_addrs.reg184_lastprob_base = mpp_buffer_get_fd(hw_ctx->prob_default_base);
             hw_ctx->prob_ctx_valid[frame_ctx_id] |= pic_param->refresh_frame_context;
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
             { cur_last_prob_base = hw_ctx->prob_default_base; }
 #endif
         }
@@ -885,20 +795,20 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
     }
     vp9_hw_regs->vp9d_addrs.reg183_kfprob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "cabac_last_probe.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cur_last_prob_base),
-                  8 * 152 * 16, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cur_last_prob_base),
+                          8 * 152 * 16, 128, 0);
     }
     {
         char *cur_fname = "cabac_kf_probe.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->probe_base),
-                  8 * PROB_KF_SIZE, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->probe_base),
+                          8 * PROB_KF_SIZE, 128, 0);
     }
 #endif
 #else
@@ -985,15 +895,15 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         vp9_hw_regs->vp9d_addrs.reg181_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
         vp9_hw_regs->vp9d_addrs.reg182_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
     }
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     cur_last_segid_flag = hw_ctx->last_segid_flag;
     {
         char *cur_fname = "stream_in.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(streambuf)
-                  + pic_param->uncompressed_header_size_byte_aligned,
-                  8 * (((stream_len + 15) & (~15)) + 0x80), 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(streambuf)
+                          + pic_param->uncompressed_header_size_byte_aligned,
+                          8 * (((stream_len + 15) & (~15)) + 0x80), 128, 0);
     }
 #endif
     /* set last segid flag */
@@ -1237,37 +1147,42 @@ static MPP_RET hal_vp9d_vdpu383_wait(void *hal, HalTaskInfo *task)
     ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
-#ifdef DUMP_DATA
+#ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "cabac_update_probe.dat";
         DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
         RK_U32 frame_ctx_id = pic_param->frame_context_idx;
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->prob_loop_base[frame_ctx_id]),
-                  8 * 152 * 16, 128, 0);
+        dump_data_to_file(dump_cur_fname_path,
+                          (void *)mpp_buffer_get_ptr(hw_ctx->prob_loop_base[frame_ctx_id]),
+                          8 * 152 * 16, 128, 0);
     }
     {
         char *cur_fname = "segid_last.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         if (!cur_last_segid_flag)
-            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->segid_cur_base),
-                      8 * 1559 * 8, 64, 0);
+            dump_data_to_file(dump_cur_fname_path,
+                              (void *)mpp_buffer_get_ptr(hw_ctx->segid_cur_base),
+                              8 * 1559 * 8, 64, 0);
         else
-            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->segid_last_base),
-                      8 * 1559 * 8, 64, 0);
+            dump_data_to_file(dump_cur_fname_path,
+                              (void *)mpp_buffer_get_ptr(hw_ctx->segid_last_base),
+                              8 * 1559 * 8, 64, 0);
     }
     {
         char *cur_fname = "segid_cur.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         if (cur_last_segid_flag)
-            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->segid_cur_base),
-                      8 * 1559 * 8, 64, 0);
+            dump_data_to_file(dump_cur_fname_path,
+                              (void *)mpp_buffer_get_ptr(hw_ctx->segid_cur_base),
+                              8 * 1559 * 8, 64, 0);
         else
-            dump_data(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(hw_ctx->segid_last_base),
-                      8 * 1559 * 8, 64, 0);
+            dump_data_to_file(dump_cur_fname_path,
+                              (void *)mpp_buffer_get_ptr(hw_ctx->segid_last_base),
+                              8 * 1559 * 8, 64, 0);
     }
 #endif
 

@@ -20,6 +20,8 @@
 
 #define MPP_RCB_BYTES(bits)  MPP_ALIGN((bits + 7) / 8, RCB_ALLINE_SIZE)
 
+// #define DUMP_VDPU383_DATAS
+
 typedef enum Vdpu383RcbType_e {
     RCB_STRMD_ROW,
     RCB_STRMD_TILE_ROW,
@@ -522,6 +524,16 @@ RK_S32 vdpu383_compare_rcb_size(const void *a, const void *b);
 void vdpu383_setup_statistic(Vdpu383CtrlReg *com);
 void vdpu383_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 RK_S32 vdpu383_set_rcbinfo(MppDev dev, Vdpu383RcbInfo *rcb_info);
+
+#ifdef DUMP_VDPU383_DATAS
+extern RK_U32 dump_cur_frame;
+extern char dump_cur_dir[128];
+extern char dump_cur_fname_path[512];
+
+MPP_RET flip_string(char *str);
+MPP_RET dump_data_to_file(char *fname_path, void *data, RK_U32 data_bit_size,
+                          RK_U32 line_bits, RK_U32 big_end);
+#endif
 
 #ifdef  __cplusplus
 }
