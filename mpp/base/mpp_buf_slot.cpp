@@ -336,6 +336,9 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
         case MPP_FMT_YUV422SP : {
             size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 16);
         } break;
+        case MPP_FMT_YUV444SP : {
+            size = get_afbc_min_size(hor_stride_pixel, hal_hor_stride, 24);
+        } break;
         default : {
             size = hal_hor_stride * hal_ver_stride * 3 / 2;
             mpp_err("dec out fmt is no support");
