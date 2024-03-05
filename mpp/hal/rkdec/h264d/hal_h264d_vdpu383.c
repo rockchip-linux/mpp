@@ -21,7 +21,7 @@
 #define DEC_VDPU383_REGISTERS       276
 
 #define VDPU383_CABAC_TAB_SIZE      (928*4 + 128)       /* bytes */
-#define VDPU383_SPSPPS_SIZE         (256*168 + 128)     /* bytes */
+#define VDPU383_SPSPPS_SIZE         (168 + 128)     /* bytes */
 #define VDPU383_RPS_SIZE            (128 + 128 + 128)   /* bytes */
 #define VDPU383_SCALING_LIST_SIZE   (6*16+2*64 + 128)   /* bytes */
 #define VDPU383_ERROR_INFO_SIZE     (256*144*4)         /* bytes */
@@ -144,9 +144,10 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 
     mpp_set_bitput_ctx(&bp, data, len);
 
-    if (!p_hal->fast_mode && !pp->spspps_update) {
-        bp.index = VDPU383_SPS_PPS_LEN >> 3;
-        bp.bitpos = (VDPU383_SPS_PPS_LEN & 0x7) << 3;
+    if (!pp->spspps_update) {
+        bp.index = 2;
+        bp.bitpos = 24;
+        bp.bvalue = bp.pbuf[bp.index];
     } else {
         RK_U32 pic_width, pic_height;
 
@@ -181,7 +182,6 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         } else {
             mpp_put_bits(&bp, 0, 22);
         }
-
         // hw_fifo_align_bits(&bp, 128);
         //!< pps syntax
         mpp_put_bits(&bp, pp->pps_pic_parameter_set_id, 8);
@@ -202,57 +202,57 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         mpp_put_bits(&bp, pp->transform_8x8_mode_flag, 1);
         mpp_put_bits(&bp, pp->second_chroma_qp_index_offset, 5);
         mpp_put_bits(&bp, pp->scaleing_list_enable_flag, 1);
-
-        //!< set dpb
-        for (i = 0; i < 16; i++) {
-            is_long_term = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefFrameList[i].AssociatedFlag : 0;
-            tmp |= (RK_U32)(is_long_term & 0x1) << i;
-        }
-        for (i = 0; i < 16; i++) {
-            voidx = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefPicLayerIdList[i] : 0;
-            tmp |= (RK_U32)(voidx & 0x1) << (i + 16);
-        }
-        mpp_put_bits(&bp, tmp, 32);
-        /* set current frame */
-        mpp_put_bits(&bp, pp->field_pic_flag, 1);
-        mpp_put_bits(&bp, (pp->field_pic_flag && pp->CurrPic.AssociatedFlag), 1);
-
-        mpp_put_bits(&bp, pp->CurrFieldOrderCnt[0], 32);
-        mpp_put_bits(&bp, pp->CurrFieldOrderCnt[1], 32);
-
-        /* refer poc */
-        for (i = 0; i < 16; i++) {
-            mpp_put_bits(&bp, pp->FieldOrderCntList[i][0], 32);
-            mpp_put_bits(&bp, pp->FieldOrderCntList[i][1], 32);
-        }
-
-        tmp = 0;
-        for (i = 0; i < 16; i++) {
-            RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
-
-            tmp |= field_flag << i;
-        }
-        for (i = 0; i < 16; i++) {
-            RK_U32 top_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
-
-            tmp |= top_used << (i + 16);
-        }
-        mpp_put_bits(&bp, tmp, 32);
-
-        tmp = 0;
-        for (i = 0; i < 16; i++) {
-            RK_U32 bot_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
-
-            tmp |= bot_used << i;
-        }
-        for (i = 0; i < 16; i++) {
-            RK_U32 ref_colmv_used = (pp->RefPicColmvUsedFlags >> i) & 0x01;
-
-            tmp |= ref_colmv_used << (i + 16);
-        }
-        mpp_put_bits(&bp, tmp, 32);
-        mpp_put_align(&bp, 64, 0);//128
     }
+
+    //!< set dpb
+    for (i = 0; i < 16; i++) {
+        is_long_term = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefFrameList[i].AssociatedFlag : 0;
+        tmp |= (RK_U32)(is_long_term & 0x1) << i;
+    }
+    for (i = 0; i < 16; i++) {
+        voidx = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefPicLayerIdList[i] : 0;
+        tmp |= (RK_U32)(voidx & 0x1) << (i + 16);
+    }
+    mpp_put_bits(&bp, tmp, 32);
+    /* set current frame */
+    mpp_put_bits(&bp, pp->field_pic_flag, 1);
+    mpp_put_bits(&bp, (pp->field_pic_flag && pp->CurrPic.AssociatedFlag), 1);
+
+    mpp_put_bits(&bp, pp->CurrFieldOrderCnt[0], 32);
+    mpp_put_bits(&bp, pp->CurrFieldOrderCnt[1], 32);
+
+    /* refer poc */
+    for (i = 0; i < 16; i++) {
+        mpp_put_bits(&bp, pp->FieldOrderCntList[i][0], 32);
+        mpp_put_bits(&bp, pp->FieldOrderCntList[i][1], 32);
+    }
+
+    tmp = 0;
+    for (i = 0; i < 16; i++) {
+        RK_U32 field_flag = (pp->RefPicFiledFlags >> i) & 0x01;
+
+        tmp |= field_flag << i;
+    }
+    for (i = 0; i < 16; i++) {
+        RK_U32 top_used = (pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01;
+
+        tmp |= top_used << (i + 16);
+    }
+    mpp_put_bits(&bp, tmp, 32);
+
+    tmp = 0;
+    for (i = 0; i < 16; i++) {
+        RK_U32 bot_used = (pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01;
+
+        tmp |= bot_used << i;
+    }
+    for (i = 0; i < 16; i++) {
+        RK_U32 ref_colmv_used = (pp->RefPicColmvUsedFlags >> i) & 0x01;
+
+        tmp |= ref_colmv_used << (i + 16);
+    }
+    mpp_put_bits(&bp, tmp, 32);
+    mpp_put_align(&bp, 64, 0);//128
 
 #ifdef DUMP_VDPU383_DATAS
     {
@@ -825,22 +825,8 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
     prepare_scanlist(p_hal, ctx->sclst, sizeof(ctx->sclst));
     set_registers(p_hal, regs, task);
 
-    //!< copy datas
-    RK_U32 i = 0;
-    if (!p_hal->fast_mode && !p_hal->pp->spspps_update) {
-        RK_U32 offset = 0;
-        RK_U32 len = VDPU383_SPS_PPS_LEN; //!< sps+pps data length
-        for (i = 0; i < 256; i++) {
-            offset = ctx->spspps_offset + (sizeof(ctx->spspps) * i) + len;
-            memcpy((char *)ctx->bufs_ptr + offset, (char *)ctx->spspps + len, sizeof(ctx->spspps) - len);
-        }
-    } else {
-        RK_U32 offset = 0;
-        for (i = 0; i < 256; i++) {
-            offset = ctx->spspps_offset + (sizeof(ctx->spspps) * i);
-            memcpy((char *)ctx->bufs_ptr + offset, (void *)ctx->spspps, sizeof(ctx->spspps));
-        }
-    }
+    //!< copy spspps datas
+    memcpy((char *)ctx->bufs_ptr + ctx->spspps_offset, (char *)ctx->spspps, sizeof(ctx->spspps));
 
     regs->common_addr.reg131_gbl_base = ctx->bufs_fd;
     regs->h264d_paras.reg67_global_len = VDPU383_SPS_PPS_LEN / 16; // 128 bit as unit

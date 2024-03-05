@@ -55,7 +55,7 @@ static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
 #endif
 
 #define CABAC_TAB_ALIGEND_SIZE          (MPP_ALIGN(27456, SZ_4K))
-#define SPSPPS_ALIGNED_SIZE             (MPP_ALIGN(112 * 64, SZ_4K))
+#define SPSPPS_ALIGNED_SIZE             (MPP_ALIGN(176, SZ_4K))
 #define RPS_ALIGEND_SIZE                (MPP_ALIGN(400 * 8, SZ_4K))
 #define SCALIST_ALIGNED_SIZE            (MPP_ALIGN(81 * 1360, SZ_4K))
 #define INFO_BUFFER_SIZE                (SPSPPS_ALIGNED_SIZE + RPS_ALIGEND_SIZE + SCALIST_ALIGNED_SIZE)
@@ -605,8 +605,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
     }
 
-    for (i = 0; i < 64; i++)
-        memcpy(pps_ptr + i * 176, reg_ctx->pps_buf, 176);
+    memcpy(pps_ptr, reg_ctx->pps_buf, 176);
 #ifdef dump
     fwrite(pps_ptr, 1, 80 * 64, fp);
     RK_U32 *tmp = (RK_U32 *)pps_ptr;
