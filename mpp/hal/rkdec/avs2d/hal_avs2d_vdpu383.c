@@ -395,7 +395,7 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
             if (i < refp->ref_pic_num) {
                 MppFrame frame_ref = NULL;
 
-                RK_S32 slot_idx = task_dec->refer[i] < 0 ? valid_slot : task_dec->refer[i];
+                RK_S32 slot_idx = task_dec->refer[i] < 0 ? task_dec->refer[valid_slot] : task_dec->refer[i];
 
                 if (slot_idx < 0) {
                     AVS2D_HAL_TRACE("missing ref, could not found valid ref");
