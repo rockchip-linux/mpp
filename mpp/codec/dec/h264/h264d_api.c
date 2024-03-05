@@ -522,7 +522,7 @@ MPP_RET h264d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
     INP_CHECK(ret, !decoder && !pkt && !task);
 
     p_Inp = p_Dec->p_Inp;
-    if (p_Inp->has_get_eos || p_Dec->errctx.un_spt_flag) {
+    if (p_Inp->has_get_eos) {
         mpp_packet_set_length(pkt, 0);
         task->flags.eos = mpp_packet_get_eos(pkt);
         goto __RETURN;

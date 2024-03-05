@@ -213,8 +213,11 @@ static MPP_RET parser_sps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_DecC
         || cur_sps->profile_idc == 86  || cur_sps->profile_idc == 118
         || cur_sps->profile_idc == 128 || cur_sps->profile_idc == 138) {
         READ_UE(p_bitctx, &cur_sps->chroma_format_idc);
-        if (cur_sps->chroma_format_idc > 2) {
-            H264D_ERR("ERROR: Not support chroma_format_idc=%d.", cur_sps->chroma_format_idc);
+        /* check invalid chroma format idc */
+        VAL_CHECK (ret, (cur_sps->chroma_format_idc <= H264_CHROMA_444));
+        /* TODO: check unsupport chroma format by hardware capacity */
+        if (cur_sps->chroma_format_idc > H264_CHROMA_422) {
+            H264D_ERR("ERROR: Not support chroma_format_idc %d", cur_sps->chroma_format_idc);
             p_Dec->errctx.un_spt_flag = MPP_FRAME_ERR_UNSUPPORT;
             goto __FAILED;
         }
