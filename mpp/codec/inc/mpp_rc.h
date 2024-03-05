@@ -124,7 +124,7 @@ extern "C" {
 MPP_RET mpp_data_init(MppData **p, RK_S32 len);
 void mpp_data_deinit(MppData *p);
 void mpp_data_update(MppData *p, RK_S32 val);
-RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm);
+RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denom);
 
 void mpp_pid_reset(MppPIDCtx *p);
 void mpp_pid_set_param(MppPIDCtx *p, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div, RK_S32 len);

@@ -78,7 +78,7 @@ typedef struct {
     RK_S32 qp_max;
     RK_S32 qp_hdr_prev;
     RK_S32 fps_out_num;     //MppEncRcCfg.fps_out_num
-    RK_S32 fps_out_denorm;  //MppEncRcCfg.fps_out_denorm
+    RK_S32 fps_out_denom;  //MppEncRcCfg.fps_out_denom
     RK_S32 fps_out;
 
     RK_S32 target_pic_size;

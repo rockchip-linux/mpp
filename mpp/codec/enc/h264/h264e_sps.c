@@ -218,7 +218,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     vui->vui_present = 1;
     vui->timing_info_present = 1;
     vui->time_scale = rc->fps_out_num * 2;
-    vui->num_units_in_tick = rc->fps_out_denorm;
+    vui->num_units_in_tick = rc->fps_out_denom;
     vui->fixed_frame_rate = !rc->fps_out_flex;
     vui->vidformat = MPP_FRAME_VIDEO_FMT_UNSPECIFIED;
 

@@ -64,7 +64,7 @@ MPP_RET hal_info_set(HalInfo ctx, RK_U32 type, RK_U32 flag, RK_U64 data);
 MPP_RET hal_info_get(HalInfo ctx, MppDevInfoCfg *data, RK_S32 *size);
 
 RK_U64 hal_info_to_string(HalInfo ctx, RK_U32 type, void *val);
-RK_U64 hal_info_to_float(RK_S32 num, RK_S32 denorm);
+RK_U64 hal_info_to_float(RK_S32 num, RK_S32 denom);
 
 MPP_RET hal_info_from_enc_cfg(HalInfo ctx, MppEncCfgSet *cfg);
 

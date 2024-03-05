@@ -97,10 +97,10 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
     rc_cfg->bps_min = rc_cfg->bps_target * 3 / 4;
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_in_num = 30;
-    rc_cfg->fps_in_denorm = 1;
+    rc_cfg->fps_in_denom = 1;
     rc_cfg->fps_out_flex = 0;
     rc_cfg->fps_out_num = 30;
-    rc_cfg->fps_out_denorm = 1;
+    rc_cfg->fps_out_denom = 1;
     rc_cfg->gop = 60;
     rc_cfg->max_reenc_times = 1;
     rc_cfg->fqp_min_i = INT_MAX;

@@ -158,10 +158,10 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     mpp_enc_cfg_set_s32(enc_cfg, "rc:bps_min", rc_mode ? bps * 15 / 16 : bps * 1 / 16);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_flex", 0);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_num", fps_in);
-    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_denorm", 1);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_in_denom", 1);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_flex", 0);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_num", fps_out);
-    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_denorm", 1);
+    mpp_enc_cfg_set_s32(enc_cfg, "rc:fps_out_denom", 1);
     mpp_enc_cfg_set_s32(enc_cfg, "rc:gop", gop);
 
     mpp_enc_cfg_set_s32(enc_cfg, "codec:type", coding);

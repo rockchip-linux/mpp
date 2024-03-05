@@ -613,12 +613,12 @@ MPP_RET mpp_enc_cfg_get_st(MppEncCfg cfg, const char *name, void *val);
 | rc:bps_target           | S32  | RK_S32                              | 表示CBR模式下的目标码率。                                    |
 | rc:bps_max              | S32  | RK_S32                              | 表示VBR/AVBR模式下的最高码率。                               |
 | rc:bps_min              | S32  | RK_S32                              | 表示VBR/AVBR模式下的最低码率。                               |
-| rc:fps_in_flex          | S32  | RK_S32                              | 表示输入帧率是否可变的标志位，默认为0。 为0表示输入帧率固定，帧率计算方式为： fps_in_num / fps_in_denorm，可以表示分数帧率。 为1表示输入帧率可变。可变帧率的情况下，帧率不固定，对应的码率计算与分配的规则变为按实际时间进行计算。 |
+| rc:fps_in_flex          | S32  | RK_S32                              | 表示输入帧率是否可变的标志位，默认为0。 为0表示输入帧率固定，帧率计算方式为： fps_in_num / fps_in_denom，可以表示分数帧率。 为1表示输入帧率可变。可变帧率的情况下，帧率不固定，对应的码率计算与分配的规则变为按实际时间进行计算。 |
 | rc:fps_in_num           | S32  | RK_S32                              | 表示输入帧率分数值的分子部分，默认值为30。                   |
-| rc:fps_in_denorm        | S32  | RK_S32                              | 表示输入帧率分数值的分母部分，默认值为1。                    |
-| rc:fps_out_flex         | S32  | RK_S32                              | 表示输出帧率是否可变的标志位，默认为0。 为0表示输出帧率固定，帧率计算方式为： fps_out_num / fps_out_denorm，可以表示分数帧率。 为1表示输出帧率可变。可变帧率的情况下，帧率不固定，对应的码流输出时间按实际时间进行计算。 |
+| rc:fps_in_denom         | S32  | RK_S32                              | 表示输入帧率分数值的分母部分，默认值为1。                    |
+| rc:fps_out_flex         | S32  | RK_S32                              | 表示输出帧率是否可变的标志位，默认为0。 为0表示输出帧率固定，帧率计算方式为： fps_out_num / fps_out_denom，可以表示分数帧率。 为1表示输出帧率可变。可变帧率的情况下，帧率不固定，对应的码流输出时间按实际时间进行计算。 |
 | rc:fps_out_num          | S32  | RK_S32                              | 表示输出帧率分数值的分子部分，默认值为30。                   |
-| rc:fps_out_denorm       | S32  | RK_S32                              | 表示输出帧率分数值的分母部分，默认值为1。                    |
+| rc:fps_out_denom        | S32  | RK_S32                              | 表示输出帧率分数值的分母部分，默认值为1。                    |
 | rc:gop                  | S32  | RK_S32                              | 表示Group Of Picture，即两个I帧之间的间隔，含义如下： 0 – 表示只有一个I帧，其他帧均为P帧。 1 – 表示全为I帧。 2 – 表示序列为I P I P I P… 3 – 表示序列为I P P I P P I P P… 一般情况下，gop应配置为输出帧率的整数倍，默认值为两倍输出帧率。 |
 | rc:max_reenc_times      | U32  | RK_U32                              | 表示一帧图像最大重编码次数，默认值为1。在低延时输出模式下，max_reenc_times只能配置为0。 |
 | rc:priority             | U32  | MppEncRcPriority                    | 表示超大帧重编优先级。 0 – 表示目标码率优先。 1 – 表示超大帧阈值优先。 此优先级只在超大帧重编时有效。 ![](media/Rockchip_Developer_Guide_MPP/MPP_MppEncRcPriority.png) |

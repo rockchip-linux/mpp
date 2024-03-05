@@ -145,12 +145,12 @@ MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task)
     } else {
         RcFpsCfg *cfg = &p->fps;
         RK_S32 frm_cnt  = p->frm_cnt;
-        RK_S32 rate_in  = cfg->fps_in_num * cfg->fps_out_denorm;
-        RK_S32 rate_out = cfg->fps_out_num * cfg->fps_in_denorm;
+        RK_S32 rate_in  = cfg->fps_in_num * cfg->fps_out_denom;
+        RK_S32 rate_out = cfg->fps_out_num * cfg->fps_in_denom;
         RK_S32 drop = 0;
 
-        mpp_assert(cfg->fps_in_denorm >= 1);
-        mpp_assert(cfg->fps_out_denorm >= 1);
+        mpp_assert(cfg->fps_in_denom >= 1);
+        mpp_assert(cfg->fps_out_denom >= 1);
         mpp_assert(rate_in >= rate_out);
 
         // frame counter is inited to (rate_in - rate_out)  to encode first frame

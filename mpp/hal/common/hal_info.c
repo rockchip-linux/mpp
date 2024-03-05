@@ -234,14 +234,14 @@ RK_U64 hal_info_to_string(HalInfo ctx, RK_U32 type, void *val)
     return ret;
 }
 
-RK_U64 hal_info_to_float(RK_S32 num, RK_S32 denorm)
+RK_U64 hal_info_to_float(RK_S32 num, RK_S32 denom)
 {
     RK_U64 ret = 0;
 
-    if (!denorm)
+    if (!denom)
         snprintf((void *)&ret, sizeof(ret) - 1, "%d", num);
     else
-        snprintf((void *)&ret, sizeof(ret) - 1, "%.2f", (float)num / denorm);
+        snprintf((void *)&ret, sizeof(ret) - 1, "%.2f", (float)num / denom);
 
     return ret;
 }
@@ -262,9 +262,9 @@ MPP_RET hal_info_from_enc_cfg(HalInfo ctx, MppEncCfgSet *cfg)
 
     hal_info_set(ctx, ENC_INFO_FORMAT, CODEC_INFO_FLAG_STRING, val);
     hal_info_set(ctx, ENC_INFO_FPS_IN, CODEC_INFO_FLAG_NUMBER,
-                 rc->fps_in_num / rc->fps_in_denorm);
+                 rc->fps_in_num / rc->fps_in_denom);
     hal_info_set(ctx, ENC_INFO_FPS_OUT, CODEC_INFO_FLAG_NUMBER,
-                 rc->fps_out_num / rc->fps_out_denorm);
+                 rc->fps_out_num / rc->fps_out_denom);
 
     val = hal_info_to_string(ctx, ENC_INFO_RC_MODE, &rc->rc_mode);
     hal_info_set(ctx, ENC_INFO_RC_MODE, CODEC_INFO_FLAG_STRING, val);

@@ -44,9 +44,9 @@ typedef struct HalH264eVepuMbRcImpl_t {
 
     /* frame rate control */
     RK_S32          fps_in_num;
-    RK_S32          fps_in_denorm;
+    RK_S32          fps_in_denom;
     RK_S32          fps_out_num;
-    RK_S32          fps_out_denorm;
+    RK_S32          fps_out_denom;
 
     RK_S32          fps_count;
     RK_S32          fps_step;
@@ -524,21 +524,21 @@ MPP_RET h264e_vepu_mbrc_setup(HalH264eVepuMbRcCtx ctx, MppEncCfgSet*cfg)
     p->mb_h     = MPP_ALIGN(prep->height, 16) / 16;
     p->pels     = p->width * p->height;
     p->mbs      = p->mb_w * p->mb_h;
-    p->bits_per_pic = axb_div_c(rc->bps_target, rc->fps_out_denorm,
+    p->bits_per_pic = axb_div_c(rc->bps_target, rc->fps_out_denom,
                                 rc->fps_out_num);
 
     mpp_assert(p->pels);
 
     // frame rate control
-    mpp_assert(rc->fps_out_num / rc->fps_out_denorm <= rc->fps_in_num / rc->fps_in_denorm);
+    mpp_assert(rc->fps_out_num / rc->fps_out_denom <= rc->fps_in_num / rc->fps_in_denom);
 
     p->fps_in_num       = rc->fps_in_num;
-    p->fps_in_denorm    = rc->fps_in_denorm;
+    p->fps_in_denom    = rc->fps_in_denom;
     p->fps_out_num      = rc->fps_out_num;
-    p->fps_out_denorm   = rc->fps_out_denorm;
+    p->fps_out_denom   = rc->fps_out_denom;
 
-    p->fps_step         = rc->fps_in_denorm * rc->fps_out_num;
-    p->fps_threshold    = rc->fps_in_num * rc->fps_out_denorm;
+    p->fps_step         = rc->fps_in_denom * rc->fps_out_num;
+    p->fps_threshold    = rc->fps_in_num * rc->fps_out_denom;
     p->fps_count        = p->fps_threshold;
 
     // if not constant

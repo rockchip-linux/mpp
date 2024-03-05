@@ -88,7 +88,7 @@ void mpp_data_update(MppData *p, RK_S32 val)
         p->len++;
 }
 
-RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
+RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denom)
 {
     mpp_assert(p);
 
@@ -102,7 +102,7 @@ RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
     if (len < 0 || len > p->len)
         len = p->len;
 
-    if (num == denorm) {
+    if (num == denom) {
         i = len;
         while (i--) {
             if (pos)
@@ -114,9 +114,9 @@ RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
         }
     } else {
         /* This case is not used so far, but may be useful in the future */
-        mpp_assert(num > denorm);
+        mpp_assert(num > denom);
         RK_S32 acc_num = num;
-        RK_S32 acc_denorm = denorm;
+        RK_S32 acc_denom = denom;
 
         i = len - 1;
         sum = p->val[--pos];
@@ -126,9 +126,9 @@ RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
             else
                 pos = p->len - 1;
 
-            sum += p->val[pos] * acc_num / acc_denorm;
+            sum += p->val[pos] * acc_num / acc_denom;
             acc_num *= num;
-            acc_denorm *= denorm;
+            acc_denom *= denom;
         }
     }
     return DIV(sum, len);

@@ -431,8 +431,8 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     enc_mpi = ctx->enc_mpi;
     enc_ctx = ctx->enc_ctx;
 
-    rc_cfg->fps_in_denorm = 1;
-    rc_cfg->fps_out_denorm = 1;
+    rc_cfg->fps_in_denom = 1;
+    rc_cfg->fps_out_denom = 1;
     rc_cfg->fps_in_num = 30;
     rc_cfg->fps_out_num = 30;
     rc_cfg->fps_in_flex = 0;
@@ -495,10 +495,10 @@ static MPP_RET mpi_rc_enc_init(MpiRc2TestCtx *ctx)
     /* fix input / output frame rate */
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", rc_cfg->fps_in_flex);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_num", rc_cfg->fps_in_num);
-    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denorm",  rc_cfg->fps_in_denorm);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denom",  rc_cfg->fps_in_denom);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_flex", rc_cfg->fps_out_flex);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_num",  rc_cfg->fps_out_num);
-    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denorm", rc_cfg->fps_out_denorm);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denom", rc_cfg->fps_out_denom);
     mpp_enc_cfg_set_s32(cfg, "rc:gop", enc_cmd->gop_len ? enc_cmd->gop_len : 30 * 2);
 
     /* drop frame or not when bitrate overflow */

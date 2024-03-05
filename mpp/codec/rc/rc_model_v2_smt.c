@@ -296,8 +296,8 @@ MPP_RET bits_model_smt_init(RcModelV2SmtCtx *ctx)
 
     ctx->bps_target_low_rate = ctx->usr_cfg.bps_min;
     ctx->bps_target_high_rate = ctx->usr_cfg.bps_max;
-    ctx->bits_per_pic_low_rate = axb_div_c(ctx->bps_target_low_rate, fps->fps_out_denorm, fps->fps_out_num);
-    ctx->bits_per_pic_high_rate = axb_div_c(ctx->bps_target_high_rate, fps->fps_out_denorm, fps->fps_out_num);
+    ctx->bits_per_pic_low_rate = axb_div_c(ctx->bps_target_low_rate, fps->fps_out_denom, fps->fps_out_num);
+    ctx->bits_per_pic_high_rate = axb_div_c(ctx->bps_target_high_rate, fps->fps_out_denom, fps->fps_out_num);
 
     ctx->acc_intra_bits_in_fps = 0;
     ctx->acc_inter_bits_in_fps = 0;
