@@ -328,10 +328,10 @@ MPP_RET test_mt_cfg_setup(MpiEncMtCtxInfo *info)
     /* fix input / output frame rate */
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", p->fps_in_flex);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_num", p->fps_in_num);
-    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denorm", p->fps_in_den);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denom", p->fps_in_den);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_flex", p->fps_out_flex);
     mpp_enc_cfg_set_s32(cfg, "rc:fps_out_num", p->fps_out_num);
-    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denorm", p->fps_out_den);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denom", p->fps_out_den);
 
     /* drop frame or not when bitrate overflow */
     mpp_enc_cfg_set_u32(cfg, "rc:drop_mode", MPP_ENC_RC_DROP_FRM_DISABLED);

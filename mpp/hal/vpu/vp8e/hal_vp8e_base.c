@@ -821,10 +821,10 @@ void write_ivf_header(void *hal, RK_U8 *dst)
     data[18] = (rc->fps_out_num >> 16) & 0xff;
     data[19] = (rc->fps_out_num >> 24) & 0xff;
 
-    data[20] = rc->fps_out_denorm & 0xff;
-    data[21] = (rc->fps_out_denorm >> 8) & 0xff;
-    data[22] = (rc->fps_out_denorm >> 16) & 0xff;
-    data[23] = (rc->fps_out_denorm >> 24) & 0xff;
+    data[20] = rc->fps_out_denom & 0xff;
+    data[21] = (rc->fps_out_denom >> 8) & 0xff;
+    data[22] = (rc->fps_out_denom >> 16) & 0xff;
+    data[23] = (rc->fps_out_denom >> 24) & 0xff;
 
     data[24] = ctx->frame_cnt & 0xff;
     data[25] = (ctx->frame_cnt >> 8) & 0xff;

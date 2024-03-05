@@ -560,13 +560,13 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
         if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
             dst->fps_in_flex = src->fps_in_flex;
             dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denorm = src->fps_in_denorm;
+            dst->fps_in_denom = src->fps_in_denom;
         }
 
         if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
             dst->fps_out_flex = src->fps_out_flex;
             dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denorm = src->fps_out_denorm;
+            dst->fps_out_denom = src->fps_out_denom;
         }
 
         if (change & MPP_ENC_RC_CFG_CHANGE_GOP) {
@@ -713,11 +713,11 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             }
         }
 
-        if (dst->fps_in_num < 0 || dst->fps_in_denorm < 0 ||
-            dst->fps_out_num < 0 || dst->fps_out_denorm < 0) {
-            mpp_err("invalid fps cfg [number:denorm:flex]: in [%d:%d:%d] out [%d:%d:%d]\n",
-                    dst->fps_in_num, dst->fps_in_denorm, dst->fps_in_flex,
-                    dst->fps_out_num, dst->fps_out_denorm, dst->fps_out_flex);
+        if (dst->fps_in_num < 0 || dst->fps_in_denom < 0 ||
+            dst->fps_out_num < 0 || dst->fps_out_denom < 0) {
+            mpp_err("invalid fps cfg [number:denom:flex]: in [%d:%d:%d] out [%d:%d:%d]\n",
+                    dst->fps_in_num, dst->fps_in_denom, dst->fps_in_flex,
+                    dst->fps_out_num, dst->fps_out_denom, dst->fps_out_flex);
             ret = MPP_ERR_VALUE;
         }
 
@@ -1223,10 +1223,10 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 
     cfg->fps.fps_in_flex    = rc->fps_in_flex;
     cfg->fps.fps_in_num     = rc->fps_in_num;
-    cfg->fps.fps_in_denorm  = rc->fps_in_denorm;
+    cfg->fps.fps_in_denom  = rc->fps_in_denom;
     cfg->fps.fps_out_flex   = rc->fps_out_flex;
     cfg->fps.fps_out_num    = rc->fps_out_num;
-    cfg->fps.fps_out_denorm = rc->fps_out_denorm;
+    cfg->fps.fps_out_denom = rc->fps_out_denom;
     cfg->igop               = rc->gop;
     cfg->max_i_bit_prop     = rc->max_i_prop;
     cfg->min_i_bit_prop     = rc->min_i_prop;
@@ -1302,7 +1302,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 
     if (info->st_gop) {
         cfg->vgop = info->st_gop;
-        if (cfg->vgop >= rc->fps_out_num / rc->fps_out_denorm &&
+        if (cfg->vgop >= rc->fps_out_num / rc->fps_out_denom &&
             cfg->vgop < cfg->igop ) {
             cfg->gop_mode = SMART_P;
             if (!cfg->vi_quality_delta)
@@ -1316,9 +1316,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
                 name_of_rc_mode[cfg->mode],
                 rc->bps_min, rc->bps_target, rc->bps_max,
                 cfg->fps.fps_in_flex ? "flex" : "fix",
-                cfg->fps.fps_in_num, cfg->fps.fps_in_denorm,
+                cfg->fps.fps_in_num, cfg->fps.fps_in_denom,
                 cfg->fps.fps_out_flex ? "flex" : "fix",
-                cfg->fps.fps_out_num, cfg->fps.fps_out_denorm,
+                cfg->fps.fps_out_num, cfg->fps.fps_out_denom,
                 cfg->igop, cfg->vgop);
     }
 }

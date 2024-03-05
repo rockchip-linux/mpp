@@ -213,8 +213,8 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_RC_MODE       = (1 << 0),
     MPP_ENC_RC_CFG_CHANGE_QUALITY       = (1 << 1),
     MPP_ENC_RC_CFG_CHANGE_BPS           = (1 << 2),     /* change on bps target / max / min */
-    MPP_ENC_RC_CFG_CHANGE_FPS_IN        = (1 << 5),     /* change on fps in  flex / numerator / denorminator */
-    MPP_ENC_RC_CFG_CHANGE_FPS_OUT       = (1 << 6),     /* change on fps out flex / numerator / denorminator */
+    MPP_ENC_RC_CFG_CHANGE_FPS_IN        = (1 << 5),     /* change on fps in  flex / numerator / denominator */
+    MPP_ENC_RC_CFG_CHANGE_FPS_OUT       = (1 << 6),     /* change on fps out flex / numerator / denominator */
     MPP_ENC_RC_CFG_CHANGE_GOP           = (1 << 7),
     MPP_ENC_RC_CFG_CHANGE_SKIP_CNT      = (1 << 8),
     MPP_ENC_RC_CFG_CHANGE_MAX_REENC     = (1 << 9),
@@ -312,8 +312,8 @@ typedef struct MppEncRcCfg_t {
      * fps_in_num
      * input frame rate numerator, if 0 then default 30
      *
-     * fps_in_denorm
-     * input frame rate denorminator, if 0 then default 1
+     * fps_in_denom
+     * input frame rate denominator, if 0 then default 1
      *
      * fps_out_flex
      * 0 - fix output frame rate
@@ -322,15 +322,15 @@ typedef struct MppEncRcCfg_t {
      * fps_out_num
      * output frame rate numerator, if 0 then default 30
      *
-     * fps_out_denorm
-     * output frame rate denorminator, if 0 then default 1
+     * fps_out_denom
+     * output frame rate denominator, if 0 then default 1
      */
     RK_S32  fps_in_flex;
     RK_S32  fps_in_num;
-    RK_S32  fps_in_denorm;
+    RK_S32  fps_in_denom;
     RK_S32  fps_out_flex;
     RK_S32  fps_out_num;
-    RK_S32  fps_out_denorm;
+    RK_S32  fps_out_denom;
 
     /*
      * gop - group of picture, gap between Intra frame

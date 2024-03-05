@@ -82,10 +82,10 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
 
         rc->fps_in_flex = 0;
         rc->fps_in_num = 30;
-        rc->fps_in_denorm = 1;
+        rc->fps_in_denom = 1;
         rc->fps_out_flex = 0;
         rc->fps_out_num = 30;
-        rc->fps_out_denorm = 1;
+        rc->fps_out_denom = 1;
         rc->rc_mode = MPP_ENC_RC_MODE_VBR;
         /* init default quant */
         jpeg_cfg->quant = 10;

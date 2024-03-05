@@ -137,7 +137,7 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
 {
     RK_S32 gop_len = ctx->usr_cfg.igop;
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
-    RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stats_time / fps->fps_out_denorm;
+    RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stats_time / fps->fps_out_denom;
     stat_len = stat_len ? stat_len : 1;
 
     bits_model_param_deinit(ctx);
@@ -1134,16 +1134,16 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->target_bps = ctx->usr_cfg.bps_target;
 
     if (gop_len >= 1)
-        gop_bits = (RK_S64)gop_len * target_bps * fps->fps_out_denorm;
+        gop_bits = (RK_S64)gop_len * target_bps * fps->fps_out_denom;
     else
-        gop_bits = (RK_S64)fps->fps_out_num * target_bps * fps->fps_out_denorm;
+        gop_bits = (RK_S64)fps->fps_out_num * target_bps * fps->fps_out_denom;
 
     ctx->gop_total_bits = gop_bits / fps->fps_out_num;
-    ctx->bit_per_frame = target_bps * fps->fps_out_denorm / fps->fps_out_num;
+    ctx->bit_per_frame = target_bps * fps->fps_out_denom / fps->fps_out_num;
     ctx->watl_thrd = 3 * target_bps;
     ctx->stat_watl = ctx->watl_thrd  >> 3;
     ctx->watl_base = ctx->stat_watl;
-    ctx->last_fps = fps->fps_out_num / fps->fps_out_denorm;
+    ctx->last_fps = fps->fps_out_num / fps->fps_out_denom;
 
     rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
               ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,
