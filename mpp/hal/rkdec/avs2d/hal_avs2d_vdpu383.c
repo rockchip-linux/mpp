@@ -424,6 +424,21 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
 
     regs->avs2d_paras.reg66_stream_len = MPP_ALIGN(mpp_packet_get_length(task_dec->input_packet), 16) + 64;
 
+    {
+        //scale down config
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->frame_slots, task_dec->output,
+                              SLOT_FRAME_PTR, &mframe);
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            regs->common_addr.reg133_scale_down_base = regs->avs2d_addrs.reg168_decout_base;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
+                                     (void *)&regs->avs2d_paras);
+        } else {
+            regs->ctrl_regs.reg9.scale_down_en = 0;
+        }
+    }
+
     return ret;
 }
 

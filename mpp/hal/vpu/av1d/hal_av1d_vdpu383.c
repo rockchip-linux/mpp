@@ -1360,7 +1360,23 @@ MPP_RET vdpu383_av1d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, rkv_ver_align);
     mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
-    (void)cfg;
+    {
+        // report hw_info to parser
+        const MppSocInfo *info = mpp_get_soc_info();
+        const void *hw_info = NULL;
+        RK_U32 i;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
+            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
+                hw_info = info->dec_caps[i];
+                break;
+            }
+        }
+
+        mpp_assert(hw_info);
+        cfg->hw_info = hw_info;
+    }
+
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -2336,6 +2352,21 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         vdpu383_av1d_set_cdf(p_hal, dxva);
     }
     mpp_buffer_sync_end(ctx->bufs);
+
+    {
+        //scale down config
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits,
+                              SLOT_FRAME_PTR, &mframe);
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            regs->com_pkt_addr.reg133_scale_down_tile_base = regs->av1d_addrs.reg168_decout_base;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
+                                     (void *)&regs->av1d_paras);
+        } else {
+            regs->ctrl_regs.reg9.scale_down_en = 0;
+        }
+    }
 
 __RETURN:
     return ret = MPP_OK;

@@ -1064,6 +1064,21 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         task->dec.flags.wait_done = 1;
     }
 
+    {
+        //scale down config
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output,
+                              SLOT_FRAME_PTR, &mframe);
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            vp9_hw_regs->common_addr.reg133_scale_down_base = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &vp9_hw_regs->ctrl_regs,
+                                     (void *)&vp9_hw_regs->vp9d_paras);
+        } else {
+            vp9_hw_regs->ctrl_regs.reg9.scale_down_en = 0;
+        }
+    }
+
     return MPP_OK;
 }
 

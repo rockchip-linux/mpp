@@ -520,6 +520,20 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
         mpp_dev_set_reg_offset(p_hal->dev, 197, reg_ctx->offset_cabac);
     }
 
+    {
+        //scale down config
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits,
+                              SLOT_FRAME_PTR, &mframe);
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            regs->common_addr.reg133_scale_down_base = regs->h264d_addrs.reg168_decout_base;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs, (void*)&regs->h264d_paras);
+        } else {
+            regs->ctrl_regs.reg9.scale_down_en = 0;
+        }
+    }
+
     return MPP_OK;
 }
 

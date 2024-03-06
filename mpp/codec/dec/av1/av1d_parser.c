@@ -802,6 +802,11 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
+    if (s->cfg->base.enable_thumbnail && s->hw_info && s->hw_info->cap_down_scale)
+        mpp_frame_set_thumbnail_en(frame->f, 1);
+    else
+        mpp_frame_set_thumbnail_en(frame->f, 0);
+
     value = 4;
     mpp_slots_set_prop(s->slots, SLOTS_NUMERATOR, &value);
     value = 1;
@@ -858,6 +863,7 @@ MPP_RET av1d_parser_init(Av1CodecContext *ctx, ParserCfg *init)
     s->packet_slots = init->packet_slots;
     s->slots = init->frame_slots;
     s->cfg = init->cfg;
+    s->hw_info = init->hw_info;
     mpp_buf_slot_setup(s->slots, 25);
 
     mpp_env_get_u32("av1d_debug", &av1d_debug, 0);

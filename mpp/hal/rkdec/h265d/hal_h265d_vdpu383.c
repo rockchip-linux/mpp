@@ -1185,6 +1185,20 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     vdpu383_setup_statistic(&hw_regs->ctrl_regs);
     mpp_buffer_sync_end(reg_ctx->bufs);
 
+    {
+        //scale down config
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+                              SLOT_FRAME_PTR, &mframe);
+        if (mpp_frame_get_thumbnail_en(mframe)) {
+            hw_regs->common_addr.reg133_scale_down_base = hw_regs->h265d_addrs.reg168_decout_base;
+            vdpu383_setup_down_scale(mframe, reg_ctx->dev, &hw_regs->ctrl_regs, (void*)&hw_regs->h265d_paras);
+        } else {
+            hw_regs->ctrl_regs.reg9.scale_down_en = 0;
+        }
+    }
+
     return ret;
 }
 

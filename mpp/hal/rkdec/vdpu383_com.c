@@ -11,6 +11,7 @@
 #include "mpp_buffer.h"
 #include "mpp_common.h"
 #include "mpp_compat_impl.h"
+#include "mpp_frame_impl.h"
 
 #include "vdpu383_com.h"
 
@@ -167,6 +168,61 @@ RK_S32 vdpu383_set_rcbinfo(MppDev dev, Vdpu383RcbInfo *rcb_info)
     }
 
     return 0;
+}
+
+void vdpu383_setup_down_scale(MppFrame frame, MppDev dev, Vdpu383CtrlReg *com, void* comParas)
+{
+    RK_U32 down_scale_height = mpp_frame_get_height(frame) >> 1;
+    RK_U32 down_scale_width = mpp_frame_get_width(frame) >> 1;
+    RK_U32 down_scale_ver = MPP_ALIGN(down_scale_height, 16);
+    RK_U32 down_scale_hor = MPP_ALIGN(down_scale_width, 16);
+    Vdpu383RegCommParas* paras = (Vdpu383RegCommParas*)comParas;
+    MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+    MppMeta meta = mpp_frame_get_meta(frame);
+    RK_U32 down_scale_y_offset = 0;
+    RK_U32 down_scale_uv_offset = 0;
+    RK_U32 down_scale_y_virstride = down_scale_ver * down_scale_hor;
+    RK_U32 downscale_buf_size;
+
+    /*
+     *  no matter what format, scale down image will output as 8bit raster format;
+     *  down_scale image buffer size was already added to the buf_size of mpp_frame,
+     *  which was calculated in mpp_buf_slot.cpp: (size = original_size + scaledown_size)
+     */
+    switch ((fmt & MPP_FRAME_FMT_MASK)) {
+    case MPP_FMT_YUV400 : {
+        downscale_buf_size = down_scale_y_virstride;
+    } break;
+    case MPP_FMT_YUV420SP_10BIT :
+    case MPP_FMT_YUV420SP : {
+        downscale_buf_size = down_scale_y_virstride * 3 / 2;
+    } break;
+    case MPP_FMT_YUV422SP_10BIT :
+    case MPP_FMT_YUV422SP : {
+        downscale_buf_size = down_scale_y_virstride * 2;
+    } break;
+    case MPP_FMT_YUV444SP : {
+        downscale_buf_size = down_scale_y_virstride * 3;
+    } break;
+    default : {
+        downscale_buf_size = down_scale_y_virstride * 3 / 2;
+    } break;
+    }
+    downscale_buf_size = MPP_ALIGN(downscale_buf_size, 16);
+
+    down_scale_y_offset = MPP_ALIGN((mpp_frame_get_buf_size(frame) - downscale_buf_size), 16);
+    down_scale_uv_offset = down_scale_y_offset + down_scale_y_virstride;
+
+    com->reg9.scale_down_en = 1;
+    com->reg9.av1_fgs_en = 0;
+    paras->reg71_scl_ref_hor_virstride = down_scale_hor >> 4;
+    paras->reg72_scl_ref_raster_uv_hor_virstride = down_scale_hor >> 4;
+    if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV444SP)
+        paras->reg72_scl_ref_raster_uv_hor_virstride = down_scale_hor >> 3;
+    paras->reg73_scl_ref_virstride = down_scale_y_virstride >> 4;
+    mpp_dev_set_reg_offset(dev, 133, down_scale_y_offset);
+    mpp_meta_set_s32(meta, KEY_DEC_TBN_Y_OFFSET, down_scale_y_offset);
+    mpp_meta_set_s32(meta, KEY_DEC_TBN_UV_OFFSET, down_scale_uv_offset);
 }
 
 #ifdef DUMP_VDPU383_DATAS
