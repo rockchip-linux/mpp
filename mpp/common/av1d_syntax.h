@@ -85,7 +85,6 @@ typedef struct _DXVA_PicParams_AV1 {
             UINT32 enable_ref_frame_mvs         : 1;
             UINT32 reference_frame_update       : 1;
             UINT32 error_resilient_mode         : 1;
-            UINT32 film_grain_params_present    : 1;
         } coding;
     };
 

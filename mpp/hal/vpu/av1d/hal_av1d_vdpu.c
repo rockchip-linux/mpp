@@ -2068,8 +2068,8 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg11.sw_mcomp_filt_type    = dxva->interp_filter;
     regs->swreg11.sw_high_prec_mv_e     = dxva->coding.high_precision_mv;
-    regs->swreg11.sw_comp_pred_mode     =  dxva->coding.reference_mode ? 2 : 0;
-    regs->swreg11.sw_transform_mode     = dxva->coding.tx_mode;
+    regs->swreg11.sw_comp_pred_mode     = dxva->coding.reference_mode ? 2 : 0;
+    regs->swreg11.sw_transform_mode     = dxva->coding.tx_mode ? (dxva->coding.tx_mode + 2) : 0;
     regs->swreg12.sw_max_cb_size        = dxva->coding.use_128x128_superblock ? 7 : 6;;
     regs->swreg12.sw_min_cb_size        = 3;
 
