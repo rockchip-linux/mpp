@@ -1444,7 +1444,7 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
     }
 
     mpp_put_bits(&bp, dxva->film_grain.matrix_coefficients, 8);
-    mpp_put_bits(&bp, dxva->coding.film_grain_params_present, 1);
+    mpp_put_bits(&bp, dxva->coding.film_grain_en, 1);
 
     /* frame uncompresss header */
     {
@@ -1468,24 +1468,12 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
     for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++)
         mpp_put_bits(&bp, dxva->ref_frame_valued ? dxva->ref_frame_idx[i] : (RK_U32) - 1, 3);
 
-    // static UINT32 switchable_motion_mode;
-    // if (!(dxva->format.frame_type == KEY_FRAME || dxva->format.frame_type == INTRA_ONLY_FRAME)) {
-    //     switchable_motion_mode = dxva->coding.switchable_motion_mode;
-    // }
     mpp_put_bits(&bp, dxva->interp_filter, 3);
     mpp_put_bits(&bp, dxva->coding.switchable_motion_mode, 1);
     mpp_put_bits(&bp, dxva->coding.use_ref_frame_mvs, 1);
 
     {
         RK_U32 mapped_idx = 0;
-        // static RK_U32 mapped_ref_order_hint[8];
-        //
-        // if (!(dxva->format.frame_type == KEY_FRAME || dxva->format.frame_type == INTRA_ONLY_FRAME)) {
-        //     for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
-        //         mapped_idx = dxva->ref_frame_idx[i];
-        //         mapped_ref_order_hint[i] = dxva->ref_order_hint[mapped_idx];
-        //     }
-        // }
 
         for (i = 0; i < NUM_REF_FRAMES; i++) {
             mpp_put_bits(&bp, dxva->frame_refs[i].order_hint, 8);
@@ -1601,7 +1589,7 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
         mpp_put_bits(&bp, dxva->loop_filter.mode_deltas[i], 7);
 
     /* cdef params */
-    mpp_put_bits(&bp, dxva->cdef.damping, 3);
+    mpp_put_bits(&bp, dxva->cdef.damping + 3, 3);
     mpp_put_bits(&bp, dxva->cdef.bits, 2);
 
     for (i = 0; i < 8; i++)
@@ -1701,19 +1689,19 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
     }
 
     /* ref frame info */
-    for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i)
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
         mpp_put_bits(&bp, dxva->frame_ref_state[i].upscaled_width, 16);
 
-    for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i)
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
         mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_height, 16);
 
-    for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i)
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
         mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_width, 16);
 
-    for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i)
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
         mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_type, 2);
 
-    for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i) {
+    for (i = 0; i < NUM_REF_FRAMES; ++i) {
         mpp_put_bits(&bp, dxva->frame_refs[i].lst_frame_offset, 8);
         mpp_put_bits(&bp, dxva->frame_refs[i].lst2_frame_offset, 8);
         mpp_put_bits(&bp, dxva->frame_refs[i].lst3_frame_offset, 8);
@@ -2288,13 +2276,6 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->av1d_addrs.reg168_decout_base = mpp_buffer_get_fd(mbuffer);
         regs->av1d_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(mbuffer);
         // VDPU383_SET_BUF_PROTECT_VAL(mpp_buffer_get_ptr(mbuffer), mpp_buffer_get_size(mbuffer), 0xbb, 128);
-
-        // printf("======> lhj add func:%s line:%d order:%d ref_frame_idx:", __func__, __LINE__, dxva->order_hint);
-        // for (i = 0; i < NUM_REF_FRAMES; i++) printf(" %d", dxva->ref_frame_idx[i]);
-        // printf("\n");
-        // printf("======> lhj add func:%s line:%d slotIdx:", __func__, __LINE__, dxva->order_hint);
-        // for (i = 0; i < NUM_REF_FRAMES; i++) printf(" %d", dxva->frame_refs[i].Index);
-        // printf("\n");
 
         for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
             mapped_idx = dxva->ref_frame_idx[i];

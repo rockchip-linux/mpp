@@ -1453,8 +1453,7 @@ static RK_S32 mpp_av1_read_tx_mode(AV1Context *ctx, BitReadCtx_t *gb,
         infer(tx_mode, 0);
     else {
         flag(tx_mode);
-        // current->tx_mode = current->tx_mode ? TX_MODE_SELECT : TX_MODE_LARGEST;
-        current->tx_mode = current->tx_mode ? 2 : 1;
+        current->tx_mode = current->tx_mode ? TX_MODE_SELECT : TX_MODE_LARGEST;
     }
 
     return 0;
@@ -1967,8 +1966,6 @@ static RK_S32 mpp_av1_uncompressed_header(AV1Context *ctx, BitReadCtx_t *gb,
         else
             infer(allow_intrabc, 0);
 
-        // for (i = 0; i < AV1_REFS_PER_FRAME; i++)
-        //     infer(ref_frame_idx[i], INVALID_IDX);
         current->ref_frame_valued = 0;
     } else {
         if (!seq->enable_order_hint) {

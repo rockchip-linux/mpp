@@ -409,12 +409,9 @@ enum CompPredModeType {
 
 enum TxfmMode {
     ONLY_4X4 = 0,
-    ALLOW_8X8 = 1,
-    ALLOW_16X16 = 2,
-    ALLOW_32X32 = 3,
-    TX_MODE_LARGEST = ALLOW_32X32,  // AV1
-    TX_MODE_SELECT = 4,
-    NB_TXFM_MODES = 5,
+    TX_MODE_LARGEST,
+    TX_MODE_SELECT,
+    NB_TXFM_MODES,
 };
 
 enum SegLevelFeatures {
