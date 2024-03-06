@@ -566,8 +566,12 @@ MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
         AutoMutex autoFrameLock(mFrmOut->mutex());
 
         if (mFrmOut->list_size()) {
+            MppBuffer buffer;
+
             mFrmOut->del_at_head(frame, sizeof(*frame));
-            mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(*frame));
+            buffer = mpp_frame_get_buffer(*frame);
+            if (buffer)
+                mpp_buffer_sync_ro_begin(buffer);
             mFrameGetCount++;
             return MPP_OK;
         }
@@ -586,8 +590,12 @@ MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
             AutoMutex autoFrameLock(mFrmOut->mutex());
 
             if (mFrmOut->list_size()) {
+                MppBuffer buffer;
+
                 mFrmOut->del_at_head(frame, sizeof(*frame));
-                mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(*frame));
+                buffer = mpp_frame_get_buffer(*frame);
+                if (buffer)
+                    mpp_buffer_sync_ro_begin(buffer);
                 mFrameGetCount++;
                 frm_rdy = 1;
             }
