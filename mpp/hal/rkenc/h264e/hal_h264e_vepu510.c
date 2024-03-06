@@ -1173,10 +1173,14 @@ static void setup_Vepu510Sqi(Vepu510Sqi *reg)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu510_rc_base(HalVepu510RegSet *regs, H264eSps *sps,
-                                  H264eSlice *slice, MppEncHwCfg *hw,
-                                  EncRcTask *rc_task)
+static void setup_vepu510_rc_base(HalVepu510RegSet *regs, HalH264eVepu510Ctx *ctx, EncRcTask *rc_task)
 {
+
+    H264eSps *sps = ctx->sps;
+    H264eSlice *slice = ctx->slice;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncRcCfg *rc = &cfg->rc;
+    MppEncHwCfg *hw = &cfg->hw;
     EncRcTaskInfo *rc_info = &rc_task->info;
     RK_S32 mb_w = sps->pic_width_in_mbs;
     RK_S32 mb_h = sps->pic_height_in_mbs;
@@ -1192,15 +1196,22 @@ static void setup_vepu510_rc_base(HalVepu510RegSet *regs, H264eSps *sps,
     hal_h264e_dbg_rc("bittarget %d qp [%d %d %d]\n", rc_info->bit_target,
                      qp_min, qp_target, qp_max);
 
-    if (mb_target_bits_mul_16 >= 0x100000) {
-        mb_target_bits_mul_16 = 0x50000;
+    hal_h264e_dbg_func("enter\n");
+
+    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        regs->reg_frm.enc_pic.pic_qp    = rc_info->quality_target;
+        regs->reg_frm.rc_qp.rc_max_qp   = rc_info->quality_target;
+        regs->reg_frm.rc_qp.rc_min_qp   = rc_info->quality_target;
+
+        return;
     }
+
+    if (mb_target_bits_mul_16 >= 0x100000)
+        mb_target_bits_mul_16 = 0x50000;
 
     mb_target_bits = (mb_target_bits_mul_16 * mb_w) >> 4;
     negative_bits_thd = 0 - 5 * mb_target_bits / 16;
     positive_bits_thd = 5 * mb_target_bits / 16;
-
-    hal_h264e_dbg_func("enter\n");
 
     regs->reg_frm.enc_pic.pic_qp         = qp_target;
 
@@ -1899,7 +1910,7 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     setup_vepu510_rdo_pred(regs, sps, pps, slice);
     setup_Vepu510Sqi(&regs->reg_sqi);
 
-    setup_vepu510_rc_base(regs, sps, slice, &cfg->hw, rc_task);
+    setup_vepu510_rc_base(regs, ctx, rc_task);
     setup_vepu510_io_buf(regs, ctx->offsets, task);
     setup_vepu510_recn_refr(ctx, regs);
 
