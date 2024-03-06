@@ -2230,21 +2230,23 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
                 RK_U32 fbd_offset;
 
                 regs->ctrl_regs.reg9.fbc_e = 1;
-                regs->av1d_paras.reg68_hor_virstride = pixel_width / 64;
+                regs->av1d_paras.reg68_hor_virstride = MPP_ALIGN(hor_virstride, 64) / 64;
                 fbd_offset = regs->av1d_paras.reg68_hor_virstride * MPP_ALIGN(ver_virstride, 8) * 4;
                 regs->av1d_addrs.reg193_fbc_payload_offset = fbd_offset;
+                regs->av1d_paras.reg80_error_ref_hor_virstride = regs->av1d_paras.reg68_hor_virstride;
             } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
                 regs->ctrl_regs.reg9.tile_e = 1;
                 regs->av1d_paras.reg68_hor_virstride = hor_virstride * 6 / 16;
                 regs->av1d_paras.reg70_y_virstride = (y_virstride + uv_virstride) / 16;
+                regs->av1d_paras.reg80_error_ref_hor_virstride = hor_virstride >> 4;
             } else {
                 regs->ctrl_regs.reg9.fbc_e = 0;
                 regs->av1d_paras.reg68_hor_virstride = hor_virstride >> 4;
                 regs->av1d_paras.reg69_raster_uv_hor_virstride = hor_virstride >> 4;
                 regs->av1d_paras.reg70_y_virstride = y_virstride >> 4;
+                regs->av1d_paras.reg80_error_ref_hor_virstride = hor_virstride >> 4;
             }
             /* error */
-            regs->av1d_paras.reg80_error_ref_hor_virstride = hor_virstride >> 4;
             regs->av1d_paras.reg81_error_ref_raster_uv_hor_virstride = hor_virstride >> 4;
             regs->av1d_paras.reg82_error_ref_virstride = y_virstride >> 4;
         }
@@ -2256,7 +2258,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
                 if (mframe) {
                     hor_virstride = mpp_frame_get_hor_stride(mframe);
                     if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-                        hor_virstride = MPP_ALIGN(hor_virstride, 64) / 64;
+                        hor_virstride = MPP_ALIGN(hor_virstride, 64) / 4;
                     }
                     ver_virstride = mpp_frame_get_ver_stride(mframe);
                     y_virstride = hor_virstride * ver_virstride;
