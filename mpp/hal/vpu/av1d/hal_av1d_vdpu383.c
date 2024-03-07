@@ -2226,7 +2226,6 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
             uv_virstride = hor_virstride * ver_virstride / 2;
 
             if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-                RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
                 RK_U32 fbd_offset;
 
                 regs->ctrl_regs.reg9.fbc_e = 1;
