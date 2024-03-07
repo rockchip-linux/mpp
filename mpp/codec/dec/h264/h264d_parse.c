@@ -232,6 +232,11 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         currSlice->p_Dec->nalu_ret = NaluNotSupport;
         return MPP_OK;
     }
+    //!< check whether supprot mvc
+    if (currSlice->mvcExt.valid && !currSlice->p_Dec->cfg->base.enable_mvc) {
+        currSlice->p_Dec->nalu_ret = MvcDisAble;
+        return MPP_OK;
+    }
 
     //!< nalu_parse
     switch (currSlice->p_Cur->nalu.nalu_type) {
@@ -240,8 +245,6 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SLICE.");
         FUN_CHECK(ret = process_slice(currSlice));
         currSlice->p_Dec->nalu_ret = StartOfPicture;
-        if (currSlice->layer_id && !currSlice->p_Dec->cfg->base.enable_mvc)
-            currSlice->p_Dec->nalu_ret = MvcDisAble;
         break;
     case H264_NALU_TYPE_SPS:
         H264D_DBG(H264D_DBG_PARSE_NALU, "nalu_type=SPS");
