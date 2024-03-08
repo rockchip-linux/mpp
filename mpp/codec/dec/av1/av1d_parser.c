@@ -796,6 +796,8 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         mpp_frame_set_offset_x(frame->f, 0);
         mpp_frame_set_offset_y(frame->f, 0);
         mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 28);
+    } else if (MPP_FRAME_FMT_IS_TILE(s->cfg->base.out_fmt)) {
+        mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_TILE_FLAG))));
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
