@@ -1500,8 +1500,18 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         return MPP_OK;
     }
 
-    if (usr_cfg->mode == RC_FIXQP)
+    if (usr_cfg->mode == RC_FIXQP) {
+        RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
+
+        if (frm->is_intra && i_quality_delta)
+            p->start_qp = quality_target - i_quality_delta;
+        else
+            p->start_qp = quality_target;
+
+        info->quality_target = p->start_qp;
+
         return MPP_OK;
+    }
 
     /* setup quality parameters */
     if (p->first_frm_flg && frm->is_intra) {
