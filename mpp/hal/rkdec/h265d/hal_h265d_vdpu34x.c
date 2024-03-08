@@ -693,6 +693,7 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
 
     width = MPP_ALIGN(width, ctu_size);
     height = MPP_ALIGN(height, ctu_size);
+
     /* RCB_STRMD_ROW */
     if (width > 8192) {
         RK_U32 factor = ctu_size / 16;
@@ -700,27 +701,33 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     } else
         rcb_bits = 0;
     rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_TRANSD_ROW */
     if (width > 8192)
         rcb_bits = (MPP_ALIGN(width - 8192, 4) << 1) + ext_align_size;
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_TRANSD_COL */
-    if (height > 8192)
-        rcb_bits = (MPP_ALIGN(height - 8192, 4) << 1) + ext_align_size;
+    if (height > 8192 && tile_col_cut_num)
+        rcb_bits = (MPP_ALIGN(height - 8192, 4) << 1);
     else
         rcb_bits = 0;
     rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_INTER_ROW */
     rcb_bits = width * 22 + ext_align_size;
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_INTER_COL */
-    rcb_bits = height * 22 + ext_align_size;
+    rcb_bits = tile_col_cut_num ? height * 22 : 0;
     rcb_info[RCB_INTER_COL].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_INTRA_ROW */
     rcb_bits = width * 48 + ext_align_size;
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_DBLK_ROW */
     if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
         if (ctu_size == 32)
@@ -735,6 +742,7 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     }
     rcb_bits += (tile_col_cut_num * (bit_depth == 8 ? 256 : 192)) + ext_align_size;
     rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_SAO_ROW */
     if (chroma_fmt_idc == 1 || chroma_fmt_idc == 2) {
         rcb_bits = width * (128 / ctu_size + 2 * bit_depth);
@@ -743,6 +751,7 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     }
     rcb_bits += (tile_col_cut_num * (bit_depth == 8 ? 160 : 128)) + ext_align_size;
     rcb_info[RCB_SAO_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_FBC_ROW */
     if (hw_regs->common.reg012.fbc_e) {
         rcb_bits = width * (chroma_fmt_idc - 1) * 2 * bit_depth;
@@ -750,21 +759,25 @@ static void h265d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
     } else
         rcb_bits = 0;
     rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
     /* RCB_FILT_COL */
-    if (hw_regs->common.reg012.fbc_e) {
-        RK_U32 ctu_idx = ctu_size >> 5;
-        RK_U32 a = filterd_fbc_on[chroma_fmt_idc][ctu_idx].a;
-        RK_U32 b = filterd_fbc_on[chroma_fmt_idc][ctu_idx].b;
+    if (tile_col_cut_num) {
+        if (hw_regs->common.reg012.fbc_e) {
+            RK_U32 ctu_idx = ctu_size >> 5;
+            RK_U32 a = filterd_fbc_on[ctu_idx][chroma_fmt_idc].a;
+            RK_U32 b = filterd_fbc_on[ctu_idx][chroma_fmt_idc].b;
 
-        rcb_bits = height * (a * bit_depth + b);
-    } else {
-        RK_U32 ctu_idx = ctu_size >> 5;
-        RK_U32 a = filterd_fbc_off[chroma_fmt_idc][ctu_idx].a;
-        RK_U32 b = filterd_fbc_off[chroma_fmt_idc][ctu_idx].b;
+            rcb_bits = height * (a * bit_depth + b);
+        } else {
+            RK_U32 ctu_idx = ctu_size >> 5;
+            RK_U32 a = filterd_fbc_off[ctu_idx][chroma_fmt_idc].a;
+            RK_U32 b = filterd_fbc_off[ctu_idx][chroma_fmt_idc].b;
 
-        rcb_bits = height * (a * bit_depth + b + (bit_depth == 10 ? 192 * ctu_size >> 4 : 0));
-    }
-    rcb_bits += ext_align_size;
+            rcb_bits = height * (a * bit_depth + b + (bit_depth == 10 ? 16 : 0));
+        }
+    } else
+        rcb_bits = 0;
+
     rcb_info[RCB_FILT_COL].size = MPP_RCB_BYTES(rcb_bits);
 }
 
