@@ -430,6 +430,142 @@ typedef struct Vepu510SqiCfg_t {
         RK_U32 i_cu16_madi_cost_multi    : 8;
         RK_U32 reserved                  : 8;
     } rdo_atr_i_cu16_madi_cfg0;
+
+    /* 0x00002100 reg2112 */
+    struct {
+        RK_U32 base_thre_rough_mad32_intra           : 4;
+        RK_U32 delta0_thre_rough_mad32_intra         : 4;
+        RK_U32 delta1_thre_rough_mad32_intra         : 6;
+        RK_U32 delta2_thre_rough_mad32_intra         : 6;
+        RK_U32 delta3_thre_rough_mad32_intra         : 7;
+        RK_U32 delta4_thre_rough_mad32_intra_low5    : 5;
+    } cudecis_thd0;
+
+    /* 0x00002104 reg2113 */
+    struct {
+        RK_U32 delta4_thre_rough_mad32_intra_high2    : 2;
+        RK_U32 delta5_thre_rough_mad32_intra          : 7;
+        RK_U32 delta6_thre_rough_mad32_intra          : 7;
+        RK_U32 base_thre_fine_mad32_intra             : 4;
+        RK_U32 delta0_thre_fine_mad32_intra           : 4;
+        RK_U32 delta1_thre_fine_mad32_intra           : 5;
+        RK_U32 delta2_thre_fine_mad32_intra_low3      : 3;
+    } cudecis_thd1;
+
+    /* 0x00002108 reg2114 */
+    struct {
+        RK_U32 delta2_thre_fine_mad32_intra_high2    : 2;
+        RK_U32 delta3_thre_fine_mad32_intra          : 5;
+        RK_U32 delta4_thre_fine_mad32_intra          : 5;
+        RK_U32 delta5_thre_fine_mad32_intra          : 6;
+        RK_U32 delta6_thre_fine_mad32_intra          : 6;
+        RK_U32 base_thre_str_edge_mad32_intra        : 3;
+        RK_U32 delta0_thre_str_edge_mad32_intra      : 2;
+        RK_U32 delta1_thre_str_edge_mad32_intra      : 3;
+    } cudecis_thd2;
+
+    /* 0x0000210c reg2115 */
+    struct {
+        RK_U32 delta2_thre_str_edge_mad32_intra      : 3;
+        RK_U32 delta3_thre_str_edge_mad32_intra      : 4;
+        RK_U32 base_thre_str_edge_bgrad32_intra      : 5;
+        RK_U32 delta0_thre_str_edge_bgrad32_intra    : 2;
+        RK_U32 delta1_thre_str_edge_bgrad32_intra    : 3;
+        RK_U32 delta2_thre_str_edge_bgrad32_intra    : 4;
+        RK_U32 delta3_thre_str_edge_bgrad32_intra    : 5;
+        RK_U32 base_thre_mad16_intra                 : 3;
+        RK_U32 delta0_thre_mad16_intra               : 3;
+    } cudecis_thd3;
+
+    /* 0x00002110 reg2116 */
+    struct {
+        RK_U32 delta1_thre_mad16_intra          : 3;
+        RK_U32 delta2_thre_mad16_intra          : 4;
+        RK_U32 delta3_thre_mad16_intra          : 5;
+        RK_U32 delta4_thre_mad16_intra          : 5;
+        RK_U32 delta5_thre_mad16_intra          : 6;
+        RK_U32 delta6_thre_mad16_intra          : 6;
+        RK_U32 delta0_thre_mad16_ratio_intra    : 3;
+    } cudecis_thd4;
+
+    /* 0x00002114 reg2117 */
+    struct {
+        RK_U32 delta1_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta2_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta3_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta4_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta5_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta6_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta7_thre_mad16_ratio_intra           : 3;
+        RK_U32 delta0_thre_rough_bgrad32_intra         : 3;
+        RK_U32 delta1_thre_rough_bgrad32_intra         : 4;
+        RK_U32 delta2_thre_rough_bgrad32_intra_low4    : 4;
+    } cudecis_thd5;
+
+    /* 0x00002118 reg2118 */
+    struct {
+        RK_U32 delta2_thre_rough_bgrad32_intra_high2    : 2;
+        RK_U32 delta3_thre_rough_bgrad32_intra          : 10;
+        RK_U32 delta4_thre_rough_bgrad32_intra          : 10;
+        RK_U32 delta5_thre_rough_bgrad32_intra_low10    : 10;
+    } cudecis_thd6;
+
+    /* 0x0000211c reg2119 */
+    struct {
+        RK_U32 delta5_thre_rough_bgrad32_intra_high1    : 1;
+        RK_U32 delta6_thre_rough_bgrad32_intra          : 12;
+        RK_U32 delta7_thre_rough_bgrad32_intra          : 13;
+        RK_U32 delta0_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta1_thre_bgrad16_ratio_intra_low2     : 2;
+    } cudecis_thd7;
+
+    /* 0x00002120 reg2120 */
+    struct {
+        RK_U32 delta1_thre_bgrad16_ratio_intra_high2    : 2;
+        RK_U32 delta2_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta3_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta4_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta5_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta6_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta7_thre_bgrad16_ratio_intra          : 4;
+        RK_U32 delta0_thre_fme_ratio_inter              : 3;
+        RK_U32 delta1_thre_fme_ratio_inter              : 3;
+    } cudecis_thdt8;
+
+    /* 0x00002124 reg2121 */
+    struct {
+        RK_U32 delta2_thre_fme_ratio_inter    : 3;
+        RK_U32 delta3_thre_fme_ratio_inter    : 3;
+        RK_U32 delta4_thre_fme_ratio_inter    : 3;
+        RK_U32 delta5_thre_fme_ratio_inter    : 3;
+        RK_U32 delta6_thre_fme_ratio_inter    : 3;
+        RK_U32 delta7_thre_fme_ratio_inter    : 3;
+        RK_U32 base_thre_fme32_inter          : 3;
+        RK_U32 delta0_thre_fme32_inter        : 3;
+        RK_U32 delta1_thre_fme32_inter        : 4;
+        RK_U32 delta2_thre_fme32_inter        : 4;
+    } cudecis_thd9;
+
+    /* 0x00002128 reg2122 */
+    struct {
+        RK_U32 delta3_thre_fme32_inter    : 5;
+        RK_U32 delta4_thre_fme32_inter    : 6;
+        RK_U32 delta5_thre_fme32_inter    : 7;
+        RK_U32 delta6_thre_fme32_inter    : 8;
+        RK_U32 thre_cme32_inter           : 6;
+    } cudecis_thd10;
+
+    /* 0x0000212c reg2123 */
+    struct {
+        RK_U32 delta0_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta1_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta2_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta3_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta4_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta5_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta6_thre_mad_fme_ratio_inter    : 4;
+        RK_U32 delta7_thre_mad_fme_ratio_inter    : 4;
+    } cudecis_thd11;
 } Vepu510Sqi;
 
 typedef struct Vepu510RoiRegion_t {
