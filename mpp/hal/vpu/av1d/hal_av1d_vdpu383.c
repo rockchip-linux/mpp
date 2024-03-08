@@ -2569,6 +2569,8 @@ MPP_RET vdpu383_av1d_control(void *hal, MpiCmd cmd_type, void *param)
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->slots, (MppFrame)param, 16);
+        } else if (imgwidth > 1920 || imgheight > 1088) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
         break;
     }

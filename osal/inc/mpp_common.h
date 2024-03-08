@@ -224,6 +224,7 @@ RK_U32 mpp_align_16(RK_U32 val);
 RK_U32 mpp_align_64(RK_U32 val);
 RK_U32 mpp_align_128(RK_U32 val);
 RK_U32 mpp_align_256_odd(RK_U32 val);
+RK_U32 mpp_align_128_odd_plus_64(RK_U32 val);
 
 #ifdef __cplusplus
 }

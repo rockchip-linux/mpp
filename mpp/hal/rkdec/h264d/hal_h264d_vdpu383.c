@@ -120,11 +120,6 @@ static RK_U32 rkv_hor_align(RK_U32 val)
     return MPP_ALIGN(val, 16);
 }
 
-static RK_U32 rkv_hor_align_256_odds(RK_U32 val)
-{
-    return (MPP_ALIGN(val, 256) | 256);
-}
-
 static RK_U32 rkv_len_align(RK_U32 val)
 {
     return (2 * MPP_ALIGN(val, 16));
@@ -1052,7 +1047,7 @@ MPP_RET vdpu383_h264d_control(void *hal, MpiCmd cmd_type, void *param)
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align_256_odds);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
     } break;
     case MPP_DEC_SET_OUTPUT_FORMAT: {

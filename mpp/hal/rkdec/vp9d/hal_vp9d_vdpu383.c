@@ -336,7 +336,7 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
 
     hw_ctx->mv_base_addr = -1;
     hw_ctx->pre_mv_base_addr = -1;
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
     mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, vp9_ver_align);
 
     if (p_hal->group == NULL) {
@@ -860,8 +860,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             /* error stride */
             vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = w / 64;
         } else {
-            sw_y_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
-            sw_uv_hor_virstride = (vp9_hor_align((pic_param->width * bit_depth) >> 3) >> 4);
+            sw_y_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
+            sw_uv_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
             sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
             sw_uv_virstride = sw_y_virstride / 2;
 
@@ -948,7 +948,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         if (fbc_en) {
             y_hor_virstride = uv_hor_virstride = MPP_ALIGN(ref_frame_width_y, 64) / 64;
         } else {
-            y_hor_virstride = uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
+            y_hor_virstride = uv_hor_virstride = (mpp_align_128_odd_plus_64((ref_frame_width_y * bit_depth) >> 3) >> 4);
         }
         y_virstride = y_hor_virstride * pic_h[0];
 
@@ -1289,7 +1289,7 @@ static MPP_RET hal_vp9d_vdpu383_control(void *hal, MpiCmd cmd_type, void *param)
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
         } else {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
     } break;
     default : {

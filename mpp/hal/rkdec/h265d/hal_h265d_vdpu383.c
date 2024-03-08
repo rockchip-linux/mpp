@@ -1411,6 +1411,8 @@ static MPP_RET hal_h265d_vdpu383_control(void *hal, MpiCmd cmd_type, void *param
     case MPP_DEC_SET_FRAME_INFO: {
         MppFrame frame = (MppFrame)param;
         MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+        RK_U32 imgwidth = mpp_frame_get_width((MppFrame)param);
+        RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
 
         if (fmt == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
@@ -1419,6 +1421,8 @@ static MPP_RET hal_h265d_vdpu383_control(void *hal, MpiCmd cmd_type, void *param
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->slots, frame, 16);
+        } else if (imgwidth > 1920 || imgheight > 1088) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
         break;
     }
