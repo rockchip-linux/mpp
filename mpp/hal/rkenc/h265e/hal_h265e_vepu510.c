@@ -481,6 +481,118 @@ static void vepu510_h265_rdo_cfg (Vepu510Sqi *reg)
     reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd0       = 4;
     reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_thd1       = 6;
     reg->rdo_atr_i_cu16_madi_cfg0.i_cu16_madi_cost_multi = 24;
+
+    /* 0x00002100 reg2112 */
+    reg->cudecis_thd0.base_thre_rough_mad32_intra           = 9;
+    reg->cudecis_thd0.delta0_thre_rough_mad32_intra         = 10;
+    reg->cudecis_thd0.delta1_thre_rough_mad32_intra         = 55;
+    reg->cudecis_thd0.delta2_thre_rough_mad32_intra         = 55;
+    reg->cudecis_thd0.delta3_thre_rough_mad32_intra         = 66;
+    reg->cudecis_thd0.delta4_thre_rough_mad32_intra_low5    = 2;
+
+    /* 0x00002104 reg2113 */
+    reg->cudecis_thd1.delta4_thre_rough_mad32_intra_high2   = 2;
+    reg->cudecis_thd1.delta5_thre_rough_mad32_intra         = 74;
+    reg->cudecis_thd1.delta6_thre_rough_mad32_intra         = 106;
+    reg->cudecis_thd1.base_thre_fine_mad32_intra            = 8;
+    reg->cudecis_thd1.delta0_thre_fine_mad32_intra          = 0;
+    reg->cudecis_thd1.delta1_thre_fine_mad32_intra          = 13;
+    reg->cudecis_thd1.delta2_thre_fine_mad32_intra_low3     = 6;
+
+    /* 0x00002108 reg2114 */
+    reg->cudecis_thd2.delta2_thre_fine_mad32_intra_high2    = 1;
+    reg->cudecis_thd2.delta3_thre_fine_mad32_intra          = 17;
+    reg->cudecis_thd2.delta4_thre_fine_mad32_intra          = 23;
+    reg->cudecis_thd2.delta5_thre_fine_mad32_intra          = 50;
+    reg->cudecis_thd2.delta6_thre_fine_mad32_intra          = 54;
+    reg->cudecis_thd2.base_thre_str_edge_mad32_intra        = 6;
+    reg->cudecis_thd2.delta0_thre_str_edge_mad32_intra      = 0;
+    reg->cudecis_thd2.delta1_thre_str_edge_mad32_intra      = 0;
+
+    /* 0x0000210c reg2115 */
+    reg->cudecis_thd3.delta2_thre_str_edge_mad32_intra      = 3;
+    reg->cudecis_thd3.delta3_thre_str_edge_mad32_intra      = 8;
+    reg->cudecis_thd3.base_thre_str_edge_bgrad32_intra      = 25;
+    reg->cudecis_thd3.delta0_thre_str_edge_bgrad32_intra    = 0;
+    reg->cudecis_thd3.delta1_thre_str_edge_bgrad32_intra    = 0;
+    reg->cudecis_thd3.delta2_thre_str_edge_bgrad32_intra    = 7;
+    reg->cudecis_thd3.delta3_thre_str_edge_bgrad32_intra    = 0;
+    reg->cudecis_thd3.base_thre_mad16_intra                 = 6;
+    reg->cudecis_thd3.delta0_thre_mad16_intra               = 0;
+
+    /* 0x00002110 reg2116 */
+    reg->cudecis_thd4.delta1_thre_mad16_intra          = 3;
+    reg->cudecis_thd4.delta2_thre_mad16_intra          = 3;
+    reg->cudecis_thd4.delta3_thre_mad16_intra          = 24;
+    reg->cudecis_thd4.delta4_thre_mad16_intra          = 28;
+    reg->cudecis_thd4.delta5_thre_mad16_intra          = 40;
+    reg->cudecis_thd4.delta6_thre_mad16_intra          = 52;
+    reg->cudecis_thd4.delta0_thre_mad16_ratio_intra    = 7;
+
+    /* 0x00002114 reg2117 */
+    reg->cudecis_thd5.delta1_thre_mad16_ratio_intra           =  7;
+    reg->cudecis_thd5.delta2_thre_mad16_ratio_intra           =  2;
+    reg->cudecis_thd5.delta3_thre_mad16_ratio_intra           =  2;
+    reg->cudecis_thd5.delta4_thre_mad16_ratio_intra           =  0;
+    reg->cudecis_thd5.delta5_thre_mad16_ratio_intra           =  0;
+    reg->cudecis_thd5.delta6_thre_mad16_ratio_intra           =  0;
+    reg->cudecis_thd5.delta7_thre_mad16_ratio_intra           =  4;
+    reg->cudecis_thd5.delta0_thre_rough_bgrad32_intra         =  1;
+    reg->cudecis_thd5.delta1_thre_rough_bgrad32_intra         =  5;
+    reg->cudecis_thd5.delta2_thre_rough_bgrad32_intra_low4    =  8;
+
+    /* 0x00002118 reg2118 */
+    reg->cudecis_thd6.delta2_thre_rough_bgrad32_intra_high2    = 2;
+    reg->cudecis_thd6.delta3_thre_rough_bgrad32_intra          = 540;
+    reg->cudecis_thd6.delta4_thre_rough_bgrad32_intra          = 692;
+    reg->cudecis_thd6.delta5_thre_rough_bgrad32_intra_low10    = 866;
+
+    /* 0x0000211c reg2119 */
+    reg->cudecis_thd7.delta5_thre_rough_bgrad32_intra_high1   = 1;
+    reg->cudecis_thd7.delta6_thre_rough_bgrad32_intra         = 3286;
+    reg->cudecis_thd7.delta7_thre_rough_bgrad32_intra         = 6620;
+    reg->cudecis_thd7.delta0_thre_bgrad16_ratio_intra         = 8;
+    reg->cudecis_thd7.delta1_thre_bgrad16_ratio_intra_low2    = 3;
+
+    /* 0x00002120 reg2120 */
+    reg->cudecis_thdt8.delta1_thre_bgrad16_ratio_intra_high2    = 2;
+    reg->cudecis_thdt8.delta2_thre_bgrad16_ratio_intra          = 15;
+    reg->cudecis_thdt8.delta3_thre_bgrad16_ratio_intra          = 15;
+    reg->cudecis_thdt8.delta4_thre_bgrad16_ratio_intra          = 13;
+    reg->cudecis_thdt8.delta5_thre_bgrad16_ratio_intra          = 13;
+    reg->cudecis_thdt8.delta6_thre_bgrad16_ratio_intra          = 7;
+    reg->cudecis_thdt8.delta7_thre_bgrad16_ratio_intra          = 15;
+    reg->cudecis_thdt8.delta0_thre_fme_ratio_inter              = 4;
+    reg->cudecis_thdt8.delta1_thre_fme_ratio_inter              = 4;
+
+    /* 0x00002124 reg2121 */
+    reg->cudecis_thd9.delta2_thre_fme_ratio_inter    = 3;
+    reg->cudecis_thd9.delta3_thre_fme_ratio_inter    = 2;
+    reg->cudecis_thd9.delta4_thre_fme_ratio_inter    = 0;
+    reg->cudecis_thd9.delta5_thre_fme_ratio_inter    = 0;
+    reg->cudecis_thd9.delta6_thre_fme_ratio_inter    = 0;
+    reg->cudecis_thd9.delta7_thre_fme_ratio_inter    = 0;
+    reg->cudecis_thd9.base_thre_fme32_inter          = 4;
+    reg->cudecis_thd9.delta0_thre_fme32_inter        = 2;
+    reg->cudecis_thd9.delta1_thre_fme32_inter        = 7;
+    reg->cudecis_thd9.delta2_thre_fme32_inter        = 12;
+
+    /* 0x00002128 reg2122 */
+    reg->cudecis_thd10.delta3_thre_fme32_inter    = 23;
+    reg->cudecis_thd10.delta4_thre_fme32_inter    = 41;
+    reg->cudecis_thd10.delta5_thre_fme32_inter    = 71;
+    reg->cudecis_thd10.delta6_thre_fme32_inter    = 123;
+    reg->cudecis_thd10.thre_cme32_inter           = 48;
+
+    /* 0x0000212c reg2123 */
+    reg->cudecis_thd11.delta0_thre_mad_fme_ratio_inter    = 0;
+    reg->cudecis_thd11.delta1_thre_mad_fme_ratio_inter    = 7;
+    reg->cudecis_thd11.delta2_thre_mad_fme_ratio_inter    = 7;
+    reg->cudecis_thd11.delta3_thre_mad_fme_ratio_inter    = 6;
+    reg->cudecis_thd11.delta4_thre_mad_fme_ratio_inter    = 5;
+    reg->cudecis_thd11.delta5_thre_mad_fme_ratio_inter    = 4;
+    reg->cudecis_thd11.delta6_thre_mad_fme_ratio_inter    = 4;
+    reg->cudecis_thd11.delta7_thre_mad_fme_ratio_inter    = 4;
 }
 
 static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSet *regs)
