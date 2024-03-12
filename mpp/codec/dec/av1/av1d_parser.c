@@ -121,7 +121,8 @@ static MPP_RET get_pixel_format(Av1CodecContext *ctx)
             else if (bit_depth == 10) {
                 pix_fmt = MPP_FMT_YUV420SP_10BIT;
                 /* rk3588, allow user config 8bit for 10bit source. */
-                if ((ctx->usr_set_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP &&
+                if ((mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) &&
+                    (ctx->usr_set_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP &&
                     (s->cfg->base.out_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP)
                     pix_fmt = MPP_FMT_YUV420SP;
             } else {
