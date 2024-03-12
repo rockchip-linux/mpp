@@ -8,6 +8,8 @@
 #include <getopt.h>
 #include <string.h>
 #include <errno.h>
+
+#include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_buffer.h"
 #include "mpp_soc.h"
@@ -51,6 +53,7 @@ typedef struct VdppTestCfg_t {
     char        hist_url[MAX_URL_LEN];
     char        hist_l_url[MAX_URL_LEN];
     char        hist_g_url[MAX_URL_LEN];
+    char        slt_url[MAX_URL_LEN];
 
     FILE        *fp_src;
     FILE        *fp_dst;
@@ -58,6 +61,7 @@ typedef struct VdppTestCfg_t {
     FILE        *fp_hist;
     FILE        *fp_hist_l;
     FILE        *fp_hist_g;
+    FILE        *fp_slt;
 
     RK_U32      frame_num;
 
@@ -98,6 +102,7 @@ static OptionInfo vdpp_test_cmd[] = {
     {"cfg_set",   "cfg_set",          "high 16 bit: mask; low 3 bit: dmsr|es|sharp"},
     {"hist_l",    "local_hist",       "output local hist file name"},
     {"hist_g",    "global_hist",      "output global hist file name"},
+    {"slt",       "slt_file",         "slt verify data file"},
 };
 
 static void vdpp_test_help()
@@ -251,6 +256,10 @@ void vdpp_test(VdppTestCfg *cfg)
     MppBufferGroup memGroup;
     MPP_RET ret = MPP_NOK;
     RK_U32 cnt = 0;
+    DataCrc checkcrc;
+
+    memset(&checkcrc, 0, sizeof(checkcrc));
+    checkcrc.sum = mpp_malloc(RK_ULONG, 512);
 
     ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_DRM);
     if (MPP_OK != ret) {
@@ -397,6 +406,26 @@ void vdpp_test(VdppTestCfg *cfg)
                 break;
             }
         }
+
+        if (cfg->fp_slt) {
+            if (pdst && !cfg->hist_mode_en) {
+                calc_data_crc(pdst, dstfrmsize, &checkcrc);
+                write_data_crc(cfg->fp_slt, &checkcrc);
+
+            }
+
+            if (pdst_c && yuv_out_diff && !cfg->hist_mode_en) {
+                calc_data_crc(pdst_c, dstfrmsize_c, &checkcrc);
+                write_data_crc(cfg->fp_slt, &checkcrc);
+
+            }
+
+            if (phist) {
+                calc_data_crc(phist, DCI_HIST_SIZE, &checkcrc);
+                write_data_crc(cfg->fp_slt, &checkcrc);
+            }
+        }
+
     }
 
     mpp_buffer_put(srcbuf);
@@ -408,6 +437,8 @@ void vdpp_test(VdppTestCfg *cfg)
         mpp_buffer_put(histbuf_g);
     if (yuv_out_diff)
         mpp_buffer_put(dstbuf_c);
+
+    MPP_FREE(checkcrc.sum);
 
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
@@ -455,6 +486,7 @@ int32_t main(int32_t argc, char **argv)
         {"cfg_set",    required_argument, 0,  0 },
         {"hist_l",     required_argument, 0,  0 },
         {"hist_g",     required_argument, 0,  0 },
+        {"slt",        required_argument, 0,  0 },
         { 0,           0,                 0,  0 },
     };
 
@@ -501,6 +533,11 @@ int32_t main(int32_t argc, char **argv)
                 mpp_log("global hist name: %s\n", optarg);
                 strncpy(cfg.hist_g_url, optarg, sizeof(cfg.hist_g_url) - 1);
                 cfg.fp_hist_g = fopen(cfg.hist_g_url, "w+b");
+            } break;
+            case 12 : {
+                mpp_log("verify file: %s\n", optarg);
+                strncpy(cfg.slt_url, optarg, sizeof(cfg.slt_url) - 1);
+                cfg.fp_slt = fopen(cfg.slt_url, "w+b");
             } break;
             default : {
             } break;
@@ -622,6 +659,11 @@ int32_t main(int32_t argc, char **argv)
     if (cfg.fp_hist_g) {
         fclose(cfg.fp_hist_g);
         cfg.fp_hist_g = NULL;
+    }
+
+    if (cfg.fp_slt) {
+        fclose(cfg.fp_slt);
+        cfg.fp_slt = NULL;
     }
 
     return 0;
