@@ -1115,16 +1115,12 @@ static MPP_RET hal_vp9d_vdpu382_control(void *hal, MpiCmd cmd_type, void *param)
 
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO : {
-        /* commit buffer stride */
-        RK_U32 width = mpp_frame_get_width((MppFrame)param);
-        RK_U32 height = mpp_frame_get_height((MppFrame)param);
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu382_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
         } else {
-            mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
-            mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
         }
     } break;
     default : {
