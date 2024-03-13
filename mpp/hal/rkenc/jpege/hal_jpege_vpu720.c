@@ -640,6 +640,7 @@ MPP_RET hal_jpege_vpu720_ret_task(void *hal, HalEncTask *task)
     // setup bit length for rate control
     rc_info->bit_real = task->hw_length * 8;
     rc_info->quality_real = rc_info->quality_target;
+    mpp_buffer_sync_ro_begin(task->output);
 
     hal_jpege_leave();
     return MPP_OK;
