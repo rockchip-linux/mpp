@@ -479,6 +479,7 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         }
 
         dst->level = src->level;
+        dst->tier = (src->level >= 120) ? src->tier : 0;
     }
 
     if (change & MPP_ENC_H265_CFG_CU_CHANGE) {
