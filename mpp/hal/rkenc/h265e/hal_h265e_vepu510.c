@@ -297,6 +297,125 @@ static void vepu510_h265_rdo_cfg(H265eVepu510Sqi *reg)
     rdo_noskip_par *p_rdo_noskip = NULL;
     pre_cst_par    *p_pre_cst    = NULL;
 
+    reg->subj_opt_cfg.subj_opt_en               = 1;
+    reg->subj_opt_cfg.subj_opt_strength         = 3;
+    reg->subj_opt_cfg.aq_subj_en                = 1;
+    reg->subj_opt_cfg.aq_subj_strength          = 4;
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep0      = 64;
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep1      = 32;
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep2      = 16;
+    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep0    = 192;
+    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep1    = 160;
+
+    /* anti smear */
+    reg->smear_opt_cfg0.anti_smear_en               = 1;
+    reg->smear_opt_cfg0.smear_stor_en               = 0;
+    reg->smear_opt_cfg0.smear_load_en               = 0;
+    reg->smear_opt_cfg0.smear_strength              = 3;
+    reg->smear_opt_cfg0.thre_mv_inconfor_cime       = 8;
+    reg->smear_opt_cfg0.thre_mv_confor_cime         = 2;
+    reg->smear_opt_cfg0.thre_mv_inconfor_cime_gmv   = 8;
+    reg->smear_opt_cfg0.thre_mv_confor_cime_gmv     = 2;
+    reg->smear_opt_cfg0.thre_num_mv_confor_cime     = 3;
+    reg->smear_opt_cfg0.thre_num_mv_confor_cime_gmv = 2;
+    reg->smear_opt_cfg0.frm_static                  = 1;
+
+    reg->smear_opt_cfg1.dist0_frm_avg               = 0;
+    reg->smear_opt_cfg1.thre_dsp_static             = 10;
+    reg->smear_opt_cfg1.thre_dsp_mov                = 15;
+    reg->smear_opt_cfg1.thre_dist_mv_confor_cime    = 32;
+
+    reg->smear_madp_thd.thre_madp_stc_dep0          = 10;
+    reg->smear_madp_thd.thre_madp_stc_dep1          = 8;
+    reg->smear_madp_thd.thre_madp_stc_dep2          = 8;
+    reg->smear_madp_thd.thre_madp_mov_dep0          = 16;
+    reg->smear_madp_thd.thre_madp_mov_dep1          = 18;
+    reg->smear_madp_thd.thre_madp_mov_dep2          = 20;
+
+    reg->smear_stat_thd.thre_num_pt_stc_dep0        = 47;
+    reg->smear_stat_thd.thre_num_pt_stc_dep1        = 11;
+    reg->smear_stat_thd.thre_num_pt_stc_dep2        = 3;
+    reg->smear_stat_thd.thre_num_pt_mov_dep0        = 47;
+    reg->smear_stat_thd.thre_num_pt_mov_dep1        = 11;
+    reg->smear_stat_thd.thre_num_pt_mov_dep2        = 3;
+
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv0      = 21;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv1      = 16;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv0    = 48;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv1    = 34;
+
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv2    = 32;
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv3    = 29;
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv4    = 27;
+
+    reg->smear_min_bndry_gmv.thre_min_num_confor_csu0_bndry_cime_gmv      = 0;
+    reg->smear_min_bndry_gmv.thre_max_num_confor_csu0_bndry_cime_gmv      = 3;
+    reg->smear_min_bndry_gmv.thre_min_num_inconfor_csu0_bndry_cime_gmv    = 0;
+    reg->smear_min_bndry_gmv.thre_max_num_inconfor_csu0_bndry_cime_gmv    = 3;
+    reg->smear_min_bndry_gmv.thre_split_dep0                              = 2;
+    reg->smear_min_bndry_gmv.thre_zero_srgn                               = 8;
+    reg->smear_min_bndry_gmv.madi_thre_dep0                               = 22;
+    reg->smear_min_bndry_gmv.madi_thre_dep1                               = 18;
+
+    reg->smear_madp_cov_thd.thre_madp_stc_cover0    = 20;
+    reg->smear_madp_cov_thd.thre_madp_stc_cover1    = 20;
+    reg->smear_madp_cov_thd.thre_madp_mov_cover0    = 10;
+    reg->smear_madp_cov_thd.thre_madp_mov_cover1    = 10;
+    reg->smear_madp_cov_thd.smear_qp_strength       = 10;
+    reg->smear_madp_cov_thd.smear_thre_qp           = 30;
+
+    /* skin_opt */
+    reg->skin_opt_cfg.skin_en                       = 1;
+    reg->skin_opt_cfg.skin_strength                 = 3;
+    reg->skin_opt_cfg.thre_uvsqr16_skin             = 128;
+    reg->skin_opt_cfg.skin_thre_cst_best_mad        = 1000;
+    reg->skin_opt_cfg.skin_thre_cst_best_grdn_blk   = 98;
+    reg->skin_opt_cfg.frame_skin_ratio              = 3;
+    reg->skin_chrm_thd.thre_sum_mad_intra           = 3;
+    reg->skin_chrm_thd.thre_sum_grdn_blk_intra      = 3;
+    reg->skin_chrm_thd.vld_thre_skin_v              = 7;
+    reg->skin_chrm_thd.thre_min_skin_u              = 107;
+    reg->skin_chrm_thd.thre_max_skin_u              = 129;
+    reg->skin_chrm_thd.thre_min_skin_v              = 135;
+    reg->subj_opt_dqp1.skin_thre_qp                 = 31;
+
+    /* text_opt */
+    reg->block_opt_cfg.block_en                         = 1;
+    reg->block_opt_cfg.block_thre_cst_best_mad          = 1000;
+    reg->block_opt_cfg.block_thre_cst_best_grdn_blk     = 39;
+    reg->block_opt_cfg.thre_num_grdnt_point_cmplx       = 3;
+    reg->block_opt_cfg.block_delta_qp_flag              = 3;
+
+    reg->cmplx_opt_cfg.cmplx_thre_cst_best_mad_dep0     = 4000;
+    reg->cmplx_opt_cfg.cmplx_thre_cst_best_mad_dep1     = 2000;
+    reg->cmplx_opt_cfg.cmplx_en                         = 1;
+    reg->cmplx_bst_mad_thd.cmplx_thre_cst_best_mad_dep2         = 200;
+    reg->cmplx_bst_mad_thd.cmplx_thre_cst_best_grdn_blk_dep0    = 977;
+
+    reg->cmplx_bst_grdn_thd.cmplx_thre_cst_best_grdn_blk_dep1   = 0;
+    reg->cmplx_bst_grdn_thd.cmplx_thre_cst_best_grdn_blk_dep2   = 488;
+
+    reg->line_opt_cfg.line_en                                   = 1;
+    reg->line_opt_cfg.line_thre_min_cst_best_grdn_blk_dep0      = 3;
+    reg->line_opt_cfg.line_thre_min_cst_best_grdn_blk_dep1      = 20;
+    reg->line_opt_cfg.line_thre_min_cst_best_grdn_blk_dep2      = 20;
+    reg->line_opt_cfg.line_thre_ratio_best_grdn_blk_dep0        = 8;
+    reg->line_opt_cfg.line_thre_ratio_best_grdn_blk_dep1        = 8;
+
+    reg->line_cst_bst_grdn.line_thre_max_cst_best_grdn_blk_dep0    = 1;
+    reg->line_cst_bst_grdn.line_thre_max_cst_best_grdn_blk_dep1    = 78;
+    reg->line_cst_bst_grdn.line_thre_max_cst_best_grdn_blk_dep2    = 78;
+
+    reg->subj_opt_dqp0.line_thre_qp                     = 34;
+    reg->subj_opt_dqp0.block_strength                   = 4;
+    reg->subj_opt_dqp0.block_thre_qp                    = 30;
+    reg->subj_opt_dqp0.cmplx_strength                   = 4;
+    reg->subj_opt_dqp0.cmplx_thre_qp                    = 34;
+    reg->subj_opt_dqp0.cmplx_thre_max_grdn_blk          = 32;
+    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep0   = 240;
+    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep1   = 224;
+
+
     p_rdo_skip = &reg->rdo_b32_skip;
     p_rdo_skip->atf_thd0.madp_thd0 = 5  ;
     p_rdo_skip->atf_thd0.madp_thd1 = 10 ;
@@ -372,6 +491,7 @@ static void vepu510_h265_rdo_cfg(H265eVepu510Sqi *reg)
     p_pre_cst->cst_wgt1.wgt7          =  18 ;
     p_pre_cst->cst_wgt2.wgt8          =  17 ;
     p_pre_cst->cst_wgt2.wgt9          =  17 ;
+    p_pre_cst->cst_madi_thd3.mode_th  =  5  ;
 
     p_pre_cst = &reg->preintra16_cst;
     p_pre_cst->cst_madi_thd0.madi_thd0 = 5 ;
@@ -390,6 +510,7 @@ static void vepu510_h265_rdo_cfg(H265eVepu510Sqi *reg)
     p_pre_cst->cst_wgt1.wgt7          =  18;
     p_pre_cst->cst_wgt2.wgt8          =  17;
     p_pre_cst->cst_wgt2.wgt9          =  17;
+    p_pre_cst->cst_madi_thd3.mode_th  =  5 ;
 
     /* 0x00002100 reg2112 */
     reg->cudecis_thd0.base_thre_rough_mad32_intra           = 9;
