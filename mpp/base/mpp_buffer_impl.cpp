@@ -727,13 +727,14 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
 {
     MppBufferGroupImpl *misc;
     RK_U32 id;
+    MppBufferType buf_type;
 
-    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
-    if (type == MPP_BUFFER_TYPE_NORMAL)
+    buf_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
+    if (buf_type == MPP_BUFFER_TYPE_NORMAL)
         return NULL;
 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
-    mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
+    mpp_assert(buf_type < MPP_BUFFER_TYPE_BUTT);
 
     AutoMutex auto_lock(MppBufferService::get_lock());
 
@@ -744,8 +745,8 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
 
         offset += snprintf(tag + offset, sizeof(tag) - offset, "misc");
         offset += snprintf(tag + offset, sizeof(tag) - offset, "_%s",
-                           type == MPP_BUFFER_TYPE_ION ? "ion" :
-                           type == MPP_BUFFER_TYPE_DRM ? "drm" : "na");
+                           buf_type == MPP_BUFFER_TYPE_ION ? "ion" :
+                           buf_type == MPP_BUFFER_TYPE_DRM ? "drm" : "na");
         offset += snprintf(tag + offset, sizeof(tag) - offset, "_%s",
                            mode == MPP_BUFFER_INTERNAL ? "int" : "ext");
 
