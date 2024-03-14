@@ -773,9 +773,6 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
 
-    if (s->is_hdr)
-        ctx->pix_fmt |= MPP_FRAME_HDR;
-
     mpp_frame_set_color_trc(frame->f, ctx->color_trc);
     mpp_frame_set_color_primaries(frame->f, ctx->color_primaries);
     mpp_frame_set_colorspace(frame->f, ctx->colorspace);
@@ -801,6 +798,9 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt | ((s->cfg->base.out_fmt & (MPP_FRAME_TILE_FLAG))));
     } else
         mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
+
+    if (s->is_hdr)
+        mpp_frame_set_fmt(frame->f, mpp_frame_get_fmt(frame->f) | MPP_FRAME_HDR);
 
     value = 4;
     mpp_slots_set_prop(s->slots, SLOTS_NUMERATOR, &value);
