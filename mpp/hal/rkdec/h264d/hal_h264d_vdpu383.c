@@ -254,6 +254,15 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         mpp_put_align(&bp, 64, 0);//128
     }
 
+#ifdef DUMP_VDPU383_DATAS
+    {
+        char *cur_fname = "global_cfg.dat";
+        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 64, 0);
+    }
+#endif
+
     return MPP_OK;
 }
 
@@ -323,6 +332,15 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 
     mpp_put_align(&bp, 128, 0);
 
+#ifdef DUMP_VDPU383_DATAS
+    {
+        char *cur_fname = "rps.dat";
+        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 64, 0);
+    }
+#endif
+
     return MPP_OK;
 }
 
@@ -336,10 +354,10 @@ static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
     for (i = 0; i < 6; i++) { //4x4, 6 lists
         /* dump by block4x4, vectial direction */
         for (j = 0; j < 4; j++) {
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j + 0];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j + 4];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j + 8];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j + 12];
+            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 0];
+            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 1];
+            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 2];
+            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 3];
         }
     }
 
@@ -352,16 +370,25 @@ static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
                 RK_U32 pos = blk4_y * 8 + blk4_x;
 
                 for (j = 0; j < 4; j++) {
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j + 0];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j + 8];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j + 16];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j + 24];
+                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 0];
+                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 1];
+                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 2];
+                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 3];
                 }
             }
         }
     }
 
     mpp_assert(n <= len);
+
+#ifdef DUMP_VDPU383_DATAS
+    {
+        char *cur_fname = "scanlist.dat";
+        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
+        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
+        dump_data_to_file(dump_cur_fname_path, (void *)data, 8 * n, 128, 0);
+    }
+#endif
 
     return MPP_OK;
 }
