@@ -23,6 +23,7 @@
 #include "mpp_dec_debug.h"
 #include "mpp_dec_vproc.h"
 #include "mpp_dec_no_thread.h"
+#include "rk_hdr_meta_com.h"
 
 MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
 {
@@ -269,6 +270,17 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         }
 
         task->hal_frm_buf_out = hal_buf_out;
+    }
+
+    {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
+
+        if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) &&
+            dec->cfg.base.enable_hdr_meta) {
+            fill_hdr_meta_to_frame(mframe, dec->coding);
+        }
     }
 
     task->wait.dec_pic_match = (NULL == task->hal_frm_buf_out);

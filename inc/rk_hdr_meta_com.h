@@ -20,11 +20,11 @@
 #include "rk_type.h"
 
 typedef enum HdrCodecType_e {
-    HDR_AVS2 = 0,
-    HDR_HEVC = 1,
-    HDR_H264 = 2,
-    HDR_AV1  = 3,
-    HDR_CODEC_BUT,
+    HDR_CODEC_UNSPECIFIED = -1,
+    HDR_AVS2              = 0,
+    HDR_HEVC              = 1,
+    HDR_H264              = 2,
+    HDR_AV1               = 3,
 } HdrCodecType;
 
 typedef enum HdrFormat_e {
@@ -113,6 +113,14 @@ typedef struct RkMetaHdrHeader_t {
     RK_U32  payload[];
 } RkMetaHdrHeader;
 
-void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type);
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+void fill_hdr_meta_to_frame(MppFrame frame, MppCodingType in_type);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

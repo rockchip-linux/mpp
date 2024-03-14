@@ -28,7 +28,7 @@ static RK_U32 hdr_get_offset_from_frame(MppFrame frame)
     return mpp_frame_get_buf_size(frame);
 }
 
-void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
+void fill_hdr_meta_to_frame(MppFrame frame, MppCodingType in_type)
 {
     RK_U32 off = hdr_get_offset_from_frame(frame);
     MppBuffer buf = mpp_frame_get_buffer(frame);
@@ -43,6 +43,7 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
     MppMeta meta = NULL;
     RK_U32 max_size = mpp_buffer_get_size(buf);
     RK_U32 static_size, dynamic_size = 0, total_size = 0;
+    HdrCodecType codec_type = HDR_CODEC_UNSPECIFIED;
 
     if (!ptr || !buf) {
         mpp_err_f("buf is null!\n");
@@ -70,6 +71,22 @@ void fill_hdr_meta_to_frame(MppFrame frame, HdrCodecType codec_type)
     hdr_static_meta_header->magic = HDR_META_MAGIC;
     hdr_static_meta_header->size = static_size;
     hdr_static_meta_header->message_index = msg_idx++;
+
+    switch (in_type) {
+    case MPP_VIDEO_CodingAVS2 : {
+        codec_type = HDR_AVS2;
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        codec_type = HDR_HEVC;
+    } break;
+    case MPP_VIDEO_CodingAVC : {
+        codec_type = HDR_H264;
+    } break;
+    case MPP_VIDEO_CodingAV1 : {
+        codec_type = HDR_AV1;
+    } break;
+    default : break;
+    }
 
     /* For payload identification */
     hdr_static_meta_header->hdr_payload_type = STATIC;

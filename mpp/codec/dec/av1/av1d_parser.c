@@ -617,7 +617,7 @@ static MPP_RET set_output_frame(Av1CodecContext *ctx)
         mpp_frame_set_hdr_dynamic_meta(frame, s->hdr_dynamic_meta);
         s->hdr_dynamic = 0;
         if (s->raw_frame_header->show_existing_frame)
-            fill_hdr_meta_to_frame(frame, HDR_AV1);
+            fill_hdr_meta_to_frame(frame, MPP_VIDEO_CodingAV1);
     }
     mpp_frame_set_pts(frame, s->pts);
     mpp_buf_slot_set_flag(s->slots, s->cur_frame.slot_index, SLOT_QUEUE_USE);
