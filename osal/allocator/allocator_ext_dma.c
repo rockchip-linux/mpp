@@ -19,6 +19,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_debug.h"
+#include "mpp_common.h"
 
 #include "allocator_ext_dma.h"
 
@@ -87,6 +88,7 @@ static MPP_RET allocator_ext_dma_import(void *ctx, MppBufferInfo *info)
 static MPP_RET allocator_ext_dma_mmap(void *ctx, MppBufferInfo *info)
 {
     void *ptr = NULL;
+    int flags = 0;
     unsigned long offset = 0L;
     mpp_assert(ctx);
     mpp_assert(info->size);
@@ -99,8 +101,11 @@ static MPP_RET allocator_ext_dma_mmap(void *ctx, MppBufferInfo *info)
      * It is insecure to access the first memory page,
      * usually system doesn't allow this behavior.
      */
-    ptr = mmap(NULL, info->size, PROT_READ | PROT_WRITE,
-               MAP_SHARED, info->fd, offset);
+    flags = PROT_READ;
+    if (fcntl(info->fd, F_GETFL) & O_RDWR)
+        flags |= PROT_WRITE;
+
+    ptr = mmap(NULL, info->size, flags, MAP_SHARED, info->fd, offset);
     if (ptr == MAP_FAILED)
         return MPP_ERR_NULL_PTR;
 
