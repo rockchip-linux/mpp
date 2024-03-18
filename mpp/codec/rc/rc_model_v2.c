@@ -1359,6 +1359,9 @@ MPP_RET rc_model_v2_init(void *ctx, RcCfg *cfg)
     rc_dbg_func("enter %p\n", ctx);
 
     memcpy(&p->usr_cfg, cfg, sizeof(RcCfg));
+    rc_dbg_rc("init rc param: fqp %d:%d:%d:%d\n", cfg->fqp_min_i, cfg->fqp_max_i,
+              cfg->fqp_min_p, cfg->fqp_max_p);
+
     bits_model_init(p);
 
     rc_dbg_func("leave %p\n", ctx);
@@ -1507,6 +1510,50 @@ static RK_S32 cal_first_i_start_qp(RK_S32 target_bit, RK_U32 total_mb)
     return qscale2qp[index];
 }
 
+static RK_S32 derive_min_qp_from_complexity(RcModelV2Ctx *ctx, EncRcTaskInfo *info, RK_U32 is_intra)
+{
+    RcCfg *usr_cfg = &ctx->usr_cfg;
+    RcMode rc_mode = usr_cfg->mode;
+    RK_S32 qp_min = info->quality_min;
+    RK_S32 fqp_min_i = usr_cfg->fqp_min_i;
+    RK_S32 fqp_min_p = usr_cfg->fqp_min_p;
+    RK_S32 cplx = mpp_data_sum_v2(ctx->complex_level);
+    RK_S32 md = mpp_data_sum_v2(ctx->motion_level);
+    RK_S32 md3 = mpp_data_get_pre_val_v2(ctx->motion_level, 0) +
+                 mpp_data_get_pre_val_v2(ctx->motion_level, 1) +
+                 mpp_data_get_pre_val_v2(ctx->motion_level, 2);
+
+    if (RC_AVBR == rc_mode || RC_VBR == rc_mode || RC_CBR == rc_mode) {
+        if (md >= 700) {
+            qp_min = is_intra ? fqp_min_i : fqp_min_p;
+            if (md >= 1400)
+                qp_min += md3 > 300 ? 3 : 2;
+            else
+                qp_min += md3 > 300 ? 2 : 1;
+
+            if (cplx >= 15)
+                qp_min++;
+        } else if (RC_CBR != rc_mode) {
+            if (md > 100) {
+                if (cplx >= 16)
+                    qp_min = (is_intra ? fqp_min_i : fqp_min_p) + 1;
+                else if (cplx >= 10)
+                    qp_min = (is_intra ? fqp_min_i : fqp_min_p) + 0;
+            } else {
+                qp_min = (is_intra ? fqp_min_i : fqp_min_p);
+                qp_min += (cplx >= 15) ? 3 : (cplx >= 10) ? 2 : (cplx >= 5) ? 1 : 0;
+            }
+        }
+
+        qp_min = mpp_clip(qp_min, info->quality_min, info->quality_max);
+
+        rc_dbg_rc("frame %d complex_level %d motion_level %d md3 %d qp_min %d\n",
+                  ctx->frm_num, cplx, md, md3, qp_min);
+    }
+
+    return qp_min;
+}
+
 MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
 {
     RcModelV2Ctx *p = (RcModelV2Ctx *)ctx;
@@ -1522,13 +1569,8 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
     RK_S32 quality_min = info->quality_min;
     RK_S32 quality_max = info->quality_max;
     RK_S32 quality_target = info->quality_target;
-    RK_S32 min_i_frame_qp = usr_cfg->fqp_min_i;
-    RK_S32 min_p_frame_qp = usr_cfg->fqp_min_p;
-    RK_S32 max_i_frame_qp = usr_cfg->fqp_max_i;
-    RK_S32 max_p_frame_qp = usr_cfg->fqp_max_p;
 
     rc_dbg_func("enter p %p task %p\n", p, task);
-
     rc_dbg_rc("seq_idx %d intra %d\n", frm->seq_idx, frm->is_intra);
 
     if (force->force_flag & ENC_RC_FORCE_QP) {
@@ -1582,42 +1624,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
     } else {
         RK_S32 qp_scale = p->cur_scale_qp + p->next_ratio;
         RK_S32 start_qp = 0;
-        RK_S32 qpmin = 26;
-        RK_S32 cplx = mpp_data_sum_v2(p->complex_level);
-        RK_S32 md = mpp_data_sum_v2(p->motion_level);
-        RK_S32 md3 = mpp_data_get_pre_val_v2(p->motion_level, 0) + mpp_data_get_pre_val_v2(p->motion_level,
-                     1) + mpp_data_get_pre_val_v2(p->motion_level, 2);
-
-        if (RC_AVBR == usr_cfg->mode || RC_VBR == usr_cfg->mode || RC_CBR == usr_cfg->mode) {
-            if (md >= 700) {
-                if (md >= 1400)
-                    qpmin = (frm->is_intra ? min_i_frame_qp : min_p_frame_qp) + (md3 > 300 ? 3 : 2);
-                else
-                    qpmin = (frm->is_intra ? min_i_frame_qp : min_p_frame_qp) + (md3 > 300 ? 2 : 1);
-
-                if (cplx >= 15)
-                    qpmin ++;
-            } else if (RC_CBR != usr_cfg->mode) {
-                if (md > 100) {
-                    if (cplx >= 16)
-                        qpmin =  (frm->is_intra ? min_i_frame_qp : min_p_frame_qp) + 1;
-                    else if (cplx >= 10)
-                        qpmin =  (frm->is_intra ? min_i_frame_qp : min_p_frame_qp) + 0;
-                } else {
-                    qpmin =  (frm->is_intra ? min_i_frame_qp : min_p_frame_qp);
-                    if (cplx >= 15)
-                        qpmin += 3;
-                    else if (cplx >= 10)
-                        qpmin += 2;
-                    else if (cplx >= 5)
-                        qpmin += 1;
-                }
-            }
-            if (qpmin > info->quality_max)
-                qpmin = info->quality_max;
-            if (qpmin < info->quality_min)
-                qpmin = info->quality_min;
-        }
+        RK_S32 qpmin = derive_min_qp_from_complexity(p, info, frm->is_intra);
 
         if (frm->is_intra && !frm->is_i_refresh) {
             RK_S32 i_quality_delta = usr_cfg->i_quality_delta;
@@ -1629,8 +1636,6 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 start_qp = (p->pre_i_qp * 307 + qp_scale_t * 717) >> 10;
             else
                 start_qp = (p->pre_i_qp + qp_scale_t) >> 1;
-
-
 
             if (i_quality_delta) {
                 RK_U32 index = mpp_clip(mpp_data_mean_v2(p->madi) / 4, 0, 7);
@@ -1648,9 +1653,8 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 start_qp -= i_quality_delta;
                 //}
             }
-            start_qp = mpp_clip(start_qp, qpmin, info->quality_max);
-            start_qp = mpp_clip(start_qp, qpmin, max_i_frame_qp);
 
+            start_qp = mpp_clip(start_qp, qpmin, usr_cfg->fqp_max_i);
             start_qp = mpp_clip(start_qp, info->quality_min, info->quality_max);
             p->start_qp = start_qp;
 
@@ -1673,7 +1677,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                 rc_dbg_rc("qp %d -> %d (vi)\n", p->start_qp, p->start_qp - usr_cfg->vi_quality_delta);
                 p->start_qp -= usr_cfg->vi_quality_delta;
             }
-            p->start_qp =   mpp_clip(p->start_qp, qpmin, max_p_frame_qp);
+            p->start_qp = mpp_clip(p->start_qp, qpmin, usr_cfg->fqp_max_p);
         }
         if (p->pre_target_bits_fix_count * 90 / 100 > p->pre_real_bits_count) {
             p->start_qp = mpp_clip(p->start_qp, info->quality_min, 35);

@@ -35,6 +35,16 @@
 #include "mpp_enc_roi_utils.h"
 #include "mpp_rc_api.h"
 
+static RK_S32 aq_thd_smart[16] = {
+    0,  0,  0,  0,  3,  3,  5,  5,
+    8,  8,  8, 15, 15, 20, 25, 28
+};
+
+static RK_S32 aq_step_smart[16] = {
+    -8, -7, -6, -5, -4, -3, -2, -1,
+    0,  1,  2,  3,  4,  6,  8, 10
+};
+
 typedef struct {
     // base flow context
     MppCtx ctx;
@@ -345,6 +355,14 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
+    if (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_smart);
+    }
+
+    mpp_enc_cfg_set_s32(cfg, "rc:max_reenc_times", 0);
     mpp_enc_cfg_set_s32(cfg, "rc:cu_qp_delta_depth", p->cu_qp_delta_depth);
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
