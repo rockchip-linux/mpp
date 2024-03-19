@@ -694,10 +694,6 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 mv_size = pic_param->width * pic_param->height / 2;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
 
-    /* set to 0, for fpga packet */
-    task->dec.flags.parse_err = 0;
-    task->dec.flags.ref_err = 0;
-
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             if (!hw_ctx->g_buf[i].use_flag) {

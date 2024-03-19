@@ -765,9 +765,6 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
 
-    task->dec.flags.parse_err = 0;
-    task->dec.flags.ref_err = 0;
-
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
         goto __RETURN;

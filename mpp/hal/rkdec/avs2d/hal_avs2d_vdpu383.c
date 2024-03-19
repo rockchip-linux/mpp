@@ -585,8 +585,6 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     AVS2D_HAL_TRACE("In.");
 
     INP_CHECK(ret, NULL == p_hal);
-    task->dec.flags.parse_err = 0;
-    task->dec.flags.ref_err = 0;
     if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
         ret = MPP_NOK;
         goto __RETURN;

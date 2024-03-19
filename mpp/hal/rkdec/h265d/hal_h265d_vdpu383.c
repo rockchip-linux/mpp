@@ -866,8 +866,6 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_U32 mv_size = 0;
     RK_U32 fbc_flag = 0;
 
-    syn->dec.flags.parse_err = 0;
-    syn->dec.flags.ref_err = 0;
     (void) fd;
     if (syn->dec.flags.parse_err ||
         syn->dec.flags.ref_err) {
