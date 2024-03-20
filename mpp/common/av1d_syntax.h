@@ -109,6 +109,7 @@ typedef struct _DXVA_PicParams_AV1 {
     } format;
 
     UCHAR primary_ref_frame;
+    UCHAR enable_order_hint;
     UCHAR order_hint;
     UCHAR order_hint_bits;
 
