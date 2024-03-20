@@ -25,12 +25,14 @@ vdpp_com_ctx *rockchip_vdpp_api_alloc_ctx(void)
         ops->init = vdpp2_init;
         ops->deinit = vdpp2_deinit;
         ops->control = vdpp2_control;
+        ops->check_cap = vdpp2_check_cap;
 
         ctx = mpp_calloc(struct vdpp2_api_ctx, 1);
     } else {
         ops->init = vdpp_init;
         ops->deinit = vdpp_deinit;
         ops->control = vdpp_control;
+        ops->check_cap = vdpp_check_cap;
 
         ctx = mpp_calloc(struct vdpp_api_ctx, 1);
     }

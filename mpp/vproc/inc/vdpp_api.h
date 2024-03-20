@@ -27,8 +27,12 @@
 #define VDPP_COLOR_SPACE_LIMIT_RANGE    (0)
 #define VDPP_COLOR_SPACE_FULL_RANGE     (1)
 
-#define VDPP_WORK_MODE_2        (2)
-#define VDPP_WORK_MODE_3        (3) /* hist mode */
+#define VDPP_CAP_UNSUPPORTED      (0)
+#define VDPP_CAP_VEP              (1 << 0)
+#define VDPP_CAP_HIST             (1 << 1)
+
+#define VDPP_WORK_MODE_VEP        (2)
+#define VDPP_WORK_MODE_DCI        (3) /* hist mode */
 
 #define VDPP_DMSR_EN            (4)
 #define VDPP_ES_EN              (2)
@@ -96,7 +100,9 @@ typedef struct vdpp_com_ops_t {
     MPP_RET (*init)(VdppCtx *ctx);
     MPP_RET (*deinit)(VdppCtx ctx);
     MPP_RET (*control)(VdppCtx ctx, VdppCmd cmd, void *param);
-    void (*release)(vdpp_com_ctx *ctx);
+    void    (*release)(vdpp_com_ctx *ctx);
+    RK_S32  (*check_cap)(VdppCtx ctx);
+    MPP_RET (*reserve[3])(VdppCtx *ctx);
 } vdpp_com_ops;
 
 typedef struct vdpp_com_ctx_t {

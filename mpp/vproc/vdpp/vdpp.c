@@ -15,6 +15,9 @@
 
 #include "vdpp.h"
 
+#define VDPP_MODE_MIN_WIDTH   (128)
+#define VDPP_MODE_MIN_HEIGHT  (128)
+
 RK_U32 vdpp_debug = 0;
 
 static MPP_RET vdpp_params_to_reg(struct vdpp_params* src_params, struct vdpp_api_ctx *ctx)
@@ -35,7 +38,7 @@ static MPP_RET vdpp_params_to_reg(struct vdpp_params* src_params, struct vdpp_ap
     dst_reg->common.reg1.sw_vdpp_dbmsr_en = src_params->dmsr_params.dmsr_enable;
 
     /* 0x0008(reg2) */
-    dst_reg->common.reg2.sw_vdpp_working_mode = 2;
+    dst_reg->common.reg2.sw_vdpp_working_mode = VDPP_WORK_MODE_VEP;
 
     /* 0x000C ~ 0x001C(reg3 ~ reg7), skip */
     dst_reg->common.reg4.sw_vdpp_clk_on = 1;
@@ -455,4 +458,45 @@ MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
     }
 
     return MPP_OK;
+}
+
+RK_S32 vdpp_check_cap(VdppCtx ictx)
+{
+    struct vdpp_api_ctx *ctx = ictx;
+    struct vdpp_params *params = NULL;
+    RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
+    RK_U32 vep_mode_check = 0;
+
+    if (NULL == ictx) {
+        mpp_err_f("found NULL ctx %p\n", ictx);
+        return VDPP_CAP_UNSUPPORTED;
+    }
+
+    params = &ctx->params;
+
+    if ((params->src_height < VDPP_MODE_MIN_HEIGHT) ||
+        (params->src_width < VDPP_MODE_MIN_WIDTH)) {
+        VDPP_DBG(VDPP_DBG_TRACE, "vep src unsupported img_w %d img_h %d\n",
+                 params->src_height, params->src_width);
+        vep_mode_check++;
+    }
+
+    if ((params->dst_height < VDPP_MODE_MIN_HEIGHT) ||
+        (params->dst_width < VDPP_MODE_MIN_WIDTH)) {
+        VDPP_DBG(VDPP_DBG_TRACE, "vep dst unsupported img_w %d img_h %d\n",
+                 params->dst_height, params->dst_width);
+        vep_mode_check++;
+    }
+
+    if ((params->src_width | params->src_height | params->dst_width | params->dst_height) & 1) {
+        VDPP_DBG(VDPP_DBG_TRACE, "vep only support img_w/h_vld 2pix align\n");
+        vep_mode_check++;
+    }
+
+    if (!vep_mode_check) {
+        ret_cap |= VDPP_CAP_VEP;
+        VDPP_DBG(VDPP_DBG_TRACE, "vdpp support mode: VDPP_CAP_VEP\n");
+    }
+
+    return ret_cap;
 }

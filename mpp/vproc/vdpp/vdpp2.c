@@ -16,6 +16,13 @@
 
 #include "vdpp2.h"
 
+#define VDPP2_VEP_MAX_WIDTH   (1920)
+#define VDPP2_VEP_MAX_HEIGHT  (2048)
+#define VDPP2_HIST_MAX_WIDTH  (3840)
+#define VDPP2_HIST_MAX_HEIGHT (2160)
+#define VDPP2_MODE_MIN_WIDTH  (128)
+#define VDPP2_MODE_MIN_HEIGH  (128)
+
 RK_U32 vdpp2_debug = 0;
 /* default es parameters */
 static RK_S32 diff2conf_lut_x_tmp[9]    = {
@@ -362,12 +369,16 @@ static void set_hist_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_
     dst_reg->dci.reg1.sw_dci_yrgb_vir_stride = pic_vir_src_ystride;
     dst_reg->dci.reg1.sw_dci_yrgb_gather_num = src_params->dci_yrgb_gather_num;
     dst_reg->dci.reg1.sw_dci_yrgb_gather_en = src_params->dci_yrgb_gather_en;
-    dst_reg->dci.reg2.sw_vdpp_src_pic_width = (src_params->src_width - 1);
-    dst_reg->dci.reg2.sw_vdpp_src_pic_height = (src_params->src_height - 1);
+    dst_reg->dci.reg2.sw_vdpp_src_pic_width = MPP_ALIGN_DOWN(src_params->src_width, hsd_sample_num) - 1;
+    dst_reg->dci.reg2.sw_vdpp_src_pic_height = MPP_ALIGN_DOWN(src_params->src_height, vsd_sample_num) - 1;
     dst_reg->dci.reg3.sw_dci_data_format = src_params->dci_format;
     dst_reg->dci.reg3.sw_dci_csc_range = src_params->dci_csc_range;
-    dst_reg->dci.reg3.sw_dci_vsd_mode = src_params->dci_vsd_mode;
-    dst_reg->dci.reg3.sw_dci_hsd_mode = src_params->dci_hsd_mode;
+    dst_reg->dci.reg3.sw_dci_vsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP)
+                                        ? 0
+                                        : src_params->dci_vsd_mode;
+    dst_reg->dci.reg3.sw_dci_hsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP)
+                                        ? 0
+                                        : src_params->dci_hsd_mode;
     dst_reg->dci.reg3.sw_dci_alpha_swap = src_params->dci_alpha_swap;
     dst_reg->dci.reg3.sw_dci_rb_swap = src_params->dci_rbuv_swap;
     dst_reg->dci.reg3.sw_dci_blk_hsize = sw_dci_blk_hsize;
@@ -1050,7 +1061,7 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
     dst_reg->common.reg1.sw_vdpp_src_yuv_swap = src_params->src_yuv_swap;
     dst_reg->common.reg1.sw_vdpp_dst_fmt = src_params->dst_fmt;
     dst_reg->common.reg1.sw_vdpp_dst_yuv_swap = src_params->dst_yuv_swap;
-    dst_reg->common.reg1.sw_vdpp_dbmsr_en = (src_params->working_mode == VDPP_WORK_MODE_3)
+    dst_reg->common.reg1.sw_vdpp_dbmsr_en = (src_params->working_mode == VDPP_WORK_MODE_DCI)
                                             ? 0
                                             : src_params->dmsr_params.dmsr_enable;
 
@@ -1373,7 +1384,7 @@ static MPP_RET vdpp2_set_default_param(struct vdpp2_params *param)
     param->dst_width = 1920;
     param->dst_height = 1080;
     param->yuv_out_diff = 0;
-    param->working_mode = VDPP_WORK_MODE_2;
+    param->working_mode = VDPP_WORK_MODE_VEP;
 
     vdpp2_set_default_dmsr_param(&param->dmsr_params);
     vdpp_set_default_es_param(&param->es_params);
@@ -1537,7 +1548,7 @@ static MPP_RET vdpp2_set_param(struct vdpp2_api_ctx *ctx,
         ctx->params.dst_c_width_vir = param->com2.dst_c_width_vir;
         ctx->params.dst_c_height_vir = param->com2.dst_c_height_vir;
         ctx->params.working_mode = param->com2.hist_mode_en ?
-                                   VDPP_WORK_MODE_3 : VDPP_WORK_MODE_2;
+                                   VDPP_WORK_MODE_DCI : VDPP_WORK_MODE_VEP;
         if (mask & VDPP_DMSR_EN)
             ctx->params.dmsr_params.dmsr_enable = (cfg_set & VDPP_DMSR_EN) ? 1 : 0;
         if (mask & VDPP_ES_EN)
@@ -1789,4 +1800,107 @@ MPP_RET vdpp2_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
     }
 
     return MPP_OK;
+}
+
+RK_S32 vdpp2_check_cap(VdppCtx ictx)
+{
+    struct vdpp2_api_ctx *ctx = ictx;
+    struct vdpp2_params *params = NULL;
+    RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
+    RK_U32 vep_mode_check = 0;
+    RK_U32 hist_mode_check = 0;
+
+    if (NULL == ictx) {
+        mpp_err_f("found NULL ctx %p\n", ictx);
+        return VDPP_CAP_UNSUPPORTED;
+    }
+
+    params = &ctx->params;
+
+    if (params->src_fmt != MPP_FMT_YUV420SP) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support nv12 img\n");
+        vep_mode_check++;
+    }
+
+    if ((params->src_height_vir > VDPP2_VEP_MAX_HEIGHT) ||
+        (params->src_width_vir > VDPP2_VEP_MAX_WIDTH) ||
+        (params->src_height < VDPP2_MODE_MIN_HEIGH) ||
+        (params->src_width < VDPP2_MODE_MIN_WIDTH) ||
+        (params->src_height_vir < VDPP2_MODE_MIN_HEIGH) ||
+        (params->src_width_vir < VDPP2_MODE_MIN_WIDTH)) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep src unsupported img_w %d img_h %d img_w_vir %d img_h_vir %d\n",
+                  params->src_width, params->src_height,
+                  params->src_width_vir, params->src_height_vir);
+        vep_mode_check++;
+    }
+
+    if ((params->dst_height_vir > VDPP2_VEP_MAX_HEIGHT) ||
+        (params->dst_width_vir > VDPP2_VEP_MAX_WIDTH) ||
+        (params->dst_height < VDPP2_MODE_MIN_HEIGH) ||
+        (params->dst_width < VDPP2_MODE_MIN_WIDTH) ||
+        (params->dst_height_vir < VDPP2_MODE_MIN_HEIGH) ||
+        (params->dst_width_vir < VDPP2_MODE_MIN_WIDTH)) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep dst unsupported img_w %d img_h %d img_w_vir %d img_h_vir %d\n",
+                  params->dst_width, params->dst_height,
+                  params->dst_width_vir, params->dst_height_vir);
+        vep_mode_check++;
+    }
+
+    if (((params->src_width_vir | params->dst_width_vir) & 0xf) ||
+        (((params->src_width | params->src_height | params->dst_width | params->dst_height |
+           params->dst_height_vir) & 1) || (params->src_height_vir & 0x7))
+       ) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support img_w_in_vir 16Byte align\n");
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support img_w_out_vir 16Byte align\n");
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support img_h_in_vir 8pix align\n");
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support img_h_out_vir 2pix align\n");
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vep only support img_w/h_vld 2pix align\n");
+        vep_mode_check++;
+    }
+
+    if ((params->src_height_vir > VDPP2_HIST_MAX_HEIGHT) ||
+        (params->src_width_vir > VDPP2_HIST_MAX_WIDTH) ||
+        (params->src_height < VDPP2_MODE_MIN_HEIGH) ||
+        (params->src_width < VDPP2_MODE_MIN_WIDTH)) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "dci src only support 128 < img_w < 3840, 128 < img_h < 2160\n");
+        hist_mode_check++;
+    }
+
+    /* 10 bit input */
+    if ((params->src_fmt == MPP_FMT_YUV420SP_10BIT) ||
+        (params->src_fmt == MPP_FMT_YUV422SP_10BIT) ||
+        (params->src_fmt == MPP_FMT_YUV444SP_10BIT)) {
+        if (params->src_width_vir & 0xf) {
+            VDPP2_DBG(VDPP2_DBG_TRACE, "dci Y-10bit input only support img_w_in_vir 16Byte align\n");
+            hist_mode_check++;
+        }
+    } else {
+        if (params->src_width_vir & 0x3) {
+            VDPP2_DBG(VDPP2_DBG_TRACE, "dci only support img_w_in_vir 4Byte align\n");
+            hist_mode_check++;
+        }
+    }
+
+    VDPP2_DBG(VDPP2_DBG_TRACE, "vdpp2 src img resolution: w-%d-%d, h-%d-%d\n",
+              params->src_width,
+              params->src_width_vir,
+              params->src_height,
+              params->src_height_vir);
+    VDPP2_DBG(VDPP2_DBG_TRACE, "vdpp2 dst img resolution: w-%d-%d, h-%d-%d\n",
+              params->dst_width,
+              params->dst_width_vir,
+              params->dst_height,
+              params->dst_height_vir);
+
+    if (!vep_mode_check) {
+        ret_cap |= VDPP_CAP_VEP;
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vdpp2 support mode: VDPP_CAP_VEP\n");
+    }
+
+    if (!hist_mode_check) {
+        VDPP2_DBG(VDPP2_DBG_TRACE, "vdpp2 support mode: VDPP_CAP_HIST\n");
+        ret_cap |= VDPP_CAP_HIST;
+    }
+
+    return ret_cap;
 }

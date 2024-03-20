@@ -244,6 +244,7 @@ extern "C" {
 MPP_RET vdpp2_init(VdppCtx *ictx);
 MPP_RET vdpp2_deinit(VdppCtx ictx);
 MPP_RET vdpp2_control(VdppCtx ictx, VdppCmd cmd, void *iparam);
+RK_S32  vdpp2_check_cap(VdppCtx ictx);
 
 #ifdef __cplusplus
 }
