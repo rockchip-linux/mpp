@@ -1668,20 +1668,16 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
         for (i = 0; i < 10; ++i)
             mpp_put_bits(&bp, dxva->film_grain.scaling_points_cr[i][1], 8);
 
-        {
-            RK_U8 grain_scaling_minus_8 = (dxva->film_grain.grain_scale_shift > 8) ? (dxva->film_grain.grain_scale_shift - 8) : 0;
-
-            mpp_put_bits(&bp, grain_scaling_minus_8, 2);
-        }
+        mpp_put_bits(&bp, dxva->film_grain.scaling_shift_minus8, 2);
         mpp_put_bits(&bp, dxva->film_grain.ar_coeff_lag, 2);
         for (i = 0; i < 24; ++i)
-            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_y[i] + 128, 8);
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_y[i], 8);
 
         for (i = 0; i < 25; ++i)
-            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cb[i] + 128, 8);
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cb[i], 8);
 
         for (i = 0; i < 25; ++i)
-            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cr[i] + 128, 8);
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cr[i], 8);
 
         mpp_put_bits(&bp, dxva->film_grain.ar_coeff_shift_minus6, 2);
         mpp_put_bits(&bp, dxva->film_grain.grain_scale_shift, 2);
@@ -1720,8 +1716,8 @@ static MPP_RET prepare_uncompress_header(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *
 
     {
         RK_U32 mapped_idx = 0;
-        RK_U32 mapped_frame_width[8];
-        RK_U32 mapped_frame_height[8];
+        RK_U32 mapped_frame_width[8] = {0};
+        RK_U32 mapped_frame_height[8] = {0};
 
         for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
             mapped_idx = dxva->ref_frame_idx[i];
