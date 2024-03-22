@@ -955,15 +955,16 @@ MPP_RET vdpu2_h264d_start(void *hal, HalTaskInfo *task)
     RK_U32 w = p_regs->sw110.pic_mb_w * 16;
     RK_U32 h = p_regs->sw110.pic_mb_h * 16;
     RK_U32 cache_en = 1;
-    const char *soc_name = NULL;
+    RockchipSocType soc_type = mpp_get_soc_type();
 
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err) {
         goto __RETURN;
     }
 
-    soc_name = mpp_get_soc_name();
-    if (strstr(soc_name, "rk3326") || strstr(soc_name, "px30") || strstr(soc_name, "rk3228H"))
+    if (soc_type == ROCKCHIP_SOC_RK3326 ||
+        soc_type == ROCKCHIP_SOC_PX30 ||
+        soc_type == ROCKCHIP_SOC_RK3228H)
         cache_en = ((w * h) >= (1280 * 720)) ? 1 : 0;
 
     p_regs->sw57.cache_en       = cache_en;

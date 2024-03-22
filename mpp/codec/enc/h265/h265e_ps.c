@@ -459,11 +459,12 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_nNumTileColumnsMinus1 = 0;
     pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;
     {
-        const char *soc_name = mpp_get_soc_name();
+        RockchipSocType soc_type = mpp_get_soc_type();
+
         /* check tile support on rk3566 and rk3568 */
-        if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
+        if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568) {
             pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 1920 ;
-        } else if (strstr(soc_name, "rk3588")) {
+        } else if (soc_type == ROCKCHIP_SOC_RK3588) {
             if (sps->m_picWidthInLumaSamples > 8192) {
                 /* 4 tile for over 8k encoding */
                 pps->m_nNumTileColumnsMinus1 = 3;

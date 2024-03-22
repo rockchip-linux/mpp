@@ -340,7 +340,7 @@ static MPP_RET h264e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
         if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation || dst->flip)) {
             // rk3588 rkvenc support fbc with rotation
-            if (!strstr(mpp_get_soc_name(), "rk3588")) {
+            if (mpp_get_soc_type() != ROCKCHIP_SOC_RK3588) {
                 mpp_err("invalid cfg fbc data no support mirror %d, rotation %d, or flip %d",
                         dst->mirroring, dst->rotation, dst->flip);
                 ret = MPP_ERR_VALUE;

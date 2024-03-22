@@ -175,8 +175,9 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
     p->dev = cfg->dev;
 
     {
-        const char *soc_name = mpp_get_soc_name();
-        if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568"))
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568)
             p->is_vepu540 = 1;
         else
             p->is_vepu540 = 0;
