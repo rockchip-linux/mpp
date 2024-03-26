@@ -1979,6 +1979,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     RK_U32 mapped_idx = 0;
     HalBuf *cdf_buf = NULL;
     RK_U32 i = 0;
+    MppBuffer buf_tmp = NULL;
 
     /* update exist params in uncompressed header */
     if (dxva->show_existing_frame) {
@@ -2019,14 +2020,19 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         mapped_idx = dxva->ref_frame_idx[dxva->primary_ref_frame];
 
         coeff_cdf_idx = reg_ctx->ref_info_tbl[mapped_idx].coeff_idx;
-        cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->frame_refs[mapped_idx].Index);
-        regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
-        regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
+        if (!dxva->coding.disable_frame_end_update_cdf) {
+            cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->frame_refs[mapped_idx].Index);
+            buf_tmp = cdf_buf->buf[0];
+        } else {
+            buf_tmp = reg_ctx->cdf_rd_def_base;
+        }
+        regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(buf_tmp);
+        regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(buf_tmp);
 #ifdef DUMP_AV1D_VDPU383_DATAS
         {
-            dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cdf_buf->buf[0]),
+            dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(buf_tmp),
                               8 * NON_COEF_CDF_SIZE, 128, 0, 0);
-            dump_data_to_file(dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(cdf_buf->buf[0])
+            dump_data_to_file(dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(buf_tmp)
                               + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx,
                               8 * COEF_CDF_SIZE, 128, 0, 1);
         }
@@ -2036,10 +2042,6 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     regs->av1d_addrs.reg185_av1_noncoef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
     regs->av1d_addrs.reg179_av1_coef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
 
-    // TODO
-    // regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
-    // regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
-
     /* byte, 434 x 128 bit = 434 x 16 byte */
     mpp_dev_set_reg_offset(p_hal->dev, 178, NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx);
     mpp_dev_set_reg_offset(p_hal->dev, 179, NON_COEF_CDF_SIZE);
@@ -2048,10 +2050,6 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     for (i = 0; i < NUM_REF_FRAMES; i++) {
         if (dxva->refresh_frame_flags & (1 << i)) {
             if (dxva->coding.disable_frame_end_update_cdf) {
-                // TODO: dxva->ref_info_tbl[i].coeff_idx = (showexistr && keyframe) ? last : coeff_cdf_idx;
-                // reg_ctx->ref_info_tbl[i].cdf_idx = coeff_cdf_idx;
-                // TODO: dxva->ref_info_tbl[i].coeff_idx = (showexistr && keyframe) ? last : coeff_cdf_idx;
-                // reg_ctx->ref_info_tbl[i].coeff_idx = coeff_cdf_idx;
                 if (dxva->show_existing_frame && dxva->format.frame_type == AV1_FRAME_KEY) {
                     reg_ctx->ref_info_tbl[i].cdf_idx = reg_ctx->exist_params.cdf_last_idx;
                     reg_ctx->ref_info_tbl[i].coeff_idx = reg_ctx->exist_params.cdf_last_coeff;
@@ -2340,7 +2338,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
                     memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
                     sprintf(dump_cur_fname_path, "%s/%s%d.dat", dump_cur_dir, cur_fname, i);
                     dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]),
-                                      8 * 5120 * 8, 64, 0, 0);
+                                      8 * mpp_buffer_get_size(mv_buf->buf[0]), 64, 0, 0);
                 }
 #endif
             }
@@ -2477,7 +2475,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mv_buf->buf[0]),
-                          8 * 5120 * 8, 64, 0, 0);
+                          8 * mpp_buffer_get_size(mv_buf->buf[0]), 64, 0, 0);
     }
     {
         char *cur_fname = "decout.dat";
@@ -2486,7 +2484,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
         dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
-                          8 * mpp_buffer_get_size(mbuffer), 64, 0, 0);
+                          8 * mpp_buffer_get_size(mbuffer), 128, 0, 0);
     }
 #endif
 
