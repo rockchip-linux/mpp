@@ -268,6 +268,46 @@ static MPP_RET vdpp_set_param(struct vdpp_api_ctx *ctx,
     return ret;
 }
 
+static RK_S32 check_cap(struct vdpp_params *params)
+{
+    RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
+    RK_U32 vep_mode_check = 0;
+
+    if (NULL == params) {
+        VDPP_DBG(VDPP_DBG_CHECK, "found null pointer params\n");
+        return VDPP_CAP_UNSUPPORTED;
+    }
+
+    if ((params->src_height < VDPP_MODE_MIN_HEIGHT) ||
+        (params->src_width < VDPP_MODE_MIN_WIDTH)) {
+        VDPP_DBG(VDPP_DBG_CHECK, "vep src unsupported img_w %d img_h %d\n",
+                 params->src_height, params->src_width);
+        vep_mode_check++;
+    }
+
+    if ((params->dst_height < VDPP_MODE_MIN_HEIGHT) ||
+        (params->dst_width < VDPP_MODE_MIN_WIDTH)) {
+        VDPP_DBG(VDPP_DBG_CHECK, "vep dst unsupported img_w %d img_h %d\n",
+                 params->dst_height, params->dst_width);
+        vep_mode_check++;
+    }
+
+    if ((params->src_width & 1) || (params->src_height & 1) ||
+        (params->dst_width & 1) || (params->dst_height & 1)) {
+        VDPP_DBG(VDPP_DBG_CHECK, "vep only support img_w/h_vld 2pix align\n");
+        VDPP_DBG(VDPP_DBG_CHECK, "vep unsupported img_w_i %d img_h_i %d img_w_o %d img_h_o %d\n",
+                 params->src_width, params->src_height, params->dst_width, params->dst_height);
+        vep_mode_check++;
+    }
+
+    if (!vep_mode_check) {
+        ret_cap |= VDPP_CAP_VEP;
+        VDPP_DBG(VDPP_DBG_INT, "vdpp support mode: VDPP_CAP_VEP\n");
+    }
+
+    return ret_cap;
+}
+
 static MPP_RET vdpp_start(struct vdpp_api_ctx *ctx)
 {
     MPP_RET ret;
@@ -276,10 +316,18 @@ static MPP_RET vdpp_start(struct vdpp_api_ctx *ctx)
     RK_U32 req_cnt = 0;
     struct vdpp_reg *reg = NULL;
     struct zme_reg *zme = NULL;
+    RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
 
     if (NULL == ctx) {
         mpp_err_f("found NULL input vdpp ctx %p\n", ctx);
         return MPP_ERR_NULL_PTR;
+    }
+
+    ret_cap = check_cap(&ctx->params);
+    if (!(ret_cap & VDPP_CAP_VEP)) {
+        mpp_err_f("found incompat work mode %s cap %d\n",
+                  working_mode_name[VDPP_WORK_MODE_VEP], ret_cap);
+        return MPP_NOK;
     }
 
     reg = &ctx->reg;
@@ -354,7 +402,7 @@ static MPP_RET vdpp_start(struct vdpp_api_ctx *ctx)
     req_cnt++;
     mpp_req[req_cnt].cmd = MPP_CMD_SET_REG_READ;
     mpp_req[req_cnt].flag = MPP_FLAGS_MULTI_MSG | MPP_FLAGS_LAST_MSG;
-    mpp_req[req_cnt].size =  sizeof(&reg->common);
+    mpp_req[req_cnt].size =  sizeof(reg->common);
     mpp_req[req_cnt].offset = 0;
     mpp_req[req_cnt].data_ptr = REQ_DATA_PTR(&reg->common);
 
@@ -384,6 +432,10 @@ static MPP_RET vdpp_wait(struct vdpp_api_ctx *ctx)
     mpp_req.flag |= MPP_FLAGS_LAST_MSG;
 
     ret = (RK_S32)ioctl(ctx->fd, MPP_IOC_CFG_V1, &mpp_req);
+    if (ret) {
+        mpp_err_f("ioctl POLL_HW_FINISH failed ret %d errno %d %s\n",
+                  ret, errno, strerror(errno));
+    }
 
     return ret;
 }
@@ -405,10 +457,18 @@ static MPP_RET vdpp_done(struct vdpp_api_ctx *ctx)
     VDPP_DBG(VDPP_DBG_INT, "ro_timeout_sts=%d\n", reg->common.reg10.ro_timeout_sts);
     VDPP_DBG(VDPP_DBG_INT, "ro_config_error_sts=%d\n", reg->common.reg10.ro_timeout_sts);
 
+    if (reg->common.reg8.sw_vdpp_frm_done_en &&
+        !reg->common.reg10.ro_frm_done_sts) {
+        mpp_err_f("run vdpp failed\n");
+        return MPP_NOK;
+    }
+
+    VDPP_DBG(VDPP_DBG_INT, "run vdpp success\n");
+
     return MPP_OK;
 }
 
-static MPP_RET set_addr(struct vdpp_addr *addr, VdppImg *img)
+static inline MPP_RET set_addr(struct vdpp_addr *addr, VdppImg *img)
 {
     if (NULL == addr || NULL == img) {
         mpp_err_f("found NULL vdpp_addr %p img %p\n", addr, img);
@@ -425,6 +485,7 @@ static MPP_RET set_addr(struct vdpp_addr *addr, VdppImg *img)
 MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
 {
     struct vdpp_api_ctx *ctx = ictx;
+    MPP_RET ret = MPP_OK;
 
     if ((NULL == iparam && VDPP_CMD_RUN_SYNC != cmd) ||
         (NULL == ictx)) {
@@ -438,7 +499,11 @@ MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
     case VDPP_CMD_SET_ZME_COM_CFG:
     case VDPP_CMD_SET_ZME_COEFF_CFG: {
         struct vdpp_api_params *param = (struct vdpp_api_params *)iparam;
-        vdpp_set_param(ctx, &param->param, param->ptype);
+
+        ret = vdpp_set_param(ctx, &param->param, param->ptype);
+        if (ret) {
+            mpp_err_f("set vdpp parameter failed, type %d\n", param->ptype);
+        }
         break;
     }
     case VDPP_CMD_SET_SRC:
@@ -448,8 +513,12 @@ MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
         set_addr(&ctx->params.dst, (VdppImg *)iparam);
         break;
     case VDPP_CMD_RUN_SYNC:
-        if (0 > vdpp_start(ctx))
+        ret = vdpp_start(ctx);
+        if (ret) {
+            mpp_err_f("run vdpp failed\n");
             return MPP_NOK;
+        }
+
         vdpp_wait(ctx);
         vdpp_done(ctx);
         break;
@@ -457,46 +526,17 @@ MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam)
         ;
     }
 
-    return MPP_OK;
+    return ret;
 }
 
 RK_S32 vdpp_check_cap(VdppCtx ictx)
 {
     struct vdpp_api_ctx *ctx = ictx;
-    struct vdpp_params *params = NULL;
-    RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
-    RK_U32 vep_mode_check = 0;
 
     if (NULL == ictx) {
         mpp_err_f("found NULL ctx %p\n", ictx);
         return VDPP_CAP_UNSUPPORTED;
     }
 
-    params = &ctx->params;
-
-    if ((params->src_height < VDPP_MODE_MIN_HEIGHT) ||
-        (params->src_width < VDPP_MODE_MIN_WIDTH)) {
-        VDPP_DBG(VDPP_DBG_TRACE, "vep src unsupported img_w %d img_h %d\n",
-                 params->src_height, params->src_width);
-        vep_mode_check++;
-    }
-
-    if ((params->dst_height < VDPP_MODE_MIN_HEIGHT) ||
-        (params->dst_width < VDPP_MODE_MIN_WIDTH)) {
-        VDPP_DBG(VDPP_DBG_TRACE, "vep dst unsupported img_w %d img_h %d\n",
-                 params->dst_height, params->dst_width);
-        vep_mode_check++;
-    }
-
-    if ((params->src_width | params->src_height | params->dst_width | params->dst_height) & 1) {
-        VDPP_DBG(VDPP_DBG_TRACE, "vep only support img_w/h_vld 2pix align\n");
-        vep_mode_check++;
-    }
-
-    if (!vep_mode_check) {
-        ret_cap |= VDPP_CAP_VEP;
-        VDPP_DBG(VDPP_DBG_TRACE, "vdpp support mode: VDPP_CAP_VEP\n");
-    }
-
-    return ret_cap;
+    return check_cap(&ctx->params);
 }

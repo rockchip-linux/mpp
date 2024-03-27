@@ -371,8 +371,13 @@ void vdpp_test(VdppTestCfg *cfg)
 
         memset(pdst, 0, dstfrmsize);
         memset(phist, 0, DCI_HIST_SIZE);
-        vdpp->ops->control(vdpp->priv, VDPP_CMD_RUN_SYNC, NULL);
-        cnt ++;
+
+        if (vdpp->ops->control(vdpp->priv, VDPP_CMD_RUN_SYNC, NULL)) {
+            mpp_err("found vdpp run error, exit!\n");
+            break;
+        }
+
+        cnt++;
 
         if (cfg->fp_dst) {
             if (dstfrmsize > fwrite(pdst, 1, dstfrmsize, cfg->fp_dst)) {

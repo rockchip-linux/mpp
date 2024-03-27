@@ -12,6 +12,7 @@
 /* vdpp log marco */
 #define VDPP2_DBG_TRACE             (0x00000001)
 #define VDPP2_DBG_INT               (0x00000002)
+#define VDPP2_DBG_CHECK             (0x00000004)
 
 extern RK_U32 vdpp2_debug;
 

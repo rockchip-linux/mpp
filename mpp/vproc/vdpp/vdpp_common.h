@@ -22,6 +22,8 @@
 #define GET_SCALE_FACTOR_DN(src,dst)      ((((src) - 1) << SCALE_FACTOR_DN_FIXPOINT_SHIFT)  / ((dst) - 1))
 #define GET_SCALE_FACTOR_UP(src,dst)      ((((src) - 1) << SCALE_FACTOR_UP_FIXPOINT_SHIFT)  / ((dst) - 1))
 
+extern const char *working_mode_name[];
+
 enum ZME_FMT {
     FMT_YCbCr420_888    = 4,
     FMT_YCbCr444_888    = 6,

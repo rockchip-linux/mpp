@@ -7,6 +7,13 @@
 
 #include "vdpp_common.h"
 
+const char *working_mode_name[] = {
+    NULL,
+    NULL,
+    "VEP MODE",
+    "DCI HIST MODE",
+};
+
 #define VDPP_SET_ZME_COEF(index, row, col) \
     do { \
         zme->yrgb_hor_coe.reg##index.yrgb_hor_coe##row##_##col = \
