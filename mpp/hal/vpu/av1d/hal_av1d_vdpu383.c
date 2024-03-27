@@ -130,15 +130,9 @@ typedef struct av1d_rkv_buf_t {
     Vdpu383Av1dRegSet  *regs;
 } av1dVdpu383Buf;
 
-typedef struct vcpu383_exist_paras_t {
-    RK_U32 cdf_last_idx;
-    RK_U32 cdf_last_coeff;
-} vdpu383ExistParas;
-
 typedef struct vcpu383_ref_info_t {
     RK_U32 dpb_idx;
     RK_U32 seg_idx;
-    RK_U32 cdf_idx;
     RK_U32 colmv_exist_flag;
     RK_U32 coeff_idx;
     RK_U32 mi_rows;
@@ -166,7 +160,6 @@ typedef struct VdpuAv1dRegCtx_t {
     RK_U32          colmv_count;
     RK_U32          colmv_size;
 
-    vdpu383ExistParas exist_params;
     vdpu383RefInfo  ref_info_tbl[NUM_REF_FRAMES];
 
     MppBuffer       cdf_rd_def_base;
@@ -1981,12 +1974,6 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     RK_U32 i = 0;
     MppBuffer buf_tmp = NULL;
 
-    /* update exist params in uncompressed header */
-    if (dxva->show_existing_frame) {
-        reg_ctx->exist_params.cdf_last_idx = reg_ctx->ref_info_tbl[dxva->frame_to_show_map_idx].cdf_idx;
-        reg_ctx->exist_params.cdf_last_coeff = reg_ctx->ref_info_tbl[dxva->frame_to_show_map_idx].coeff_idx;
-    }
-
     /* use para in decoder */
 #ifdef DUMP_AV1D_VDPU383_DATAS
     {
@@ -2050,18 +2037,12 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     for (i = 0; i < NUM_REF_FRAMES; i++) {
         if (dxva->refresh_frame_flags & (1 << i)) {
             if (dxva->coding.disable_frame_end_update_cdf) {
-                if (dxva->show_existing_frame && dxva->format.frame_type == AV1_FRAME_KEY) {
-                    reg_ctx->ref_info_tbl[i].cdf_idx = reg_ctx->exist_params.cdf_last_idx;
-                    reg_ctx->ref_info_tbl[i].coeff_idx = reg_ctx->exist_params.cdf_last_coeff;
-                } else {
-                    reg_ctx->ref_info_tbl[i].cdf_idx = coeff_cdf_idx;
-                    reg_ctx->ref_info_tbl[i].coeff_idx = coeff_cdf_idx;
-                }
-            } else {
                 if (dxva->show_existing_frame && dxva->format.frame_type == AV1_FRAME_KEY)
-                    reg_ctx->ref_info_tbl[i].cdf_idx = reg_ctx->exist_params.cdf_last_idx;
+                    reg_ctx->ref_info_tbl[i].coeff_idx
+                        = reg_ctx->ref_info_tbl[dxva->frame_to_show_map_idx].coeff_idx;
                 else
-                    reg_ctx->ref_info_tbl[i].cdf_idx = i;
+                    reg_ctx->ref_info_tbl[i].coeff_idx = coeff_cdf_idx;
+            } else {
                 reg_ctx->ref_info_tbl[i].coeff_idx = 0;
             }
         }
@@ -2174,7 +2155,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         MppBuffer mbuffer = NULL;
 
         /* uncompress header data */
-        prepare_uncompress_header(p_hal, dxva, (RK_U64 *)ctx->header_data, sizeof(ctx->header_data));
+        prepare_uncompress_header(p_hal, dxva, (RK_U64 *)ctx->header_data, sizeof(ctx->header_data) / 8);
         memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, sizeof(ctx->header_data));
         regs->av1d_paras.reg67_global_len = VDPU383_UNCMPS_HEADER_SIZE / 16; // 128 bit as unit
         regs->com_pkt_addr.reg131_gbl_base = ctx->bufs_fd;
