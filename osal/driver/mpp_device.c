@@ -166,6 +166,22 @@ MPP_RET mpp_dev_ioctl(MppDev ctx, RK_S32 cmd, void *param)
         if (api->set_err_ref_hack)
             ret = api->set_err_ref_hack(impl_ctx, param);
     } break;
+    case MPP_DEV_LOCK_MAP : {
+        if (api->lock_map)
+            ret = api->lock_map(impl_ctx);
+    } break;
+    case MPP_DEV_UNLOCK_MAP : {
+        if (api->unlock_map)
+            ret = api->unlock_map(impl_ctx);
+    } break;
+    case MPP_DEV_ATTACH_FD : {
+        if (api->attach_fd)
+            ret = api->attach_fd(impl_ctx, param);
+    } break;
+    case MPP_DEV_DETACH_FD : {
+        if (api->detach_fd)
+            ret = api->detach_fd(impl_ctx, param);
+    } break;
     case MPP_DEV_CMD_SEND : {
         if (api->cmd_send)
             ret = api->cmd_send(impl_ctx);

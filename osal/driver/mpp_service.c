@@ -261,6 +261,49 @@ RcbInfo *mpp_service_next_rcb_info(MppDevMppService *p)
     return info;
 }
 
+static MPP_RET mpp_service_ioc_attach_fd(MppDevBufMapNode *node)
+{
+    MppReqV1 mpp_req;
+    RK_S32 fd = node->buf_fd;
+    MPP_RET ret;
+
+    mpp_req.cmd = MPP_CMD_TRANS_FD_TO_IOVA;
+    mpp_req.flag = MPP_FLAGS_LAST_MSG;
+    mpp_req.size = sizeof(RK_U32);
+    mpp_req.offset = 0;
+    mpp_req.data_ptr = REQ_DATA_PTR(&fd);
+
+    ret = mpp_service_ioctl_request(node->dev_fd, &mpp_req);
+    if (ret) {
+        mpp_err_f("failed ret %d errno %d %s\n", ret, errno, strerror(errno));
+        node->iova = (RK_U32)(-1);
+    } else {
+        node->iova = (RK_U32)fd;
+    }
+
+    return ret;
+}
+
+static MPP_RET mpp_service_ioc_detach_fd(MppDevBufMapNode *node)
+{
+    RK_S32 fd = node->buf_fd;
+    MppReqV1 mpp_req;
+    MPP_RET ret;
+
+    mpp_req.cmd = MPP_CMD_RELEASE_FD;
+    mpp_req.flag = MPP_FLAGS_LAST_MSG;
+    mpp_req.size = sizeof(RK_U32);
+    mpp_req.offset = 0;
+    mpp_req.data_ptr = REQ_DATA_PTR(&fd);
+
+    ret = mpp_service_ioctl_request(node->dev_fd, &mpp_req);
+    if (ret) {
+        mpp_err_f("failed ret %d errno %d %s\n", ret, errno, strerror(errno));
+    }
+    node->iova = (RK_U32)(-1);
+    return ret;
+}
+
 MPP_RET mpp_service_init(void *ctx, MppClientType type)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
@@ -326,12 +369,42 @@ MPP_RET mpp_service_init(void *ctx, MppClientType type)
     p->rcb_pos = 0;
     p->rcb_count = 0;
 
+    INIT_LIST_HEAD(&p->list_bufs);
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&p->lock_bufs, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
     return ret;
 }
 
 MPP_RET mpp_service_deinit(void *ctx)
 {
     MppDevMppService *p = (MppDevMppService *)ctx;
+    MppDevBufMapNode *pos, *n;
+
+    pthread_mutex_lock(&p->lock_bufs);
+    list_for_each_entry_safe(pos, n, &p->list_bufs, MppDevBufMapNode, list_dev) {
+        pthread_mutex_t *lock_buf = pos->lock_buf;
+
+        mpp_assert(pos->lock_buf && pos->lock_dev);
+        mpp_assert(pos->lock_dev == &p->lock_bufs);
+
+        pthread_mutex_lock(lock_buf);
+
+        list_del_init(&pos->list_dev);
+        list_del_init(&pos->list_buf);
+        pos->lock_buf = NULL;
+        pos->lock_dev = NULL;
+        mpp_service_ioc_detach_fd(pos);
+        mpp_mem_pool_put_f(__FUNCTION__, pos->pool, pos);
+
+        pthread_mutex_unlock(lock_buf);
+    }
+    pthread_mutex_unlock(&p->lock_bufs);
+    pthread_mutex_destroy(&p->lock_bufs);
 
     if (p->batch_io)
         mpp_server_detach(p);
@@ -574,6 +647,73 @@ MPP_RET mpp_service_set_err_ref_hack(void *ctx, RK_U32 *enable)
     return mpp_service_ioctl_request(p->client, &mpp_req);
 }
 
+MPP_RET mpp_service_lock_map(void *ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    mpp_dev_dbg_buf("dev %d lock mapping\n", p->client);
+    pthread_mutex_lock(&p->lock_bufs);
+    return MPP_OK;
+}
+
+MPP_RET mpp_service_unlock_map(void *ctx)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+
+    mpp_dev_dbg_buf("dev %d unlock mapping\n", p->client);
+    pthread_mutex_unlock(&p->lock_bufs);
+    return MPP_OK;
+}
+
+MPP_RET mpp_service_attach_fd(void *ctx, MppDevBufMapNode *node)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+    MPP_RET ret;
+
+    mpp_assert(node->buffer);
+    mpp_assert(node->lock_buf);
+    mpp_assert(node->buf_fd >= 0);
+
+    node->lock_dev = &p->lock_bufs;
+    node->dev_fd = p->client;
+    ret = mpp_service_ioc_attach_fd(node);
+    if (ret) {
+        node->lock_dev = NULL;
+        node->dev_fd = -1;
+        list_del_init(&node->list_dev);
+    } else {
+        list_add_tail(&node->list_dev, &p->list_bufs);
+    }
+
+    mpp_dev_dbg_buf("node %p dev %d attach fd %d iova %x\n",
+                    node, node->dev_fd, node->buf_fd, node->iova);
+
+    return ret;
+}
+
+MPP_RET mpp_service_detach_fd(void *ctx, MppDevBufMapNode *node)
+{
+    MppDevMppService *p = (MppDevMppService *)ctx;
+    MPP_RET ret;
+
+    mpp_assert(node->buffer);
+    mpp_assert(node->lock_buf);
+    mpp_assert(node->buf_fd >= 0);
+    mpp_assert(node->dev_fd >= 0);
+    mpp_assert(node->lock_dev == &p->lock_bufs);
+
+    mpp_dev_dbg_buf("node %p dev %d attach fd %d iova %x\n",
+                    node, node->dev_fd, node->buf_fd, node->iova);
+
+    ret = mpp_service_ioc_detach_fd(node);
+    node->dev = NULL;
+    node->dev_fd = -1;
+    node->lock_dev = NULL;
+    list_del_init(&node->list_dev);
+
+    return ret;
+}
+
 MPP_RET mpp_service_cmd_send(void *ctx)
 {
     MPP_RET ret = MPP_OK;
@@ -716,6 +856,10 @@ const MppDevApi mpp_service_api = {
     mpp_service_rcb_info,
     mpp_service_set_info,
     mpp_service_set_err_ref_hack,
+    mpp_service_lock_map,
+    mpp_service_unlock_map,
+    mpp_service_attach_fd,
+    mpp_service_detach_fd,
     mpp_service_cmd_send,
     mpp_service_cmd_poll,
 };
