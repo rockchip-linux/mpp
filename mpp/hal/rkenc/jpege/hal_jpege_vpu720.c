@@ -10,6 +10,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "mpp_buffer_impl.h"
 #include "mpp_enc_hal.h"
 
 #include "jpege_syntax.h"
@@ -145,6 +146,7 @@ static MPP_RET hal_jpege_vpu720_init(void *hal, MppEncHalCfg *cfg)
     }
 
     ret = mpp_buffer_get(ctx->group, &ctx->qtbl_buffer, JPEGE_VPU720_QTABLE_SIZE * sizeof(RK_U16));
+    mpp_buffer_attach_dev(ctx->qtbl_buffer, ctx->dev);
     ctx->qtbl_sw_buf = (RK_U16 *)mpp_calloc(RK_U16, JPEGE_VPU720_QTABLE_SIZE);
 
     hal_jpege_leave();

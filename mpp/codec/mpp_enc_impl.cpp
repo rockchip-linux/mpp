@@ -22,6 +22,7 @@
 
 #include "mpp_time.h"
 #include "mpp_common.h"
+#include "mpp_buffer_impl.h"
 
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
@@ -1436,6 +1437,7 @@ static MPP_RET mpp_enc_check_pkt_buf(MppEncImpl *enc)
 
         mpp_assert(size);
         mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
+        mpp_buffer_attach_dev(buffer, enc->dev);
         mpp_assert(buffer);
         enc->pkt_buf = buffer;
         pkt->data   = mpp_buffer_get_ptr(buffer);
@@ -2597,6 +2599,7 @@ static MPP_RET check_async_pkt_buf(MppEncImpl *enc, EncAsyncTaskInfo *async)
 
         mpp_assert(size);
         mpp_buffer_get(mpp->mPacketGroup, &buffer, size);
+        mpp_buffer_attach_dev(buffer, enc->dev);
         mpp_assert(buffer);
         enc->pkt_buf = buffer;
         pkt->data   = mpp_buffer_get_ptr(buffer);

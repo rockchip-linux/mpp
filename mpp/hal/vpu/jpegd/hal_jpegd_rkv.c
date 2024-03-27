@@ -24,6 +24,7 @@
 #include "mpp_debug.h"
 #include "mpp_frame.h"
 #include "mpp_common.h"
+#include "mpp_buffer_impl.h"
 
 #include "jpegd_syntax.h"
 #include "hal_jpegd_common.h"
@@ -294,6 +295,8 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
     if (ret) {
         mpp_err_f("Get table buffer failed, ret %d\n", ret);
     }
+
+    mpp_buffer_attach_dev(ctx->pTableBase, ctx->dev);
 
     jpegd_dbg_func("exit\n");
     return ret;
