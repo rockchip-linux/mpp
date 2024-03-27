@@ -669,7 +669,7 @@ static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSe
         regs->reg_param.me_sqi_comb.cime_fuse   = 1;
         regs->reg_param.me_sqi_comb.itp_mode    = 0;
         regs->reg_param.me_sqi_comb.move_lambda = 2;
-        regs->reg_param.me_sqi_comb.rime_lvl_mrg     = 0;
+        regs->reg_param.me_sqi_comb.rime_lvl_mrg     = 1;
         regs->reg_param.me_sqi_comb.rime_prelvl_en   = 3;
         regs->reg_param.me_sqi_comb.rime_prersu_en   = 3;
 
@@ -1229,7 +1229,7 @@ static void vepu510_h265_set_me_regs(H265eV510HalContext *ctx, H265eSyntax_new *
     regs->common.me_cfg.rme_srch_h         = 3;
     regs->common.me_cfg.rme_srch_v         = 3;
 
-    regs->common.me_cfg.srgn_max_num       = 72;
+    regs->common.me_cfg.srgn_max_num       = 54;
     regs->common.me_cfg.cime_dist_thre     = 1024;
     regs->common.me_cfg.rme_dis            = 0;
     regs->common.me_cfg.fme_dis            = 0;
