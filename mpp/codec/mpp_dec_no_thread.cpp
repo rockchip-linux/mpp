@@ -119,6 +119,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
             mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
             if (hal_buf_in) {
                 mpp_buf_slot_set_prop(packet_slots, slot_pkt, SLOT_BUFFER, hal_buf_in);
+                mpp_buffer_attach_dev(hal_buf_in, dec->dev);
                 mpp_buffer_put(hal_buf_in);
             }
         } else {

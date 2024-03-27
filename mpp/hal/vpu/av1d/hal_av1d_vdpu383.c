@@ -7,14 +7,10 @@
 
 #include <string.h>
 
-#include "mpp_mem.h"
-#include "mpp_common.h"
-#include "mpp_bitput.h"
-#include "mpp_hal.h"
 #include "mpp_env.h"
-#include "mpp_dec_cb_param.h"
-#include "mpp_device.h"
-#include "hal_bufs.h"
+#include "mpp_mem.h"
+#include "mpp_bitput.h"
+#include "mpp_buffer_impl.h"
 
 // #include "av1.h"
 #include "hal_av1d_vdpu383_reg.h"
@@ -1291,6 +1287,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
 
     //!< malloc buffers
     BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, MPP_ALIGN(VDPU383_INFO_BUF_SIZE(max_cnt), SZ_2K)));
+    mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->dev);
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
 
@@ -1307,8 +1304,10 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
     }
 
     BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->cdf_rd_def_base, 200 * MPP_ALIGN(sizeof(g_default_prob), 2048)));
+    mpp_buffer_attach_dev(reg_ctx->cdf_rd_def_base, p_hal->dev);
     cdf_ptr = mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base);
     memcpy(cdf_ptr, g_default_prob, sizeof(g_default_prob));
+    mpp_buffer_sync_end(reg_ctx->cdf_rd_def_base);
 
 __RETURN:
     return ret;
@@ -2021,7 +2020,6 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     regs->av1d_addrs.reg185_av1_noncoef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
     regs->av1d_addrs.reg179_av1_coef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
 
-    mpp_buffer_sync_end(reg_ctx->cdf_rd_def_base);
     // TODO
     // regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
     // regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
@@ -2337,6 +2335,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         vdpu383_av1d_cdf_setup(p_hal);
         vdpu383_av1d_set_cdf(p_hal, dxva);
     }
+    mpp_buffer_sync_end(ctx->bufs);
 
 __RETURN:
     return ret = MPP_OK;

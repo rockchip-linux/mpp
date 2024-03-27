@@ -18,6 +18,7 @@
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"
+#include "mpp_buffer_impl.h"
 
 #include "h265d_syntax.h"
 #include "hal_h265d_debug.h"
@@ -126,6 +127,8 @@ static MPP_RET hal_h265d_vdpu383_init(void *hal, MppHalCfg *cfg)
             reg_ctx->offset_rps[i] = RPS_OFFSET(i);
             reg_ctx->offset_sclst[i] = SCALIST_OFFSET(i);
         }
+
+        mpp_buffer_attach_dev(reg_ctx->bufs, reg_ctx->dev);
     }
 
     if (!reg_ctx->fast_mode) {
@@ -1180,6 +1183,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
                       reg_ctx->rcb_buf[syn->dec.reg_index] : reg_ctx->rcb_buf[0],
                       (Vdpu383RcbInfo *)reg_ctx->rcb_info);
     vdpu383_setup_statistic(&hw_regs->ctrl_regs);
+    mpp_buffer_sync_end(reg_ctx->bufs);
 
     return ret;
 }

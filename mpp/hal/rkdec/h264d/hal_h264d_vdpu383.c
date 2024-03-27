@@ -11,6 +11,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_bitput.h"
+#include "mpp_buffer_impl.h"
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_vdpu383.h"
@@ -591,6 +592,8 @@ MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
         reg_ctx->offset_sclst[i] = VDPU383_SCALING_LIST_OFFSET(i);
     }
 
+    mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->dev);
+
     if (!p_hal->fast_mode) {
         reg_ctx->regs = reg_ctx->reg_buf[0].regs;
         reg_ctx->spspps_offset = reg_ctx->offset_spspps[0];
@@ -638,7 +641,10 @@ MPP_RET vdpu383_h264d_deinit(void *hal)
     RK_U32 i = 0;
     RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
-    mpp_buffer_put(reg_ctx->bufs);
+    if (reg_ctx->bufs) {
+        mpp_buffer_put(reg_ctx->bufs);
+        reg_ctx->bufs = NULL;
+    }
 
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_ctx->reg_buf[i].regs);
@@ -856,6 +862,7 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
                       ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
                       ctx->rcb_info);
     vdpu383_setup_statistic(&regs->ctrl_regs);
+    mpp_buffer_sync_end(ctx->bufs);
 
 __RETURN:
     return ret = MPP_OK;

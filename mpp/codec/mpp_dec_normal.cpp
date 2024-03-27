@@ -426,6 +426,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
         if (hal_buf_in) {
             mpp_buf_slot_set_prop(packet_slots, task_dec->input, SLOT_BUFFER, hal_buf_in);
+            mpp_buffer_attach_dev(hal_buf_in, dec->dev);
             mpp_buffer_put(hal_buf_in);
         }
     } else {

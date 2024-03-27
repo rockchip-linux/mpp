@@ -11,6 +11,7 @@
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
+#include "mpp_buffer_impl.h"
 #include "mpp_bitput.h"
 
 #include "hal_vp9d_debug.h"
@@ -90,18 +91,21 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
             mpp_err("vp9 probe_loop_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->prob_loop_base[i], p_hal->dev);
     }
     ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_default_base, PROB_SIZE);
     if (ret) {
         mpp_err("vp9 probe_default_base get buffer failed\n");
         return ret;
     }
+    mpp_buffer_attach_dev(hw_ctx->prob_default_base, p_hal->dev);
     /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].global_base, GBL_SIZE);
+            mpp_buffer_attach_dev(hw_ctx->g_buf[i].global_base, p_hal->dev);
             if (ret) {
                 mpp_err("vp9 global_base get buffer failed\n");
                 return ret;
@@ -112,24 +116,28 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
             }
+            mpp_buffer_attach_dev(hw_ctx->g_buf[i].probe_base, p_hal->dev);
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].count_base, COUNT_SIZE);
             if (ret) {
                 mpp_err("vp9 count_base get buffer failed\n");
                 return ret;
             }
+            mpp_buffer_attach_dev(hw_ctx->g_buf[i].count_base, p_hal->dev);
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].segid_cur_base, MAX_SEGMAP_SIZE);
             if (ret) {
                 mpp_err("vp9 segid_cur_base get buffer failed\n");
                 return ret;
             }
+            mpp_buffer_attach_dev(hw_ctx->g_buf[i].segid_cur_base, p_hal->dev);
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].segid_last_base, MAX_SEGMAP_SIZE);
             if (ret) {
                 mpp_err("vp9 segid_last_base get buffer failed\n");
                 return ret;
             }
+            mpp_buffer_attach_dev(hw_ctx->g_buf[i].segid_last_base, p_hal->dev);
         }
     } else {
         hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
@@ -138,28 +146,33 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
             mpp_err("vp9 global_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->global_base, p_hal->dev);
 
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, PROB_KF_SIZE);
         if (ret) {
             mpp_err("vp9 probe_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->probe_base, p_hal->dev);
 
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->count_base, COUNT_SIZE);
         if (ret) {
             mpp_err("vp9 count_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->count_base, p_hal->dev);
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_cur_base, MAX_SEGMAP_SIZE);
         if (ret) {
             mpp_err("vp9 segid_cur_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->segid_cur_base, p_hal->dev);
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_last_base, MAX_SEGMAP_SIZE);
         if (ret) {
             mpp_err("vp9 segid_last_base get buffer failed\n");
             return ret;
         }
+        mpp_buffer_attach_dev(hw_ctx->segid_last_base, p_hal->dev);
     }
     return MPP_OK;
 }
@@ -731,6 +744,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     /* uncompress header data */
     prepare_uncompress_header(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, sizeof(hw_ctx->header_data));
     memcpy(mpp_buffer_get_ptr(hw_ctx->global_base), hw_ctx->header_data, sizeof(hw_ctx->header_data));
+    mpp_buffer_sync_end(hw_ctx->global_base);
     vp9_hw_regs->vp9d_paras.reg67_global_len = GBL_SIZE / 16;
     vp9_hw_regs->common_addr.reg131_gbl_base = mpp_buffer_get_fd(hw_ctx->global_base);
 
@@ -759,8 +773,11 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     // hal_vp9d_prob_flag_delta(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
     /* init kf_probe */
     hal_vp9d_prob_kf(mpp_buffer_get_ptr(hw_ctx->probe_base));
-    if (intraFlag)
+    mpp_buffer_sync_end(hw_ctx->probe_base);
+    if (intraFlag) {
         hal_vp9d_prob_default(mpp_buffer_get_ptr(hw_ctx->prob_default_base), task->dec.syntax.data);
+        mpp_buffer_sync_end(hw_ctx->prob_default_base);
+    }
 
     /* config last prob base and update write base */
     {

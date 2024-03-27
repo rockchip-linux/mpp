@@ -14,6 +14,7 @@
 #include "mpp_common.h"
 #include "mpp_debug.h"
 #include "mpp_bitput.h"
+#include "mpp_buffer_impl.h"
 
 #include "avs2d_syntax.h"
 #include "vdpu383_com.h"
@@ -484,6 +485,7 @@ MPP_RET hal_avs2d_vdpu383_init(void *hal, MppHalCfg *cfg)
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, AVS2_ALL_TBL_BUF_SIZE(loop)));
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
+    mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->dev);
 
     for (i = 0; i < loop; i++) {
         reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383Avs2dRegSet, 1);
@@ -651,6 +653,7 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     vdpu383_setup_statistic(&regs->ctrl_regs);
+    mpp_buffer_sync_end(reg_ctx->bufs);
 
 __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
