@@ -401,7 +401,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
 {
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
     MppEncRcCfg *rc = &ctx->cfg->rc;
-    pps->m_bConstrainedIntraPred = 0;
+    pps->m_bConstrainedIntraPred = codec->const_intra_pred;
     pps->m_PPSId = 0;
     pps->m_SPSId = 0;
     pps->m_picInitQPMinus26 = 0;

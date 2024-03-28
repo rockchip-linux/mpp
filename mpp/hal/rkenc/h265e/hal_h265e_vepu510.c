@@ -1150,6 +1150,7 @@ static void vepu510_h265_set_slice_regs(H265eSyntax_new *syn, H265eVepu510Frame 
     regs->synt_pps.sli_seg_hdr_extn     = syn->pp.slice_segment_header_extension_present_flag;
     regs->synt_pps.cu_qp_dlt_depth      = syn->pp.diff_cu_qp_delta_depth;
     regs->synt_pps.lpf_fltr_acrs_til    = syn->pp.loop_filter_across_tiles_enabled_flag;
+    regs->synt_pps.csip_flag            = syn->pp.constrained_intra_pred_flag;
 
     regs->synt_sli0.cbc_init_flg        = syn->sp.cbc_init_flg;
     regs->synt_sli0.mvd_l1_zero_flg     = syn->sp.mvd_l1_zero_flg;

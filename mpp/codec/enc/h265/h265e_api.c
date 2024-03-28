@@ -529,6 +529,19 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
     if (change & MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE)
         dst->lpf_acs_tile_disable = src->lpf_acs_tile_disable;
 
+    if ((change & MPP_ENC_H265_CFG_CHANGE_CONST_INTRA) &&
+        (dst->const_intra_pred != src->const_intra_pred)) {
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type != ROCKCHIP_SOC_RK3576 && src->const_intra_pred == 1) {
+            dst->const_intra_pred = 0;
+
+            mpp_log("warning: Only rk3576's HEVC encoder support constraint intra prediction flag = 1.");
+        } else
+            dst->const_intra_pred = src->const_intra_pred;
+
+        dst->change |= MPP_ENC_H265_CFG_CHANGE_CONST_INTRA;
+    }
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
      * When next encoding is trigger the change flag will be clear

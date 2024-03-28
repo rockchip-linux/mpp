@@ -246,6 +246,7 @@ public:
     ENTRY(h265, lpf_acs_sli_en, U32, RK_U32,            MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   codec.h265, lpf_acs_sli_en) \
     ENTRY(h265, lpf_acs_tile_disable, U32, RK_U32,      MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    codec.h265, lpf_acs_tile_disable) \
     ENTRY(h265, auto_tile,      S32, RK_S32,            MPP_ENC_H265_CFG_TILE_CHANGE,           codec.h265, auto_tile) \
+    ENTRY(h265, const_intra,    S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    codec.h265, const_intra_pred) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
@@ -382,7 +383,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1853, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1872, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;
