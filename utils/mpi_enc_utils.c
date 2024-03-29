@@ -613,7 +613,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
     if (!cmd->hor_stride)
         cmd->hor_stride = mpi_enc_width_default_stride(cmd->width, cmd->format);
     if (!cmd->ver_stride)
-        cmd->ver_stride = cmd->height;
+        cmd->ver_stride = MPP_ALIGN(cmd->height, 2);
 
     if (cmd->type_src == MPP_VIDEO_CodingUnused) {
         if (cmd->width <= 0 || cmd->height <= 0 ||

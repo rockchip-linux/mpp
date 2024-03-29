@@ -549,6 +549,8 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
             }
         }
 
+        height = MPP_ALIGN(height, 2);
+        width = MPP_ALIGN(width, 2);
         for (row = 0; row < height / 2; row++) {
             read_size = fread(buf_u + row * hor_stride, 1, width, fp);
             if (read_size != width) {
@@ -566,6 +568,8 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
             }
         }
 
+        width = MPP_ALIGN(width, 2);
+        height = MPP_ALIGN(height, 2);
         for (row = 0; row < height / 2; row++) {
             read_size = fread(buf_u + row * hor_stride / 2, 1, width / 2, fp);
             if (read_size != width / 2) {
