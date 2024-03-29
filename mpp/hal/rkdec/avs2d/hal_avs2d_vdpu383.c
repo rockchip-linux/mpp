@@ -274,6 +274,49 @@ static void init_ctrl_regs(Vdpu383Avs2dRegSet *regs)
     ctrl_regs->reg29.rd_band_width_mode = 0;
 }
 
+static void avs2d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
+                                  RK_S32 width, RK_S32 height, void *dxva)
+{
+    (void) height;
+    Avs2dSyntax_t *syntax = dxva;
+    RK_U8 ctu_size = 1 << syntax->pp.lcu_size;
+    RK_U8 bit_depth = syntax->pp.bit_depth_chroma_minus8 + 8;
+    RK_U32 rcb_bits = 0;
+    RK_U32 filterd_row_append = 8192;
+
+    width = MPP_ALIGN(width, ctu_size);
+
+    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
+    if (width > 8192)
+        rcb_bits = ((width + 63) / 64) * 112;
+    else
+        rcb_bits = 0;
+    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_STRMD_TILE_ROW].size = 0;
+
+    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    rcb_bits = ((width + 7) / 8) * 166;
+    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTER_TILE_ROW].size = 0;
+
+    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
+    rcb_bits = rcb_bits * 3; //TODO:
+    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTRA_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_ROW && RCB_FILTERD_TILE_ROW*/
+    if (width > 4096)
+        filterd_row_append = 27648;
+    rcb_bits = MPP_ALIGN(width, 64) * (30 * bit_depth + 9);
+    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_TILE_COL */
+    rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+}
+
 static void hal_avs2d_rcb_info_update(void *hal, Vdpu383Avs2dRegSet *regs)
 {
     MPP_RET ret = MPP_OK;
@@ -287,7 +330,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu383Avs2dRegSet *regs)
     (void) regs;
 
     reg_ctx->rcb_buf_size = vdpu383_get_rcb_buf_size(reg_ctx->rcb_info, width, height);
-    // TODO calc refined rcb buffer size;
+    avs2d_refine_rcb_size(reg_ctx->rcb_info, width, height, (void *)&p_hal->syntax);
 
     for (i = 0; i < loop; i++) {
         MppBuffer rcb_buf = NULL;
@@ -731,6 +774,9 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
             rd_cfg.offset = 0;
             ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         }
+
+        /* rcb info for sram */
+        vdpu383_set_rcbinfo(dev, (Vdpu383RcbInfo*)reg_ctx->rcb_info);
 
         // send request to hardware
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);

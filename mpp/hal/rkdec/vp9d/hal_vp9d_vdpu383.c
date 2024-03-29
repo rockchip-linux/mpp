@@ -370,65 +370,69 @@ __FAILED:
     return ret;
 }
 
-#if 0
 static void vp9d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
-                                 Vdpu383Vp9dRegSet *vp9_hw_regs,
                                  RK_S32 width, RK_S32 height, void* data)
 {
     RK_U32 rcb_bits = 0;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)data;
-    RK_U32 num_tiles = pic_param->log2_tile_rows;
+    RK_U32 tile_row_num = 1 << pic_param->log2_tile_rows;
+    RK_U32 tile_col_num = 1 << pic_param->log2_tile_cols;
     RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
-    RK_U32 ext_align_size = num_tiles * 64 * 8;
+    RK_U32 ext_row_align_size = tile_row_num * 64 * 8;
+    RK_U32 ext_col_align_size = tile_col_num * 64 * 8;
+    RK_U32 filterd_row_append = 8192;
 
     width = MPP_ALIGN(width, VP9_CTU_SIZE);
     height = MPP_ALIGN(height, VP9_CTU_SIZE);
-    /* RCB_STRMD_ROW */
+    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
     if (width > 4096)
-        rcb_bits = MPP_ALIGN(width, 64) * 232 + ext_align_size;
+        rcb_bits = ((width + 63) / 64) * 250;
     else
         rcb_bits = 0;
-    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_TRANSD_ROW */
-    if (width > 8192)
-        rcb_bits = (MPP_ALIGN(width - 8192, 4) << 1) + ext_align_size;
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_TRANSD_COL */
-    if (height > 8192)
-        rcb_bits = (MPP_ALIGN(height - 8192, 4) << 1) + ext_align_size;
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_ROW */
-    rcb_bits = width * 36 + ext_align_size;
+    rcb_info[RCB_STRMD_ROW].size = 0;
+    rcb_info[RCB_STRMD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+
+    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    rcb_bits = ((width + 63) / 64) * 2368;
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_COL */
-    rcb_info[RCB_INTER_COL].size = 0;
-    /* RCB_INTRA_ROW */
-    rcb_bits = width * 48 + ext_align_size;
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_INTER_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_INTER_TILE_ROW].size = 0;
+
+    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
+    rcb_bits = rcb_bits * 3; //TODO:
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_DBLK_ROW */
-    rcb_bits = width * (1 + 16 * bit_depth) + num_tiles * 192 * bit_depth + ext_align_size;
-    rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_SAO_ROW */
-    rcb_info[RCB_SAO_ROW].size = 0;
-    /* RCB_FBC_ROW */
-    if (vp9_hw_regs->common.reg012.fbc_e) {
-        rcb_bits = 8 * width * bit_depth + ext_align_size;
-    } else
-        rcb_bits = 0;
-    rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_FILT_COL */
-    if (vp9_hw_regs->common.reg012.fbc_e) {
-        rcb_bits = height * (4 + 24 * bit_depth);
-    } else
-        rcb_bits = height * (4 + 16 * bit_depth);
-    rcb_bits += ext_align_size;
-    rcb_info[RCB_FILT_COL].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_INTRA_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_INTRA_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_ROW && RCB_FILTERD_TILE_ROW*/
+    // save space mode : half for RCB_FILTERD_ROW, half for RCB_FILTERD_PROTECT_ROW
+    if (width > 4096)
+        filterd_row_append = 27648;
+    rcb_bits = (RK_U32)(MPP_ALIGN(width, 64) * (41 * bit_depth + 13));
+    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_FILTERD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_TILE_COL */
+    if (tile_col_num > 1) {
+        rcb_bits = (RK_U32)(MPP_ALIGN(height, 64) * (42 * bit_depth + 13)) + ext_col_align_size;
+        rcb_info[RCB_FILTERD_TILE_COL].size = MPP_RCB_BYTES(rcb_bits);
+    } else {
+        rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+    }
+
 }
-#endif
 
 static void hal_vp9d_rcb_info_update(void *hal, Vdpu383Vp9dRegSet *hw_regs, void *data)
 {
@@ -448,7 +452,7 @@ static void hal_vp9d_rcb_info_update(void *hal, Vdpu383Vp9dRegSet *hw_regs, void
 
         hw_ctx->rcb_buf_size = vdpu383_get_rcb_buf_size(hw_ctx->rcb_info, width, height);
         // TODO: refine rcb buffer size
-        // vp9d_refine_rcb_size(hw_ctx->rcb_info, hw_regs, width, height, pic_param);
+        vp9d_refine_rcb_size(hw_ctx->rcb_info, width, height, pic_param);
 
         if (p_hal->fast_mode) {
             RK_U32 i;

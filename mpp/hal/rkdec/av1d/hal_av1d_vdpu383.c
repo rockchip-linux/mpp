@@ -1850,6 +1850,67 @@ static void rcb_buf_dump_edge(Vdpu383Av1dRegCtx *reg_ctx, MppBuffer buf)
 }
 #endif
 
+static void av1d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
+                                 RK_S32 width, RK_S32 height, void* data)
+{
+    RK_U32 rcb_bits = 0;
+    DXVA_PicParams_AV1 *pic_param = (DXVA_PicParams_AV1*)data;
+    RK_U32 tile_row_num = pic_param->tiles.rows;
+    RK_U32 tile_col_num = pic_param->tiles.cols;
+    RK_U32 bit_depth = pic_param->bitdepth;
+    RK_U32 sb_size = pic_param->coding.use_128x128_superblock ? 128 : 64;
+    RK_U32 ext_row_align_size = tile_row_num * 64 * 8;
+    RK_U32 ext_col_align_size = tile_col_num * 64 * 8;
+    RK_U32 filterd_row_append = 8192;
+
+    width = MPP_ALIGN(width, sb_size);
+    height = MPP_ALIGN(height, sb_size);
+    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
+    rcb_bits = ((width + 7) / 8) * 100;
+    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_STRMD_TILE_ROW].size = 0;
+
+    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    rcb_bits = ((width + 63) / 64) * 2752;
+    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_INTER_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_INTER_TILE_ROW].size = 0;
+
+    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
+    rcb_bits = rcb_bits * 3; //TODO:
+    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_INTRA_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_INTRA_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_ROW && RCB_FILTERD_TILE_ROW*/
+    if (width > 4096)
+        filterd_row_append = 27648;
+    rcb_bits = (RK_U32)(MPP_ALIGN(width, 64) * (32 * bit_depth + 10));
+    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_bits += ext_row_align_size;
+    if (tile_row_num > 1)
+        rcb_info[RCB_FILTERD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    else
+        rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
+
+    /* RCB_FILTERD_TILE_COL */
+    if (tile_col_num > 1) {
+        rcb_bits = (MPP_ALIGN(height, 64) * (101 * bit_depth + 32)) + ext_col_align_size;
+        rcb_info[RCB_FILTERD_TILE_COL].size = MPP_RCB_BYTES(rcb_bits);
+    } else {
+        rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+    }
+
+}
+
 static void vdpu383_av1d_rcb_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
@@ -1869,6 +1930,8 @@ static void vdpu383_av1d_rcb_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     offset += update_size_offset(reg_ctx->rcb_buf_info, 158, offset, VDPU383_RCB_FILTERD_TILE_COL_LEN,      RCB_FILTERD_TILE_COL   );
     offset += update_size_offset(reg_ctx->rcb_buf_info, 160, offset, VDPU383_RCB_FILTERD_AV1_UP_TL_COL_LEN, RCB_FILTERD_AV1_UP_TILE_COL);
     reg_ctx->rcb_buf_size = offset;
+
+    av1d_refine_rcb_size(reg_ctx->rcb_buf_info, dxva->width, dxva->height, dxva);
 
     for (i = 0; i < max_cnt; i++) {
         MppBuffer rcb_buf = reg_ctx->rcb_bufs[i];
@@ -2472,6 +2535,9 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
+
+        /* rcb info for sram */
+        vdpu383_set_rcbinfo(dev, (Vdpu383RcbInfo*)reg_ctx->rcb_buf_info);
 
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);

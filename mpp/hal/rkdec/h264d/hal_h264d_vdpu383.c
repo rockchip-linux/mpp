@@ -718,59 +718,53 @@ MPP_RET vdpu383_h264d_deinit(void *hal)
     return MPP_OK;
 }
 
-#if 0
 static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu383RcbInfo *rcb_info,
-                                  Vdpu383H264dRegSet *regs,
                                   RK_S32 width, RK_S32 height)
 {
     RK_U32 rcb_bits = 0;
     RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
     RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
     RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
+    RK_U32 row_uv_para = 1; // for yuv420/yuv422
+    RK_U32 filterd_row_append = 8192;
+
+    // vdpu383 h264d support yuv400/yuv420/yuv422
+    if (chroma_format_idc == 0)
+        row_uv_para = 0;
 
     width = MPP_ALIGN(width, H264_CTU_SIZE);
     height = MPP_ALIGN(height, H264_CTU_SIZE);
-    /* RCB_STRMD_ROW */
+    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
     if (width > 4096)
         rcb_bits = ((width + 15) / 16) * 154 * (mbaff ? 2 : 1);
     else
         rcb_bits = 0;
     rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_TRANSD_ROW */
-    if (width > 8192)
-        rcb_bits = ((width - 8192 + 3) / 4) * 2;
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_TRANSD_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_TRANSD_COL */
-    if (height > 8192)
-        rcb_bits = ((height - 8192 + 3) / 4) * 2;
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_TRANSD_COL].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_ROW */
-    rcb_bits = width * 42;
+    rcb_info[RCB_STRMD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    rcb_bits = ((width + 3) / 4) * 92 * (mbaff ? 2 : 1);
     rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_COL */
-    rcb_info[RCB_INTER_COL].size = 0;
-    /* RCB_INTRA_ROW */
-    rcb_bits = width * 44;
+    rcb_info[RCB_INTER_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2) * (mbaff ? 2 : 1);
+    if (chroma_format_idc == 1 || chroma_format_idc == 2)
+        rcb_bits = rcb_bits * 5 / 2; //TODO:
+
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_DBLK_ROW */
-    rcb_bits = width * (2 + (mbaff ? 12 : 6) * bit_depth);
-    rcb_info[RCB_DBLK_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_SAO_ROW */
-    rcb_info[RCB_SAO_ROW].size = 0;
-    /* RCB_FBC_ROW */
-    if (regs->common.reg012.fbc_e) {
-        rcb_bits = (chroma_format_idc > 1) ? (2 * width * bit_depth) : 0;
-    } else
-        rcb_bits = 0;
-    rcb_info[RCB_FBC_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_FILT_COL */
-    rcb_info[RCB_FILT_COL].size = 0;
+    rcb_info[RCB_INTRA_TILE_ROW].size = 0;
+    /* RCB_FILTERD_ROW && RCB_FILTERD_PROTECT_ROW*/
+    // save space mode : half for RCB_FILTERD_ROW, half for RCB_FILTERD_PROTECT_ROW
+    rcb_bits = width * 17 * ((6 + 3 * row_uv_para) * (mbaff ? 2 : 1) + 2 * row_uv_para + 1.5);
+    if (width > 4096)
+        filterd_row_append = 27648;
+    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+
+    rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
+    /* RCB_FILTERD_TILE_COL */
+    rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+
 }
-#endif
 
 static void hal_h264d_rcb_info_update(void *hal)
 {
@@ -791,7 +785,7 @@ static void hal_h264d_rcb_info_update(void *hal)
         RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
 
         ctx->rcb_buf_size = vdpu383_get_rcb_buf_size(ctx->rcb_info, width, height);
-        // h264d_refine_rcb_size(hal, ctx->rcb_info, regs, width, height);
+        h264d_refine_rcb_size(hal, ctx->rcb_info, width, height);
         for (i = 0; i < loop; i++) {
             MppBuffer rcb_buf = ctx->rcb_buf[i];
 

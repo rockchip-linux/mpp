@@ -20,11 +20,11 @@ static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
     [RCB_STRMD_TILE_ROW]            = 3,
     [RCB_INTER_ROW]                 = 6,
     [RCB_INTER_TILE_ROW]            = 6,
-    [RCB_INTRA_ROW]                 = 8,
-    [RCB_INTRA_TILE_ROW]            = 8,
-    [RCB_FILTERD_ROW]               = 90,
-    [RCB_FILTERD_PROTECT_ROW]       = 0,
-    [RCB_FILTERD_TILE_ROW]          = 90,
+    [RCB_INTRA_ROW]                 = 5,
+    [RCB_INTRA_TILE_ROW]            = 5,
+    [RCB_FILTERD_ROW]               = 60,
+    [RCB_FILTERD_PROTECT_ROW]       = 60,
+    [RCB_FILTERD_TILE_ROW]          = 60,
     [RCB_FILTERD_TILE_COL]          = 90,
     [RCB_FILTERD_AV1_UP_TILE_COL]   = 0,
 };
@@ -154,17 +154,60 @@ RK_S32 vdpu383_set_rcbinfo(MppDev dev, Vdpu383RcbInfo *rcb_info)
 {
     MppDevRcbInfoCfg rcb_cfg;
     RK_U32 i;
+
+    Vdpu383RcbSetMode_e set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
+
+    RK_U32 rcb_priority[RCB_BUF_COUNT] = {
+        RCB_FILTERD_ROW,
+        RCB_INTER_ROW,
+        RCB_INTRA_ROW,
+        RCB_STRMD_ROW,
+        RCB_INTER_TILE_ROW,
+        RCB_INTRA_TILE_ROW,
+        RCB_STRMD_TILE_ROW,
+        RCB_FILTERD_TILE_ROW,
+        RCB_FILTERD_TILE_COL,
+        RCB_FILTERD_AV1_UP_TILE_COL,
+        RCB_FILTERD_PROTECT_ROW,
+    };
     /*
      * RCB_SET_BY_SIZE_SORT_MODE: by size sort
      * RCB_SET_BY_PRIORITY_MODE: by priority
      */
 
-    for (i = 0; i < RCB_BUF_COUNT; i++) {
-        rcb_cfg.reg_idx = rcb_info[i].reg_idx;
-        rcb_cfg.size = rcb_info[i].size;
-        if (rcb_cfg.size > 0) {
-            mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+    switch (set_rcb_mode) {
+    case RCB_SET_BY_SIZE_SORT_MODE : {
+        Vdpu383RcbInfo info[RCB_BUF_COUNT];
+
+        memcpy(info, rcb_info, sizeof(info));
+        qsort(info, MPP_ARRAY_ELEMS(info),
+              sizeof(info[0]), vdpu383_compare_rcb_size);
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(info); i++) {
+            rcb_cfg.reg_idx = info[i].reg_idx;
+            rcb_cfg.size = info[i].size;
+            if (rcb_cfg.size > 0) {
+                mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+            } else
+                break;
         }
+    } break;
+    case RCB_SET_BY_PRIORITY_MODE : {
+        Vdpu383RcbInfo *info = rcb_info;
+        RK_U32 index = 0;
+
+        for (i = 0; i < MPP_ARRAY_ELEMS(rcb_priority); i ++) {
+            index = rcb_priority[i];
+
+            rcb_cfg.reg_idx = info[index].reg_idx;
+            rcb_cfg.size = info[index].size;
+            if (rcb_cfg.size > 0) {
+                mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
+            }
+        }
+    } break;
+    default:
+        break;
     }
 
     return 0;

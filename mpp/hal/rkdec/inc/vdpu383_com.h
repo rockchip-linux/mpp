@@ -38,6 +38,11 @@ typedef enum Vdpu383RcbType_e {
     RCB_BUF_COUNT,
 } Vdpu383RcbType;
 
+typedef enum Vdpu383_RCB_SET_MODE_E {
+    RCB_SET_BY_SIZE_SORT_MODE,
+    RCB_SET_BY_PRIORITY_MODE,
+} Vdpu383RcbSetMode_e;
+
 typedef struct Vdpu383RegVersion_t {
     struct SWREG0_ID {
         RK_U32 minor_ver                      : 8;
