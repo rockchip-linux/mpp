@@ -284,13 +284,6 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
         }
     }
 
-    ret = mpp_buffer_get(ctx->group, &ctx->frame_buf,
-                         JPEGD_STREAM_BUFF_SIZE);
-    if (ret) {
-        mpp_err_f("Get frame buffer failed ret %d\n", ret);
-        return ret;
-    }
-
     ret = mpp_buffer_get(ctx->group, &ctx->pTableBase, RKD_TABLE_SIZE);
     if (ret) {
         mpp_err_f("Get table buffer failed, ret %d\n", ret);
@@ -627,14 +620,6 @@ MPP_RET hal_jpegd_rkv_deinit(void *hal)
         ctx->dev = NULL;
     }
 
-    if (ctx->frame_buf) {
-        ret = mpp_buffer_put(ctx->frame_buf);
-        if (ret) {
-            mpp_err_f("put buffer failed\n");
-            return ret;
-        }
-    }
-
     if (ctx->pTableBase) {
         ret = mpp_buffer_put(ctx->pTableBase);
         if (ret) {
@@ -699,6 +684,7 @@ MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     setup_output_fmt(ctx, s, syn->dec.output);
 
     ret = jpegd_gen_regs(ctx, s);
+    mpp_buffer_sync_end(strm_buf);
     mpp_buffer_sync_end(ctx->pTableBase);
 
     if (ret != MPP_OK) {

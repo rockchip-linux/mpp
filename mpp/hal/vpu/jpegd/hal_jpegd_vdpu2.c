@@ -757,13 +757,6 @@ MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg)
         }
     }
 
-    ret = mpp_buffer_get(JpegHalCtx->group, &JpegHalCtx->frame_buf,
-                         JPEGD_STREAM_BUFF_SIZE);
-    if (ret) {
-        mpp_err_f("get buffer failed\n");
-        return ret;
-    }
-
     ret = mpp_buffer_get(JpegHalCtx->group, &JpegHalCtx->pTableBase,
                          JPEGD_BASELINE_TABLE_SIZE);
     if (ret) {
@@ -800,14 +793,6 @@ MPP_RET hal_jpegd_vdpu2_deinit(void *hal)
     if (JpegHalCtx->dev) {
         mpp_dev_deinit(JpegHalCtx->dev);
         JpegHalCtx->dev = NULL;
-    }
-
-    if (JpegHalCtx->frame_buf) {
-        ret = mpp_buffer_put(JpegHalCtx->frame_buf);
-        if (ret) {
-            mpp_err_f("put frame buffer failed\n");
-            return ret;
-        }
     }
 
     if (JpegHalCtx->pTableBase) {
@@ -888,6 +873,7 @@ MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn)
         }
 
         ret = jpegd_gen_regs(JpegHalCtx, syntax);
+        mpp_buffer_sync_end(streambuf);
         mpp_buffer_sync_end(JpegHalCtx->pTableBase);
         if (ret != MPP_OK) {
             mpp_err_f("generate registers failed\n");

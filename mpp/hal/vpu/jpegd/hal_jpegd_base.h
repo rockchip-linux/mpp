@@ -42,7 +42,6 @@ typedef struct JpegdHalCtx {
     RK_U32                 codec_type;
     void                   *regs;
     MppBufferGroup         group;
-    MppBuffer              frame_buf;
     MppBuffer              pTableBase;
     MppHalApi              hal_api;
     MppCbCtx               *dec_cb;
