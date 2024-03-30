@@ -1077,7 +1077,8 @@ static void setup_vepu510_rdo_pred(HalVepu510RegSet *regs, H264eSps *sps,
     reg_frm->rdo_cfg.scl_lst_sel    = pps->pic_scaling_matrix_present;
     reg_frm->rdo_cfg.atf_e          = 1;
     reg_frm->rdo_cfg.atr_e          = 1;
-    reg_frm->iprd_csts.rdo_mark_mode       = 0x100;
+    reg_frm->rdo_cfg.atr_mult_sel_e = 1;
+    reg_frm->iprd_csts.rdo_mark_mode = 0;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1728,7 +1729,7 @@ static void setup_vepu510_l2(HalVepu510RegSet *regs, H264eSlice *slice, MppEncHw
         regs->reg_param.me_sqi_comb.cime_fuse    = 1;
         regs->reg_param.me_sqi_comb.itp_mode     = 0;
         regs->reg_param.me_sqi_comb.move_lambda  = 0;
-        regs->reg_param.me_sqi_comb.rime_lvl_mrg     = 0;
+        regs->reg_param.me_sqi_comb.rime_lvl_mrg     = 1;
         regs->reg_param.me_sqi_comb.rime_prelvl_en   = 0;
         regs->reg_param.me_sqi_comb.rime_prersu_en   = 0;
 
