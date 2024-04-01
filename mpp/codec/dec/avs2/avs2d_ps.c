@@ -304,7 +304,6 @@ MPP_RET avs2d_parse_sequence_header(Avs2dCtx_t *p_dec)
     READ_ONEBIT(bitctx, &vsh->field_coded_sequence);
     READ_BITS(bitctx, 14, &vsh->horizontal_size);
     READ_BITS(bitctx, 14, &vsh->vertical_size);
-    mpp_err_f("video resolution %dx%d\n", vsh->horizontal_size, vsh->vertical_size);
     if (vsh->horizontal_size < 16 || vsh->vertical_size < 16) {
         ret = MPP_NOK;
         mpp_err_f("invalid sequence width(%d), height(%d).\n",
