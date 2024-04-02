@@ -99,6 +99,20 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
         return ret;
     }
     mpp_buffer_attach_dev(hw_ctx->prob_default_base, p_hal->dev);
+
+    ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_cur_base, MAX_SEGMAP_SIZE);
+    if (ret) {
+        mpp_err("vp9 segid_cur_base get buffer failed\n");
+        return ret;
+    }
+    mpp_buffer_attach_dev(hw_ctx->segid_cur_base, p_hal->dev);
+    ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_last_base, MAX_SEGMAP_SIZE);
+    if (ret) {
+        mpp_err("vp9 segid_last_base get buffer failed\n");
+        return ret;
+    }
+    mpp_buffer_attach_dev(hw_ctx->segid_last_base, p_hal->dev);
+
     /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
@@ -124,20 +138,6 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
                 return ret;
             }
             mpp_buffer_attach_dev(hw_ctx->g_buf[i].count_base, p_hal->dev);
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].segid_cur_base, MAX_SEGMAP_SIZE);
-            if (ret) {
-                mpp_err("vp9 segid_cur_base get buffer failed\n");
-                return ret;
-            }
-            mpp_buffer_attach_dev(hw_ctx->g_buf[i].segid_cur_base, p_hal->dev);
-            ret = mpp_buffer_get(p_hal->group,
-                                 &hw_ctx->g_buf[i].segid_last_base, MAX_SEGMAP_SIZE);
-            if (ret) {
-                mpp_err("vp9 segid_last_base get buffer failed\n");
-                return ret;
-            }
-            mpp_buffer_attach_dev(hw_ctx->g_buf[i].segid_last_base, p_hal->dev);
         }
     } else {
         hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
@@ -161,18 +161,6 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
             return ret;
         }
         mpp_buffer_attach_dev(hw_ctx->count_base, p_hal->dev);
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_cur_base, MAX_SEGMAP_SIZE);
-        if (ret) {
-            mpp_err("vp9 segid_cur_base get buffer failed\n");
-            return ret;
-        }
-        mpp_buffer_attach_dev(hw_ctx->segid_cur_base, p_hal->dev);
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->segid_last_base, MAX_SEGMAP_SIZE);
-        if (ret) {
-            mpp_err("vp9 segid_last_base get buffer failed\n");
-            return ret;
-        }
-        mpp_buffer_attach_dev(hw_ctx->segid_last_base, p_hal->dev);
     }
     return MPP_OK;
 }
@@ -188,6 +176,20 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
         ret = mpp_buffer_put(hw_ctx->prob_default_base);
         if (ret) {
             mpp_err("vp9 probe_wr_base get buffer failed\n");
+            return ret;
+        }
+    }
+    if (hw_ctx->segid_cur_base) {
+        ret = mpp_buffer_put(hw_ctx->segid_cur_base);
+        if (ret) {
+            mpp_err("vp9 segid_cur_base put buffer failed\n");
+            return ret;
+        }
+    }
+    if (hw_ctx->segid_last_base) {
+        ret = mpp_buffer_put(hw_ctx->segid_last_base);
+        if (ret) {
+            mpp_err("vp9 segid_last_base put buffer failed\n");
             return ret;
         }
     }
@@ -223,20 +225,6 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
                     return ret;
                 }
             }
-            if (hw_ctx->g_buf[i].segid_cur_base) {
-                ret = mpp_buffer_put(hw_ctx->g_buf[i].segid_cur_base);
-                if (ret) {
-                    mpp_err("vp9 segid_cur_base put buffer failed\n");
-                    return ret;
-                }
-            }
-            if (hw_ctx->g_buf[i].segid_last_base) {
-                ret = mpp_buffer_put(hw_ctx->g_buf[i].segid_last_base);
-                if (ret) {
-                    mpp_err("vp9 segid_last_base put buffer failed\n");
-                    return ret;
-                }
-            }
             if (hw_ctx->g_buf[i].hw_regs) {
                 mpp_free(hw_ctx->g_buf[i].hw_regs);
                 hw_ctx->g_buf[i].hw_regs = NULL;
@@ -268,20 +256,6 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
             ret = mpp_buffer_put(hw_ctx->count_base);
             if (ret) {
                 mpp_err("vp9 count_base put buffer failed\n");
-                return ret;
-            }
-        }
-        if (hw_ctx->segid_cur_base) {
-            ret = mpp_buffer_put(hw_ctx->segid_cur_base);
-            if (ret) {
-                mpp_err("vp9 segid_cur_base put buffer failed\n");
-                return ret;
-            }
-        }
-        if (hw_ctx->segid_last_base) {
-            ret = mpp_buffer_put(hw_ctx->segid_last_base);
-            if (ret) {
-                mpp_err("vp9 segid_last_base put buffer failed\n");
                 return ret;
             }
         }
@@ -714,8 +688,6 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
                 hw_ctx->global_base = hw_ctx->g_buf[i].global_base;
                 hw_ctx->probe_base = hw_ctx->g_buf[i].probe_base;
                 hw_ctx->count_base = hw_ctx->g_buf[i].count_base;
-                hw_ctx->segid_cur_base = hw_ctx->g_buf[i].segid_cur_base;
-                hw_ctx->segid_last_base = hw_ctx->g_buf[i].segid_last_base;
                 hw_ctx->hw_regs = hw_ctx->g_buf[i].hw_regs;
                 hw_ctx->g_buf[i].use_flag = 1;
                 break;
