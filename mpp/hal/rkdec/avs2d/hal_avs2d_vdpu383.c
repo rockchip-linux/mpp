@@ -420,8 +420,6 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
 
     {
         //scale down config
-        MppFrame mframe = NULL;
-
         mpp_buf_slot_get_prop(p_hal->frame_slots, task_dec->output,
                               SLOT_FRAME_PTR, &mframe);
         if (mpp_frame_get_thumbnail_en(mframe)) {
