@@ -22,6 +22,8 @@
 #include "av1d_common.h"
 
 #define VDPU383_UNCMPS_HEADER_SIZE            (MPP_ALIGN(5159, 128) / 8) // byte, 5159 bit
+
+// bits len
 #define VDPU383_RCB_STRMD_ROW_LEN             (MPP_ALIGN(dxva->width, 8) / 8 * 100)
 #define VDPU383_RCB_STRMD_TILE_ROW_LEN        (MPP_ALIGN(dxva->width, 8) / 8 * 100)
 #define VDPU383_RCB_INTER_ROW_LEN             (MPP_ALIGN(dxva->width, 64) / 64 * 2752)
@@ -1767,7 +1769,7 @@ static RK_S32 update_size_offset(Vdpu383RcbInfo *info, RK_U32 reg_idx,
 {
     RK_S32 buf_size = 0;
 
-    buf_size = len;
+    buf_size = MPP_RCB_BYTES(len);
     info[rcb_buf_idx].reg_idx = reg_idx;
     info[rcb_buf_idx].offset = offset;
     info[rcb_buf_idx].size = buf_size;
