@@ -1331,7 +1331,14 @@ static void hal_av1d_release_res(void *hal)
         BUF_PUT(reg_ctx->rcb_bufs[i]);
 
     vdpu_av1d_filtermem_release(reg_ctx);
-    hal_bufs_deinit(reg_ctx->colmv_bufs);
+    if (reg_ctx->cdf_bufs) {
+        hal_bufs_deinit(reg_ctx->cdf_bufs);
+        reg_ctx->cdf_bufs = NULL;
+    }
+    if (reg_ctx->colmv_bufs) {
+        hal_bufs_deinit(reg_ctx->colmv_bufs);
+        reg_ctx->colmv_bufs = NULL;
+    }
 
     MPP_FREE(p_hal->reg_ctx);
 }
