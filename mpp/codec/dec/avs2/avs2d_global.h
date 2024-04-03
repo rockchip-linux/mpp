@@ -401,7 +401,6 @@ typedef struct avs2_dec_ctx_t {
     RK_U32                  got_vsh;
     RK_U32                  got_exh;
     RK_U32                  got_keyframe;
-    RK_U32                  vec_flag; //!< video_edit_code_flag
     RK_U8                   enable_wq;//!< seq&pic weight quant enable
     RK_U32                  prev_start_code;
     RK_U32                  new_seq_flag;

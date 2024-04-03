@@ -854,6 +854,6 @@ MPP_RET avs2d_dpb_flush(Avs2dCtx_t *p_dec)
     //!< reset dpb management
     dpb_init_management(mgr);
 
-    AVS2D_PARSE_TRACE("In.");
+    AVS2D_PARSE_TRACE("Out.");
     return ret;
 }
