@@ -2215,7 +2215,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 y_stride = out_w * out_h;
         RK_U32 out_fmt = 0;
 
-        if (mpp_frame_get_fmt(mframe) == MPP_FMT_YUV420SP)
+        if ((mpp_frame_get_fmt(mframe) & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP)
             out_fmt = 3;
 
         /*
