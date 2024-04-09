@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef __HAL_H265D_CTX_H__
@@ -22,7 +11,8 @@
 #include "hal_bufs.h"
 
 #define MAX_GEN_REG 3
-#define H265D_RCB_BUF_COUNT 10
+/* before vdpu383 10 buf */
+#define H265D_RCB_BUF_COUNT 11
 
 typedef struct H265dRegBuf_t {
     RK_S32    use_flag;
@@ -32,7 +22,7 @@ typedef struct H265dRegBuf_t {
     void*     hw_regs;
 } H265dRegBuf;
 
-typedef struct h265d_rcb_info_t {
+typedef struct H265dRcbInfo_t {
     RK_S32              reg;
     RK_S32              size;
     RK_S32              offset;
@@ -74,8 +64,10 @@ typedef struct HalH265dCtx_t {
     RK_U32          mv_size;
     RK_S32          mv_count;
 
+    RK_U32          is_v341;
     RK_U32          is_v345;
     RK_U32          is_v34x;
+    RK_U32          is_v383;
     /* rcb info */
     RK_U32          chroma_fmt_idc;
     RK_U8           ctu_size;

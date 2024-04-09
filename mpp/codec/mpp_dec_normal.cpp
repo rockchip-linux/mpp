@@ -23,6 +23,7 @@
 #include "mpp_dec_debug.h"
 #include "mpp_dec_vproc.h"
 #include "mpp_dec_normal.h"
+#include "rk_hdr_meta_com.h"
 
 static RK_S32 ts_cmp(void *priv, const struct list_head *a, const struct list_head *b)
 {
@@ -425,6 +426,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
         if (hal_buf_in) {
             mpp_buf_slot_set_prop(packet_slots, task_dec->input, SLOT_BUFFER, hal_buf_in);
+            mpp_buffer_attach_dev(hal_buf_in, dec->dev);
             mpp_buffer_put(hal_buf_in);
         }
     } else {
@@ -608,6 +610,17 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     }
 
     dec_dbg_detail("detail: %p check output buffer %p\n", dec, hal_buf_out);
+
+    {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &mframe);
+
+        if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) &&
+            dec->cfg.base.enable_hdr_meta) {
+            fill_hdr_meta_to_frame(mframe, dec->coding);
+        }
+    }
 
     // update codec info
     if (!dec->info_updated && dec->dev) {

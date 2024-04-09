@@ -294,3 +294,27 @@ void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com)
     mpp_dev_set_reg_offset(dev, 199, down_scale_uv_offset);
     mpp_meta_set_s32(meta, KEY_DEC_TBN_UV_OFFSET, down_scale_uv_offset);
 }
+
+RK_U32 vdpu382_get_colmv_size(RK_U32 width, RK_U32 height, RK_U32 ctu_size,
+                              RK_U32 colmv_bytes, RK_U32 colmv_size, RK_U32 compress)
+{
+    RK_U32 colmv_total_size;
+
+    if (compress) {
+        RK_U32 segment_w = (64 * colmv_size * colmv_size) / ctu_size;
+        RK_U32 segment_h = ctu_size;
+        RK_U32 seg_cnt_w = MPP_ALIGN(width, segment_w) / segment_w;
+        RK_U32 seg_cnt_h = MPP_ALIGN(height, segment_h) / segment_h;
+        RK_U32 seg_head_size = MPP_ALIGN(seg_cnt_w, 16) * seg_cnt_h;
+        RK_U32 seg_payload_size = seg_cnt_w * seg_cnt_h * 64 * colmv_bytes;
+
+        colmv_total_size = seg_head_size + seg_payload_size;
+    } else {
+        RK_U32 colmv_block_size_w = MPP_ALIGN(width, 64) / colmv_size;
+        RK_U32 colmv_block_size_h = MPP_ALIGN(height, 64) / colmv_size;
+
+        colmv_total_size = colmv_block_size_w * colmv_block_size_h * colmv_bytes;
+    }
+
+    return MPP_ALIGN(colmv_total_size, 128);
+}

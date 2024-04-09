@@ -43,6 +43,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     MppEncRcCfg *rc_cfg = &ctrlCfg->cfg->rc;
     MppEncPrepCfg *prep = &ctrlCfg->cfg->prep;
     MppEncH265Cfg *h265 = NULL;
+    RockchipSocType soc_type;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -87,16 +88,16 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->level = 120;
     h265->const_intra_pred = 0;           /* constraint intra prediction flag */
 
-    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3528) {
+    soc_type = mpp_get_soc_type();
+    if (soc_type == ROCKCHIP_SOC_RK3528 || soc_type == ROCKCHIP_SOC_RK3576) {
         h265->ctu_size = 32;
         h265->max_cu_size = 32;
-        h265->tmvp_enable = 0;
     } else {
         h265->ctu_size = 64;
         h265->max_cu_size = 64;
-        h265->tmvp_enable = 1;
     }
 
+    h265->tmvp_enable = 0;
     h265->amp_enable = 0;
     h265->sao_enable = 1;
 
@@ -149,10 +150,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->bps_min = rc_cfg->bps_target * 3 / 4;
     rc_cfg->fps_in_flex = 0;
     rc_cfg->fps_in_num = 30;
-    rc_cfg->fps_in_denorm = 1;
+    rc_cfg->fps_in_denom = 1;
     rc_cfg->fps_out_flex = 0;
     rc_cfg->fps_out_num = 30;
-    rc_cfg->fps_out_denorm = 1;
+    rc_cfg->fps_out_denom = 1;
     rc_cfg->gop = 60;
     rc_cfg->max_reenc_times = 1;
     rc_cfg->max_i_prop = 30;
@@ -432,7 +433,7 @@ static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
 
     if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation || dst->flip)) {
         // rk3588 rkvenc support fbc with rotation
-        if (!strstr(mpp_get_soc_name(), "rk3588")) {
+        if (mpp_get_soc_type() != ROCKCHIP_SOC_RK3588) {
             mpp_err("invalid cfg fbc data no support mirror %d, rotation %d, or flip %d",
                     dst->mirroring, dst->rotation, dst->flip);
             ret = MPP_ERR_VALUE;
@@ -478,6 +479,7 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
         }
 
         dst->level = src->level;
+        dst->tier = (src->level >= 120) ? src->tier : 0;
     }
 
     if (change & MPP_ENC_H265_CFG_CU_CHANGE) {
@@ -527,6 +529,19 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
     if (change & MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE)
         dst->lpf_acs_tile_disable = src->lpf_acs_tile_disable;
 
+    if ((change & MPP_ENC_H265_CFG_CHANGE_CONST_INTRA) &&
+        (dst->const_intra_pred != src->const_intra_pred)) {
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type != ROCKCHIP_SOC_RK3576 && src->const_intra_pred == 1) {
+            dst->const_intra_pred = 0;
+
+            mpp_log("warning: Only rk3576's HEVC encoder support constraint intra prediction flag = 1.");
+        } else
+            dst->const_intra_pred = src->const_intra_pred;
+
+        dst->change |= MPP_ENC_H265_CFG_CHANGE_CONST_INTRA;
+    }
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
      * When next encoding is trigger the change flag will be clear

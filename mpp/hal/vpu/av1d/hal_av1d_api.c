@@ -31,6 +31,7 @@
 
 #include "hal_av1d_vdpu_reg.h"
 #include "hal_av1d_vdpu.h"
+#include "hal_av1d_vdpu383.h"
 #include "hal_av1d_common.h"
 
 RK_U32 hal_av1d_debug = 0;
@@ -40,19 +41,26 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret         = MPP_OK;
     Av1dHalCtx *p_hal   = (Av1dHalCtx *)hal;
     RK_U32 vcodec_type  = mpp_get_vcodec_type();
-    MppClientType type  = VPU_CLIENT_AV1DEC;
+    MppClientType type  = VPU_CLIENT_RKVDEC;
+    RK_U32 hw_id = 0;
 
     INP_CHECK(ret, NULL == p_hal);
     memset(p_hal, 0, sizeof(Av1dHalCtx));
     mpp_env_get_u32("hal_av1d_debug", &hal_av1d_debug, 0);
 
     // check codec_type first
-    if (!(vcodec_type & (HAVE_RKVDEC | HAVE_VDPU1 | HAVE_VDPU2))) {
+    if (!(vcodec_type & (HAVE_RKVDEC | HAVE_AV1DEC))) {
         mpp_err_f("can not found av1 decoder hardware on platform %x\n", vcodec_type);
         return ret;
     }
 
-    p_hal->api = &hal_av1d_vdpu;
+    hw_id = mpp_get_client_hw_id(type);
+    if (hw_id == HWID_VDPU383) {
+        p_hal->api = &hal_av1d_vdpu383;
+    } else {
+        p_hal->api = &hal_av1d_vdpu;
+        type  = VPU_CLIENT_AV1DEC;
+    }
 
     //!< callback function to parser module
     p_hal->dec_cb = cfg->dec_cb;

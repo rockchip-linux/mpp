@@ -275,7 +275,7 @@ static MPP_RET check_sps_pps(H264_SPS_t *sps, H264_subSPS_t *subset_sps,
 
     ret |= (sps->seq_parameter_set_id > 31);
     ret |= (sps->separate_colour_plane_flag == 1);
-    ret |= (sps->chroma_format_idc == 3);
+    ret |= (sps->chroma_format_idc >= 3);
     ret |= (sps->bit_depth_luma_minus8 > 2);
     ret |= (sps->bit_depth_chroma_minus8 > 2);
     ret |= (sps->log2_max_frame_num_minus4 > 12);

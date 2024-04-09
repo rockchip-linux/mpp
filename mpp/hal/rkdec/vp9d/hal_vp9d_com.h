@@ -53,6 +53,7 @@ typedef RK_U8 vp9_prob;
 #define MV_FP_SIZE                      4
 
 #define PROB_SIZE                       4864
+#define PROB_KF_SIZE                    (82 * 16)
 #define COUNT_SIZE                      13208
 
 /*
@@ -91,6 +92,7 @@ MPP_RET hal_vp9d_output_probe(void *buf, void *dxva);
 MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva);
 void hal_vp9d_update_counts(void *buf, void *dxva);
 MPP_RET hal_vp9d_prob_default(void *buf, void *dxva);
+MPP_RET hal_vp9d_prob_kf(void *buf);
 
 #ifdef __cplusplus
 }

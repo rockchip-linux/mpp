@@ -93,7 +93,7 @@ static RK_S32 vpu_api_getframe(VpuCodecContext *ctx, DecoderOut_t *aDecOut)
         return VPU_API_ERR_UNKNOW;
     }
 
-    return api->decode_getoutframe(aDecOut);
+    return api->decode_getoutframe(ctx, aDecOut);
 }
 
 static RK_S32
@@ -319,7 +319,7 @@ RK_S32 vpu_open_context(VpuCodecContext **ctx)
         if (s->videoCoding == OMX_RK_VIDEO_CodingAVC
             && s->codecType == CODEC_DECODER && s->width <= 1920
             && s->height <= 1088 && !s->extra_cfg.mpp_mode
-            && !strstr(mpp_get_soc_name(), "rk3399")) {
+            && mpp_get_soc_type() != ROCKCHIP_SOC_RK3399) {
             /* H.264 smaller than 1080p use original vpuapi library for better error process */
             // NOTE: rk3399 need better performance
             use_mpp = 0;

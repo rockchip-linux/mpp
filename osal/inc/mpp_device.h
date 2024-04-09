@@ -18,8 +18,15 @@
 #define __MPP_DEVICE_H__
 
 #include "mpp_err.h"
+#include "mpp_list.h"
+#include "mpp_mem_pool.h"
+
 #include "mpp_dev_defs.h"
 #include "mpp_callback.h"
+
+#define MPP_MAX_REG_TRANS_NUM   80
+
+typedef void* MppDev;
 
 typedef enum MppDevIoctlCmd_e {
     /* device batch mode config */
@@ -36,6 +43,10 @@ typedef enum MppDevIoctlCmd_e {
     MPP_DEV_RCB_INFO,
     MPP_DEV_SET_INFO,
     MPP_DEV_SET_ERR_REF_HACK,
+    MPP_DEV_LOCK_MAP,
+    MPP_DEV_UNLOCK_MAP,
+    MPP_DEV_ATTACH_FD,
+    MPP_DEV_DETACH_FD,
 
     MPP_DEV_CMD_SEND,
     MPP_DEV_CMD_POLL,
@@ -100,6 +111,22 @@ typedef struct MppDevPollCfg_t {
     MppDevPollEncSliceInfo slice_info[];
 } MppDevPollCfg;
 
+typedef struct MppDevBufMapNode_t {
+    /* data write by buffer function */
+    struct list_head    list_buf;
+    pthread_mutex_t     *lock_buf;
+    MppBuffer           buffer;
+    MppDev              dev;
+    MppMemPool          pool;
+    RK_S32              buf_fd;
+
+    /* data write by device function */
+    struct list_head    list_dev;
+    pthread_mutex_t     *lock_dev;
+    RK_S32              dev_fd;
+    RK_U32              iova;
+} MppDevBufMapNode;
+
 typedef struct MppDevApi_t {
     const char  *name;
     RK_U32      ctx_size;
@@ -121,14 +148,18 @@ typedef struct MppDevApi_t {
     MPP_RET     (*set_info)(void *ctx, MppDevInfoCfg *cfg);
     MPP_RET     (*set_err_ref_hack)(void *ctx, RK_U32 *enable);
 
+    /* buffer attach / detach */
+    MPP_RET     (*lock_map)(void *ctx);
+    MPP_RET     (*unlock_map)(void *ctx);
+    MPP_RET     (*attach_fd)(void *ctx, MppDevBufMapNode *node);
+    MPP_RET     (*detach_fd)(void *ctx, MppDevBufMapNode *node);
+
     /* send cmd to hardware */
     MPP_RET     (*cmd_send)(void *ctx);
 
     /* poll cmd from hardware */
     MPP_RET     (*cmd_poll)(void *ctx, MppDevPollCfg *cfg);
 } MppDevApi;
-
-typedef void* MppDev;
 
 #ifdef __cplusplus
 extern "C" {

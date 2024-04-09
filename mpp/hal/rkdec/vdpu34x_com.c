@@ -266,3 +266,27 @@ void vdpu34x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand)
     }
     mpp_frame_set_ver_stride(frame, ver_stride);
 }
+
+RK_U32 vdpu34x_get_colmv_size(RK_U32 width, RK_U32 height, RK_U32 ctu_size,
+                              RK_U32 colmv_bytes, RK_U32 colmv_size, RK_U32 compress)
+{
+    RK_U32 colmv_total_size;
+
+    if (compress) {
+        RK_U32 segment_w = (64 * colmv_size * colmv_size) / ctu_size;
+        RK_U32 segment_h = ctu_size;
+        RK_U32 seg_cnt_w = MPP_ALIGN(width, segment_w) / segment_w;
+        RK_U32 seg_cnt_h = MPP_ALIGN(height, segment_h) / segment_h;
+        RK_U32 seg_head_size = MPP_ALIGN(seg_cnt_w, 16) * seg_cnt_h;
+        RK_U32 seg_payload_size = seg_cnt_w * seg_cnt_h * 64 * colmv_bytes;
+
+        colmv_total_size = seg_head_size + seg_payload_size;
+    } else {
+        RK_U32 colmv_block_size_w = MPP_ALIGN(width, 64) / colmv_size;
+        RK_U32 colmv_block_size_h = MPP_ALIGN(height, 64) / colmv_size;
+
+        colmv_total_size = colmv_block_size_w * colmv_block_size_h * colmv_bytes;
+    }
+
+    return MPP_ALIGN(colmv_total_size, 128);
+}

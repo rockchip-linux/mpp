@@ -406,18 +406,18 @@ MPP_RET vp8e_update_rc_cfg(Vp8eRc *rc, MppEncRcCfg *cfg)
     }
 
     if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-        vp8e_rc_dbg_cfg("fps: %d / %d\n", cfg->fps_out_num, cfg->fps_out_denorm);
+        vp8e_rc_dbg_cfg("fps: %d / %d\n", cfg->fps_out_num, cfg->fps_out_denom);
         rc->fps_out_num = cfg->fps_out_num;
-        rc->fps_out_denorm = cfg->fps_out_denorm;
-        if (rc->fps_out_denorm == 0) {
-            mpp_err("denorm can not be 0, change to default 1");
-            rc->fps_out_denorm = 1;
+        rc->fps_out_denom = cfg->fps_out_denom;
+        if (rc->fps_out_denom == 0) {
+            mpp_err("denom can not be 0, change to default 1");
+            rc->fps_out_denom = 1;
         }
-        rc->fps_out = rc->fps_out_num / rc->fps_out_denorm;
+        rc->fps_out = rc->fps_out_num / rc->fps_out_denom;
         if (rc->fps_out == 0) {
             rc->fps_out = 30;
             rc->fps_out_num = 30;
-            rc->fps_out_denorm = 1;
+            rc->fps_out_denom = 1;
             mpp_err("fps out can not be 0, change to default 30");
         }
     }
@@ -427,7 +427,7 @@ MPP_RET vp8e_update_rc_cfg(Vp8eRc *rc, MppEncRcCfg *cfg)
         rc->gop_len = cfg->gop;
         vp8e_rc_dbg_cfg("gop: %d\n", cfg->gop);
     }
-    vb->bit_per_pic = axb_div_c(vb->bit_rate, rc->fps_out_denorm, rc->fps_out_num);
+    vb->bit_per_pic = axb_div_c(vb->bit_rate, rc->fps_out_denom, rc->fps_out_num);
 
     cfg->change = 0;
 
@@ -452,7 +452,7 @@ MPP_RET vp8e_init_rc(Vp8eRc *rc, MppEncCfgSet *cfg)
     rc->golden_picture_rate = 0;
     rc->altref_picture_rate = 0;
     rc->virbuf.bit_rate = cfg->rc.bps_target;
-    rc->fps_out_denorm = cfg->rc.fps_out_denorm;
+    rc->fps_out_denom = cfg->rc.fps_out_denom;
     rc->fps_out_num = cfg->rc.fps_out_num;
     rc->mb_per_pic = ((cfg->prep.width + 15) / 16) * ((cfg->prep.height + 15) / 16);
 
@@ -464,12 +464,12 @@ MPP_RET vp8e_init_rc(Vp8eRc *rc, MppEncCfgSet *cfg)
 
     max_bps = rc->mb_per_pic * 16 * 16 * 6;
     max_bps = axb_div_c(max_bps, rc->fps_out_num,
-                        rc->fps_out_denorm);
+                        rc->fps_out_denom);
 
     if (max_bps < 0)
         max_bps = I32_MPP_MAX;
     vb->bit_rate = MPP_MIN(vb->bit_rate, max_bps);
-    vb->bit_per_pic = axb_div_c(vb->bit_rate, rc->fps_out_denorm,
+    vb->bit_per_pic = axb_div_c(vb->bit_rate, rc->fps_out_denom,
                                 rc->fps_out_num);
 
     if (rc->qp_hdr == -1)

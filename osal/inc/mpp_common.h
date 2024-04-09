@@ -40,6 +40,7 @@
 #define MPP_SWAP(type, a, b)    do {type SWAP_tmp = b; b = a; a = SWAP_tmp;} while(0)
 #define MPP_ARRAY_ELEMS(a)      (sizeof(a) / sizeof((a)[0]))
 #define MPP_ALIGN(x, a)         (((x)+(a)-1)&~((a)-1))
+#define MPP_ALIGN_DOWN(x, a)    ((x)&~((a)-1))
 #define MPP_ALIGN_GEN(x, a)     (((x)+(a)-1)/(a)*(a))
 #define MPP_VSWAP(a, b)         { a ^= b; b ^= a; a ^= b; }
 
@@ -135,6 +136,7 @@
 #include <direct.h>
 #include <io.h>
 #include <sys/stat.h>
+
 #define chdir                   _chdir
 #define mkdir                   _mkdir
 #define access                  _access
@@ -150,6 +152,7 @@
 #else
 #include <unistd.h>
 #include <stddef.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #define mkdir(x)                mkdir(x, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
@@ -210,11 +213,18 @@ static __inline RK_U32 mpp_is_32bit()
     return ((sizeof(void *) == 4) ? (1) : (0));
 }
 
+static __inline RK_S32 mpp_dup(RK_S32 fd)
+{
+    /* avoid stdin / stdout / stderr so start from 3 */
+    return fcntl(fd, F_DUPFD_CLOEXEC, 3);
+}
+
 RK_S32 axb_div_c(RK_S32 a, RK_S32 b, RK_S32 c);
 RK_U32 mpp_align_16(RK_U32 val);
 RK_U32 mpp_align_64(RK_U32 val);
 RK_U32 mpp_align_128(RK_U32 val);
 RK_U32 mpp_align_256_odd(RK_U32 val);
+RK_U32 mpp_align_128_odd_plus_64(RK_U32 val);
 
 #ifdef __cplusplus
 }

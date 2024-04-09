@@ -99,7 +99,14 @@ typedef struct {
         RK_U32 soft_rest_rdy                    : 1;
         RK_U32 buf_empty_force_end_flag         : 1;
         RK_U32 care_strm_error_e                : 1;
-        RK_U32                                  : 15;
+        RK_U32 low_delay_out_sta                : 1;
+        RK_U32 lkt_operation_error_sta          : 1;
+        RK_U32 lkt_mode_int_sta                 : 1;
+        RK_U32 lkt_force_stop_sta               : 1;
+        RK_U32 lkt_node_int_sta                 : 1;
+        RK_U32 lkt_err_stop_sta                 : 1;
+        RK_U32 lkt_data_err_sta                 : 1;
+        RK_U32                                  : 8;
     } reg1_int;
 
     struct {
@@ -113,7 +120,8 @@ typedef struct {
         RK_U32 out_swap32_e                     : 1;
         RK_U32 out_swap64_e                     : 1;
         RK_U32 out_cbcr_swap                    : 1;
-        RK_U32                                  : 2;
+        RK_U32 out_byte_swap                    : 1;
+        RK_U32                                  : 1;
         RK_U32 scaledown_mode                   : 2;
         RK_U32                                  : 2;
         RK_U32 time_out_mode                    : 1;
@@ -122,7 +130,8 @@ typedef struct {
         RK_U32 fbc_e                            : 1;
         RK_U32 allow_16x8_cp_flag               : 1;
         RK_U32 fbc_force_uncompress             : 1;
-        RK_U32                                  : 1;
+        // 0 -- rgb565/rgb888, 1 -- bgr565, bgr888
+        RK_U32 bgr_sequence                     : 1;
         RK_U32 fill_down_e                      : 1;
         RK_U32 fill_right_e                     : 1;
         RK_U32 dec_out_sequence                 : 1;
@@ -220,8 +229,15 @@ typedef struct {
         RK_U32 val;
     } reg16_clk_gate;
 
-    RK_U32 reg17_29[13];
+    // 0x0044, bit[16:0]
+    RK_U32 reg17_low_delay_output;
+    // 0x0048, bit[16:0]
+    RK_U32 reg18_low_delay_output_status;
 
+    // 0x004c ~ 0x0074
+    RK_U32 reg19_29[11];
+
+    // 0x0078
     struct {
         RK_U32 axi_per_work_e                   : 1;
         RK_U32 axi_per_clr_e                    : 1;

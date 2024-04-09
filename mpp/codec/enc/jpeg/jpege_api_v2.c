@@ -23,12 +23,12 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_2str.h"
+#include "mpp_enc_cfg_impl.h"
+#include "mpp_bitwrite.h"
 
 #include "jpege_debug.h"
 #include "jpege_api_v2.h"
 #include "jpege_syntax.h"
-#include "mpp_enc_cfg_impl.h"
-#include "mpp_bitwrite.h"
 
 typedef struct {
     MppEncCfgSet    *cfg;
@@ -82,10 +82,10 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
 
         rc->fps_in_flex = 0;
         rc->fps_in_num = 30;
-        rc->fps_in_denorm = 1;
+        rc->fps_in_denom = 1;
         rc->fps_out_flex = 0;
         rc->fps_out_num = 30;
-        rc->fps_out_denorm = 1;
+        rc->fps_out_denom = 1;
         rc->rc_mode = MPP_ENC_RC_MODE_VBR;
         /* init default quant */
         jpeg_cfg->quant = 10;
@@ -121,8 +121,19 @@ static MPP_RET jpege_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
         RK_S32 mirroring;
         RK_S32 rotation;
 
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
+        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
             dst->format = src->format;
+            dst->format_out = src->format_out;
+            dst->fix_chroma_en = src->fix_chroma_en;
+            dst->fix_chroma_u = src->fix_chroma_u;
+            dst->fix_chroma_v = src->fix_chroma_v;
+            dst->chroma_ds_mode = src->chroma_ds_mode;
+        }
+
+        if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE) {
+            dst->range = src->range;
+            dst->range_out = src->range_out;
+        }
 
         if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
             dst->rotation_ext = src->rotation_ext;
@@ -241,6 +252,7 @@ static MPP_RET jpege_gen_qt_by_qfactor(MppEncJpegCfg *cfg, RK_S32 *factor)
         qtable_y[i] = MPP_CLIP3(1, 255, lq);
         qtable_c[i] = MPP_CLIP3(1, 255, cq);
     }
+
     return ret;
 }
 
@@ -468,6 +480,58 @@ static MPP_RET jpege_start(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
+static MPP_RET init_jpeg_component_info(JpegeSyntax *syntax)
+{
+    MPP_RET ret = MPP_OK;
+    JPEGCompInfo *comp_info = (JPEGCompInfo *)syntax->comp_info;
+
+    jpege_dbg_input("Chroma format %d\n", syntax->format_out);
+
+    if (syntax->format_out == MPP_CHROMA_UNSPECIFIED)
+        syntax->format_out = MPP_CHROMA_420;
+
+    memset(comp_info, 0, sizeof(JPEGCompInfo) * MAX_NUMBER_OF_COMPONENTS);
+
+    switch (syntax->format_out) {
+    case MPP_CHROMA_400:
+        syntax->nb_components = 1;
+        comp_info[0].val = 1 | 1 << 8 | 1 << 16;
+        break;
+    case MPP_CHROMA_420:
+        syntax->nb_components = 3;
+        comp_info[0].val = 1 | 2 << 8 | 2 << 16;
+        comp_info[1].val = 2 | 1 << 8 | 1 << 16 | 1 << 24;
+        comp_info[2].val = 3 | 1 << 8 | 1 << 16 | 1 << 24;
+        break;
+    case MPP_CHROMA_422:
+        syntax->nb_components = 3;
+        comp_info[0].val = 1 | 2 << 8 | 1 << 16;
+        comp_info[1].val = 2 | 1 << 8 | 1 << 16 | 1 << 24;
+        comp_info[2].val = 3 | 1 << 8 | 1 << 16 | 1 << 24;
+        break;
+    case MPP_CHROMA_444:
+        syntax->nb_components = 3;
+        comp_info[0].val = 1 | 1 << 8 | 1 << 16;
+        comp_info[1].val = 2 | 1 << 8 | 1 << 16 | 1 << 24;
+        comp_info[2].val = 3 | 1 << 8 | 1 << 16 | 1 << 24;
+        break;
+    default:
+        syntax->nb_components = 1;
+        comp_info[0].val = 1 | 1 << 8 | 1 << 16;
+        mpp_err("Unsupported chroma format %d\n", syntax->format_out);
+        ret = MPP_ERR_VALUE;
+        break;
+    }
+
+    syntax->mcu_width = comp_info[0].h_sample_factor * DCT_SIZE;
+    syntax->mcu_height = comp_info[0].v_sample_factor * DCT_SIZE;
+    syntax->mcu_hor_cnt = (syntax->width + syntax->mcu_width - 1) / syntax->mcu_width;
+    syntax->mcu_ver_cnt = (syntax->height + syntax->mcu_height - 1) / syntax->mcu_height;
+    syntax->mcu_cnt = syntax->mcu_hor_cnt * syntax->mcu_ver_cnt;
+
+    return ret;
+}
+
 static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
@@ -484,9 +548,8 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->height      = prep->height;
     syntax->hor_stride  = prep->hor_stride;
     syntax->ver_stride  = prep->ver_stride;
-    syntax->mcu_w       = MPP_ALIGN(prep->width, 16) / 16;
-    syntax->mcu_h       = MPP_ALIGN(prep->height, 16) / 16;
     syntax->format      = prep->format;
+    syntax->format_out  = prep->format_out;
     syntax->color       = prep->color;
     syntax->rotation    = prep->rotation;
     syntax->mirroring   = prep->mirroring;
@@ -502,22 +565,23 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->restart_ri  = 0;
     syntax->low_delay   = 0;
 
+    init_jpeg_component_info(syntax);
+
     if (split->split_mode) {
-        RK_U32 mb_h = MPP_ALIGN(prep->height, 16) / 16;
+        RK_U32 mb_w = syntax->mcu_hor_cnt;
+        RK_U32 mb_h = syntax->mcu_ver_cnt;
         RK_U32 part_rows = 0;
 
         if (split->split_mode == MPP_ENC_SPLIT_BY_CTU) {
             RK_U32 part_mbs = split->split_arg;
-            RK_U32 mb_w = MPP_ALIGN(prep->width, 16) / 16;
-            RK_U32 mb_all = mb_w * mb_h;
 
-            if (part_mbs > 0 && part_mbs <= mb_all) {
+            if (part_mbs > 0 && part_mbs <= syntax->mcu_cnt) {
                 part_rows = (part_mbs + mb_w - 1) / mb_w;
                 if (part_rows >= mb_h)
                     part_rows = 0;
             } else {
                 mpp_err_f("warning: invalid split arg %d > max %d\n",
-                          part_mbs, mb_all);
+                          part_mbs, syntax->mcu_cnt);
             }
         } else {
             mpp_err_f("warning: only mcu split is supported\n");
@@ -525,7 +589,10 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
 
         if (part_rows) {
             syntax->part_rows   = part_rows;
-            syntax->restart_ri  = syntax->mcu_w * part_rows;
+            if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576 && split->split_arg <= syntax->mcu_cnt)
+                syntax->restart_ri = split->split_arg;
+            else
+                syntax->restart_ri  = syntax->mcu_hor_cnt * part_rows;
             syntax->low_delay   = cfg->base.low_delay && part_rows;
             jpege_dbg_func("Split by CTU, part_rows %d, restart_ri %d",
                            syntax->part_rows, syntax->restart_ri);

@@ -20,14 +20,36 @@
 #include "mpp_frame.h"
 #include "rk_venc_cmd.h"
 
+#define MAX_NUMBER_OF_COMPONENTS 3
+#define DCT_SIZE 8
+
+typedef enum EntroyTblClass_t {
+    TABLE_DC = 0,
+    TABLE_AC = 1,
+} EntroyTblClass;
+
+typedef union JPEGCompInfo_t {
+    struct {
+        RK_U32 component_id     : 8;
+        RK_U32 h_sample_factor  : 8;
+        RK_U32 v_sample_factor  : 8;
+        RK_U32 tbl_selector     : 8;
+    };
+    RK_U32 val;
+} JPEGCompInfo;
+
 typedef struct JpegeSyntax_t {
     RK_U32              width;
     RK_U32              height;
     RK_U32              hor_stride;
     RK_U32              ver_stride;
-    RK_U32              mcu_w;
-    RK_U32              mcu_h;
+    RK_U32              mcu_hor_cnt;
+    RK_U32              mcu_ver_cnt;
+    RK_U32              mcu_cnt;
+    RK_U32              mcu_width;
+    RK_U32              mcu_height;
     MppFrameFormat      format;
+    MppFrameChromaFormat format_out;
     MppFrameColorSpace  color;
     MppEncRotationCfg   rotation;
     RK_S32              mirroring;
@@ -59,7 +81,6 @@ typedef struct JpegeSyntax_t {
     /* For slice encoding mode */
     RK_U32              slice_enable;
     RK_U32              slice_size_mb_rows;
-    RK_U32              restart_interval;
 
     /*
      * For unit type and density
@@ -82,6 +103,9 @@ typedef struct JpegeSyntax_t {
     RK_U32              low_delay;
     RK_U32              part_rows;
     RK_U32              restart_ri;
+
+    RK_U32              nb_components;
+    JPEGCompInfo        comp_info[MAX_NUMBER_OF_COMPONENTS];
 } JpegeSyntax;
 
 typedef struct JpegeFeedback_t {

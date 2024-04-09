@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 

@@ -61,6 +61,7 @@ typedef struct RefInfo {
 typedef struct GlobalMtionParams {
     RK_U32 wmtype;
     RK_S32 wmmat[6];
+    RK_S32 wmmat_val[6];
     RK_S32 alpha, beta, gamma, delta;
 } GlobalMtionParams;
 
@@ -149,6 +150,7 @@ typedef struct AV1Context_t {
     HalDecTask *task;
     RK_S32 eos;       ///< current packet contains an EOS/EOB NAL
     RK_S64 pts;
+    const MppDecHwCap *hw_info;
 } AV1Context;
 
 #ifdef  __cplusplus

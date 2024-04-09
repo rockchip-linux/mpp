@@ -1,3 +1,40 @@
+## 1.0.4 (2024-02-07)
+### Feature
+- [vpu_api_legacy]: Support RGB24 setup
+- [avsd]: keep codec type if not avs+
+- [mpi_enc_test]: add YUV400 fmt support
+- [mpp_enc]: Add YUV400 support for vepu580/540
+
+### Fix
+- [h265e]: fix hw stream size check error
+- [hal_vdpu]: unify colmv buffer size calculation
+- [vproc]: Fix deadlock in vproc thread
+- [h265e]: disable tmvp by default
+- [h265e]: Amend temporal_id to stream
+- [mpp_dump]: add YUV420SP_10BIT format dump
+- [hal_h265d]: Fix register length for rk3328/rk3328H
+- [hal_avsd]: Fix crash on no buffer decoded
+- [mpp_enc]: allow vp8 to cfg force idr frame
+- [m2vd]: fix unindentical of input and output pts list
+- [h265e_vepu580]: fix SIGSEGV when reencoding
+- [mpp_dmabuf]: fix align cache line size calculate err
+- [h265e_vepu580]: flush cache for the first tile
+- [dmabuf]: Disable dmabuf partial sync function
+- [iep_test]: use internal buffer group
+- [common]: Add mpp_dup function
+- [h265e]: Adapter RK3528 when encoding P frame skip
+- [h265e]: fix missing end_of_slice_segment_flag problem
+- [hal_av1d_vdpu]: change rkv_hor_align to 16 align
+- [av1d_parser]: set color info per frame
+- [jpegd]: add sof marker check when parser done
+
+### Docs
+- Update 1.0.4 CHANGELOG.md
+
+### Chore
+- [script]: add rebuild and clean for build
+- [mpp_enc_roi_utils]: change file format dos to unix
+
 ## 1.0.3 (2023-12-08)
 ### Feature
 - [dec_test]: Add buffer mode option

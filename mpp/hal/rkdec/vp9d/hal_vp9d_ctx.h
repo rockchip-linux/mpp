@@ -34,10 +34,13 @@ typedef struct Vp9dLastInfo_t {
     RK_U32      last_height;
     RK_S16      feature_data[8][4];
     RK_U8       feature_mask[8];
+    RK_U8       color_space_last;
+    RK_U8       last_frame_type;
 } Vp9dLastInfo;
 
 typedef struct Vp9dRegBuf_t {
     RK_S32      use_flag;
+    MppBuffer   global_base;
     MppBuffer   probe_base;
     MppBuffer   count_base;
     MppBuffer   segid_cur_base;

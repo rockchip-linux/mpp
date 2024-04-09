@@ -93,6 +93,15 @@ typedef struct ProfileTierLevel_e {
     RK_S32     m_interlacedSourceFlag;
     RK_S32     m_nonPackedConstraintFlag;
     RK_S32     m_frameOnlyConstraintFlag;
+    RK_S32     m_max12bitConstraintFlag;
+    RK_S32     m_max10bitConstraintFlag;
+    RK_S32     m_max8bitConstraintFlag;
+    RK_S32     m_max422chromaConstraintFlag;
+    RK_S32     m_max420chromaConstraintFlag;
+    RK_S32     m_maxMonochromaConstraintFlag;
+    RK_S32     m_intraConstraintFlag;
+    RK_S32     m_onePictureConstraintFlag;
+    RK_S32     m_lowerBitRateConstraintFlag;
 } ProfileTierLevel;
 
 typedef struct  H265ePTL_e {
@@ -358,6 +367,8 @@ typedef struct H265eSlice_e {
 
     enum NALUnitType m_nalUnitType;       ///< Nal unit type for the slice
     SliceType        m_sliceType;
+
+    RK_S32           temporal_id;
     RK_U32           m_IsGenB;
     RK_S32           m_sliceQp;
     RK_U32           m_dependentSliceSegmentFlag;

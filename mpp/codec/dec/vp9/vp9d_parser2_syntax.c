@@ -131,6 +131,7 @@ static int vp9d_fill_picparams(Vp9CodecContext *ctx, DXVA_PicParams_VP9 *pic)
     pic->log2_tile_cols = s->tiling.log2_tile_cols;
     pic->log2_tile_rows = s->tiling.log2_tile_rows;
     pic->first_partition_size = s->first_partition_size;
+    pic->uncompressed_header_size_byte_aligned = s->uncompress_head_size_in_byte;
     memcpy(pic->mvscale, s->mvscale, sizeof(s->mvscale));
     memcpy(&pic->prob, &s->prob, sizeof(pic->prob));
     memcpy(&pic->prob_flag_delta, &s->prob_flag_delta, sizeof(pic->prob_flag_delta));

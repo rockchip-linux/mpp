@@ -125,6 +125,16 @@ const RK_U8 mpp_hevc_diag_scan8x8_y[64] = {
     5, 7, 6, 7,
 };
 
+static RK_U32 rkv_len_align_422(RK_U32 val)
+{
+    return (2 * MPP_ALIGN(val, 16));
+}
+
+static RK_U32 rkv_len_align_444(RK_U32 val)
+{
+    return (3 * MPP_ALIGN(val, 16));
+}
+
 int mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
                                    const HEVCSPS *sps, RK_S32 is_slice_header)
 {
@@ -1448,11 +1458,6 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     }
 
     READ_UE(gb, &sps->chroma_format_idc);
-    if (sps->chroma_format_idc != 1) {
-        mpp_err("chroma_format_idc != 1\n");
-        ret =  MPP_ERR_PROTOL;
-        goto err;
-    }
 
     if (sps->chroma_format_idc == 3)
         READ_ONEBIT(gb, &sps->separate_colour_plane_flag);
@@ -1472,23 +1477,6 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         sps->pic_conf_win.top_offset    =  sps->pic_conf_win.top_offset * 2;
         READ_UE(gb, &sps->pic_conf_win.bottom_offset);
         sps->pic_conf_win.bottom_offset = sps->pic_conf_win.bottom_offset * 2;
-#if 0
-        if (s->h265dctx->flags2 & CODEC_FLAG2_IGNORE_CROP) {
-            h265d_dbg(H265D_DBG_SPS,
-                      "discarding sps conformance window, "
-                      "original values are l:%u r:%u t:%u b:%u\n",
-                      sps->pic_conf_win.left_offset,
-                      sps->pic_conf_win.right_offset,
-                      sps->pic_conf_win.top_offset,
-                      sps->pic_conf_win.bottom_offset);
-
-            sps->pic_conf_win.left_offset   =
-                sps->pic_conf_win.right_offset  =
-                    sps->pic_conf_win.top_offset    =
-                        sps->pic_conf_win.bottom_offset = 0;
-        }
-
-#endif
         sps->output_window = sps->pic_conf_win;
     }
 
@@ -1507,7 +1495,11 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         goto err;
     }
 
-    if (sps->chroma_format_idc == 1) {
+    switch (sps->chroma_format_idc) {
+    case 0 : {
+        sps->pix_fmt = MPP_FMT_YUV400;
+    } break;
+    case 1 : {
         switch (sps->bit_depth) {
         case 8:  sps->pix_fmt = MPP_FMT_YUV420SP;   break;
         case 10: sps->pix_fmt = MPP_FMT_YUV420SP_10BIT; break;
@@ -1517,21 +1509,25 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
             ret =  MPP_ERR_PROTOL;
             goto err;
         }
-    } else {
-        mpp_err(
-            "non-4:2:0 support is currently unspecified.\n");
-        return  MPP_ERR_PROTOL;
-    }
-#if 0
-    desc = av_pix_fmt_desc_get(sps->pix_fmt);
-    if (!desc) {
-        goto err;
+    } break;
+    case 2 : {
+        switch (sps->bit_depth) {
+        case 8:  sps->pix_fmt = MPP_FMT_YUV422SP;   break;
+        case 10: sps->pix_fmt = MPP_FMT_YUV422SP_10BIT; break;
+        default:
+            mpp_err( "Unsupported bit depth: %d\n",
+                     sps->bit_depth);
+            ret =  MPP_ERR_PROTOL;
+            goto err;
+        }
+        mpp_slots_set_prop(s->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+    } break;
+    case 3 : {
+        sps->pix_fmt = MPP_FMT_YUV444SP;
+        mpp_slots_set_prop(s->slots, SLOTS_LEN_ALIGN, rkv_len_align_444);
+    } break;
     }
 
-    sps->hshift[0] = sps->vshift[0] = 0;
-    sps->hshift[2] = sps->hshift[1] = desc->log2_chroma_w;
-    sps->vshift[2] = sps->vshift[1] = desc->log2_chroma_h;
-#endif
     sps->pixel_shift = sps->bit_depth > 8;
 
     READ_UE(gb, &sps->log2_max_poc_lsb);
@@ -1726,7 +1722,32 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
     }
 #endif
 
-    //  SKIP_BITS(gb, 1); // sps_extension_flag
+    READ_ONEBIT(gb, &sps->sps_extension_flag);
+    if (sps->sps_extension_flag) { // sps_extension_flag
+        READ_ONEBIT(gb, &sps->sps_range_extension_flag);
+        SKIP_BITS(gb, 7); //sps_extension_7bits = get_bits(gb, 7);
+        if (sps->sps_range_extension_flag) {
+            READ_ONEBIT(gb, &sps->transform_skip_rotation_enabled_flag);
+            READ_ONEBIT(gb, &sps->transform_skip_context_enabled_flag);
+            READ_ONEBIT(gb, &sps->implicit_rdpcm_enabled_flag);
+            READ_ONEBIT(gb, &sps->explicit_rdpcm_enabled_flag);
+
+            READ_ONEBIT(gb, &sps->extended_precision_processing_flag);
+            if (sps->extended_precision_processing_flag)
+                mpp_log("extended_precision_processing_flag not yet implemented\n");
+
+            READ_ONEBIT(gb, &sps->intra_smoothing_disabled_flag);
+            READ_ONEBIT(gb, &sps->high_precision_offsets_enabled_flag);
+            if (sps->high_precision_offsets_enabled_flag)
+                mpp_log("high_precision_offsets_enabled_flag not yet implemented\n");
+
+            READ_ONEBIT(gb, &sps->persistent_rice_adaptation_enabled_flag);
+
+            READ_ONEBIT(gb, &sps->cabac_bypass_alignment_enabled_flag);
+            if (sps->cabac_bypass_alignment_enabled_flag)
+                mpp_log("cabac_bypass_alignment_enabled_flag not yet implemented\n");
+        }
+    }
 
     if (s->apply_defdispwin) {
         sps->output_window.left_offset   += sps->vui.def_disp_win.left_offset;
@@ -1830,20 +1851,11 @@ RK_S32 mpp_hevc_decode_nal_sps(HEVCContext *s)
         }
         mpp_log("compare sps ok");
     }
-#if 0
-    if (s->h265dctx->debug & FF_DEBUG_BITSTREAM) {
-        h265d_dbg(H265D_DBG_SPS,
-                  "Parsed SPS: id %d; coded wxh: %dx%d; "
-                  "cropped wxh: %dx%d; pix_fmt: %s.\n",
-                  sps_id, sps->width, sps->height,
-                  sps->output_width, sps->output_height,
-                  av_get_pix_fmt_name(sps->pix_fmt));
-    }
-#endif
+
     /* check if this is a repeat of an already parsed SPS, then keep the
      * original one.
-     * otherwise drop all PPSes that depend on it */
-
+     * otherwise drop all PPSes that depend on it
+     */
     if (s->sps_list[sps_id] &&
         !memcmp(s->sps_list[sps_id], sps_buf, sizeof(HEVCSPS))) {
         mpp_mem_pool_put(s->sps_pool, sps_buf);

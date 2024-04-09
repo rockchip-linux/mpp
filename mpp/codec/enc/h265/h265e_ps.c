@@ -97,7 +97,7 @@ void init_raster2pelxy(RK_U32 maxCUSize, RK_U32 maxDepth, RK_U32 *raster2pelx, R
     tempx++;
     for (i = 1; i < numPartInCUSize; i++) {
         tempx[0] = tempx[-1] + unitSize;
-        tempy++;
+        tempx++;
     }
 
     for (i = 1; i < numPartInCUSize; i++) {
@@ -150,11 +150,24 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
         profileTierLevel->m_levelIdc = codec->level;
     }
     profileTierLevel->m_tierFlag = codec->tier ? 1 : 0;
+
+    if (prep->format == MPP_FMT_YUV400) {
+        /* general_profile_idc == 4 */
+        codec->profile = MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS;
+        profileTierLevel->m_max12bitConstraintFlag = 1;
+        profileTierLevel->m_max10bitConstraintFlag = 1;
+        profileTierLevel->m_max8bitConstraintFlag = 1;
+        profileTierLevel->m_max422chromaConstraintFlag = 1;
+        profileTierLevel->m_max420chromaConstraintFlag = 1;
+        profileTierLevel->m_maxMonochromaConstraintFlag = 1;
+        profileTierLevel->m_lowerBitRateConstraintFlag = 1;
+    } else {
+        /* general_profile_idc == 2 */
+        profileTierLevel->m_profileCompatibilityFlag[2] = 1;
+    }
+
     profileTierLevel->m_profileIdc = codec->profile;
-
     profileTierLevel->m_profileCompatibilityFlag[codec->profile] = 1;
-    profileTierLevel->m_profileCompatibilityFlag[2] = 1;
-
     profileTierLevel->m_progressiveSourceFlag = 1;
     profileTierLevel->m_nonPackedConstraintFlag = 0;
     profileTierLevel->m_frameOnlyConstraintFlag = 0;
@@ -169,7 +182,8 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     MppEncH265VuiCfg *vui = &codec->vui;
-    RK_S32 i_timebase_num = rc->fps_out_denorm;
+    MppFrameFormat fmt = prep->format;
+    RK_S32 i_timebase_num = rc->fps_out_denom;
     RK_S32 i_timebase_den = rc->fps_out_num;
     RK_U8  convertToBit[MAX_CU_SIZE + 1];
     RK_U32 maxCUDepth, minCUDepth, addCUDepth;
@@ -191,6 +205,9 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     minCUDepth = (codec->max_cu_size >> (maxCUDepth - 1));
 
     tuQTMaxLog2Size = convertToBit[codec->max_cu_size] + 2 - 1;
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
+        tuQTMaxLog2Size = tuQTMaxLog2Size + 1;
+    }
 
     addCUDepth = 0;
     while ((RK_U32)(codec->max_cu_size >> maxCUDepth) > (1u << (tuQTMinLog2Size + addCUDepth))) {
@@ -230,7 +247,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 
     sps->m_SPSId = 0;
     sps->m_VPSId = 0;
-    sps->m_chromaFormatIdc = 0x1; //RKVE_CSP2_I420;
+    sps->m_chromaFormatIdc = (fmt == MPP_FMT_YUV400) ? H265_CHROMA_400 : H265_CHROMA_420;
     sps->m_maxTLayers = 1;
     sps->m_picWidthInLumaSamples = prep->width + pad[0];
     sps->m_picHeightInLumaSamples = prep->height + pad[1];
@@ -307,6 +324,14 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     } else if (cpb_info->max_st_tid) {
         sps->m_TMVPFlagsPresent = 0;
     }
+
+    if (rc->drop_mode == MPP_ENC_RC_DROP_FRM_PSKIP) {
+        codec->tmvp_enable = 0;
+        sps->m_TMVPFlagsPresent = 0;
+        codec->sao_enable = 0;
+        sps->m_bUseSAO = 0;
+    }
+
     sps->m_ptl = &vps->m_ptl;
     sps->m_vuiParametersPresentFlag = 1;
     if (sps->m_vuiParametersPresentFlag) {
@@ -376,7 +401,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
 {
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
     MppEncRcCfg *rc = &ctx->cfg->rc;
-    pps->m_bConstrainedIntraPred = 0;
+    pps->m_bConstrainedIntraPred = codec->const_intra_pred;
     pps->m_PPSId = 0;
     pps->m_SPSId = 0;
     pps->m_picInitQPMinus26 = 0;
@@ -434,11 +459,12 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_nNumTileColumnsMinus1 = 0;
     pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;
     {
-        const char *soc_name = mpp_get_soc_name();
+        RockchipSocType soc_type = mpp_get_soc_type();
+
         /* check tile support on rk3566 and rk3568 */
-        if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
+        if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568) {
             pps->m_nNumTileColumnsMinus1 = (sps->m_picWidthInLumaSamples - 1) / 1920 ;
-        } else if (strstr(soc_name, "rk3588")) {
+        } else if (soc_type == ROCKCHIP_SOC_RK3588) {
             if (sps->m_picWidthInLumaSamples > 8192) {
                 /* 4 tile for over 8k encoding */
                 pps->m_nNumTileColumnsMinus1 = 3;

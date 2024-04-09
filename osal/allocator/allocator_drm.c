@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
@@ -254,7 +253,7 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
 
     mpp_assert(fd_ext > 0);
 
-    data->fd = dup(fd_ext);
+    data->fd = mpp_dup(fd_ext);
     data->ptr = NULL;
 
     if (data->fd <= 0) {

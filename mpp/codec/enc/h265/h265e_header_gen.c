@@ -73,7 +73,7 @@ static void h265e_nal_encode(RK_U8 *dst, H265eNal *nal)
     mpp_writer_put_bits(&s, 0, 1); //forbidden_zero_bit
     mpp_writer_put_bits(&s, nal->i_type, 6);//nal_unit_type
     mpp_writer_put_bits(&s, 0, 6); //nuh_reserved_zero_6bits
-    mpp_writer_put_bits(&s, 1, 3); //nuh_temporal_id_plus1
+    mpp_writer_put_bits(&s, nal->temporal_id + 1, 3); //nuh_temporal_id_plus1
     dst += 2;
     dst = h265e_nal_escape_c(dst, src, end);
     size = (RK_S32)((dst - orig_dst) - 4);
@@ -244,9 +244,24 @@ void codeProfileTier(H265eStream *s, ProfileTierLevel* ptl)
     h265e_stream_write1_with_log(s, ptl->m_nonPackedConstraintFlag, "general_non_packed_constraint_flag");
     h265e_stream_write1_with_log(s, ptl->m_frameOnlyConstraintFlag, "general_frame_only_constraint_flag");
 
-    h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[0..15]");
-    h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[16..31]");
-    h265e_stream_write_with_log(s, 0, 12, "eserved_zero_44bits[32..43]");
+    if (ptl->m_profileIdc == MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS) {
+        h265e_stream_write1_with_log(s, ptl->m_max12bitConstraintFlag , "general_max_12_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max10bitConstraintFlag, "general_max_10_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max8bitConstraintFlag,  "general_max_8_bit_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max422chromaConstraintFlag, "general_max_422chroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_max420chromaConstraintFlag, "general_max_420chroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_maxMonochromaConstraintFlag, "general_max_monochroma_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_intraConstraintFlag, "general_intra_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_onePictureConstraintFlag, "general_one_picture_constraint_flag");
+        h265e_stream_write1_with_log(s, ptl->m_lowerBitRateConstraintFlag, "general_lower_bit_rate_constraint_flag");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_35bits[0..15]");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_35bits[16..31]");
+        h265e_stream_write_with_log(s, 0, 3, "eserved_zero_35bits[32..34]");
+    } else {
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[0..15]");
+        h265e_stream_write_with_log(s, 0, 16, "reserved_zero_44bits[16..31]");
+        h265e_stream_write_with_log(s, 0, 12, "eserved_zero_44bits[32..43]");
+    }
 }
 
 void codePTL(H265eStream *s, H265ePTL* ptl, RK_U32 profilePresentFlag, int maxNumSubLayersMinus1)
@@ -636,6 +651,8 @@ void h265e_nal_start(H265eExtraInfo *out, RK_S32 i_type,
     /* NOTE: consistent with stream_init */
     nal->p_payload = &s->buf[s->enc_stream.byte_cnt];
     nal->i_padding = 0;
+
+    nal->temporal_id = out->temporal_id;
 }
 
 void h265e_nal_end(H265eExtraInfo *out)
@@ -696,8 +713,8 @@ MPP_RET h265e_set_extra_info(H265eCtx *ctx)
 
     h265e_dbg_func("enter\n");
     info->nal_num = 0;
+    info->temporal_id = 0;
     h265e_stream_reset(&info->stream);
-
 
     h265e_nal_start(info, NAL_VPS, H265_NAL_PRIORITY_HIGHEST);
     h265e_set_vps(ctx, vps);

@@ -30,6 +30,7 @@
 
 #include "hal_h265e_debug.h"
 #include "h265e_syntax_new.h"
+#include "hal_h265e_stream_amend.h"
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
 #include "h265e_dpb.h"
@@ -1604,6 +1605,7 @@ vepu580_h265_set_patch_info(MppDevRegOffCfgs *cfgs, H265eSyntax_new *syn,
             u_offset = frame_size;
             v_offset = frame_size * 3 / 2;
         } break;
+        case VEPU540_FMT_YUV400:
         case VEPU541_FMT_YUYV422:
         case VEPU541_FMT_UYVY422: {
             u_offset = 0;
@@ -1932,8 +1934,8 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt,
     reg_base->reg0198_src_fmt.src_cfmt = fmt->format;
     reg_base->reg0198_src_fmt.alpha_swap = fmt->alpha_swap;
     reg_base->reg0198_src_fmt.rbuv_swap = fmt->rbuv_swap;
-    reg_base->reg0198_src_fmt.src_range = (prep_cfg->range == MPP_FRAME_RANGE_JPEG ? 1 : 0);
-    reg_base->reg0198_src_fmt.out_fmt = 1;
+    reg_base->reg0198_src_fmt.src_range = (prep_cfg->range == MPP_FRAME_RANGE_JPEG) ? 1 : 0;
+    reg_base->reg0198_src_fmt.out_fmt = (prep_cfg->format == MPP_FMT_YUV400) ? 0 : 1;
     reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 
@@ -3144,6 +3146,10 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
                     mpp_buffer_sync_ro_partial_begin(buf, tile1_offset, slice_len);
                     memcpy(ptr + seg_offset, tile1_ptr + tile1_offset, slice_len);
                     tile1_offset += slice_len;
+                } else {
+                    MppBuffer buf = enc_task->output;
+
+                    mpp_buffer_sync_ro_partial_begin(buf, offset, slice_len);
                 }
 
                 ctx->output_cb->cmd = ENC_OUTPUT_SLICE;
@@ -3265,13 +3271,13 @@ MPP_RET hal_h265e_v580_get_task(void *hal, HalEncTask *task)
 
         frm_cfg->hal_curr_idx = ctx->syn->sp.recon_pic.slot_idx;
         frm_cfg->hal_refr_idx = ctx->syn->sp.ref_pic.slot_idx;
-
-        h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_curr_idx);
-        h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_refr_idx);
     } else {
         /* reencode path may change the frame type */
         frm_cfg = ctx->frm;
     }
+
+    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_curr_idx);
+    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_refr_idx);
 
     ctx->frame_type = (frm_status->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
     frm_cfg->frame_type = ctx->frame_type;
@@ -3290,6 +3296,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
     RK_S32 task_idx = task->flags.reg_idx;
     Vepu580H265eFrmCfg *frm = ctx->frms[task_idx];
     Vepu580H265Fbk *fb = &frm->feedback;
+    H265eSyntax_new *syn = (H265eSyntax_new *) enc_task->syntax.data;
 
     hal_h265e_enter();
 
@@ -3304,16 +3311,31 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
                 if (i) {  //copy tile 1 stream
                     RK_U32 len = fb->out_strm_size - stream_len;
                     MppBuffer buf = frm->hw_tile_stream[i - 1];
-                    void *tile1_ptr  = mpp_buffer_get_ptr(buf);
+                    RK_U8 *tile1_ptr  = mpp_buffer_get_ptr(buf);
 
                     mpp_buffer_sync_ro_partial_begin(buf, 0, len);
+
+                    if (syn->sp.temporal_id && len > 5)
+                        tile1_ptr[5] = (tile1_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
+
                     memcpy(ptr + stream_len + offset, tile1_ptr, len);
+                } else {
+                    MppBuffer buf = enc_task->output;
+                    RK_U32 len = fb->out_strm_size;
+                    RK_U8 *stream_ptr = (RK_U8 *) ptr;
+
+                    mpp_buffer_sync_ro_partial_begin(buf, offset, len);
+
+                    if (syn->sp.temporal_id) {
+                        stream_ptr[5] = (stream_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
+                    }
                 }
                 stream_len = fb->out_strm_size;
             }
         }
     } else {
         vepu580_h265_set_feedback(ctx, enc_task, ctx->tile_num - 1);
+        hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     }
 
     rc_info->sse = fb->sse_sum;

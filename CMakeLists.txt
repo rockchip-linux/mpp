@@ -171,6 +171,8 @@ if(GCC)
     add_definitions(-fPIC)
     # disable exception for C++
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+    # save intermediate files
+    # add_definitions(-save-temps)
 
     # for libary linking
     set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)

@@ -6,11 +6,14 @@ include_directories(../common/)
 # hal jpeg header
 set(HAL_JPEGE_HDR
     hal_jpege_vepu540c_reg.h
+    hal_jpege_vpu720_reg.h
+    hal_jpege_vpu720.h
     )
 
 # hal jpeg encoder sourse
 set(HAL_JPEGE_SRC
     hal_jpege_vepu540c.c
+    hal_jpege_vpu720.c
     )
 
 add_library(hal_jpege_rkv STATIC

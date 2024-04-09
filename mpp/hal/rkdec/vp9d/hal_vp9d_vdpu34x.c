@@ -393,6 +393,38 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, voi
     }
 }
 
+static MPP_RET hal_vp9d_vdpu34x_setup_colmv_buf(void *hal, HalTaskInfo *task)
+{
+    HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
+    Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
+    DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
+    RK_U32 width = pic_param->width;
+    RK_U32 height = pic_param->height;
+    RK_S32 mv_size = 0, colmv_size = 8, colmv_byte = 16;
+    RK_U32 compress = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
+
+    mv_size = vdpu34x_get_colmv_size(width, height, VP9_CTU_SIZE, colmv_byte, colmv_size, compress);
+    if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
+        size_t size = mv_size;
+
+        if (hw_ctx->cmv_bufs) {
+            hal_bufs_deinit(hw_ctx->cmv_bufs);
+            hw_ctx->cmv_bufs = NULL;
+        }
+
+        hal_bufs_init(&hw_ctx->cmv_bufs);
+        if (hw_ctx->cmv_bufs == NULL) {
+            mpp_err_f("colmv bufs init fail");
+            return MPP_ERR_NOMEM;
+        }
+        hw_ctx->mv_size = mv_size;
+        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal ->slots);
+        hal_bufs_setup(hw_ctx->cmv_bufs, hw_ctx->mv_count, 1, &size);
+    }
+
+    return MPP_OK;
+}
+
 static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32   i;
@@ -418,7 +450,6 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
-    RK_S32 mv_size = pic_param->width * pic_param->height / 2;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
 
     if (p_hal->fast_mode) {
@@ -438,23 +469,8 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         }
     }
 
-    if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
-        size_t size = mv_size;
-
-        if (hw_ctx->cmv_bufs) {
-            hal_bufs_deinit(hw_ctx->cmv_bufs);
-            hw_ctx->cmv_bufs = NULL;
-        }
-
-        hal_bufs_init(&hw_ctx->cmv_bufs);
-        if (hw_ctx->cmv_bufs == NULL) {
-            mpp_err_f("colmv bufs init fail");
-            return MPP_NOK;
-        }
-        hw_ctx->mv_size = mv_size;
-        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal ->slots);
-        hal_bufs_setup(hw_ctx->cmv_bufs, hw_ctx->mv_count, 1, &size);
-    }
+    if (hal_vp9d_vdpu34x_setup_colmv_buf(hal, task))
+        return MPP_ERR_NOMEM;
 
     Vdpu34xVp9dRegSet *vp9_hw_regs = (Vdpu34xVp9dRegSet*)hw_ctx->hw_regs;
     intraFlag = (!pic_param->frame_type || pic_param->intra_only);
@@ -607,6 +623,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     hal_vp9d_output_probe(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
     mpp_buffer_sync_end(hw_ctx->probe_base);
 #endif
+    vp9_hw_regs->common.reg012.colmv_compress_en = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
     vp9_hw_regs->common.reg013.cur_pic_is_idr = !pic_param->frame_type;
     vp9_hw_regs->common.reg009.dec_mode = 2; //set as vp9 dec
     vp9_hw_regs->common.reg016_str_len = ((stream_len + 15) & (~15)) + 0x80;
@@ -1065,16 +1082,12 @@ static MPP_RET hal_vp9d_vdpu34x_control(void *hal, MpiCmd cmd_type, void *param)
 
     switch ((MpiCmd)cmd_type) {
     case MPP_DEC_SET_FRAME_INFO : {
-        /* commit buffer stride */
-        RK_U32 width = mpp_frame_get_width((MppFrame)param);
-        RK_U32 height = mpp_frame_get_height((MppFrame)param);
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu34x_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
         } else {
-            mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
-            mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
         }
     } break;
     default : {

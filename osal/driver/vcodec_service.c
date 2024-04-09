@@ -129,6 +129,10 @@ static const char *mpp_jpegd_dev[] = {
     "/dev/mpp_service",
 };
 
+static const char *mpp_jpege_dev[] = {
+    "/dev/mpp_service",
+};
+
 #define mpp_find_device(dev) _mpp_find_device(dev, MPP_ARRAY_ELEMS(dev))
 
 static const char *_mpp_find_device(const char **dev, RK_U32 size)
@@ -393,6 +397,19 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
                 dev = NULL;
         }
     } break;
+    case ROCKCHIP_SOC_RK3576 : {
+        if (type == MPP_CTX_DEC) {
+            if (coding == MPP_VIDEO_CodingMJPEG)
+                dev = mpp_find_device(mpp_jpegd_dev);
+            else
+                dev = mpp_find_device(mpp_rkvdec_dev);
+        } else if (type == MPP_CTX_ENC) {
+            if (coding == MPP_VIDEO_CodingMJPEG)
+                dev = mpp_find_device(mpp_jpege_dev);
+            else
+                dev = mpp_find_device(mpp_rkvenc_dev);
+        }
+    } break;
     default : {
         /* default case for unknown compatible  */
         RK_U32 vcodec_type = mpp_get_vcodec_type();
@@ -598,7 +615,7 @@ MPP_RET vcodec_service_reg_rd(void *ctx, MppDevRegRdCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET vcodec_service_fd_trans(void *ctx, MppDevRegOffsetCfg *cfg)
+MPP_RET vcodec_service_reg_offset(void *ctx, MppDevRegOffsetCfg *cfg)
 {
     if (cfg->offset) {
         MppDevVcodecService *p = (MppDevVcodecService *)ctx;
@@ -707,10 +724,14 @@ const MppDevApi vcodec_service_api = {
     NULL,
     vcodec_service_reg_wr,
     vcodec_service_reg_rd,
-    vcodec_service_fd_trans,
+    vcodec_service_reg_offset,
     NULL,
     NULL,
     vcodec_service_set_info,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL,
     vcodec_service_cmd_send,
     vcodec_service_cmd_poll,

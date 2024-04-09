@@ -456,6 +456,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
                 p_Dec->cfg->base.out_fmt = fmt;
                 out_fmt = fmt;
+            } else if (MPP_FRAME_FMT_IS_TILE(out_fmt)) {
+                fmt |= (out_fmt & MPP_FRAME_TILE_FLAG);
+                p_Dec->cfg->base.out_fmt = fmt;
+                out_fmt = fmt;
             }
             impl->fmt = fmt;
 
@@ -1130,7 +1134,7 @@ static MPP_RET init_lists_p_slice_mvc(H264_SLICE_t *currSlice)
     }
 
     currSlice->listXsizeP[1] = 0;
-    if (currSlice->mvcExt.valid && currSlice->svc_extension_flag == 0) {
+    if (currSlice->mvcExt.valid && p_Vid->active_mvc_sps_flag && currSlice->svc_extension_flag == 0) {
         RK_S32 curr_layer_id = currSlice->layer_id;
         currSlice->fs_listinterview0 = mpp_calloc(H264_FrameStore_t*, p_Dpb->size);
         MEM_CHECK(ret, currSlice->fs_listinterview0);
@@ -1297,7 +1301,7 @@ static MPP_RET init_lists_b_slice_mvc(H264_SLICE_t *currSlice)
             currSlice->listB[1][1] = tmp_s;
         }
     }
-    if (currSlice->mvcExt.valid && currSlice->svc_extension_flag == 0) {
+    if (currSlice->mvcExt.valid && p_Vid->active_mvc_sps_flag && currSlice->svc_extension_flag == 0) {
         RK_S32 curr_layer_id = currSlice->layer_id;
         // B-Slice
         currSlice->fs_listinterview0 = mpp_calloc(H264_FrameStore_t*, p_Dpb->size);

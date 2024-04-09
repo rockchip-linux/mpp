@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#define MODULE_TAG "vepu5xx_common.c"
+#define MODULE_TAG "vepu5xx_common"
 
-#include "mpp_log.h"
 #include "mpp_common.h"
 #include "vepu5xx_common.h"
 
@@ -36,7 +35,6 @@ const VepuRgb2YuvCfg vepu_rgb2limit_yuv_cfg_set[] = {
         ._2v = {.r_coeff = 112, .g_coeff = -102, .b_coeff = -10, .offset = 128},
     },
 };
-
 
 const VepuRgb2YuvCfg vepu_rgb2full_yuv_cfg_set[] = {
     /* MPP_BT601_FULL_RGB_TO_FULL_YUV */
@@ -190,4 +188,14 @@ const RK_U32 lamd_modb_qp[52] = {
     0x0002c000, 0x00038000, 0x00044800, 0x00058000, 0x00070000, 0x00089000, 0x000b0000, 0x000e0000,
     0x00112000, 0x00160000, 0x001c0000, 0x00224000, 0x002c0000, 0x00380000, 0x00448000, 0x00580000,
     0x00700000, 0x00890000, 0x00b00000, 0x00e00000
+};
+
+const RK_U32 lamd_satd_qp_510[52] = {
+    0x00000243, 0x00000289, 0x000002DA, 0x00000333, 0x00000397, 0x00000408, 0x00000487, 0x00000514,
+    0x000005B5, 0x00000667, 0x000007C9, 0x000008BD, 0x00000B52, 0x00000CB5, 0x00000E44, 0x00001002,
+    0x000011F9, 0x0000142D, 0x00001523, 0x000017BA, 0x00001AA2, 0x0000199F, 0x00001CC2, 0x00002049,
+    0x0000243C, 0x000032D8, 0x00002DA8, 0x0000333F, 0x00003985, 0x00004092, 0x00004879, 0x000065B0,
+    0x000062EC, 0x000088AA, 0x00007CA2, 0x0000AC30, 0x00009D08, 0x0000B043, 0x0000C5D9, 0x0000EF29,
+    0x00010C74, 0x00012D54, 0x000121E9, 0x00014569, 0x00018BB4, 0x0001BC2A, 0x0001F28E, 0x00020490,
+    0x000243D3, 0x00028AD4, 0x0002DA89, 0x000333FF,
 };

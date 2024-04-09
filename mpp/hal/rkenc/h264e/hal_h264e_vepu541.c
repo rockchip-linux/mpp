@@ -175,8 +175,9 @@ static MPP_RET hal_h264e_vepu541_init(void *hal, MppEncHalCfg *cfg)
     p->dev = cfg->dev;
 
     {
-        const char *soc_name = mpp_get_soc_name();
-        if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568"))
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568)
             p->is_vepu540 = 1;
         else
             p->is_vepu540 = 0;
@@ -473,7 +474,7 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep,
     regs->reg017.alpha_swap = cfg.alpha_swap;
     regs->reg017.rbuv_swap  = cfg.rbuv_swap;
     regs->reg017.src_range  = cfg.src_range;
-    regs->reg017.out_fmt_cfg = 0;
+    regs->reg017.out_fmt_cfg = (fmt == MPP_FMT_YUV400) ? 1 : 0;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
@@ -948,6 +949,7 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, MppDev dev,
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 5 / 4;
         } break;
+        case VEPU540_FMT_YUV400 :
         case VEPU541_FMT_YUYV422 :
         case VEPU541_FMT_UYVY422 : {
             off_in[0] = 0;

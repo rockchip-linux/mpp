@@ -479,7 +479,7 @@ static MPP_RET setup_vepu540c_prep(HalVepu540cRegSet *regs, MppEncPrepCfg *prep)
     regs->reg_base.src_fmt.src_cfmt   = hw_fmt;
     regs->reg_base.src_fmt.alpha_swap = cfg.alpha_swap;
     regs->reg_base.src_fmt.rbuv_swap  = cfg.rbuv_swap;
-    regs->reg_base.src_fmt.out_fmt    = 1;
+    regs->reg_base.src_fmt.out_fmt    = (fmt == MPP_FMT_YUV400) ? 0 : 1;
 
     y_stride = (MPP_FRAME_FMT_IS_FBC(fmt)) ? (MPP_ALIGN(prep->width, 16)) :
                (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
@@ -890,10 +890,13 @@ static void setup_vepu540c_rdo_cfg(vepu540c_rdo_cfg *reg)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu540c_rc_base(HalVepu540cRegSet *regs, H264eSps *sps,
-                                   H264eSlice *slice, MppEncHwCfg *hw,
-                                   EncRcTask *rc_task)
+static void setup_vepu540c_rc_base(HalVepu540cRegSet *regs, HalH264eVepu540cCtx *ctx, EncRcTask *rc_task)
 {
+    H264eSps *sps = ctx->sps;
+    H264eSlice *slice = ctx->slice;
+    MppEncCfgSet *cfg = ctx->cfg;
+    MppEncRcCfg *rc = &cfg->rc;
+    MppEncHwCfg *hw = &cfg->hw;
     EncRcTaskInfo *rc_info = &rc_task->info;
     RK_S32 mb_w = sps->pic_width_in_mbs;
     RK_S32 mb_h = sps->pic_height_in_mbs;
@@ -909,15 +912,22 @@ static void setup_vepu540c_rc_base(HalVepu540cRegSet *regs, H264eSps *sps,
     hal_h264e_dbg_rc("bittarget %d qp [%d %d %d]\n", rc_info->bit_target,
                      qp_min, qp_target, qp_max);
 
-    if (mb_target_bits_mul_16 >= 0x100000) {
-        mb_target_bits_mul_16 = 0x50000;
+    hal_h264e_dbg_func("enter\n");
+
+    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
+        regs->reg_base.enc_pic.pic_qp    = rc_info->quality_target;
+        regs->reg_base.rc_qp.rc_max_qp   = rc_info->quality_target;
+        regs->reg_base.rc_qp.rc_min_qp   = rc_info->quality_target;
+
+        return;
     }
+
+    if (mb_target_bits_mul_16 >= 0x100000)
+        mb_target_bits_mul_16 = 0x50000;
 
     mb_target_bits = (mb_target_bits_mul_16 * mb_w) >> 4;
     negative_bits_thd = 0 - 5 * mb_target_bits / 16;
     positive_bits_thd = 5 * mb_target_bits / 16;
-
-    hal_h264e_dbg_func("enter\n");
 
     regs->reg_base.enc_pic.pic_qp         = qp_target;
 
@@ -1037,6 +1047,7 @@ static void setup_vepu540c_io_buf(HalVepu540cRegSet *regs, MppDev dev,
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 5 / 4;
         } break;
+        case VEPU540_FMT_YUV400 :
         case VEPU541_FMT_YUYV422 :
         case VEPU541_FMT_UYVY422 : {
             off_in[0] = 0;
@@ -1490,7 +1501,7 @@ static MPP_RET hal_h264e_vepu540c_gen_regs(void *hal, HalEncTask *task)
     // scl cfg
     memcpy(&regs->reg_scl.q_intra_y8, vepu580_540_h264_flat_scl_tab, sizeof(vepu580_540_h264_flat_scl_tab));
 
-    setup_vepu540c_rc_base(regs, sps, slice, &cfg->hw, task->rc_task);
+    setup_vepu540c_rc_base(regs, ctx, task->rc_task);
     setup_vepu540c_io_buf(regs, ctx->dev, task);
     setup_vepu540c_recn_refr(ctx, regs);
 

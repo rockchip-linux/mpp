@@ -10,6 +10,7 @@ set(HAL_H265E_HDR
 # hal h265 encoder sourse
 set(HAL_H265E_SRC
     hal_h265e_api_v2.c
+    hal_h265e_stream_amend.c
     )
 
 add_library(hal_h265e STATIC

@@ -29,6 +29,7 @@
 
 #include "h265e_syntax_new.h"
 #include "hal_h265e_debug.h"
+#include "hal_h265e_stream_amend.h"
 #include "hal_h265e_vepu541_reg.h"
 #include "hal_h265e_vepu54x_reg_l2.h"
 #include "vepu541_common.h"
@@ -163,6 +164,8 @@ static MPP_RET vepu54x_h265_setup_hal_bufs(H265eV541HalContext *ctx)
     vepu541_set_fmt(fmt, ctx->cfg->prep.format);
     input_fmt = (Vepu541Fmt)fmt->format;
     switch (input_fmt) {
+    case VEPU540_FMT_YUV400:
+        break;
     case VEPU541_FMT_YUV420P:
     case VEPU541_FMT_YUV420SP: {
         frame_size = frame_size * 3 / 2;
@@ -623,10 +626,10 @@ MPP_RET hal_h265e_v541_init(void *hal, MppEncHalCfg *cfg)
 
     ctx->dev = cfg->dev;
     {
-        const char *soc_name = mpp_get_soc_name();
-        if (strstr(soc_name, "rk3566") || strstr(soc_name, "rk3568")) {
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568)
             ctx->is_vepu540 = 1;
-        }
     }
 
     ctx->osd_cfg.reg_base = ctx->regs;
@@ -1883,6 +1886,7 @@ MPP_RET hal_h265e_v541_start(void *hal, HalEncTask *task)
     hal_h265e_leave();
     return ret;
 }
+
 MPP_RET hal_h265e_v54x_start(void *hal, HalEncTask *task)
 {
     H265eV541HalContext *ctx = (H265eV541HalContext *)hal;
@@ -2059,6 +2063,7 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
     hal_h265e_enter();
 
     vepu541_h265_set_feedback(ctx, enc_task);
+    hal_h265e_amend_temporal_id(task, fb->out_strm_size);
 
     rc_info->sse = fb->sse_sum;
     rc_info->lvl64_inter_num = fb->st_lvl64_inter_num;

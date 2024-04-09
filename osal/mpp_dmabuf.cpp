@@ -16,7 +16,7 @@
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
 #define CACHE_LINE_SIZE  64
 
-static RK_U32 has_partial_ops = 1;
+static RK_U32 has_partial_ops = 0;
 
 __attribute__ ((constructor))
 void mpp_dmabuf_init(void)
@@ -72,8 +72,8 @@ MPP_RET mpp_dmabuf_sync_partial_begin(RK_S32 fd, RK_S32 ro, RK_U32 offset, RK_U3
             return MPP_OK;
 
         sync.flags = DMA_BUF_SYNC_START | (ro ? DMA_BUF_SYNC_READ : DMA_BUF_SYNC_RW);
-        sync.offset = offset / CACHE_LINE_SIZE;
-        sync.len = MPP_ALIGN(length, CACHE_LINE_SIZE);
+        sync.offset = MPP_ALIGN_DOWN(offset, CACHE_LINE_SIZE);
+        sync.len = MPP_ALIGN(length + offset - sync.offset, CACHE_LINE_SIZE);
 
         ret = ioctl(fd, DMA_BUF_IOCTL_SYNC_PARTIAL, &sync);
         if (ret) {
@@ -103,8 +103,8 @@ MPP_RET mpp_dmabuf_sync_partial_end(RK_S32 fd, RK_S32 ro, RK_U32 offset, RK_U32 
             return MPP_OK;
 
         sync.flags = DMA_BUF_SYNC_END | (ro ? DMA_BUF_SYNC_READ : DMA_BUF_SYNC_RW);
-        sync.offset = offset / CACHE_LINE_SIZE;
-        sync.len = MPP_ALIGN(length, CACHE_LINE_SIZE);
+        sync.offset = MPP_ALIGN_DOWN(offset, CACHE_LINE_SIZE);
+        sync.len = MPP_ALIGN(length + offset - sync.offset, CACHE_LINE_SIZE);
 
         ret = ioctl(fd, DMA_BUF_IOCTL_SYNC_PARTIAL, &sync);
         if (ret) {

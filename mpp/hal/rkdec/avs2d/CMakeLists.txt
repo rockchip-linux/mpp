@@ -14,6 +14,7 @@ set(HAL_AVS2D_HDR
 set(HAL_AVS2D_SRC
     hal_avs2d_rkv.c
     hal_avs2d_vdpu382.c
+    hal_avs2d_vdpu383.c
     hal_avs2d_api.c
     )
 
@@ -23,6 +24,6 @@ add_library(hal_avs2d STATIC
             ${HAL_AVS2D_SRC}
             )
 
-target_link_libraries(hal_avs2d mpp_base)
+target_link_libraries(hal_avs2d mpp_base vdpu383_com)
 set_target_properties(hal_avs2d PROPERTIES FOLDER "mpp/hal")
 

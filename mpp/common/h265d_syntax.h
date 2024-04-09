@@ -146,7 +146,21 @@ typedef struct _DXVA_PicParams_HEVC {
             UINT32  IrapPicFlag                                 : 1;
             UINT32  IdrPicFlag                                  : 1;
             UINT32  IntraPicFlag                                : 1;
-            UINT32  ReservedBits4                               : 13;
+            // sps exension flags
+            UINT32  sps_extension_flag                          : 1;
+            UINT32  sps_range_extension_flag                    : 1;
+            UINT32  transform_skip_rotation_enabled_flag        : 1;
+            UINT32  transform_skip_context_enabled_flag         : 1;
+            UINT32  implicit_rdpcm_enabled_flag                 : 1;
+            UINT32  explicit_rdpcm_enabled_flag                 : 1;
+            UINT32  extended_precision_processing_flag          : 1;
+            UINT32  intra_smoothing_disabled_flag               : 1;
+            UINT32  high_precision_offsets_enabled_flag         : 1;
+            UINT32  persistent_rice_adaptation_enabled_flag     : 1;
+            UINT32  cabac_bypass_alignment_enabled_flag         : 1;
+            // pps exension flags
+            UINT32  cross_component_prediction_enabled_flag     : 1;
+            UINT32  chroma_qp_offset_list_enabled_flag          : 1;
         };
         UINT32 dwCodingSettingPicturePropertyFlags;
     };
@@ -177,6 +191,13 @@ typedef struct _DXVA_PicParams_HEVC {
 
     Short_SPS_RPS_HEVC sps_st_rps[64];
     LT_SPS_RPS_HEVC    sps_lt_rps[32];
+
+    // PPS exentison
+    UCHAR log2_max_transform_skip_block_size;
+    UCHAR diff_cu_chroma_qp_offset_depth;
+    CHAR  cb_qp_offset_list[6];
+    CHAR  cr_qp_offset_list[6];
+    UCHAR chroma_qp_offset_list_len_minus1;
 
     UCHAR  scaling_list_data_present_flag;
     UCHAR  ps_update_flag;

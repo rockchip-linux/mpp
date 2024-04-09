@@ -17,7 +17,6 @@
 #define MODULE_TAG "iep"
 
 #include <math.h>
-#include <fcntl.h>
 #include <string.h>
 
 #include "mpp_env.h"

@@ -29,6 +29,10 @@
 #define AV1_MAX_TILE_COL 64
 #define AV1_MAX_TILE_ROW 64
 
+// Pixels per Mode Info (MI) unit
+#define MI_SIZE_LOG2 2
+#define MI_SIZE (1 << MI_SIZE_LOG2)
+
 #define AV1_MIN_COMP_BASIS 8
 #define AV1_MAX_CODED_FRAME_SIZE \
   (8192 * 4352 * 10 * 6 / 32 / AV1_MIN_COMP_BASIS) /* approx 8 MB */
@@ -214,6 +218,14 @@ typedef RK_U8 av1_coeff_probs[REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
 
 typedef RK_U16 av1_cdf;
 
+// Frame Restoration types (section 6.10.15)
+enum {
+    AV1_RESTORE_NONE       = 0,
+    AV1_RESTORE_WIENER     = 1,
+    AV1_RESTORE_SGRPROJ    = 2,
+    AV1_RESTORE_SWITCHABLE = 3,
+};
+
 enum BlockSizeType {
     BLOCK_SIZE_AB4X4,
     BLOCK_SIZE_SB4X8,
@@ -263,6 +275,8 @@ enum PartitionType {
 enum FrameType {
     KEY_FRAME = 0,
     INTER_FRAME = 1,
+    INTRA_ONLY_FRAME = 2,  // replaces intra-only
+    S_FRAME = 3,
     NUM_FRAME_TYPES,
 };
 
@@ -371,12 +385,9 @@ enum CompPredModeType {
 
 enum TxfmMode {
     ONLY_4X4 = 0,
-    ALLOW_8X8 = 1,
-    ALLOW_16X16 = 2,
-    ALLOW_32X32 = 3,
-    TX_MODE_LARGEST = ALLOW_32X32,  // AV1
-    TX_MODE_SELECT = 4,
-    NB_TXFM_MODES = 5,
+    TX_MODE_LARGEST,
+    TX_MODE_SELECT,
+    NB_TXFM_MODES,
 };
 
 enum SegLevelFeatures {

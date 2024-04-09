@@ -28,6 +28,7 @@
 #include "hal_h265d_rkv.h"
 #include "hal_h265d_vdpu34x.h"
 #include "hal_h265d_vdpu382.h"
+#include "hal_h265d_vdpu383.h"
 
 RK_U32 hal_h265d_debug = 0;
 
@@ -37,6 +38,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
     HalH265dCtx *p = (HalH265dCtx *)ctx;
     MppClientType client_type = VPU_CLIENT_BUTT;
     RK_U32 vcodec_type = mpp_get_vcodec_type();
+    RockchipSocType soc = mpp_get_soc_type();
     RK_U32 hw_id = 0;
 
     if (!(vcodec_type & (HAVE_RKVDEC | HAVE_HEVC_DEC))) {
@@ -55,14 +57,18 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
 
     hw_id = mpp_get_client_hw_id(client_type);
     p->dev = cfg->dev;
+    p->is_v341 = (soc == ROCKCHIP_SOC_RK3228H || (soc == ROCKCHIP_SOC_RK3328));
     p->is_v345 = (hw_id == HWID_VDPU345);
     p->is_v34x = (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X);
+    p->is_v383 = (hw_id == HWID_VDPU383);
     p->client_type = client_type;
 
     if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562)
         p->api = &hal_h265d_vdpu382;
     else if (p->is_v34x)
         p->api = &hal_h265d_vdpu34x;
+    else if (p->is_v383)
+        p->api = &hal_h265d_vdpu383;
     else
         p->api = &hal_h265d_rkv;
 

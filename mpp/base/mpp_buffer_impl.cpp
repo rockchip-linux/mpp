@@ -124,6 +124,7 @@ static const char *ops2str[BUF_OPS_BUTT] = {
 
 static MppMemPool mpp_buffer_pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppBufferImpl));
 static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init_f("mpp_buf_grp", sizeof(MppBufferGroupImpl));
+static MppMemPool mpp_buf_map_node_pool = mpp_mem_pool_init_f("mpp_buf_map_node", sizeof(MppDevBufMapNode));
 
 RK_U32 mpp_buffer_debug = 0;
 
@@ -235,7 +236,32 @@ static void buf_grp_add_log(MppBufferGroupImpl *group, MppBufOps ops, const char
 static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
                           RK_U32 reuse, const char *caller)
 {
+    struct list_head list_maps;
+    MppDevBufMapNode *pos, *n;
+
     mpp_assert(group);
+
+    INIT_LIST_HEAD(&list_maps);
+
+    pthread_mutex_lock(&buffer->lock);
+    /* remove all map from buffer */
+    list_for_each_entry_safe(pos, n, &buffer->list_maps, MppDevBufMapNode, list_buf) {
+        list_move_tail(&pos->list_buf, &list_maps);
+        pos->iova = (RK_U32)(-1);
+    }
+    mpp_assert(list_empty(&buffer->list_maps));
+    pthread_mutex_unlock(&buffer->lock);
+
+    list_for_each_entry_safe(pos, n, &list_maps, MppDevBufMapNode, list_buf) {
+        MppDev dev = pos->dev;
+
+        mpp_assert(dev);
+        mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
+        /* remove buffer from group */
+        mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
+        mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
+        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
+    }
 
     pthread_mutex_lock(&buffer->lock);
 
@@ -407,6 +433,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     pthread_mutex_lock(&group->buf_lock);
     p->buffer_id = group->buffer_id++;
     INIT_LIST_HEAD(&p->list_status);
+    INIT_LIST_HEAD(&p->list_maps);
 
     if (buffer) {
         p->ref_count++;
@@ -610,6 +637,92 @@ RK_U32 mpp_buffer_to_addr(MppBuffer buffer, size_t offset)
     return addr;
 }
 
+MPP_RET mpp_buffer_attach_dev_f(const char *caller, MppBuffer buffer, MppDev dev)
+{
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+    MppDevBufMapNode *pos, *n;
+    MppDevBufMapNode *node;
+    MPP_RET ret = MPP_OK;
+
+    mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
+    pthread_mutex_lock(&impl->lock);
+
+    list_for_each_entry_safe(pos, n, &impl->list_maps, MppDevBufMapNode, list_buf) {
+        if (pos->dev == dev)
+            goto DONE;
+    }
+
+    node = (MppDevBufMapNode *)mpp_mem_pool_get_f(caller, mpp_buf_map_node_pool);
+    if (!node) {
+        mpp_err("mpp_buffer_attach_dev failed to allocate map node\n");
+        ret = MPP_NOK;
+        goto DONE;
+    }
+
+    INIT_LIST_HEAD(&node->list_buf);
+    INIT_LIST_HEAD(&node->list_dev);
+    node->lock_buf = &impl->lock;
+    node->buffer = impl;
+    node->dev = dev;
+    node->pool = mpp_buf_map_node_pool;
+    node->buf_fd = impl->info.fd;
+
+    ret = mpp_dev_ioctl(dev, MPP_DEV_ATTACH_FD, node);
+    if (ret) {
+        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, node);
+        goto DONE;
+    }
+    list_add_tail(&node->list_buf, &impl->list_maps);
+
+DONE:
+    pthread_mutex_unlock(&impl->lock);
+    mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
+
+    return ret;
+}
+
+MPP_RET mpp_buffer_detach_dev_f(const char *caller, MppBuffer buffer, MppDev dev)
+{
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+    MppDevBufMapNode *pos, *n;
+    MPP_RET ret = MPP_OK;
+
+    mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
+    pthread_mutex_lock(&impl->lock);
+    list_for_each_entry_safe(pos, n, &impl->list_maps, MppDevBufMapNode, list_buf) {
+        if (pos->dev == dev) {
+            list_del_init(&pos->list_buf);
+            ret = mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
+            mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&impl->lock);
+    mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
+
+    return ret;
+}
+
+RK_U32 mpp_buffer_get_iova_f(const char *caller, MppBuffer buffer, MppDev dev)
+{
+    MppBufferImpl *impl = (MppBufferImpl *)buffer;
+    MppDevBufMapNode *pos, *n;
+    RK_U32 iova = (RK_U32)(-1);
+
+    pthread_mutex_lock(&impl->lock);
+    list_for_each_entry_safe(pos, n, &impl->list_maps, MppDevBufMapNode, list_buf) {
+        if (pos->dev == dev) {
+            iova = pos->iova;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&impl->lock);
+
+    (void) caller;
+
+    return iova;
+}
+
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller,
                               MppBufferMode mode, MppBufferType type)
 {
@@ -727,13 +840,14 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
 {
     MppBufferGroupImpl *misc;
     RK_U32 id;
+    MppBufferType buf_type;
 
-    type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
-    if (type == MPP_BUFFER_TYPE_NORMAL)
+    buf_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
+    if (buf_type == MPP_BUFFER_TYPE_NORMAL)
         return NULL;
 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
-    mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
+    mpp_assert(buf_type < MPP_BUFFER_TYPE_BUTT);
 
     AutoMutex auto_lock(MppBufferService::get_lock());
 
@@ -744,8 +858,8 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
 
         offset += snprintf(tag + offset, sizeof(tag) - offset, "misc");
         offset += snprintf(tag + offset, sizeof(tag) - offset, "_%s",
-                           type == MPP_BUFFER_TYPE_ION ? "ion" :
-                           type == MPP_BUFFER_TYPE_DRM ? "drm" : "na");
+                           buf_type == MPP_BUFFER_TYPE_ION ? "ion" :
+                           buf_type == MPP_BUFFER_TYPE_DRM ? "drm" : "na");
         offset += snprintf(tag + offset, sizeof(tag) - offset, "_%s",
                            mode == MPP_BUFFER_INTERNAL ? "int" : "ext");
 

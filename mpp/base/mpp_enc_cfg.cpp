@@ -132,10 +132,12 @@ public:
     ENTRY(rc,   bps_min,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_min) \
     ENTRY(rc,   fps_in_flex,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_IN,           rc, fps_in_flex) \
     ENTRY(rc,   fps_in_num,     S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_IN,           rc, fps_in_num) \
-    ENTRY(rc,   fps_in_denorm,  S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_IN,           rc, fps_in_denorm) \
+    ENTRY(rc,   fps_in_denom,   S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_IN,           rc, fps_in_denom) \
+    ENTRY(rc,   fps_in_denorm,  S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_IN,           rc, fps_in_denom) \
     ENTRY(rc,   fps_out_flex,   S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_flex) \
     ENTRY(rc,   fps_out_num,    S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_num) \
-    ENTRY(rc,   fps_out_denorm, S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denorm) \
+    ENTRY(rc,   fps_out_denom,  S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denom) \
+    ENTRY(rc,   fps_out_denorm, S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denom) \
     ENTRY(rc,   gop,            S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_GOP,              rc, gop) \
     ENTRY(rc,   ref_cfg,        Ptr, void *,            MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG,      rc, ref_cfg) \
     ENTRY(rc,   max_reenc_times,U32, RK_U32,            MPP_ENC_RC_CFG_CHANGE_MAX_REENC,        rc, max_reenc_times) \
@@ -176,11 +178,17 @@ public:
     ENTRY(prep, hor_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, hor_stride) \
     ENTRY(prep, ver_stride,     S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, ver_stride) \
     ENTRY(prep, format,         S32, MppFrameFormat,    MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, format) \
+    ENTRY(prep, format_out,     S32, MppFrameChromaFormat, MPP_ENC_PREP_CFG_CHANGE_FORMAT,      prep, format_out) \
+    ENTRY(prep, chroma_ds_mode, S32, MppFrameChromaDownSampleMode, MPP_ENC_PREP_CFG_CHANGE_FORMAT, prep, chroma_ds_mode) \
+    ENTRY(prep, fix_chroma_en,  S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_en) \
+    ENTRY(prep, fix_chroma_u,   S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_u) \
+    ENTRY(prep, fix_chroma_v,   S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, fix_chroma_v) \
     ENTRY(prep, colorspace,     S32, MppFrameColorSpace,MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE,    prep, color) \
     ENTRY(prep, colorprim,      S32, MppFrameColorPrimaries, MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME, prep, colorprim) \
     ENTRY(prep, colortrc,       S32, MppFrameColorTransferCharacteristic, MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC, prep, colortrc) \
     ENTRY(prep, colorrange,     S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
     ENTRY(prep, range,          S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range) \
+    ENTRY(prep, range_out,      S32, MppFrameColorRange,MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE,    prep, range_out) \
     ENTRY(prep, rotation,       S32, MppEncRotationCfg, MPP_ENC_PREP_CFG_CHANGE_ROTATION,       prep, rotation_ext) \
     ENTRY(prep, mirroring,      S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_MIRRORING,      prep, mirroring_ext) \
     ENTRY(prep, flip,           S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_FLIP,           prep, flip) \
@@ -218,6 +226,7 @@ public:
     ENTRY(h264, constraint_set, U32, RK_U32,            MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET, codec.h264, constraint_set) \
     /* h265 config*/ \
     ENTRY(h265, profile,        S32, RK_S32,            MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, profile) \
+    ENTRY(h265, tier   ,        S32, RK_S32,            MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, tier) \
     ENTRY(h265, level,          S32, RK_S32,            MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, level) \
     ENTRY(h265, scaling_list,   U32, RK_U32,            MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.defalut_ScalingList_enable) \
     ENTRY(h265, cb_qp_offset,   S32, RK_S32,            MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.cb_qp_offset) \
@@ -237,6 +246,7 @@ public:
     ENTRY(h265, lpf_acs_sli_en, U32, RK_U32,            MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   codec.h265, lpf_acs_sli_en) \
     ENTRY(h265, lpf_acs_tile_disable, U32, RK_U32,      MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    codec.h265, lpf_acs_tile_disable) \
     ENTRY(h265, auto_tile,      S32, RK_S32,            MPP_ENC_H265_CFG_TILE_CHANGE,           codec.h265, auto_tile) \
+    ENTRY(h265, const_intra,    S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    codec.h265, const_intra_pred) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
@@ -373,7 +383,7 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
-    ret = mpp_trie_init(&trie, 1732, cfg_cnt);
+    ret = mpp_trie_init(&trie, 1872, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
         return ;
@@ -412,6 +422,10 @@ static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
     cfg->prep.color = MPP_FRAME_SPC_UNSPECIFIED;
     cfg->prep.colorprim = MPP_FRAME_PRI_UNSPECIFIED;
     cfg->prep.colortrc = MPP_FRAME_TRC_UNSPECIFIED;
+    cfg->prep.format_out = MPP_CHROMA_UNSPECIFIED;
+    cfg->prep.chroma_ds_mode = MPP_FRAME_CHROMA_DOWN_SAMPLE_MODE_NONE;
+    cfg->prep.fix_chroma_en = 0;
+    cfg->prep.range_out = MPP_FRAME_RANGE_UNSPECIFIED;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(cfg->hw.mode_bias); i++)
         cfg->hw.mode_bias[i] = 8;

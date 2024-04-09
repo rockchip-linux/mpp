@@ -119,7 +119,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
 
     {
         // create header packet storage
-        size_t size = SZ_1K;
+        size_t size = SZ_4K;
         p->hdr_buf = mpp_calloc_size(void, size);
 
         mpp_packet_init(&p->hdr_pkt, p->hdr_buf, size);

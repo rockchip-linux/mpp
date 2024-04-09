@@ -165,7 +165,7 @@ RK_S32 mpp_data_mean_v2(MppDataV2 *p)
     return mean;
 }
 
-RK_S32 mpp_data_sum_with_ratio_v2(MppDataV2 *p, RK_S32 len, RK_S32 num, RK_S32 denorm)
+RK_S32 mpp_data_sum_with_ratio_v2(MppDataV2 *p, RK_S32 len, RK_S32 num, RK_S32 denom)
 {
     mpp_assert(p);
 
@@ -175,18 +175,18 @@ RK_S32 mpp_data_sum_with_ratio_v2(MppDataV2 *p, RK_S32 len, RK_S32 num, RK_S32 d
 
     mpp_assert(len <= p->size);
 
-    if (num == denorm) {
+    if (num == denom) {
         for (i = 0; i < len; i++)
             sum += *data++;
     } else {
         // NOTE: use 64bit to avoid 0 in 32bit
         RK_S64 acc_num = 1;
-        RK_S64 acc_denorm = 1;
+        RK_S64 acc_denom = 1;
 
         for (i = 0; i < len; i++) {
-            sum += p->val[i] * acc_num / acc_denorm;
+            sum += p->val[i] * acc_num / acc_denom;
             acc_num *= num;
-            acc_denorm *= denorm;
+            acc_denom *= denom;
         }
     }
 

@@ -44,6 +44,21 @@ void _show_options(int count, OptionInfo *options)
     }
 }
 
+static void rearrange_pix(RK_U8 *tmp_line, RK_U8 *base, RK_U32 n)
+{
+    RK_U16 * pix = (RK_U16 *)(tmp_line + n * 16);
+    RK_U16 * base_u16 = (RK_U16 *)(base + n * 10);
+
+    pix[0] =  base_u16[0] & 0x03FF;
+    pix[1] = (base_u16[0] & 0xFC00) >> 10 | (base_u16[1] & 0x000F) << 6;
+    pix[2] = (base_u16[1] & 0x3FF0) >> 4;
+    pix[3] = (base_u16[1] & 0xC000) >> 14 | (base_u16[2] & 0x00FF) << 2;
+    pix[4] = (base_u16[2] & 0xFF00) >> 8  | (base_u16[3] & 0x0003) << 8;
+    pix[5] = (base_u16[3] & 0x0FFC) >> 2;
+    pix[6] = (base_u16[3] & 0xF000) >> 12 | (base_u16[4] & 0x003F) << 4;
+    pix[7] = (base_u16[4] & 0xFFC0) >> 6;
+}
+
 void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 {
     RK_U32 width    = 0;
@@ -137,37 +152,15 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         }
 
         for (i = 0; i < height; i++, base_y += h_stride) {
-            for (k = 0; k < width / 8; k++) {
-                RK_U16 *pix = (RK_U16 *)(tmp_line + k * 16);
-                RK_U16 *base_u16 = (RK_U16 *)(base_y + k * 10);
-
-                pix[0] =  base_u16[0] & 0x03FF;
-                pix[1] = (base_u16[0] & 0xFC00) >> 10 | (base_u16[1] & 0x000F) << 6;
-                pix[2] = (base_u16[1] & 0x3FF0) >> 4;
-                pix[3] = (base_u16[1] & 0xC000) >> 14 | (base_u16[2] & 0x00FF) << 2;
-                pix[4] = (base_u16[2] & 0xFF00) >> 8  | (base_u16[3] & 0x0003) << 8;
-                pix[5] = (base_u16[3] & 0x0FFC) >> 2;
-                pix[6] = (base_u16[3] & 0xF000) >> 12 | (base_u16[4] & 0x003F) << 4;
-                pix[7] = (base_u16[4] & 0xFFC0) >> 6;
-            }
-            fwrite(tmp_line, width * sizeof(RK_U16) , 1, fp);
+            for (k = 0; k < MPP_ALIGN(width, 8) / 8; k++)
+                rearrange_pix(tmp_line, base_y, k);
+            fwrite(tmp_line, width * sizeof(RK_U16), 1, fp);
         }
 
         for (i = 0; i < height / 2; i++, base_c += h_stride) {
-            for (k = 0; k < (width / 8); k++) {
-                RK_U16 *pix = (RK_U16 *)(tmp_line + k * 16);
-                RK_U16 *base_u16 = (RK_U16 *)(base_c + k * 10);
-
-                pix[0] = base_u16[0] & 0x03FF;
-                pix[1] = (base_u16[0] & 0xFC00) >> 10 | (base_u16[1] & 0x000F) << 6;
-                pix[2] = (base_u16[1] & 0x3FF0) >> 4;
-                pix[3] = (base_u16[1] & 0xC000) >> 14 | (base_u16[2] & 0x00FF) << 2;
-                pix[4] = (base_u16[2] & 0xFF00) >> 8  | (base_u16[3] & 0x0003) << 8;
-                pix[5] = (base_u16[3] & 0x0FFC) >> 2;
-                pix[6] = (base_u16[3] & 0xF000) >> 12 | (base_u16[4] & 0x003F) << 4;
-                pix[7] = (base_u16[4] & 0xFFC0) >> 6;
-            }
-            fwrite(tmp_line, width * sizeof(RK_U16) , 1, fp);
+            for (k = 0; k < MPP_ALIGN(width, 8) / 8; k++)
+                rearrange_pix(tmp_line, base_c, k);
+            fwrite(tmp_line, width * sizeof(RK_U16), 1, fp);
         }
 
         MPP_FREE(tmp_line);
@@ -219,6 +212,10 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
         mpp_free(tmp);
     } break;
+    case MPP_FMT_YUV422_YUYV:
+    case MPP_FMT_YUV422_YVYU:
+    case MPP_FMT_YUV422_UYVY:
+    case MPP_FMT_YUV422_VYUY:
     case MPP_FMT_RGB565:
     case MPP_FMT_BGR565:
     case MPP_FMT_RGB555:
@@ -542,6 +539,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     }
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420SP_VU:
     case MPP_FMT_YUV420SP : {
         for (row = 0; row < height; row++) {
             read_size = fread(buf_y + row * hor_stride, 1, width, fp);
@@ -594,6 +592,7 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     } break;
     case MPP_FMT_YUV422P :
     case MPP_FMT_YUV422SP :
+    case MPP_FMT_YUV422SP_VU:
     case MPP_FMT_BGR444 :
     case MPP_FMT_RGB444 :
     case MPP_FMT_RGB555 :
@@ -611,6 +610,9 @@ MPP_RET read_image(RK_U8 *buf, FILE *fp, RK_U32 width, RK_U32 height,
     case MPP_FMT_RGB888 :
     case MPP_FMT_BGR888 : {
         ret = read_with_pixel_width(buf_y, width, height, hor_stride, 3, fp);
+    } break;
+    case MPP_FMT_YUV400 : {
+        ret = read_with_pixel_width(buf_y, width, height, hor_stride, 1, fp);
     } break;
     default : {
         mpp_err_f("read image do not support fmt %d\n", fmt);

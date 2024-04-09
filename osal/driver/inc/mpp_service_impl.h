@@ -17,6 +17,8 @@
 #ifndef __MPP_SERVICE_IMPL_H__
 #define __MPP_SERVICE_IMPL_H__
 
+#include "mpp_list.h"
+
 #include "mpp_device.h"
 #include "mpp_service.h"
 
@@ -66,6 +68,9 @@ typedef struct MppDevMppService_t {
     RK_U32          support_set_info;
     RK_U32          support_set_rcb_info;
     RK_U32          support_hw_irq;
+
+    pthread_mutex_t     lock_bufs;
+    struct list_head    list_bufs;
 } MppDevMppService;
 
 #ifdef  __cplusplus
