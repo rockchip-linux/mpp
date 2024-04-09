@@ -78,6 +78,7 @@ typedef struct avs2d_reg_ctx_t {
 
 } Avs2dVdpu382RegCtx_t;
 
+MPP_RET hal_avs2d_vdpu382_deinit(void *hal);
 static RK_U32 avs2d_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
@@ -1188,3 +1189,19 @@ __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
     return ret;
 }
+
+const MppHalApi hal_avs2d_vdpu382 = {
+    .name     = "avs2d_vdpu382",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVS2,
+    .ctx_size = sizeof(Avs2dVdpu382RegCtx_t),
+    .flag     = 0,
+    .init     = hal_avs2d_vdpu382_init,
+    .deinit   = hal_avs2d_vdpu382_deinit,
+    .reg_gen  = hal_avs2d_vdpu382_gen_regs,
+    .start    = hal_avs2d_vdpu382_start,
+    .wait     = hal_avs2d_vdpu382_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
+};

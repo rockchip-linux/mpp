@@ -31,11 +31,7 @@
 extern "C" {
 #endif
 
-MPP_RET hal_avs2d_rkv_init    (void *hal, MppHalCfg *cfg);
-MPP_RET hal_avs2d_rkv_deinit  (void *hal);
-MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET hal_avs2d_rkv_start   (void *hal, HalTaskInfo *task);
-MPP_RET hal_avs2d_rkv_wait    (void *hal, HalTaskInfo *task);
+extern const MppHalApi hal_avs2d_rkvdpu;
 
 #ifdef  __cplusplus
 }

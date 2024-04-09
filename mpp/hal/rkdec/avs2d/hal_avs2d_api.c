@@ -49,7 +49,7 @@ MPP_RET hal_avs2d_deinit(void *hal)
     AVS2D_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == hal);
 
-    FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
+    FUN_CHECK(ret = p_hal->hal_api->deinit(hal));
 
     if (p_hal->buf_group) {
         FUN_CHECK(ret = mpp_buffer_group_put(p_hal->buf_group));
@@ -73,7 +73,7 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     Avs2dHalCtx_t *p_hal = NULL;
-    MppHalApi *p_api = NULL;
+    const MppHalApi *api;
 
     AVS2D_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == hal);
@@ -86,30 +86,17 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
 
     RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVDEC);
 
-    p_api          = &p_hal->hal_api;
-    if (hw_id == HWID_VDPU383) {
-        p_api->init    = hal_avs2d_vdpu383_init;
-        p_api->deinit  = hal_avs2d_vdpu383_deinit;
-        p_api->reg_gen = hal_avs2d_vdpu383_gen_regs;
-        p_api->start   = hal_avs2d_vdpu383_start;
-        p_api->wait    = hal_avs2d_vdpu383_wait;
-    } else if (hw_id == HWID_VDPU382_RK3528) {
-        p_api->init    = hal_avs2d_vdpu382_init;
-        p_api->deinit  = hal_avs2d_vdpu382_deinit;
-        p_api->reg_gen = hal_avs2d_vdpu382_gen_regs;
-        p_api->start   = hal_avs2d_vdpu382_start;
-        p_api->wait    = hal_avs2d_vdpu382_wait;
-    } else {
-        p_api->init    = hal_avs2d_rkv_init;
-        p_api->deinit  = hal_avs2d_rkv_deinit;
-        p_api->reg_gen = hal_avs2d_rkv_gen_regs;
-        p_api->start   = hal_avs2d_rkv_start;
-        p_api->wait    = hal_avs2d_rkv_wait;
+    switch (hw_id) {
+    case HWID_VDPU383 : {
+        api = &hal_avs2d_vdpu383;
+    } break;
+    case HWID_VDPU382_RK3528 : {
+        api = &hal_avs2d_vdpu382;
+    } break;
+    default : {
+        api = &hal_avs2d_rkvdpu;
+    } break;
     }
-
-    p_api->reset   = NULL;
-    p_api->flush   = NULL;
-    p_api->control = NULL;
 
     ret = mpp_dev_init(&cfg->dev, VPU_CLIENT_RKVDEC);
     if (ret) {
@@ -130,7 +117,9 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
         FUN_CHECK(ret = mpp_buffer_group_get_internal(&p_hal->buf_group, MPP_BUFFER_TYPE_ION));
 
     //!< run init funtion
-    FUN_CHECK(ret = p_api->init(hal, cfg));
+    FUN_CHECK(ret = api->init(hal, cfg));
+
+    p_hal->hal_api = api;
 
 __RETURN:
     AVS2D_HAL_TRACE("Out.");
@@ -145,36 +134,38 @@ MPP_RET hal_avs2d_gen_regs(void *hal, HalTaskInfo *task)
     Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
 
     explain_input_buffer(hal, &task->dec);
-    return p_hal->hal_api.reg_gen(hal, task);
+    if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->reg_gen)
+        return MPP_NOK;
+
+    return p_hal->hal_api->reg_gen(hal, task);
 }
 
-MPP_RET hal_avs2d_start(void *hal, HalTaskInfo *task)
-{
-    Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
+#define HAL_AVS2D_TASK_FUNC(func) \
+    static MPP_RET hal_avs2d_##func(void *hal, HalTaskInfo *task)   \
+    {                                                               \
+        Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;                \
+                                                                    \
+        if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->func)     \
+            return MPP_OK;                                          \
+                                                                    \
+        return p_hal->hal_api->func(hal, task);                     \
+    }
 
-    return p_hal->hal_api.start(hal, task);
-
-}
-
-MPP_RET hal_avs2d_wait(void *hal, HalTaskInfo *task)
-{
-    Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
-
-    return p_hal->hal_api.wait(hal, task);
-}
+HAL_AVS2D_TASK_FUNC(start);
+HAL_AVS2D_TASK_FUNC(wait);
 
 const MppHalApi hal_api_avs2d = {
-    .name = "avs2d_rkdec",
-    .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingAVS2,
+    .name     = "avs2d_rkdec",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVS2,
     .ctx_size = sizeof(Avs2dHalCtx_t),
-    .flag = 0,
-    .init = hal_avs2d_init,
-    .deinit = hal_avs2d_deinit,
-    .reg_gen = hal_avs2d_gen_regs,
-    .start = hal_avs2d_start,
-    .wait = hal_avs2d_wait,
-    .reset = NULL,
-    .flush = NULL,
-    .control = NULL,
+    .flag     = 0,
+    .init     = hal_avs2d_init,
+    .deinit   = hal_avs2d_deinit,
+    .reg_gen  = hal_avs2d_gen_regs,
+    .start    = hal_avs2d_start,
+    .wait     = hal_avs2d_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
 };

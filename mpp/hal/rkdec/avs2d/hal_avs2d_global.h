@@ -78,7 +78,7 @@ enum {
 };
 
 typedef struct avs2d_hal_ctx_t {
-    MppHalApi               hal_api;
+    const MppHalApi         *hal_api;
     MppDecCfgSet            *cfg;
     MppBufSlots             frame_slots;
     MppBufSlots             packet_slots;

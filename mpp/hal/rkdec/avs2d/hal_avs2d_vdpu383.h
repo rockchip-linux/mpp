@@ -13,12 +13,7 @@
 extern "C" {
 #endif
 
-MPP_RET hal_avs2d_vdpu383_init    (void *hal, MppHalCfg *cfg);
-MPP_RET hal_avs2d_vdpu383_deinit  (void *hal);
-MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET hal_avs2d_vdpu383_start   (void *hal, HalTaskInfo *task);
-MPP_RET hal_avs2d_vdpu383_wait    (void *hal, HalTaskInfo *task);
-MPP_RET hal_avs2d_vdpu383_control (void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_avs2d_vdpu383;
 
 #ifdef  __cplusplus
 }
