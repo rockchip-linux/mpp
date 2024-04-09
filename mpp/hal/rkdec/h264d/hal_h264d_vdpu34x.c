@@ -321,6 +321,7 @@ const RK_U32 rkv_cabac_table_v34x[928] = {
     0x1423091d, 0x430e241d, 0x00000000, 0x00000000
 };
 
+MPP_RET vdpu34x_h264d_deinit(void *hal);
 static RK_U32 rkv_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
@@ -1235,3 +1236,19 @@ MPP_RET vdpu34x_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 __RETURN:
     return ret = MPP_OK;
 }
+
+const MppHalApi hal_h264d_vdpu34x = {
+    .name     = "h264d_vdpu34x",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(Vdpu34xH264dRegCtx),
+    .flag     = 0,
+    .init     = vdpu34x_h264d_init,
+    .deinit   = vdpu34x_h264d_deinit,
+    .reg_gen  = vdpu34x_h264d_gen_regs,
+    .start    = vdpu34x_h264d_start,
+    .wait     = vdpu34x_h264d_wait,
+    .reset    = vdpu34x_h264d_reset,
+    .flush    = vdpu34x_h264d_flush,
+    .control  = vdpu34x_h264d_control,
+};

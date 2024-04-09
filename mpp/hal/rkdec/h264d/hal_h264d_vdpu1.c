@@ -38,6 +38,7 @@ const RK_U32 vdpu1_ref_idx[16] = {
     22, 23, 24, 25, 26, 27, 28, 29
 };
 
+MPP_RET vdpu1_h264d_deinit(void *hal);
 static MPP_RET vdpu1_set_refer_pic_idx(H264dVdpu1Regs_t *p_regs, RK_U32 i,
                                        RK_U16 val)
 {
@@ -1046,3 +1047,19 @@ MPP_RET vdpu1_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 __RETURN:
     return ret = MPP_OK;
 }
+
+const MppHalApi hal_h264d_vdpu1 = {
+    .name     = "h264d_vdpu1",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(H264dVdpuRegCtx_t),
+    .flag     = 0,
+    .init     = vdpu1_h264d_init,
+    .deinit   = vdpu1_h264d_deinit,
+    .reg_gen  = vdpu1_h264d_gen_regs,
+    .start    = vdpu1_h264d_start,
+    .wait     = vdpu1_h264d_wait,
+    .reset    = vdpu1_h264d_reset,
+    .flush    = vdpu1_h264d_flush,
+    .control  = vdpu1_h264d_control,
+};

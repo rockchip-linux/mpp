@@ -234,14 +234,7 @@ typedef struct h264d_rkv_regs_t {
 extern "C" {
 #endif
 
-MPP_RET rkv_h264d_init    (void *hal, MppHalCfg *cfg);
-MPP_RET rkv_h264d_deinit  (void *hal);
-MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET rkv_h264d_start   (void *hal, HalTaskInfo *task);
-MPP_RET rkv_h264d_wait    (void *hal, HalTaskInfo *task);
-MPP_RET rkv_h264d_reset   (void *hal);
-MPP_RET rkv_h264d_flush   (void *hal);
-MPP_RET rkv_h264d_control (void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_h264d_rkvdpu;
 
 #ifdef __cplusplus
 }

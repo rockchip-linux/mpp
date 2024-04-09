@@ -92,7 +92,7 @@ do{\
 
 
 typedef struct h264d_hal_ctx_t {
-    MppHalApi                hal_api;
+    const MppHalApi          *hal_api;
 
     DXVA_PicParams_H264_MVC  *pp;
     DXVA_Qmatrix_H264        *qm;

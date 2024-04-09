@@ -110,6 +110,7 @@ typedef struct Vdpu383H264dRegCtx_t {
     Vdpu383H264dRegSet  *regs;
 } Vdpu383H264dRegCtx;
 
+MPP_RET vdpu383_h264d_deinit(void *hal);
 static RK_U32 rkv_ver_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
@@ -1059,3 +1060,19 @@ MPP_RET vdpu383_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 __RETURN:
     return ret = MPP_OK;
 }
+
+const MppHalApi hal_h264d_vdpu383 = {
+    .name     = "h264d_vdpu383",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVC,
+    .ctx_size = sizeof(Vdpu383H264dRegCtx),
+    .flag     = 0,
+    .init     = vdpu383_h264d_init,
+    .deinit   = vdpu383_h264d_deinit,
+    .reg_gen  = vdpu383_h264d_gen_regs,
+    .start    = vdpu383_h264d_start,
+    .wait     = vdpu383_h264d_wait,
+    .reset    = vdpu383_h264d_reset,
+    .flush    = vdpu383_h264d_flush,
+    .control  = vdpu383_h264d_control,
+};

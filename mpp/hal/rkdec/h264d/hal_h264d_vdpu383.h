@@ -13,14 +13,7 @@
 extern "C" {
 #endif
 
-MPP_RET vdpu383_h264d_init    (void *hal, MppHalCfg *cfg);
-MPP_RET vdpu383_h264d_deinit  (void *hal);
-MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET vdpu383_h264d_start   (void *hal, HalTaskInfo *task);
-MPP_RET vdpu383_h264d_wait    (void *hal, HalTaskInfo *task);
-MPP_RET vdpu383_h264d_reset   (void *hal);
-MPP_RET vdpu383_h264d_flush   (void *hal);
-MPP_RET vdpu383_h264d_control (void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_h264d_vdpu383;
 
 #ifdef __cplusplus
 }

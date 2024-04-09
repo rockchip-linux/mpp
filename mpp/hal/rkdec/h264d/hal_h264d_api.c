@@ -240,7 +240,6 @@ static void explain_input_buffer(void *hal, HalDecTask *task)
 //extern "C"
 MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
 {
-    MppHalApi *p_api = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
     MppClientType client_type = VPU_CLIENT_BUTT;
@@ -290,70 +289,34 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         H264D_DBG(H264D_DBG_HARD_MODE, "client_type %d\n", client_type);
     }
 
-    p_api = &p_hal->hal_api;
     switch (client_type) {
     case VPU_CLIENT_RKVDEC : {
         RK_U32 hw_id = mpp_get_client_hw_id(client_type);
 
-        if (hw_id == HWID_VDPU383) {
-            p_api->init    = vdpu383_h264d_init;
-            p_api->deinit  = vdpu383_h264d_deinit;
-            p_api->reg_gen = vdpu383_h264d_gen_regs;
-            p_api->start   = vdpu383_h264d_start;
-            p_api->wait    = vdpu383_h264d_wait;
-            p_api->reset   = vdpu383_h264d_reset;
-            p_api->flush   = vdpu383_h264d_flush;
-            p_api->control = vdpu383_h264d_control;
-        } else if (hw_id == HWID_VDPU382_RK3528 || hw_id == HWID_VDPU382_RK3562) {
-            p_api->init    = vdpu382_h264d_init;
-            p_api->deinit  = vdpu382_h264d_deinit;
-            p_api->reg_gen = vdpu382_h264d_gen_regs;
-            p_api->start   = vdpu382_h264d_start;
-            p_api->wait    = vdpu382_h264d_wait;
-            p_api->reset   = vdpu382_h264d_reset;
-            p_api->flush   = vdpu382_h264d_flush;
-            p_api->control = vdpu382_h264d_control;
-        } else if (hw_id == HWID_VDPU34X || hw_id == HWID_VDPU38X) {
-            p_api->init    = vdpu34x_h264d_init;
-            p_api->deinit  = vdpu34x_h264d_deinit;
-            p_api->reg_gen = vdpu34x_h264d_gen_regs;
-            p_api->start   = vdpu34x_h264d_start;
-            p_api->wait    = vdpu34x_h264d_wait;
-            p_api->reset   = vdpu34x_h264d_reset;
-            p_api->flush   = vdpu34x_h264d_flush;
-            p_api->control = vdpu34x_h264d_control;
-        } else {
-            p_api->init    = rkv_h264d_init;
-            p_api->deinit  = rkv_h264d_deinit;
-            p_api->reg_gen = rkv_h264d_gen_regs;
-            p_api->start   = rkv_h264d_start;
-            p_api->wait    = rkv_h264d_wait;
-            p_api->reset   = rkv_h264d_reset;
-            p_api->flush   = rkv_h264d_flush;
-            p_api->control = rkv_h264d_control;
+        switch (hw_id) {
+        case HWID_VDPU383 : {
+            p_hal->hal_api = &hal_h264d_vdpu383;
+        } break;
+        case HWID_VDPU382_RK3528 :
+        case HWID_VDPU382_RK3562 : {
+            p_hal->hal_api = &hal_h264d_vdpu382;
+        } break;
+        case HWID_VDPU34X :
+        case HWID_VDPU38X : {
+            p_hal->hal_api = &hal_h264d_vdpu34x;
+        } break;
+        default : {
+            p_hal->hal_api = &hal_h264d_rkvdpu;
+        } break;
         }
 
         cfg->support_fast_mode = 1;
     } break;
     case VPU_CLIENT_VDPU1 : {
-        p_api->init    = vdpu1_h264d_init;
-        p_api->deinit  = vdpu1_h264d_deinit;
-        p_api->reg_gen = vdpu1_h264d_gen_regs;
-        p_api->start   = vdpu1_h264d_start;
-        p_api->wait    = vdpu1_h264d_wait;
-        p_api->reset   = vdpu1_h264d_reset;
-        p_api->flush   = vdpu1_h264d_flush;
-        p_api->control = vdpu1_h264d_control;
+        p_hal->hal_api = &hal_h264d_vdpu1;
     } break;
     case VPU_CLIENT_VDPU2 : {
-        p_api->init    = vdpu2_h264d_init;
-        p_api->deinit  = vdpu2_h264d_deinit;
-        p_api->reg_gen = vdpu2_h264d_gen_regs;
-        p_api->start   = vdpu2_h264d_start;
-        p_api->wait    = vdpu2_h264d_wait;
-        p_api->reset   = vdpu2_h264d_reset;
-        p_api->flush   = vdpu2_h264d_flush;
-        p_api->control = vdpu2_h264d_control;
+        p_hal->hal_api = &hal_h264d_vdpu2;
     } break;
     default : {
         mpp_err_f("client_type error, value=%d\n", client_type);
@@ -382,7 +345,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
     }
 
     //!< run init funtion
-    FUN_CHECK(ret = p_api->init(hal, cfg));
+    FUN_CHECK(ret = p_hal->hal_api->init(hal, cfg));
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -401,7 +364,7 @@ MPP_RET hal_h264d_deinit(void *hal)
     MPP_RET ret = MPP_ERR_UNKNOW;
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    FUN_CHECK(ret = p_hal->hal_api.deinit(hal));
+    FUN_CHECK(ret = p_hal->hal_api->deinit(hal));
 
     if (p_hal->dev) {
         mpp_dev_deinit(p_hal->dev);
@@ -429,63 +392,10 @@ MPP_RET hal_h264d_gen_regs(void *hal, HalTaskInfo *task)
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
     explain_input_buffer(hal, &task->dec);
-    return p_hal->hal_api.reg_gen(hal, task);
-}
+    if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->reg_gen)
+        return MPP_NOK;
 
-/*!
-***********************************************************************
-* \brief h
-*    start hard
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_h264d_start(void *hal, HalTaskInfo *task)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    return p_hal->hal_api.start(hal, task);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    wait hard
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_h264d_wait(void *hal, HalTaskInfo *task)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    return p_hal->hal_api.wait(hal, task);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    reset
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_h264d_reset(void *hal)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    return p_hal->hal_api.reset(hal);
-}
-
-/*!
-***********************************************************************
-* \brief
-*    flush
-***********************************************************************
-*/
-//extern "C"
-MPP_RET hal_h264d_flush(void *hal)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    return p_hal->hal_api.flush(hal);
+    return p_hal->hal_api->reg_gen(hal, task);
 }
 
 /*!
@@ -499,23 +409,51 @@ MPP_RET hal_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
 
-    return p_hal->hal_api.control(hal, cmd_type, param);
+    if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->control)
+        return MPP_NOK;
+
+    return p_hal->hal_api->control(hal, cmd_type, param);
 }
 
+#define HAL_H264D_FUNC(func) \
+    static MPP_RET hal_h264d_##func(void *hal)                      \
+    {                                                               \
+        H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;                \
+                                                                    \
+        if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->func)     \
+            return MPP_OK;                                          \
+                                                                    \
+        return p_hal->hal_api->func(hal);                           \
+    }
+
+#define HAL_H264D_TASK_FUNC(func) \
+    static MPP_RET hal_h264d_##func(void *hal, HalTaskInfo *task)   \
+    {                                                               \
+        H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;                \
+                                                                    \
+        if (!p_hal || !p_hal->hal_api || !p_hal->hal_api->func)     \
+            return MPP_OK;                                          \
+                                                                    \
+        return p_hal->hal_api->func(hal, task);                     \
+    }
+
+HAL_H264D_FUNC(flush);
+HAL_H264D_FUNC(reset);
+HAL_H264D_TASK_FUNC(start);
+HAL_H264D_TASK_FUNC(wait);
 
 const MppHalApi hal_api_h264d = {
-    .name = "h264d_rkdec",
-    .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingAVC,
+    .name     = "h264d_rkdec",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVC,
     .ctx_size = sizeof(H264dHalCtx_t),
-    .flag = 0,
-    .init = hal_h264d_init,
-    .deinit = hal_h264d_deinit,
-    .reg_gen = hal_h264d_gen_regs,
-    .start = hal_h264d_start,
-    .wait = hal_h264d_wait,
-    .reset = hal_h264d_reset,
-    .flush = hal_h264d_flush,
-    .control = hal_h264d_control,
+    .flag     = 0,
+    .init     = hal_h264d_init,
+    .deinit   = hal_h264d_deinit,
+    .reg_gen  = hal_h264d_gen_regs,
+    .start    = hal_h264d_start,
+    .wait     = hal_h264d_wait,
+    .reset    = hal_h264d_reset,
+    .flush    = hal_h264d_flush,
+    .control  = hal_h264d_control,
 };
-
