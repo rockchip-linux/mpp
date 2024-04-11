@@ -907,6 +907,27 @@ static void setup_vepu540c_rc_base(HalVepu540cRegSet *regs, HalH264eVepu540cCtx 
 
     hal_h264e_dbg_func("enter\n");
 
+    regs->reg_rc_roi.roi_qthd0.qpmin_area0    = qp_min;
+    regs->reg_rc_roi.roi_qthd0.qpmax_area0    = qp_max;
+    regs->reg_rc_roi.roi_qthd0.qpmin_area1    = qp_min;
+    regs->reg_rc_roi.roi_qthd0.qpmax_area1    = qp_max;
+    regs->reg_rc_roi.roi_qthd0.qpmin_area2    = qp_min;
+
+    regs->reg_rc_roi.roi_qthd1.qpmax_area2    = qp_max;
+    regs->reg_rc_roi.roi_qthd1.qpmin_area3    = qp_min;
+    regs->reg_rc_roi.roi_qthd1.qpmax_area3    = qp_max;
+    regs->reg_rc_roi.roi_qthd1.qpmin_area4    = qp_min;
+    regs->reg_rc_roi.roi_qthd1.qpmax_area4    = qp_max;
+
+    regs->reg_rc_roi.roi_qthd2.qpmin_area5    = qp_min;
+    regs->reg_rc_roi.roi_qthd2.qpmax_area5    = qp_max;
+    regs->reg_rc_roi.roi_qthd2.qpmin_area6    = qp_min;
+    regs->reg_rc_roi.roi_qthd2.qpmax_area6    = qp_max;
+    regs->reg_rc_roi.roi_qthd2.qpmin_area7    = qp_min;
+
+    regs->reg_rc_roi.roi_qthd3.qpmax_area7    = qp_max;
+    regs->reg_rc_roi.roi_qthd3.qpmap_mode     = qpmap_mode;
+
     if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
         regs->reg_base.enc_pic.pic_qp    = rc_info->quality_target;
         regs->reg_base.rc_qp.rc_max_qp   = rc_info->quality_target;
@@ -955,27 +976,6 @@ static void setup_vepu540c_rc_base(HalVepu540cRegSet *regs, HalH264eVepu540cCtx 
     regs->reg_rc_roi.rc_dthd_0_8[6] = 0x7FFFFFFF;
     regs->reg_rc_roi.rc_dthd_0_8[7] = 0x7FFFFFFF;
     regs->reg_rc_roi.rc_dthd_0_8[8] = 0x7FFFFFFF;
-
-    regs->reg_rc_roi.roi_qthd0.qpmin_area0    = qp_min;
-    regs->reg_rc_roi.roi_qthd0.qpmax_area0    = qp_max;
-    regs->reg_rc_roi.roi_qthd0.qpmin_area1    = qp_min;
-    regs->reg_rc_roi.roi_qthd0.qpmax_area1    = qp_max;
-    regs->reg_rc_roi.roi_qthd0.qpmin_area2    = qp_min;
-
-    regs->reg_rc_roi.roi_qthd1.qpmax_area2    = qp_max;
-    regs->reg_rc_roi.roi_qthd1.qpmin_area3    = qp_min;
-    regs->reg_rc_roi.roi_qthd1.qpmax_area3    = qp_max;
-    regs->reg_rc_roi.roi_qthd1.qpmin_area4    = qp_min;
-    regs->reg_rc_roi.roi_qthd1.qpmax_area4    = qp_max;
-
-    regs->reg_rc_roi.roi_qthd2.qpmin_area5    = qp_min;
-    regs->reg_rc_roi.roi_qthd2.qpmax_area5    = qp_max;
-    regs->reg_rc_roi.roi_qthd2.qpmin_area6    = qp_min;
-    regs->reg_rc_roi.roi_qthd2.qpmax_area6    = qp_max;
-    regs->reg_rc_roi.roi_qthd2.qpmin_area7    = qp_min;
-
-    regs->reg_rc_roi.roi_qthd3.qpmax_area7    = qp_max;
-    regs->reg_rc_roi.roi_qthd3.qpmap_mode     = qpmap_mode;
 
     hal_h264e_dbg_func("leave\n");
 }

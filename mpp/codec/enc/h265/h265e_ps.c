@@ -400,17 +400,14 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
 {
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
-    MppEncRcCfg *rc = &ctx->cfg->rc;
     pps->m_bConstrainedIntraPred = codec->const_intra_pred;
     pps->m_PPSId = 0;
     pps->m_SPSId = 0;
     pps->m_picInitQPMinus26 = 0;
-    pps->m_useDQP = 0;
-    if (rc->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-        pps->m_useDQP = 1;
-        pps->m_maxCuDQPDepth = 0;
-        pps->m_minCuDQPSize = (sps->m_maxCUSize >> pps->m_maxCuDQPDepth);
-    }
+
+    pps->m_useDQP = 1;
+    pps->m_maxCuDQPDepth = 0;
+    pps->m_minCuDQPSize = (sps->m_maxCUSize >> pps->m_maxCuDQPDepth);
 
     pps->m_sps = sps;
     pps->m_bSliceChromaQpFlag = 0;
