@@ -1102,6 +1102,11 @@ RK_S32 VpuApiLegacy::encode(VpuCodecContext *ctx, EncInputStream_t *aEncInStrm, 
         mpp_err("unsupport format 0x%x\n", format & MPP_FRAME_FMT_MASK);
     } break;
     }
+    mpp_frame_set_fmt(frame, (MppFrameFormat)(format & MPP_FRAME_FMT_MASK));
+    if (aEncInStrm->nFlags) {
+        mpp_log_f("found eos\n");
+        mpp_frame_set_eos(frame, 1);
+    }
 
     fd = aEncInStrm->bufPhyAddr;
     if (fd_input < 0) {
@@ -1361,7 +1366,7 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
         mpp_err("unsupport format 0x%x\n", format & MPP_FRAME_FMT_MASK);
     } break;
     }
-
+    mpp_frame_set_fmt(frame, (MppFrameFormat)(format & MPP_FRAME_FMT_MASK));
     if (aEncInStrm->nFlags) {
         mpp_log_f("found eos true\n");
         mpp_frame_set_eos(frame, 1);
