@@ -214,8 +214,10 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
 
     clear_ext_line_bufs(p);
 
-    for (i = 0; i < p->task_cnt; i++)
-        h264e_vepu_stream_amend_deinit(&p->amend_sets[i]);
+    if (p->amend_sets) {
+        for (i = 0; i < p->task_cnt; i++)
+            h264e_vepu_stream_amend_deinit(&p->amend_sets[i]);
+    }
 
     MPP_FREE(p->regs_sets);
     MPP_FREE(p->amend_sets);
