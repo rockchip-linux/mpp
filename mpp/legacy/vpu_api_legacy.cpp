@@ -44,6 +44,9 @@ static MppFrameFormat vpu_pic_type_remap_to_mpp(EncInputPictureType type)
     case ENC_INPUT_YUV420_SEMIPLANAR : {
         ret = MPP_FMT_YUV420SP;
     } break;
+    case ENC_INPUT_YUV420_SEMIPLANAR_VU : {
+        ret = MPP_FMT_YUV420SP_VU;
+    } break;
     case ENC_INPUT_YUV422_INTERLEAVED_YUYV : {
         ret = MPP_FMT_YUV422_YUYV;
     } break;
@@ -231,7 +234,8 @@ static int copy_align_raw_buffer_to_dest(RK_U8 *dst, RK_U8 *src, RK_U32 width,
     RK_U8 *dst_v = dst_u + hor_stride * ver_stride / 4;
 
     switch (fmt) {
-    case MPP_FMT_YUV420SP : {
+    case MPP_FMT_YUV420SP :
+    case MPP_FMT_YUV420SP_VU : {
         for (row = 0; row < height; row++) {
             memcpy(dst_buf + row * hor_stride, src_buf + index, width);
             index += width;
@@ -1408,6 +1412,8 @@ RK_S32 VpuApiLegacy::encoder_sendframe(VpuCodecContext *ctx, EncInputStream_t *a
             goto FUNC_RET;
         }
         if (format >= MPP_FMT_YUV420SP && format < MPP_FMT_YUV_BUTT) {
+            align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 3 / 2;
+        } else  if (format >= MPP_FMT_YUV420SP_VU && format < MPP_FMT_YUV_BUTT) {
             align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 3 / 2;
         } else if (format >= MPP_FMT_RGB565 && format < MPP_FMT_BGR888) {
             align_size = hor_stride * MPP_ALIGN(ver_stride, 16) * 3;
