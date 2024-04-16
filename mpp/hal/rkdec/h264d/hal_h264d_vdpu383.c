@@ -144,7 +144,7 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     if (!pp->spspps_update) {
         bp.index = 2;
         bp.bitpos = 24;
-        bp.bvalue = bp.pbuf[bp.index];
+        bp.bvalue = bp.pbuf[bp.index] & 0xFFFFFF;
     } else {
         RK_U32 pic_width, pic_height;
 
