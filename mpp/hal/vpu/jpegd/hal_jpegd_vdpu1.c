@@ -1015,14 +1015,14 @@ __SKIP_HARD:
     /* debug information */
     if (jpegd_debug & JPEGD_DBG_IO) {
         static FILE *jpg_file;
-        static char name[32];
+        static char name[64];
         MppBuffer outputBuf = NULL;
         void *base = NULL;
         mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, task->dec.output,
                               SLOT_BUFFER, &outputBuf);
         base = mpp_buffer_get_ptr(outputBuf);
 
-        snprintf(name, sizeof(name) - 1, "/tmp/output%02d.yuv",
+        snprintf(name, sizeof(name) - 1, "/data/tmp/output%02d.yuv",
                  JpegHalCtx->output_yuv_count);
         jpg_file = fopen(name, "wb+");
         if (jpg_file) {
