@@ -714,7 +714,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 #endif
 
     /* uncompress header data */
-    prepare_uncompress_header(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, sizeof(hw_ctx->header_data));
+    prepare_uncompress_header(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, sizeof(hw_ctx->header_data) / 8);
     memcpy(mpp_buffer_get_ptr(hw_ctx->global_base), hw_ctx->header_data, sizeof(hw_ctx->header_data));
     mpp_buffer_sync_end(hw_ctx->global_base);
     vp9_hw_regs->vp9d_paras.reg67_global_len = GBL_SIZE / 16;

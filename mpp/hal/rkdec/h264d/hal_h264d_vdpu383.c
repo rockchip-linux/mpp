@@ -836,8 +836,8 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
     }
 #endif
 
-    prepare_spspps(p_hal, (RK_U64 *)&ctx->spspps, sizeof(ctx->spspps));
-    prepare_framerps(p_hal, (RK_U64 *)&ctx->rps, sizeof(ctx->rps));
+    prepare_spspps(p_hal, (RK_U64 *)&ctx->spspps, sizeof(ctx->spspps) / 8);
+    prepare_framerps(p_hal, (RK_U64 *)&ctx->rps, sizeof(ctx->rps) / 8);
     prepare_scanlist(p_hal, ctx->sclst, sizeof(ctx->sclst));
     set_registers(p_hal, regs, task);
 

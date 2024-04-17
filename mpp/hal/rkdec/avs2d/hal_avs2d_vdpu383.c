@@ -626,7 +626,7 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 
     regs = reg_ctx->regs;
 
-    prepare_header(p_hal, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat));
+    prepare_header(p_hal, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat) / 8);
     prepare_scalist(p_hal, reg_ctx->scalist_dat, sizeof(reg_ctx->scalist_dat));
 
     ret = fill_registers(p_hal, regs, task);
