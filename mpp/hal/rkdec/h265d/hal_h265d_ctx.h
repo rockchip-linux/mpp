@@ -86,6 +86,7 @@ typedef struct HalH265dCtx_t {
     RK_U32          sclst_offset;
     void            *pps_buf;
     void            *sw_rps_buf;
+    HalBufs         origin_bufs;
 
     const MppDecHwCap   *hw_info;
 } HalH265dCtx;

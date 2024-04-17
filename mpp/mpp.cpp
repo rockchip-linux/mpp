@@ -1184,6 +1184,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     MPP_RET ret = MPP_NOK;
 
     switch (cmd) {
+    case MPP_DEC_GET_THUMBNAIL_FRAME_INFO:
     case MPP_DEC_SET_FRAME_INFO: {
         ret = mpp_dec_control(mDec, cmd, param);
     } break;

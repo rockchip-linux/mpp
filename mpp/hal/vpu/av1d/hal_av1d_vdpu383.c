@@ -206,6 +206,7 @@ typedef struct VdpuAv1dRegCtx_t {
     RK_U32          num_tile_cols;
     /* uncompress header data */
     RK_U8           header_data[VDPU383_UNCMPS_HEADER_SIZE];
+    HalBufs         origin_bufs;
 } Vdpu383Av1dRegCtx;
 
 // #define DUMP_AV1D_VDPU383_DATAS
@@ -1262,6 +1263,32 @@ static RK_U32 rkv_len_align_422(RK_U32 val)
     return ((5 * MPP_ALIGN(val, 64)) / 2);
 }
 
+static MPP_RET vdpu383_setup_scale_origin_bufs(Av1dHalCtx *p_hal, MppFrame mframe)
+{
+    Vdpu383Av1dRegCtx *ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    /* for 8K FrameBuf scale mode */
+    size_t origin_buf_size = 0;
+
+    origin_buf_size = mpp_frame_get_buf_size(mframe);
+
+    if (!origin_buf_size) {
+        mpp_err_f("origin_bufs get buf size failed\n");
+        return MPP_NOK;
+    }
+    if (ctx->origin_bufs) {
+        hal_bufs_deinit(ctx->origin_bufs);
+        ctx->origin_bufs = NULL;
+    }
+    hal_bufs_init(&ctx->origin_bufs);
+    if (!ctx->origin_bufs) {
+        mpp_err_f("origin_bufs init fail\n");
+        return MPP_ERR_NOMEM;
+    }
+    hal_bufs_setup(ctx->origin_bufs, 16, 1, &origin_buf_size);
+
+    return MPP_OK;
+}
+
 
 static MPP_RET hal_av1d_alloc_res(void *hal)
 {
@@ -1333,6 +1360,10 @@ static void hal_av1d_release_res(void *hal)
     if (reg_ctx->colmv_bufs) {
         hal_bufs_deinit(reg_ctx->colmv_bufs);
         reg_ctx->colmv_bufs = NULL;
+    }
+    if (reg_ctx->origin_bufs) {
+        hal_bufs_deinit(reg_ctx->origin_bufs);
+        reg_ctx->origin_bufs = NULL;
     }
 
     MPP_FREE(p_hal->reg_ctx);
@@ -2068,6 +2099,8 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
     Vdpu383Av1dRegSet *regs;
     DXVA_PicParams_AV1 *dxva = (DXVA_PicParams_AV1*)task->dec.syntax.data;
     RK_U32 i = 0;
+    HalBuf *origin_buf = NULL;
+    MppFrame mframe;
 
     INP_CHECK(ret, NULL == p_hal);
 
@@ -2078,6 +2111,12 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         mpp_err_f("parse err %d ref err %d\n",
                   task->dec.flags.parse_err, task->dec.flags.ref_err);
         goto __RETURN;
+    }
+
+    mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
+    if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
+        MPP_MAX(dxva->width, dxva->height) > 4096 && ctx->origin_bufs == NULL) {
+        vdpu383_setup_scale_origin_bufs(p_hal, mframe);
     }
 
     if (p_hal->fast_mode) {
@@ -2203,7 +2242,6 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
     /* set reg -> para (stride, len) */
     {
-        MppFrame mframe;
         RK_U32 hor_virstride = 0;
         RK_U32 ver_virstride = 0;
         RK_U32 y_virstride = 0;
@@ -2268,6 +2306,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
     {
         MppBuffer mbuffer = NULL;
         RK_U32 mapped_idx;
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_BUFFER, &mbuffer);
         regs->av1d_addrs.reg168_decout_base = mpp_buffer_get_fd(mbuffer);
         regs->av1d_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(mbuffer);
@@ -2277,6 +2316,10 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
             mapped_idx = dxva->ref_frame_idx[i];
             if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
                 mpp_buf_slot_get_prop(p_hal->slots, dxva->frame_refs[mapped_idx].Index, SLOT_BUFFER, &mbuffer);
+                if (ctx->origin_bufs && mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
+                    origin_buf = hal_bufs_get_buf(ctx->origin_bufs, dxva->frame_refs[mapped_idx].Index);
+                    mbuffer = origin_buf->buf[0];
+                }
                 if (mbuffer) {
                     SET_REF_BASE(regs->av1d_addrs, mapped_idx, mpp_buffer_get_fd(mbuffer));
                     SET_FBC_PAYLOAD_REF_BASE(regs->av1d_addrs, mapped_idx, mpp_buffer_get_fd(mbuffer));
@@ -2336,16 +2379,36 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
     {
         //scale down config
-        MppFrame mframe = NULL;
+        MppBuffer mbuffer = NULL;
+        RK_S32 fd = -1;
+        MppFrameThumbnailMode thumbnail_mode;
 
+        mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits, SLOT_BUFFER, &mbuffer);
         mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits,
                               SLOT_FRAME_PTR, &mframe);
-        if (mpp_frame_get_thumbnail_en(mframe)) {
-            regs->com_pkt_addr.reg133_scale_down_tile_base = regs->av1d_addrs.reg168_decout_base;
+        thumbnail_mode = mpp_frame_get_thumbnail_en(mframe);
+        fd = mpp_buffer_get_fd(mbuffer);
+
+        switch (thumbnail_mode) {
+        case MPP_FRAME_THUMBNAIL_ONLY:
+            regs->com_pkt_addr.reg133_scale_down_tile_base = fd;
+            origin_buf = hal_bufs_get_buf(ctx->origin_bufs, dxva->CurrPic.Index7Bits);
+            fd = mpp_buffer_get_fd(origin_buf->buf[0]);
+            regs->av1d_addrs.reg168_decout_base = fd;
+            regs->av1d_addrs.reg192_payload_st_cur_base = fd;
+            regs->av1d_addrs.reg169_error_ref_base = fd;
             vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
                                      (void *)&regs->av1d_paras);
-        } else {
+            break;
+        case MPP_FRAME_THUMBNAIL_MIXED:
+            regs->com_pkt_addr.reg133_scale_down_tile_base = fd;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
+                                     (void *)&regs->av1d_paras);
+            break;
+        case MPP_FRAME_THUMBNAIL_NONE:
+        default:
             regs->ctrl_regs.reg9.scale_down_en = 0;
+            break;
         }
     }
 
@@ -2555,6 +2618,9 @@ MPP_RET vdpu383_av1d_control(void *hal, MpiCmd cmd_type, void *param)
         }
         break;
     }
+    case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
+        vdpu383_update_thumbnail_frame_info((MppFrame)param);
+    } break;
     case MPP_DEC_SET_OUTPUT_FORMAT : {
     } break;
     default : {

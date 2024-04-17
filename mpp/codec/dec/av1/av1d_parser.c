@@ -794,7 +794,8 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
         ctx->pix_fmt |= s->cfg->base.out_fmt & (MPP_FRAME_FBC_MASK);
         mpp_frame_set_offset_x(frame->f, 0);
         mpp_frame_set_offset_y(frame->f, 0);
-        mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 28);
+        if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588)
+            mpp_frame_set_ver_stride(frame->f, MPP_ALIGN(ctx->height, 8) + 28);
     } else if (MPP_FRAME_FMT_IS_TILE(s->cfg->base.out_fmt)) {
         ctx->pix_fmt |= s->cfg->base.out_fmt & (MPP_FRAME_TILE_FLAG);
     }
@@ -805,7 +806,7 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     mpp_frame_set_fmt(frame->f, ctx->pix_fmt);
 
     if (s->cfg->base.enable_thumbnail && s->hw_info && s->hw_info->cap_down_scale)
-        mpp_frame_set_thumbnail_en(frame->f, 1);
+        mpp_frame_set_thumbnail_en(frame->f, s->cfg->base.enable_thumbnail);
     else
         mpp_frame_set_thumbnail_en(frame->f, 0);
 

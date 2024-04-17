@@ -529,7 +529,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
             }
 
             if (p_Dec->cfg->base.enable_thumbnail && p_Dec->hw_info->cap_down_scale)
-                mpp_frame_set_thumbnail_en(p_Dec->curframe, 1);
+                mpp_frame_set_thumbnail_en(p_Dec->curframe, p_Dec->cfg->base.enable_thumbnail);
             else
                 mpp_frame_set_thumbnail_en(p_Dec->curframe, 0);
 

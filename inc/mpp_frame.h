@@ -330,6 +330,12 @@ typedef enum MppFrameError {
     MPP_FRAME_ERR_DEC_MISS_REF     = 0x0200,
 } MppFrameError;
 
+typedef enum {
+    MPP_FRAME_THUMBNAIL_NONE,
+    MPP_FRAME_THUMBNAIL_MIXED,
+    MPP_FRAME_THUMBNAIL_ONLY,
+} MppFrameThumbnailMode;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

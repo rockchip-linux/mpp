@@ -629,7 +629,7 @@ static void setup_VPU_FRAME_from_mpp_frame(VpuCodecContext *ctx, VPU_FRAME *vfra
 
 static void setup_video_frame_meta(VideoFrame_t *videoFrame, MppFrame mframe)
 {
-    if (mpp_frame_get_thumbnail_en(mframe)) {
+    if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_MIXED) {
         MppMeta meta = NULL;
         RK_S32 yOffset = 0;
         RK_S32 uvOffset = 0;

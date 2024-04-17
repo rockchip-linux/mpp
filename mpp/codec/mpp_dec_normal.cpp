@@ -602,7 +602,18 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     output = task_dec->output;
     mpp_buf_slot_get_prop(frame_slots, output, SLOT_BUFFER, &hal_buf_out);
     if (NULL == hal_buf_out) {
+        MppFrame mframe = NULL;
+        mpp_buf_slot_get_prop(frame_slots, output,
+                              SLOT_FRAME_PTR, &mframe);
         size_t size = mpp_buf_slot_get_size(frame_slots);
+
+        if (mframe && mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
+            // only for 8K thumbnail downscale to 4K 8bit mode
+            RK_U32 downscale_width = mpp_frame_get_width(mframe) / 2;
+            RK_U32 downscale_height = mpp_frame_get_height(mframe) / 2;
+
+            size = downscale_width * downscale_height * 3 / 2;
+        }
         mpp_buffer_get(mpp->mFrameGroup, &hal_buf_out, size);
         if (hal_buf_out)
             mpp_buf_slot_set_prop(frame_slots, output, SLOT_BUFFER,

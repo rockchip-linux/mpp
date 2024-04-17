@@ -126,7 +126,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         }
 
         if (s->h265dctx->cfg->base.enable_thumbnail && s->h265dctx->hw_info->cap_down_scale)
-            mpp_frame_set_thumbnail_en(frame->frame, 1);
+            mpp_frame_set_thumbnail_en(frame->frame, s->h265dctx->cfg->base.enable_thumbnail);
         else
             mpp_frame_set_thumbnail_en(frame->frame, 0);
 
