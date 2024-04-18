@@ -1358,7 +1358,7 @@ MPP_RET vdpu383_av1d_init(void *hal, MppHalCfg *cfg)
 
     FUN_CHECK(hal_av1d_alloc_res(hal));
 
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, rkv_hor_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
     mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, rkv_ver_align);
     mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align);
 
