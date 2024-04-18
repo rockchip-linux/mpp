@@ -181,8 +181,6 @@ struct dmsr_reg {
         RK_U32 sw_dmsr_obv_enable   : 1;
         RK_U32 sw_dmsr_obv_mode     : 1;
     } reg20;         /* 0x00D0 */
-
-    RK_U32 reg_dmsr_21_23[3];
 };               /* offset: 0x1080 */
 
 
