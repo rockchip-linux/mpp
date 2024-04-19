@@ -1100,6 +1100,7 @@ MPP_RET hal_avs2d_rkv_wait(void *hal, HalTaskInfo *task)
             param.hard_err = 0;
 
         task->dec.flags.ref_used = p_regs->statistic.reg266_perf_cnt0;
+        task->dec.flags.ref_info_valid = 1;
 
         if (task->dec.flags.ref_miss) {
             RK_U32 ref_hw_usage = p_regs->statistic.reg266_perf_cnt0;

@@ -395,6 +395,7 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
 
                 if (slot_idx < 0) {
                     AVS2D_HAL_TRACE("missing ref, could not found valid ref");
+                    task->dec.flags.ref_err = 1;
                     return ret = MPP_ERR_UNKNOW;
                 }
 
@@ -688,6 +689,8 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
     regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
     dev = p_hal->dev;
 
+    p_hal->frame_no++;
+
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
@@ -876,15 +879,7 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
         else
             param.hard_err = 0;
 
-        // TODO: config refer frame usage check
-        // task->dec.flags.ref_used = regs->statistic.reg266_perf_cnt0;
-
-        // if (task->dec.flags.ref_miss) {
-        //     RK_U32 ref_hw_usage = regs->statistic.reg266_perf_cnt0;
-
-        //     AVS2D_HAL_TRACE("hal frame %d ref miss %x hard_err %d hw_usage %x", p_hal->frame_no,
-        //                     task->dec.flags.ref_miss, param.hard_err, ref_hw_usage);
-        // }
+        task->dec.flags.ref_info_valid = 0;
 
         AVS2D_HAL_TRACE("hal frame %d hard_err= %d", p_hal->frame_no, param.hard_err);
 
