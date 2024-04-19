@@ -1,3 +1,116 @@
+## 1.0.5 (2024-04-19)
+### Feature
+- [vdpu383]: align hor stride to 128 odds + 64 byte
+- [vdpu383]: support 2x2 scale down
+- [mpp_buffer]: Add MppBuffer attach/detach func
+- [mpp_dev]: Add fd attach/detach operation
+- [vdpp]: Add libvdpp for hwpq
+- [vdpp]: Add capacity check function
+- [cmake]: Add building static library
+- [vdpp_test]: Add vdpp slt testcase
+- [av1d]: Add tile4x4 frame format support
+- [mpp_enc_cfg]: Add H.265 tier config
+- [jpeg]: Add VPU720 JPEG support
+- [enc]: Add config entry for output chroma format
+- [vdpu383]: Add vdpu383 av1 module
+- [vdpu383]: Add vdpu383 vp9 module
+- [vdpu383]: Add vdpu383 avs2 module
+- [vdpu383]: Add vdpu383 H.264 module
+- [vdpu383]: Add vdpu383 H.265 module
+- [vdpu383]: Add vdpu383 common module
+- [vdpp]: Add vdpp2 for rk3576
+- [vdpp]: Add vdpp module and vdpp_test
+- [vepu_510]: Add vepu510 h265e support
+- [vepu_510]: Add vepu510 h264e support
+- [mpp_frame]: Add tile format flag
+- [vepu_510] add vepu 510 common for H264 & h265
+- [mpp_soc]: support rk3576 soc
+
+### Fix
+- [avs2d_vdpu383]: Optimise dec result
+- [vdpu383]: Fix compiler warning
+- [vdpp]: Fix dmsr reg size imcompat error
+- [vdpu383]: hor stride alignment fix for vdpu383
+- [h265d_ref]: fix set fbc output fmt not effect issue
+- [vdpu383]: Fix memory out of bounds issue
+- [h264d_vdpu383]: Fix global parameter config issue
+- [avs2_parse]: add colorspace config to mpp_frame
+- [hal_h264e]:fix crash after init vepu buffer failure
+- [vpu_api]: Fix frame format and eos cfg
+- [av1d_vdpu383]: fix fbc hor_stride error
+- [av1d_parser]: fix fmt error for 10bit HDR source
+- [avs2d]: fix stuck when seq_end shows at pkt tail
+- [av1d_vdpu]: Fix forced 8bit output failure issue
+- [enc_async]: Invalidate cache for output buffer
+- [hal_av1d_vdpu383]: memleak for cdf_bufs
+- [av1d_vdpu383]: fix rcb buffer size
+- [vp9d_vdpu383]: Fix segid config issue
+- [vepu510]: Add split low delay output mode support
+- [avs2d_vdpu383]: Fix declaring shadow local variables issue
+- [av1]: Fix global config issue
+- [hal_av1d]: Delte cdf unused value
+- [av1]: Fix av1 display abnormality issue
+- [avs2d]: Remove a unnecessary log
+- [vepu510]: Adjust regs assignment
+- [hal_jpegd]: Add stream buffer flush
+- [265e_api]: Support cons_intra_pred_flag cfg
+- [mpp_enc]: Add device attach/detach on enc flow
+- [mpp_dec]: Add device attach/detach on dec flow
+- [vdpp]: Add error detection
+- [hal_265e_510]: modify srgn_max & rime_lvl val
+- [vdpu383]: spspps data not need copy all range ppsid
+- [vpu_api_legacy]: fix frame CodingType err
+- [av1]: Fix 10bit source display issue
+- [mpp_enc]: Expand the hdr_buf size
+- [av1]: Fix delta_q value read issue
+- [vdpu383]: Enable error detection
+- [ext_dma]: fix mmap permission error
+- [jpege_vpu720]: sync cache before return task
+- [mpp_buffer]: fix buffer type assigning
+- [vepu510]: Configure reg of Subjective param
+- [vepu510]: Checkout and optimize 510 reg.h
+- [mpp_dec]: Optimize HDR meta process
+- [av1d]: Fix scanlist calc issue
+- [h265e]: fix the profile tier cfg
+- [av1d]: Fix av1d ref stride error
+- [hal_h265e_vepu510]: Add cudecis reg cfg
+- [av1d]: Only rk3588 support 10bit translate to 8bit
+- [vp9d]: Fix vp9 hor stride issue
+- [rc]: Add i quality delta cfg on fixqp mode
+- [hal_h265d]: Fix filter col rcb buffer size calc
+- [av1d]: Fix compiler warning
+- [h264d]: Fix error mvc stream crash issue
+- [hal_h264e]: Fix qp err when fixqp mode
+- [h264d]: Fix H.264 error chroma_format_idc
+- [vdpu383]: Fix av1 rkfbc output error
+- [av1d]: Fix compatibility issues
+- [hal_h264d_vdpu383]: Reduce mpp_put_bits calls
+- Fix clerical error
+- [avs2d]: Fix get ref_frm slot idx error
+- [vdpu383]: Fix av1 global params bit pos issue
+- [vdpp]: fix sharp config error
+- [hal_av1d]: fix av1 dec err for rk3588
+- [vdpu383]: Fix av1 global params issue
+- [vepu510]: Fix camera record stuck issue
+- [utils]: fix read and write some YUV format
+- [mpp_bitput]: fix put bits overflow
+- [mpp_service]: fix rcb info env config
+- [vepu510]: Fix compile warning
+- [hal_vp9d]: fix colmv size calculator err
+- [avsd]: Fix the ref_frm slot idx erro in fast mode.
+
+### Docs
+- Update 1.0.5 CHANGELOG.md
+- [mpp_frame]: Add MppFrameFormat description
+
+### Refactor
+- [hal_av2sd]: refactor hal_api assign flow
+- [hal_h264d]: refactor hal_api assign flow
+- Using soc_type for compare instead of soc_name
+
+### Chore
+- [hal_h264e]: clean some unused code
+
 ## 1.0.4 (2024-02-07)
 ### Feature
 - [vpu_api_legacy]: Support RGB24 setup
