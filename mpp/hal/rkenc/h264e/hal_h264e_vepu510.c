@@ -107,7 +107,12 @@ typedef struct HalH264eVepu510Ctx_t {
     RK_S32                  poll_slice_max;
     RK_S32                  poll_cfg_size;
     MppDevPollCfg           *poll_cfgs;
+
+    void                    *tune;
+    RK_S32                  smart_en;
 } HalH264eVepu510Ctx;
+
+#include "hal_h264e_vepu510_tune.c"
 
 static RK_S32 h264_aq_tthd_default[16] = {
     0,  0,  0,  0,
@@ -211,6 +216,11 @@ static MPP_RET hal_h264e_vepu510_deinit(void *hal)
     if (p->buf_pass1) {
         mpp_buffer_put(p->buf_pass1);
         p->buf_pass1 = NULL;
+    }
+
+    if (p->tune) {
+        vepu510_h264e_tune_deinit(p->tune);
+        p->tune = NULL;
     }
 
     hal_h264e_dbg_func("leave %p\n", p);
@@ -325,6 +335,8 @@ static MPP_RET hal_h264e_vepu510_init(void *hal, MppEncHalCfg *cfg)
     cfg->cap_recn_out = 1;
     for (i = 0; i < p->task_cnt; i++)
         h264e_vepu_stream_amend_init(&p->amend_sets[i]);
+
+    p->tune = vepu510_h264e_tune_init(p);
 
 DONE:
     if (ret)
@@ -1184,7 +1196,6 @@ static void setup_vepu510_sqi(H264eVepu510Sqi *reg)
 
 static void setup_vepu510_rc_base(HalVepu510RegSet *regs, HalH264eVepu510Ctx *ctx, EncRcTask *rc_task)
 {
-
     H264eSps *sps = ctx->sps;
     H264eSlice *slice = ctx->slice;
     MppEncCfgSet *cfg = ctx->cfg;
@@ -1255,6 +1266,24 @@ static void setup_vepu510_rc_base(HalVepu510RegSet *regs, HalH264eVepu510Ctx *ct
     reg_frm->common.rc_qp.rc_max_qp       = qp_max;
     reg_frm->common.rc_qp.rc_min_qp       = qp_min;
     reg_frm->common.rc_tgt.ctu_ebit       = mb_target_bits_mul_16;
+
+    {
+        /* fixed frame level QP */
+        RK_S32 fqp_min, fqp_max;
+
+        if (slice->slice_type == H264_I_SLICE) {
+            fqp_min = rc->fqp_min_i;
+            fqp_max = rc->fqp_max_i;
+        } else {
+            fqp_min = rc->fqp_min_p;
+            fqp_max = rc->fqp_max_p;
+        }
+
+        if ((fqp_min == fqp_max) && (fqp_min >= 1) && (fqp_max <= 51)) {
+            reg_frm->common.enc_pic.pic_qp = fqp_min;
+            reg_frm->common.rc_qp.rc_qp_range = 0;
+        }
+    }
 
     regs->reg_rc_roi.rc_adj0.qp_adj0        = -2;
     regs->reg_rc_roi.rc_adj0.qp_adj1        = -1;
@@ -1626,31 +1655,59 @@ static void setup_vepu510_me(HalVepu510RegSet *regs)
 
 #define H264E_LAMBDA_TAB_SIZE       (52 * sizeof(RK_U32))
 
-static RK_U32 h264e_lambda_default[58] = {
-    0x00000003, 0x00000005, 0x00000006, 0x00000007,
-    0x00000009, 0x0000000b, 0x0000000e, 0x00000012,
-    0x00000016, 0x0000001c, 0x00000024, 0x0000002d,
-    0x00000039, 0x00000048, 0x0000005b, 0x00000073,
-    0x00000091, 0x000000b6, 0x000000e6, 0x00000122,
-    0x0000016d, 0x000001cc, 0x00000244, 0x000002db,
-    0x00000399, 0x00000489, 0x000005b6, 0x00000733,
-    0x00000912, 0x00000b6d, 0x00000e66, 0x00001224,
-    0x000016db, 0x00001ccc, 0x00002449, 0x00002db7,
-    0x00003999, 0x00004892, 0x00005b6f, 0x00007333,
-    0x00009124, 0x0000b6de, 0x0000e666, 0x00012249,
-    0x00016dbc, 0x0001cccc, 0x00024492, 0x0002db79,
-    0x00039999, 0x00048924, 0x0005b6f2, 0x00073333,
-    0x00091249, 0x000b6de5, 0x000e6666, 0x00122492,
-    0x0016dbcb, 0x001ccccc,
+static RK_U32 h264e_lambda_default[60] = {
+    0x00000005, 0x00000006, 0x00000007, 0x00000009,
+    0x0000000b, 0x0000000e, 0x00000012, 0x00000016,
+    0x0000001c, 0x00000024, 0x0000002d, 0x00000039,
+    0x00000048, 0x0000005b, 0x00000073, 0x00000091,
+    0x000000b6, 0x000000e6, 0x00000122, 0x0000016d,
+    0x000001cc, 0x00000244, 0x000002db, 0x00000399,
+    0x00000489, 0x000005b6, 0x00000733, 0x00000912,
+    0x00000b6d, 0x00000e66, 0x00001224, 0x000016db,
+    0x00001ccc, 0x00002449, 0x00002db7, 0x00003999,
+    0x00004892, 0x00005b6f, 0x00007333, 0x00009124,
+    0x0000b6de, 0x0000e666, 0x00012249, 0x00016dbc,
+    0x0001cccc, 0x00024492, 0x0002db79, 0x00039999,
+    0x00048924, 0x0005b6f2, 0x00073333, 0x00091249,
+    0x000b6de5, 0x000e6666, 0x00122492, 0x0016dbcb,
+    0x001ccccc, 0x00244924, 0x002db796, 0x00399998,
 };
 
-static void setup_vepu510_l2(HalVepu510RegSet *regs, H264eSlice *slice, MppEncHwCfg *hw)
+static RK_U32 h264e_lambda_cvr[60] = {
+    0x00000009, 0x0000000b, 0x0000000e, 0x00000011,
+    0x00000016, 0x0000001b, 0x00000022, 0x0000002b,
+    0x00000036, 0x00000045, 0x00000056, 0x0000006d,
+    0x00000089, 0x000000ad, 0x000000da, 0x00000112,
+    0x00000159, 0x000001b3, 0x00000224, 0x000002b3,
+    0x00000366, 0x00000449, 0x00000566, 0x000006cd,
+    0x00000891, 0x00000acb, 0x00000d9a, 0x000013c1,
+    0x000018e4, 0x00001f5c, 0x00002783, 0x000031c8,
+    0x00003eb8, 0x00004f06, 0x00006390, 0x00008e14,
+    0x0000b302, 0x0000e18a, 0x00011c29, 0x00016605,
+    0x0001c313, 0x00027ae1, 0x00031fe6, 0x0003efcf,
+    0x0004f5c3, 0x0006e785, 0x0008b2ef, 0x000af5c3,
+    0x000f1e7a, 0x00130c7f, 0x00180000, 0x001e3cf4,
+    0x002618fe, 0x00300000, 0x003c79e8, 0x004c31fc,
+    0x00600000, 0x0078f3d0, 0x009863f8, 0x0c000000,
+};
+
+static void
+setup_vepu510_l2(HalH264eVepu510Ctx *ctx, H264eSlice *slice, MppEncHwCfg *hw)
 {
+    HalVepu510RegSet *regs = ctx->regs_set;
+    MppEncSceneMode sm = ctx->cfg->tune.scene_mode;
+    RK_S32 lambda_idx = ctx->cfg->tune.lambda_idx_i; //TODO: lambda_idx_p
     RK_U32 i;
 
     hal_h264e_dbg_func("enter\n");
 
-    memcpy(regs->reg_param.rdo_wgta_qp_grpa_0_51, &h264e_lambda_default[6], H264E_LAMBDA_TAB_SIZE);
+    if (sm == MPP_ENC_SCENE_MODE_IPC) {
+        memcpy(regs->reg_param.rdo_wgta_qp_grpa_0_51,
+               &h264e_lambda_default[lambda_idx], H264E_LAMBDA_TAB_SIZE);
+    } else {
+        memcpy(regs->reg_param.rdo_wgta_qp_grpa_0_51,
+               &h264e_lambda_cvr[lambda_idx], H264E_LAMBDA_TAB_SIZE);
+    }
 
     if (hw->qbias_en) {
         regs->reg_param.qnt_bias_comb.qnt_f_bias_i = hw->qbias_i;
@@ -1950,11 +2007,13 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     if (frm_status->is_i_refresh)
         setup_vepu510_intra_refresh(regs, ctx, frm_status->seq_idx % cfg->rc.gop);
 
-    setup_vepu510_l2(regs, slice, &cfg->hw);
+    setup_vepu510_l2(ctx, slice, &cfg->hw);
     setup_vepu510_ext_line_buf(regs, ctx);
     if (ctx->roi_data)
         vepu510_set_roi(&ctx->regs_set->reg_rc_roi.roi_cfg, ctx->roi_data,
                         ctx->cfg->prep.width, ctx->cfg->prep.height);
+
+    vepu510_h264e_tune_reg_patch(ctx->tune);
 
     /* two pass register patch */
     if (frm->save_pass1)
@@ -2266,6 +2325,8 @@ static MPP_RET hal_h264e_vepu510_ret_task(void * hal, HalEncTask * task)
         h264e_dpb_hal_end(ctx->dpb, task->flags.curr_idx);
         h264e_dpb_hal_end(ctx->dpb, task->flags.refr_idx);
     }
+
+    vepu510_h264e_tune_stat_update(ctx->tune, task);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 

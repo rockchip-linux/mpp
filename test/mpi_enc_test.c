@@ -118,6 +118,7 @@ typedef struct {
     RK_S32 gop_len;
     RK_S32 vi_len;
     RK_S32 scene_mode;
+    RK_S32 cu_qp_delta_depth;
 
     RK_S64 first_frm;
     RK_S64 first_pkt;
@@ -178,6 +179,7 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_den  = cmd->fps_out_den;
     p->fps_out_num  = cmd->fps_out_num;
     p->scene_mode   = cmd->scene_mode;
+    p->cu_qp_delta_depth = cmd->cu_qp_delta_depth;
     p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
                       (MPP_ALIGN(p->hor_stride, 32) >> 5) *
                       (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
@@ -314,6 +316,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
+
+    mpp_enc_cfg_set_s32(cfg, "rc:cu_qp_delta_depth", p->cu_qp_delta_depth);
 
     mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
 

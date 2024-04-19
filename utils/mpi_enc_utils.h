@@ -77,6 +77,9 @@ typedef struct MpiEncTestArgs_t {
     /* -sm scene_mode */
     RK_S32              scene_mode;
 
+    /* -qpdd cu_qp_delta_depth */
+    RK_S32              cu_qp_delta_depth;
+
     /* -v q runtime log disable flag */
     RK_U32              quiet;
     /* -v f runtime fps log flag */

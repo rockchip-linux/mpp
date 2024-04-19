@@ -681,6 +681,9 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             dst->refresh_num = src->refresh_num;
         }
 
+        if (change & MPP_ENC_RC_CFG_CHANGE_QPDD)
+            dst->cu_qp_delta_depth = src->cu_qp_delta_depth;
+
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
             mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
@@ -861,6 +864,22 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             dst->scene_mode >= MPP_ENC_SCENE_MODE_BUTT) {
             mpp_err("invalid scene mode %d not in range [%d:%d]\n", dst->scene_mode,
                     MPP_ENC_SCENE_MODE_DEFAULT, MPP_ENC_SCENE_MODE_BUTT - 1);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I)
+            dst->lambda_idx_i = src->lambda_idx_i;
+
+        if (dst->lambda_idx_i < 0 || dst->lambda_idx_i > 8) {
+            mpp_err("invalid lambda idx i not in range [0 : 8]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P)
+            dst->lambda_idx_p = src->lambda_idx_p;
+
+        if (dst->lambda_idx_p < 0 || dst->lambda_idx_p > 8) {
+            mpp_err("invalid lambda idx i not in range [0 : 8]\n");
             ret = MPP_ERR_VALUE;
         }
 

@@ -74,7 +74,7 @@ typedef struct MppTrieNode_t {
     RK_U16      next_cnt;
 } MppTrieNode;
 
-typedef struct MppAcImpl_t {
+typedef struct MppTrieImpl_t {
     RK_S32          info_count;
     RK_S32          info_used;
     MppTrieInfo     *info;
@@ -175,7 +175,7 @@ DONE:
 MPP_RET mpp_trie_deinit(MppTrie trie)
 {
     if (NULL == trie) {
-        mpp_err_f("invalid NULL input trie automation\n");
+        mpp_err_f("invalid NULL input trie\n");
         return MPP_ERR_NULL_PTR;
     }
 

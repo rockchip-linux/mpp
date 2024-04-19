@@ -1103,12 +1103,7 @@ typedef struct Vepu510Status_t {
     } st_bnum_b16;
 
     /* 0x000040a4 reg4137 */
-    struct {
-        RK_U32 rdo_smear_cnt0    : 8;
-        RK_U32 rdo_smear_cnt1    : 8;
-        RK_U32 rdo_smear_cnt2    : 8;
-        RK_U32 rdo_smear_cnt3    : 8;
-    } st_smear_cnt;
+    RK_U32 st_smear_cnt_reserved;
 
     /* 0x000040a8 reg4138 */
     RK_U32 madi16_sum;

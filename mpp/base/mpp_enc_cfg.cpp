@@ -139,6 +139,7 @@ public:
     ENTRY(rc,   fqp_min_p,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_min_p) \
     ENTRY(rc,   fqp_max_i,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_i) \
     ENTRY(rc,   fqp_max_p,      S32, RK_S32,            MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_p) \
+    ENTRY(rc,   cu_qp_delta_depth, S32, RK_S32,         MPP_ENC_RC_CFG_CHANGE_QPDD,             rc, cu_qp_delta_depth) \
     /* prep config */ \
     ENTRY(prep, width,          S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32, RK_S32,            MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
@@ -255,7 +256,9 @@ public:
     ENTRY(hw,   qbias_p,        S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QBIAS_P,          hw, qbias_p) \
     ENTRY(hw,   qbias_en,       S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QBIAS_EN,         hw, qbias_en) \
     /* quality fine tuning config */ \
-    ENTRY(tune, scene_mode,     S32, MppEncSceneMode,   MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode)
+    ENTRY(tune, scene_mode,     S32, MppEncSceneMode,   MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode) \
+    ENTRY(tune, lambda_idx_i,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I,   tune, lambda_idx_i) \
+    ENTRY(tune, lambda_idx_p,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P,   tune, lambda_idx_p)
 
 static void mpp_enc_cfg_fill(MppTrie trie, MppCfgApi **cfgs)
 {

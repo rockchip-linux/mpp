@@ -488,6 +488,19 @@ RK_S32 mpi_enc_opt_sm(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_qpdd(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->cu_qp_delta_depth = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid cu_qp_delta_depth\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
@@ -518,6 +531,7 @@ static MppOptInfo enc_opts[] = {
     {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
     {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
     {"sm",      "scene mode",           "scene_mode, 0:default 1:ipc",              mpi_enc_opt_sm},
+    {"qpdd",    "cu_qp_delta_depth",    "cu_qp_delta_depth, 0:1:2",                 mpi_enc_opt_qpdd},
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);
@@ -597,9 +611,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
 
     /* mark option end */
     mpp_opt_add(opts, NULL);
-
     ret = mpp_opt_parse(opts, argc, argv);
-
     /* check essential parameter */
     if (cmd->type <= MPP_VIDEO_CodingAutoDetect) {
         mpp_err("invalid type %d\n", cmd->type);

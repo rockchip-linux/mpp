@@ -239,6 +239,7 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_REFRESH       = (1 << 27),
     MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG   = (1 << 28),
     MPP_ENC_RC_CFG_CHANGE_FQP           = (1 << 29),
+    MPP_ENC_RC_CFG_CHANGE_QPDD          = (1 << 30),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -410,6 +411,7 @@ typedef struct MppEncRcCfg_t {
     RK_S32                  fqp_min_p;
     RK_S32                  fqp_max_i;
     RK_S32                  fqp_max_p;
+    RK_S32                  cu_qp_delta_depth;
 
     RK_S32                  hier_qp_en;
     RK_S32                  hier_qp_delta[4];
@@ -1427,12 +1429,16 @@ typedef enum MppEncSceneMode_e {
 typedef enum MppEncFineTuneCfgChange_e {
     /* change on scene mode */
     MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE      = (1 << 0),
+    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I    = (1 << 5),
+    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P    = (1 << 6)
 } MppEncFineTuneCfgChange;
 
 typedef struct MppEncFineTuneCfg_t {
     RK_U32              change;
 
     MppEncSceneMode     scene_mode;
+    RK_S32              lambda_idx_i;
+    RK_S32              lambda_idx_p;
 } MppEncFineTuneCfg;
 
 #endif /*__RK_VENC_CMD_H__*/

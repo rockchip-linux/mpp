@@ -209,6 +209,12 @@ typedef struct EncRcCommonInfo_t {
     RK_U32          lvl8_intra_num;
     RK_U32          lvl4_intra_num;
 
+    RK_U32          motion_level;
+    RK_U32          complex_level;
+    RK_S32          complex_scene;
+    RK_S32          scene_mode;
+    RK_S32          last_scene_mode;
+
     RK_S32          reserve[5];
 } EncRcTaskInfo;
 
