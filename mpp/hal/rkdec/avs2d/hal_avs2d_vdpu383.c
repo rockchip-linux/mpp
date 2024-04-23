@@ -874,7 +874,11 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
 
         if ((!regs->ctrl_regs.reg15.rkvdec_frame_rdy_sta) ||
             regs->ctrl_regs.reg15.rkvdec_strm_error_sta ||
-            regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta)
+            regs->ctrl_regs.reg15.rkvdec_core_timeout_sta ||
+            regs->ctrl_regs.reg15.rkvdec_ip_timeout_sta ||
+            regs->ctrl_regs.reg15.rkvdec_bus_error_sta ||
+            regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta ||
+            regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta)
             param.hard_err = 1;
         else
             param.hard_err = 0;

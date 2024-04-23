@@ -1395,8 +1395,13 @@ static MPP_RET hal_h265d_vdpu383_wait(void *hal, HalTaskInfo *task)
 ERR_PROC:
     if (task->dec.flags.parse_err ||
         task->dec.flags.ref_err ||
+        (!hw_regs->ctrl_regs.reg15.rkvdec_frame_rdy_sta) ||
         hw_regs->ctrl_regs.reg15.rkvdec_strm_error_sta ||
-        hw_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta) {
+        hw_regs->ctrl_regs.reg15.rkvdec_core_timeout_sta ||
+        hw_regs->ctrl_regs.reg15.rkvdec_ip_timeout_sta ||
+        hw_regs->ctrl_regs.reg15.rkvdec_bus_error_sta ||
+        hw_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta ||
+        hw_regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta) {
         if (!reg_ctx->fast_mode) {
             if (reg_ctx->dec_cb)
                 mpp_callback(reg_ctx->dec_cb, &task->dec);

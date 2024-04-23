@@ -1051,7 +1051,11 @@ __SKIP_HARD:
 
         if ((!p_regs->ctrl_regs.reg15.rkvdec_frame_rdy_sta) ||
             p_regs->ctrl_regs.reg15.rkvdec_strm_error_sta ||
-            p_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta)
+            p_regs->ctrl_regs.reg15.rkvdec_core_timeout_sta ||
+            p_regs->ctrl_regs.reg15.rkvdec_ip_timeout_sta ||
+            p_regs->ctrl_regs.reg15.rkvdec_bus_error_sta ||
+            p_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta ||
+            p_regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta)
             param.hard_err = 1;
         else
             param.hard_err = 0;

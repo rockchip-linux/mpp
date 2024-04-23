@@ -2511,7 +2511,6 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
     Vdpu383Av1dRegSet *p_regs = p_hal->fast_mode ?
                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
                                 reg_ctx->regs;
-    (void) p_regs;
 #ifdef DUMP_AV1D_VDPU383_DATAS
     {
         char *cur_fname = "colmv_cur_frame.dat";
@@ -2561,6 +2560,21 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
                           (NON_COEF_CDF_SIZE + COEF_CDF_SIZE) * 8, 128, 0, 0);
     }
 #endif
+
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err ||
+        (!p_regs->ctrl_regs.reg15.rkvdec_frame_rdy_sta) ||
+        p_regs->ctrl_regs.reg15.rkvdec_strm_error_sta ||
+        p_regs->ctrl_regs.reg15.rkvdec_core_timeout_sta ||
+        p_regs->ctrl_regs.reg15.rkvdec_ip_timeout_sta ||
+        p_regs->ctrl_regs.reg15.rkvdec_bus_error_sta ||
+        p_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta ||
+        p_regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta) {
+        MppFrame mframe = NULL;
+
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_frame_set_errinfo(mframe, 1);
+    }
 
 __SKIP_HARD:
     if (p_hal->fast_mode)
