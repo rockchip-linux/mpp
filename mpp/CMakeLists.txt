@@ -49,22 +49,6 @@ set (MPP_SRC
 set(MPP_VERSION "0")
 set(MPP_ABI_VERSION "1")
 
-add_library(${MPP_STATIC} STATIC ${MPP_SRC})
-set_target_properties(${MPP_STATIC} PROPERTIES FOLDER "mpp" OUTPUT_NAME "${MPP_SHARED}")
-set_target_properties(${MPP_STATIC} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc
-    ${BEGIN_WHOLE_ARCHIVE} mpp_base ${END_WHOLE_ARCHIVE})
-
-add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
-    COMMAND ${CMAKE_AR} x $<TARGET_FILE:${MPP_STATIC}>
-    COMMAND ${CMAKE_AR} x $<TARGET_FILE:osal>
-    COMMAND ${CMAKE_AR} x $<TARGET_FILE:mpp_base>
-    COMMAND ${CMAKE_AR} rcs lib${MPP_SHARED}.a *.o
-    COMMAND ${CMAKE_STRIP} --strip-debug lib${MPP_SHARED}.a
-    COMMAND pwd
-    COMMAND rm *.o
-    )
-
 add_library(${MPP_SHARED} SHARED ${MPP_SRC})
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_SHARED} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
@@ -82,5 +66,22 @@ endif()
 
 add_subdirectory(legacy)
 
-install(TARGETS ${MPP_SHARED} LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-install(TARGETS ${MPP_STATIC} ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+if(BUILD_SHARED_LIBS)
+    install(TARGETS ${MPP_SHARED} LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
+else()
+    add_library(${MPP_STATIC} STATIC ${MPP_SRC})
+    set_target_properties(${MPP_STATIC} PROPERTIES FOLDER "mpp")
+    set_target_properties(${MPP_STATIC} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+    target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc
+        ${BEGIN_WHOLE_ARCHIVE} mpp_base ${END_WHOLE_ARCHIVE})
+
+    add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
+    COMMAND ${CMAKE_SOURCE_DIR}/merge_static_lib.sh ${CMAKE_BINARY_DIR} ${MPP_SHARED}
+    COMMAND ${CMAKE_STRIP} --strip-debug ${CMAKE_BINARY_DIR}/mpp/lib${MPP_SHARED}.a
+    COMMENT "Building a merged static lib."
+    )
+
+    install(FILES ${CMAKE_BINARY_DIR}/mpp/lib${MPP_SHARED}.a TYPE LIB)
+
+endif()
