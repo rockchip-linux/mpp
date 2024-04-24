@@ -2467,7 +2467,7 @@ static MPP_RET vepu580_h265e_save_pass1_patch(H265eV580RegSet *regs, H265eV580Ha
     if (tiles_enabled_flag)
         reg_base->reg0238_synt_pps.lpf_fltr_acrs_til = 0;
 
-    mpp_dev_multi_offset_update(frm->reg_cfg, 164, width_align * height);
+    mpp_dev_multi_offset_update(frm->reg_cfg, 164, width_align * height_align);
 
     /* NOTE: disable split to avoid lowdelay slice output */
     regs->reg_base.reg0216_sli_splt.sli_splt = 0;
@@ -2709,12 +2709,6 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
 
     vepu580_h265e_tune_reg_patch(ctx->tune);
     setup_vepu580_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);
-    /* two pass register patch */
-    if (frm->save_pass1)
-        vepu580_h265e_save_pass1_patch(regs, ctx, syn->pp.tiles_enabled_flag);
-
-    if (frm->use_pass1)
-        vepu580_h265e_use_pass1_patch(regs, ctx);
 
     hal_h265e_leave();
     return MPP_OK;
@@ -2850,13 +2844,14 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
 
             mpp_dev_multi_offset_update(frm->reg_cfg, 166, offset);
             mpp_dev_multi_offset_update(frm->reg_cfg, 164, offset);
-
-            if (enc_task->rc_task->frm.save_pass1)
-                vepu580_h265e_save_pass1_patch(hw_regs, ctx, syn->pp.tiles_enabled_flag);
-
-            if (enc_task->rc_task->frm.use_pass1)
-                vepu580_h265e_use_pass1_patch(hw_regs, ctx);
         }
+
+        if (enc_task->rc_task->frm.save_pass1)
+            vepu580_h265e_save_pass1_patch(hw_regs, ctx, syn->pp.tiles_enabled_flag);
+
+        if (enc_task->rc_task->frm.use_pass1)
+            vepu580_h265e_use_pass1_patch(hw_regs, ctx);
+
         hal_h265e_v580_send_regs(ctx->dev, hw_regs, reg_out);
 
         mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFS, frm->reg_cfg);
