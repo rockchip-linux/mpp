@@ -175,6 +175,8 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api,
         } break;
         case MPP_BUFFER_TYPE_DMA_HEAP: {
             p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
                         allocator_std;
         } break;
         default : {
