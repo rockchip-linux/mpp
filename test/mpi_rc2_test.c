@@ -73,7 +73,6 @@ typedef struct {
 
     /* 2. encoder data */
     MppBufferGroup  pkt_grp;
-    MppBuffer       enc_pkt_buf;
     MppPacket       enc_pkt;
 
     MppEncRcCfg     rc_cfg;
@@ -855,6 +854,19 @@ static MPP_RET mpi_rc_enc(MpiRc2TestCtx *ctx)
                     if (ctx->file.fp_enc_out)
                         fwrite(ptr, 1, len, ctx->file.fp_enc_out);
 
+                    /* check post packet first */
+                    if (len > ctx->dec_in_buf_post_size) {
+                        RK_U32 buf_size = MPP_ALIGN(len, SZ_4K);
+
+                        ctx->dec_in_buf_post = mpp_realloc(ctx->dec_in_buf_post, RK_U8, buf_size);
+                        ctx->dec_in_buf_post_size = buf_size;
+
+                        mpp_packet_set_data(ctx->dec_pkt_post, ctx->dec_in_buf_post);
+                        mpp_packet_set_size(ctx->dec_pkt_post, buf_size);
+                        mpp_packet_set_pos(ctx->dec_pkt_post, ctx->dec_in_buf_post);
+                        mpp_packet_set_length(ctx->dec_pkt_post, 0);
+                    }
+
                     /* decode one frame */
                     // write packet to dec input
                     mpp_packet_write(ctx->dec_pkt_post, 0, ptr, len);
@@ -916,12 +928,6 @@ static MPP_RET mpi_rc_buffer_init(MpiRc2TestCtx *ctx)
         goto RET;
     }
 
-    ret = mpp_buffer_get(ctx->pkt_grp, &ctx->enc_pkt_buf, packet_size);
-    if (ret) {
-        mpp_err("failed to get buffer for input frame ret %d\n", ret);
-        goto RET;
-    }
-
     ctx->dec_in_buf_post = mpp_calloc(RK_U8, packet_size);
     if (NULL == ctx->dec_in_buf_post) {
         mpp_err("mpi_dec_test malloc input stream buffer failed\n");
@@ -939,11 +945,6 @@ RET:
     ctx->dec_ctx_pre = NULL;
     ctx->dec_ctx_post = NULL;
     MPP_FREE(ctx->dec_in_buf_post);
-
-    if (ctx->enc_pkt_buf) {
-        mpp_buffer_put(ctx->enc_pkt_buf);
-        ctx->enc_pkt_buf = NULL;
-    }
 
     if (ctx->pkt_grp) {
         mpp_buffer_group_put(ctx->pkt_grp);
@@ -1076,11 +1077,6 @@ MPP_TEST_OUT:
     if (ctx->enc_ctx) {
         mpp_destroy(ctx->enc_ctx);
         ctx->enc_ctx = NULL;
-    }
-
-    if (ctx->enc_pkt_buf) {
-        mpp_buffer_put(ctx->enc_pkt_buf);
-        ctx->enc_pkt_buf = NULL;
     }
 
     if (ctx->pkt_grp) {
