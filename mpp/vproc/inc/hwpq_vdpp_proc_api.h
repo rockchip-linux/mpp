@@ -42,6 +42,11 @@ typedef enum {
 } vdpp_frame_format;
 
 typedef enum {
+    VDPP_LIMIT_RANGE,
+    VDPP_FULL_RANGE,
+} VdppRangeInfo;
+
+typedef enum {
     VDPP_RUN_MODE_UNSUPPORTED = -1,
     VDPP_RUN_MODE_VEP         = 0,
     VDPP_RUN_MODE_HIST        = 1,
@@ -111,6 +116,11 @@ typedef struct {
 } hwpq_vdpp_info_t;
 
 typedef struct {
+    unsigned int luma_avg;
+    unsigned int reserved[7];
+} hwpq_vdpp_output_t;
+
+typedef struct {
     unsigned int    frame_idx;
     unsigned int    yuv_diff_flag;
     unsigned int    hist_mode_en;
@@ -125,6 +135,8 @@ typedef struct {
 
     hwpq_vdpp_info_t dci_vdpp_info;
 
+    /* output */
+    hwpq_vdpp_output_t output;
 } rk_vdpp_proc_params;
 
 #ifdef __cplusplus

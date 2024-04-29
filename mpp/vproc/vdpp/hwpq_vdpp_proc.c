@@ -22,6 +22,8 @@
 RK_U32 hwpq_vdpp_debug = 0;
 
 #define HWPQ_VDPP_MAX_FILE_NAME_LEN         (256)
+#define HWPQ_VDPP_GLOBAL_HIST_OFFSET        (16*16*16*18/8)
+#define HWPQ_VDPP_GLOBAL_HIST_SIZE          (256)
 #define HWPQ_VDPP_DEBUG_CFG_PROP            "vendor.vdpp.debug_cfg"
 
 static const char hwpq_vdpp_in_path[] = "/data/vendor/rkalgo/hwpq_vdpp_in.bin";
@@ -851,6 +853,37 @@ int hwpq_vdpp_proc(rk_vdpp_context ctx, rk_vdpp_proc_params *p_proc_param)
 
     p_proc_param->dci_vdpp_info.vdpp_blk_size_h = p_proc_param->src_img_info.img_yrgb.w_vld / 16;
     p_proc_param->dci_vdpp_info.vdpp_blk_size_v = p_proc_param->src_img_info.img_yrgb.h_vld / 16;
+
+    memset(&p_proc_param->output, 0, sizeof(p_proc_param->output));
+    p_proc_param->output.luma_avg = 0;
+
+    {
+        // Calc avg luma
+        RK_U32 *p_global_hist = (RK_U32 *)phist + HWPQ_VDPP_GLOBAL_HIST_OFFSET / 4;
+        RK_U64 luma_sum = 0;
+        RK_U32 pixel_count = 0;
+        RK_U32 i;
+
+        for (i = 0; i < HWPQ_VDPP_GLOBAL_HIST_SIZE; i++) {
+            /*
+                bin0 ---> 0,1,2,3 ---> avg_luma = 1.5 = 0*4+1.5
+                bin1 ---> 4,5,6,7 ---> avg_luma = 5.5 = 1*4+1.5
+                ...
+                bin255 ---> 1020,1021,1022,1023 ---> avg_luma = 1021.5 = 255*4+1.5
+            */
+            RK_U32 luma_val = i * 8 + 3;
+
+            luma_sum += p_global_hist[i] * luma_val;
+            pixel_count += p_global_hist[i];
+        }
+
+        if (pixel_count > 0) {
+            p_proc_param->output.luma_avg = luma_sum / pixel_count / 2;
+        } else {
+            mpp_err("pixel_count is zero\n");
+            p_proc_param->output.luma_avg = 0;
+        }
+    }
 
     hwpq_vdpp_leave();
 
