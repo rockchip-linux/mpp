@@ -67,6 +67,9 @@ static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
 #define RPS_OFFSET(pos)                 (SPSPPS_OFFSET(pos) + SPSPPS_ALIGNED_SIZE)
 #define SCALIST_OFFSET(pos)             (RPS_OFFSET(pos) + RPS_ALIGEND_SIZE)
 
+#define pocdistance(a, b)               (((a) > (b)) ? ((a) - (b)) : ((b) - (a)))
+#define MAX_INT                         2147483647
+
 static RK_U32 rkv_len_align_422(RK_U32 val)
 {
     return (2 * MPP_ALIGN(val, 16));
@@ -898,7 +901,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
-    RK_U32 fbc_flag = 0;
+    RK_S32 distance = MAX_INT;
 
     (void) fd;
     if (syn->dec.flags.parse_err ||
@@ -909,8 +912,6 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
 
     h265d_dxva2_picture_context_t *dxva_ctx = (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
-    RK_S32 max_poc =  dxva_ctx->pp.current_poc;
-    RK_S32 min_poc =  0;
     HalBuf *origin_buf = NULL;
 
     void *rps_ptr = NULL;
@@ -1022,7 +1023,6 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
             virstrid_uv = stride_uv * ver_virstride / 2;
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            fbc_flag = 1;
             RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
             RK_U32 fbd_offset;
 
@@ -1176,11 +1176,10 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
                 hw_regs->h265d_addrs.reg170_185_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 hw_regs->h265d_addrs.reg195_210_payload_st_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 valid_ref = hw_regs->h265d_addrs.reg170_185_ref_base[i];
-                if ((dxva_ctx->pp.PicOrderCntValList[i] < max_poc) &&
-                    (dxva_ctx->pp.PicOrderCntValList[i] >= min_poc)
+                if ((pocdistance(dxva_ctx->pp.PicOrderCntValList[i], dxva_ctx->pp.current_poc) < distance)
                     && (!mpp_frame_get_errinfo(mframe))) {
 
-                    min_poc = dxva_ctx->pp.PicOrderCntValList[i];
+                    distance = pocdistance(dxva_ctx->pp.PicOrderCntValList[i], dxva_ctx->pp.current_poc);
                     hw_regs->h265d_addrs.reg169_error_ref_base = hw_regs->h265d_addrs.reg170_185_ref_base[i];
                     reg_ctx->error_index = dxva_ctx->pp.RefPicList[i].Index7Bits;
                     hw_regs->ctrl_regs.reg16.error_proc_disable = 1;
@@ -1196,7 +1195,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if ((reg_ctx->error_index == dxva_ctx->pp.CurrPic.Index7Bits) &&
-        !dxva_ctx->pp.IntraPicFlag && fbc_flag) {
+        !dxva_ctx->pp.IntraPicFlag) {
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
     }
