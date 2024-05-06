@@ -163,7 +163,7 @@ static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 
     mpp_set_bitput_ctx(&bp, data, len);
 
-    if (!pp->spspps_update) {
+    if (!p_hal->fast_mode && !pp->spspps_update) {
         bp.index = 2;
         bp.bitpos = 24;
         bp.bvalue = bp.pbuf[bp.index] & 0xFFFFFF;
