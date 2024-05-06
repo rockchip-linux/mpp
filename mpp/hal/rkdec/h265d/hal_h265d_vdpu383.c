@@ -68,7 +68,6 @@ static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
 #define SCALIST_OFFSET(pos)             (RPS_OFFSET(pos) + RPS_ALIGEND_SIZE)
 
 #define pocdistance(a, b)               (((a) > (b)) ? ((a) - (b)) : ((b) - (a)))
-#define MAX_INT                         2147483647
 
 static RK_U32 rkv_len_align_422(RK_U32 val)
 {
@@ -901,7 +900,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
-    RK_S32 distance = MAX_INT;
+    RK_S32 distance = INT_MAX;
 
     (void) fd;
     if (syn->dec.flags.parse_err ||

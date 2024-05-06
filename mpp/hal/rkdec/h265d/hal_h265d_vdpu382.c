@@ -628,7 +628,6 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
     }while(0)
 
 #define pocdistance(a, b) (((a) > (b)) ? ((a) - (b)) : ((b) - (a)))
-#define MAX_INT           2147483647
 
 static MPP_RET hal_h265d_vdpu382_setup_colmv_buf(void *hal, HalTaskInfo *syn)
 {
@@ -683,7 +682,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer framebuf = NULL;
     HalBuf *mv_buf = NULL;
     RK_S32 fd = -1;
-    RK_S32 distance = MAX_INT;
+    RK_S32 distance = INT_MAX;
     h265d_dxva2_picture_context_t *dxva_cxt =
         (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
     HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;

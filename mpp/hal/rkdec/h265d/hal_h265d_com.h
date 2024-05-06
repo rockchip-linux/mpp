@@ -19,6 +19,7 @@
 #define __HAL_H265D_COM_H__
 
 #include "rk_type.h"
+#include <limits.h>
 
 #define SCALING_LIST_SIZE       (81 * 1360)
 #define RPS_SIZE                (600 * 32)
