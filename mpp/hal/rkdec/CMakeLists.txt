@@ -23,3 +23,7 @@ endif()
 if( HAVE_VP9D )
     add_subdirectory(vp9d)
 endif()
+
+if( HAVE_AV1D )
+    add_subdirectory(av1d)
+endif()
