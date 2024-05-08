@@ -21,33 +21,35 @@
 #include "rk_vdec_cmd.h"
 
 typedef enum MppDecCfgChange_e {
-    MPP_DEC_CFG_CHANGE_TYPE             = (1 << 0),
-    MPP_DEC_CFG_CHANGE_CODING           = (1 << 1),
-    MPP_DEC_CFG_CHANGE_HW_TYPE          = (1 << 2),
-    MPP_DEC_CFG_CHANGE_BATCH_MODE       = (1 << 3),
+    MPP_DEC_CFG_CHANGE_TYPE              = (1 << 0),
+    MPP_DEC_CFG_CHANGE_CODING            = (1 << 1),
+    MPP_DEC_CFG_CHANGE_HW_TYPE           = (1 << 2),
+    MPP_DEC_CFG_CHANGE_BATCH_MODE        = (1 << 3),
 
-    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT    = (1 << 8),
-    MPP_DEC_CFG_CHANGE_FAST_OUT         = (1 << 9),
-    MPP_DEC_CFG_CHANGE_FAST_PARSE       = (1 << 10),
-    MPP_DEC_CFG_CHANGE_SPLIT_PARSE      = (1 << 11),
-    MPP_DEC_CFG_CHANGE_INTERNAL_PTS     = (1 << 12),
-    MPP_DEC_CFG_CHANGE_SORT_PTS         = (1 << 13),
-    MPP_DEC_CFG_CHANGE_DISABLE_ERROR    = (1 << 14),
-    MPP_DEC_CFG_CHANGE_ENABLE_VPROC     = (1 << 15),
-    MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY = (1 << 16),
-    MPP_DEC_CFG_CHANGE_ENABLE_HDR_META  = (1 << 17),
-    MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL = (1 << 18),
-    MPP_DEC_CFG_CHANGE_ENABLE_MVC       = (1 << 19),
+    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT     = (1 << 8),
+    MPP_DEC_CFG_CHANGE_FAST_OUT          = (1 << 9),
+    MPP_DEC_CFG_CHANGE_FAST_PARSE        = (1 << 10),
+    MPP_DEC_CFG_CHANGE_SPLIT_PARSE       = (1 << 11),
+    MPP_DEC_CFG_CHANGE_INTERNAL_PTS      = (1 << 12),
+    MPP_DEC_CFG_CHANGE_SORT_PTS          = (1 << 13),
+    MPP_DEC_CFG_CHANGE_DISABLE_ERROR     = (1 << 14),
+    MPP_DEC_CFG_CHANGE_ENABLE_VPROC      = (1 << 15),
+    MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY  = (1 << 16),
+    MPP_DEC_CFG_CHANGE_ENABLE_HDR_META   = (1 << 17),
+    MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL  = (1 << 18),
+    MPP_DEC_CFG_CHANGE_ENABLE_MVC        = (1 << 19),
+    /* disable dpb discontinuous check */
+    MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK = (1 << 20),
     /* reserve high bit for global config */
-    MPP_DEC_CFG_CHANGE_DISABLE_THREAD   = (1 << 28),
+    MPP_DEC_CFG_CHANGE_DISABLE_THREAD    = (1 << 28),
 
-    MPP_DEC_CFG_CHANGE_ALL              = (0xFFFFFFFF),
+    MPP_DEC_CFG_CHANGE_ALL               = (0xFFFFFFFF),
 } MppDecCfgChange;
 
 typedef enum MppVprocMode_e {
-    MPP_VPROC_MODE_DEINTELACE           = (1 << 0),
-    MPP_VPROC_MODE_DETECTION            = (1 << 1),
-    MPP_VPROC_MODE_ALL                  = (0xFFFFFFFF),
+    MPP_VPROC_MODE_DEINTELACE            = (1 << 0),
+    MPP_VPROC_MODE_DETECTION             = (1 << 1),
+    MPP_VPROC_MODE_ALL                   = (0xFFFFFFFF),
 } MppVprocMode;
 
 typedef enum FastPlayMode_e {
@@ -77,6 +79,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              enable_hdr_meta;
     RK_U32              enable_thumbnail;
     RK_U32              enable_mvc;
+    RK_U32              disable_dpb_chk;
     RK_U32              disable_thread;
 } MppDecBaseCfg;
 

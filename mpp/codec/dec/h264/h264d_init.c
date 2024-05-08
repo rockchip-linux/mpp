@@ -636,6 +636,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     H264dVideoCtx_t *p_Vid = currSlice->p_Vid;
     H264_SPS_t *active_sps = p_Vid->active_sps;
     H264_DpbBuf_t *p_Dpb = currSlice->p_Dpb;
+    H264_DecCtx_t *p_Dec = p_Vid->p_Dec;
 
     dec_pic = alloc_storable_picture(p_Vid, currSlice->structure);
     MEM_CHECK(ret, dec_pic);
@@ -718,7 +719,9 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
     dec_pic->combine_flag = get_field_dpb_combine_flag(p_Dpb->last_picture, dec_pic);
     /* malloc dpb_memory */
     FUN_CHECK(ret = dpb_mark_malloc(p_Vid, dec_pic));
-    FUN_CHECK(ret = check_dpb_discontinuous(p_Vid->last_pic, dec_pic, currSlice));
+    if (!p_Dec->cfg->base.disable_dpb_chk) {
+        FUN_CHECK(ret = check_dpb_discontinuous(p_Vid->last_pic, dec_pic, currSlice));
+    }
     dec_pic->mem_malloc_type = Mem_Malloc;
     dec_pic->colmv_no_used_flag = 0;
     p_Vid->dec_pic = dec_pic;
