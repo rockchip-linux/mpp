@@ -2136,6 +2136,10 @@ static MPP_RET hal_h264e_vepu510_wait(void *hal, HalEncTask *task)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
+    /* if pass1 mode, it will disable split mode and the split out need to be disable */
+    if (task->rc_task->frm.save_pass1)
+        split_out = 0;
+
     if (split_out) {
         EncOutParam param;
         RK_U32 slice_len;

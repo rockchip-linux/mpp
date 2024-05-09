@@ -2005,6 +2005,10 @@ MPP_RET hal_h265e_v510_wait(void *hal, HalEncTask *task)
         return MPP_NOK;
     }
 
+    /* if pass1 mode, it will disable split mode and the split out need to be disable */
+    if (enc_task->rc_task->frm.save_pass1)
+        split_out = 0;
+
     if (split_out) {
         EncOutParam param;
         RK_U32 slice_len = 0;
