@@ -18,6 +18,6 @@ add_library(hal_av1d_vpu STATIC
             )
 
 set_target_properties(hal_av1d_vpu PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(hal_av1d_vpu mpp_base)
+target_link_libraries(hal_av1d_vpu mpp_base ${HAL_AV1D})
 
 #add_subdirectory(test)
