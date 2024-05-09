@@ -83,6 +83,7 @@ RK_U8 uuid_refresh_cfg[16] = {
     0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x00, 0x00
 };
 
+static MPP_RET enc_async_wait_task(MppEncImpl *enc, EncAsyncTaskInfo *info);
 static void reset_hal_enc_task(HalEncTask *task)
 {
     memset(task, 0, sizeof(*task));
@@ -2855,6 +2856,28 @@ static MPP_RET proc_async_task(MppEncImpl *enc)
 
     if (hal_task->flags.drop_by_fps)
         goto SEND_TASK_INFO;
+
+    if (enc->support_hw_deflicker && enc->cfg.rc.debreath_en) {
+        bool two_pass_en = mpp_enc_refs_next_frm_is_intra(enc->refs);
+
+        if (two_pass_en) {
+            HalTaskHnd hnd = NULL;
+            EncAsyncTaskInfo *info = NULL;
+
+            /* wait all tasks done */
+            while (MPP_OK == hal_task_get_hnd(enc->tasks, TASK_PROCESSING, &hnd)) {
+                info = (EncAsyncTaskInfo *)hal_task_hnd_get_data(hnd);
+
+                mpp_assert(!info->status.enc_done);
+
+                enc_async_wait_task(enc, info);
+                hal_task_hnd_set_status(hnd, TASK_IDLE);
+            }
+            ret = mpp_enc_proc_two_pass(mpp, async);
+            if (ret)
+                return ret;
+        }
+    }
 
     enc_dbg_detail("task %d enc proc dpb\n", seq_idx);
     mpp_enc_refs_get_cpb(enc->refs, cpb);
