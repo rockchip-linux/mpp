@@ -70,6 +70,8 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         goto __FAILED;
     }
+    cfg->hw_info = mpp_get_dec_hw_info_by_client_type(type);
+    p_hal->hw_info = cfg->hw_info;
 
     //< get buffer group
     if (p_hal->buf_group == NULL) {

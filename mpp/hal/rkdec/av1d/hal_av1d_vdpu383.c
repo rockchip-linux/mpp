@@ -1381,29 +1381,13 @@ MPP_RET vdpu383_av1d_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_OK;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
     INP_CHECK(ret, NULL == p_hal);
+    (void) cfg;
 
     FUN_CHECK(hal_av1d_alloc_res(hal));
 
     mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
     mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, rkv_ver_align);
     mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align);
-
-    {
-        // report hw_info to parser
-        const MppSocInfo *info = mpp_get_soc_info();
-        const void *hw_info = NULL;
-        RK_U32 i;
-
-        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
-            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
-                hw_info = info->dec_caps[i];
-                break;
-            }
-        }
-
-        mpp_assert(hw_info);
-        cfg->hw_info = hw_info;
-    }
 
 __RETURN:
     return MPP_OK;

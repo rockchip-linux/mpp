@@ -103,6 +103,7 @@ RockchipSocType mpp_get_soc_type(void);
 
 const MppSocInfo *mpp_get_soc_info(void);
 RK_U32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding);
+const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type);
 
 #ifdef __cplusplus
 }

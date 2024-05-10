@@ -103,6 +103,8 @@ MPP_RET hal_avs2d_init(void *hal, MppHalCfg *cfg)
         mpp_err("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
     }
+    cfg->hw_info = mpp_get_dec_hw_info_by_client_type(VPU_CLIENT_RKVDEC);
+    p_hal->hw_info = cfg->hw_info;
     cfg->support_fast_mode = 1;
 
     p_hal->cfg = cfg->cfg;

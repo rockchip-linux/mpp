@@ -188,6 +188,7 @@ typedef struct av1d_hal_ctx_t {
     MppDev                   dev;
     void                     *reg_ctx;
     RK_U32                   fast_mode;
+    const MppDecHwCap       *hw_info;
 } Av1dHalCtx;
 
 #endif /* __HAL_AV1D_GLOBAL_H__ */

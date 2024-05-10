@@ -341,6 +341,7 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     MEM_CHECK(ret, p_hal->hw_ctx = mpp_calloc_size(void, sizeof(Vdpu383Vp9dCtx)));
     Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    (void) cfg;
 
     hw_ctx->mv_base_addr = -1;
     hw_ctx->pre_mv_base_addr = -1;
@@ -362,22 +363,6 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
     }
 
     hw_ctx->last_segid_flag = 1;
-    {
-        // report hw_info to parser
-        const MppSocInfo *info = mpp_get_soc_info();
-        const void *hw_info = NULL;
-        RK_U32 i;
-
-        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
-            if (info->dec_caps[i] && info->dec_caps[i]->type == VPU_CLIENT_RKVDEC) {
-                hw_info = info->dec_caps[i];
-                break;
-            }
-        }
-
-        mpp_assert(hw_info);
-        cfg->hw_info = hw_info;
-    }
 
     return ret;
 __FAILED:

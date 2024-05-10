@@ -210,25 +210,6 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
-
-    {
-        // report hw_info to parser
-        const MppSocInfo *info = mpp_get_soc_info();
-        const void *hw_info = NULL;
-        RK_U32 i = 0;
-
-        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
-            if (info->dec_caps[i] && ( info->dec_caps[i]->type == VPU_CLIENT_RKVDEC ||
-                                       info->dec_caps[i]->type == VPU_CLIENT_HEVC_DEC)) {
-                hw_info = info->dec_caps[i];
-                break;
-            }
-        }
-
-        mpp_assert(hw_info);
-        cfg->hw_info = hw_info;
-    }
-
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");
 #endif

@@ -42,6 +42,8 @@ MPP_RET hal_vp9d_init(void *ctx, MppHalCfg *cfg)
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         return ret;
     }
+    cfg->hw_info = mpp_get_dec_hw_info_by_client_type(client_type);
+    p->hw_info = cfg->hw_info;
 
     hw_id = mpp_get_client_hw_id(client_type);
     p->dev = cfg->dev;

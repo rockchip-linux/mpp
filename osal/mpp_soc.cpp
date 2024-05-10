@@ -1135,3 +1135,19 @@ RK_U32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding)
 
     return is_valid_cap_coding(cap, coding);
 }
+
+const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type)
+{
+    const MppDecHwCap* hw_info = NULL;
+    const MppSocInfo *info = mpp_get_soc_info();
+    RK_U32 i = 0;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
+        if (info->dec_caps[i] && info->dec_caps[i]->type == client_type) {
+            hw_info = info->dec_caps[i];
+            break;
+        }
+    }
+
+    return hw_info;
+}

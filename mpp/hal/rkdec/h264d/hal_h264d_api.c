@@ -329,6 +329,8 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         mpp_err("mpp_dev_init failed ret: %d\n", ret);
         goto __FAILED;
     }
+    cfg->hw_info = mpp_get_dec_hw_info_by_client_type(client_type);
+    p_hal->hw_info = cfg->hw_info;
 
     //!< callback function to parser module
     p_hal->dec_cb       = cfg->dec_cb;
