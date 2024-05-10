@@ -53,11 +53,13 @@ const char *strof_coding_type(MppCodingType coding)
         "h265",
         "avs+",
         "avs",
+        "avs2",
+        "av1",
     };
 
     if (coding >= MPP_VIDEO_CodingUnused && coding <= MPP_VIDEO_CodingVP9)
         return coding_type_str0[coding];
-    else if (coding >= MPP_VIDEO_CodingVC1 && coding <= MPP_VIDEO_CodingAVS)
+    else if (coding >= MPP_VIDEO_CodingVC1 && coding <= MPP_VIDEO_CodingAV1)
         return coding_type_str1[coding - MPP_VIDEO_CodingVC1];
 
     return NULL;
