@@ -233,40 +233,34 @@ static void buf_grp_add_log(MppBufferGroupImpl *group, MppBufOps ops, const char
         buf_logs_write(group->logs, group->group_id, -1, ops, 0, caller);
 }
 
+static void clear_buffer_info(MppBufferInfo *info)
+{
+    info->fd = -1;
+    info->ptr = NULL;
+    info->hnd = NULL;
+    info->size = 0;
+    info->index = -1;
+    info->type = MPP_BUFFER_TYPE_BUTT;
+}
+
 static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
                           RK_U32 reuse, const char *caller)
 {
     struct list_head list_maps;
     MppDevBufMapNode *pos, *n;
+    MppBufferInfo info;
 
     mpp_assert(group);
 
-    INIT_LIST_HEAD(&list_maps);
-
-    pthread_mutex_lock(&buffer->lock);
-    /* remove all map from buffer */
-    list_for_each_entry_safe(pos, n, &buffer->list_maps, MppDevBufMapNode, list_buf) {
-        list_move_tail(&pos->list_buf, &list_maps);
-        pos->iova = (RK_U32)(-1);
-    }
-    mpp_assert(list_empty(&buffer->list_maps));
-    pthread_mutex_unlock(&buffer->lock);
-
-    list_for_each_entry_safe(pos, n, &list_maps, MppDevBufMapNode, list_buf) {
-        MppDev dev = pos->dev;
-
-        mpp_assert(dev);
-        mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
-        /* remove buffer from group */
-        mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
-        mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
-        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
-    }
-
     pthread_mutex_lock(&buffer->lock);
 
-    if (!MppBufferService::get_instance()->is_finalizing())
+    if (!MppBufferService::get_instance()->is_finalizing()) {
         mpp_assert(buffer->ref_count == 0);
+        if (buffer->ref_count > 0) {
+            pthread_mutex_unlock(&buffer->lock);
+            return MPP_OK;
+        }
+    }
 
     list_del_init(&buffer->list_status);
 
@@ -285,13 +279,15 @@ static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
         return MPP_OK;
     }
 
-    /* release buffer here */
-    BufferOp func = (buffer->mode == MPP_BUFFER_INTERNAL) ?
-                    (buffer->alloc_api->free) :
-                    (buffer->alloc_api->release);
-
-    func(buffer->allocator, &buffer->info);
-
+    /* remove all map from buffer */
+    INIT_LIST_HEAD(&list_maps);
+    list_for_each_entry_safe(pos, n, &buffer->list_maps, MppDevBufMapNode, list_buf) {
+        list_move_tail(&pos->list_buf, &list_maps);
+        pos->iova = (RK_U32)(-1);
+    }
+    mpp_assert(list_empty(&buffer->list_maps));
+    info = buffer->info;
+    clear_buffer_info(&buffer->info);
     if (group) {
         RK_U32 destroy = 0;
 
@@ -316,7 +312,26 @@ static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
     } else {
         mpp_assert(MppBufferService::get_instance()->is_finalizing());
     }
+
     pthread_mutex_unlock(&buffer->lock);
+
+    list_for_each_entry_safe(pos, n, &list_maps, MppDevBufMapNode, list_buf) {
+        MppDev dev = pos->dev;
+
+        mpp_assert(dev);
+        mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
+        /* remove buffer from group */
+        mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
+        mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
+        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
+    }
+
+    /* release buffer here */
+    BufferOp func = (buffer->mode == MPP_BUFFER_INTERNAL) ?
+                    (buffer->alloc_api->free) :
+                    (buffer->alloc_api->release);
+
+    func(buffer->allocator, &info);
 
     mpp_mem_pool_put_f(caller, mpp_buffer_pool, buffer);
 
