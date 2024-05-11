@@ -488,7 +488,10 @@ MPP_RET vcodec_service_init(void *ctx, MppClientType type)
     case VPU_CLIENT_VDPU1_PP : {
         name = mpp_find_device(mpp_vpu_dev);
         client_type = VPU_DEC_PP;
-        reg_size = VDPU1_PP_REGISTERS;
+        if (ROCKCHIP_SOC_RK3036 == mpp_get_soc_type())
+            reg_size = VDPU1_REGISTERS;
+        else
+            reg_size = VDPU1_PP_REGISTERS;
     } break;
     case VPU_CLIENT_VDPU2_PP : {
         name = mpp_find_device(mpp_vpu_dev);

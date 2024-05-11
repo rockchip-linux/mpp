@@ -915,9 +915,14 @@ MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
-        RK_U32 reg_size = mpp_get_ioctl_version() ?
+        MppIoctlVersion ioctl_version = mpp_get_ioctl_version();
+        RK_U32 reg_size = ioctl_version ?
                           sizeof(((JpegdIocRegInfo *)0)->regs) :
                           sizeof(JpegdIocRegInfo) - EXTRA_INFO_SIZE;
+
+        if (ROCKCHIP_SOC_RK3036 == mpp_get_soc_type() &&
+            IOCTL_VCODEC_SERVICE == ioctl_version)
+            reg_size -= sizeof(((JpegdIocRegInfo *)0)->regs_diff);
 
         wr_cfg.reg = regs;
         wr_cfg.size = reg_size;
