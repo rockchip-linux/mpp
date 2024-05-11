@@ -74,6 +74,7 @@ static MPP_RET hal_jpegd_deinit(void *hal)
 
 static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
 {
+    MPP_RET ret = MPP_ERR_UNKNOW;
     JpegdHalCtx *self = (JpegdHalCtx *)hal;
     MppHalApi *p_api = NULL;
     MppClientType client_type = VPU_CLIENT_BUTT;
@@ -155,20 +156,24 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
     } break;
     }
 
-    {
-        // report hw_info to parser
-        const MppSocInfo *info = mpp_get_soc_info();
-        RK_U32 i;
-
-        for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
-            if (info->dec_caps[i] && info->dec_caps[i]->type == client_type) {
-                cfg->hw_info = info->dec_caps[i];
-                break;
-            }
-        }
+    ret = mpp_dev_init(&cfg->dev, client_type);
+    if (ret) {
+        mpp_err("mpp_dev_init failed ret: %d\n", ret);
+        goto __RETURN;
     }
 
-    return p_api->init(hal, cfg);
+    cfg->hw_info = mpp_get_dec_hw_info_by_client_type(client_type);
+    self->hw_info = cfg->hw_info;
+    self->dev = cfg->dev;
+
+    ret = p_api->init(hal, cfg);
+    if (ret) {
+        mpp_err("init device with client_type %d failed!\n", client_type);
+        mpp_dev_deinit(cfg->dev);
+    }
+
+__RETURN:
+    return ret;
 }
 
 const MppHalApi hal_api_jpegd = {

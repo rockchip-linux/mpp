@@ -75,7 +75,6 @@ RK_U32 jpegd_vdpu_tail_0xFF_patch(MppBuffer stream, RK_U32 length);
 void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
                                 JpegdSyntax*syntax);
 
-void jpegd_check_have_pp(JpegdHalCtx *ctx);
 MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax,
                                RK_S32 output);
 

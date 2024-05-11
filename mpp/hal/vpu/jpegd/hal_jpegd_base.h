@@ -38,8 +38,6 @@ typedef struct JpegdHalCtx {
     MppBufSlots            packet_slots;
     MppBufSlots            frame_slots;
     MppDev                 dev;
-    MppClientType          dev_type;
-    RK_U32                 codec_type;
     void                   *regs;
     MppBufferGroup         group;
     MppBuffer              pTableBase;
@@ -58,7 +56,7 @@ typedef struct JpegdHalCtx {
 
     RK_U32                 have_pp;
     PPInfo                 pp_info;
-    RK_U32                 hw_id;
+    const MppDecHwCap       *hw_info;
 } JpegdHalCtx;
 
 #endif /* __HAL_JPEGD_COMMON_H__ */

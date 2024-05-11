@@ -432,22 +432,12 @@ void jpegd_write_qp_ac_dc_table(JpegdHalCtx *ctx,
     return;
 }
 
-void jpegd_check_have_pp(JpegdHalCtx *ctx)
-{
-    ctx->codec_type = mpp_get_vcodec_type();
-    ctx->have_pp = ((ctx->dev_type == VPU_CLIENT_VDPU1) &&
-                    (ctx->codec_type & (1 << VPU_CLIENT_VDPU1_PP))) ||
-                   ((ctx->dev_type == VPU_CLIENT_VDPU2) &&
-                    (ctx->codec_type & (1 << VPU_CLIENT_VDPU2_PP)));
-}
-
 MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 {
     jpegd_dbg_func("enter\n");
     RK_U32 pp_in_fmt = 0;
     RK_U32 stride = 0;
     PPInfo *pp_info = &ctx->pp_info;
-    MppClientType dev_type = ctx->dev_type;
     MppFrame frm = NULL;
     MPP_RET ret = MPP_OK;
 
@@ -513,40 +503,10 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
 
         jpegd_dbg_hal("Post Process! pp_in_fmt:%d, pp_out_fmt:%d",
                       pp_in_fmt, pp_info->pp_out_fmt);
-
-        /* check and switch to dev with pp */
-        if (ctx->dev_type == VPU_CLIENT_VDPU1)
-            dev_type = VPU_CLIENT_VDPU1_PP;
-        else if (ctx->dev_type == VPU_CLIENT_VDPU2)
-            dev_type = VPU_CLIENT_VDPU2_PP;
     } else {
         /* keep original output format */
         ctx->output_fmt = s->output_fmt;
         pp_info->pp_enable = 0;
-
-        /* check and switch to dev without pp */
-        if (ctx->dev_type == VPU_CLIENT_VDPU1_PP)
-            dev_type = VPU_CLIENT_VDPU1;
-        else if (ctx->dev_type == VPU_CLIENT_VDPU2_PP)
-            dev_type = VPU_CLIENT_VDPU2;
-    }
-
-    mpp_assert(ctx->dev);
-    if (ctx->dev_type != dev_type && ctx->dev) {
-        MppDev dev = NULL;
-
-        ret = mpp_dev_init(&dev, dev_type);
-        if (ret) {
-            mpp_err_f("dev type %x -> %x switch failed ret %d\n",
-                      ctx->dev_type, dev_type, ret);
-            return ret;
-        }
-
-        mpp_dev_deinit(ctx->dev);
-        ctx->dev = dev;
-        ctx->dev_type = dev_type;
-
-        jpegd_dbg_hal("mpp_dev_init success.\n");
     }
 
     mpp_buf_slot_get_prop(ctx->frame_slots, output,

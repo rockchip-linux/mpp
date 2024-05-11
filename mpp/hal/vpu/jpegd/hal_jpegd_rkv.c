@@ -255,15 +255,6 @@ MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
     ctx->dec_cb       = cfg->dec_cb;
     ctx->packet_slots = cfg->packet_slots;
     ctx->frame_slots  = cfg->frame_slots;
-    ctx->dev_type     = VPU_CLIENT_JPEG_DEC;
-
-    ret = mpp_dev_init(&ctx->dev, ctx->dev_type);
-    if (ret) {
-        mpp_err("mpp_dev_init failed. ret: %d\n", ret);
-        return ret;
-    }
-
-    ctx->hw_id = mpp_get_client_hw_id(VPU_CLIENT_JPEG_DEC);
 
     /* allocate regs buffer */
     if (ctx->regs == NULL) {

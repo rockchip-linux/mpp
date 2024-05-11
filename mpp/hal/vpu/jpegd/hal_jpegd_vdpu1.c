@@ -740,14 +740,7 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     JpegHalCtx->dec_cb       = cfg->dec_cb;
     JpegHalCtx->packet_slots = cfg->packet_slots;
     JpegHalCtx->frame_slots  = cfg->frame_slots;
-    JpegHalCtx->dev_type     = VPU_CLIENT_VDPU1;
-
-    ret = mpp_dev_init(&JpegHalCtx->dev, JpegHalCtx->dev_type);
-    if (ret) {
-        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-        return ret;
-    }
-    cfg->dev = JpegHalCtx->dev;
+    JpegHalCtx->have_pp      = cfg->hw_info->cap_jpg_pp_out;
 
     /* allocate regs buffer */
     if (JpegHalCtx->regs == NULL) {
@@ -784,7 +777,6 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     pp_info->pp_enable = 0;
     pp_info->pp_in_fmt = PP_IN_FORMAT_YUV420SEMI;
     pp_info->pp_out_fmt = PP_OUT_FORMAT_YUV420INTERLAVE;
-    jpegd_check_have_pp(JpegHalCtx);
 
     JpegHalCtx->output_fmt = MPP_FMT_YUV420SP;
     JpegHalCtx->set_output_fmt_flag = 0;
