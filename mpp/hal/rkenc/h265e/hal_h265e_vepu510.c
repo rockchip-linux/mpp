@@ -1875,7 +1875,7 @@ static MPP_RET vepu510_h265_set_feedback(H265eV510HalContext *ctx, HalEncTask *e
         hal_h265e_dbg_detail("RKV_ENC_INT_ONE_FRAME_FINISH");
 
     if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
-        hal_h265e_err("RKV_ENC_INT_ONE_SLICE_FINISH");
+        hal_h265e_dbg_detail("RKV_ENC_INT_ONE_SLICE_FINISH");
 
     if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
         hal_h265e_err("RKV_ENC_INT_SAFE_CLEAR_FINISH");
