@@ -48,6 +48,10 @@ typedef enum MppClientType_e {
     VPU_CLIENT_BUTT,
 } MppClientType;
 
+#define CLIENT_TYPE_MASK_DEC    0x0000ffff
+#define CLIENT_TYPE_MASK_ENC    0x0fff0000
+#define CLIENT_TYPE_MASK_VPROC  0xf0000000
+
 /* RK combined codec */
 #define HAVE_VDPU1          (1 << VPU_CLIENT_VDPU1)         /* 0x00000001 */
 #define HAVE_VDPU2          (1 << VPU_CLIENT_VDPU2)         /* 0x00000002 */

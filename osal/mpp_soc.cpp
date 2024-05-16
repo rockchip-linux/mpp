@@ -528,9 +528,20 @@ static const MppEncHwCap vepu2_no_jpeg = {
 
 static const MppEncHwCap vepu2_jpeg = {
     .cap_coding         = HAVE_MJPEG,
-    .type               = VPU_CLIENT_VEPU2_JPEG,
+    .type               = VPU_CLIENT_VEPU2,
     .cap_fbc            = 0,
     .cap_4k             = 0,
+    .cap_8k             = 0,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 0,
+    .reserved           = 0,
+};
+
+static const MppEncHwCap vepu2_jpeg_enhanced = {
+    .cap_coding         = HAVE_MJPEG,
+    .type               = VPU_CLIENT_VEPU2_JPEG,
+    .cap_fbc            = 0,
+    .cap_4k             = 1,
     .cap_8k             = 0,
     .cap_hw_osd         = 0,
     .cap_hw_roi         = 0,
@@ -806,7 +817,7 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rv1109",
         ROCKCHIP_SOC_RV1109,
-        HAVE_VDPU2 | HAVE_VEPU2_JPEG | HAVE_RKVDEC | HAVE_RKVENC,
+        HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
         {   &vdpu2_jpeg_fix, &vdpu341_lite, NULL, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
@@ -818,7 +829,7 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rv1126",
         ROCKCHIP_SOC_RV1126,
-        HAVE_VDPU2 | HAVE_VEPU2_JPEG | HAVE_RKVDEC | HAVE_RKVENC,
+        HAVE_VDPU2 | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC,
         {   &vdpu2_jpeg_fix, &vdpu341_lite, NULL, NULL, NULL, NULL, },
         {   &vepu2_jpeg, &vepu541, NULL, NULL, },
     },
@@ -904,7 +915,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_RKVENC |
         HAVE_JPEG_DEC | HAVE_AV1DEC | HAVE_AVSDEC | HAVE_VEPU2_JPEG,
         {   &vdpu38x, &rkjpegd, &vdpu2, &vdpu2_jpeg_pp_fix, &av1d, &avspd},
-        {   &vepu58x, &vepu2, &vepu2_jpeg, NULL, },
+        {   &vepu58x, &vepu2, &vepu2_jpeg_enhanced, NULL, },
     },
     {   /*
          * rk3528a has codec:
@@ -1073,7 +1084,8 @@ MppSocService::MppSocService()
 
     mpp_dbg_platform("coding caps: dec %08x enc %08x\n",
                      dec_coding_cap, enc_coding_cap);
-    mpp_dbg_platform("vcodec type: %08x\n", soc_info->vcodec_type);
+    mpp_dbg_platform("vcodec type from cap: %08x, from soc_info %08x\n",
+                     vcodec_type, soc_info->vcodec_type);
     mpp_assert(soc_info->vcodec_type == vcodec_type);
 }
 

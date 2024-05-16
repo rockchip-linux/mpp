@@ -133,10 +133,37 @@ MppPlatformService::MppPlatformService()
     if (mpp_get_mpp_service_name()) {
         ioctl_version = IOCTL_MPP_SERVICE_V1;
         check_mpp_service_cap(&vcodec_type, hw_ids, cap);
+        mpp_dbg_platform("vcodec_type from kernel 0x%08x, vs from soc info 0x%08x\n",
+                         vcodec_type, soc_info->vcodec_type);
     }
     kernel_version = check_kernel_version();
-    if (!vcodec_type)
+    if (!vcodec_type) {
         vcodec_type = soc_info->vcodec_type;
+    } else {
+        // Compare kernel result with soc infomation.
+        RK_U32 diff_type = vcodec_type ^ soc_info->vcodec_type;
+        RK_U32 i;
+
+        for (i = 0; i <= VPU_CLIENT_VEPU22; i++) {
+            RK_U32 mask = 1 << i;
+
+            if (diff_type & mask) {
+                MppClientType client_type = (MppClientType) i;
+
+                mpp_dbg_platform("confliction found at client_type %d\n", client_type);
+
+                if (soc_info->vcodec_type & mask) {
+                    mpp_err("client %d driver is not ready!\n", client_type);
+                } else {
+                    mpp_dbg_platform("client %d driver is ready but not declared!\n", client_type);
+                    if (client_type == VPU_CLIENT_VDPU2_PP)
+                        vcodec_type &= ~mask;
+                }
+            }
+        }
+
+        mpp_dbg_platform("vcode_type 0x%08x\n", vcodec_type);
+    }
 }
 
 RK_U32 MppPlatformService::get_hw_id(RK_S32 client_type)
