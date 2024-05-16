@@ -9,10 +9,22 @@ include_directories(../../../codec/enc/h264/)
 set(HAL_H264E_HDR
     )
 
+# hal h264 encoder common
+set(HAL_H264E_COM_SRC
+    hal_h264e_stream_amend.c
+    )
+
+add_library(hal_h264e_com STATIC
+            ${HAL_H264E_HDR}
+            ${HAL_H264E_COM_SRC}
+            )
+
+target_link_libraries(hal_h264e_com mpp_base)
+set_target_properties(hal_h264e_com PROPERTIES FOLDER "mpp/hal")
+
 # hal h264 encoder sourse
 set(HAL_H264E_SRC
     hal_h264e_api_v2.c
-    hal_h264e_stream_amend.c
     )
 
 add_library(hal_h264e STATIC

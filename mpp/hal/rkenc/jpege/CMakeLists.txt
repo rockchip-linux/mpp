@@ -21,5 +21,5 @@ add_library(hal_jpege_rkv STATIC
             ${HAL_JPEGE_SRC}
             )
 
-target_link_libraries(hal_jpege_rkv  hal_jpege hal_common hal_vepu541_common)
+target_link_libraries(hal_jpege_rkv  hal_jpege_com hal_common hal_vepu541_common)
 set_target_properties(hal_jpege_rkv  PROPERTIES FOLDER "mpp/hal")

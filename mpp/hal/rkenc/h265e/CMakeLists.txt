@@ -25,5 +25,5 @@ add_library(hal_h265e_vepu541 STATIC
             ${HAL_H265E_SRC}
             )
 
-target_link_libraries(hal_h265e_vepu541 hal_h265e hal_common hal_vepu541_common)
+target_link_libraries(hal_h265e_vepu541 hal_h265e_com hal_common hal_vepu541_common)
 set_target_properties(hal_h265e_vepu541 PROPERTIES FOLDER "mpp/hal")
