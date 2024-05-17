@@ -2838,7 +2838,28 @@ TASK_DONE:
     return ret;
 }
 
-static MPP_RET proc_async_task(MppEncImpl *enc)
+static MPP_RET try_proc_processing_task(MppEncImpl *enc, EncAsyncWait *wait)
+{
+    HalTaskHnd hnd = NULL;
+    EncAsyncTaskInfo *info = NULL;
+    MPP_RET ret = MPP_NOK;
+
+    ret = hal_task_get_hnd(enc->tasks, TASK_PROCESSING, &hnd);
+    if (ret)
+        return ret;
+
+    info = (EncAsyncTaskInfo *)hal_task_hnd_get_data(hnd);
+
+    mpp_assert(!info->status.enc_done);
+
+    enc_async_wait_task(enc, info);
+    hal_task_hnd_set_status(hnd, TASK_IDLE);
+    wait->task_hnd = 0;
+
+    return MPP_OK;
+}
+
+static MPP_RET proc_async_task(MppEncImpl *enc, EncAsyncWait *wait)
 {
     Mpp *mpp = (Mpp*)enc->mpp;
     EncImpl impl = enc->impl;
@@ -2861,18 +2882,9 @@ static MPP_RET proc_async_task(MppEncImpl *enc)
         bool two_pass_en = mpp_enc_refs_next_frm_is_intra(enc->refs);
 
         if (two_pass_en) {
-            HalTaskHnd hnd = NULL;
-            EncAsyncTaskInfo *info = NULL;
-
             /* wait all tasks done */
-            while (MPP_OK == hal_task_get_hnd(enc->tasks, TASK_PROCESSING, &hnd)) {
-                info = (EncAsyncTaskInfo *)hal_task_hnd_get_data(hnd);
+            while (MPP_OK == try_proc_processing_task(enc, wait));
 
-                mpp_assert(!info->status.enc_done);
-
-                enc_async_wait_task(enc, info);
-                hal_task_hnd_set_status(hnd, TASK_IDLE);
-            }
             ret = mpp_enc_proc_two_pass(mpp, async);
             if (ret)
                 return ret;
@@ -3065,8 +3077,6 @@ void *mpp_enc_async_thread(void *data)
         // 1. process user control and reset flag
         if (enc->cmd_send != enc->cmd_recv || enc->reset_flag) {
             mpp_list *frm_in = mpp->mFrmIn;
-            HalTaskHnd hnd = NULL;
-            EncAsyncTaskInfo *info = NULL;
 
             /* when process cmd or reset hold frame input */
             frm_in->lock();
@@ -3074,15 +3084,7 @@ void *mpp_enc_async_thread(void *data)
             enc_dbg_detail("ctrl proc %d cmd %08x\n", enc->cmd_recv, enc->cmd);
 
             // wait all tasks done
-            while (MPP_OK == hal_task_get_hnd(enc->tasks, TASK_PROCESSING, &hnd)) {
-                info = (EncAsyncTaskInfo *)hal_task_hnd_get_data(hnd);
-
-                mpp_assert(!info->status.enc_done);
-
-                enc_async_wait_task(enc, info);
-                hal_task_hnd_set_status(hnd, TASK_IDLE);
-                wait.task_hnd = 0;
-            }
+            while (MPP_OK == try_proc_processing_task(enc, &wait));
 
             if (enc->cmd_send != enc->cmd_recv) {
                 sem_wait(&enc->cmd_start);
@@ -3136,28 +3138,17 @@ void *mpp_enc_async_thread(void *data)
         ret = try_get_async_task(enc, &wait);
         enc_dbg_detail("try_get_async_task ret %d\n", ret);
         if (ret) {
-            HalTaskHnd hnd = NULL;
-            EncAsyncTaskInfo *info = NULL;
-
-            hal_task_get_hnd(enc->tasks, TASK_PROCESSING, &hnd);
-            if (hnd) {
-                info = (EncAsyncTaskInfo *)hal_task_hnd_get_data(hnd);
-
-                mpp_assert(!info->status.enc_done);
-
-                enc_async_wait_task(enc, info);
-                hal_task_hnd_set_status(hnd, TASK_IDLE);
-                wait.task_hnd = 0;
-            }
-
+            try_proc_processing_task(enc, &wait);
             continue;
         }
 
         mpp_assert(enc->async);
         mpp_assert(enc->async->task.valid);
 
-        proc_async_task(enc);
+        proc_async_task(enc, &wait);
     }
+    /* wait all task done */
+    while (MPP_OK == try_proc_processing_task(enc, &wait));
 
     enc_dbg_func("thread finish\n");
 
