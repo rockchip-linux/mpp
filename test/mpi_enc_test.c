@@ -815,6 +815,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                     RK_S32 temporal_id = 0;
                     RK_S32 lt_idx = -1;
                     RK_S32 avg_qp = -1;
+                    RK_S32 use_lt_idx = -1;
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
                         log_len += snprintf(log_buf + log_len, log_size - log_len,
@@ -826,7 +827,10 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_AVERAGE_QP, &avg_qp))
                         log_len += snprintf(log_buf + log_len, log_size - log_len,
-                                            " qp %d", avg_qp);
+                                            " qp %2d", avg_qp);
+
+                    if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &use_lt_idx))
+                        log_len += snprintf(log_buf + log_len, log_size - log_len, " vi");
                 }
 
                 mpp_log_q(quiet, "chn %d %s\n", chn, log_buf);

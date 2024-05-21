@@ -2234,6 +2234,9 @@ static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
         /* frame type */
         mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA,    frm->is_intra);
         mpp_meta_set_s32(meta, KEY_OUTPUT_PSKIP,    frm->force_pskip || is_pskip);
+
+        if (rc_task->info.frame_type == INTER_VI_FRAME)
+            mpp_meta_set_s32(meta, KEY_ENC_USE_LTR, rc_task->cpb.refr.lt_idx);
     }
     /* start qp and average qp */
     mpp_meta_set_s32(meta, KEY_ENC_START_QP,    rc_task->info.quality_target);
