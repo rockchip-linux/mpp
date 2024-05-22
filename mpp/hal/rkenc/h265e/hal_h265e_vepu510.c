@@ -1865,7 +1865,7 @@ static MPP_RET vepu510_h265_set_feedback(H265eV510HalContext *ctx, HalEncTask *e
     fb->qp_sum += elem->st.qp_sum;
     fb->out_strm_size += elem->st.bs_lgth_l32;
     fb->sse_sum += (RK_S64)(elem->st.sse_h32 << 16) +
-                   ((elem->st.st_sse_bsl.sse_l16 >> 16) & 0xffff) ;
+                   (elem->st.st_sse_bsl.sse_l16 & 0xffff);
 
     fb->hw_status = hw_status;
     hal_h265e_dbg_detail("hw_status: 0x%08x", hw_status);

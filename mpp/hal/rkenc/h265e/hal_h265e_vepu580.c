@@ -2875,7 +2875,7 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
                 fb->qp_sum += reg_out->st.qp_sum;
                 fb->out_strm_size += reg_out->st.bs_lgth_l32;
                 fb->sse_sum += (RK_S64)(reg_out->st.sse_h32 << 16) +
-                               ((reg_out->st.st_sse_bsl.sse_l16 >> 16) & 0xffff);
+                               (reg_out->st.st_sse_bsl.sse_l16 & 0xffff);
                 fb->st_madi += reg_out->st.madi;
                 fb->st_madp += reg_out->st.madp;
                 fb->st_mb_num += reg_out->st.st_bnum_b16.num_b16;
@@ -2912,7 +2912,7 @@ static MPP_RET vepu580_h265_set_feedback(H265eV580HalContext *ctx, HalEncTask *e
     fb->out_strm_size += elem->st.bs_lgth_l32;
 
     fb->sse_sum += (RK_S64)(elem->st.sse_h32 << 16) +
-                   ((elem->st.st_sse_bsl.sse_l16 >> 16) & 0xffff);
+                   (elem->st.st_sse_bsl.sse_l16 & 0xffff);
 
     fb->hw_status = hw_status;
     hal_h265e_dbg_detail("hw_status: 0x%08x", hw_status);
