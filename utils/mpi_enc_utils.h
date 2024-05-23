@@ -79,6 +79,13 @@ typedef struct MpiEncTestArgs_t {
 
     /* -qpdd cu_qp_delta_depth */
     RK_S32              cu_qp_delta_depth;
+    RK_S32              anti_flicker_str;
+
+    /* -dbe deblur enable flag
+     * -dbs deblur strength
+     */
+    RK_S32              deblur_en;
+    RK_S32              deblur_str;
 
     /* -v q runtime log disable flag */
     RK_U32              quiet;

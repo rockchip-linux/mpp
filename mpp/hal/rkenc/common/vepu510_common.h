@@ -823,33 +823,33 @@ typedef struct Vepu510RcRoi_t {
 
     /* 0x00001054 reg1045 */
     struct {
-        RK_U32 aq_stp_s0     : 5;
-        RK_U32 aq_stp_0t1    : 5;
-        RK_U32 aq_stp_1t2    : 5;
-        RK_U32 aq_stp_2t3    : 5;
-        RK_U32 aq_stp_3t4    : 5;
-        RK_U32 aq_stp_4t5    : 5;
-        RK_U32 reserved      : 2;
+        RK_S32 aq_stp_s0     : 5;
+        RK_S32 aq_stp_0t1    : 5;
+        RK_S32 aq_stp_1t2    : 5;
+        RK_S32 aq_stp_2t3    : 5;
+        RK_S32 aq_stp_3t4    : 5;
+        RK_S32 aq_stp_4t5    : 5;
+        RK_S32 reserved      : 2;
     } aq_stp0;
 
     /* 0x00001058 reg1046 */
     struct {
-        RK_U32 aq_stp_5t6      : 5;
-        RK_U32 aq_stp_6t7      : 5;
-        RK_U32 aq_stp_7t8      : 5;
-        RK_U32 aq_stp_8t9      : 5;
-        RK_U32 aq_stp_9t10     : 5;
-        RK_U32 aq_stp_10t11    : 5;
-        RK_U32 reserved        : 2;
+        RK_S32 aq_stp_5t6      : 5;
+        RK_S32 aq_stp_6t7      : 5;
+        RK_S32 aq_stp_7t8      : 5;
+        RK_S32 aq_stp_8t9      : 5;
+        RK_S32 aq_stp_9t10     : 5;
+        RK_S32 aq_stp_10t11    : 5;
+        RK_S32 reserved        : 2;
     } aq_stp1;
 
     /* 0x0000105c reg1047 */
     struct {
-        RK_U32 aq_stp_11t12    : 5;
-        RK_U32 aq_stp_12t13    : 5;
-        RK_U32 aq_stp_13t14    : 5;
-        RK_U32 aq_stp_14t15    : 5;
-        RK_U32 aq_stp_b15      : 5;
+        RK_S32 aq_stp_11t12    : 5;
+        RK_S32 aq_stp_12t13    : 5;
+        RK_S32 aq_stp_13t14    : 5;
+        RK_S32 aq_stp_14t15    : 5;
+        RK_S32 aq_stp_b15      : 5;
         RK_U32 reserved        : 7;
     } aq_stp2;
 
@@ -2173,6 +2173,23 @@ typedef struct Vepu510Dbg_t {
     /* 0x00005230 reg5260 */
     RK_U32 jpeg_fcyc;
 } Vepu510Dbg;
+
+/* ROI block configuration */
+typedef struct Vepu510H264RoiBlkCfg {
+    RK_U32 qp_adju        : 8;
+    RK_U32 mdc_adju_inter : 4;
+    RK_U32 mdc_adju_skip  : 4;
+    RK_U32 mdc_adju_intra : 4;
+    RK_U32 reserved       : 12;
+} Vepu510H264RoiBlkCfg;
+
+typedef struct Vepu510H265RoiBlkCfg {
+    RK_U32 qp_adju        : 8;
+    RK_U32 reserved       : 12;
+    RK_U32 mdc_adju_inter : 4;
+    RK_U32 mdc_adju_skip  : 4;
+    RK_U32 mdc_adju_intra : 4;
+} Vepu510H265RoiBlkCfg;
 
 #ifdef __cplusplus
 extern "C" {

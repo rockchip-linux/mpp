@@ -50,6 +50,7 @@ typedef enum RcMode_e {
     RC_CBR,
     RC_FIXQP,
     RC_AVBR,
+    RC_SMT,
     RC_CVBR,
     RC_QVBR,
     RC_LEARNING,

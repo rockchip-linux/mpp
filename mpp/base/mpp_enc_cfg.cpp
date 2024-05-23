@@ -257,6 +257,9 @@ public:
     ENTRY(hw,   qbias_en,       S32, RK_S32,            MPP_ENC_HW_CFG_CHANGE_QBIAS_EN,         hw, qbias_en) \
     /* quality fine tuning config */ \
     ENTRY(tune, scene_mode,     S32, MppEncSceneMode,   MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode) \
+    ENTRY(tune, deblur_en,      S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN,      tune, deblur_en) \
+    ENTRY(tune, deblur_str,     S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR,     tune, deblur_str) \
+    ENTRY(tune, anti_flicker_str,S32, RK_S32,           MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR,tune, anti_flicker_str) \
     ENTRY(tune, lambda_idx_i,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I,   tune, lambda_idx_i) \
     ENTRY(tune, lambda_idx_p,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P,   tune, lambda_idx_p)
 

@@ -402,7 +402,7 @@ static void setup_hal_bufs(HalH264eVepu510Ctx *ctx)
         (ctx->pixel_buf_size != pixel_buf_size) ||
         (ctx->thumb_buf_size != thumb_buf_size) ||
         (new_max_cnt > old_max_cnt)) {
-        size_t sizes[2];
+        size_t sizes[3];
 
         hal_h264e_dbg_detail("frame size %d -> %d max count %d -> %d\n",
                              ctx->pixel_buf_size, pixel_buf_size,
@@ -412,9 +412,11 @@ static void setup_hal_bufs(HalH264eVepu510Ctx *ctx)
         sizes[0] = pixel_buf_size;
         /* thumb buffer */
         sizes[1] = thumb_buf_size;
+        /* smear buffer */
+        sizes[2] = MPP_ALIGN(aligned_w / 64, 16) * MPP_ALIGN(aligned_h / 16, 16);
         new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
 
-        hal_bufs_setup(ctx->hw_recn, new_max_cnt, 2, sizes);
+        hal_bufs_setup(ctx->hw_recn, new_max_cnt, MPP_ARRAY_ELEMS(sizes), sizes);
 
         ctx->pixel_buf_fbc_hdr_size = pixel_buf_fbc_hdr_size;
         ctx->pixel_buf_fbc_bdy_size = pixel_buf_fbc_bdy_size;
@@ -1261,11 +1263,16 @@ static void setup_vepu510_rc_base(HalVepu510RegSet *regs, HalH264eVepu510Ctx *ct
     reg_frm->common.rc_cfg.aq_en          = 1;
     reg_frm->common.rc_cfg.rc_ctu_num     = mb_w;
 
-    reg_frm->common.rc_qp.rc_qp_range     = (slice->slice_type == H264_I_SLICE) ?
-                                            hw->qp_delta_row_i : hw->qp_delta_row;
     reg_frm->common.rc_qp.rc_max_qp       = qp_max;
     reg_frm->common.rc_qp.rc_min_qp       = qp_min;
     reg_frm->common.rc_tgt.ctu_ebit       = mb_target_bits_mul_16;
+
+    if (rc->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+        reg_frm->common.rc_qp.rc_qp_range = 0;
+    } else {
+        reg_frm->common.rc_qp.rc_qp_range = (slice->slice_type == H264_I_SLICE) ?
+                                            hw->qp_delta_row_i : hw->qp_delta_row;
+    }
 
     {
         /* fixed frame level QP */
@@ -1544,6 +1551,7 @@ static void setup_vepu510_recn_refr(HalH264eVepu510Ctx *ctx, HalVepu510RegSet *r
     if (curr && curr->cnt) {
         MppBuffer buf_pixel = curr->buf[0];
         MppBuffer buf_thumb = curr->buf[1];
+        MppBuffer buf_smear = curr->buf[2];
         RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
@@ -1552,11 +1560,13 @@ static void setup_vepu510_recn_refr(HalH264eVepu510Ctx *ctx, HalVepu510RegSet *r
         reg_frm->common.rfpw_h_addr = fd;
         reg_frm->common.rfpw_b_addr = fd;
         reg_frm->common.dspw_addr = mpp_buffer_get_fd(buf_thumb);
+        reg_frm->common.adr_smear_wr = mpp_buffer_get_fd(buf_smear);
     }
 
     if (refr && refr->cnt) {
         MppBuffer buf_pixel = refr->buf[0];
         MppBuffer buf_thumb = refr->buf[1];
+        MppBuffer buf_smear = curr->buf[2];
         RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
@@ -1565,6 +1575,7 @@ static void setup_vepu510_recn_refr(HalH264eVepu510Ctx *ctx, HalVepu510RegSet *r
         reg_frm->common.rfpr_h_addr = fd;
         reg_frm->common.rfpr_b_addr = fd;
         reg_frm->common.dspr_addr = mpp_buffer_get_fd(buf_thumb);
+        reg_frm->common.adr_smear_rd = mpp_buffer_get_fd(buf_smear);
     }
     mpp_dev_multi_offset_update(ctx->offsets, 164, fbc_hdr_size);
     mpp_dev_multi_offset_update(ctx->offsets, 166, fbc_hdr_size);

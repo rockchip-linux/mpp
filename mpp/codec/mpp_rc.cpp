@@ -155,7 +155,7 @@ void mpp_pid_set_param(MppPIDCtx *ctx, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef
                   ctx, coef_p, coef_i, coef_d, div, len);
 }
 
-void mpp_pid_update(MppPIDCtx *ctx, RK_S32 val)
+void mpp_pid_update(MppPIDCtx *ctx, RK_S32 val, RK_S32 is_reset)
 {
     mpp_rc_dbg_rc("RC: pid ctx %p update val %d\n", ctx, val);
     mpp_rc_dbg_rc("RC: pid ctx %p before update P %d I %d D %d\n", ctx, ctx->p, ctx->i, ctx->d);
@@ -169,7 +169,7 @@ void mpp_pid_update(MppPIDCtx *ctx, RK_S32 val)
     /*
      * pid control is a short time control, it needs periodically reset
      */
-    if (ctx->count >= ctx->len)
+    if (is_reset && ctx->count >= ctx->len)
         mpp_pid_reset(ctx);
 }
 

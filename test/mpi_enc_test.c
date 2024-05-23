@@ -119,6 +119,7 @@ typedef struct {
     RK_S32 vi_len;
     RK_S32 scene_mode;
     RK_S32 cu_qp_delta_depth;
+    RK_S32 anti_flicker_str;
 
     RK_S64 first_frm;
     RK_S64 first_pkt;
@@ -180,6 +181,7 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_num  = cmd->fps_out_num;
     p->scene_mode   = cmd->scene_mode;
     p->cu_qp_delta_depth = cmd->cu_qp_delta_depth;
+    p->anti_flicker_str = cmd->anti_flicker_str;
     p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
                       (MPP_ALIGN(p->hor_stride, 32) >> 5) *
                       (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
@@ -318,8 +320,11 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
     mpp_enc_cfg_set_s32(cfg, "rc:cu_qp_delta_depth", p->cu_qp_delta_depth);
+    mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
 
     mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
+    mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
+    mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
 
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
@@ -387,7 +392,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         } break;
         case MPP_ENC_RC_MODE_CBR :
         case MPP_ENC_RC_MODE_VBR :
-        case MPP_ENC_RC_MODE_AVBR : {
+        case MPP_ENC_RC_MODE_AVBR :
+        case MPP_ENC_RC_MODE_SMTRC : {
             mpp_enc_cfg_set_s32(cfg, "rc:qp_init", cmd->qp_init ? cmd->qp_init : -1);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_max", cmd->qp_max ? cmd->qp_max : 51);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min", cmd->qp_min ? cmd->qp_min : 10);
@@ -508,6 +514,19 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         goto RET;
     }
 
+    if (cmd->type == MPP_VIDEO_CodingAVC || cmd->type == MPP_VIDEO_CodingHEVC) {
+        RcApiBrief rc_api_brief;
+        rc_api_brief.type = cmd->type;
+        rc_api_brief.name = (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) ?
+                            "smart" : "default";
+
+        ret = mpi->control(ctx, MPP_ENC_SET_RC_API_CURRENT, &rc_api_brief);
+        if (ret) {
+            mpp_err("mpi control enc set rc api failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
     if (ref)
         mpp_enc_ref_cfg_deinit(&ref);
 
@@ -607,7 +626,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
             if (ret == MPP_NOK || feof(p->fp_input)) {
                 p->frm_eos = 1;
 
-                if (p->frame_num < 0 || p->frame_count < p->frame_num) {
+                if (p->frame_num < 0) {
                     clearerr(p->fp_input);
                     rewind(p->fp_input);
                     p->frm_eos = 0;
@@ -818,7 +837,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                     meta = mpp_packet_get_meta(packet);
                     RK_S32 temporal_id = 0;
                     RK_S32 lt_idx = -1;
-                    RK_S32 avg_qp = -1;
+                    RK_S32 avg_qp = -1, bps_rt = -1;
                     RK_S32 use_lt_idx = -1;
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
@@ -832,6 +851,10 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_AVERAGE_QP, &avg_qp))
                         log_len += snprintf(log_buf + log_len, log_size - log_len,
                                             " qp %2d", avg_qp);
+
+                    if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_BPS_RT, &bps_rt))
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " bps_rt %d", bps_rt);
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &use_lt_idx))
                         log_len += snprintf(log_buf + log_len, log_size - log_len, " vi");

@@ -215,7 +215,10 @@ typedef struct EncRcCommonInfo_t {
     RK_S32          scene_mode;
     RK_S32          last_scene_mode;
 
-    RK_S32          reserve[5];
+    /* rc stats info: real time bits */
+    RK_S32          rt_bits;
+
+    RK_S32          reserve[4];
 } EncRcTaskInfo;
 
 typedef struct EncRcTask_s {

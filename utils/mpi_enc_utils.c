@@ -292,7 +292,7 @@ RK_S32 mpi_enc_opt_rc(void *ctx, const char *next)
     }
 
     mpp_err("invalid rate control usage -rc rc_mode\n");
-    mpp_err("rc_mode 0:vbr 1:cbr 2:avbr 3:cvbr 4:fixqp\n");
+    mpp_err("rc_mode 0:vbr 1:cbr 2:fixqp 3:avbr 4:smtrc\n");
     return 0;
 }
 
@@ -501,11 +501,50 @@ RK_S32 mpi_enc_opt_qpdd(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_dbe(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->deblur_en = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid deblur en\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_dbs(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->deblur_str = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid deblur str\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
 {
     (void)ctx;
     (void)next;
     return -1;
+}
+
+RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->anti_flicker_str = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid cu_qp_delta_depth\n");
+    return 0;
 }
 
 static MppOptInfo enc_opts[] = {
@@ -532,6 +571,9 @@ static MppOptInfo enc_opts[] = {
     {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
     {"sm",      "scene mode",           "scene_mode, 0:default 1:ipc",              mpi_enc_opt_sm},
     {"qpdd",    "cu_qp_delta_depth",    "cu_qp_delta_depth, 0:1:2",                 mpi_enc_opt_qpdd},
+    {"dbe",     "deblur enable",        "deblur_en or qpmap_en, 0:close 1:open",           mpi_enc_opt_dbe},
+    {"dbs",     "deblur strength",      "deblur_str 0~3: hw + sw scheme; 4~7: hw scheme",  mpi_enc_opt_dbs},
+    {"atf",     "anti_flicker_str",     "anti_flicker_str, 0:off 1 2 3",            mpi_enc_opt_atf},
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);

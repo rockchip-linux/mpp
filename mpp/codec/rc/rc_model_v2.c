@@ -1705,6 +1705,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
     if (usr_cfg->mode == RC_FIXQP)
         goto DONE;
 
+    cfg->rt_bits = p->ins_bps;
     p->last_inst_bps = p->ins_bps;
     p->first_frm_flg = 0;
 

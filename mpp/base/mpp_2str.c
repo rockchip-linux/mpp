@@ -72,6 +72,7 @@ const char *strof_rc_mode(MppEncRcMode rc_mode)
         "cbr",
         "fixqp",
         "avbr",
+        "smtrc"
     };
 
     if (rc_mode >= MPP_ENC_RC_MODE_VBR && rc_mode < MPP_ENC_RC_MODE_BUTT)

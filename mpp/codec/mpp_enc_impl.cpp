@@ -862,8 +862,27 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
 
         if (dst->scene_mode < MPP_ENC_SCENE_MODE_DEFAULT ||
             dst->scene_mode >= MPP_ENC_SCENE_MODE_BUTT) {
-            mpp_err("invalid scene mode %d not in range [%d:%d]\n", dst->scene_mode,
+            mpp_err("invalid scene mode %d not in range [%d, %d]\n", dst->scene_mode,
                     MPP_ENC_SCENE_MODE_DEFAULT, MPP_ENC_SCENE_MODE_BUTT - 1);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN)
+            dst->deblur_en = src->deblur_en;
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR)
+            dst->deblur_str = src->deblur_str;
+
+        if (dst->deblur_str < 0 || dst->deblur_str > 7) {
+            mpp_err("invalid deblur strength not in range [0, 7]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR)
+            dst->anti_flicker_str = src->anti_flicker_str;
+
+        if (dst->anti_flicker_str < 0 || dst->anti_flicker_str > 3) {
+            mpp_err("invalid anti_flicker_str not in range [0 : 3]\n");
             ret = MPP_ERR_VALUE;
         }
 
@@ -871,7 +890,7 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             dst->lambda_idx_i = src->lambda_idx_i;
 
         if (dst->lambda_idx_i < 0 || dst->lambda_idx_i > 8) {
-            mpp_err("invalid lambda idx i not in range [0 : 8]\n");
+            mpp_err("invalid lambda idx i not in range [0, 8]\n");
             ret = MPP_ERR_VALUE;
         }
 
@@ -879,7 +898,7 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             dst->lambda_idx_p = src->lambda_idx_p;
 
         if (dst->lambda_idx_p < 0 || dst->lambda_idx_p > 8) {
-            mpp_err("invalid lambda idx i not in range [0 : 8]\n");
+            mpp_err("invalid lambda idx i not in range [0, 8]\n");
             ret = MPP_ERR_VALUE;
         }
 
@@ -1152,6 +1171,7 @@ static const char *name_of_rc_mode[] = {
     "cbr",
     "fixqp",
     "avbr",
+    "smtrc"
 };
 
 static void update_rc_cfg_log(MppEncImpl *impl, const char* fmt, ...)
@@ -1236,6 +1256,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     } break;
     case MPP_ENC_RC_MODE_FIXQP: {
         cfg->mode = RC_FIXQP;
+    } break;
+    case MPP_ENC_RC_MODE_SMTRC: {
+        cfg->mode = RC_SMT;
     } break;
     default : {
         cfg->mode = RC_AVBR;
@@ -2253,6 +2276,7 @@ static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
         /* frame type */
         mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA,    frm->is_intra);
         mpp_meta_set_s32(meta, KEY_OUTPUT_PSKIP,    frm->force_pskip || is_pskip);
+        mpp_meta_set_s32(meta, KEY_ENC_BPS_RT, rc_task->info.rt_bits);
 
         if (rc_task->info.frame_type == INTER_VI_FRAME)
             mpp_meta_set_s32(meta, KEY_ENC_USE_LTR, rc_task->cpb.refr.lt_idx);

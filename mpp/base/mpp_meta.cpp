@@ -56,6 +56,7 @@ static MppMetaDef meta_defs[] = {
     {   KEY_LONG_REF_IDX,       TYPE_S32,       },
     {   KEY_ENC_AVERAGE_QP,     TYPE_S32,       },
     {   KEY_ENC_START_QP,       TYPE_S32,       },
+    {   KEY_ENC_BPS_RT,         TYPE_S32,       },
 
     {   KEY_ROI_DATA,           TYPE_PTR,       },
     {   KEY_ROI_DATA2,          TYPE_PTR,       },

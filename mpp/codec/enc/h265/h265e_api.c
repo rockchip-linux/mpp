@@ -112,6 +112,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.scene_mode = MPP_ENC_SCENE_MODE_DEFAULT;
     p->cfg->tune.lambda_idx_i = 2;
     p->cfg->tune.lambda_idx_p = 4;
+    p->cfg->tune.anti_flicker_str = 2;
 
     /*
      * default prep:

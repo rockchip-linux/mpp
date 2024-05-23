@@ -18,15 +18,48 @@
 #include "hal_h265e_vepu510_reg.h"
 
 typedef struct HalH265eVepu510Tune_t {
-    H265eV510HalContext  *ctx;
+    H265eV510HalContext *ctx;
 
-    RK_S32  pre_madp[2];
-    RK_S32  pre_madi[2];
+    RK_U8 *qm_mv_buf; /* qpmap move flag buffer */
+    RK_U32 qm_mv_buf_size;
+
+    RK_S32 pre_madp[2];
+    RK_S32 pre_madi[2];
 } HalH265eVepu510Tune;
+
+static RK_U32 aq_thd_default[16] = {
+    0,  0,  0,  0,  3,  3,  5,  5,
+    8,  8,  8, 15, 15, 20, 25, 25
+};
+
+static RK_S32 aq_qp_delta_default[16] = {
+    -8, -7, -6, -5, -4, -3, -2, -1,
+    1,  2,  3,  4,  5,  6,  7,  8
+};
+
+static RK_U32 aq_thd_smt_I[16] = {
+    1,  2,  3,   3,  3,  3,  5,  5,
+    8,  8,  8,  13, 15, 20, 25, 25
+};
+
+static RK_S32 aq_qp_delta_smt_I[16] = {
+    -8, -7, -6, -5, -4, -3, -2, -1,
+    0,  1,  2,  3,  5,  7,  8,  9
+};
+
+static RK_U32 aq_thd_smt_P[16] = {
+    0,  0,  0,   0,  3,  3,  5,  5,
+    8,  8,  8,  15, 15, 20, 25, 25
+};
+
+static RK_S32 aq_qp_delta_smt_P[16] = {
+    -8, -7, -6, -5, -4, -3, -2, -1,
+    0,  1,  2,  3,  4,  6,  7,  9
+};
 
 static HalH265eVepu510Tune *vepu510_h265e_tune_init(H265eV510HalContext *ctx)
 {
-    HalH265eVepu510Tune *tune = mpp_malloc(HalH265eVepu510Tune, 1);
+    HalH265eVepu510Tune *tune = mpp_calloc(HalH265eVepu510Tune, 1);
 
     if (NULL == tune)
         return tune;
@@ -40,7 +73,32 @@ static HalH265eVepu510Tune *vepu510_h265e_tune_init(H265eV510HalContext *ctx)
 
 static void vepu510_h265e_tune_deinit(void *tune)
 {
+    HalH265eVepu510Tune *t = (HalH265eVepu510Tune *)tune;
+
+    MPP_FREE(t->qm_mv_buf);
     MPP_FREE(tune);
+}
+
+static void vepu510_h265e_tune_aq_prepare(HalH265eVepu510Tune *tune)
+{
+    if (tune == NULL) {
+        return;
+    }
+
+    H265eV510HalContext *ctx = tune->ctx;
+    MppEncHwCfg *hw = &ctx->cfg->hw;
+
+    if (ctx->smart_en) {
+        memcpy(hw->aq_thrd_i, aq_thd_smt_I, sizeof(hw->aq_thrd_i));
+        memcpy(hw->aq_thrd_p, aq_thd_smt_P, sizeof(hw->aq_thrd_p));
+        memcpy(hw->aq_step_i, aq_qp_delta_smt_I, sizeof(hw->aq_step_i));
+        memcpy(hw->aq_step_p, aq_qp_delta_smt_P, sizeof(hw->aq_step_p));
+    } else {
+        memcpy(hw->aq_thrd_i, aq_thd_default, sizeof(hw->aq_thrd_i));
+        memcpy(hw->aq_thrd_p, aq_thd_default, sizeof(hw->aq_thrd_p));
+        memcpy(hw->aq_step_i, aq_qp_delta_default, sizeof(hw->aq_step_i));
+        memcpy(hw->aq_step_p, aq_qp_delta_default, sizeof(hw->aq_step_p));
+    }
 }
 
 static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
@@ -49,24 +107,38 @@ static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
     Vepu510H265eFrmCfg *frm_cfg = ctx->frm;
     H265eV510RegSet *regs = frm_cfg->regs_set;
     Vepu510RcRoi *r = &regs->reg_rc_roi;
+    MppEncHwCfg *hw = &ctx->cfg->hw;
+    RK_U32 i = 0;
+    RK_S32 aq_step[16];
 
-    r->aq_stp0.aq_stp_s0 = -8;
-    r->aq_stp0.aq_stp_0t1 = -7;
-    r->aq_stp0.aq_stp_1t2 = -6;
-    r->aq_stp0.aq_stp_2t3 = -5;
-    r->aq_stp0.aq_stp_3t4 = -4;
-    r->aq_stp0.aq_stp_4t5 = -3;
-    r->aq_stp1.aq_stp_5t6 = -2;
-    r->aq_stp1.aq_stp_6t7 = -1;
+    RK_U8 *thd  = (RK_U8 *)&r->aq_tthd0;
+    for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
+        if (ctx->frame_type == INTRA_FRAME) {
+            thd[i] = hw->aq_thrd_i[i];
+            aq_step[i] = hw->aq_step_i[i] & 0x1F;
+        } else {
+            thd[i] = hw->aq_thrd_p[i];
+            aq_step[i] = hw->aq_step_p[i] & 0x1F;
+        }
+    }
+
+    r->aq_stp0.aq_stp_s0 = aq_step[0];
+    r->aq_stp0.aq_stp_0t1 = aq_step[1];
+    r->aq_stp0.aq_stp_1t2 = aq_step[2];
+    r->aq_stp0.aq_stp_2t3 = aq_step[3];
+    r->aq_stp0.aq_stp_3t4 = aq_step[4];
+    r->aq_stp0.aq_stp_4t5 = aq_step[5];
+    r->aq_stp1.aq_stp_5t6 = aq_step[6];
+    r->aq_stp1.aq_stp_6t7 = aq_step[7];
     r->aq_stp1.aq_stp_7t8 = 0;
-    r->aq_stp1.aq_stp_8t9 = 1;
-    r->aq_stp1.aq_stp_9t10 = 2;
-    r->aq_stp1.aq_stp_10t11 = 3;
-    r->aq_stp2.aq_stp_11t12 = 4;
-    r->aq_stp2.aq_stp_12t13 = 5;
-    r->aq_stp2.aq_stp_13t14 = 6;
-    r->aq_stp2.aq_stp_14t15 = 7;
-    r->aq_stp2.aq_stp_b15 = 8;
+    r->aq_stp1.aq_stp_8t9 = aq_step[8];
+    r->aq_stp1.aq_stp_9t10 = aq_step[9];
+    r->aq_stp1.aq_stp_10t11 = aq_step[10];
+    r->aq_stp2.aq_stp_11t12 = aq_step[11];
+    r->aq_stp2.aq_stp_12t13 = aq_step[12];
+    r->aq_stp2.aq_stp_13t14 = aq_step[13];
+    r->aq_stp2.aq_stp_14t15 = aq_step[14];
+    r->aq_stp2.aq_stp_b15 = aq_step[15];
 
     r->aq_clip.aq16_rnge = 5;
     r->aq_clip.aq32_rnge = 5;
@@ -75,13 +147,9 @@ static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
     r->aq_clip.aq16_dif1 = 12;
 }
 
-static void vepu510_h265e_tune_reg_patch(void *p)
+static void vepu510_h265e_tune_reg_patch(void *p, HalEncTask *task)
 {
     HalH265eVepu510Tune *tune = (HalH265eVepu510Tune *)p;
-    H265eV510HalContext *ctx = NULL;
-    RK_S32 scene_mode = 0;
-    (void)ctx;
-    (void)scene_mode;
 
     if (NULL == tune)
         return;

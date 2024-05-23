@@ -1428,15 +1428,21 @@ typedef enum MppEncSceneMode_e {
 
 typedef enum MppEncFineTuneCfgChange_e {
     /* change on scene mode */
-    MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE      = (1 << 0),
-    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I    = (1 << 5),
-    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P    = (1 << 6)
+    MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE          = (1 << 0),
+    MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN           = (1 << 1),
+    MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR          = (1 << 2),
+    MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR    = (1 << 3),
+    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I        = (1 << 5),
+    MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P        = (1 << 6)
 } MppEncFineTuneCfgChange;
 
 typedef struct MppEncFineTuneCfg_t {
     RK_U32              change;
 
     MppEncSceneMode     scene_mode;
+    RK_S32              deblur_en; /* qpmap_en */
+    RK_S32              deblur_str; /* deblur strength */
+    RK_S32              anti_flicker_str;
     RK_S32              lambda_idx_i;
     RK_S32              lambda_idx_p;
 } MppEncFineTuneCfg;
