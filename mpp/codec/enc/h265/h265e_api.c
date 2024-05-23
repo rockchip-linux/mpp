@@ -89,13 +89,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->const_intra_pred = 0;           /* constraint intra prediction flag */
 
     soc_type = mpp_get_soc_type();
-    if (soc_type == ROCKCHIP_SOC_RK3528 || soc_type == ROCKCHIP_SOC_RK3576) {
-        h265->ctu_size = 32;
+    if (soc_type == ROCKCHIP_SOC_RK3528 || soc_type == ROCKCHIP_SOC_RK3576)
         h265->max_cu_size = 32;
-    } else {
-        h265->ctu_size = 64;
+    else
         h265->max_cu_size = 64;
-    }
 
     h265->tmvp_enable = 0;
     h265->amp_enable = 0;
