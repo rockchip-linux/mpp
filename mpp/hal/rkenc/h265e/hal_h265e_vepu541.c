@@ -1642,7 +1642,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         } else {
             i_nal_type    = NAL_TRAIL_N;
         }
-        regs->synt_nal.nal_unit_type    = i_nal_type;
+        regs->synt_nal.nal_unit_type    = syn->sp.temporal_id ?  NAL_TSA_R : i_nal_type;
     }
     vepu54x_h265_set_hw_address(ctx, regs, task);
     vepu541_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep, task);

@@ -1269,7 +1269,7 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
         } else {
             i_nal_type    = NAL_TRAIL_R;
         }
-        reg_base->reg0236_synt_nal.nal_unit_type    = i_nal_type;
+        reg_base->reg0236_synt_nal.nal_unit_type    = syn->sp.temporal_id ? NAL_TSA_R : i_nal_type;
     }
 
     vepu540c_h265_set_hw_address(ctx, reg_base, task);
