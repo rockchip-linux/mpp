@@ -652,19 +652,21 @@ RK_U32 mpp_buffer_to_addr(MppBuffer buffer, size_t offset)
     return addr;
 }
 
-MPP_RET mpp_buffer_attach_dev_f(const char *caller, MppBuffer buffer, MppDev dev)
+static MppDevBufMapNode *mpp_buffer_attach_dev_lock(const char *caller, MppBuffer buffer, MppDev dev)
 {
     MppBufferImpl *impl = (MppBufferImpl *)buffer;
     MppDevBufMapNode *pos, *n;
-    MppDevBufMapNode *node;
+    MppDevBufMapNode *node = NULL;
     MPP_RET ret = MPP_OK;
 
     mpp_dev_ioctl(dev, MPP_DEV_LOCK_MAP, NULL);
     pthread_mutex_lock(&impl->lock);
 
     list_for_each_entry_safe(pos, n, &impl->list_maps, MppDevBufMapNode, list_buf) {
-        if (pos->dev == dev)
+        if (pos->dev == dev) {
+            node = pos;
             goto DONE;
+        }
     }
 
     node = (MppDevBufMapNode *)mpp_mem_pool_get_f(caller, mpp_buf_map_node_pool);
@@ -685,6 +687,7 @@ MPP_RET mpp_buffer_attach_dev_f(const char *caller, MppBuffer buffer, MppDev dev
     ret = mpp_dev_ioctl(dev, MPP_DEV_ATTACH_FD, node);
     if (ret) {
         mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, node);
+        node = NULL;
         goto DONE;
     }
     list_add_tail(&node->list_buf, &impl->list_maps);
@@ -693,7 +696,16 @@ DONE:
     pthread_mutex_unlock(&impl->lock);
     mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
 
-    return ret;
+    return node;
+}
+
+MPP_RET mpp_buffer_attach_dev_f(const char *caller, MppBuffer buffer, MppDev dev)
+{
+    MppDevBufMapNode *node;
+
+    node = mpp_buffer_attach_dev_lock(caller, buffer, dev);
+
+    return node ? MPP_OK : MPP_NOK;
 }
 
 MPP_RET mpp_buffer_detach_dev_f(const char *caller, MppBuffer buffer, MppDev dev)
@@ -720,22 +732,11 @@ MPP_RET mpp_buffer_detach_dev_f(const char *caller, MppBuffer buffer, MppDev dev
 
 RK_U32 mpp_buffer_get_iova_f(const char *caller, MppBuffer buffer, MppDev dev)
 {
-    MppBufferImpl *impl = (MppBufferImpl *)buffer;
-    MppDevBufMapNode *pos, *n;
-    RK_U32 iova = (RK_U32)(-1);
+    MppDevBufMapNode *node;
 
-    pthread_mutex_lock(&impl->lock);
-    list_for_each_entry_safe(pos, n, &impl->list_maps, MppDevBufMapNode, list_buf) {
-        if (pos->dev == dev) {
-            iova = pos->iova;
-            break;
-        }
-    }
-    pthread_mutex_unlock(&impl->lock);
+    node = mpp_buffer_attach_dev_lock(caller, buffer, dev);
 
-    (void) caller;
-
-    return iova;
+    return node ? node->iova : (RK_U32)(-1);
 }
 
 MPP_RET mpp_buffer_group_init(MppBufferGroupImpl **group, const char *tag, const char *caller,
