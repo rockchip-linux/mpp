@@ -2059,10 +2059,12 @@ MPP_RET hal_h265e_v541_ret_task(void *hal, HalEncTask *task)
     HalEncTask *enc_task = task;
     vepu541_h265_fbk *fb = &ctx->feedback;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
+    RK_U32 offset = mpp_packet_get_length(enc_task->packet);
 
     hal_h265e_enter();
 
     vepu541_h265_set_feedback(ctx, enc_task);
+    mpp_buffer_sync_partial_begin(enc_task->output, offset, fb->out_strm_size);
     hal_h265e_amend_temporal_id(task, fb->out_strm_size);
 
     rc_info->sse = fb->sse_sum;

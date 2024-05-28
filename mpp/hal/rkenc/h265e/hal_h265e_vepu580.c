@@ -3298,12 +3298,12 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
     Vepu580H265eFrmCfg *frm = ctx->frms[task_idx];
     Vepu580H265Fbk *fb = &frm->feedback;
     H265eSyntax_new *syn = (H265eSyntax_new *) enc_task->syntax.data;
+    RK_U32 offset = mpp_packet_get_length(enc_task->packet);
 
     hal_h265e_enter();
 
     if (ctx->tile_parall_en) {
         RK_U32 i = 0, stream_len = 0;
-        RK_U32 offset = mpp_packet_get_length(enc_task->packet);
         void* ptr = mpp_packet_get_pos(enc_task->packet);
 
         for (i = 0; i < ctx->tile_num; i ++) {
@@ -3314,7 +3314,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
                     MppBuffer buf = frm->hw_tile_stream[i - 1];
                     RK_U8 *tile1_ptr  = mpp_buffer_get_ptr(buf);
 
-                    mpp_buffer_sync_ro_partial_begin(buf, 0, len);
+                    mpp_buffer_sync_partial_begin(buf, 0, len);
 
                     if (syn->sp.temporal_id && len > 5)
                         tile1_ptr[5] = (tile1_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
@@ -3325,7 +3325,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
                     RK_U32 len = fb->out_strm_size;
                     RK_U8 *stream_ptr = (RK_U8 *) ptr;
 
-                    mpp_buffer_sync_ro_partial_begin(buf, offset, len);
+                    mpp_buffer_sync_partial_begin(buf, offset, len);
 
                     if (syn->sp.temporal_id) {
                         stream_ptr[5] = (stream_ptr[5] & 0xf8) | ((syn->sp.temporal_id + 1) & 0x7);
@@ -3336,6 +3336,7 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
         }
     } else {
         vepu580_h265_set_feedback(ctx, enc_task, ctx->tile_num - 1);
+        mpp_buffer_sync_partial_begin(enc_task->output, offset, fb->out_strm_size);
         hal_h265e_amend_temporal_id(task, fb->out_strm_size);
     }
 
