@@ -50,6 +50,18 @@ static void mpp_notify_by_buffer_group(void *arg, void *group)
 
 static void *list_wraper_packet(void *arg)
 {
+    MppPacket packet = *(MppPacket*)arg;
+
+    if (mpp_packet_has_meta(packet)) {
+        MppMeta meta = mpp_packet_get_meta(packet);
+        MppFrame frm = NULL;
+
+        if (MPP_OK == mpp_meta_get_frame(meta, KEY_INPUT_FRAME, &frm)) {
+            mpp_assert(frm);
+            mpp_frame_deinit(&frm);
+        }
+    }
+
     mpp_packet_deinit((MppPacket *)arg);
     return NULL;
 }
@@ -196,10 +208,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
     case MPP_CTX_ENC : {
         RK_S32 input_task_count = 1;
 
-        mPktIn  = new mpp_list(list_wraper_packet);
         mPktOut = new mpp_list(list_wraper_packet);
-        mFrmIn  = new mpp_list(NULL);
-        mFrmOut = new mpp_list(NULL);
+        mFrmIn  = new mpp_list(list_wraper_frame);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_BLOCK;
