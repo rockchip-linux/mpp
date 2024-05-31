@@ -599,6 +599,7 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
 
     cleanup_cpb_refs(cpb);
 
+    cfg->max_tlayers = cpb->info.max_st_tid + 1;
     enc_refs_dbg_flow("dryrun start: lt_cfg %d st_cfg %d\n",
                       lt_cfg_cnt, st_cfg_cnt);
 

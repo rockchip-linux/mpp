@@ -23,6 +23,7 @@
 #include "mpp_common.h"
 
 #include "h265e_ps.h"
+#include "mpp_enc_ref.h"
 
 #define MAX_UINT        0xFFFFFFFFU
 
@@ -116,12 +117,14 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
     ProfileTierLevel *profileTierLevel = &vps->m_ptl.m_generalPTL;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     RK_U32 maxlumas = prep->width * prep->height;
     RK_S32 level_idc = H265_LEVEL_NONE;
+    MppEncRefCfgImpl *refs = (MppEncRefCfgImpl *)ref_cfg;
 
     vps->m_VPSId = 0;
-    vps->m_maxTLayers = 1;
-    vps->m_maxLayers = 1;
+    vps->m_maxTLayers = refs->max_tlayers ? refs->max_tlayers : 1;
+    vps->m_maxLayers = vps->m_maxTLayers;
     vps->m_bTemporalIdNestingFlag = 1;
     vps->m_numHrdParameters = 0;
     vps->m_maxNuhReservedZeroLayerId = 0;
@@ -248,7 +251,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_SPSId = 0;
     sps->m_VPSId = 0;
     sps->m_chromaFormatIdc = (fmt == MPP_FMT_YUV400) ? H265_CHROMA_400 : H265_CHROMA_420;
-    sps->m_maxTLayers = 1;
+    sps->m_maxTLayers = vps->m_maxLayers;
     sps->m_picWidthInLumaSamples = prep->width + pad[0];
     sps->m_picHeightInLumaSamples = prep->height + pad[1];
     sps->m_log2MinCodingBlockSize = 0;
@@ -294,9 +297,6 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_qpBDOffsetC = 0;
 
     sps->m_bUseSAO = codec->sao_enable;
-
-    sps->m_maxTLayers = 1;
-
     sps->m_bTemporalIdNestingFlag = 1;
 
     for (i = 0; i < sps->m_maxTLayers; i++) {

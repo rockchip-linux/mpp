@@ -45,6 +45,7 @@ typedef struct MppEncRefCfgImpl_t {
     RK_S32              max_st_cfg;
     RK_S32              lt_cfg_cnt;
     RK_S32              st_cfg_cnt;
+    RK_S32              max_tlayers;
     MppEncRefLtFrmCfg   *lt_cfg;
     MppEncRefStFrmCfg   *st_cfg;
 
