@@ -702,7 +702,7 @@ MPP_RET mpp_service_detach_fd(void *ctx, MppDevBufMapNode *node)
     mpp_assert(node->dev_fd >= 0);
     mpp_assert(node->lock_dev == &p->lock_bufs);
 
-    mpp_dev_dbg_buf("node %p dev %d attach fd %d iova %x\n",
+    mpp_dev_dbg_buf("node %p dev %d detach fd %d iova %x\n",
                     node, node->dev_fd, node->buf_fd, node->iova);
 
     ret = mpp_service_ioc_detach_fd(node);
