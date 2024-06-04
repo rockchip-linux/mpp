@@ -396,13 +396,13 @@ MPP_RET h264d_reset(void *decoder)
 
     INP_CHECK(ret, !decoder);
 
-    FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1));
-    FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1));
+    flush_dpb(p_Dec->p_Vid->p_Dpb_layer[0], 1);
+    init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], 1);
     if (p_Dec->mvc_valid) {
         // layer_id == 1
-        FUN_CHECK(ret = flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1));
-        FUN_CHECK(ret = init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2));
-        FUN_CHECK(ret = check_mvc_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], p_Dec->p_Vid->p_Dpb_layer[1]));
+        flush_dpb(p_Dec->p_Vid->p_Dpb_layer[1], 1);
+        init_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[1], 2);
+        check_mvc_dpb(p_Dec->p_Vid, p_Dec->p_Vid->p_Dpb_layer[0], p_Dec->p_Vid->p_Dpb_layer[1]);
     }
     flush_dpb_buf_slot(p_Dec);
     //!< reset input parameter
@@ -451,8 +451,6 @@ MPP_RET h264d_reset(void *decoder)
 
 __RETURN:
     return ret = MPP_OK;
-__FAILED:
-    return ret = MPP_NOK;
 }
 
 /*!
