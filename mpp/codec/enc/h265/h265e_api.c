@@ -113,6 +113,11 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.lambda_idx_i = 2;
     p->cfg->tune.lambda_idx_p = 4;
     p->cfg->tune.anti_flicker_str = 2;
+    p->cfg->tune.atr_str_i = 3;
+    p->cfg->tune.atr_str_p = 0;
+    p->cfg->tune.atl_str = 1;
+    p->cfg->tune.sao_str_i = 0;
+    p->cfg->tune.sao_str_p = 1;
 
     /*
      * default prep:

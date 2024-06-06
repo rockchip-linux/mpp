@@ -120,7 +120,11 @@ typedef struct {
     RK_S32 scene_mode;
     RK_S32 cu_qp_delta_depth;
     RK_S32 anti_flicker_str;
-
+    RK_S32 atr_str_i;
+    RK_S32 atr_str_p;
+    RK_S32 atl_str;
+    RK_S32 sao_str_i;
+    RK_S32 sao_str_p;
     RK_S64 first_frm;
     RK_S64 first_pkt;
 } MpiEncTestData;
@@ -182,6 +186,12 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->scene_mode   = cmd->scene_mode;
     p->cu_qp_delta_depth = cmd->cu_qp_delta_depth;
     p->anti_flicker_str = cmd->anti_flicker_str;
+    p->atr_str_i = cmd->atr_str_i;
+    p->atr_str_p = cmd->atr_str_p;
+    p->atl_str = cmd->atl_str;
+    p->sao_str_i = cmd->sao_str_i;
+    p->sao_str_p = cmd->sao_str_p;
+
     p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
                       (MPP_ALIGN(p->hor_stride, 32) >> 5) *
                       (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
@@ -321,6 +331,11 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     mpp_enc_cfg_set_s32(cfg, "rc:cu_qp_delta_depth", p->cu_qp_delta_depth);
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
+    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
+    mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
 
     mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);

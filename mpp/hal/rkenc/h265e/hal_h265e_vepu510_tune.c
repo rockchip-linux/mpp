@@ -29,7 +29,7 @@ typedef struct HalH265eVepu510Tune_t {
 
 static RK_U32 aq_thd_default[16] = {
     0,  0,  0,  0,  3,  3,  5,  5,
-    8,  8,  8, 15, 15, 20, 25, 25
+    8,  8,  15, 15, 20, 25, 25, 25
 };
 
 static RK_S32 aq_qp_delta_default[16] = {
@@ -39,22 +39,22 @@ static RK_S32 aq_qp_delta_default[16] = {
 
 static RK_U32 aq_thd_smt_I[16] = {
     1,  2,  3,   3,  3,  3,  5,  5,
-    8,  8,  8,  13, 15, 20, 25, 25
+    8,  8,  13,  15, 20, 25, 25, 25
 };
 
 static RK_S32 aq_qp_delta_smt_I[16] = {
     -8, -7, -6, -5, -4, -3, -2, -1,
-    0,  1,  2,  3,  5,  7,  8,  9
+    1,  2,  3,  5,  7,  8,  9,  9
 };
 
 static RK_U32 aq_thd_smt_P[16] = {
     0,  0,  0,   0,  3,  3,  5,  5,
-    8,  8,  8,  15, 15, 20, 25, 25
+    8,  8,  15, 15, 20, 25, 25, 25
 };
 
 static RK_S32 aq_qp_delta_smt_P[16] = {
     -8, -7, -6, -5, -4, -3, -2, -1,
-    0,  1,  2,  3,  4,  6,  7,  9
+    1,  2,  3,  4,  6,  7,  9,  9
 };
 
 static HalH265eVepu510Tune *vepu510_h265e_tune_init(H265eV510HalContext *ctx)
@@ -150,6 +150,7 @@ static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
 static void vepu510_h265e_tune_reg_patch(void *p, HalEncTask *task)
 {
     HalH265eVepu510Tune *tune = (HalH265eVepu510Tune *)p;
+    (void)task;
 
     if (NULL == tune)
         return;

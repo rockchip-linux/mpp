@@ -547,6 +547,71 @@ RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_atl(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->atl_str = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid atl_str\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_atr_i(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->atr_str_i = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid atr_str_i\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_atr_p(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->atr_str_p = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid atr_str_p\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_sao_i(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->sao_str_i = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid sao_str_i\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_sao_p(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->sao_str_p = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid sao_str_p\n");
+    return 0;
+}
+
 static MppOptInfo enc_opts[] = {
     {"i",       "input_file",           "input frame file",                         mpi_enc_opt_i},
     {"o",       "output_file",          "output encoded bitstream file",            mpi_enc_opt_o},
@@ -574,6 +639,11 @@ static MppOptInfo enc_opts[] = {
     {"dbe",     "deblur enable",        "deblur_en or qpmap_en, 0:close 1:open",           mpi_enc_opt_dbe},
     {"dbs",     "deblur strength",      "deblur_str 0~3: hw + sw scheme; 4~7: hw scheme",  mpi_enc_opt_dbs},
     {"atf",     "anti_flicker_str",     "anti_flicker_str, 0:off 1 2 3",            mpi_enc_opt_atf},
+    {"atl",     "atl_str",              "atl_str, 0:off 1 open",                    mpi_enc_opt_atl},
+    {"atr_i",   "atr_str_i",            "atr_str_i, 0:off 1 2 3",                   mpi_enc_opt_atr_i},
+    {"atr_p",   "atr_str_p",            "atr_str_p, 0:off 1 2 3",                   mpi_enc_opt_atr_p},
+    {"sao_i",   "sao_str_i",            "sao_str_i, 0:off 1 2 3",                   mpi_enc_opt_sao_i},
+    {"sao_p",   "sao_str_p",            "sao_str_p, 0:off 1 2 3",                   mpi_enc_opt_sao_p},
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);

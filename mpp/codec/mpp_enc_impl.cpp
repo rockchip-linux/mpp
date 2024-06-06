@@ -886,6 +886,46 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_I)
+            dst->atr_str_i = src->atr_str_i;
+
+        if (dst->atr_str_i < 0 || dst->atr_str_i > 3) {
+            mpp_err("invalid atr_str not in range [0 : 3]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P)
+            dst->atr_str_p = src->atr_str_p;
+
+        if (dst->atr_str_p < 0 || dst->atr_str_p > 3) {
+            mpp_err("invalid atr_str not in range [0 : 3]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATL_STR)
+            dst->atl_str = src->atl_str;
+
+        if (dst->atl_str < 0 || dst->atl_str > 3) {
+            mpp_err("invalid atr_str not in range [0 : 3]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I)
+            dst->sao_str_i = src->sao_str_i;
+
+        if (dst->sao_str_i < 0 || dst->sao_str_i > 3) {
+            mpp_err("invalid atr_str not in range [0 : 3]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P)
+            dst->sao_str_p = src->sao_str_p;
+
+        if (dst->sao_str_p < 0 || dst->sao_str_p > 3) {
+            mpp_err("invalid atr_str not in range [0 : 3]\n");
+            ret = MPP_ERR_VALUE;
+        }
+
         if (change & MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I)
             dst->lambda_idx_i = src->lambda_idx_i;
 

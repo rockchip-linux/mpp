@@ -58,6 +58,10 @@ typedef struct Vepu510H265Fbk_t {
     RK_U32 st_mb_num;
     RK_U32 st_ctu_num;
     RK_U32 st_smear_cnt[5];
+    RK_S32 reg_idx;
+    RK_U32 acc_cover16_num;
+    RK_U32 acc_bndry16_num;
+    RK_U32 acc_zero_mv;
     RK_S8 tgt_sub_real_lvl[6];
 } Vepu510H265Fbk;
 
@@ -184,6 +188,28 @@ static RK_S32 atf_b16_intra_wgt0[4] = {16, 22, 27, 28};
 static RK_S32 atf_b16_intra_wgt1[4] = {16, 20, 25, 26};
 static RK_S32 atf_b16_intra_wgt2[4] = {16, 18, 20, 24};
 
+static RK_S32 smear_qp_strength[8] = {4, 6, 7, 7, 3, 5, 7, 7};
+static RK_S32 smear_strength[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+static RK_S32 smear_common_intra_r_dep0[8] = {224, 224, 200, 200, 224, 224, 200, 200};
+static RK_S32 smear_common_intra_r_dep1[8] = {224, 224, 180, 200, 224, 224, 180, 200};
+static RK_S32 smear_bndry_intra_r_dep0[8] = {240, 240, 240, 240, 240, 240, 240, 240};
+static RK_S32 smear_bndry_intra_r_dep1[8] = {240, 240, 240, 240, 240, 240, 240, 240};
+static RK_S32 smear_thre_madp_stc_cover0[8] = {20, 22, 22, 22, 20, 22, 22, 30};
+static RK_S32 smear_thre_madp_stc_cover1[8] = {20, 22, 22, 22, 20, 22, 22, 30};
+static RK_S32 smear_thre_madp_mov_cover0[8] = {10, 9, 9, 9, 10, 9, 9, 6};
+static RK_S32 smear_thre_madp_mov_cover1[8] = {10, 9, 9, 9, 10, 9, 9, 6};
+
+static RK_S32 smear_flag_cover_thd0[8] = {12, 13, 13, 13, 12, 13, 13, 17};
+static RK_S32 smear_flag_cover_thd1[8] = {61, 70, 70, 70, 61, 70, 70, 90};
+static RK_S32 smear_flag_bndry_thd0[8] = {12, 12, 12, 12, 12, 12, 12, 12};
+static RK_S32 smear_flag_bndry_thd1[8] = {73, 73, 73, 73, 73, 73, 73, 73};
+
+static RK_S32 smear_flag_cover_wgt[3] = {1, 0, -3};
+static RK_S32 smear_flag_cover_intra_wgt0[3] = { -12, 0, 12};
+static RK_S32 smear_flag_cover_intra_wgt1[3] = { -12, 0, 12};
+static RK_S32 smear_flag_bndry_wgt[3] = {0, 0, 0};
+static RK_S32 smear_flag_bndry_intra_wgt0[3] = { -12, 0, 12};
+static RK_S32 smear_flag_bndry_intra_wgt1[3] = { -12, 0, 12};
 
 static RK_U32 rdo_lambda_table_I[60] = {
     0x00000012, 0x00000017,
@@ -470,11 +496,13 @@ static void vepu510_h265_set_atr_regs(H265eVepu510Sqi *reg_sqi, MppEncSceneMode 
     }
 }
 
-static void vepu510_h265_set_anti_blur_regs(H265eVepu510Sqi *reg_sqi, int anti_blur_en)
+static void vepu510_h265_set_anti_blur_regs(H265eVepu510Sqi *reg_sqi, int anti_blur_level)
 {
     H265eVepu510Sqi *reg = reg_sqi;
-
-    reg->subj_anti_blur_thd.anti_blur_en = anti_blur_en;
+    if (anti_blur_level >= 1)
+        reg->subj_anti_blur_thd.anti_blur_en = 1;
+    else
+        reg->subj_anti_blur_thd.anti_blur_en = 0;
     reg->subj_anti_blur_thd.blur_low_madi_thd = 5;
     reg->subj_anti_blur_thd.blur_high_madi_thd = 27;
     reg->subj_anti_blur_thd.blur_low_cnt_thd = 0;
@@ -488,7 +516,7 @@ static void vepu510_h265_set_anti_blur_regs(H265eVepu510Sqi *reg_sqi, int anti_b
     reg->subj_anti_blur_sao.sao_ofst_thd_bo_chroma = 4;
 }
 
-static void vepu510_h265_set_anti_stripe_regs(H265eVepu510Sqi *reg_sqi)
+static void vepu510_h265_set_anti_stripe_regs(H265eVepu510Sqi *reg_sqi, int atl_level)
 {
     pre_cst_par* pre_i32 = (pre_cst_par*)&reg_sqi->preintra32_cst;
     pre_cst_par* pre_i16 = (pre_cst_par*)&reg_sqi->preintra16_cst;
@@ -562,78 +590,18 @@ static void vepu510_h265_set_anti_stripe_regs(H265eVepu510Sqi *reg_sqi)
     pre_i32->cst_wgt3.lambda_mv_bit_1 = 4; // lv16
     pre_i16->cst_wgt3.lambda_mv_bit_0 = 4; // lv8
     pre_i16->cst_wgt3.lambda_mv_bit_1 = 3; // lv4
-
-    pre_i32->cst_wgt3.anti_strp_e = 1;
+    if (atl_level >= 1)
+        pre_i32->cst_wgt3.anti_strp_e = 1;
+    else
+        pre_i32->cst_wgt3.anti_strp_e = 0;
 }
 
 static void vepu510_h265_rdo_cfg(H265eV510HalContext *ctx, H265eVepu510Sqi *reg, MppEncSceneMode sm)
 {
-    reg->subj_opt_cfg.subj_opt_en               = 1;//(sm == MPP_ENC_SCENE_MODE_IPC);
+    reg->subj_opt_cfg.subj_opt_en               = 1;
     reg->subj_opt_cfg.subj_opt_strength         = 3;
     reg->subj_opt_cfg.aq_subj_en                = (sm == MPP_ENC_SCENE_MODE_IPC);
     reg->subj_opt_cfg.aq_subj_strength          = 4;
-    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep0      = 64;
-    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep1      = 32;
-    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep2      = 16;
-    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep0    = 192;
-    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep1    = 160;
-
-    /* anti smear */
-    reg->smear_opt_cfg0.anti_smear_en               = (sm == MPP_ENC_SCENE_MODE_IPC);
-    reg->smear_opt_cfg0.smear_stor_en               = 0;
-    reg->smear_opt_cfg0.smear_load_en               = 0;
-    reg->smear_opt_cfg0.smear_strength              = 3;
-    reg->smear_opt_cfg0.thre_mv_inconfor_cime       = 8;
-    reg->smear_opt_cfg0.thre_mv_confor_cime         = 2;
-    reg->smear_opt_cfg0.thre_mv_inconfor_cime_gmv   = 8;
-    reg->smear_opt_cfg0.thre_mv_confor_cime_gmv     = 2;
-    reg->smear_opt_cfg0.thre_num_mv_confor_cime     = 3;
-    reg->smear_opt_cfg0.thre_num_mv_confor_cime_gmv = 2;
-    reg->smear_opt_cfg0.frm_static                  = 1;
-
-    reg->smear_opt_cfg1.dist0_frm_avg               = 0;
-    reg->smear_opt_cfg1.thre_dsp_static             = 10;
-    reg->smear_opt_cfg1.thre_dsp_mov                = 15;
-    reg->smear_opt_cfg1.thre_dist_mv_confor_cime    = 32;
-
-    reg->smear_madp_thd.thre_madp_stc_dep0          = 10;
-    reg->smear_madp_thd.thre_madp_stc_dep1          = 8;
-    reg->smear_madp_thd.thre_madp_stc_dep2          = 8;
-    reg->smear_madp_thd.thre_madp_mov_dep0          = 16;
-    reg->smear_madp_thd.thre_madp_mov_dep1          = 18;
-    reg->smear_madp_thd.thre_madp_mov_dep2          = 20;
-
-    reg->smear_stat_thd.thre_num_pt_stc_dep0        = 47;
-    reg->smear_stat_thd.thre_num_pt_stc_dep1        = 11;
-    reg->smear_stat_thd.thre_num_pt_stc_dep2        = 3;
-    reg->smear_stat_thd.thre_num_pt_mov_dep0        = 47;
-    reg->smear_stat_thd.thre_num_pt_mov_dep1        = 11;
-    reg->smear_stat_thd.thre_num_pt_mov_dep2        = 3;
-
-    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv0      = 21;
-    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv1      = 16;
-    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv0    = 48;
-    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv1    = 34;
-
-    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv2    = 32;
-    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv3    = 29;
-    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv4    = 27;
-
-    reg->smear_min_bndry_gmv.thre_min_num_confor_csu0_bndry_cime_gmv      = 0;
-    reg->smear_min_bndry_gmv.thre_max_num_confor_csu0_bndry_cime_gmv      = 3;
-    reg->smear_min_bndry_gmv.thre_min_num_inconfor_csu0_bndry_cime_gmv    = 0;
-    reg->smear_min_bndry_gmv.thre_max_num_inconfor_csu0_bndry_cime_gmv    = 3;
-    reg->smear_min_bndry_gmv.thre_split_dep0                              = 2;
-    reg->smear_min_bndry_gmv.thre_zero_srgn                               = 8;
-    reg->smear_min_bndry_gmv.madi_thre_dep0                               = 22;
-    reg->smear_min_bndry_gmv.madi_thre_dep1                               = 18;
-
-    reg->smear_madp_cov_thd.thre_madp_stc_cover0    = 20;
-    reg->smear_madp_cov_thd.thre_madp_stc_cover1    = 20;
-    reg->smear_madp_cov_thd.thre_madp_mov_cover0    = 10;
-    reg->smear_madp_cov_thd.thre_madp_mov_cover1    = 10;
-    reg->smear_madp_cov_thd.smear_qp_strength       = 10;
-    reg->smear_madp_cov_thd.smear_thre_qp           = 30;
 
     /* skin_opt */
     reg->skin_opt_cfg.skin_en                       = 0;
@@ -649,10 +617,6 @@ static void vepu510_h265_rdo_cfg(H265eV510HalContext *ctx, H265eVepu510Sqi *reg,
     reg->skin_chrm_thd.thre_max_skin_u              = 129;
     reg->skin_chrm_thd.thre_min_skin_v              = 135;
     reg->subj_opt_dqp1.skin_thre_qp                 = 31;
-
-    /* text_opt */
-    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep0   = 240;
-    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep1   = 224;
 
     /* 0x00002100 reg2112 */
     reg->cudecis_thd0.base_thre_rough_mad32_intra           = 9;
@@ -766,16 +730,16 @@ static void vepu510_h265_rdo_cfg(H265eV510HalContext *ctx, H265eVepu510Sqi *reg,
     reg->cudecis_thd11.delta6_thre_mad_fme_ratio_inter    = 4;
     reg->cudecis_thd11.delta7_thre_mad_fme_ratio_inter    = 4;
 
-    vepu510_h265_set_anti_stripe_regs(reg);
+    vepu510_h265_set_anti_stripe_regs(reg, ctx->cfg->tune.atl_str);
     if (ctx->frame_type == INTRA_FRAME)
-        vepu510_h265_set_atr_regs(reg, sm, 3);
+        vepu510_h265_set_atr_regs(reg, sm, ctx->cfg->tune.atr_str_i);
     else
-        vepu510_h265_set_atr_regs(reg, sm, 0);
+        vepu510_h265_set_atr_regs(reg, sm, ctx->cfg->tune.atr_str_p);
 
     if (ctx->frame_type == INTRA_FRAME)
-        vepu510_h265_set_anti_blur_regs(reg, 0);
+        vepu510_h265_set_anti_blur_regs(reg, ctx->cfg->tune.sao_str_i);
     else
-        vepu510_h265_set_anti_blur_regs(reg, 1);
+        vepu510_h265_set_anti_blur_regs(reg, ctx->cfg->tune.sao_str_p);
 }
 
 static void vepu510_h265_atf_cfg(H265eVepu510Sqi *reg, RK_S32 atf_str)
@@ -839,6 +803,111 @@ static void vepu510_h265_atf_cfg(H265eVepu510Sqi *reg, RK_S32 atf_str)
     p_rdo_noskip->atf_wgt.wgt3 =        16;
 }
 
+static void vepu510_h265_smear_cfg(H265eVepu510Sqi *reg, H265eV510HalContext *ctx)
+{
+    RK_S32 frame_num = ctx->frame_num;
+    RK_S32 frame_keyint = ctx->cfg->rc.gop;
+    RK_U32 cover_num = ctx->feedback.acc_cover16_num;
+    RK_U32 bndry_num = ctx->feedback.acc_bndry16_num;
+    RK_U32 st_ctu_num = ctx->feedback.st_ctu_num;
+    RK_S32 deblur_en = ctx->cfg->tune.deblur_en;
+    RK_S32 deblur_str = ctx->cfg->tune.deblur_str;
+    RK_S16 flag_cover = 0;
+    RK_S16 flag_bndry = 0;
+
+    if (cover_num * 1000 < smear_flag_cover_thd0[deblur_str] * st_ctu_num)
+        flag_cover = 0;
+    else if (cover_num * 1000 < smear_flag_cover_thd1[deblur_str] * st_ctu_num)
+        flag_cover = 1;
+    else
+        flag_cover = 2;
+
+    if (bndry_num * 1000 < smear_flag_bndry_thd0[deblur_str] * st_ctu_num)
+        flag_bndry = 0;
+    else if (bndry_num * 1000 < smear_flag_bndry_thd1[deblur_str] * st_ctu_num)
+        flag_bndry = 1;
+    else
+        flag_bndry = 2;
+
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep0      = 64;
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep1      = 32;
+    reg->subj_opt_dpth_thd.common_thre_num_grdn_point_dep2      = 16;
+    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep0    = smear_common_intra_r_dep0[deblur_str] + smear_flag_cover_intra_wgt0[flag_bndry];
+    reg->subj_opt_inrar_coef.common_rdo_cu_intra_r_coef_dep1    = smear_common_intra_r_dep1[deblur_str] + smear_flag_cover_intra_wgt1[flag_bndry];
+
+    /* anti smear */
+    reg->smear_opt_cfg0.anti_smear_en               = 1;
+    if (deblur_en == 0)
+        reg->smear_opt_cfg0.anti_smear_en           = 0;
+    reg->smear_opt_cfg0.smear_strength              = smear_strength[deblur_str] + smear_flag_bndry_wgt[deblur_en];
+    reg->smear_opt_cfg0.thre_mv_inconfor_cime       = 8;
+    reg->smear_opt_cfg0.thre_mv_confor_cime         = 2;
+    reg->smear_opt_cfg0.thre_mv_inconfor_cime_gmv   = 8;
+    reg->smear_opt_cfg0.thre_mv_confor_cime_gmv     = 2;
+    reg->smear_opt_cfg0.thre_num_mv_confor_cime     = 3;
+    reg->smear_opt_cfg0.thre_num_mv_confor_cime_gmv = 2;
+    reg->smear_opt_cfg0.frm_static                  = 1;
+
+    if (((frame_num) % frame_keyint == 0) || reg->smear_opt_cfg0.frm_static == 0 || (frame_num) % frame_keyint == 1) {
+        reg->smear_opt_cfg0.smear_load_en = 0;
+    } else {
+        reg->smear_opt_cfg0.smear_load_en = 1;
+    }
+
+    if (((frame_num) % frame_keyint == 0) || reg->smear_opt_cfg0.frm_static == 0 || (frame_num) % frame_keyint == frame_keyint - 1) {
+        reg->smear_opt_cfg0.smear_stor_en = 0;
+    } else {
+        reg->smear_opt_cfg0.smear_stor_en = 1;
+    }
+
+    reg->smear_opt_cfg1.dist0_frm_avg               = 0;
+    reg->smear_opt_cfg1.thre_dsp_static             = 10;
+    reg->smear_opt_cfg1.thre_dsp_mov                = 15;
+    reg->smear_opt_cfg1.thre_dist_mv_confor_cime    = 32;
+
+    reg->smear_madp_thd.thre_madp_stc_dep0          = 10;
+    reg->smear_madp_thd.thre_madp_stc_dep1          = 8;
+    reg->smear_madp_thd.thre_madp_stc_dep2          = 8;
+    reg->smear_madp_thd.thre_madp_mov_dep0          = 16;
+    reg->smear_madp_thd.thre_madp_mov_dep1          = 18;
+    reg->smear_madp_thd.thre_madp_mov_dep2          = 20;
+
+    reg->smear_stat_thd.thre_num_pt_stc_dep0        = 47;
+    reg->smear_stat_thd.thre_num_pt_stc_dep1        = 11;
+    reg->smear_stat_thd.thre_num_pt_stc_dep2        = 3;
+    reg->smear_stat_thd.thre_num_pt_mov_dep0        = 47;
+    reg->smear_stat_thd.thre_num_pt_mov_dep1        = 11;
+    reg->smear_stat_thd.thre_num_pt_mov_dep2        = 3;
+
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv0      = 21;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_confor_cime_gmv1      = 16;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv0    = 48;
+    reg->smear_bmv_dist_thd0.thre_ratio_dist_mv_inconfor_cime_gmv1    = 34;
+
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv2    = 32;
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv3    = 29;
+    reg->smear_bmv_dist_thd1.thre_ratio_dist_mv_inconfor_cime_gmv4    = 27;
+
+    reg->smear_min_bndry_gmv.thre_min_num_confor_csu0_bndry_cime_gmv      = 0;
+    reg->smear_min_bndry_gmv.thre_max_num_confor_csu0_bndry_cime_gmv      = 3;
+    reg->smear_min_bndry_gmv.thre_min_num_inconfor_csu0_bndry_cime_gmv    = 0;
+    reg->smear_min_bndry_gmv.thre_max_num_inconfor_csu0_bndry_cime_gmv    = 3;
+    reg->smear_min_bndry_gmv.thre_split_dep0                              = 2;
+    reg->smear_min_bndry_gmv.thre_zero_srgn                               = 8;
+    reg->smear_min_bndry_gmv.madi_thre_dep0                               = 22;
+    reg->smear_min_bndry_gmv.madi_thre_dep1                               = 18;
+
+    reg->smear_madp_cov_thd.thre_madp_stc_cover0    = smear_thre_madp_stc_cover0[deblur_str];
+    reg->smear_madp_cov_thd.thre_madp_stc_cover1    = smear_thre_madp_stc_cover1[deblur_str];
+    reg->smear_madp_cov_thd.thre_madp_mov_cover0    = smear_thre_madp_mov_cover0[deblur_str];
+    reg->smear_madp_cov_thd.thre_madp_mov_cover1    = smear_thre_madp_mov_cover1[deblur_str];
+    reg->smear_madp_cov_thd.smear_qp_strength       = smear_qp_strength[deblur_str] + smear_flag_cover_wgt[flag_cover];
+    reg->smear_madp_cov_thd.smear_thre_qp           = 30;
+
+    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep0   = smear_bndry_intra_r_dep0[deblur_str] + smear_flag_bndry_intra_wgt0[flag_bndry];
+    reg->subj_opt_dqp1.bndry_rdo_cu_intra_r_coef_dep1   = smear_bndry_intra_r_dep1[deblur_str] + smear_flag_bndry_intra_wgt1[flag_bndry];
+}
+
 static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSet *regs)
 {
     MppEncHwCfg *hw = &ctx->cfg->hw;
@@ -850,6 +919,7 @@ static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSe
 
     vepu510_h265_rdo_cfg(ctx, reg_sqi, sm);
     vepu510_h265_atf_cfg(reg_sqi, atf_str);
+    vepu510_h265_smear_cfg(reg_sqi, ctx);
     memcpy(&reg_param->pprd_lamb_satd_0_51[0], lamd_satd_qp_510, sizeof(lamd_satd_qp));
 
     if (ctx->frame_type == INTRA_FRAME) {
@@ -1882,8 +1952,8 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_frm->rdo_cfg.cu_inter_e                     = 0xdb;
     reg_frm->rdo_cfg.lambda_qp_use_avg_cu16_flag    = (sm == MPP_ENC_SCENE_MODE_IPC);
     reg_frm->rdo_cfg.yuvskip_calc_en                = 1;
-    reg_frm->rdo_cfg.atf_e = 1;
-    reg_frm->rdo_cfg.atr_e = (sm == MPP_ENC_SCENE_MODE_IPC);
+    reg_frm->rdo_cfg.atf_e = (sm == MPP_ENC_SCENE_MODE_IPC);
+    reg_frm->rdo_cfg.atr_e = 1;
 
     if (syn->pp.num_long_term_ref_pics_sps) {
         reg_frm->rdo_cfg.ltm_col    = 0;
@@ -2134,6 +2204,10 @@ static MPP_RET vepu510_h265_set_feedback(H265eV510HalContext *ctx, HalEncTask *e
     fb->st_lvl8_inter_num  += elem->st.st_pnum_p8.pnum_p8;
     fb->st_lvl8_intra_num  += elem->st.st_pnum_i8.pnum_i8;
     fb->st_lvl4_intra_num  += elem->st.st_pnum_i4.pnum_i4;
+    ctx->feedback.acc_cover16_num = elem->st.st_skin_sum1.acc_cover16_num;
+    ctx->feedback.acc_bndry16_num = elem->st.st_skin_sum2.acc_bndry16_num;
+    ctx->feedback.acc_zero_mv = elem->st.acc_zero_mv;
+    ctx->feedback.st_ctu_num = elem->st.st_bnum_b16.num_b16;
     memcpy(&fb->st_cu_num_qp[0], &elem->st.st_b8_qp, 52 * sizeof(RK_U32));
 
     if (mb4_num > 0)

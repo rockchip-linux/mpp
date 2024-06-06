@@ -184,6 +184,7 @@ typedef struct EncRcCommonInfo_t {
 
     /* rc to hal */
     RK_S32          bit_target;
+    RK_S32          bit_target_fix;
     RK_S32          bit_max;
     RK_S32          bit_min;
 

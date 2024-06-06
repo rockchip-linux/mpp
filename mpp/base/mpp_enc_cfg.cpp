@@ -261,7 +261,12 @@ public:
     ENTRY(tune, deblur_str,     S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR,     tune, deblur_str) \
     ENTRY(tune, anti_flicker_str,S32, RK_S32,           MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR,tune, anti_flicker_str) \
     ENTRY(tune, lambda_idx_i,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I,   tune, lambda_idx_i) \
-    ENTRY(tune, lambda_idx_p,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P,   tune, lambda_idx_p)
+    ENTRY(tune, lambda_idx_p,   S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P,   tune, lambda_idx_p) \
+    ENTRY(tune, atr_str_i,      S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_I,   tune, atr_str_i) \
+    ENTRY(tune, atr_str_p,      S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P,   tune, atr_str_p) \
+    ENTRY(tune, atl_str,        S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_ATL_STR,     tune, atl_str) \
+    ENTRY(tune, sao_str_i,      S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I,   tune, sao_str_i) \
+    ENTRY(tune, sao_str_p,      S32, RK_S32,            MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P,   tune, sao_str_p)
 
 static void mpp_enc_cfg_fill(MppTrie trie, MppCfgApi **cfgs)
 {
