@@ -24,6 +24,7 @@
 #include "mpp_common.h"
 #include "mpp_device.h"
 #include "mpp_rc.h"
+#include "mpp_packet_impl.h"
 
 #include "mpp_enc_hal.h"
 #include "h264e_debug.h"
@@ -653,8 +654,10 @@ static MPP_RET hal_h264e_vepu1_wait_v2(void *hal, HalEncTask *task)
 {
     HalH264eVepu1Ctx *ctx = (HalH264eVepu1Ctx *)hal;
     HalH264eVepuMbRc *hw_mbrc = &ctx->hw_mbrc;
+    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    MppPacket pkt = task->packet;
+    RK_S32 offset = mpp_packet_get_length(pkt);
     MPP_RET ret = MPP_NOK;
-    (void) task;
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
@@ -670,8 +673,11 @@ static MPP_RET hal_h264e_vepu1_wait_v2(void *hal, HalEncTask *task)
     h264e_vepu1_get_mbrc(hw_mbrc, &ctx->regs_get);
     h264e_vepu_mbrc_update(ctx->rc_ctx, hw_mbrc);
 
+    mpp_packet_add_segment_info(pkt, type, offset, hw_mbrc->out_strm_size);
+
     {
         HalH264eVepuStreamAmend *amend = &ctx->amend;
+
         if (amend->enable) {
             amend->old_length = hw_mbrc->out_strm_size;
             h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);

@@ -2132,6 +2132,7 @@ static MPP_RET hal_h264e_vepu510_wait(void *hal, HalEncTask *task)
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
     H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    MppEncH264HwCfg *hw_cfg = &ctx->cfg->codec.h264.hw_cfg;
     RK_S32 i;
 
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -2139,6 +2140,9 @@ static MPP_RET hal_h264e_vepu510_wait(void *hal, HalEncTask *task)
     /* if pass1 mode, it will disable split mode and the split out need to be disable */
     if (task->rc_task->frm.save_pass1)
         split_out = 0;
+
+    /* update split_out in hw_cfg */
+    hw_cfg->hw_split_out = split_out;
 
     if (split_out) {
         EncOutParam param;
@@ -2198,7 +2202,6 @@ static MPP_RET hal_h264e_vepu510_wait(void *hal, HalEncTask *task)
         HalH264eVepuStreamAmend *amend = &ctx->amend_sets[task->flags.reg_idx];
 
         if (amend->enable) {
-            amend->diable_split_out = !split_out;
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
             h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);

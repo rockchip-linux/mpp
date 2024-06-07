@@ -721,6 +721,8 @@ typedef struct MppEncH264HwCfg_t {
      * others   : changeable, default 12
      */
     RK_U32 hw_log2_max_frame_num_minus4;
+    /* default 0, only RKVENC2 support split out */
+    RK_U32 hw_split_out;
 } MppEncH264HwCfg;
 
 typedef struct MppEncH264Cfg_t {

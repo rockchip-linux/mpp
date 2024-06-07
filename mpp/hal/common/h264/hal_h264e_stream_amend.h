@@ -29,14 +29,15 @@ typedef struct HalH264eVepuStreamAmend_t {
     H264eMarkingInfo *marking;
 
     RK_S32           slice_enabled;
-    RK_S32           diable_split_out;
 
     RK_U8            *src_buf;
     RK_U8            *dst_buf;
     RK_S32           buf_size;
 
     MppPacket        packet;
+    /* sw length */
     RK_S32           buf_base;
+    /* hw length */
     RK_S32           old_length;
     RK_S32           new_length;
 } HalH264eVepuStreamAmend;

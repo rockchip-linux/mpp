@@ -109,7 +109,6 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
         hw_cfg->hw_log2_max_frame_num_minus4 != h264->log2_max_frame_num) {
         ctx->enable = 1;
         ctx->slice_enabled = 0;
-        ctx->diable_split_out = 1;
 
         if (NULL == ctx->dst_buf)
             ctx->dst_buf = mpp_calloc(RK_U8, ctx->buf_size);
@@ -156,9 +155,16 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
     RK_S32 final_len = 0;
     RK_S32 last_slice = 0;
     const MppPktSeg *seg = mpp_packet_get_segment_info(pkt);
+    MppPacket pkt_tmp;
+    RK_S32 offset = 0;
+
+    mpp_packet_new(&pkt_tmp);
 
     if (seg) {
         while (seg && seg->type != 1 && seg->type != 5) {
+            mpp_packet_add_segment_info(pkt_tmp, seg->type, offset, seg->len);
+            offset += seg->len;
+
             seg = seg->next;
         }
     }
@@ -193,10 +199,11 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
 
     do {
         RK_U32 nal_len = 0;
+
         tail_0bit = 0;
         // copy hw stream to stream buffer first
         if (slice->is_multi_slice) {
-            if ((!seg) || ctx->diable_split_out) {
+            if ((!seg) || !hw_cfg->hw_split_out) {
                 nal_len = get_next_nal(p, &len);
                 last_slice = (len == 0);
             } else {
@@ -226,6 +233,9 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
             dst_buf += prefix_bit;
             buf_size -= prefix_bit;
             final_len += prefix_bit;
+
+            mpp_packet_add_segment_info(pkt_tmp, H264_NALU_TYPE_PREFIX, offset, prefix_bit);
+            offset += prefix_bit;
         }
 
         H264eSlice slice_rd;
@@ -302,6 +312,13 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
             final_len += new_len;
         }
 
+        {
+            H264NaluType type = slice->idr_flag ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+
+            mpp_packet_add_segment_info(pkt_tmp, type, offset, nal_len);
+            offset += nal_len;
+        }
+
         if (last_slice) {
             p = mpp_packet_get_pos(pkt);
             p += base;
@@ -321,6 +338,11 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
     } while (1);
 
     ctx->new_length = final_len;
+
+    /* update segment */
+    mpp_packet_copy_segment_info(pkt, pkt_tmp);
+
+    mpp_packet_deinit(&pkt_tmp);
 
     return MPP_OK;
 }
