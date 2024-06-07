@@ -840,32 +840,31 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
         RockchipSocType soc_type = mpp_get_soc_type();
         MppFrameFormat frm_fmt = output_fmt & MPP_FRAME_FMT_MASK;
 
-        ret = MPP_NOK;
-        if (MPP_FRAME_FMT_IS_RGB(output_fmt) && (soc_type == ROCKCHIP_SOC_RK3576)) {
-            mpp_err_f("RGB format is not supported!\n");
-            return ret = MPP_NOK;
+        if (MPP_FRAME_FMT_IS_FBC(output_fmt)) {
+            ret = MPP_ERR_VALUE;
         }
 
-        switch ((RK_U32)frm_fmt) {
-        case MPP_FMT_YUV420SP :
-        case MPP_FMT_YUV420SP_VU :
-        case MPP_FMT_YUV422_YUYV :
-        case MPP_FMT_YUV422_YVYU :
-        case MPP_FMT_RGB888 : {
-            ret = MPP_OK;
-        } break;
-        case MPP_FMT_RGB565 : { // rgb565be
-            if (soc_type >= ROCKCHIP_SOC_RK3588 &&
-                soc_type < ROCKCHIP_SOC_BUTT)
-                ret = MPP_OK;
-        } break;
-        case (MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK) : { // bgr565le
-            if (soc_type < ROCKCHIP_SOC_RK3588 &&
-                soc_type > ROCKCHIP_SOC_AUTO)
-                ret = MPP_OK;
-        } break;
-        default:
-            break;
+        if (MPP_FRAME_FMT_IS_TILE(output_fmt)) {
+            if (soc_type < ROCKCHIP_SOC_RK3576 || MPP_FRAME_FMT_IS_RGB(output_fmt)) {
+                ret = MPP_ERR_VALUE;
+            }
+        }
+
+        if (MPP_FRAME_FMT_IS_RGB(output_fmt)) {
+            if (soc_type == ROCKCHIP_SOC_RK3576) {
+                ret = MPP_ERR_VALUE;
+            } else if (soc_type >= ROCKCHIP_SOC_RK3588) {
+                // only rgb565be and rgb888 supported
+                if (output_fmt != MPP_FMT_RGB555 && output_fmt != MPP_FMT_RGB888 ) {
+                    ret = MPP_ERR_VALUE;
+                }
+            } else {
+                // only bgr565le and rgb 888 supported
+                if (frm_fmt != (MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK)
+                    && output_fmt != MPP_FMT_RGB888) {
+                    ret = MPP_ERR_VALUE;
+                }
+            }
         }
 
         if (ret) {

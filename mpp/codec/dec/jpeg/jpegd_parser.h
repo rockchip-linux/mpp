@@ -125,7 +125,6 @@ typedef struct JpegdCtx {
 
     /* input stream buffer size */
     RK_U32                   bufferSize;
-    MppFrameFormat           output_fmt;
 
     MppPacket                input_packet;
     MppFrame                 output_frame;

@@ -150,11 +150,6 @@ static MPP_RET jpeg_judge_yuv_mode(JpegdCtx *ctx)
         if (s->h_count[0] == s->v_count[0] && s->h_count[0] != 0) {
             s->yuv_mode = JPEGDEC_YUV400;
             s->output_fmt = MPP_FMT_YUV400;
-            if (s->output_fmt != ctx->output_fmt) {
-                mpp_err_f("unsupported upsampling(%d*%d)\n", s->output_fmt,
-                          ctx->output_fmt);
-                ret = MPP_ERR_STREAM;
-            }
             /* check if fill needed */
             if ((s->width & 0xf) && ((s->width & 0xf) <= 8)) {
                 s->fill_right = 1;
@@ -1179,7 +1174,6 @@ static MPP_RET jpegd_deinit(void *ctx)
         JpegCtx->syntax = NULL;
     }
 
-    JpegCtx->output_fmt = MPP_FMT_YUV420SP;
     JpegCtx->pts = 0;
     JpegCtx->eos = 0;
     JpegCtx->input_jpeg_count = 0;
@@ -1255,7 +1249,6 @@ static MPP_RET jpegd_init(void *ctx, ParserCfg *parser_cfg)
     }
     memset(JpegCtx->syntax, 0, sizeof(JpegdSyntax));
 
-    JpegCtx->output_fmt = MPP_FMT_YUV420SP;
     JpegCtx->pts = 0;
     JpegCtx->eos = 0;
     JpegCtx->input_jpeg_count = 0;
@@ -1288,20 +1281,9 @@ static MPP_RET jpegd_control(void *ctx, MpiCmd cmd, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
-    JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
-    if (NULL == JpegCtx) {
-        mpp_err_f("NULL pointer");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    switch (cmd) {
-    case MPP_DEC_SET_OUTPUT_FORMAT: {
-        JpegCtx->output_fmt = *((RK_U32 *)param);
-        jpegd_dbg_parser("output_format:%d\n", JpegCtx->output_fmt);
-    } break;
-    default :
-        ret = MPP_NOK;
-    }
+    (void) ctx;
+    (void) cmd;
+    (void) param;
     jpegd_dbg_func("exit\n");
     return ret;
 }
