@@ -134,16 +134,24 @@ typedef struct VUI {
     RK_S32 log2_max_mv_length_vertical;
 } VUI;
 
+/* ProfileTierLevel */
 typedef struct PTLCommon {
     RK_U8 profile_space;
     RK_U8 tier_flag;
     RK_U8 profile_idc;
     RK_U8 profile_compatibility_flag[32];
     RK_U8 level_idc;
+
     RK_U8 progressive_source_flag;
     RK_U8 interlaced_source_flag;
     RK_U8 non_packed_constraint_flag;
     RK_U8 frame_only_constraint_flag;
+
+    RK_S32 bit_depth_constraint;
+    H265ChromaFmt chroma_format_constraint;
+    RK_U8 intra_constraint_flag;
+    RK_U8 one_picture_only_constraint_flag;
+    RK_U8 lower_bitrate_constraint_flag;
 } PTLCommon;
 
 typedef struct PTL {
@@ -526,6 +534,7 @@ typedef struct HEVCContext {
     RK_U8 *sps_list[MAX_SPS_COUNT];
     RK_U8 *pps_list[MAX_PPS_COUNT];
 
+    MppMemPool vps_pool;
     MppMemPool sps_pool;
 
     SliceHeader sh;
