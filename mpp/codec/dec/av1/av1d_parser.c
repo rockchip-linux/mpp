@@ -979,13 +979,11 @@ MPP_RET av1d_parser_frame(Av1CodecContext *ctx, HalDecTask *task)
 
             s->operating_point_idc = s->sequence_header->operating_point_idc[s->operating_point];
 
-            if (ctx->pix_fmt == MPP_FMT_BUTT) {
-                ret = get_pixel_format(ctx);
-                if (ret < 0) {
-                    mpp_err_f("Failed to get pixel format.\n");
-                    s->sequence_header = NULL;
-                    goto end;
-                }
+            ret = get_pixel_format(ctx);
+            if (ret < 0) {
+                mpp_err_f("Failed to get pixel format.\n");
+                s->sequence_header = NULL;
+                goto end;
             }
             break;
         case AV1_OBU_REDUNDANT_FRAME_HEADER:
