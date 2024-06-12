@@ -1,3 +1,59 @@
+## 1.0.6 (2024-06-12)
+### Feature
+- [vdpu383]: refine rcb info setup
+- [enc_265]: Support get Largest Code Unit size
+- [mpp_dec_cfg]: Add disable dpb check config
+- [vdpu383]: support 8K downscale mode
+
+### Fix
+- [drm]: Fix permission check issue on GKI kernel
+- [hal_h265e]: Amend 510 tid and sync cache
+- [hal_h265e]: Fix nalu type avoid stream warning
+- [h265e]: Fix vps/sps max temparal layers val
+- [hal_jpeg_vdpu1]: fix dec failed on RK3036 problem
+- [osal]: rv1109/rv1126 vcodec_type mismatch problem
+- [h264e_vepu2]: Adjust inter favor table
+- [h264d]: fix drop packets after reset when err stream
+- [h265d]: Allow filtering of consecutive start code
+- [hal_h264d_vdpu383]: fix spspps update issue
+- [mpp]: fix mpp frame leak when async enc
+- [enc]: Add use_lt_idx to output packet meta
+- [hal_h265e]: fix sse_sum get err
+- [mpp_enc_async]: fix mpp packet leak when thread quit
+- [enc_roi]: Support ROI cfg under CQP mode
+- [hal]: Fix the lib interdependence issue
+- [vepu_510]: fix same log type when enc feedback
+- [mpp_buffer]: fix dec/inc ref_count in multi threads
+- [mpp_enc_async]: fix debreath not work on async flow
+- [base]: fix AV1 and AVS2 string info missing problem
+- [mpp]: Add encoder input/output pts log
+- [hal_vepu580/510]: fix split out err when pass1 frame
+- [hal]: Fix target link issue
+- [hal_enc]: Fix lib dependency issue
+- [hal_h265d_vdpu383]: fix ref_err mark for special poc
+- [rc2_test]: fix pkt buffer overflow error
+- [enc_utils]: Support read odd resolution image
+- [allocator]: fix on invalid DMA heap allocator
+- [hal_h265e_vepu580]: fix reg config err for 2pass
+- [jpegd_vdpu]: Adjust file dump path
+- [mpp_common]: fix 128 odd plus 64 alignment
+- [cmake]: fix static build
+- [vdpu383]: Update vdpu383 error detection
+
+### Docs
+- Update 1.0.6 CHANGELOG.md
+
+### Refactor
+- [hal_jpegd]: init devices at hal_jpegd_api
+- [dec]: get deocder capability via common routine
+- [hal_av1d]: Migrate av1d from vpu to rkdec
+
+### Chore
+- [h265d]: Reduce malloc/free frequency of vps
+- [mpp_service]: fix typo err
+- [hal_h265d]: use INT_MAX for poc distance initiation
+- [cmake]: remove duplicate code
+
 ## 1.0.5 (2024-04-19)
 ### Feature
 - [vdpu383]: align hor stride to 128 odds + 64 byte
