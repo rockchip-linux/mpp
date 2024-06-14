@@ -801,7 +801,7 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep,
 
 static MPP_RET vepu580_h264e_save_pass1_patch(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
 {
-    RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 16);
+    RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 64);
     RK_S32 height_align = MPP_ALIGN(ctx->cfg->prep.height, 16);
 
     if (NULL == ctx->buf_pass1) {
@@ -829,12 +829,10 @@ static MPP_RET vepu580_h264e_save_pass1_patch(HalVepu580RegSet *regs, HalH264eVe
 static MPP_RET vepu580_h264e_use_pass1_patch(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ctx)
 {
     MppEncPrepCfg *prep = &ctx->cfg->prep;
-    RK_S32 hor_stride = MPP_ALIGN(prep->width, 16);
+    RK_S32 hor_stride = MPP_ALIGN(prep->width, 64);
     RK_S32 ver_stride = MPP_ALIGN(prep->height, 16);
     RK_S32 frame_size = hor_stride * ver_stride;
     RK_S32 fd_in = mpp_buffer_get_fd(ctx->buf_pass1);
-    RK_S32 y_stride;
-    RK_S32 c_stride;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -843,12 +841,9 @@ static MPP_RET vepu580_h264e_use_pass1_patch(HalVepu580RegSet *regs, HalH264eVep
     regs->reg_base.src_fmt.rbuv_swap  = 0;
     regs->reg_base.src_fmt.out_fmt    = 1;
 
-    y_stride = MPP_ALIGN(prep->width, 16);
-    c_stride = y_stride;
-
     regs->reg_base.src_proc.afbcd_en   =  0;
-    regs->reg_base.src_strd0.src_strd0  = y_stride;
-    regs->reg_base.src_strd1.src_strd1  = c_stride;
+    regs->reg_base.src_strd0.src_strd0  = hor_stride;
+    regs->reg_base.src_strd1.src_strd1  = hor_stride;
 
     regs->reg_base.src_proc.src_mirr   = 0;
     regs->reg_base.src_proc.src_rot    = 0;

@@ -2490,10 +2490,16 @@ static MPP_RET vepu580_h265e_use_pass1_patch(H265eV580RegSet *regs, H265eV580Hal
 
     reg_ctl->reg0012_dtrns_map.src_bus_edin = fmt->src_endian;
     reg_base->reg0198_src_fmt.src_cfmt = VEPU541_FMT_YUV420SP;
+    reg_base->reg0198_src_fmt.alpha_swap = 0;
+    reg_base->reg0198_src_fmt.rbuv_swap = 0;
     reg_base->reg0198_src_fmt.out_fmt = 1;
     reg_base->reg0203_src_proc.afbcd_en = 0;
     reg_base->reg0205_src_strd0.src_strd0 = hor_stride;
     reg_base->reg0206_src_strd1.src_strd1 = hor_stride;
+    reg_base->reg0203_src_proc.src_mirr = 0;
+    reg_base->reg0203_src_proc.src_rot = 0;
+    reg_base->reg0204_pic_ofst.pic_ofst_x = 0;
+    reg_base->reg0204_pic_ofst.pic_ofst_y = 0;
     reg_base->reg0160_adr_src0 = mpp_buffer_get_fd(ctx->buf_pass1);
     reg_base->reg0161_adr_src1 = reg_base->reg0160_adr_src0;
     reg_base->reg0162_adr_src2 = reg_base->reg0160_adr_src0;
