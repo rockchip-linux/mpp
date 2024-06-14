@@ -434,6 +434,7 @@ static const MppEncRefCfgImpl default_ref_cfg = {
     .max_st_cfg         = 1,
     .lt_cfg_cnt         = 0,
     .st_cfg_cnt         = 1,
+    .max_tlayers        = 1,
     .lt_cfg             = NULL,
     .st_cfg             = &default_st_ref_cfg,
     .cpb_info           = { 1, 0, 1, 0, 0, 0, 0 },
