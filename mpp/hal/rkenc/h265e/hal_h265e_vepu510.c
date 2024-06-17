@@ -1599,7 +1599,7 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->int_en.jslc_done_en       = 1;
     reg_ctl->int_en.jbsf_oflw_en       = 1;
     reg_ctl->int_en.jbuf_lens_en       = 1;
-    reg_ctl->int_en.dvbm_err_en        = 1;
+    reg_ctl->int_en.dvbm_err_en        = 0;
 
     reg_ctl->dtrns_map.jpeg_bus_edin    = 0x0;
     reg_ctl->dtrns_map.src_bus_edin     = 0x0;
