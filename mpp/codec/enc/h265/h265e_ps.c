@@ -432,7 +432,7 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         }
     } else {
         pps->m_deblockingFilterOverrideEnabledFlag = 0;
-        pps->m_picDisableDeblockingFilterFlag = 0;
+        pps->m_picDisableDeblockingFilterFlag = 1;
         pps->m_deblockingFilterBetaOffsetDiv2 = 0;
         pps->m_deblockingFilterTcOffsetDiv2 = 0;
     }
