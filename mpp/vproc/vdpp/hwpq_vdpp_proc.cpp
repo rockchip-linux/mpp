@@ -673,7 +673,6 @@ int hwpq_vdpp_init(rk_vdpp_context *p_ctx_ptr)
         ret = vdpp->ops->init(&vdpp->priv);
         if (ret) {
             mpp_err_f("vdpp init failed! ret %d\n", ret);
-            rockchip_vdpp_api_release_ctx(vdpp);
             goto __ERR;
         }
     }
