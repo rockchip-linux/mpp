@@ -545,7 +545,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
 #endif
 
         regs->common_addr.reg130_cabactbl_base = reg_ctx->bufs_fd;
-        mpp_dev_set_reg_offset(p_hal->dev, 197, reg_ctx->offset_cabac);
+        mpp_dev_set_reg_offset(p_hal->dev, 130, reg_ctx->offset_cabac);
     }
 
     {
