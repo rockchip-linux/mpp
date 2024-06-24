@@ -265,21 +265,18 @@ typedef struct Vdpu383RegAv1dAddr_t {
     RK_U32 reg179_av1_coef_wr_base;
 
     /* SWREG180_H26X_REF10_BASE */
-    // RK_U32 reg180_refer10_base;
+    RK_U32 reg180_refer10_base;
 
     /* SWREG181_H26X_REF11_BASE */
-    // RK_U32 reg181_refer11_base;
-    // RK_U32 reg181_av1segidlast_base;
+    RK_U32 reg181_av1_segid_last_base;
 
     /* SWREG182_H26X_REF12_BASE */
     // RK_U32 reg182_refer12_base;
-    // RK_U32 reg182_av1segidcur_base;
+    RK_U32 reg182_av1_segid_cur_base;
 
     /* SWREG183_H26X_REF13_BASE */
     // RK_U32 reg183_refer13_base;
-    // RK_U32 reg183_kf_prob_base;
-
-    RK_U32 reserve_reg180_183[4];
+    RK_U32 reg183_kf_prob_base;
 
     /* SWREG184_H26X_REF14_BASE */
     // RK_U32 reg184_refer14_base;

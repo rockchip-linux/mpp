@@ -2013,7 +2013,7 @@ __RETURN:
     return ret;
 }
 
-static MPP_RET vdpu383_av1d_cdf_setup(Av1dHalCtx *p_hal)
+static MPP_RET vdpu383_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
@@ -2021,6 +2021,11 @@ static MPP_RET vdpu383_av1d_cdf_setup(Av1dHalCtx *p_hal)
     /* the worst case is the frame is error with whole frame */
     if (reg_ctx->cdf_bufs == NULL) {
         size_t size = ALL_CDF_SIZE;
+        size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
+                            (MPP_ALIGN(dxva->height, 128) / 128) * \
+                            32 * 16;
+
+        size += segid_size;
 
         if (reg_ctx->cdf_bufs) {
             hal_bufs_deinit(reg_ctx->cdf_bufs);
@@ -2106,10 +2111,12 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->CurrPic.Index7Bits);
     regs->av1d_addrs.reg185_av1_noncoef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
     regs->av1d_addrs.reg179_av1_coef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
+    regs->av1d_addrs.reg182_av1_segid_cur_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
 
     /* byte, 434 x 128 bit = 434 x 16 byte */
     mpp_dev_set_reg_offset(p_hal->dev, 178, NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx);
     mpp_dev_set_reg_offset(p_hal->dev, 179, NON_COEF_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->dev, 182, ALL_CDF_SIZE);
 
     /* update params sync with "update buffer" */
     for (i = 0; i < NUM_REF_FRAMES; i++) {
@@ -2419,7 +2426,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     {
-        vdpu383_av1d_cdf_setup(p_hal);
+        vdpu383_av1d_cdf_setup(p_hal, dxva);
         vdpu383_av1d_set_cdf(p_hal, dxva);
     }
     mpp_buffer_sync_end(ctx->bufs);
