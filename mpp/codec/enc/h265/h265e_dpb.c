@@ -24,6 +24,7 @@
 
 #include "h265e_codec.h"
 #include "h265e_dpb.h"
+#include "h265e_slice.h"
 
 void h265e_dpb_dump_frm(H265eDpb *dpb, const char *fmt)
 {
@@ -42,10 +43,42 @@ void h265e_dpb_dump_frm(H265eDpb *dpb, const char *fmt)
     mpp_log("%20s %s", fmt, buf);
 }
 
-void h265e_dpb_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_pRps, RK_S32 delta_poc)
+MPP_RET calc_ref_pic_set_idxl0(H265eDpb *dpb, H265eSlice *slice, RK_S32 ref_idx)
+{
+    H265eReferencePictureSet * rps = (H265eReferencePictureSet*)&slice->m_localRPS;
+    H265eDpbFrm *frame_list = dpb->frame_list;
+    H265eRpsList *RpsList = &dpb->RpsList;
+    RK_S32 poc_idx = rps->m_RealPoc[ref_idx];
+    H265eDpbFrm* refPicSetLtCurr[MAX_REFS];
+    H265eDpbFrm* refPic = NULL;
+    RK_S32 numPocLtCurr = 0;
+    RK_S32 i = 0;
+
+    for (i = rps->num_negative_pic + rps->num_positive_pic + rps->num_long_term_pic - 1;
+         i > rps->num_negative_pic + rps->num_positive_pic - 1; i--) {
+        if (rps->m_used[i]) {
+            refPic = get_lt_ref_pic(frame_list, slice, rps->m_RealPoc[i], rps->check_lt_msb[i]);
+            refPicSetLtCurr[numPocLtCurr] = refPic;
+            numPocLtCurr++;
+        }
+    }
+
+    RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = 0;
+    for (i = 0; i < numPocLtCurr; i++) {
+        if (poc_idx == refPicSetLtCurr[i]->poc)
+            RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = i;
+    }
+
+    return MPP_OK;
+}
+
+void h265e_dpb_set_ref_list(H265eDpb *dpb, H265eSlice *slice, RK_S32 delta_poc)
 {
     RK_S32 i;
     RK_S32 ref_idx = -1;
+    RK_S32 lt_cnt = 0, st_cnt = 0;
+    H265eRpsList *RpsList = &dpb->RpsList;
+    H265eReferencePictureSet * m_pRps = (H265eReferencePictureSet*)&slice->m_localRPS;
     H265eRefPicListModification* refPicListModification = RpsList->m_RefPicListModification;
 
     h265e_dbg_func("enter\n");
@@ -64,21 +97,19 @@ void h265e_dpb_set_ref_list(H265eRpsList *RpsList, H265eReferencePictureSet *m_p
             h265e_dbg_dpb("m_pRps->delta_poc[%d] = %d", i, m_pRps->delta_poc[i]);
             if (m_pRps->delta_poc[i] == delta_poc) {
                 ref_idx = i;
-                h265e_dbg_dpb("get ref ref_idx %d", ref_idx);
-                break;
+                if (i > m_pRps->m_numberOfPictures - m_pRps->num_long_term_pic - 1)
+                    lt_cnt++;
+                else
+                    st_cnt++;
+                h265e_dbg_dpb("get %s ref ref_idx %d delta_poc %d", st_cnt ? "st" : "lt", ref_idx, delta_poc);
             }
         }
-        if (-1 == ref_idx) {
-            mpp_err("Did not find the right reference picture");
+        if (lt_cnt != 1 && st_cnt == 0) {
+            mpp_err("Warning: Did not find the right long term reference picture or more than one.");
             return;
         } else if (ref_idx != 0) {
             refPicListModification->m_refPicListModificationFlagL0 = 1;
-            refPicListModification->m_RefPicSetIdxL0[0] = ref_idx;
-            for ( i = 1; i < m_pRps->m_numberOfPictures - 1; i++) {
-                if (i != ref_idx)
-                    refPicListModification->m_RefPicSetIdxL0[i] = i;
-            }
-            refPicListModification->m_RefPicSetIdxL0[ref_idx] = 0;
+            calc_ref_pic_set_idxl0(dpb, slice, ref_idx);
         }
     }
     refPicListModification->m_refPicListModificationFlagL1 = 0;
@@ -650,9 +681,12 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
             rps->poc[i + st_size] = nLongTermRefPicPoc[i];
             rps->m_RealPoc[i + st_size] = nLongTermRefPicRealPoc[i];
             rps->m_used[i + st_size] = 1;
-            rps->m_ref[i + st_size] = p->is_long_term;
             rps->delta_poc[i + st_size] = nLongTermDealtPoc[i];
             rps->check_lt_msb[i + st_size] = isMsbValid[i];
+            if (cpb->refr.seq_idx == rps->poc[i + st_size])
+                rps->m_ref[i + st_size] = 1;
+            else
+                rps->m_ref[i + st_size] = 0;
         }
     }
 
@@ -663,7 +697,7 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
     slice->m_rps = rps;
     h265e_dpb_apply_rps(dpb, slice->m_rps, curPoc);
     h265e_dpb_arrange_lt_rps(dpb, slice);
-    h265e_dpb_set_ref_list(RpsList, rps, ref_dealt_poc);
+    h265e_dpb_set_ref_list(dpb, slice, ref_dealt_poc);
     memcpy(&slice->m_RefPicListModification, RpsList->m_RefPicListModification,
            sizeof(H265eRefPicListModification));
     h265e_dbg_func("leave\n");

@@ -991,6 +991,9 @@ typedef enum MppEncH265CfgChange_e {
     MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE         = (1 << 24),
     MPP_ENC_H265_CFG_CHANGE_CONST_INTRA         = (1 << 25),
     MPP_ENC_H265_CFG_CHANGE_LCU_SIZE            = (1 << 26),
+    MPP_ENC_H265_CFG_CHANGE_MAX_TID             = (1 << 27),
+    MPP_ENC_H265_CFG_CHANGE_MAX_LTR             = (1 << 28),
+    MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID      = (1 << 29),
     MPP_ENC_H265_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncH265CfgChange;
 
@@ -1095,6 +1098,11 @@ typedef struct MppEncH265Cfg_t {
     /* intra fresh config */
     RK_S32              intra_refresh_mode;
     RK_S32              intra_refresh_arg;
+
+    /* extra mode config */
+    RK_S32              max_ltr_frames;
+    RK_S32              max_tid;
+    RK_S32              base_layer_pid;
 
     /* slice mode config */
     RK_S32              independ_slice_mode;

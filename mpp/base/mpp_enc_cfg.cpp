@@ -246,6 +246,9 @@ public:
     ENTRY(h265, lpf_acs_sli_en, U32, RK_U32,            MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   codec.h265, lpf_acs_sli_en) \
     ENTRY(h265, lpf_acs_tile_disable, U32, RK_U32,      MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    codec.h265, lpf_acs_tile_disable) \
     ENTRY(h265, auto_tile,      S32, RK_S32,            MPP_ENC_H265_CFG_TILE_CHANGE,           codec.h265, auto_tile) \
+    ENTRY(h265, max_tid,        S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_MAX_TID,        codec.h265, max_tid) \
+    ENTRY(h265, max_ltr,        S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_MAX_LTR,        codec.h265, max_ltr_frames) \
+    ENTRY(h265, base_layer_pid, S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID, codec.h265, base_layer_pid) \
     ENTRY(h265, const_intra,    S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    codec.h265, const_intra_pred) \
     ENTRY(h265, lcu_size,       S32, RK_S32,            MPP_ENC_H265_CFG_CHANGE_LCU_SIZE,       codec.h265, max_cu_size) \
     /* vp8 config */ \

@@ -437,6 +437,7 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice);
 void h265e_slice_set_ref_poc_list(H265eSlice *slice);
 void h265e_slice_init(void *ctx, EncFrmStatus curr);
 RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_S32 len);
+H265eDpbFrm* get_lt_ref_pic(H265eDpbFrm *frame_list, H265eSlice *slice, RK_S32 poc, RK_U32 pocHasMsb);
 
 #ifdef __cplusplus
 }

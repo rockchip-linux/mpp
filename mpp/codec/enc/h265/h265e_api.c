@@ -224,9 +224,48 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 
 static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 {
-    H265eCtx *p = (H265eCtx *)ctx;
-    (void) p;
     h265e_dbg_func("enter\n");
+
+    if (mpp_frame_has_meta(task->frame)) {
+        MppEncRefFrmUsrCfg *frm_cfg = task->frm_cfg;
+        EncRcForceCfg *rc_force = &task->rc_task->force;
+        MppMeta meta = mpp_frame_get_meta(task->frame);
+        RK_S32 force_lt_idx = -1;
+        RK_S32 force_use_lt_idx = -1;
+        RK_S32 force_frame_qp = -1;
+        RK_S32 base_layer_pid = -1;
+
+        mpp_meta_get_s32(meta, KEY_ENC_MARK_LTR, &force_lt_idx);
+        mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &force_use_lt_idx);
+        mpp_meta_get_s32(meta, KEY_ENC_FRAME_QP, &force_frame_qp);
+        mpp_meta_get_s32(meta, KEY_ENC_BASE_LAYER_PID, &base_layer_pid);
+
+        if (force_lt_idx >= 0) {
+            frm_cfg->force_flag |= ENC_FORCE_LT_REF_IDX;
+            frm_cfg->force_lt_idx = force_lt_idx;
+        }
+
+        if (force_use_lt_idx >= 0) {
+            frm_cfg->force_flag |= ENC_FORCE_REF_MODE;
+            frm_cfg->force_ref_mode = REF_TO_LT_REF_IDX;
+            frm_cfg->force_ref_arg = force_use_lt_idx;
+        }
+
+        if (force_frame_qp >= 0) {
+            rc_force->force_flag = ENC_RC_FORCE_QP;
+            rc_force->force_qp = force_frame_qp;
+        } else {
+            rc_force->force_flag &= (~ENC_RC_FORCE_QP);
+            rc_force->force_qp = -1;
+        }
+
+        if (base_layer_pid >= 0) {
+            H265eCtx *p = (H265eCtx *)ctx;
+            MppEncH265Cfg *h265 = &p->cfg->codec.h265;
+
+            h265->base_layer_pid = base_layer_pid;
+        }
+    }
 
     /*
      * Step 2: Fps conversion
@@ -267,16 +306,36 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    EncFrmStatus *frm = &task->rc_task->frm;
-    MppPacket packet = task->packet;
-    MppMeta meta = mpp_packet_get_meta(packet);
+    MppEncH265Cfg *h265 = &p->cfg->codec.h265;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, frm->temporal_id);
+    /* check max temporal layer id */
+    {
+        MppEncCpbInfo *cpb_info = mpp_enc_ref_cfg_get_cpb_info(p->cfg->ref_cfg);
+        RK_S32 cpb_max_tid = cpb_info->max_st_tid;
+        RK_S32 cfg_max_tid = h265->max_tid;
+
+        if (cpb_max_tid != cfg_max_tid) {
+            mpp_log("max tid is update to match cpb %d -> %d\n",
+                    cfg_max_tid, cpb_max_tid);
+            h265->max_tid = cpb_max_tid;
+        }
+    }
+
+    if (h265->max_tid) {
+        EncFrmStatus *frm = &task->rc_task->frm;
+        MppPacket packet = task->packet;
+        MppMeta meta = mpp_packet_get_meta(packet);
+
+        mpp_meta_set_s32(meta, KEY_TEMPORAL_ID, frm->temporal_id);
+        if (!frm->is_non_ref && frm->is_lt_ref)
+            mpp_meta_set_s32(meta, KEY_LONG_REF_IDX, frm->lt_idx);
+    }
+
     h265e_dbg_func("enter ctx %p \n", ctx);
 
     h265e_syntax_fill(ctx);
@@ -539,6 +598,25 @@ static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
 
         dst->change |= MPP_ENC_H265_CFG_CHANGE_CONST_INTRA;
     }
+
+    if ((change & MPP_ENC_H265_CFG_CHANGE_MAX_LTR) &&
+        (dst->max_ltr_frames != src->max_ltr_frames)) {
+        dst->max_ltr_frames = src->max_ltr_frames;
+        dst->change |= MPP_ENC_H265_CFG_CHANGE_MAX_LTR;
+    }
+
+    if ((change & MPP_ENC_H265_CFG_CHANGE_MAX_TID) &&
+        (dst->max_tid != src->max_tid)) {
+        dst->max_tid = src->max_tid;
+        dst->change |= MPP_ENC_H265_CFG_CHANGE_MAX_TID;
+    }
+
+    if ((change & MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID) &&
+        (dst->base_layer_pid != src->base_layer_pid)) {
+        dst->base_layer_pid = src->base_layer_pid;
+        dst->change |= MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID;
+    }
+
     /*
      * NOTE: use OR here for avoiding overwrite on multiple config
      * When next encoding is trigger the change flag will be clear
