@@ -129,6 +129,7 @@ RK_U32 mpp_align_256_odd(RK_U32 val)
 
 RK_U32 mpp_align_128_odd_plus_64(RK_U32 val)
 {
+    val = MPP_ALIGN(val, 64);
     if (((val - 64) % 256 == 128))
         return val;
     else
