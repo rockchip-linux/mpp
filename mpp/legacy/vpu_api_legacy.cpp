@@ -585,6 +585,10 @@ static void setup_VPU_FRAME_from_mpp_frame(VpuCodecContext *ctx, VPU_FRAME *vfra
         vframe->ColorType |= VPU_OUTPUT_FORMAT_BIT_10;
         vframe->OutputWidth = 0x23;
     } break;
+    case MPP_FMT_YUV444SP: {
+        vframe->ColorType = VPU_OUTPUT_FORMAT_YUV444;
+        vframe->OutputWidth = 0x11;
+    } break;
     default: {
     } break;
     }
