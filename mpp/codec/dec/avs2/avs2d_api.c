@@ -33,6 +33,12 @@
 #include "avs2d_dpb.h"
 #include "mpp_dec_cb_param.h"
 
+// for avs2d max ctu size 64
+static RK_U32 rkv_ctu_64_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 64);
+}
+
 RK_U32 avs2d_parse_debug = 0;
 
 MPP_RET avs2d_deinit(void *decoder)
@@ -93,6 +99,8 @@ MPP_RET avs2d_init(void *decoder, ParserCfg *init)
     mpp_packet_init(&p_dec->task_pkt, p_dec->p_stream->pbuf, p_dec->p_stream->size);
     mpp_packet_set_length(p_dec->task_pkt, 0);
     MEM_CHECK(ret, p_dec->task_pkt);
+
+    mpp_slots_set_prop(p_dec->frame_slots, SLOTS_WIDTH_ALIGN, rkv_ctu_64_align);
 
 __RETURN:
     AVS2D_PARSE_TRACE("Out.");

@@ -36,6 +36,12 @@
 
 RK_U32 h264d_debug = 0;
 
+// for mblock 16 coded width align
+static RK_U32 rkv_mblock_width_align(RK_U32 val)
+{
+    return MPP_ALIGN(val, 16);
+}
+
 static MPP_RET free_input_ctx(H264dInputCtx_t *p_Inp)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -353,6 +359,7 @@ MPP_RET h264d_init(void *decoder, ParserCfg *init)
                     p_Dec->cfg->base.enable_fast_play);
     H264D_LOG("fast play mode: %d", p_Dec->p_Vid->dpb_fast_out);
     p_Dec->p_Vid->dpb_first_fast_played = 0;
+    mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_WIDTH_ALIGN, rkv_mblock_width_align);
 __RETURN:
     return ret = MPP_OK;
 __FAILED:

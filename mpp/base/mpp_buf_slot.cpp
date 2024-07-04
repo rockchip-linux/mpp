@@ -222,6 +222,7 @@ struct MppBufSlotsImpl_t {
     AlignFunc           hal_hor_align;          // default NULL
     AlignFunc           hal_ver_align;          // default NULL
     AlignFunc           hal_len_align;          // default NULL
+    AlignFunc           hal_width_align;        // default NULL
     SlotHalFbcAdjCfg    hal_fbc_adj_cfg;        // hal fbc frame adjust config
     size_t              buf_size;
     RK_S32              buf_count;
@@ -298,9 +299,12 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
                     (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV444SP_10BIT) ? 10 : 8;
     RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
     RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
+    RK_U32 coded_width = (impl->hal_width_align) ?
+                         (impl->hal_width_align(width)) : width;
+
     RK_U32 hal_hor_stride = (codec_hor_stride) ?
                             (impl->hal_hor_align(codec_hor_stride)) :
-                            (impl->hal_hor_align(width * depth >> 3));
+                            (impl->hal_hor_align(coded_width * depth >> 3));
     RK_U32 hal_ver_stride = (codec_ver_stride) ?
                             (impl->hal_ver_align(codec_ver_stride)) :
                             (impl->hal_ver_align(height));
@@ -1383,6 +1387,9 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     } break;
     case SLOTS_CODING_TYPE : {
         impl->coding_type = *((MppCodingType *)val);
+    } break;
+    case SLOTS_WIDTH_ALIGN: {
+        impl->hal_width_align = (AlignFunc)val;
     } break;
     default : {
     } break;
