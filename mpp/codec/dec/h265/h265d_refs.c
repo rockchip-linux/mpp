@@ -97,7 +97,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_hor_stride(frame->frame,
                                  (MPP_ALIGN(s->h265dctx->coded_width, 64) * s->h265dctx->nBitDepth) >> 3);
         mpp_frame_set_ver_stride(frame->frame, s->h265dctx->coded_height);
-        s->h265dctx->pix_fmt = 0;
+        s->h265dctx->pix_fmt &= MPP_FRAME_FMT_MASK;
         if (s->is_hdr) {
             s->h265dctx->pix_fmt |= MPP_FRAME_HDR;
         }
