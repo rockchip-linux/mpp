@@ -49,6 +49,7 @@ static MppMetaDef meta_defs[] = {
     {   KEY_OUTPUT_INTRA,       TYPE_S32,       },
     {   KEY_INPUT_BLOCK,        TYPE_S32,       },
     {   KEY_OUTPUT_BLOCK,       TYPE_S32,       },
+    {   KEY_INPUT_IDR_REQ,      TYPE_S32,       },
 
     /* extra information for tsvc */
     {   KEY_TEMPORAL_ID,        TYPE_S32,       },
