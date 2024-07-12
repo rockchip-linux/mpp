@@ -244,6 +244,7 @@ typedef struct M2VDParserContext_t {
     RK_U32          mb_height;
     RK_U32          MPEG2_Flag;
 
+    RK_U32          info_changed;
     M2VDHeadSeq         seq_head;
     M2VDHeadSeqExt      seq_ext_head;
     M2VDHeadGop         gop_head;
