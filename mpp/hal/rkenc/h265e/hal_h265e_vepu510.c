@@ -771,6 +771,8 @@ MPP_RET hal_h265e_v510_deinit(void *hal)
             frm->reg_cfg = NULL;
         }
 
+        MPP_FREE(frm->regs_set);
+        MPP_FREE(frm->regs_ret);
         MPP_FREE(ctx->frms[i]);
     }
 
