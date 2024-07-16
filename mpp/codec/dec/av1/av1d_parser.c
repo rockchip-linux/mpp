@@ -1292,7 +1292,7 @@ RK_S32 av1d_split_frame(Av1CodecContext *ctx,
         if (len < 0)
             break;
         if (obu.type == AV1_OBU_FRAME_HEADER || obu.type == AV1_OBU_FRAME ||
-            ((obu.type == AV1_OBU_TEMPORAL_DELIMITER ||
+            ((obu.type == AV1_OBU_TEMPORAL_DELIMITER || obu.type == AV1_OBU_METADATA ||
               obu.type == AV1_OBU_SEQUENCE_HEADER) && ctx->frame_header))
             ctx->frame_header ++;
         if (ctx->frame_header == 2) {
