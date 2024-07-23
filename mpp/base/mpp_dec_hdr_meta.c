@@ -50,6 +50,13 @@ void fill_hdr_meta_to_frame(MppFrame frame, MppCodingType in_type)
         return;
     }
 
+    if (mpp_frame_get_thumbnail_en(frame) == MPP_FRAME_THUMBNAIL_ONLY) {
+        // only for 8K thumbnail downscale to 4K 8bit mode
+        RK_U32 downscale_width = mpp_frame_get_width(frame) / 2;
+        RK_U32 downscale_height = mpp_frame_get_height(frame) / 2;
+
+        off = downscale_width * downscale_height * 3 / 2;
+    }
     off = MPP_ALIGN(off, SZ_4K);
 
     static_size = sizeof(RkMetaHdrHeader) + sizeof(HdrStaticMeta);
