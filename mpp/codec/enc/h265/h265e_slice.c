@@ -169,8 +169,7 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice)
     for ( rIdx = 0; rIdx < slice->m_numRefIdx[0]; rIdx++) {
         cIdx = slice->m_RefPicListModification.m_refPicListModificationFlagL0 ? slice->m_RefPicListModification.m_RefPicSetIdxL0[rIdx] : (RK_U32)rIdx % numPocTotalCurr;
         mpp_assert(cIdx >= 0 && cIdx < numPocTotalCurr);
-        slice->m_refPicList[0][rIdx] = slice->m_RefPicListModification.m_refPicListModificationFlagL0 ?
-                                       rpsCurrList0[cIdx + numPocStCurr0] : rpsCurrList0[0];
+        slice->m_refPicList[0][rIdx] = rpsCurrList0[cIdx];
         slice->m_bIsUsedAsLongTerm[0][rIdx] = (cIdx >= numPocStCurr0 + numPocStCurr1);
     }
 

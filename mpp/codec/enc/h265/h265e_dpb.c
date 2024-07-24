@@ -63,10 +63,10 @@ MPP_RET calc_ref_pic_set_idxl0(H265eDpb *dpb, H265eSlice *slice, RK_S32 ref_idx)
         }
     }
 
-    RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = 0;
+    RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = ref_idx;
     for (i = 0; i < numPocLtCurr; i++) {
         if (poc_idx == refPicSetLtCurr[i]->poc)
-            RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = i;
+            RpsList->m_RefPicListModification->m_RefPicSetIdxL0[0] = rps->m_numberOfPictures - rps->num_long_term_pic + i;
     }
 
     return MPP_OK;
