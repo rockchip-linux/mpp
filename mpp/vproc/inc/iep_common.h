@@ -106,6 +106,7 @@ typedef struct iep_com_ops_t {
     MPP_RET (*init)(IepCtx *ctx);
     MPP_RET (*deinit)(IepCtx ctx);
     MPP_RET (*control)(IepCtx ctx, IepCmd cmd, void *param);
+    MPP_RET (*reset)(IepCtx ctx);
     void (*release)(iep_com_ctx *ctx);
 } iep_com_ops;
 

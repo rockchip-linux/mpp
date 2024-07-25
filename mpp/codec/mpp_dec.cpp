@@ -240,8 +240,8 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
                     }
                     dec->vproc = NULL;
                 } else {
-                    if (mode == MPP_FRAME_FLAG_DEINTERLACED)
-                        dec_vproc_enable_detect(dec->vproc);
+                    /* store current IEP mode */
+                    dec_vproc_set_mode(dec->vproc, (MppVprocMode)dec->enable_deinterlace);
 
                     dec->vproc_tasks = cfg.task_group;
                     dec_vproc_start(dec->vproc);

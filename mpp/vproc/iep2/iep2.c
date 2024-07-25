@@ -319,12 +319,10 @@ static void iep2_set_param(struct iep2_api_ctx *ctx,
     case IEP2_PARAM_TYPE_MODE:
         ctx->params.dil_mode = param->mode.dil_mode;
         ctx->params.dil_out_mode = param->mode.out_mode;
-        if (!ctx->ff_inf.fo_detected) {
-            ctx->params.dil_field_order = param->mode.dil_order;
-        }
+        ctx->params.dil_field_order = param->mode.dil_order;
 
-        iep_dbg_trace("deinterlace, mode %d, out mode %d, fo_detected %d, dil_order %d\n",
-                      param->mode.dil_mode, param->mode.out_mode, ctx->ff_inf.fo_detected, param->mode.dil_order);
+        iep_dbg_trace("deinterlace, mode %d, out mode %d, dil_order %d\n",
+                      param->mode.dil_mode, param->mode.out_mode, param->mode.dil_order);
 
         if (param->mode.dil_order == IEP2_FIELD_ORDER_UND) {
             ctx->ff_inf.frm_offset = 6;
@@ -474,8 +472,8 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
             inf->pd_flag = ctx->params.pd_mode;
         iep2_done(ctx);
         if (inf) {
-            inf->dil_order = ctx->params.dil_field_order;
-            inf->frm_mode = ctx->ff_inf.is_frm;
+            inf->dil_order = ctx->ff_inf.field_order;
+            inf->frm_mode = ctx->ff_inf.frm_mode;
             inf->pd_types = ctx->pd_inf.pdtype;
             inf->dil_order_confidence_ratio = ctx->ff_inf.fo_ratio_avg;
         }
@@ -488,10 +486,20 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
     return MPP_OK;
 }
 
+static MPP_RET iep2_reset(IepCtx ictx)
+{
+    struct iep2_api_ctx *ctx = ictx;
+
+    memset(&ctx->ff_inf, 0, sizeof(ctx->ff_inf));
+
+    return MPP_OK;
+}
+
 static iep_com_ops iep2_ops = {
     .init = iep2_init,
     .deinit = iep2_deinit,
     .control = iep2_control,
+    .reset = iep2_reset,
     .release = NULL,
 };
 

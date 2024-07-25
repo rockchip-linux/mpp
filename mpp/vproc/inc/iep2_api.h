@@ -30,7 +30,8 @@ enum IEP2_FIELD_ORDER {
 
 enum IEP2_FF_MODE {
     IEP2_FF_MODE_FRAME,
-    IEP2_FF_MODE_FIELD
+    IEP2_FF_MODE_FIELD,
+    IEP2_FF_MODE_UND
 };
 
 enum IEP2_FMT {
@@ -128,7 +129,7 @@ struct iep2_api_params {
 
 struct iep2_api_info {
     enum IEP2_FIELD_ORDER dil_order;
-    bool frm_mode;
+    enum IEP2_FF_MODE frm_mode;
     enum PD_TYPES pd_types;
     enum PD_COMP_FLAG pd_flag;
     RK_U32 dil_order_confidence_ratio;

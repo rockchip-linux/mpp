@@ -29,8 +29,8 @@ struct iep2_ff_info {
     RK_S32 fie_offset;
     RK_S32 frm_score;
     RK_S32 fie_score;
-    RK_S32 fo_detected;
-    RK_S32 is_frm;
+    RK_U32 field_order;
+    RK_U32 frm_mode;
     RK_U32 fo_ratio[FIELD_ORDER_RATIO_SIZE];
     RK_U32 fo_ratio_idx;
     RK_U32 fo_ratio_cnt;

@@ -547,6 +547,10 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
     if (vsh->progressive_sequence) {
         frm->frame_mode = MPP_FRAME_FLAG_FRAME;
         frm->frame_coding_mode = MPP_FRAME_FLAG_FRAME;
+
+        if (p_dec->init.cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) {
+            frm->frame_mode |= MPP_FRAME_FLAG_DEINTERLACED;
+        }
     } else {
         frm->frame_mode = MPP_FRAME_FLAG_PAIRED_FIELD;
         if (vsh->field_coded_sequence) {

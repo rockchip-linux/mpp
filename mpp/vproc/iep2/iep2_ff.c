@@ -101,12 +101,15 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
 
     if (RKABS(frm_score - fie_score) > 10) {
         if (frm_score > fie_score) {
-            ctx->ff_inf.is_frm = 1;
+            ctx->ff_inf.frm_mode = IEP2_FF_MODE_FRAME;
             iep_dbg_trace("deinterlace frame mode\n");
         } else {
-            ctx->ff_inf.is_frm = 0;
+            ctx->ff_inf.frm_mode = IEP2_FF_MODE_FIELD;
             iep_dbg_trace("deinterlace field mode\n");
         }
+    } else {
+        ctx->ff_inf.frm_mode = IEP2_FF_MODE_UND;
+        iep_dbg_trace("deinterlace mode unknown\n");
     }
 
     if (tcnt <= 3 && bcnt <= 3) {
@@ -143,14 +146,14 @@ void iep2_check_ffo(struct iep2_api_ctx *ctx)
     if (RKABS(tff_score - bff_score) > 5) {
         if (tff_score > bff_score) {
             iep_dbg_trace("deinterlace field order tff\n");
-            ctx->params.dil_field_order = IEP2_FIELD_ORDER_TFF;
+            ctx->ff_inf.field_order = IEP2_FIELD_ORDER_TFF;
         } else {
             iep_dbg_trace("deinterlace field order bff\n");
-            ctx->params.dil_field_order = IEP2_FIELD_ORDER_BFF;
+            ctx->ff_inf.field_order = IEP2_FIELD_ORDER_BFF;
         }
     } else {
-        iep_dbg_trace("deinterlace field order unknown, %d\n", ctx->params.dil_field_order);
+        iep_dbg_trace("deinterlace field order unknown\n");
+        ctx->ff_inf.field_order = IEP2_FIELD_ORDER_UND;
     }
 
-    ctx->ff_inf.fo_detected = 1;
 }

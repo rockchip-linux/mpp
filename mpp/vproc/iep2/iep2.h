@@ -146,6 +146,7 @@ struct iep2_output {
 struct iep2_api_ctx {
     struct iep2_params params;
     struct iep2_output output;
+    /* output */
     struct iep2_ff_info ff_inf;
     struct iep2_pd_info pd_inf;
 

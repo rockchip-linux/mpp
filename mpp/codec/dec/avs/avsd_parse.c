@@ -475,6 +475,10 @@ MPP_RET avsd_set_dpb(AvsdCtx_t *p_dec, HalDecTask *task)
         }
     } else { //!< frame picture
         p_cur->frame_mode = MPP_FRAME_FLAG_FRAME;
+
+        if (p_dec->init.cfg->base.enable_vproc & MPP_VPROC_MODE_DETECTION) {
+            p_cur->frame_mode |= MPP_FRAME_FLAG_DEINTERLACED;
+        }
     }
     mpp_frame_set_mode(mframe, p_cur->frame_mode);
     mpp_buf_slot_set_prop(p_dec->frame_slots, slot_idx, SLOT_FRAME, mframe);
