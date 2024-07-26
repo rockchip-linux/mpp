@@ -37,6 +37,7 @@ NOTE:
 4. you can get demo about mpp applied to linux and android.
      Liunx : https://github.com/WainDing/mpp_linux_cpp
              https://github.com/MUZLATAN/ffmpeg_rtsp_mpp
+             https://github.com/nyanmisaka/ffmpeg-rockchip
      Android : https://github.com/c-xh/RKMediaCodecDemo
 5. offical github: https://github.com/rockchip-linux/mpp
    develop github: https://github.com/HermanChen/mpp
