@@ -216,7 +216,20 @@ static __inline RK_U32 mpp_is_32bit()
 static __inline RK_S32 mpp_dup(RK_S32 fd)
 {
     /* avoid stdin / stdout / stderr so start from 3 */
+#ifdef F_DUPFD_CLOEXEC
     return fcntl(fd, F_DUPFD_CLOEXEC, 3);
+#else
+    RK_S32 new_fd = -1;
+
+    new_fd = fcntl(fd, F_DUPFD, 3);
+    if (new_fd == -1)
+        return -1;
+
+    if (fcntl(new_fd, F_SETFD, FD_CLOEXEC) == -1)
+        return -1;
+
+    return new_fd;
+#endif
 }
 
 RK_S32 axb_div_c(RK_S32 a, RK_S32 b, RK_S32 c);
