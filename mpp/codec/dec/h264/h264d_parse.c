@@ -794,7 +794,6 @@ MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
 
     H264dCurStream_t *p_strm = &p_Cur->strm;
     RK_U8 *pdata = p_Inp->in_buf;
-    RK_U64 extrasize = p_Inp->in_length;
     MppPacketImpl *pkt_impl  = (MppPacketImpl *)p_Inp->in_pkt;
 
     //!< free nalu_buffer
@@ -812,30 +811,24 @@ MPP_RET parse_prepare_avcC_header(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     p_Inp->sps_num = pdata[5] & 31;
 
     pdata += 6;
-    extrasize -= 6;
     for (i = 0; i < p_Inp->sps_num; ++i) {
         p_strm->nalu_len = U16_AT(pdata);
         pdata += 2;
-        extrasize -= 2;
         p_strm->nalu_type = H264_NALU_TYPE_SPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
         pdata += p_strm->nalu_len;
-        extrasize -= p_strm->nalu_len;
     }
     p_strm->nalu_buf = NULL;
     p_Inp->pps_num = *pdata;
     ++pdata;
-    --extrasize;
     for (i = 0; i < p_Inp->pps_num; ++i) {
         p_strm->nalu_len = U16_AT(pdata);
         pdata += 2;
-        extrasize -= 2;
         p_strm->nalu_type = H264_NALU_TYPE_PPS;
         p_strm->nalu_buf = pdata;
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Cur->p_Dec->dxva_ctx));
         pdata += p_strm->nalu_len;
-        extrasize -= p_strm->nalu_len;
     }
     pkt_impl->length = 0;
     p_strm->nalu_buf = NULL;

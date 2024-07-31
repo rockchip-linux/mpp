@@ -231,7 +231,6 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
     if (slice->m_sps->m_bLongTermRefsPresent) {
         RK_S32 numLtrpInSH = rps->num_long_term_pic;
         RK_S32 numLtrpInSPS = 0;
-        RK_S32 counter = 0;
         RK_U32 poc_lsb_lt[3] = { 0, 0, 0 };
         RK_U32 used_by_lt_flg[3] = { 0, 0, 0 };
         RK_U32 dlt_poc_msb_prsnt[3] = { 0, 0, 0 };
@@ -250,11 +249,8 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
                 }
             }
 
-            if (find_flag) {
+            if (find_flag)
                 numLtrpInSPS++;
-            } else {
-                counter++;
-            }
         }
 
         numLtrpInSH -= numLtrpInSPS;

@@ -217,8 +217,6 @@ void iep2_test(iep2_test_cfg *cfg)
     IepImg imgsrc[3];
     IepImg imgdst[2];
 
-    int idx = 0;
-
     mpp_assert(iep2);
     MppBufferGroup memGroup;
     MPP_RET ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_DRM);
@@ -346,7 +344,6 @@ void iep2_test(iep2_test_cfg *cfg)
         }
 
         curr++;
-        idx++;
     }
 
 ret:
