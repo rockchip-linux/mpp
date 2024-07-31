@@ -170,7 +170,8 @@ case ${NDK_COUNT} in
         echo "use ndk: ${ANDROID_NDK}"
         ;;
     *)
-        read -p "select [1-${NDK_COUNT}] ndk used for compiling: " -ra NDK_INTPUT
+        read -p "select [1-${NDK_COUNT}] ndk used for compiling, def[1]: " -ra NDK_INTPUT
+        NDK_INTPUT=${NDK_INTPUT:-1}
 
         NDK_INDEX=0
 
@@ -178,7 +179,7 @@ case ${NDK_COUNT} in
         do
             NDK_INDEX=$[${NDK_INDEX}+1]
 
-            if [ "${NDK_INDEX}" -eq "${NDK_INTPUT}" ]; then
+            if [ "${NDK_INDEX}" == "${NDK_INTPUT}" ]; then
                 echo "${NDK_INTPUT} - ${NDK_PATH} selected as ANDROID_NDK"
                 ANDROID_NDK=${NDK_PATH}
                 FOUND_NDK=1
