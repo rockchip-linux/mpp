@@ -512,9 +512,8 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
 
     pthread_mutex_lock(&buffer->lock);
 
-    buf_add_log(buffer, BUF_REF_DEC, caller);
-
     if (buffer->ref_count <= 0) {
+        buf_add_log(buffer, BUF_REF_DEC, caller);
         mpp_err_f("found non-positive ref_count %d caller %s\n",
                   buffer->ref_count, buffer->caller);
         mpp_abort();
@@ -526,6 +525,7 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
     buffer->ref_count--;
     if (buffer->ref_count == 0)
         release = 1;
+    buf_add_log(buffer, BUF_REF_DEC, caller);
 
     pthread_mutex_unlock(&buffer->lock);
 
@@ -599,9 +599,9 @@ MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size, const c
             if (pos->info.size >= size) {
                 buffer = pos;
                 pthread_mutex_lock(&buffer->lock);
-                buf_add_log(buffer, BUF_REF_INC, caller);
                 buffer->ref_count++;
                 buffer->used = 1;
+                buf_add_log(buffer, BUF_REF_INC, caller);
                 list_del_init(&buffer->list_status);
                 list_add_tail(&buffer->list_status, &p->list_used);
                 p->count_used++;
