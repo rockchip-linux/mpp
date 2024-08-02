@@ -2545,6 +2545,7 @@ static void setup_vepu580_split(H265eV580RegSet *regs, MppEncCfgSet *enc_cfg, RK
 
         regs->reg_base.reg0217_sli_byte.sli_splt_byte = cfg->split_arg;
         regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.reg0008_int_en.slc_done_en = regs->reg_base.reg0192_enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
         RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 64) / 64;
@@ -2565,10 +2566,10 @@ static void setup_vepu580_split(H265eV580RegSet *regs, MppEncCfgSet *enc_cfg, RK
 
         regs->reg_base.reg0217_sli_byte.sli_splt_byte = 0;
         regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.reg0008_int_en.slc_done_en = (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ? 1 : 0;
 
-        if (slice_num > VEPU580_SLICE_FIFO_LEN)
-            regs->reg_ctl.reg0008_int_en.slc_done_en = 1;
+        if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
+            (regs->reg_base.reg0192_enc_pic.slen_fifo && (slice_num > VEPU580_SLICE_FIFO_LEN)))
+            regs->reg_ctl.reg0008_int_en.slc_done_en = 1 ;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);

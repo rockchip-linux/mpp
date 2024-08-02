@@ -400,7 +400,7 @@ static void setup_vepu540c_normal(HalVepu540cRegSet *regs)
     regs->reg_ctl.int_en.enc_done_en        = 1;
     regs->reg_ctl.int_en.lkt_node_done_en   = 1;
     regs->reg_ctl.int_en.sclr_done_en       = 1;
-    regs->reg_ctl.int_en.vslc_done_en       = 1;
+    regs->reg_ctl.int_en.vslc_done_en       = 0;
     regs->reg_ctl.int_en.vbsf_oflw_en       = 1;
     regs->reg_ctl.int_en.vbuf_lens_en       = 1;
     regs->reg_ctl.int_en.enc_err_en         = 1;
@@ -1104,11 +1104,11 @@ static void setup_vepu540c_recn_refr(HalH264eVepu540cCtx *ctx, HalVepu540cRegSet
     hal_h264e_dbg_func("leave\n");
 }
 
-static void setup_vepu540c_split(HalVepu540cRegSet *regs, MppEncSliceSplit *cfg)
+static void setup_vepu540c_split(HalVepu540cRegSet *regs, MppEncCfgSet *cfg)
 {
     hal_h264e_dbg_func("enter\n");
 
-    switch (cfg->split_mode) {
+    switch (cfg->split.split_mode) {
     case MPP_ENC_SPLIT_NONE : {
         regs->reg_base.sli_splt.sli_splt = 0;
         regs->reg_base.sli_splt.sli_splt_mode = 0;
@@ -1128,26 +1128,35 @@ static void setup_vepu540c_split(HalVepu540cRegSet *regs, MppEncSliceSplit *cfg)
         regs->reg_base.sli_splt.sli_flsh = 1;
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = 0;
 
-        regs->reg_base.sli_byte.sli_splt_byte = cfg->split_arg;
+        regs->reg_base.sli_byte.sli_splt_byte = cfg->split.split_arg;
         regs->reg_base.enc_pic.slen_fifo = 0;
+        regs->reg_base.enc_pic.slen_fifo = cfg->split.split_out ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en = regs->reg_base.enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
+        RK_U32 mb_w = MPP_ALIGN(cfg->prep.width, 16) / 16;
+        RK_U32 mb_h = MPP_ALIGN(cfg->prep.height, 16) / 16;
+        RK_U32 slice_num = (mb_w * mb_h + cfg->split.split_arg - 1) / cfg->split.split_arg;
+
         regs->reg_base.sli_splt.sli_splt = 1;
         regs->reg_base.sli_splt.sli_splt_mode = 1;
         regs->reg_base.sli_splt.sli_splt_cpst = 0;
         regs->reg_base.sli_splt.sli_max_num_m1 = 500;
         regs->reg_base.sli_splt.sli_flsh = 1;
-        regs->reg_base.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
+        regs->reg_base.sli_cnum.sli_splt_cnum_m1 = cfg->split.split_arg - 1;
 
         regs->reg_base.sli_byte.sli_splt_byte = 0;
-        regs->reg_base.enc_pic.slen_fifo = 0;
+        regs->reg_base.enc_pic.slen_fifo = cfg->split.split_out ? 1 : 0;
+        if ((cfg->split.split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
+            (regs->reg_base.enc_pic.slen_fifo && (slice_num > VEPU540C_SLICE_FIFO_LEN)))
+            regs->reg_ctl.int_en.vslc_done_en = 1;
     } break;
     default : {
-        mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
+        mpp_log_f("invalide slice split mode %d\n", cfg->split.split_mode);
     } break;
     }
 
-    cfg->change = 0;
+    cfg->split.change = 0;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1492,7 +1501,7 @@ static MPP_RET hal_h264e_vepu540c_gen_regs(void *hal, HalEncTask *task)
     regs->reg_base.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->reg_base.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
-    setup_vepu540c_split(regs, &cfg->split);
+    setup_vepu540c_split(regs, cfg);
     setup_vepu540c_me(regs, sps, slice);
 
     setup_vepu540c_l2(ctx->regs_set, slice, &cfg->hw);

@@ -34,6 +34,7 @@
 #define VEPU540C_REG_BASE_HW_STATUS  0x2c
 
 #define VEPU540C_MAX_ROI_NUM         8
+#define VEPU540C_SLICE_FIFO_LEN      8
 
 typedef struct Vepu540cOnline_t {
     /* 0x00000270 reg156 */

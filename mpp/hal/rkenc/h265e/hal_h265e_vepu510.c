@@ -1516,7 +1516,7 @@ static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK
 
         regs->reg_frm.common.sli_byte.sli_splt_byte = cfg->split_arg;
         regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en = 1;
+        regs->reg_ctl.int_en.vslc_done_en = regs->reg_frm.common.enc_pic.slen_fifo ;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
         RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 32) / 32;
@@ -1537,9 +1537,8 @@ static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK
 
         regs->reg_frm.common.sli_byte.sli_splt_byte = 0;
         regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en = (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ? 1 : 0;;
-
-        if (slice_num > VEPU510_SLICE_FIFO_LEN)
+        if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
+            (regs->reg_frm.common.enc_pic.slen_fifo && (slice_num > VEPU510_SLICE_FIFO_LEN)))
             regs->reg_ctl.int_en.vslc_done_en = 1;
 
     } break;
@@ -1636,14 +1635,6 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_klut->klut_ofst.chrm_klut_ofst = (ctx->frame_type == INTRA_FRAME) ? 6 :
                                          (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 9 : 6);
 
-    reg_frm->common.sli_splt.sli_splt_mode     = syn->sp.sli_splt_mode;
-    reg_frm->common.sli_splt.sli_splt_cpst     = syn->sp.sli_splt_cpst;
-    reg_frm->common.sli_splt.sli_splt          = syn->sp.sli_splt;
-    reg_frm->common.sli_splt.sli_flsh          = syn->sp.sli_flsh;
-    reg_frm->common.sli_splt.sli_max_num_m1    = syn->sp.sli_max_num_m1;
-
-    reg_frm->common.sli_cnum.sli_splt_cnum_m1  = syn->sp.sli_splt_cnum_m1;
-    reg_frm->common.sli_byte.sli_splt_byte     = syn->sp.sli_splt_byte;
     reg_frm->sao_cfg.sao_lambda_multi          = 5;
 
     setup_vepu510_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);

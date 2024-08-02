@@ -1572,9 +1572,13 @@ static void setup_vepu510_split(HalVepu510RegSet *regs, MppEncCfgSet *enc_cfg)
 
         reg_frm->common.sli_byte.sli_splt_byte    = cfg->split_arg;
         reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en         = 1;
+        regs->reg_ctl.int_en.vslc_done_en         = reg_frm->common.enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
+        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 16) / 16;
+        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 16) / 16;
+        RK_U32 slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
+
         reg_frm->common.sli_splt.sli_splt         = 1;
         reg_frm->common.sli_splt.sli_splt_mode    = 1;
         reg_frm->common.sli_splt.sli_splt_cpst    = 0;
@@ -1584,7 +1588,9 @@ static void setup_vepu510_split(HalVepu510RegSet *regs, MppEncCfgSet *enc_cfg)
 
         reg_frm->common.sli_byte.sli_splt_byte    = 0;
         reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en         = 1;
+        if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
+            (regs->reg_frm.common.enc_pic.slen_fifo && (slice_num > VEPU510_SLICE_FIFO_LEN)))
+            regs->reg_ctl.int_en.vslc_done_en = 1;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);

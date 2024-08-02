@@ -1139,6 +1139,70 @@ static void setup_vepu540c_ext_line_buf(H265eV540cHalContext *ctx, H265eV540cReg
     }
 }
 
+static void vepu540c_h265_set_split(H265eV540cRegSet *regs, MppEncCfgSet *enc_cfg, RK_U32 title_en)
+{
+    MppEncSliceSplit *cfg = &enc_cfg->split;
+
+    hal_h265e_dbg_func("enter\n");
+
+    switch (cfg->split_mode) {
+    case MPP_ENC_SPLIT_NONE : {
+        regs->reg_base.reg0216_sli_splt.sli_splt = 0;
+        regs->reg_base.reg0216_sli_splt.sli_splt_mode = 0;
+        regs->reg_base.reg0216_sli_splt.sli_splt_cpst = 0;
+        regs->reg_base.reg0216_sli_splt.sli_max_num_m1 = 0;
+        regs->reg_base.reg0216_sli_splt.sli_flsh = 0;
+        regs->reg_base.reg0218_sli_cnum.sli_splt_cnum_m1 = 0;
+
+        regs->reg_base.reg0217_sli_byte.sli_splt_byte = 0;
+        regs->reg_base.reg0192_enc_pic.slen_fifo = 0;
+    } break;
+    case MPP_ENC_SPLIT_BY_BYTE : {
+        regs->reg_base.reg0216_sli_splt.sli_splt = 1;
+        regs->reg_base.reg0216_sli_splt.sli_splt_mode = 0;
+        regs->reg_base.reg0216_sli_splt.sli_splt_cpst = 0;
+        regs->reg_base.reg0216_sli_splt.sli_max_num_m1 = 500;
+        regs->reg_base.reg0216_sli_splt.sli_flsh = 1;
+        regs->reg_base.reg0218_sli_cnum.sli_splt_cnum_m1 = 0;
+
+        regs->reg_base.reg0217_sli_byte.sli_splt_byte = cfg->split_arg;
+        regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.reg0008_int_en.vslc_done_en = regs->reg_base.reg0192_enc_pic.slen_fifo;
+    } break;
+    case MPP_ENC_SPLIT_BY_CTU : {
+        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 64) / 64;
+        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 64) / 64;
+        RK_U32 slice_num = 0;
+
+        if (title_en)
+            mb_w = mb_w / 2;
+
+        slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
+
+        regs->reg_base.reg0216_sli_splt.sli_splt = 1;
+        regs->reg_base.reg0216_sli_splt.sli_splt_mode = 1;
+        regs->reg_base.reg0216_sli_splt.sli_splt_cpst = 0;
+        regs->reg_base.reg0216_sli_splt.sli_max_num_m1 = 500;
+        regs->reg_base.reg0216_sli_splt.sli_flsh = 1;
+        regs->reg_base.reg0218_sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
+
+        regs->reg_base.reg0217_sli_byte.sli_splt_byte = 0;
+        regs->reg_base.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+
+        if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
+            (regs->reg_base.reg0192_enc_pic.slen_fifo && (slice_num > VEPU540C_SLICE_FIFO_LEN)))
+            regs->reg_ctl.reg0008_int_en.vslc_done_en = 1 ;
+    } break;
+    default : {
+        mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
+    } break;
+    }
+
+    cfg->change = 0;
+
+    hal_h265e_dbg_func("leave\n");
+}
+
 MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
 {
     H265eV540cHalContext *ctx = (H265eV540cHalContext *)hal;
@@ -1171,7 +1235,7 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->reg0008_int_en.enc_done_en        = 1;
     reg_ctl->reg0008_int_en.lkt_node_done_en   = 1;
     reg_ctl->reg0008_int_en.sclr_done_en       = 1;
-    reg_ctl->reg0008_int_en.vslc_done_en       = 1;
+    reg_ctl->reg0008_int_en.vslc_done_en       = 0;
     reg_ctl->reg0008_int_en.vbsf_oflw_en       = 1;
     reg_ctl->reg0008_int_en.vbuf_lens_en       = 1;
     reg_ctl->reg0008_int_en.enc_err_en         = 1;
@@ -1226,15 +1290,6 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     reg_klut->klut_ofst.chrm_klut_ofst = (ctx->frame_type == INTRA_FRAME) ? 6 :
                                          (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC ? 9 : 6);
     reg_klut->klut_ofst.inter_chrm_dist_multi = 4;
-
-    reg_base->reg0216_sli_splt.sli_splt_mode     = syn->sp.sli_splt_mode;
-    reg_base->reg0216_sli_splt.sli_splt_cpst     = syn->sp.sli_splt_cpst;
-    reg_base->reg0216_sli_splt.sli_splt          = syn->sp.sli_splt;
-    reg_base->reg0216_sli_splt.sli_flsh          = syn->sp.sli_flsh;
-    reg_base->reg0216_sli_splt.sli_max_num_m1    = syn->sp.sli_max_num_m1;
-
-    reg_base->reg0218_sli_cnum.sli_splt_cnum_m1  = syn->sp.sli_splt_cnum_m1;
-    reg_base->reg0217_sli_byte.sli_splt_byte = syn->sp.sli_splt_byte;
     reg_base->reg0248_sao_cfg.sao_lambda_multi = 5;
 
     vepu540c_h265_set_me_regs(ctx, syn, reg_base);
@@ -1279,6 +1334,7 @@ MPP_RET hal_h265e_v540c_gen_regs(void *hal, HalEncTask *task)
     vepu540c_h265_set_ref_regs(syn, reg_base);
     vepu540c_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
     setup_vepu540c_ext_line_buf(ctx, ctx->regs);
+    vepu540c_h265_set_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);
 
     /* ROI configure */
     if (ctx->roi_data)
