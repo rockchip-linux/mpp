@@ -3136,7 +3136,7 @@ MPP_RET hal_h265e_v580_wait(void *hal, HalEncTask *task)
             RK_S32 i = 0;
             poll_cfg->poll_type = 0;
             poll_cfg->poll_ret  = 0;
-            poll_cfg->count_max = ctx->poll_slice_max;
+            poll_cfg->count_max = split_out & MPP_ENC_SPLIT_OUT_LOWDELAY ? 1 : ctx->poll_slice_max;
             poll_cfg->count_ret = 0;
 
             ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, poll_cfg);
