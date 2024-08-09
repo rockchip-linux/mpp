@@ -991,16 +991,16 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
     H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
 
-    if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
-        h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
-        goto ERR_PROC;
-    }
-
     if (reg_ctx->fast_mode) {
         hw_regs = ( H265d_REGS_t *)reg_ctx->g_buf[index].hw_regs;
     } else {
         hw_regs = ( H265d_REGS_t *)reg_ctx->hw_regs;
+    }
+
+    if (task->dec.flags.parse_err ||
+        task->dec.flags.ref_err) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
+        goto ERR_PROC;
     }
 
     ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_POLL, NULL);
