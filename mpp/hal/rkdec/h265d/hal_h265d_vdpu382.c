@@ -693,6 +693,8 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
             mpp_err("hevc rps buf all used");
             return MPP_ERR_NOMEM;
         }
+    } else {
+        syn->dec.reg_index = 0;
     }
     rps_ptr = mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->rps_offset;
     if (NULL == rps_ptr) {
@@ -836,7 +838,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->common.reg032_timeout_threshold = 0x3ffff;
 
     valid_ref = hw_regs->common_addr.reg130_decout_base;
-    reg_ctx->error_index = dxva_cxt->pp.CurrPic.Index7Bits;
+    reg_ctx->error_index[syn->dec.reg_index] = dxva_cxt->pp.CurrPic.Index7Bits;
     hw_regs->common_addr.reg132_error_ref_base = valid_ref;
 
     memset(&hw_regs->highpoc.reg205, 0, sizeof(RK_U32));
@@ -860,7 +862,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                     && (!mpp_frame_get_errinfo(mframe))) {
                     distance = pocdistance(dxva_cxt->pp.PicOrderCntValList[i], dxva_cxt->pp.current_poc);
                     hw_regs->common_addr.reg132_error_ref_base = hw_regs->h265d_addr.reg164_179_ref_base[i];
-                    reg_ctx->error_index = dxva_cxt->pp.RefPicList[i].Index7Bits;
+                    reg_ctx->error_index[syn->dec.reg_index] = dxva_cxt->pp.RefPicList[i].Index7Bits;
                     hw_regs->common.reg021.error_intra_mode = 0;
 
                 }
@@ -875,8 +877,8 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
 
-    if ((reg_ctx->error_index == dxva_cxt->pp.CurrPic.Index7Bits) && !dxva_cxt->pp.IntraPicFlag) {
-        // mpp_err("current frm may be err, should skip process");
+    if ((reg_ctx->error_index[syn->dec.reg_index] == dxva_cxt->pp.CurrPic.Index7Bits) && !dxva_cxt->pp.IntraPicFlag) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
     }
@@ -895,16 +897,16 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                                   SLOT_FRAME_PTR, &mframe);
 
             if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
-                mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index);
+                mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index[syn->dec.reg_index]);
                 hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
                 hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
             }
         } else {
-            mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index);
+            mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index[syn->dec.reg_index]);
             hw_regs->h265d_addr.reg164_179_ref_base[i] = hw_regs->common_addr.reg132_error_ref_base;
             hw_regs->h265d_addr.reg181_196_colmv_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
             /* mark 3 to differ from current frame */
-            if (reg_ctx->error_index == dxva_cxt->pp.CurrPic.Index7Bits)
+            if (reg_ctx->error_index[syn->dec.reg_index] == dxva_cxt->pp.CurrPic.Index7Bits)
                 SET_POC_HIGNBIT_INFO(hw_regs->highpoc, i, poc_highbit, 3);
         }
     }

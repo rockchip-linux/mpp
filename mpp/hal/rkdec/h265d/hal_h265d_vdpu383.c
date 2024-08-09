@@ -1120,7 +1120,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
 
 
     valid_ref = hw_regs->h265d_addrs.reg168_decout_base;
-    reg_ctx->error_index = dxva_ctx->pp.CurrPic.Index7Bits;
+    reg_ctx->error_index[syn->dec.reg_index] = dxva_ctx->pp.CurrPic.Index7Bits;
 
     hw_regs->h265d_addrs.reg169_error_ref_base = valid_ref;
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_ctx->pp.RefPicList); i++) {
@@ -1147,7 +1147,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
 
                     distance = pocdistance(dxva_ctx->pp.PicOrderCntValList[i], dxva_ctx->pp.current_poc);
                     hw_regs->h265d_addrs.reg169_error_ref_base = hw_regs->h265d_addrs.reg170_185_ref_base[i];
-                    reg_ctx->error_index = dxva_ctx->pp.RefPicList[i].Index7Bits;
+                    reg_ctx->error_index[syn->dec.reg_index] = dxva_ctx->pp.RefPicList[i].Index7Bits;
                     hw_regs->ctrl_regs.reg16.error_proc_disable = 1;
                 }
             } else {
@@ -1160,8 +1160,9 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
         }
     }
 
-    if ((reg_ctx->error_index == dxva_ctx->pp.CurrPic.Index7Bits) &&
+    if ((reg_ctx->error_index[syn->dec.reg_index] == dxva_ctx->pp.CurrPic.Index7Bits) &&
         !dxva_ctx->pp.IntraPicFlag) {
+        h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
     }
@@ -1180,13 +1181,13 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
                                   SLOT_FRAME_PTR, &mframe);
 
             if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
-                mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index);
+                mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index[syn->dec.reg_index]);
                 hw_regs->h265d_addrs.reg170_185_ref_base[i] = hw_regs->h265d_addrs.reg169_error_ref_base;
                 hw_regs->h265d_addrs.reg195_210_payload_st_ref_base[i] = hw_regs->h265d_addrs.reg169_error_ref_base;
                 hw_regs->h265d_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
             }
         } else {
-            mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index);
+            mv_buf = hal_bufs_get_buf(reg_ctx->cmv_bufs, reg_ctx->error_index[syn->dec.reg_index]);
             hw_regs->h265d_addrs.reg170_185_ref_base[i] = hw_regs->h265d_addrs.reg169_error_ref_base;
             hw_regs->h265d_addrs.reg195_210_payload_st_ref_base[i] = hw_regs->h265d_addrs.reg169_error_ref_base;
             hw_regs->h265d_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);

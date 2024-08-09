@@ -767,6 +767,8 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
             mpp_err("hevc rps buf all used");
             return MPP_ERR_NOMEM;
         }
+    } else {
+        syn->dec.reg_index = 0;
     }
     rps_ptr = mpp_buffer_get_ptr(reg_ctx->rps_data);
     if (NULL == rps_ptr) {
