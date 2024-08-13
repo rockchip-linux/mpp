@@ -217,8 +217,8 @@ static void vepu580_h264e_tune_reg_patch(void *p)
     regs->reg_s3.rime_sqi_multi.rime_multi2 = rime_multi[scene_motion_flag][2];
 
     if (hw->qbias_en) {
-        regs->reg_s3.RDO_QUANT.quant_f_bias_I = hw->qbias_i;
-        regs->reg_s3.RDO_QUANT.quant_f_bias_P = hw->qbias_p;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_I = hw->qbias_i ? hw->qbias_i : 683;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_P = hw->qbias_p ? hw->qbias_p : 341;
     }
 }
 

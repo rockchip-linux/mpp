@@ -626,6 +626,32 @@ RK_S32 mpi_enc_opt_bc(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_bias_i(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->bias_i = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid bias i\n");
+    return 0;
+}
+
+RK_S32 mpi_enc_opt_bias_p(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->bias_p = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid bias p\n");
+    return 0;
+}
+
 static MppOptInfo enc_opts[] = {
     {"i",       "input_file",           "input frame file",                         mpi_enc_opt_i},
     {"o",       "output_file",          "output encoded bitstream file",            mpi_enc_opt_o},
@@ -638,11 +664,11 @@ static MppOptInfo enc_opts[] = {
     {"tsrc",    "source type",          "input file source coding type",            mpi_enc_opt_tsrc},
     {"n",       "max frame number",     "max encoding frame number",                mpi_enc_opt_n},
     {"g",       "gop reference mode",   "gop_mode:gop_len:vi_len",                  mpi_enc_opt_g},
-    {"rc",      "rate control mode",    "set rc_mode, 0:vbr 1:cbr 2:fixqp 3:avbr",  mpi_enc_opt_rc},
+    {"rc",      "rate control mode",    "rc_mode, 0:vbr 1:cbr 2:fixqp 3:avbr 4:smtrc", mpi_enc_opt_rc},
     {"bps",     "bps target:min:max",   "set tareget:min:max bps",                  mpi_enc_opt_bps},
     {"fps",     "in/output fps",        "set input and output frame rate",          mpi_enc_opt_fps},
     {"qc",      "quality control",      "set qp_init:min:max:min_i:max_i",          mpi_enc_opt_qc},
-    {"fqc",     "frm quality control",  "set fqp min_i:max_i:min_p:max_p",          mpi_enc_opt_fqc},
+    {"fqc",     "frame quality control", "set fqp min_i:max_i:min_p:max_p",         mpi_enc_opt_fqc},
     {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
@@ -658,7 +684,9 @@ static MppOptInfo enc_opts[] = {
     {"atr_p",   "atr_str_p",            "atr_str_p, 0:off 1 2 3",                   mpi_enc_opt_atr_p},
     {"sao_i",   "sao_str_i",            "sao_str_i, 0:off 1 2 3",                   mpi_enc_opt_sao_i},
     {"sao_p",   "sao_str_p",            "sao_str_p, 0:off 1 2 3",                   mpi_enc_opt_sao_p},
-    {"bc",      "bitrate container",    "rc_container, 0:off 1:weak 2:strong",      mpi_enc_opt_bc}
+    {"bc",      "bitrate container",    "rc_container, 0:off 1:weak 2:strong",      mpi_enc_opt_bc},
+    {"ibias",   "bias i",               "bias_i",                                   mpi_enc_opt_bias_i},
+    {"pbias",   "bias p",               "bias_p",                                   mpi_enc_opt_bias_p}
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);

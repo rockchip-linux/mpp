@@ -149,6 +149,27 @@ typedef struct {
     MpiEncMultiCtxRet   ret;        // return of encoder
 } MpiEncMultiCtxInfo;
 
+static RK_S32 aq_thd[16] = {
+    0,  0,  0,  0,
+    3,  3,  5,  5,
+    8,  8,  8,  15,
+    15, 20, 25, 25
+};
+
+static RK_S32 aq_step_i_ipc[16] = {
+    -8, -7, -6, -5,
+    -4, -3, -2, -1,
+    0,  1,  2,  3,
+    5,  7,  7,  8,
+};
+
+static RK_S32 aq_step_p_ipc[16] = {
+    -8, -7, -6, -5,
+    -4, -2, -1, -1,
+    0,  2,  3,  4,
+    6,  8,  9,  10,
+};
+
 MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
 {
     MpiEncTestArgs *cmd = info->cmd;
@@ -176,7 +197,6 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->gop_mode     = cmd->gop_mode;
     p->gop_len      = cmd->gop_len;
     p->vi_len       = cmd->vi_len;
-
     p->fps_in_flex  = cmd->fps_in_flex;
     p->fps_in_den   = cmd->fps_in_den;
     p->fps_in_num   = cmd->fps_in_num;
@@ -192,11 +212,8 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->sao_str_i = cmd->sao_str_i;
     p->sao_str_p = cmd->sao_str_p;
 
-    p->mdinfo_size  = (MPP_VIDEO_CodingHEVC == cmd->type) ?
-                      (MPP_ALIGN(p->hor_stride, 32) >> 5) *
-                      (MPP_ALIGN(p->ver_stride, 32) >> 5) * 16 :
-                      (MPP_ALIGN(p->hor_stride, 64) >> 6) *
-                      (MPP_ALIGN(p->ver_stride, 16) >> 4) * 16;
+    p->mdinfo_size  = (MPP_ALIGN(p->hor_stride, 64) >> 6) *
+                      (MPP_ALIGN(p->ver_stride, 64) >> 6) * 32;
 
     if (cmd->file_input) {
         if (!strncmp(cmd->file_input, "/dev/video", 10)) {
@@ -315,7 +332,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     RK_U32 flip;
     RK_U32 gop_mode = p->gop_mode;
     MppEncRefCfg ref = NULL;
-
     /* setup default parameter */
     if (p->fps_in_den == 0)
         p->fps_in_den = 1;
@@ -340,14 +356,27 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:qpmap_en", 1);
+    mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
+    mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 1);
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_i", cmd->bias_i);
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_p", cmd->bias_p);
+    mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd);
+    mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd);
+    mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_i_ipc);
+    mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_p_ipc);
 
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
     mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
     mpp_enc_cfg_set_s32(cfg, "prep:ver_stride", p->ver_stride);
     mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
+    mpp_enc_cfg_set_s32(cfg, "prep:range", MPP_FRAME_RANGE_JPEG);
 
     mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
+    mpp_enc_cfg_set_u32(cfg, "rc:max_reenc_times", 0);
+    mpp_enc_cfg_set_u32(cfg, "rc:super_mode", 0);
 
     /* fix input / output frame rate */
     mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", p->fps_in_flex);
@@ -511,7 +540,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop_len ? p->gop_len : p->fps_out_num * 2);
 
     mpp_env_get_u32("gop_mode", &gop_mode, gop_mode);
-
     if (gop_mode) {
         mpp_enc_ref_cfg_init(&ref);
 
@@ -569,7 +597,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     {
         RK_U32 sei_mode;
 
-        mpp_env_get_u32("sei_mode", &sei_mode, MPP_ENC_SEI_MODE_ONE_FRAME);
+        mpp_env_get_u32("sei_mode", &sei_mode, MPP_ENC_SEI_MODE_DISABLE);
         p->sei_mode = sei_mode;
         ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
         if (ret) {

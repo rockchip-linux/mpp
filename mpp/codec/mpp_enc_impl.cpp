@@ -958,6 +958,14 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT)
+            dst->vmaf_opt = src->vmaf_opt;
+
+        if (dst->vmaf_opt < 0 || dst->vmaf_opt > 1) {
+            mpp_err("invalid vmaf_opt %d not in range [0, 1]\n", dst->vmaf_opt);
+            ret = MPP_ERR_VALUE;
+        }
+
         dst->change |= change;
 
         if (ret) {
