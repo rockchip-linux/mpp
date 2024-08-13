@@ -101,6 +101,8 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     memset(h264, 0, sizeof(*h264));
     h264->profile = H264_PROFILE_BASELINE;
     h264->level = H264_LEVEL_3_1;
+    cfg->tune.scene_mode = MPP_ENC_SCENE_MODE_DEFAULT;
+    cfg->tune.qpmap_en = 0;
 
     switch (type) {
     case VPU_CLIENT_VEPU1 :

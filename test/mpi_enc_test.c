@@ -416,9 +416,9 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
             mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", cmd->qp_min_i ? cmd->qp_min_i : 10);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
             mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", cmd->fqp_min_i ? cmd->fqp_min_i : 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", cmd->fqp_max_i ? cmd->fqp_max_i : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", cmd->fqp_max_i ? cmd->fqp_max_i : 45);
             mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", cmd->fqp_min_p ? cmd->fqp_min_p : 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", cmd->fqp_max_p ? cmd->fqp_max_p : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", cmd->fqp_max_p ? cmd->fqp_max_p : 45);
         } break;
         default : {
             mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
@@ -544,6 +544,26 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     if (ref)
         mpp_enc_ref_cfg_deinit(&ref);
+
+    {
+        RcApiBrief rcApiBrief;
+        ret = mpi->control(ctx, MPP_ENC_GET_RC_API_CURRENT, &rcApiBrief);
+        if (ret) {
+            mpp_err("mpi control enc get rc api failed ret %d\n", ret);
+            goto RET;
+        }
+
+        if (MPP_ENC_RC_MODE_SMTRC == info->cmd->rc_mode)
+            rcApiBrief.name = "smart";
+        else
+            rcApiBrief.name = "default";
+
+        ret = mpi->control(ctx, MPP_ENC_SET_RC_API_CURRENT, &rcApiBrief);
+        if (ret) {
+            mpp_err("mpi control enc set rc api failed ret %d\n", ret);
+            goto RET;
+        }
+    }
 
     /* optional */
     {

@@ -187,6 +187,8 @@ typedef struct RcCfg_s {
     RK_U32          refresh_len;
     RK_S32          scene_mode;
     RK_U32          fps_chg_prop;
+
+    RK_S32          rc_container;
 } RcCfg;
 
 /*

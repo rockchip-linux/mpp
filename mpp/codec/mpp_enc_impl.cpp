@@ -942,6 +942,22 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_QPMAP_EN)
+            dst->qpmap_en = src->qpmap_en;
+
+        if (dst->qpmap_en < 0 || dst->qpmap_en > 1) {
+            mpp_err("invalid qpmap_en %d not in range [0, 1]\n", dst->qpmap_en);
+            ret = MPP_ERR_VALUE;
+        }
+
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER)
+            dst->rc_container = src->rc_container;
+
+        if (dst->rc_container < 0 || dst->rc_container > 2) {
+            mpp_err("invalid rc_container %d not in range [0, 2]\n", dst->rc_container);
+            ret = MPP_ERR_VALUE;
+        }
+
         dst->change |= change;
 
         if (ret) {
@@ -1320,6 +1336,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->bps_max    = rc->bps_max;
     cfg->bps_min    = rc->bps_min;
     cfg->scene_mode = cfg_set->tune.scene_mode;
+    cfg->rc_container = cfg_set->tune.rc_container;
 
     cfg->hier_qp_cfg.hier_qp_en = rc->hier_qp_en;
     memcpy(cfg->hier_qp_cfg.hier_frame_num, rc->hier_frame_num, sizeof(rc->hier_frame_num));

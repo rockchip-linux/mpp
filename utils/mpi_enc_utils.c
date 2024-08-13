@@ -524,6 +524,7 @@ RK_S32 mpi_enc_opt_dbs(void *ctx, const char *next)
     }
 
     mpp_err("invalid deblur str\n");
+
     return 0;
 }
 
@@ -612,6 +613,19 @@ RK_S32 mpi_enc_opt_sao_p(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_bc(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->rc_container = atoi(next);
+        return 1;
+    }
+
+    mpp_err("invalid bitrate container\n");
+    return 0;
+}
+
 static MppOptInfo enc_opts[] = {
     {"i",       "input_file",           "input frame file",                         mpi_enc_opt_i},
     {"o",       "output_file",          "output encoded bitstream file",            mpi_enc_opt_o},
@@ -644,6 +658,7 @@ static MppOptInfo enc_opts[] = {
     {"atr_p",   "atr_str_p",            "atr_str_p, 0:off 1 2 3",                   mpi_enc_opt_atr_p},
     {"sao_i",   "sao_str_i",            "sao_str_i, 0:off 1 2 3",                   mpi_enc_opt_sao_i},
     {"sao_p",   "sao_str_p",            "sao_str_p, 0:off 1 2 3",                   mpi_enc_opt_sao_p},
+    {"bc",      "bitrate container",    "rc_container, 0:off 1:weak 2:strong",      mpi_enc_opt_bc}
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);

@@ -76,6 +76,7 @@ typedef struct MpiEncTestArgs_t {
 
     /* -sm scene_mode */
     RK_S32              scene_mode;
+    RK_S32              rc_container;
 
     /* -qpdd cu_qp_delta_depth */
     RK_S32              cu_qp_delta_depth;

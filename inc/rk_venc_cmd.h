@@ -1438,7 +1438,9 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P           = (1 << 8),
     MPP_ENC_TUNE_CFG_CHANGE_ATL_STR             = (1 << 9),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I           = (1 << 10),
-    MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P           = (1 << 11)
+    MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P           = (1 << 11),
+    MPP_ENC_TUNE_CFG_CHANGE_QPMAP_EN            = (1 << 12),
+    MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER        = (1 << 13)
 } MppEncFineTuneCfgChange;
 
 typedef struct MppEncFineTuneCfg_t {
@@ -1450,11 +1452,13 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              anti_flicker_str;
     RK_S32              lambda_idx_i;
     RK_S32              lambda_idx_p;
-    RK_S32              atr_str_i;/* line_en */
-    RK_S32              atr_str_p;/* line_en */
-    RK_S32              atl_str;/* anti_stripe */
-    RK_S32              sao_str_i;/* anti blur */
-    RK_S32              sao_str_p;/* anti blur */
+    RK_S32              atr_str_i; /* line_en */
+    RK_S32              atr_str_p; /* line_en */
+    RK_S32              atl_str; /* anti_stripe */
+    RK_S32              sao_str_i; /* anti blur */
+    RK_S32              sao_str_p; /* anti blur */
+    RK_S32              qpmap_en;
+    RK_S32              rc_container;
 } MppEncFineTuneCfg;
 
 #endif /*__RK_VENC_CMD_H__*/
