@@ -1161,7 +1161,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if ((reg_ctx->error_index[syn->dec.reg_index] == dxva_ctx->pp.CurrPic.Index7Bits) &&
-        !dxva_ctx->pp.IntraPicFlag) {
+        !dxva_ctx->pp.IntraPicFlag && !reg_ctx->cfg->base.disable_error) {
         h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
