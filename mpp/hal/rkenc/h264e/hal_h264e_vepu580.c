@@ -99,6 +99,12 @@ typedef struct HalH264eVepu580Ctx_t {
 
     /* finetune */
     void                    *tune;
+    MppBuffer               qpmap_base_cfg_buf;
+    MppBuffer               qpmap_qp_cfg_buf;
+    RK_U8*                  md_flag_buf;
+    RK_S32                  qpmap_base_cfg_size;
+    RK_S32                  qpmap_qp_cfg_size;
+    RK_S32                  md_flag_size;
 
     /* two-pass deflicker */
     MppBuffer               buf_pass1;
@@ -259,6 +265,20 @@ static MPP_RET hal_h264e_vepu580_deinit(void *hal)
     if (p->tune) {
         vepu580_h264e_tune_deinit(p->tune);
         p->tune = NULL;
+    }
+
+    if (p->qpmap_base_cfg_buf) {
+        mpp_buffer_put(p->qpmap_base_cfg_buf);
+        p->qpmap_base_cfg_buf = NULL;
+    }
+
+    if (p->qpmap_qp_cfg_buf) {
+        mpp_buffer_put(p->qpmap_qp_cfg_buf);
+        p->qpmap_qp_cfg_buf = NULL;
+    }
+
+    if (p->md_flag_buf) {
+        MPP_FREE(p->md_flag_buf);
     }
 
     hal_h264e_dbg_func("leave %p\n", p);
@@ -1318,6 +1338,10 @@ static void setup_vepu580_rc_base(HalVepu580RegSet *regs, HalH264eVepu580Ctx *ct
         regs->reg_rc_klut.madi_thd.madi_thd2 = 15;
     }
 
+    if (cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+        regs->reg_base.rc_qp.rc_qp_range = 0;
+    }
+
     hal_h264e_dbg_func("leave\n");
 }
 
@@ -2129,7 +2153,6 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 
     regs->reg_base.meiw_addr = task->md_info ? mpp_buffer_get_fd(task->md_info) : 0;
     regs->reg_base.enc_pic.mei_stor = task->md_info ? 1 : 0;
-
     regs->reg_base.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->reg_base.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
@@ -2138,6 +2161,13 @@ static MPP_RET hal_h264e_vepu580_gen_regs(void *hal, HalEncTask *task)
 
     if (frm_status->is_i_refresh)
         setup_vepu580_intra_refresh(regs, ctx, frm_status->seq_idx % cfg->rc.gop);
+
+    if (cfg->tune.qpmap_en && (!rc_task->info.complex_scene) &&
+        cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC &&
+        cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) {
+        if (MPP_OK != setup_vepu580_qpmap_buf(ctx))
+            mpp_err("qpmap malloc buffer failed!\n");
+    }
 
     vepu580_set_osd(&ctx->osd_cfg);
     setup_vepu580_l2(regs, slice, &cfg->hw);
@@ -2463,6 +2493,36 @@ static MPP_RET hal_h264e_vepu580_ret_task(void * hal, HalEncTask * task)
 
     task->hal_ret.data   = &ctx->hal_rc_cfg;
     task->hal_ret.number = 1;
+
+    //RK_U32 madi_th_cnt0 = ctx->regs_set->reg_st.madi_b16num0;
+    RK_U32 madi_th_cnt1 = ctx->regs_set->reg_st.madi_b16num1;
+    RK_U32 madi_th_cnt2 = ctx->regs_set->reg_st.madi_b16num2;
+    RK_U32 madi_th_cnt3 = ctx->regs_set->reg_st.madi_b16num3;
+    //RK_U32 madp_th_cnt0 = ctx->regs_set->reg_st.md_sad_b16num0;
+    RK_U32 madp_th_cnt1 = ctx->regs_set->reg_st.md_sad_b16num1;
+    RK_U32 madp_th_cnt2 = ctx->regs_set->reg_st.md_sad_b16num2;
+    RK_U32 madp_th_cnt3 = ctx->regs_set->reg_st.md_sad_b16num3;
+
+    RK_U32 md_cnt = (24 * madp_th_cnt3 + 22 * madp_th_cnt2 + 17 * madp_th_cnt1) >> 2;
+    RK_U32 madi_cnt = (6 * madi_th_cnt3 + 5 * madi_th_cnt2 + 4 * madi_th_cnt1) >> 2;
+
+    rc_info->motion_level = 0;
+    if (md_cnt * 100 > 15 * mbs)
+        rc_info->motion_level = 2;
+    else if (md_cnt * 100 > 5 * mbs)
+        rc_info->motion_level = 1;
+    else
+        rc_info->motion_level = 0;
+
+    rc_info->complex_level = 0;
+    if (madi_cnt * 100 > 30 * mbs)
+        rc_info->complex_level = 2;
+    else if (madi_cnt * 100 > 13 * mbs)
+        rc_info->complex_level = 1;
+    else
+        rc_info->complex_level = 0;
+
+    hal_h264e_dbg_rc("motion_level %u, complex_level %u\n", rc_info->motion_level, rc_info->complex_level);
 
     vepu580_h264e_tune_stat_update(ctx->tune, task);
 

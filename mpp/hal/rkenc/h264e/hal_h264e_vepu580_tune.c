@@ -133,7 +133,9 @@ static void vepu580_h264e_tune_reg_patch(void *p)
 
     /* modify register here */
     if (slice->slice_type != H264_I_SLICE) {
-        RK_U32 *src = tune->curr_scene_motion_flag ? &h264e_klut_weight[0] : &h264e_klut_weight[4];
+        RK_U32 *src = (tune->curr_scene_motion_flag ||
+                       ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC) ?
+                      &h264e_klut_weight[0] : &h264e_klut_weight[4];
         memcpy(&regs->reg_rc_klut.klut_wgt0, src, CHROMA_KLUT_TAB_SIZE);
     }
 
@@ -332,4 +334,53 @@ static void vepu580_h264e_tune_stat_update(void *p, HalEncTask *task)
 
     tune->pre_madi[1] = tune->pre_madi[0];
     tune->pre_madp[1] = tune->pre_madp[0];
+}
+
+static MPP_RET setup_vepu580_qpmap_buf(HalH264eVepu580Ctx *ctx)
+{
+    MPP_RET ret = MPP_OK;
+    RK_S32 mb_w = MPP_ALIGN(ctx->cfg->prep.width, 64) / 16;
+    RK_S32 mb_h = MPP_ALIGN(ctx->cfg->prep.height, 16) / 16;
+    RK_S32 qpmap_base_cfg_size = ctx->qpmap_base_cfg_size
+                                 = mb_w * mb_h * 8;
+    RK_S32 qpmap_qp_cfg_size   = ctx->qpmap_qp_cfg_size
+                                 = mb_w * mb_h * 2;
+    RK_S32 md_flag_size        = ctx->md_flag_size
+                                 = mb_w * mb_h;
+
+    if (!ctx->cfg->tune.qpmap_en) {
+        mpp_log("qpmap_en is closed!\n");
+        goto __RET;
+    }
+
+    if (NULL == ctx->qpmap_base_cfg_buf) {
+        mpp_buffer_get(NULL, &ctx->qpmap_base_cfg_buf, qpmap_base_cfg_size);
+        if (!ctx->qpmap_base_cfg_buf) {
+            mpp_err("qpmap_base_cfg_buf malloc fail, qpmap invalid\n");
+            ret = MPP_ERR_VALUE;
+            goto __RET;
+        }
+    }
+
+    if (NULL == ctx->qpmap_qp_cfg_buf) {
+        mpp_buffer_get(NULL, &ctx->qpmap_qp_cfg_buf, qpmap_qp_cfg_size);
+        if (!ctx->qpmap_qp_cfg_buf) {
+            mpp_err("qpmap_qp_cfg_buf malloc fail, qpmap invalid\n");
+            ret = MPP_ERR_VALUE;
+            goto __RET;
+        }
+    }
+
+    if (NULL == ctx->md_flag_buf) {
+        ctx->md_flag_buf = mpp_malloc(RK_U8, md_flag_size);
+        if (!ctx->md_flag_buf) {
+            mpp_err("md_flag_buf malloc fail, qpmap invalid\n");
+            ret = MPP_ERR_VALUE;
+            goto __RET;
+        }
+    }
+
+__RET:
+    hal_h264e_dbg_func("leave, ret %d\n", ret);
+    return ret;
 }
