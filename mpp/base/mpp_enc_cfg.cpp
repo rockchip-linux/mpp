@@ -387,6 +387,8 @@ MppEncCfgService::MppEncCfgService() :
     MPP_RET ret;
     RK_S32 i;
 
+    mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
+
     ret = mpp_trie_init(&trie, 1887, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init enc cfg set trie\n");
@@ -395,6 +397,8 @@ MppEncCfgService::MppEncCfgService() :
 
     for (i = 0; i < cfg_cnt; i++)
         mpp_trie_add_info(trie, &cfgs[i]->name);
+
+    mpp_trie_shrink(trie, 120);
 
     mInfo = mpp_enc_cfg_flaten(trie, cfgs);
     mCfgSize = mInfo->head.cfg_size;
