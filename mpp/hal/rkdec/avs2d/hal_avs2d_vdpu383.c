@@ -453,6 +453,21 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
             }
         }
 
+        if (p_hal->syntax.refp.scene_ref_enable && p_hal->syntax.refp.scene_ref_slot_idx >= 0) {
+            MppFrame scene_ref = NULL;
+            RK_S32 slot_idx = p_hal->syntax.refp.scene_ref_slot_idx;
+            RK_S32 replace_idx = p_hal->syntax.refp.scene_ref_replace_pos;
+
+            mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &scene_ref);
+
+            if (scene_ref) {
+                regs->avs2d_addrs.reg170_185_ref_base[replace_idx] = get_frame_fd(p_hal, slot_idx);
+                regs->avs2d_addrs.reg195_210_payload_st_ref_base[replace_idx] = regs->avs2d_addrs.reg170_185_ref_base[replace_idx];
+                mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
+                regs->avs2d_addrs.reg217_232_colmv_ref_base[replace_idx] = mpp_buffer_get_fd(mv_buf->buf[0]);
+            }
+        }
+
         regs->avs2d_addrs.reg169_error_ref_base = regs->avs2d_addrs.reg170_185_ref_base[0];
         regs->avs2d_addrs.reg194_payload_st_error_ref_base = regs->avs2d_addrs.reg195_210_payload_st_ref_base[0];
     }
