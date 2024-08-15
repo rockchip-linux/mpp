@@ -1968,6 +1968,7 @@ MPP_RET hal_vp9d_prob_kf(void *buf)
 
     mpp_put_align(&bp, 128, 0);
     memcpy(buf, probe_packet, PROB_KF_SIZE);
+    MPP_FREE(probe_packet);
 
     return MPP_OK;
 }
