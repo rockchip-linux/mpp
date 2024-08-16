@@ -89,17 +89,17 @@ public:
     public:
         inline Autolock(Mutex* mutex, RK_U32 enable = 1) :
             mEnabled(enable),
-            mLock(*mutex) {
-            if (mEnabled)
-                mLock.lock();
+            mLock(mutex) {
+            if (mLock && mEnabled)
+                mLock->lock();
         }
         inline ~Autolock() {
-            if (mEnabled)
-                mLock.unlock();
+            if (mLock && mEnabled)
+                mLock->unlock();
         }
     private:
         RK_S32 mEnabled;
-        Mutex& mLock;
+        Mutex *mLock;
     };
 
 private:

@@ -51,7 +51,7 @@
     do { \
         if (!(cond)) { \
             mpp_err("found mpp_mem assert failed, start dumping:\n"); \
-            service.dump(__FUNCTION__); \
+            MppMemService::get_inst()->dump(__FUNCTION__); \
             mpp_assert(cond); \
         } \
     } while (0)
@@ -93,9 +93,10 @@ typedef struct MppMemLog_s {
 class MppMemService
 {
 public:
-    // avoid any unwanted function
-    MppMemService();
-    ~MppMemService();
+    static MppMemService *get_inst() {
+        static MppMemService instance;
+        return &instance;
+    }
 
     void    add_node(const char *caller, void *ptr, size_t size);
     /*
@@ -121,10 +122,16 @@ public:
     RK_U32  total_now(void) { return m_total_size; }
     RK_U32  total_max(void) { return m_total_max; }
 
-    Mutex       lock;
+    Mutex       *m_lock;
     RK_U32      debug;
 
 private:
+    // avoid any unwanted function
+    MppMemService();
+    ~MppMemService();
+    MppMemService(const MppMemService &);
+    MppMemService &operator=(const MppMemService &);
+
     // data for node record and delay free check
     RK_S32      nodes_max;
     RK_S32      nodes_idx;
@@ -145,12 +152,7 @@ private:
     MppMemLog   *logs;
     RK_U32      m_total_size;
     RK_U32      m_total_max;
-
-    MppMemService(const MppMemService &);
-    MppMemService &operator=(const MppMemService &);
 };
-
-static MppMemService service;
 
 static const char *ops2str[MEM_OPS_BUTT] = {
     "malloc",
@@ -213,6 +215,8 @@ MppMemService::MppMemService()
 {
     mpp_env_get_u32("mpp_mem_debug", &debug, 0);
 
+    m_lock = new Mutex();
+
     // add more flag if debug enabled
     if (debug)
         debug |= MEM_DEBUG_EN;
@@ -247,7 +251,7 @@ MppMemService::MppMemService()
 MppMemService::~MppMemService()
 {
     if (debug & MEM_DEBUG_EN) {
-        AutoMutex auto_lock(&lock);
+        AutoMutex auto_lock(m_lock);
 
         RK_S32 i = 0;
         MppMemNode *node = nodes;
@@ -295,6 +299,11 @@ MppMemService::~MppMemService()
         os_free(nodes);
         os_free(frees);
         os_free(logs);
+    }
+
+    if (m_lock) {
+        delete m_lock;
+        m_lock = NULL;
     }
 }
 
@@ -561,9 +570,10 @@ void MppMemService::reset_node(const char *caller, void *ptr, void *ret, size_t 
 void MppMemService::add_log(MppMemOps ops, const char *caller,
                             void *ptr, void *ret, size_t size_0, size_t size_1)
 {
+    MppMemService *srv = MppMemService::get_inst();
     MppMemLog *log = &logs[log_idx];
 
-    if (service.debug & MEM_RUNTIME_LOG)
+    if (srv->debug & MEM_RUNTIME_LOG)
         mpp_log("%-7s ptr %010p %010p size %8u %8u at %s\n",
                 ops2str[ops], ptr, ret, size_0, size_1, caller);
 
@@ -639,7 +649,8 @@ void MppMemService::dump(const char *caller)
 
 void *mpp_osal_malloc(const char *caller, size_t size)
 {
-    RK_U32 debug = service.debug;
+    MppMemService *srv = MppMemService::get_inst();
+    RK_U32 debug = srv->debug;
     size_t size_align = MEM_ALIGNED(size);
     size_t size_real = (debug & MEM_EXT_ROOM) ? (size_align + 2 * MEM_ALIGN) :
                        (size_align);
@@ -648,8 +659,8 @@ void *mpp_osal_malloc(const char *caller, size_t size)
     os_malloc(&ptr, MEM_ALIGN, size_real);
 
     if (debug) {
-        AutoMutex auto_lock(&service.lock);
-        service.add_log(MEM_MALLOC, caller, NULL, ptr, size, size_real);
+        AutoMutex auto_lock(srv->m_lock);
+        srv->add_log(MEM_MALLOC, caller, NULL, ptr, size, size_real);
 
         if (ptr) {
             if (debug & MEM_EXT_ROOM) {
@@ -657,7 +668,7 @@ void *mpp_osal_malloc(const char *caller, size_t size)
                 set_mem_ext_room(ptr, size);
             }
 
-            service.add_node(caller, ptr, size);
+            srv->add_node(caller, ptr, size);
         }
     }
 
@@ -674,7 +685,8 @@ void *mpp_osal_calloc(const char *caller, size_t size)
 
 void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
 {
-    RK_U32 debug = service.debug;
+    MppMemService *srv = MppMemService::get_inst();
+    RK_U32 debug = srv->debug;
     void *ret;
 
     if (NULL == ptr)
@@ -696,15 +708,15 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
         // if realloc fail the original buffer will be kept the same.
         mpp_err("mpp_realloc ptr %p to size %d failed\n", ptr, size);
     } else {
-        AutoMutex auto_lock(&service.lock);
+        AutoMutex auto_lock(srv->m_lock);
 
         // if realloc success reset the node and record
         if (debug) {
             void *ret_ptr = (debug & MEM_EXT_ROOM) ?
                             ((RK_U8 *)ret + MEM_ALIGN) : (ret);
 
-            service.reset_node(caller, ptr, ret_ptr, size);
-            service.add_log(MEM_REALLOC, caller, ptr, ret_ptr, size, size_real);
+            srv->reset_node(caller, ptr, ret_ptr, size);
+            srv->add_log(MEM_REALLOC, caller, ptr, ret_ptr, size, size_real);
             ret = ret_ptr;
         }
     }
@@ -714,7 +726,9 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
 
 void mpp_osal_free(const char *caller, void *ptr)
 {
-    RK_U32 debug = service.debug;
+    MppMemService *srv = MppMemService::get_inst();
+    RK_U32 debug = srv->debug;
+
     if (NULL == ptr)
         return;
 
@@ -725,40 +739,46 @@ void mpp_osal_free(const char *caller, void *ptr)
 
     size_t size = 0;
 
-    AutoMutex auto_lock(&service.lock);
+    AutoMutex auto_lock(srv->m_lock);
     if (debug & MEM_POISON) {
         // NODE: keep this node and  delete delay node
-        void *ret = service.delay_del_node(caller, ptr, &size);
+        void *ret = srv->delay_del_node(caller, ptr, &size);
         if (ret)
             os_free((RK_U8 *)ret - MEM_ALIGN);
 
-        service.add_log(MEM_FREE_DELAY, caller, ptr, ret, size, 0);
+        srv->add_log(MEM_FREE_DELAY, caller, ptr, ret, size, 0);
     } else {
         void *ptr_real = (RK_U8 *)ptr - MEM_HEAD_ROOM(debug);
         // NODE: delete node and return size here
-        service.del_node(caller, ptr, &size);
-        service.chk_mem(caller, ptr, size);
+        srv->del_node(caller, ptr, &size);
+        srv->chk_mem(caller, ptr, size);
         os_free(ptr_real);
-        service.add_log(MEM_FREE, caller, ptr, ptr_real, size, 0);
+        srv->add_log(MEM_FREE, caller, ptr, ptr_real, size, 0);
     }
 }
 
 /* dump memory status */
 void mpp_show_mem_status()
 {
-    AutoMutex auto_lock(&service.lock);
-    if (service.debug & MEM_DEBUG_EN)
-        service.dump(__FUNCTION__);
+    MppMemService *srv = MppMemService::get_inst();
+    AutoMutex auto_lock(srv->m_lock);
+
+    if (srv->debug & MEM_DEBUG_EN)
+        srv->dump(__FUNCTION__);
 }
 
 RK_U32 mpp_mem_total_now()
 {
-    AutoMutex auto_lock(&service.lock);
-    return service.total_now();
+    MppMemService *srv = MppMemService::get_inst();
+    AutoMutex auto_lock(srv->m_lock);
+
+    return srv->total_now();
 }
 
 RK_U32 mpp_mem_total_max()
 {
-    AutoMutex auto_lock(&service.lock);
-    return service.total_max();
+    MppMemService *srv = MppMemService::get_inst();
+    AutoMutex auto_lock(srv->m_lock);
+
+    return srv->total_max();
 }
