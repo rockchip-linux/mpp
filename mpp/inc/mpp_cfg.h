@@ -40,9 +40,6 @@ typedef struct MppCfgApi_t {
 } MppCfgApi;
 
 typedef struct MppCfgInfo_t {
-    /* size for the whole node including name */
-    RK_S32          node_size;
-    RK_U32          name_len;
     /* CfgType */
     RK_S32          data_type;
     /* update flag info 32bit */
@@ -51,14 +48,10 @@ typedef struct MppCfgInfo_t {
     /* data access info */
     RK_S32          data_offset;
     RK_S32          data_size;
-    /* linked next node offset for pointer type */
-    RK_S32          node_next;
     /* function pointer for get / put accessor (user filled) */
     RK_U64          set_func;
     RK_U64          get_func;
-    /* reserve for extension */
-    RK_U64          stuff[2];
-    char            name[];
+    RK_U8           *name;
 } MppCfgInfoNode;
 
 typedef MPP_RET (*CfgSetS32)(MppCfgInfoNode *info, void *cfg, RK_S32 val);
@@ -89,11 +82,10 @@ typedef MPP_RET (*CfgGetPtr)(MppCfgInfoNode *info, void *cfg, void **val);
 
 /* header size 128 byte */
 typedef struct MppCfgInfoHead_t {
-    char            version[112];
+    char            version[116];
     RK_S32          info_size;
     RK_S32          info_count;
     RK_S32          node_count;
-    RK_S32          cfg_size;
 } MppCfgInfoHead;
 
 typedef struct MppCfgOps_t {

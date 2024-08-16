@@ -590,7 +590,7 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
 
     mpp_opt_init(&opts);
     /* should change node count when option increases */
-    mpp_opt_setup(opts, cmd, 71, enc_opt_cnt);
+    mpp_opt_setup(opts, cmd);
 
     for (i = 0; i < enc_opt_cnt; i++)
         mpp_opt_add(opts, &enc_opts[i]);

@@ -43,26 +43,6 @@
 
 RK_U32 mpp_dec_cfg_debug = 0;
 
-typedef struct MppDecCfgInfo_t {
-    MppCfgInfoHead      head;
-    MppTrieNode         trie_node[];
-    /* MppCfgInfoNode is following trie_node */
-} MppDecCfgInfo;
-
-static MppCfgInfoNode *mpp_dec_cfg_find(MppDecCfgInfo *info, const char *name)
-{
-    MppTrieNode *node;
-
-    if (NULL == info || NULL == name)
-        return NULL;
-
-    node = mpp_trie_get_node(info->trie_node, name);
-    if (NULL == node)
-        return NULL;
-
-    return (MppCfgInfoNode *)(((char *)info->trie_node) + node->id);
-}
-
 class MppDecCfgService
 {
 private:
@@ -71,7 +51,8 @@ private:
     MppDecCfgService(const MppDecCfgService &);
     MppDecCfgService &operator=(const MppDecCfgService &);
 
-    MppDecCfgInfo *mInfo;
+    MppCfgInfoHead mHead;
+    MppTrie mTrie;
     RK_S32 mCfgSize;
 
 public:
@@ -83,12 +64,13 @@ public:
         return &instance;
     }
 
-    MppCfgInfoNode *get_info(const char *name) { return mpp_dec_cfg_find(mInfo, name); };
-    MppCfgInfoNode *get_info_root();
+    MppCfgInfoNode *get_info(const char *name);
+    MppCfgInfoNode *get_info_first();
+    MppCfgInfoNode *get_info_next(MppCfgInfoNode *node);
 
-    RK_S32 get_node_count() { return mInfo ? mInfo->head.node_count : 0; };
-    RK_S32 get_info_count() { return mInfo ? mInfo->head.info_count : 0; };
-    RK_S32 get_info_size() { return mInfo ? mInfo->head.info_size : 0; };
+    RK_S32 get_node_count() { return mHead.node_count; };
+    RK_S32 get_info_count() { return mHead.info_count; };
+    RK_S32 get_info_size() { return mHead.info_size; };
     RK_S32 get_cfg_size() { return mCfgSize; };
 };
 
@@ -133,91 +115,34 @@ public:
     ENTRY(cb, frm_rdy_ctx,      Ptr, MppExtCbCtx,       MPP_DEC_CB_CFG_CHANGE_FRM_RDY,      cb, frm_rdy_ctx) \
     ENTRY(cb, frm_rdy_cmd,      S32, RK_S32,            MPP_DEC_CB_CFG_CHANGE_FRM_RDY,      cb, frm_rdy_cmd)
 
-static MppDecCfgInfo *mpp_dec_cfg_flaten(MppTrie trie, MppCfgApi **cfgs)
+static void mpp_dec_cfg_fill(MppTrie trie, MppCfgApi **cfgs)
 {
-    MppDecCfgInfo *info = NULL;
-    MppTrieNode *node_root = mpp_trie_node_root(trie);
-    RK_S32 node_count = mpp_trie_get_node_count(trie);
     RK_S32 info_count = mpp_trie_get_info_count(trie);
-    MppTrieNode *node_trie;
-    char *buf = NULL;
-    RK_S32 pos = 0;
-    RK_S32 len = 0;
     RK_S32 i;
 
-    pos += node_count * sizeof(*node_root);
-
-    mpp_dec_cfg_dbg_info("info node offset %d\n", pos);
-
-    /* update info size and string name size */
     for (i = 0; i < info_count; i++) {
-        const char *name = cfgs[i]->name;
-        const char **info_trie = mpp_trie_get_info(trie, name);
-
-        mpp_assert(*info_trie == name);
-        len = strlen(name);
-        pos += sizeof(MppCfgInfoNode) + MPP_ALIGN(len + 1, sizeof(RK_U64));
-    }
-
-    len = pos + sizeof(*info);
-    mpp_dec_cfg_dbg_info("tire + info size %d total %d\n", pos, len);
-
-    info = mpp_malloc_size(MppDecCfgInfo, len);
-    if (NULL == info)
-        return NULL;
-
-    memcpy(info->trie_node, node_root, sizeof(*node_root) * node_count);
-
-    node_root = info->trie_node;
-    pos = node_count * sizeof(*node_root);
-    buf = (char *)node_root + pos;
-
-    for (i = 0; i < info_count; i++) {
-        MppCfgInfoNode *node_info = (MppCfgInfoNode *)buf;
         MppCfgApi *api = cfgs[i];
         const char *name = api->name;
-        RK_S32 node_size;
+        MppCfgInfoNode *node_info = (MppCfgInfoNode *)mpp_trie_get_slot(trie, name);
+        MppTrieInfo *info = (MppTrieInfo *)(node_info + 1);
 
-        node_trie = mpp_trie_get_node(node_root, name);
-        node_trie->id = pos;
-
-        node_info->name_len     = MPP_ALIGN(strlen(name) + 1, sizeof(RK_U64));
         node_info->data_type    = api->data_type;
         node_info->flag_offset  = api->flag_offset;
         node_info->flag_value   = api->flag_value;
         node_info->data_offset  = api->data_offset;
         node_info->data_size    = api->data_size;
-        node_info->node_next    = 0;
-
-        node_size = node_info->name_len + sizeof(*node_info);
-        node_info->node_size    = node_size;
+        node_info->name         = (RK_U8 *)(info + 1);
 
         mpp_cfg_node_fixup_func(node_info);
 
-        strcpy(node_info->name, name);
-
-        mpp_dec_cfg_dbg_info("cfg %s offset %d size %d update %d flag %x\n",
-                             node_info->name,
+        mpp_dec_cfg_dbg_info("cfg %s offset %d size %d update %d flag %x\n", name,
                              node_info->data_offset, node_info->data_size,
                              node_info->flag_offset, node_info->flag_value);
-
-        pos += node_size;
-        buf += node_size;
     }
-
-    mpp_dec_cfg_dbg_info("total size %d +H %d\n", pos, pos + sizeof(info->head));
-
-    info->head.info_size  = pos;
-    info->head.info_count = info_count;
-    info->head.node_count = node_count;
-    info->head.cfg_size   = sizeof(MppDecCfgSet);
-
-    return info;
 }
 
 MppDecCfgService::MppDecCfgService() :
-    mInfo(NULL),
-    mCfgSize(0)
+    mTrie(NULL)
 {
     ENTRY_TABLE(EXPAND_AS_API);
 
@@ -226,38 +151,55 @@ MppDecCfgService::MppDecCfgService() :
     };
 
     RK_S32 cfg_cnt = MPP_ARRAY_ELEMS(cfgs);
-    MppTrie trie;
     MPP_RET ret;
     RK_S32 i;
-    /*
-     * NOTE: The dec_node_len is not the real node count should be allocated
-     * The max node count should be stream lengthg * 2 if each word is different.
-     */
-    ret = mpp_trie_init(&trie, 340, cfg_cnt);
+
+    ret = mpp_trie_init(&mTrie, 340, cfg_cnt);
     if (ret) {
         mpp_err_f("failed to init dec cfg set trie\n");
         return ;
     }
     for (i = 0; i < cfg_cnt; i++)
-        mpp_trie_add_info(trie, &cfgs[i]->name);
+        mpp_trie_add_info(mTrie, cfgs[i]->name, &cfgs[i]);
 
-    mInfo = mpp_dec_cfg_flaten(trie, cfgs);
-    mCfgSize = mInfo->head.cfg_size;
+    mpp_trie_shrink(mTrie, sizeof(MppCfgInfoNode));
 
-    mpp_trie_deinit(trie);
+    mpp_dec_cfg_fill(mTrie, cfgs);
+
+    mHead.node_count = mpp_trie_get_node_count(mTrie);
+    mHead.info_count = mpp_trie_get_info_count(mTrie);
+    mHead.info_size = mpp_trie_get_buf_size(mTrie);
+
+    mpp_dec_cfg_dbg_func("node cnt: %d\n", mpp_trie_get_node_count(mTrie));
 }
 
 MppDecCfgService::~MppDecCfgService()
 {
-    MPP_FREE(mInfo);
+    if (mTrie) {
+        mpp_trie_deinit(mTrie);
+        mTrie = NULL;
+    }
 }
 
-MppCfgInfoNode *MppDecCfgService::get_info_root()
+MppCfgInfoNode *MppDecCfgService::get_info(const char *name)
 {
-    if (NULL == mInfo)
+    return (MppCfgInfoNode *)mpp_trie_get_slot(mTrie, name);
+}
+
+MppCfgInfoNode *MppDecCfgService::get_info_first()
+{
+    if (NULL == mTrie)
         return NULL;
 
-    return (MppCfgInfoNode *)(mInfo->trie_node + mInfo->head.node_count);
+    return (MppCfgInfoNode *)mpp_trie_get_slot_first(mTrie);
+}
+
+MppCfgInfoNode *MppDecCfgService::get_info_next(MppCfgInfoNode *node)
+{
+    if (NULL == mTrie)
+        return NULL;
+
+    return (MppCfgInfoNode *)mpp_trie_get_slot_next(mTrie, (void *)node);
 }
 
 void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
@@ -276,14 +218,14 @@ void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
 MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
 {
     MppDecCfgImpl *p = NULL;
-    RK_S32 cfg_size;
 
     if (NULL == cfg) {
         mpp_err_f("invalid NULL input config\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    cfg_size = MppDecCfgService::get()->get_cfg_size();
+    mpp_env_get_u32("mpp_dec_cfg_debug", &mpp_dec_cfg_debug, 0);
+
     p = mpp_calloc(MppDecCfgImpl, 1);
     if (NULL == p) {
         mpp_err_f("create decoder config failed %p\n", p);
@@ -291,11 +233,8 @@ MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
         return MPP_ERR_NOMEM;
     }
 
-    mpp_assert(cfg_size == sizeof(p->cfg));
-    p->size = cfg_size;
+    p->size = sizeof(p->cfg);
     mpp_dec_cfg_set_default(&p->cfg);
-
-    mpp_env_get_u32("mpp_dec_cfg_debug", &mpp_dec_cfg_debug, 0);
 
     *cfg = p;
 
@@ -314,7 +253,7 @@ MPP_RET mpp_dec_cfg_deinit(MppDecCfg cfg)
     return MPP_OK;
 }
 
-#define ENC_CFG_SET_ACCESS(func_name, in_type, cfg_type) \
+#define DEC_CFG_SET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppDecCfg cfg, const char *name, in_type val) \
     { \
         if (NULL == cfg || NULL == name) { \
@@ -331,14 +270,14 @@ MPP_RET mpp_dec_cfg_deinit(MppDecCfg cfg)
         return ret; \
     }
 
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_s32, RK_S32, S32);
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_u32, RK_U32, U32);
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_s64, RK_S64, S64);
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_u64, RK_U64, U64);
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_ptr, void *, Ptr);
-ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, St);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s32, RK_S32, S32);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u32, RK_U32, U32);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s64, RK_S64, S64);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u64, RK_U64, U64);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_ptr, void *, Ptr);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, St);
 
-#define ENC_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
+#define DEC_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppDecCfg cfg, const char *name, in_type *val) \
     { \
         if (NULL == cfg || NULL == name) { \
@@ -355,37 +294,34 @@ ENC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, St);
         return ret; \
     }
 
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_s32, RK_S32, S32);
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_u32, RK_U32, U32);
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_s64, RK_S64, S64);
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_u64, RK_U64, U64);
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_ptr, void *, Ptr);
-ENC_CFG_GET_ACCESS(mpp_dec_cfg_get_st,  void  , St);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s32, RK_S32, S32);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u32, RK_U32, U32);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s64, RK_S64, S64);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u64, RK_U64, U64);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_ptr, void *, Ptr);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_st,  void  , St);
 
 void mpp_dec_cfg_show(void)
 {
-    RK_S32 node_count = MppDecCfgService::get()->get_node_count();
-    RK_S32 info_count = MppDecCfgService::get()->get_info_count();
-    MppCfgInfoNode *info = MppDecCfgService::get()->get_info_root();
+    MppDecCfgService *srv = MppDecCfgService::get();
+    MppCfgInfoNode *root = srv->get_info_first();
 
     mpp_log("dumping valid configure string start\n");
 
-    if (info) {
-        char *p = (char *)info;
-        RK_S32 i;
+    if (root) {
+        MppCfgInfoNode *node = root;
 
-        for (i = 0; i < info_count; i++) {
-            info = (MppCfgInfoNode *)p;
+        do {
+            mpp_log("%-25s type %s\n", node->name,
+                    cfg_type_names[node->data_type]);
 
-            mpp_log("%-25s type %s\n", info->name,
-                    cfg_type_names[info->data_type]);
-
-            p += info->node_size;
-        }
+            node = srv->get_info_next(node);
+            if (!node)
+                break;
+        } while (1);
     }
     mpp_log("dumping valid configure string done\n");
 
     mpp_log("total cfg count %d with %d node size %d\n",
-            info_count, node_count,
-            MppDecCfgService::get()->get_info_size());
+            srv->get_info_count(), srv->get_node_count(), srv->get_info_size());
 }

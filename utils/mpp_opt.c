@@ -55,22 +55,18 @@ MPP_RET mpp_opt_deinit(MppOpt opt)
     return MPP_OK;
 }
 
-MPP_RET mpp_opt_setup(MppOpt opt, void *ctx, RK_S32 node_cnt, RK_S32 opt_cnt)
+MPP_RET mpp_opt_setup(MppOpt opt, void *ctx)
 {
     MppOptImpl *impl = (MppOptImpl *)opt;
 
     if (NULL == impl)
         return MPP_NOK;
 
-    mpp_trie_init(&impl->trie, node_cnt, opt_cnt);
+    mpp_trie_init(&impl->trie, 128, 16);
     if (impl->trie) {
         impl->ctx = ctx;
-        impl->node_cnt = node_cnt;
-        impl->info_cnt = opt_cnt;
         return MPP_OK;
     }
-
-    mpp_err_f("failed to setup node %d opt %d\n", node_cnt, opt_cnt);
 
     return MPP_NOK;
 }
@@ -82,18 +78,10 @@ MPP_RET mpp_opt_add(MppOpt opt, MppOptInfo *info)
     if (NULL == impl || NULL == impl->trie)
         return MPP_NOK;
 
-    if (NULL == info) {
-        RK_S32 node_cnt = mpp_trie_get_node_count(impl->trie);
-        RK_S32 info_cnt = mpp_trie_get_info_count(impl->trie);
+    if (NULL == info)
+        return mpp_trie_shrink(impl->trie, 0);
 
-        if (impl->node_cnt != node_cnt || impl->info_cnt != info_cnt)
-            mpp_log("setup:real node %d:%d info %d:%d\n",
-                    impl->node_cnt, node_cnt, impl->info_cnt, info_cnt);
-
-        return MPP_OK;
-    }
-
-    return mpp_trie_add_info(impl->trie, &info->name);
+    return mpp_trie_add_info(impl->trie, info->name, info);
 }
 
 MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
@@ -117,15 +105,15 @@ MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
 
         if (opts[0] == '-' && opts[1] != '\0') {
             MppOptInfo *info = NULL;
-            const char **name = mpp_trie_get_info(impl->trie, opts + 1);
+            MppTrieInfo *node = mpp_trie_get_info(impl->trie, opts + 1);
             RK_S32 step = 0;
 
-            if (NULL == name) {
+            if (NULL == node) {
                 mpp_err("invalid option %s\n", opts + 1);
                 continue;
             }
 
-            info = container_of(name, MppOptInfo, name);
+            info = node->ctx;
             if (info->proc)
                 step = info->proc(impl->ctx, next);
 

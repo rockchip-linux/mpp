@@ -48,13 +48,41 @@
 #define INVALID_NODE_ID                 (-1)
 #define MPP_TRIE_TAG_LEN_MAX            ((sizeof(RK_U64) * 8) / MPP_TRIE_KEY_LEN)
 
+/* spatial optimized tire tree */
+typedef struct MppTrieNode_t {
+    /* next     - next tire node index */
+    RK_S16      next[MPP_TRIE_KEY_MAX];
+    /* id       - payload data offset of current tire node */
+    RK_S32      id;
+    /* idx      - tire node index in ascending order */
+    RK_S16      idx;
+    /* prev     - previous tire node index */
+    RK_S16      prev;
+
+    /* tag_val  - prefix tag */
+    RK_U64      tag_val;
+    /* key      - current key value in previous node as next */
+    RK_U16      key;
+    /*
+     * tag len  - prefix tag length
+     * zero     - normal node with 16 next node
+     * positive - tag node with 64bit prefix tag
+     */
+    RK_S16      tag_len;
+
+    /* next_cnt - valid next node count */
+    RK_U16      next_cnt;
+} MppTrieNode;
+
 typedef struct MppAcImpl_t {
     RK_S32          info_count;
     RK_S32          info_used;
-    const char      ***info;
+    MppTrieInfo     *info;
     RK_S32          node_count;
     RK_S32          node_used;
     MppTrieNode     *nodes;
+    RK_S32          ctx_size;
+    RK_S32          buf_size;
 } MppTrieImpl;
 
 RK_U32 mpp_trie_debug = 0;
@@ -123,7 +151,7 @@ MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count, RK_S32 info_count)
     }
 
     p->info_count = info_count ? info_count : DEFAULT_INFO_COUNT;
-    p->info = mpp_calloc(const char **, p->info_count);
+    p->info = mpp_calloc(MppTrieInfo, p->info_count);
     if (NULL == p->info) {
         mpp_err_f("failed to alloc %d storage\n", p->info_count);
         goto DONE;
@@ -160,10 +188,10 @@ MPP_RET mpp_trie_deinit(MppTrie trie)
     return MPP_OK;
 }
 
-MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
+MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx)
 {
-    if (NULL == trie || NULL == info) {
-        mpp_err_f("invalid trie %p info %p\n", trie, info);
+    if (!trie || !name || !ctx) {
+        mpp_err_f("invalid trie %p name %s ctx %p\n", trie, name, ctx);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -172,7 +200,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     /* create */
     if (p->info_used >= p->info_count) {
         RK_S32 new_count = p->info_count * 2;
-        const char ***ptr = mpp_realloc(p->info, const char **, new_count);
+        MppTrieInfo *ptr = mpp_realloc(p->info, MppTrieInfo, new_count);
+
         if (NULL == ptr) {
             mpp_err_f("failed to realloc new action %d\n", new_count);
             return MPP_ERR_MALLOC;
@@ -186,7 +215,7 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     }
 
     MppTrieNode *node = NULL;
-    const char *s = *info;
+    const char *s = name;
     RK_S32 len = strnlen(s, SZ_1K);
     RK_S32 next = 0;
     RK_S32 idx = 0;
@@ -239,13 +268,95 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char **info)
     }
 
     RK_S32 act_id = p->info_used++;
+
     p->nodes[idx].id = act_id;
-    p->info[act_id] = info;
+
+    MppTrieInfo *info = &p->info[act_id];
+
+    info->name = name;
+    info->ctx = ctx;
+    info->index = act_id;
+    info->str_len = MPP_ALIGN(len + 1, sizeof(RK_U64));
 
     trie_dbg_set("trie %p add %d info %s at node %d pos %d action %p done\n",
-                 trie, i, s, idx, act_id, info);
+                 trie, i, s, idx, act_id, ctx);
 
     return MPP_OK;
+}
+
+static RK_S32 mpp_trie_walk(MppTrieNode *node, RK_U64 *tag_val, RK_S32 *tag_len, RK_U32 key)
+{
+    RK_U64 val = *tag_val;
+    RK_S32 len = *tag_len;
+
+    if (node->tag_len > len) {
+        *tag_val = (val << 4) | key;
+        *tag_len = len + 1;
+
+        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> key %x -> tag fill\n",
+                      node->idx, node->id, node->tag_len, *tag_len, node->tag_val, *tag_val, key);
+
+        return node->idx;
+    }
+
+    /* normal next switch node */
+    if (!node->tag_len) {
+        trie_dbg_walk("node %d:%d -> key %x -> next %d\n",
+                      node->idx, node->id, key, node->next[key]);
+
+        return node->next[key];
+    }
+
+    *tag_val = 0;
+    *tag_len = 0;
+
+    if (node->tag_val != val) {
+        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag mismatch\n",
+                      node->idx, node->id, node->tag_len, len, node->tag_val, val);
+        return INVALID_NODE_ID;
+    }
+
+    trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag match -> key %d next %d\n",
+                  node->idx, node->id, node->tag_len, len, node->tag_val, val, key, node->next[key]);
+
+    return node->next[key];
+}
+
+static MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name)
+{
+    MppTrieNode *ret = NULL;
+    const char *s = name;
+    RK_U64 tag_val = 0;
+    RK_S32 tag_len = 0;
+    RK_S32 idx = 0;
+
+    if (NULL == root || NULL == name) {
+        mpp_err_f("invalid root %p name %p\n", root, name);
+        return NULL;
+    }
+
+    trie_dbg_get("root %p search %s start\n", root, name);
+
+    do {
+        RK_U8 key = *s++;
+        RK_U32 key0 = (key >> 4) & 0xf;
+        RK_U32 key1 = key & 0xf;
+        RK_S32 end = (s[0] == '\0');
+
+        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key0);
+        if (idx < 0)
+            break;
+
+        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key1);
+        if (idx < 0 || end)
+            break;
+    } while (1);
+
+    ret = (idx >= 0) ? &root[idx] : NULL;
+
+    trie_dbg_get("get node %d:%d\n", idx, ret ? ret->id : INVALID_NODE_ID);
+
+    return ret;
 }
 
 static RK_S32 mpp_trie_check(MppTrie trie, const char *log)
@@ -254,47 +365,50 @@ static RK_S32 mpp_trie_check(MppTrie trie, const char *log)
     RK_S32 i;
 
     for (i = 0; i < p->info_used; i++) {
-        const char *name = p->info[i][0];
-        const char **info_trie = mpp_trie_get_info(trie, name);
+        const char *name = (const char *)p->info[i].name;
+        MppTrieNode *node = mpp_trie_get_node(p->nodes, name);
 
-        if (!info_trie || *info_trie != name) {
-            mpp_loge("shrinked trie %s found mismatch info %s:%p - %p\n",
-                     log, name, name, info_trie ? *info_trie : NULL);
-            return MPP_NOK;
-        }
+        if (node && node->id >= 0 && node->id == i)
+            continue;
+
+        mpp_loge("trie check on %s found mismatch info %s %d - %d\n",
+                 log, name, i, node ? node->id : -1);
+        return MPP_NOK;
     }
 
     return MPP_OK;
 }
 
-MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size)
+MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 ctx_size)
 {
     MppTrieImpl *p = (MppTrieImpl *)trie;
     MppTrieNode *root;
     MppTrieNode *node;
-    MppTrieNode *prev;
+    char *buf;
     RK_S32 node_count;
     RK_S32 node_valid;
-    RK_S32 info_count;
+    RK_S32 nodes_size;
+    RK_S32 len = 0;
+    RK_S32 pos = 0;
     RK_S32 i;
     RK_S32 j;
 
-    if (!trie || !info_size) {
-        mpp_err_f("invalid trie %p info size %d\n", trie, info_size);
+    if (!trie) {
+        mpp_err_f("invalid trie %p info size %d\n", trie, ctx_size);
         return MPP_ERR_NULL_PTR;
     }
 
-    root = mpp_trie_node_root(trie);
-    node_count = mpp_trie_get_node_count(trie);
-    info_count = mpp_trie_get_info_count(trie);
+    root = p->nodes;
+    node_count = p->node_used;
     node_valid = node_count;
 
-    trie_dbg_shrink("shrink trie node start node %d info %d\n", node_count, info_count);
+    trie_dbg_shrink("shrink trie node start node %d info %d\n", node_count, p->info_used);
 
     if (mpp_trie_debug & MPP_TRIE_DBG_SHRINK_STEP)
         mpp_trie_dump_f(trie);
 
     for (i = node_count - 1; i > 0; i--) {
+        MppTrieNode *prev;
         RK_S32 prev_idx;
 
         node = &root[i];
@@ -341,13 +455,15 @@ MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size)
         node_valid--;
     }
 
-    trie_dbg_shrink("shrink done node count %d -> %d\n", node_count, node_valid);
+    trie_dbg_shrink("shrink trie node finish count %d -> %d\n", node_count, node_valid);
 
     if (mpp_trie_debug & MPP_TRIE_DBG_SHRINK_STEP)
         mpp_trie_dump_f(trie);
 
     if (mpp_trie_debug & MPP_TRIE_DBG_SHRINK_CHECK)
-        mpp_trie_check(trie, "merge tag stage");
+        mpp_trie_check(trie, "shrink merge tag stage");
+
+    trie_dbg_shrink("move trie node start to reduce memory %d -> %d\n", node_count, node_valid);
 
     for (i = 1; i < node_valid; i++) {
         node = &root[i];
@@ -358,6 +474,7 @@ MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size)
 
         for (j = i; j < node_count; j++) {
             MppTrieNode *tmp = &root[j];
+            MppTrieNode *prev;
             RK_S32 k;
 
             /* skip empty node */
@@ -395,13 +512,59 @@ MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size)
 
     p->node_used = node_valid;
 
-    trie_dbg_shrink("shrink trie node finish valid %d\n", p->node_used);
+    trie_dbg_shrink("move trie node finish used %d\n", p->node_used);
 
     if (mpp_trie_debug & MPP_TRIE_DBG_SHRINK_STEP)
         mpp_trie_dump_f(trie);
 
     if (mpp_trie_debug & MPP_TRIE_DBG_SHRINK_CHECK)
-        mpp_trie_check(trie, "move node stage");
+        mpp_trie_check(trie, "shrink move node stage");
+
+    trie_dbg_shrink("create user buffer start\n");
+
+    p->ctx_size = ctx_size;
+    nodes_size = sizeof(MppTrieNode) * p->node_used;
+
+    pos += nodes_size;
+    /* update info size and string name size */
+    for (i = 0; i < p->info_used; i++) {
+        len = p->info[i].str_len;
+        pos += ctx_size + sizeof(MppTrieInfo) + len;
+    }
+
+    len = pos;
+    buf = mpp_calloc_size(char, len);
+    if (!buf) {
+        mpp_loge("failed to alloc trie buffer size %d\n", len);
+        return MPP_NOK;
+    }
+
+    p->nodes = (MppTrieNode *)buf;
+    p->buf_size = len;
+    memcpy(p->nodes, root, nodes_size);
+    pos = nodes_size;
+
+    for (i = 0; i < p->info_used; i++) {
+        MppTrieInfo *info;
+        const char *name = p->info[i].name;
+
+        node = mpp_trie_get_node(p->nodes, name);
+        node->id = pos;
+
+        /* reserve user context space */
+        pos += ctx_size;
+
+        /* reserve node info */
+        info = (MppTrieInfo *)(buf + pos);
+        memcpy(info, &p->info[i], sizeof(MppTrieInfo));
+        pos += sizeof(MppTrieInfo);
+
+        /* copy info name */
+        strncpy(buf + pos, name, info->str_len);
+        pos += info->str_len;
+    }
+
+    MPP_FREE(root);
 
     return MPP_OK;
 }
@@ -428,79 +591,11 @@ RK_S32 mpp_trie_get_info_count(MppTrie trie)
     return p->info_used;
 }
 
-static RK_S32 mpp_trie_walk(MppTrieNode *node, RK_U64 *tag_val, RK_S32 *tag_len, RK_U32 key)
+RK_S32 mpp_trie_get_buf_size(MppTrie trie)
 {
-    RK_U64 val = *tag_val;
-    RK_S32 len = *tag_len;
+    MppTrieImpl *p = (MppTrieImpl *)trie;
 
-    if (node->tag_len > len) {
-        *tag_val = (val << 4) | key;
-        *tag_len = len + 1;
-
-        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> key %x -> tag fill\n",
-                      node->idx, node->id, node->tag_len, *tag_len, node->tag_val, *tag_val, key);
-
-        return node->idx;
-    }
-
-    /* normal next switch node */
-    if (!node->tag_len) {
-        trie_dbg_walk("node %d:%d -> key %x -> next %d\n",
-                      node->idx, node->id, key, node->next[key]);
-
-        return node->next[key];
-    }
-
-    *tag_val = 0;
-    *tag_len = 0;
-
-    if (node->tag_val != val) {
-        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag mismatch\n",
-                      node->idx, node->id, node->tag_len, len, node->tag_val, val);
-        return INVALID_NODE_ID;
-    }
-
-    trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag match -> key %d next %d\n",
-                  node->idx, node->id, node->tag_len, len, node->tag_val, val, key, node->next[key]);
-
-    return node->next[key];
-}
-
-MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name)
-{
-    MppTrieNode *ret = NULL;
-    const char *s = name;
-    RK_U64 tag_val = 0;
-    RK_S32 tag_len = 0;
-    RK_S32 idx = 0;
-
-    if (NULL == root || NULL == name) {
-        mpp_err_f("invalid root %p name %p\n", root, name);
-        return NULL;
-    }
-
-    trie_dbg_get("root %p search %s start\n", root, name);
-
-    do {
-        RK_U8 key = *s++;
-        RK_U32 key0 = (key >> 4) & 0xf;
-        RK_U32 key1 = key & 0xf;
-        RK_S32 end = (s[0] == '\0');
-
-        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key0);
-        if (idx < 0)
-            break;
-
-        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key1);
-        if (idx < 0 || end)
-            break;
-    } while (1);
-
-    ret = (idx >= 0) ? &root[idx] : NULL;
-
-    trie_dbg_get("get node %d:%d\n", idx, ret ? ret->id : INVALID_NODE_ID);
-
-    return ret;
+    return (p) ? p->buf_size : 0;
 }
 
 MppTrieNode *mpp_trie_node_root(MppTrie trie)
@@ -514,7 +609,7 @@ MppTrieNode *mpp_trie_node_root(MppTrie trie)
     return p->nodes;
 }
 
-const char **mpp_trie_get_info(MppTrie trie, const char *name)
+MppTrieInfo *mpp_trie_get_info(MppTrie trie, const char *name)
 {
     MppTrieImpl *p = (MppTrieImpl *)trie;
     MppTrieNode *node;
@@ -525,8 +620,54 @@ const char **mpp_trie_get_info(MppTrie trie, const char *name)
     }
 
     node = mpp_trie_get_node(p->nodes, name);
+    if (!node || node->id < 0)
+        return NULL;
 
-    return (node && node->id >= 0) ? p->info[node->id] : NULL;
+    return (MppTrieInfo *)(((RK_U8 *)p->nodes) + node->id + p->ctx_size);
+}
+
+void *mpp_trie_get_slot(MppTrie trie, const char *name)
+{
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+    MppTrieNode *node;
+
+    if (NULL == trie || NULL == name) {
+        mpp_err_f("invalid trie %p name %p\n", trie, name);
+        return NULL;
+    }
+
+    if (!p->buf_size) {
+        mpp_err_f("trie %p buffer is not shrinked and not ready for usage\n", trie);
+        return NULL;
+    }
+
+    node = mpp_trie_get_node(p->nodes, name);
+    if (!node || node->id < 0)
+        return NULL;
+
+    return (void *)(((RK_U8 *)p->nodes) + node->id);
+}
+
+void *mpp_trie_get_slot_first(MppTrie trie)
+{
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+
+    return (p) ? ((RK_U8 *)p->nodes) + p->node_used * sizeof(MppTrieNode) : NULL;
+}
+
+void *mpp_trie_get_slot_next(MppTrie trie, void *slot)
+{
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+    MppTrieInfo *info;
+
+    if (!p || !slot)
+        return NULL;
+
+    info = (MppTrieInfo *)((RK_U8 *)slot + p->ctx_size);
+    if (info->index < 0 || info->index >= p->info_used - 1)
+        return NULL;
+
+    return (void *)((RK_U8 *)slot + p->ctx_size + sizeof(MppTrieInfo) + info->str_len);
 }
 
 void mpp_trie_dump(MppTrie trie, const char *func)
@@ -550,7 +691,7 @@ void mpp_trie_dump(MppTrie trie, const char *func)
             continue;
 
         if (node->id >= 0)
-            mpp_logi("node %d key %x info %d - %s\n", node->idx, node->key, node->id, p->info[node->id][0]);
+            mpp_logi("node %d key %x info %d - %s\n", node->idx, node->key, node->id, p->info[node->id].name);
         else
             mpp_logi("node %d key %x\n", node->idx, node->key);
 

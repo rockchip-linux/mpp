@@ -25,28 +25,34 @@ typedef void* MppTrie;
 #define MPP_TRIE_KEY_LEN                (4)
 #define MPP_TRIE_KEY_MAX                (MPP_TRIE_KEY_LEN << 4)
 
-/* spatial optimized tire tree */
-typedef struct MppAcNode_t {
-    /* id       - tire node carried payload data */
-    RK_S32      id;
-    /* idx      - tire node index in ascending order */
-    RK_S16      idx;
-    /* prev     - tire node index in ascending order */
-    RK_S16      prev;
-    /* key      - current key value in previous node as next */
-    RK_S16      key;
-
-    /* tag len  - common tag length
-     * zero     - normal node with 16 next node
-     * positive - single path node with 4bit unit tag length */
-    RK_S16      tag_len;
-    /* id_tag   - last tag index */
-    RK_U64      tag_val;
-
-    /* valid next position bitmap */
-    RK_U16      next_cnt;
-    RK_S16      next[MPP_TRIE_KEY_MAX];
-} MppTrieNode;
+/*
+ * MppTire node buffer layout
+ * +---------------+
+ * |  MppTrieImpl  |
+ * +---------------+
+ * |  MppTireNodes |
+ * +---------------+
+ * |  MppTrieInfos |
+ * +---------------+
+ *
+ * MppTrieInfo element layout
+ * +---------------+
+ * |  User context |
+ * +---------------+
+ * |  MppTrieInfo  |
+ * +---------------+
+ * |  name string  |
+ * +---------------+
+ */
+typedef struct MppTrieInfo_t {
+    /* original name string address, maybe invalid stack address */
+    const char  *name;
+    /* original context address, maybe invalid stack address */
+    void        *ctx;
+    /* always valid data */
+    RK_S16      index;
+    RK_S16      str_len;
+} MppTrieInfo;
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,15 +61,19 @@ extern "C" {
 MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count, RK_S32 info_count);
 MPP_RET mpp_trie_deinit(MppTrie trie);
 
-MPP_RET mpp_trie_add_info(MppTrie trie, const char **info);
+MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx);
 MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size);
 
 RK_S32 mpp_trie_get_node_count(MppTrie trie);
 RK_S32 mpp_trie_get_info_count(MppTrie trie);
+RK_S32 mpp_trie_get_buf_size(MppTrie trie);
 
-MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name);
-const char **mpp_trie_get_info(MppTrie trie, const char *name);
-MppTrieNode *mpp_trie_node_root(MppTrie trie);
+/* trie lookup function */
+MppTrieInfo *mpp_trie_get_info(MppTrie trie, const char *name);
+/* trie lookup slot function for context filling */
+void *mpp_trie_get_slot(MppTrie trie, const char *name);
+void *mpp_trie_get_slot_first(MppTrie trie);
+void *mpp_trie_get_slot_next(MppTrie trie, void *slot);
 
 void mpp_trie_dump(MppTrie trie, const char *func);
 #define mpp_trie_dump_f(tire)   mpp_trie_dump(tire, __FUNCTION__)

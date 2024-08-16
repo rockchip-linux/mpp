@@ -41,7 +41,7 @@ extern "C" {
 MPP_RET mpp_opt_init(MppOpt *opt);
 MPP_RET mpp_opt_deinit(MppOpt opt);
 
-MPP_RET mpp_opt_setup(MppOpt opt, void *ctx, RK_S32 node_cnt, RK_S32 opt_cnt);
+MPP_RET mpp_opt_setup(MppOpt opt, void *ctx);
 /* Add NULL info to mark end of options */
 MPP_RET mpp_opt_add(MppOpt opt, MppOptInfo *info);
 

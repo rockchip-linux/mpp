@@ -25,7 +25,7 @@
 
 #include "mpp_trie.h"
 
-typedef void *(*TestProc)(void *);
+typedef void *(*TestProc)(void *, RK_S64 time);
 
 typedef struct TestAction_t {
     const char          *name;
@@ -38,12 +38,12 @@ typedef struct TestCase_t {
     MPP_RET             ret;
 } TestCase;
 
-void *print_opt(void *ctx)
+void *print_opt(void *ctx, RK_S64 time)
 {
     RK_U8 **str = (RK_U8 **)ctx;
 
     if (str && *str)
-        mpp_log("get option %s\n", *str);
+        mpp_log("get option %-16s time %lld us\n", *str, time);
 
     return NULL;
 }
@@ -69,7 +69,6 @@ TestCase test_case[] = {
 int main()
 {
     MppTrie trie = NULL;
-    void *info = NULL;
     RK_S32 i;
     RK_S64 end = 0;
     RK_S64 start = 0;
@@ -83,31 +82,32 @@ int main()
 
     start = mpp_time();
     for (i = 0; i < info_cnt; i++)
-        mpp_trie_add_info(trie, &test_info[i].name);
+        mpp_trie_add_info(trie, test_info[i].name, &test_info[i]);
     end = mpp_time();
     mpp_log("add act time %lld us\n", end - start);
 
-    ret = mpp_trie_shrink(trie, sizeof(TestAction));
+    ret = mpp_trie_shrink(trie, 0);
     if (ret) {
         mpp_loge("mpp_trie_shrink failed\n");
         goto DONE;
     }
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(test_case); i++) {
+        MppTrieInfo *info = NULL;
+        TestAction *act = NULL;
+        const char *name = test_case[i].name;
+
         start = mpp_time();
-        info = mpp_trie_get_info(trie, test_case[i].name);
+        info = mpp_trie_get_info(trie, name);
         end = mpp_time();
 
-        if (info) {
-            TestAction *act = (TestAction *)info;
+        if (info && info->ctx)
+            act = (TestAction *)info->ctx;
 
-            if (act && act->proc) {
-                act->proc(act->ctx);
-                mpp_log("search time %lld us\n", end - start);
-            }
-        } else {
-            mpp_loge("search %s failed\n", test_case[i]);
-        }
+        if (act && act->proc)
+            act->proc(act->ctx, end - start);
+        else
+            mpp_loge("search %s failed time %lld us\n", name, end - start);
 
         ret |= ((info && !test_case[i].ret) ||
                 (!info && test_case[i].ret)) ? MPP_OK : MPP_NOK;
