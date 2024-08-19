@@ -20,57 +20,12 @@
 #define HAL_H264E_DBG_CONTENT           (0x00000200)
 #define hal_h264e_dbg_content(fmt, ...) hal_h264e_dbg_f(HAL_H264E_DBG_CONTENT, fmt, ## __VA_ARGS__)
 
-/*
- * Please follow the configuration below:
- *
- * FRAME_CONTENT_ANALYSIS_NUM >= 5
- * MD_WIN_LEN >= 3
- * MD_SHOW_LEN == 4
- */
-
 typedef struct HalH264eVepu510Tune_t {
     HalH264eVepu510Ctx  *ctx;
 
     RK_S32  pre_madp[2];
     RK_S32  pre_madi[2];
 } HalH264eVepu510Tune;
-
-static RK_S32 mb_avg_madp_thd[6] = {192, 128, 64, 192, 128, 64};
-
-static RK_S32 atr_wgt[4][9] = {
-    {22, 19, 16, 22, 19, 18, 22, 19, 16},
-    {19, 19, 19, 19, 19, 19, 19, 19, 19},
-    {22, 19, 16, 22, 19, 18, 22, 19, 16},
-    {20, 20, 20, 20, 20, 20, 20, 20, 20},
-};
-
-static RK_S32 skip_atf_wgt[4][13] = {
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-};
-
-static RK_S32 intra_atf_wgt[4][12] = {
-    {24, 22, 21, 22, 21, 20, 20, 19, 18, 16, 16, 16},
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-    {22, 21, 20, 21, 20, 19, 20, 19, 18, 16, 16, 16},
-    {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
-};
-
-static RK_S32 cime_multi[4][4] = {
-    {4, 8, 24, 24},
-    {4, 7, 20, 20},
-    {4, 7, 20, 20},
-    {4, 4, 4, 4},
-};
-
-static RK_S32 rime_multi[4][3] = {
-    {4, 32, 128},
-    {4, 16, 64},
-    {4, 16, 64},
-    {4, 4, 4},
-};
 
 static HalH264eVepu510Tune *vepu510_h264e_tune_init(HalH264eVepu510Ctx *ctx)
 {

@@ -295,27 +295,27 @@ typedef struct H264eVepu510Param_t {
 
     /* 0x00001750 reg1492 */
     struct {
-        RK_U32    wgt0      : 8;
-        RK_U32    wgt1      : 8;
-        RK_U32    wgt2      : 8;
-        RK_U32    reserved  : 8;
-    } lvl16_atr_wgt;
+        RK_U32 atr_lv16_wgt0    : 8;
+        RK_U32 atr_lv16_wgt1    : 8;
+        RK_U32 atr_lv16_wgt2    : 8;
+        RK_U32 reserved         : 8;
+    } atr_wgt16;
 
     /* 0x00001754  reg1493*/
     struct {
-        RK_U32    wgt0      : 8;
-        RK_U32    wgt1      : 8;
-        RK_U32    wgt2      : 8;
-        RK_U32    reserved  : 8;
-    } lvl8_atr_wgt;
+        RK_U32 atr_lv8_wgt0    : 8;
+        RK_U32 atr_lv8_wgt1    : 8;
+        RK_U32 atr_lv8_wgt2    : 8;
+        RK_U32 reserved        : 8;
+    } atr_wgt8;
 
     /* 0x00001758 reg1494 */
     struct {
-        RK_U32    wgt0      : 8;
-        RK_U32    wgt1      : 8;
-        RK_U32    wgt2      : 8;
-        RK_U32    reserved  : 8;
-    } lvl4_atr_wgt;
+        RK_U32 atr_lv4_wgt0    : 8;
+        RK_U32 atr_lv4_wgt1    : 8;
+        RK_U32 atr_lv4_wgt2    : 8;
+        RK_U32 reserved        : 8;
+    } atr_wgt4;
 
     /* 0x175c */
     RK_U32 reserved_1495;
