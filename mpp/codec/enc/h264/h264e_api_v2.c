@@ -195,6 +195,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     cfg->tune.atr_str_i = 1;
     cfg->tune.atr_str_p = 1;
     cfg->tune.anti_flicker_str = 1;
+    cfg->tune.deblur_str = 3;
 }
 
 static void h264e_add_syntax(H264eCtx *ctx, H264eSyntaxType type, void *p)

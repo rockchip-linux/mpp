@@ -118,6 +118,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.atl_str = 1;
     p->cfg->tune.sao_str_i = 0;
     p->cfg->tune.sao_str_p = 1;
+    p->cfg->tune.deblur_str = 3;
 
     /*
      * default prep:

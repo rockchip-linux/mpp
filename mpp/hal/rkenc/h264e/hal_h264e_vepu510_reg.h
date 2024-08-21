@@ -428,156 +428,156 @@ typedef struct H264eVepu510SqiCfg_t {
 
     /* 0x00002018 reg2054 */
     struct {
-        RK_U32 rdo_smear_madp_cur_thd0    : 12;
-        RK_U32 reserved                   : 4;
-        RK_U32 rdo_smear_madp_cur_thd1    : 12;
-        RK_U32 reserved1                  : 4;
-    } rdo_smear_madp_thd0;
+        RK_U32 madp_cur_thd0    : 12;
+        RK_U32 reserved         : 4;
+        RK_U32 madp_cur_thd1    : 12;
+        RK_U32 reserved1        : 4;
+    } smear_madp_thd0;
 
     /* 0x0000201c reg2055 */
     struct {
-        RK_U32 rdo_smear_madp_cur_thd2    : 12;
-        RK_U32 reserved                   : 4;
-        RK_U32 rdo_smear_madp_cur_thd3    : 12;
-        RK_U32 reserved1                  : 4;
-    } rdo_smear_madp_thd1;
+        RK_U32 madp_cur_thd2    : 12;
+        RK_U32 reserved         : 4;
+        RK_U32 madp_cur_thd3    : 12;
+        RK_U32 reserved1        : 4;
+    } smear_madp_thd1;
 
     /* 0x00002020 reg2056 */
     struct {
-        RK_U32 rdo_smear_madp_around_thd0    : 12;
-        RK_U32 reserved                      : 4;
-        RK_U32 rdo_smear_madp_around_thd1    : 12;
-        RK_U32 reserved1                     : 4;
-    } rdo_smear_madp_thd2;
+        RK_U32 madp_around_thd0    : 12;
+        RK_U32 reserved            : 4;
+        RK_U32 madp_around_thd1    : 12;
+        RK_U32 reserved1           : 4;
+    } smear_madp_thd2;
 
     /* 0x00002024 reg2057 */
     struct {
-        RK_U32 rdo_smear_madp_around_thd2    : 12;
-        RK_U32 reserved                      : 4;
-        RK_U32 rdo_smear_madp_around_thd3    : 12;
-        RK_U32 reserved1                     : 4;
-    } rdo_smear_madp_thd3;
+        RK_U32 madp_around_thd2    : 12;
+        RK_U32 reserved            : 4;
+        RK_U32 madp_around_thd3    : 12;
+        RK_U32 reserved1           : 4;
+    } smear_madp_thd3;
 
     /* 0x00002028 reg2058 */
     struct {
-        RK_U32 rdo_smear_madp_around_thd4    : 12;
-        RK_U32 reserved                      : 4;
-        RK_U32 rdo_smear_madp_around_thd5    : 12;
-        RK_U32 reserved1                     : 4;
-    } rdo_smear_madp_thd4;
+        RK_U32 madp_around_thd4    : 12;
+        RK_U32 reserved            : 4;
+        RK_U32 madp_around_thd5    : 12;
+        RK_U32 reserved1           : 4;
+    } smear_madp_thd4;
 
     /* 0x0000202c reg2059 */
     struct {
-        RK_U32 rdo_smear_madp_ref_thd0    : 12;
-        RK_U32 reserved                   : 4;
-        RK_U32 rdo_smear_madp_ref_thd1    : 12;
-        RK_U32 reserved1                  : 4;
-    } rdo_smear_madp_thd5;
+        RK_U32 madp_ref_thd0    : 12;
+        RK_U32 reserved         : 4;
+        RK_U32 madp_ref_thd1    : 12;
+        RK_U32 reserved1        : 4;
+    } smear_madp_thd5;
 
     /* 0x00002030 reg2060 */
     struct {
-        RK_U32 rdo_smear_cnt_cur_thd0    : 4;
-        RK_U32 reserved                  : 4;
-        RK_U32 rdo_smear_cnt_cur_thd1    : 4;
-        RK_U32 reserved1                 : 4;
-        RK_U32 rdo_smear_cnt_cur_thd2    : 4;
-        RK_U32 reserved2                 : 4;
-        RK_U32 rdo_smear_cnt_cur_thd3    : 4;
-        RK_U32 reserved3                 : 4;
-    } rdo_smear_cnt_thd0;
+        RK_U32 cnt_cur_thd0    : 4;
+        RK_U32 reserved        : 4;
+        RK_U32 cnt_cur_thd1    : 4;
+        RK_U32 reserved1       : 4;
+        RK_U32 cnt_cur_thd2    : 4;
+        RK_U32 reserved2       : 4;
+        RK_U32 cnt_cur_thd3    : 4;
+        RK_U32 reserved3       : 4;
+    } smear_cnt_thd0;
 
     /* 0x00002034 reg2061 */
     struct {
-        RK_U32 rdo_smear_cnt_around_thd0    : 4;
-        RK_U32 reserved                     : 4;
-        RK_U32 rdo_smear_cnt_around_thd1    : 4;
-        RK_U32 reserved1                    : 4;
-        RK_U32 rdo_smear_cnt_around_thd2    : 4;
-        RK_U32 reserved2                    : 4;
-        RK_U32 rdo_smear_cnt_around_thd3    : 4;
-        RK_U32 reserved3                    : 4;
-    } rdo_smear_cnt_thd1;
+        RK_U32 cnt_around_thd0    : 4;
+        RK_U32 reserved           : 4;
+        RK_U32 cnt_around_thd1    : 4;
+        RK_U32 reserved1          : 4;
+        RK_U32 cnt_around_thd2    : 4;
+        RK_U32 reserved2          : 4;
+        RK_U32 cnt_around_thd3    : 4;
+        RK_U32 reserved3          : 4;
+    } smear_cnt_thd1;
 
     /* 0x00002038 reg2062 */
     struct {
-        RK_U32 rdo_smear_cnt_around_thd4    : 4;
-        RK_U32 reserved                     : 4;
-        RK_U32 rdo_smear_cnt_around_thd5    : 4;
-        RK_U32 reserved1                    : 4;
-        RK_U32 rdo_smear_cnt_around_thd6    : 4;
-        RK_U32 reserved2                    : 4;
-        RK_U32 rdo_smear_cnt_around_thd7    : 4;
-        RK_U32 reserved3                    : 4;
-    } rdo_smear_cnt_thd2;
+        RK_U32 cnt_around_thd4    : 4;
+        RK_U32 reserved           : 4;
+        RK_U32 cnt_around_thd5    : 4;
+        RK_U32 reserved1          : 4;
+        RK_U32 cnt_around_thd6    : 4;
+        RK_U32 reserved2          : 4;
+        RK_U32 cnt_around_thd7    : 4;
+        RK_U32 reserved3          : 4;
+    } smear_cnt_thd2;
 
     /* 0x0000203c reg2063 */
     struct {
-        RK_U32 rdo_smear_cnt_ref_thd0    : 4;
-        RK_U32 reserved                  : 4;
-        RK_U32 rdo_smear_cnt_ref_thd1    : 4;
-        RK_U32 reserved1                 : 20;
-    } rdo_smear_cnt_thd3;
+        RK_U32 cnt_ref_thd0    : 4;
+        RK_U32 reserved        : 4;
+        RK_U32 cnt_ref_thd1    : 4;
+        RK_U32 reserved1       : 20;
+    } smear_cnt_thd3;
 
     /* 0x00002040 reg2064 */
     struct {
-        RK_U32 rdo_smear_resi_small_cur_th0    : 6;
-        RK_U32 reserved                        : 2;
-        RK_U32 rdo_smear_resi_big_cur_th0      : 6;
-        RK_U32 reserved1                       : 2;
-        RK_U32 rdo_smear_resi_small_cur_th1    : 6;
-        RK_U32 reserved2                       : 2;
-        RK_U32 rdo_smear_resi_big_cur_th1      : 6;
-        RK_U32 reserved3                       : 2;
-    } rdo_smear_resi_thd0;
+        RK_U32 resi_small_cur_th0    : 6;
+        RK_U32 reserved              : 2;
+        RK_U32 resi_big_cur_th0      : 6;
+        RK_U32 reserved1             : 2;
+        RK_U32 resi_small_cur_th1    : 6;
+        RK_U32 reserved2             : 2;
+        RK_U32 resi_big_cur_th1      : 6;
+        RK_U32 reserved3             : 2;
+    } smear_resi_thd0;
 
     /* 0x00002044 reg2065 */
     struct {
-        RK_U32 rdo_smear_resi_small_around_th0    : 6;
-        RK_U32 reserved                           : 2;
-        RK_U32 rdo_smear_resi_big_around_th0      : 6;
-        RK_U32 reserved1                          : 2;
-        RK_U32 rdo_smear_resi_small_around_th1    : 6;
-        RK_U32 reserved2                          : 2;
-        RK_U32 rdo_smear_resi_big_around_th1      : 6;
-        RK_U32 reserved3                          : 2;
-    } rdo_smear_resi_thd1;
+        RK_U32 resi_small_around_th0    : 6;
+        RK_U32 reserved                 : 2;
+        RK_U32 resi_big_around_th0      : 6;
+        RK_U32 reserved1                : 2;
+        RK_U32 resi_small_around_th1    : 6;
+        RK_U32 reserved2                : 2;
+        RK_U32 resi_big_around_th1      : 6;
+        RK_U32 reserved3                : 2;
+    } smear_resi_thd1;
 
     /* 0x00002048 reg2066 */
     struct {
-        RK_U32 rdo_smear_resi_small_around_th2    : 6;
-        RK_U32 reserved                           : 2;
-        RK_U32 rdo_smear_resi_big_around_th2      : 6;
-        RK_U32 reserved1                          : 2;
-        RK_U32 rdo_smear_resi_small_around_th3    : 6;
-        RK_U32 reserved2                          : 2;
-        RK_U32 rdo_smear_resi_big_around_th3      : 6;
-        RK_U32 reserved3                          : 2;
-    } rdo_smear_resi_thd2;
+        RK_U32 resi_small_around_th2    : 6;
+        RK_U32 reserved                 : 2;
+        RK_U32 resi_big_around_th2      : 6;
+        RK_U32 reserved1                : 2;
+        RK_U32 resi_small_around_th3    : 6;
+        RK_U32 reserved2                : 2;
+        RK_U32 resi_big_around_th3      : 6;
+        RK_U32 reserved3                : 2;
+    } smear_resi_thd2;
 
     /* 0x0000204c reg2067 */
     struct {
-        RK_U32 rdo_smear_resi_small_ref_th0    : 6;
-        RK_U32 reserved                        : 2;
-        RK_U32 rdo_smear_resi_big_ref_th0      : 6;
-        RK_U32 reserved1                       : 18;
-    } rdo_smear_resi_thd3;
+        RK_U32 resi_small_ref_th0    : 6;
+        RK_U32 reserved              : 2;
+        RK_U32 resi_big_ref_th0      : 6;
+        RK_U32 reserved1             : 18;
+    } smear_resi_thd3;
 
     /* 0x00002050 reg2068 */
     struct {
-        RK_U32 rdo_smear_resi_th0    : 8;
-        RK_U32 reserved              : 8;
-        RK_U32 rdo_smear_resi_th1    : 8;
-        RK_U32 reserved1             : 8;
-    } rdo_smear_resi_thd4;
+        RK_U32 resi_th0    : 8;
+        RK_U32 reserved    : 8;
+        RK_U32 resi_th1    : 8;
+        RK_U32 reserved1   : 8;
+    } smear_resi_thd4;
 
     /* 0x00002054 reg2069 */
     struct {
-        RK_U32 rdo_smear_madp_cnt_th0    : 4;
-        RK_U32 rdo_smear_madp_cnt_th1    : 4;
-        RK_U32 rdo_smear_madp_cnt_th2    : 4;
-        RK_U32 rdo_smear_madp_cnt_th3    : 4;
-        RK_U32 reserved                  : 16;
-    } rdo_smear_st_thd;
+        RK_U32 madp_cnt_th0    : 4;
+        RK_U32 madp_cnt_th1    : 4;
+        RK_U32 madp_cnt_th2    : 4;
+        RK_U32 madp_cnt_th3    : 4;
+        RK_U32 reserved        : 16;
+    } smear_st_thd;
 
     /* 0x2058 - 0x206c */
     RK_U32 reserved2070_2075[6];
