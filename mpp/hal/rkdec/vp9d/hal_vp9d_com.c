@@ -1449,7 +1449,6 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
 {
     RK_S32 i, j, k, m, n;
     RK_S32 fifo_len = PROB_SIZE >> 3;
-    RK_U64 *probe_packet = NULL;
     BitputCtx_t bp;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)dxva;
     RK_S32 intraFlag = (!pic_param->frame_type || pic_param->intra_only);
@@ -1468,9 +1467,7 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
         memcpy(partition_delta, prob_delta->partition, sizeof(partition_delta));
     }
 
-    probe_packet = mpp_calloc(RK_U64, fifo_len);
-    memset(probe_packet, 0, fifo_len);
-    mpp_set_bitput_ctx(&bp, probe_packet, fifo_len);
+    mpp_set_bitput_ctx(&bp, buf, fifo_len);
 
     if (intraFlag) { //intra probs
         //sb info  5 x 128 bit
@@ -1902,8 +1899,6 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
     }
     mpp_put_align(&bp, 128, 0);
 
-    memcpy(buf, probe_packet, fifo_len << 3);
-
 #if VP9_DUMP
     static RK_U32 file_cnt = 0;
     char file_name[128];
@@ -1917,7 +1912,6 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva)
     fflush(vp9_fp);
     fclose(vp9_fp);
 #endif
-    MPP_FREE(probe_packet);
 
     return 0;
 }
@@ -1926,13 +1920,10 @@ MPP_RET hal_vp9d_prob_kf(void *buf)
 {
     RK_S32 i, j, k, m;
     RK_S32 fifo_len = PROB_KF_SIZE >> 3;
-    RK_U64 *probe_packet = NULL;
     BitputCtx_t bp;
 
     memset(buf, 0, PROB_KF_SIZE);
-    probe_packet = mpp_calloc(RK_U64, fifo_len);
-    memset(probe_packet, 0, fifo_len);
-    mpp_set_bitput_ctx(&bp, probe_packet, fifo_len);
+    mpp_set_bitput_ctx(&bp, buf, fifo_len);
 
     for (i = 0; i < 16; i++)//kf_partition_prob
         for (j = 0; j < 3; j++)
@@ -1967,8 +1958,6 @@ MPP_RET hal_vp9d_prob_kf(void *buf)
     }
 
     mpp_put_align(&bp, 128, 0);
-    memcpy(buf, probe_packet, PROB_KF_SIZE);
-    MPP_FREE(probe_packet);
 
     return MPP_OK;
 }
