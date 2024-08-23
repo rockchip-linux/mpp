@@ -86,11 +86,11 @@ typedef struct RcModelV2SmtCtx_t {
     RK_S32          on_pskip;
 } RcModelV2SmtCtx;
 
-//rc_container_bitrate_thd2
-// static RK_S32 rc_ctnr_qp_thd1[6] = {51, 42, 42, 51, 38, 38};
-// static RK_S32 rc_ctnr_qp_thd2[6] = {51, 44, 44, 51, 40, 40};
-// static RK_S32 rc_ctnr_br_thd1[6] = {100, 110, 110, 100, 110, 110};
-// static RK_S32 rc_ctnr_br_thd2[6] = {100, 120, 120, 100, 125, 125};
+// rc_container_bitrate_thd2
+static RK_S32 rc_ctnr_qp_thd1[6] = { 51, 42, 42, 51, 38, 38 };
+static RK_S32 rc_ctnr_qp_thd2[6] = { 51, 44, 44, 51, 40, 40 };
+static RK_S32 rc_ctnr_br_thd1[6] = { 100, 110, 110, 100, 110, 110 };
+static RK_S32 rc_ctnr_br_thd2[6] = { 100, 120, 120, 100, 125, 125 };
 
 MPP_RET bits_model_smt_deinit(RcModelV2SmtCtx *ctx)
 {
@@ -581,11 +581,11 @@ static MPP_RET smt_start_prepare(void *ctx, EncRcTask *task)
                 RK_S32 bits_prev_i = p->pre_real_bit_i;
 
                 bits_lower = p->bits_per_lower_p
-                             = (b_min * p->igop / fps_out - bits_prev_i +
+                             = ((RK_S64)b_min * p->igop / fps_out - bits_prev_i +
                                 p->pre_gop_left_bit) / (p->igop - 1);
 
                 bits_upper = p->bits_per_upper_p
-                             = (b_max * p->igop / fps_out - bits_prev_i +
+                             = ((RK_S64)b_max * p->igop / fps_out - bits_prev_i +
                                 p->pre_gop_left_bit) / (p->igop - 1);
 
             } else {
@@ -747,7 +747,7 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask * task)
         } else
             qp_out_f0 = p->usr_cfg.init_quality;
 
-        p->qp_out = qp_out_f0;
+        p->qp_out = p->usr_cfg.scene_mode ? qp_out_f0 + 2 : qp_out_f0 + 6; //TODO: ok ??
         p->count_real_bit = 0;
         p->count_pred_bit = 0;
         p->count_frame = 0;
@@ -863,22 +863,23 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask * task)
                 }
             }
             qp_out = mpp_clip(qp_out, p->qp_min, p->qp_max);
-            //TODO: Add rc_container(20240516)
-            // if (p->usr_cfg.rc_container) {
-            //     RK_S32 cnt = p->usr_cfg.scene_mode * 3 + p->usr_cfg.rc_container;
-            //     if (p->count_real_bit < p->count_pred_bit * rc_ctnr_br_thd1[cnt] / 100) {
-            //         if (qp_out > rc_ctnr_qp_thd1[cnt]) {
-            //             p->change_bit_flag = 1;
-            //         }
 
-            //         qp_out = mpp_clip(qp_out, 10, rc_ctnr_qp_thd1[cnt]);
-            //     } else if (p->count_real_bit < p->count_pred_bit * rc_ctnr_br_thd2[cnt] / 100) {
-            //         if (qp_out > rc_ctnr_qp_thd2[cnt]) {
-            //             p->change_bit_flag = 1;
-            //         }
-            //         qp_out = mpp_clip(qp_out, 10, rc_ctnr_qp_thd2[cnt]);
-            //     }
-            // }
+            //Add rc_container
+            if (p->usr_cfg.rc_container) {
+                RK_S32 cnt = p->usr_cfg.scene_mode * 3 + p->usr_cfg.rc_container;
+                if (p->count_real_bit < p->count_pred_bit * rc_ctnr_br_thd1[cnt] / 100) {
+                    if (qp_out > rc_ctnr_qp_thd1[cnt]) {
+                        p->change_bit_flag = 1;
+                    }
+
+                    qp_out = mpp_clip(qp_out, 10, rc_ctnr_qp_thd1[cnt]);
+                } else if (p->count_real_bit < p->count_pred_bit * rc_ctnr_br_thd2[cnt] / 100) {
+                    if (qp_out > rc_ctnr_qp_thd2[cnt]) {
+                        p->change_bit_flag = 1;
+                    }
+                    qp_out = mpp_clip(qp_out, 10, rc_ctnr_qp_thd2[cnt]);
+                }
+            }
 
             qp_add = qp_out > 36 ? 1 : (qp_out > 33 ? 2 : (qp_out > 30 ? 3 : 4));
             qp_minus = qp_out > 40 ? 4 : (qp_out > 36 ? 3 : (qp_out > 33 ? 2 : 1));
