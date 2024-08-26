@@ -705,6 +705,8 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         }
 
         mpp_buf_slot_setup(packet_slots, hal_task_count);
+        mpp_slots_set_prop(packet_slots, SLOTS_CODING_TYPE, &coding);
+        mpp_slots_set_prop(frame_slots, SLOTS_CODING_TYPE, &coding);
 
         p->hw_info = hal_cfg.hw_info;
         p->dev = hal_cfg.dev;

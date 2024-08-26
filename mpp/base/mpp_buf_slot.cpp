@@ -205,6 +205,8 @@ struct MppBufSlotsImpl_t {
     RK_U32              decode_count;
     RK_U32              display_count;
 
+    MppCodingType       coding_type;
+
     // if slot changed, all will be hold until all slot is unused
     RK_U32              info_changed;
     RK_S32              info_change_slot_idx;
@@ -1284,6 +1286,9 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     } break;
     case SLOTS_HAL_FBC_ADJ : {
         impl->hal_fbc_adj_cfg = *((SlotHalFbcAdjCfg *)val);
+    } break;
+    case SLOTS_CODING_TYPE : {
+        impl->coding_type = *((MppCodingType *)val);
     } break;
     default : {
     } break;
