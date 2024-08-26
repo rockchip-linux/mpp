@@ -27,6 +27,7 @@
 #include "mpp_frame_impl.h"
 #include "mpp_buf_slot.h"
 #include "mpp_compat_impl.h"
+#include "rk_mpp_cfg.h"
 
 #define BUF_SLOT_DBG_FUNCTION           (0x00000001)
 #define BUF_SLOT_DBG_SETUP              (0x00000002)
@@ -35,6 +36,7 @@
 #define BUF_SLOT_DBG_BUFFER             (0x00000100)
 #define BUF_SLOT_DBG_FRAME              (0x00000200)
 #define BUF_SLOT_DBG_BUF_UESD           (0x00000400)
+#define BUF_SLOT_DBG_INFO_SET           (0x00000800)
 #define BUF_SLOT_DBG_OPS_HISTORY        (0x10000000)
 #define BUF_SLOT_DBG_ALL                (0x10000011)
 
@@ -42,6 +44,7 @@
 
 static RK_U32 buf_slot_debug = 0;
 static RK_U32 buf_slot_idx = 0;
+static RK_U32 use_legacy_align = 0;
 
 #define slot_assert(impl, cond) do {                                    \
     if (!(cond)) {                                                      \
@@ -248,6 +251,13 @@ struct MppBufSlotsImpl_t {
     MppBufSlotEntry     *slots;
 };
 
+typedef struct MppBufSlotInfoSet_t {
+    RK_U32 h_stride_by_pixel;
+    RK_U32 h_stride_by_byte;
+    RK_U32 v_stride;
+    RK_U32 size_total;
+} MppBufSlotInfoSet;
+
 static RK_U32 default_align_16(RK_U32 val)
 {
     return MPP_ALIGN(val, 16);
@@ -276,16 +286,17 @@ static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
     return size;
 }
 
-static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 force_default_align)
+static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
+                                    MppBufSlotInfoSet *info_set,
+                                    RK_U32 force_def_align)
 {
-    RK_U32 width  = mpp_frame_get_width(frame);
-    RK_U32 height = mpp_frame_get_height(frame);
-    MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+    const RK_U32 width  = mpp_frame_get_width(frame);
+    const RK_U32 height = mpp_frame_get_height(frame);
+    const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
     RK_U32 depth = ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP_10BIT ||
                     (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP_10BIT) ? 10 : 8;
     RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
     RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
-
     RK_U32 hal_hor_stride = (codec_hor_stride) ?
                             (impl->hal_hor_align(codec_hor_stride)) :
                             (impl->hal_hor_align(width * depth >> 3));
@@ -293,9 +304,10 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
                             (impl->hal_ver_align(codec_ver_stride)) :
                             (impl->hal_ver_align(height));
     RK_U32 hor_stride_pixel;
+    RK_S32 size;
 
-    hal_hor_stride = (force_default_align && codec_hor_stride) ? codec_hor_stride : hal_hor_stride;
-    hal_ver_stride = (force_default_align && codec_ver_stride) ? codec_ver_stride : hal_ver_stride;
+    hal_hor_stride = (force_def_align && codec_hor_stride) ? codec_hor_stride : hal_hor_stride;
+    hal_ver_stride = (force_def_align && codec_ver_stride) ? codec_ver_stride : hal_ver_stride;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         /*fbc stride default 64 align*/
@@ -324,7 +336,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     } break;
     }
 
-    RK_S32 size = hal_hor_stride * hal_ver_stride;
+    size = hal_hor_stride * hal_ver_stride;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         hor_stride_pixel = MPP_ALIGN(hor_stride_pixel, 64);
@@ -353,18 +365,81 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
         size = impl->hal_len_align ? impl->hal_len_align(hal_hor_stride * hal_ver_stride) : size;
     }
 
+    info_set->h_stride_by_byte = hal_hor_stride;
+    info_set->v_stride = hal_hor_stride;
+    info_set->h_stride_by_pixel = hor_stride_pixel;
+    info_set->size_total = impl->buf_size;
+
+    return;
+}
+
+static void prepare_info_set_by_sys_cfg(MppBufSlotsImpl *impl, MppFrame frame,
+                                        MppBufSlotInfoSet *info_set)
+{
+    const RK_U32 width  = mpp_frame_get_width(frame);
+    const RK_U32 height = mpp_frame_get_height(frame);
+    const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+    MPP_RET ret = MPP_OK;
+    MppSysCfg cfg;
+
+    ret = mpp_sys_cfg_get(&cfg);
+    if (ret) {
+        mpp_err("mpp_sys_cfg_get failed\n");
+        return;
+    }
+
+    /* set correct parameter */
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:enable", 1);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:type", impl->coding_type);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_codec", fmt & MPP_FRAME_FMT_MASK);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", fmt & MPP_FRAME_FBC_MASK);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_hdr", fmt & MPP_FRAME_HDR_MASK);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", width);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", height);
+
+    /* get result */
+    mpp_sys_cfg_ioctl(cfg);
+
+    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:h_stride_by_byte", &info_set->h_stride_by_byte);
+    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:h_stride_by_pixel", &info_set->h_stride_by_pixel);
+    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:v_stride", &info_set->v_stride);
+    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:size_total", &info_set->size_total);
+
+    ret = mpp_sys_cfg_put(cfg);
+    if (ret)
+        mpp_err("mpp_sys_cfg_put failed\n");
+
+    return;
+}
+
+static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 force_def_align)
+{
+    const RK_U32 width  = mpp_frame_get_width(frame);
+    const RK_U32 height = mpp_frame_get_height(frame);
+    const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+    MppBufSlotInfoSet legacy_info_set;
+    MppBufSlotInfoSet sys_cfg_info_set;
+    MppBufSlotInfoSet *info_set_ptr = NULL;
+    MppFrameImpl *info_set_impl = NULL;
+    MppFrameImpl *frame_impl = NULL;
+
+    prepare_info_set_legacy(impl, frame, &legacy_info_set, force_def_align);
+    prepare_info_set_by_sys_cfg(impl, frame, &sys_cfg_info_set);
+
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
     mpp_frame_set_fmt(impl->info_set, fmt);
-    mpp_frame_set_hor_stride(impl->info_set, hal_hor_stride);
-    mpp_frame_set_ver_stride(impl->info_set, hal_ver_stride);
-    mpp_frame_set_hor_stride_pixel(impl->info_set, hor_stride_pixel);
-    mpp_frame_set_buf_size(impl->info_set, size);
-    mpp_frame_set_buf_size(frame, size);
-    mpp_frame_set_hor_stride(frame, hal_hor_stride);
-    mpp_frame_set_ver_stride(frame, hal_ver_stride);
-    mpp_frame_set_hor_stride_pixel(frame, hor_stride_pixel);
-    impl->buf_size = size;
+    info_set_ptr = use_legacy_align ? &legacy_info_set : &sys_cfg_info_set;
+    mpp_frame_set_hor_stride(impl->info_set, info_set_ptr->h_stride_by_byte);
+    mpp_frame_set_ver_stride(impl->info_set, info_set_ptr->v_stride);
+    mpp_frame_set_hor_stride_pixel(impl->info_set, info_set_ptr->h_stride_by_pixel);
+    mpp_frame_set_buf_size(impl->info_set, info_set_ptr->size_total);
+    mpp_frame_set_buf_size(frame, info_set_ptr->size_total);
+    mpp_frame_set_hor_stride(frame, info_set_ptr->h_stride_by_byte);
+    mpp_frame_set_ver_stride(frame, info_set_ptr->v_stride);
+    mpp_frame_set_hor_stride_pixel(frame, info_set_ptr->h_stride_by_pixel);
+    impl->buf_size = info_set_ptr->size_total;
+
     if (mpp_frame_get_thumbnail_en(frame) == MPP_FRAME_THUMBNAIL_MIXED) {
         /*
          * The decode hw only support 1/2 scaling in width and height,
@@ -399,13 +474,20 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
         mpp_frame_set_buf_size(impl->info_set, impl->buf_size);
         mpp_frame_set_buf_size(frame, impl->buf_size);
     }
-    MppFrameImpl *info_set_impl = (MppFrameImpl *)impl->info_set;
-    MppFrameImpl *frame_impl    = (MppFrameImpl *)frame;
+    info_set_impl = (MppFrameImpl *)impl->info_set;
+    frame_impl    = (MppFrameImpl *)frame;
     info_set_impl->color_range      = frame_impl->color_range;
     info_set_impl->color_primaries  = frame_impl->color_primaries;
     info_set_impl->color_trc        = frame_impl->color_trc;
     info_set_impl->colorspace       = frame_impl->colorspace;
     info_set_impl->chroma_location  = frame_impl->chroma_location;
+
+    if (buf_slot_debug & BUF_SLOT_DBG_INFO_SET) {
+        mpp_assert(sys_cfg_info_set.h_stride_by_pixel == sys_cfg_info_set.h_stride_by_pixel);
+        mpp_assert(sys_cfg_info_set.h_stride_by_byte == sys_cfg_info_set.h_stride_by_byte);
+        mpp_assert(sys_cfg_info_set.v_stride == sys_cfg_info_set.v_stride);
+        mpp_assert(sys_cfg_info_set.size_total == sys_cfg_info_set.size_total);
+    }
 }
 
 #define dump_slots(...) _dump_slots(__FUNCTION__, ## __VA_ARGS__)
@@ -719,7 +801,9 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         return MPP_NOK;
     }
 
-    mpp_env_get_u32("buf_slot_debug", &buf_slot_debug, BUF_SLOT_DBG_OPS_HISTORY);
+    mpp_env_get_u32("buf_slot_debug", &buf_slot_debug,
+                    BUF_SLOT_DBG_OPS_HISTORY | BUF_SLOT_DBG_INFO_SET);
+    mpp_env_get_u32("use_legacy_align", &use_legacy_align, 0);
 
     do {
         impl->lock = new Mutex();
