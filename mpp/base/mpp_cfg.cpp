@@ -72,7 +72,7 @@ static MPP_RET mpp_cfg_get(MppCfgInfoNode *info, void *cfg, void *val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_set_s32(MppCfgInfoNode *info, void *cfg, RK_S32 val)
+MPP_RET mpp_cfg_set_s32(MppCfgInfoNode *info, void *cfg, RK_S32 val)
 {
     RK_S32 *dst = CFG_TO_S32_PTR(info, cfg);
 
@@ -87,12 +87,12 @@ static MPP_RET mpp_cfg_set_s32(MppCfgInfoNode *info, void *cfg, RK_S32 val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_get_s32(MppCfgInfoNode *info, void *cfg, RK_S32 *val)
+MPP_RET mpp_cfg_get_s32(MppCfgInfoNode *info, void *cfg, RK_S32 *val)
 {
     return mpp_cfg_get(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_set_u32(MppCfgInfoNode *info, void *cfg, RK_U32 val)
+MPP_RET mpp_cfg_set_u32(MppCfgInfoNode *info, void *cfg, RK_U32 val)
 {
     RK_U32 *dst = CFG_TO_U32_PTR(info, cfg);
 
@@ -107,12 +107,12 @@ static MPP_RET mpp_cfg_set_u32(MppCfgInfoNode *info, void *cfg, RK_U32 val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_get_u32(MppCfgInfoNode *info, void *cfg, RK_U32 *val)
+MPP_RET mpp_cfg_get_u32(MppCfgInfoNode *info, void *cfg, RK_U32 *val)
 {
     return mpp_cfg_get(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_set_s64(MppCfgInfoNode *info, void *cfg, RK_S64 val)
+MPP_RET mpp_cfg_set_s64(MppCfgInfoNode *info, void *cfg, RK_S64 val)
 {
     RK_S64 *dst = CFG_TO_S64_PTR(info, cfg);
 
@@ -127,12 +127,12 @@ static MPP_RET mpp_cfg_set_s64(MppCfgInfoNode *info, void *cfg, RK_S64 val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_get_s64(MppCfgInfoNode *info, void *cfg, RK_S64 *val)
+MPP_RET mpp_cfg_get_s64(MppCfgInfoNode *info, void *cfg, RK_S64 *val)
 {
     return mpp_cfg_get(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_set_u64(MppCfgInfoNode *info, void *cfg, RK_U64 val)
+MPP_RET mpp_cfg_set_u64(MppCfgInfoNode *info, void *cfg, RK_U64 val)
 {
     RK_U64 *dst = CFG_TO_U64_PTR(info, cfg);
 
@@ -147,22 +147,22 @@ static MPP_RET mpp_cfg_set_u64(MppCfgInfoNode *info, void *cfg, RK_U64 val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_get_u64(MppCfgInfoNode *info, void *cfg, RK_U64 *val)
+MPP_RET mpp_cfg_get_u64(MppCfgInfoNode *info, void *cfg, RK_U64 *val)
 {
     return mpp_cfg_get(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_set_st(MppCfgInfoNode *info, void *cfg, void *val)
+MPP_RET mpp_cfg_set_st(MppCfgInfoNode *info, void *cfg, void *val)
 {
     return mpp_cfg_set(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_get_st(MppCfgInfoNode *info, void *cfg, void *val)
+MPP_RET mpp_cfg_get_st(MppCfgInfoNode *info, void *cfg, void *val)
 {
     return mpp_cfg_get(info, cfg, val);
 }
 
-static MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val)
+MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val)
 {
     void **dst = CFG_TO_PTR_PTR(info, cfg);
 
@@ -173,39 +173,9 @@ static MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val)
     return MPP_OK;
 }
 
-static MPP_RET mpp_cfg_get_ptr(MppCfgInfoNode *info, void *cfg, void **val)
+MPP_RET mpp_cfg_get_ptr(MppCfgInfoNode *info, void *cfg, void **val)
 {
     return mpp_cfg_get(info, cfg, val);
-}
-
-MppCfgOps mpp_cfg_ops = {
-    mpp_cfg_set_s32,
-    mpp_cfg_get_s32,
-    mpp_cfg_set_u32,
-    mpp_cfg_get_u32,
-    mpp_cfg_set_s64,
-    mpp_cfg_get_s64,
-    mpp_cfg_set_u64,
-    mpp_cfg_get_u64,
-    mpp_cfg_set_st,
-    mpp_cfg_get_st,
-    mpp_cfg_set_ptr,
-    mpp_cfg_get_ptr,
-};
-
-#define MPP_CFG_SET_OPS(type)   ((long)(((void **)&mpp_cfg_ops)[type * 2 + 0]))
-#define MPP_CFG_GET_OPS(type)   ((long)(((void **)&mpp_cfg_ops)[type * 2 + 1]))
-
-MPP_RET mpp_cfg_node_fixup_func(MppCfgInfoNode *node)
-{
-    RK_S32 data_type = node->data_type;
-
-    mpp_env_get_u32("mpp_cfg_debug", &mpp_cfg_debug, 0);
-
-    mpp_assert(data_type < CFG_FUNC_TYPE_BUTT);
-    node->set_func = MPP_CFG_SET_OPS(data_type);
-    node->get_func = MPP_CFG_GET_OPS(data_type);
-    return MPP_OK;
 }
 
 MPP_RET check_cfg_info(MppCfgInfoNode *node, const char *name, CfgType type,

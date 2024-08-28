@@ -48,37 +48,34 @@ typedef struct MppCfgInfo_t {
     /* data access info */
     RK_S32          data_offset;
     RK_S32          data_size;
-    /* function pointer for get / put accessor (user filled) */
-    RK_U64          set_func;
-    RK_U64          get_func;
     RK_U8           *name;
 } MppCfgInfoNode;
 
-typedef MPP_RET (*CfgSetS32)(MppCfgInfoNode *info, void *cfg, RK_S32 val);
-typedef MPP_RET (*CfgGetS32)(MppCfgInfoNode *info, void *cfg, RK_S32 *val);
-typedef MPP_RET (*CfgSetU32)(MppCfgInfoNode *info, void *cfg, RK_U32 val);
-typedef MPP_RET (*CfgGetU32)(MppCfgInfoNode *info, void *cfg, RK_U32 *val);
-typedef MPP_RET (*CfgSetS64)(MppCfgInfoNode *info, void *cfg, RK_S64 val);
-typedef MPP_RET (*CfgGetS64)(MppCfgInfoNode *info, void *cfg, RK_S64 *val);
-typedef MPP_RET (*CfgSetU64)(MppCfgInfoNode *info, void *cfg, RK_U64 val);
-typedef MPP_RET (*CfgGetU64)(MppCfgInfoNode *info, void *cfg, RK_U64 *val);
-typedef MPP_RET (*CfgSetSt) (MppCfgInfoNode *info, void *cfg, void *val);
-typedef MPP_RET (*CfgGetSt) (MppCfgInfoNode *info, void *cfg, void *val);
-typedef MPP_RET (*CfgSetPtr)(MppCfgInfoNode *info, void *cfg, void *val);
-typedef MPP_RET (*CfgGetPtr)(MppCfgInfoNode *info, void *cfg, void **val);
+MPP_RET mpp_cfg_set_s32(MppCfgInfoNode *info, void *cfg, RK_S32 val);
+MPP_RET mpp_cfg_get_s32(MppCfgInfoNode *info, void *cfg, RK_S32 *val);
+MPP_RET mpp_cfg_set_u32(MppCfgInfoNode *info, void *cfg, RK_U32 val);
+MPP_RET mpp_cfg_get_u32(MppCfgInfoNode *info, void *cfg, RK_U32 *val);
+MPP_RET mpp_cfg_set_s64(MppCfgInfoNode *info, void *cfg, RK_S64 val);
+MPP_RET mpp_cfg_get_s64(MppCfgInfoNode *info, void *cfg, RK_S64 *val);
+MPP_RET mpp_cfg_set_u64(MppCfgInfoNode *info, void *cfg, RK_U64 val);
+MPP_RET mpp_cfg_get_u64(MppCfgInfoNode *info, void *cfg, RK_U64 *val);
+MPP_RET mpp_cfg_set_st(MppCfgInfoNode *info, void *cfg, void *val);
+MPP_RET mpp_cfg_get_st(MppCfgInfoNode *info, void *cfg, void *val);
+MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val);
+MPP_RET mpp_cfg_get_ptr(MppCfgInfoNode *info, void *cfg, void **val);
 
-#define MPP_CFG_SET_S32(info, cfg, val) (mpp_cfg_ops.fp_SetS32)(info, cfg, val)
-#define MPP_CFG_GET_S32(info, cfg, val) (mpp_cfg_ops.fp_GetS32)(info, cfg, (RK_S32 *)(val))
-#define MPP_CFG_SET_U32(info, cfg, val) (mpp_cfg_ops.fp_SetU32)(info, cfg, val)
-#define MPP_CFG_GET_U32(info, cfg, val) (mpp_cfg_ops.fp_GetU32)(info, cfg, (RK_U32 *)(val))
-#define MPP_CFG_SET_S64(info, cfg, val) (mpp_cfg_ops.fp_SetS64)(info, cfg, val)
-#define MPP_CFG_GET_S64(info, cfg, val) (mpp_cfg_ops.fp_GetS64)(info, cfg, (RK_S64 *)(val))
-#define MPP_CFG_SET_U64(info, cfg, val) (mpp_cfg_ops.fp_SetU64)(info, cfg, val)
-#define MPP_CFG_GET_U64(info, cfg, val) (mpp_cfg_ops.fp_GetU64)(info, cfg, (RK_U64 *)(val))
-#define MPP_CFG_SET_St(info, cfg, val)  (mpp_cfg_ops.fp_SetSt )(info, cfg, val)
-#define MPP_CFG_GET_St(info, cfg, val)  (mpp_cfg_ops.fp_GetSt )(info, cfg, (void *)(val))
-#define MPP_CFG_SET_Ptr(info, cfg, val) (mpp_cfg_ops.fp_SetPtr)(info, cfg, val)
-#define MPP_CFG_GET_Ptr(info, cfg, val) (mpp_cfg_ops.fp_GetPtr)(info, cfg, (void **)(val))
+#define MPP_CFG_SET_S32(info, cfg, val) (mpp_cfg_set_s32)(info, cfg, val)
+#define MPP_CFG_GET_S32(info, cfg, val) (mpp_cfg_get_s32)(info, cfg, (RK_S32 *)(val))
+#define MPP_CFG_SET_U32(info, cfg, val) (mpp_cfg_set_u32)(info, cfg, val)
+#define MPP_CFG_GET_U32(info, cfg, val) (mpp_cfg_get_u32)(info, cfg, (RK_U32 *)(val))
+#define MPP_CFG_SET_S64(info, cfg, val) (mpp_cfg_set_s64)(info, cfg, val)
+#define MPP_CFG_GET_S64(info, cfg, val) (mpp_cfg_get_s64)(info, cfg, (RK_S64 *)(val))
+#define MPP_CFG_SET_U64(info, cfg, val) (mpp_cfg_set_u64)(info, cfg, val)
+#define MPP_CFG_GET_U64(info, cfg, val) (mpp_cfg_get_u64)(info, cfg, (RK_U64 *)(val))
+#define MPP_CFG_SET_St(info, cfg, val)  (mpp_cfg_set_st )(info, cfg, val)
+#define MPP_CFG_GET_St(info, cfg, val)  (mpp_cfg_get_st )(info, cfg, (void *)(val))
+#define MPP_CFG_SET_Ptr(info, cfg, val) (mpp_cfg_set_ptr)(info, cfg, val)
+#define MPP_CFG_GET_Ptr(info, cfg, val) (mpp_cfg_get_ptr)(info, cfg, (void **)(val))
 
 /* header size 128 byte */
 typedef struct MppCfgInfoHead_t {
@@ -88,29 +85,11 @@ typedef struct MppCfgInfoHead_t {
     RK_S32          node_count;
 } MppCfgInfoHead;
 
-typedef struct MppCfgOps_t {
-    CfgSetS32       fp_SetS32;
-    CfgGetS32       fp_GetS32;
-    CfgSetU32       fp_SetU32;
-    CfgGetU32       fp_GetU32;
-    CfgSetS64       fp_SetS64;
-    CfgGetS64       fp_GetS64;
-    CfgSetU64       fp_SetU64;
-    CfgGetU64       fp_GetU64;
-    CfgSetSt        fp_SetSt;
-    CfgGetSt        fp_GetSt;
-    CfgSetPtr       fp_SetPtr;
-    CfgGetPtr       fp_GetPtr;
-} MppCfgOps;
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 extern const char *cfg_type_names[];
-
-extern MppCfgOps mpp_cfg_ops;
-MPP_RET mpp_cfg_node_fixup_func(MppCfgInfoNode *node);
 
 #define CHECK_CFG_INFO(node, name, type) \
     check_cfg_info(node, name, type, __FUNCTION__)

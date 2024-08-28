@@ -133,8 +133,6 @@ static void mpp_dec_cfg_fill(MppTrie trie, MppCfgApi **cfgs)
         node_info->data_size    = api->data_size;
         node_info->name         = (RK_U8 *)(info + 1);
 
-        mpp_cfg_node_fixup_func(node_info);
-
         mpp_dec_cfg_dbg_info("cfg %s offset %d size %d update %d flag %x\n", name,
                              node_info->data_offset, node_info->data_size,
                              node_info->flag_offset, node_info->flag_value);
