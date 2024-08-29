@@ -573,26 +573,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     if (ref)
         mpp_enc_ref_cfg_deinit(&ref);
 
-    {
-        RcApiBrief rcApiBrief;
-        ret = mpi->control(ctx, MPP_ENC_GET_RC_API_CURRENT, &rcApiBrief);
-        if (ret) {
-            mpp_err("mpi control enc get rc api failed ret %d\n", ret);
-            goto RET;
-        }
-
-        if (MPP_ENC_RC_MODE_SMTRC == info->cmd->rc_mode)
-            rcApiBrief.name = "smart";
-        else
-            rcApiBrief.name = "default";
-
-        ret = mpi->control(ctx, MPP_ENC_SET_RC_API_CURRENT, &rcApiBrief);
-        if (ret) {
-            mpp_err("mpi control enc set rc api failed ret %d\n", ret);
-            goto RET;
-        }
-    }
-
     /* optional */
     {
         RK_U32 sei_mode;
