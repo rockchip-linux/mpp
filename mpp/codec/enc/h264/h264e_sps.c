@@ -242,8 +242,9 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
 
     vui->bitstream_restriction = 1;
     vui->motion_vectors_over_pic_boundaries = 1;
-    vui->log2_max_mv_length_horizontal = 16;
-    vui->log2_max_mv_length_vertical = 16;
+    /* the max and default value has been changed to 15 since the 2016 standard */
+    vui->log2_max_mv_length_horizontal = 15;
+    vui->log2_max_mv_length_vertical = 15;
     vui->max_dec_frame_buffering = info->dpb_size;
 
     return MPP_OK;
