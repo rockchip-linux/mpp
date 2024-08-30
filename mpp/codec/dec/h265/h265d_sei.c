@@ -336,10 +336,17 @@ static RK_S32 vivid_display_info(HEVCContext *s, BitReadCtx_t *gb, RK_U32 size)
     return 0;
 }
 
+static RK_S32 hdr10plus_dynamic_data(HEVCContext *s, BitReadCtx_t *gb, RK_U32 size)
+{
+    if (gb)
+        mpp_hevc_fill_dynamic_meta(s, gb->data_, size, HDR10PLUS);
+    return 0;
+}
+
 static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, int size)
 {
     RK_S32 country_code, provider_code;
-    RK_U16 terminal_provide_oriented_code;
+    RK_U16 provider_oriented_code;
 
     if (size < 3)
         return 0;
@@ -359,11 +366,27 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
     }
 
     READ_BITS(gb, 16, &provider_code);
-    READ_BITS(gb, 16, &terminal_provide_oriented_code);
+    READ_BITS(gb, 16, &provider_oriented_code);
     h265d_dbg(H265D_DBG_SEI, "country_code=%d provider_code=%d terminal_provider_code %d\n",
-              country_code, provider_code, terminal_provide_oriented_code);
-    if (provider_code == 4)
+              country_code, provider_code, provider_oriented_code);
+    switch (provider_code) {
+    case 0x4: {/* cuva provider_code is 0x4 */
         vivid_display_info(s, gb, mpp_get_bits_left(gb) >> 3);
+    } break;
+    case 0x3c: {/* smpte2094_40 provider_code is 0x3c*/
+        const RK_U16 smpte2094_40_provider_oriented_code = 0x0001;
+        const RK_U8 smpte2094_40_application_identifier = 0x04;
+        RK_U8 application_identifier;
+
+        READ_BITS(gb, 8, &application_identifier);
+        /* hdr10plus priverder_oriented_code is 0x0001, application_identifier is 0x04 */
+        if (provider_oriented_code == smpte2094_40_provider_oriented_code &&
+            application_identifier == smpte2094_40_application_identifier)
+            hdr10plus_dynamic_data(s, gb, mpp_get_bits_left(gb) >> 3);
+    } break;
+    default:
+        break;
+    }
 
     return 0;
 
