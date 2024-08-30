@@ -30,39 +30,29 @@ typedef enum CfgType_e {
     CFG_FUNC_TYPE_BUTT,
 } CfgType;
 
-typedef struct MppCfgApi_t {
-    const char          *name;
+typedef struct MppCfgInfo_t {
     CfgType             data_type;
+    /* update flag info 32bit */
+    RK_U32              flag_type;
     RK_U32              flag_offset;
     RK_U32              flag_value;
+    /* data access info */
     RK_U32              data_offset;
     RK_S32              data_size;
-} MppCfgApi;
+} MppCfgInfo;
 
-typedef struct MppCfgInfo_t {
-    /* CfgType */
-    RK_S32          data_type;
-    /* update flag info 32bit */
-    RK_S32          flag_offset;
-    RK_U32          flag_value;
-    /* data access info */
-    RK_S32          data_offset;
-    RK_S32          data_size;
-    RK_U8           *name;
-} MppCfgInfoNode;
-
-MPP_RET mpp_cfg_set_s32(MppCfgInfoNode *info, void *cfg, RK_S32 val);
-MPP_RET mpp_cfg_get_s32(MppCfgInfoNode *info, void *cfg, RK_S32 *val);
-MPP_RET mpp_cfg_set_u32(MppCfgInfoNode *info, void *cfg, RK_U32 val);
-MPP_RET mpp_cfg_get_u32(MppCfgInfoNode *info, void *cfg, RK_U32 *val);
-MPP_RET mpp_cfg_set_s64(MppCfgInfoNode *info, void *cfg, RK_S64 val);
-MPP_RET mpp_cfg_get_s64(MppCfgInfoNode *info, void *cfg, RK_S64 *val);
-MPP_RET mpp_cfg_set_u64(MppCfgInfoNode *info, void *cfg, RK_U64 val);
-MPP_RET mpp_cfg_get_u64(MppCfgInfoNode *info, void *cfg, RK_U64 *val);
-MPP_RET mpp_cfg_set_st(MppCfgInfoNode *info, void *cfg, void *val);
-MPP_RET mpp_cfg_get_st(MppCfgInfoNode *info, void *cfg, void *val);
-MPP_RET mpp_cfg_set_ptr(MppCfgInfoNode *info, void *cfg, void *val);
-MPP_RET mpp_cfg_get_ptr(MppCfgInfoNode *info, void *cfg, void **val);
+MPP_RET mpp_cfg_set_s32(MppCfgInfo *info, void *cfg, RK_S32 val);
+MPP_RET mpp_cfg_get_s32(MppCfgInfo *info, void *cfg, RK_S32 *val);
+MPP_RET mpp_cfg_set_u32(MppCfgInfo *info, void *cfg, RK_U32 val);
+MPP_RET mpp_cfg_get_u32(MppCfgInfo *info, void *cfg, RK_U32 *val);
+MPP_RET mpp_cfg_set_s64(MppCfgInfo *info, void *cfg, RK_S64 val);
+MPP_RET mpp_cfg_get_s64(MppCfgInfo *info, void *cfg, RK_S64 *val);
+MPP_RET mpp_cfg_set_u64(MppCfgInfo *info, void *cfg, RK_U64 val);
+MPP_RET mpp_cfg_get_u64(MppCfgInfo *info, void *cfg, RK_U64 *val);
+MPP_RET mpp_cfg_set_st(MppCfgInfo *info, void *cfg, void *val);
+MPP_RET mpp_cfg_get_st(MppCfgInfo *info, void *cfg, void *val);
+MPP_RET mpp_cfg_set_ptr(MppCfgInfo *info, void *cfg, void *val);
+MPP_RET mpp_cfg_get_ptr(MppCfgInfo *info, void *cfg, void **val);
 
 #define MPP_CFG_SET_S32(info, cfg, val) (mpp_cfg_set_s32)(info, cfg, val)
 #define MPP_CFG_GET_S32(info, cfg, val) (mpp_cfg_get_s32)(info, cfg, (RK_S32 *)(val))
@@ -89,12 +79,12 @@ typedef struct MppCfgInfoHead_t {
 extern "C" {
 #endif
 
-extern const char *cfg_type_names[];
+const char *strof_cfg_type(CfgType type);
 
 #define CHECK_CFG_INFO(node, name, type) \
     check_cfg_info(node, name, type, __FUNCTION__)
 
-MPP_RET check_cfg_info(MppCfgInfoNode *node, const char *name, CfgType type,
+MPP_RET check_cfg_info(MppCfgInfo *node, const char *name, CfgType type,
                        const char *func);
 
 #ifdef  __cplusplus

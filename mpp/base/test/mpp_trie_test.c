@@ -73,12 +73,11 @@ int main()
     RK_S64 end = 0;
     RK_S64 start = 0;
     RK_S32 info_cnt = MPP_ARRAY_ELEMS(test_info);
-    RK_S32 node_cnt = 100;
     RK_S32 ret = MPP_OK;
 
     mpp_log("mpp_trie_test start\n");
 
-    mpp_trie_init(&trie, node_cnt, info_cnt);
+    mpp_trie_init(&trie, sizeof(TestAction));
 
     start = mpp_time();
     for (i = 0; i < info_cnt; i++)
@@ -86,9 +85,9 @@ int main()
     end = mpp_time();
     mpp_log("add act time %lld us\n", end - start);
 
-    ret = mpp_trie_shrink(trie, 0);
+    ret = mpp_trie_add_info(trie, NULL, NULL);
     if (ret) {
-        mpp_loge("mpp_trie_shrink failed\n");
+        mpp_loge("mpp_trie_add_info last failed\n");
         goto DONE;
     }
 

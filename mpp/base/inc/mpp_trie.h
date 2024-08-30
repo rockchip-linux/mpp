@@ -23,33 +23,30 @@
 typedef void* MppTrie;
 
 #define MPP_TRIE_KEY_LEN                (4)
-#define MPP_TRIE_KEY_MAX                (MPP_TRIE_KEY_LEN << 4)
+#define MPP_TRIE_KEY_MAX                (1 << (MPP_TRIE_KEY_LEN))
 
 /*
- * MppTire node buffer layout
+ * MppTrie node buffer layout
  * +---------------+
  * |  MppTrieImpl  |
  * +---------------+
- * |  MppTireNodes |
+ * |  MppTrieNodes |
  * +---------------+
  * |  MppTrieInfos |
  * +---------------+
  *
  * MppTrieInfo element layout
  * +---------------+
- * |  User context |
- * +---------------+
  * |  MppTrieInfo  |
+ * +---------------+
+ * |  User context |
  * +---------------+
  * |  name string  |
  * +---------------+
  */
 typedef struct MppTrieInfo_t {
-    /* original name string address, maybe invalid stack address */
     const char  *name;
-    /* original context address, maybe invalid stack address */
     void        *ctx;
-    /* always valid data */
     RK_S16      index;
     RK_S16      str_len;
 } MppTrieInfo;
@@ -58,11 +55,11 @@ typedef struct MppTrieInfo_t {
 extern "C" {
 #endif
 
-MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 node_count, RK_S32 info_count);
+MPP_RET mpp_trie_init(MppTrie *trie, RK_S32 info_size);
 MPP_RET mpp_trie_deinit(MppTrie trie);
 
+/* Add NULL info to mark the last trie entry */
 MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx);
-MPP_RET mpp_trie_shrink(MppTrie trie, RK_S32 info_size);
 
 RK_S32 mpp_trie_get_node_count(MppTrie trie);
 RK_S32 mpp_trie_get_info_count(MppTrie trie);
@@ -70,13 +67,11 @@ RK_S32 mpp_trie_get_buf_size(MppTrie trie);
 
 /* trie lookup function */
 MppTrieInfo *mpp_trie_get_info(MppTrie trie, const char *name);
-/* trie lookup slot function for context filling */
-void *mpp_trie_get_slot(MppTrie trie, const char *name);
-void *mpp_trie_get_slot_first(MppTrie trie);
-void *mpp_trie_get_slot_next(MppTrie trie, void *slot);
+MppTrieInfo *mpp_trie_get_info_first(MppTrie trie);
+MppTrieInfo *mpp_trie_get_info_next(MppTrie trie, MppTrieInfo *info);
 
 void mpp_trie_dump(MppTrie trie, const char *func);
-#define mpp_trie_dump_f(tire)   mpp_trie_dump(tire, __FUNCTION__)
+#define mpp_trie_dump_f(trie)   mpp_trie_dump(trie, __FUNCTION__)
 
 #ifdef __cplusplus
 }

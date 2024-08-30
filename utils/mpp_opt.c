@@ -62,7 +62,7 @@ MPP_RET mpp_opt_setup(MppOpt opt, void *ctx)
     if (NULL == impl)
         return MPP_NOK;
 
-    mpp_trie_init(&impl->trie, 128, 16);
+    mpp_trie_init(&impl->trie, sizeof(MppOptInfo));
     if (impl->trie) {
         impl->ctx = ctx;
         return MPP_OK;
@@ -79,7 +79,7 @@ MPP_RET mpp_opt_add(MppOpt opt, MppOptInfo *info)
         return MPP_NOK;
 
     if (NULL == info)
-        return mpp_trie_shrink(impl->trie, 0);
+        return mpp_trie_add_info(impl->trie, NULL, NULL);
 
     return mpp_trie_add_info(impl->trie, info->name, info);
 }
