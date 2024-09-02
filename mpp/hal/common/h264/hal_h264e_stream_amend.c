@@ -157,6 +157,7 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
     const MppPktSeg *seg = mpp_packet_get_segment_info(pkt);
     MppPacket pkt_tmp;
     RK_S32 offset = 0;
+    RK_U32 is_cabac = ctx->slice->entropy_coding_mode;
 
     mpp_packet_new(&pkt_tmp);
 
@@ -203,7 +204,7 @@ MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwC
         tail_0bit = 0;
         // copy hw stream to stream buffer first
         if (slice->is_multi_slice) {
-            if ((!seg) || !hw_cfg->hw_split_out) {
+            if ((!seg) || !hw_cfg->hw_split_out || !is_cabac) {
                 nal_len = get_next_nal(p, &len);
                 last_slice = (len == 0);
             } else {
