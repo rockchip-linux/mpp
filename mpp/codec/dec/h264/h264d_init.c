@@ -1557,12 +1557,6 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list1 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l1=%d\n",
                       p_err->cur_err_flag, pps_refs, over_flag, active_l1);
         }
-        //!< B_SLICE only has one refer
-        if ((currSlice->active_sps->vui_seq_parameters.num_reorder_frames > 1)
-            && (currSlice->p_Dpb->ref_frames_in_buffer < 2)) {
-            p_err->cur_err_flag |= 1;
-            H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] error, B frame only has one refer");
-        }
     }
 
 #endif
