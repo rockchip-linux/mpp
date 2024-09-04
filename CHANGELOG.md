@@ -1,3 +1,66 @@
+## 1.0.7 (2024-09-04)
+### Feature
+- [rc_smt]: Add rc container for smart mode
+- [vepu580]: Optimization to improve VMAF
+- [vepu580]: Optimize hal processing for smart encoding
+- [vepu580]: Add qpmap and rc container interface
+- [vepu510]: Add anti-smear regs setup for H.264
+- [vepu510]: Add H.264 tuning setup
+- [vepu510]: Sync code from enc_tune branch
+- [vepu510]: Sync code from enc_tune branch
+- [vepu510]: Sync code from enc_tune branch
+- [mpp_trie]: Add trie context filling feature
+- [mpp_trie]: Add trie tag and shrink feature
+- [h264d]: support hdr meta parse
+- [h265e]: Support force mark & use ltr
+- [vpu_api]: support yuv444sp decode ouput pixel format
+
+### Fix
+- [h265d]: fix infochange loss when two sps continuous
+- [hal_h264e]: Fix CAVLC encode smartP stream err
+- [mpi_enc_test]: Remove redundant code about smart encoding
+- [h264e_sps]: fix the default value of max mv length
+- [enc_roi]: Fix cu_map init in vepu_54x_roi
+- [hal_vp9]: Optimize prob memory usage
+- [hal_h265d]: Allow reference missing for GDR
+- [osal]: Fix mpp_mem single instance issue
+- [hal_vp9d_com]: Fixed memory leak issue
+- [hal_h265d]: Avoid risk of segment fault
+- [hal_h265d]: fix error slot index marking
+- [h265d]: Adjust condition of scan type judgement
+- [mpp_hdr]: Fix buffer overflow issue
+- [mpp_buffer]: Synchronous log addition point
+- [hal_vepu]: fix split regs assignment
+- [vepu580]: poll max set to 1 on split out lowdelay mode
+- [mpp_common]: fix compile err on F_DUPFD_CLOEXEC not defined
+- [h265d]: return error on sps/pps read failure
+- [build]: The first toolchains is selected by default
+- [265e]:Fix the st refernce frame err in tsvc
+- [av1d]: when MetaData found then it is new frame
+- [m2vd]: Fix seq_head check error
+- [h265e_vepu510]: Fix a memory leak
+- [h265d]: auto output frame in dpb when ready
+- [m2vd]: Remove ref frame when info changed
+- [mpp_meta]: Missing data in the instance
+- [mpp_bitread]: Fix negative shift error
+- [osal]: fix 128 odd plus 64 bytes alignment
+- [h265d_parser]: Fix fmt configuration issue
+- [hal_av1d_vdpu383]: modify av1 segid wr/rd base config
+- [h265d_parser]: Fix fmt configuration issue
+- [hal_av1d_vdpu383]: add segid reg base config
+
+### Docs
+- Update 1.0.7 CHANGELOG.md
+- [readme]: Add more repo info
+
+### Refactor
+- [mpp_cfg]: Refactor MppTrie and string cfg
+
+### Chore
+- [mpp_mem]: Add mpp_realloc_size
+- [mpp_cfg]: Remove some unused code
+- fix compile warning
+
 ## 1.0.6 (2024-06-12)
 ### Feature
 - [vdpu383]: refine rcb info setup
