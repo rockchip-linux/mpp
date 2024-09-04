@@ -710,6 +710,10 @@ void *enc_test_input(void *arg)
                     rewind(p->fp_input);
                     p->frm_eos = 0;
                     mpp_log_q(quiet, "chn %d loop times %d\n", chn, ++p->loop_times);
+                    if (buffer) {
+                        AutoMutex autolock(list_buf->mutex());
+                        list_buf->add_at_tail(&buffer, sizeof(buffer));
+                    }
                     continue;
                 }
                 mpp_log_q(quiet, "chn %d found last frame. feof %d\n", chn, feof(p->fp_input));
