@@ -645,6 +645,7 @@ typedef struct HEVCContext {
     RK_U8  miss_ref_flag;
     RK_U8  pre_pps_id;
     RK_U8  ps_need_upate;
+    RK_U8  sps_need_upate;
 
     /*temporary storage for slice_cut_param*/
     RK_U32  start_bit;
