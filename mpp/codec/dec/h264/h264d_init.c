@@ -1509,7 +1509,10 @@ static RK_U32 check_ref_dbp_err(H264_DecCtx_t *p_Dec, H264_RefPicInfo_t *pref, R
             }
             mpp_buf_slot_get_prop(p_Dec->frame_slots, slot_idx, SLOT_FRAME_PTR, &mframe);
             if (mframe) {
-                if (i < active_refs) {
+                if (i < active_refs
+                    && (!p_Dec->p_Vid->recovery.valid_flag
+                        || p_Dec->dpb_info[pref[i].dpb_idx].frame_num < p_Dec->p_Vid->recovery.first_frm_valid
+                        || p_Dec->dpb_info[pref[i].dpb_idx].frame_num >= p_Dec->p_Vid->recovery.recovery_pic_id)) {
                     dpb_error_flag |= mpp_frame_get_errinfo(mframe);
                 }
                 H264D_DBG(H264D_DBG_DPB_REF_ERR, "[DPB_REF_ERR] slot_idx=%d, dpb_err[%d]=%d", slot_idx, i, mpp_frame_get_errinfo(mframe));

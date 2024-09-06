@@ -497,7 +497,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
                 H264D_DBG(H264D_DBG_SEI, "First recovery frame found, frame_num %d", currSlice->frame_num);
             } else {
                 // It may be too early to reset recovery point info when frame_num is wrapped
-                if (recovery->recovery_pic_id % p_Vid->max_frame_num <= currSlice->frame_num)
+                if (recovery->recovery_pic_id % p_Vid->max_frame_num < currSlice->frame_num)
                     memset(&p_Vid->recovery, 0, sizeof(RecoveryPoint));
             }
         }
