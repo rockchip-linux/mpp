@@ -729,7 +729,7 @@ void mpp_trie_dump(MppTrie trie, const char *func)
 
         if (node->id >= 0) {
             /* check before and after last info */
-            if (node->id < p->node_used * sizeof(MppTrieNode))
+            if (node->id < (RK_S32)(p->node_used * sizeof(MppTrieNode)))
                 mpp_logi("node %d key %x info %d - %s\n", node->idx, node->key, node->id,
                          (char *)p->name_buf + p->info[node->id].name_offset);
             else

@@ -74,11 +74,11 @@ public:
     RK_S32 get_cfg_size() { return mCfgSize; };
 };
 
-#define EXPAND_AS_TRIE(base, name, cfg_type, in_type, flag, field_change, field_data) \
+#define EXPAND_AS_TRIE(base, name, cfg_type, flag, field_change, field_data) \
     do { \
         MppCfgInfo tmp = { \
             CFG_FUNC_TYPE_##cfg_type, \
-            flag ? 1 : 0, \
+            (RK_U32)((flag) ? 1 : 0), \
             (RK_U32)((long)&(((MppDecCfgSet *)0)->field_change.change)), \
             flag, \
             (RK_U32)((long)&(((MppDecCfgSet *)0)->field_change.field_data)), \
@@ -89,30 +89,30 @@ public:
 
 #define ENTRY_TABLE(ENTRY)  \
     /* rc config */ \
-    ENTRY(base, type,           U32, MppCtxType,        MPP_DEC_CFG_CHANGE_TYPE,            base, type) \
-    ENTRY(base, coding,         U32, MppCodingType,     MPP_DEC_CFG_CHANGE_CODING,          base, coding) \
-    ENTRY(base, hw_type,        U32, MppCodingType,     MPP_DEC_CFG_CHANGE_HW_TYPE,         base, hw_type) \
-    ENTRY(base, batch_mode,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_BATCH_MODE,      base, batch_mode) \
-    ENTRY(base, out_fmt,        U32, MppFrameFormat,    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT,   base, out_fmt) \
-    ENTRY(base, fast_out,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_FAST_OUT,        base, fast_out) \
-    ENTRY(base, fast_parse,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_FAST_PARSE,      base, fast_parse) \
-    ENTRY(base, split_parse,    U32, RK_U32,            MPP_DEC_CFG_CHANGE_SPLIT_PARSE,     base, split_parse) \
-    ENTRY(base, internal_pts,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_INTERNAL_PTS,    base, internal_pts) \
-    ENTRY(base, sort_pts,       U32, RK_U32,            MPP_DEC_CFG_CHANGE_SORT_PTS,        base, sort_pts) \
-    ENTRY(base, disable_error,  U32, RK_U32,            MPP_DEC_CFG_CHANGE_DISABLE_ERROR,   base, disable_error) \
-    ENTRY(base, enable_vproc,   U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_VPROC,    base, enable_vproc) \
-    ENTRY(base, enable_fast_play, U32, RK_U32,          MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY, base, enable_fast_play) \
-    ENTRY(base, enable_hdr_meta, U32, RK_U32,           MPP_DEC_CFG_CHANGE_ENABLE_HDR_META, base, enable_hdr_meta) \
-    ENTRY(base, enable_thumbnail, U32, RK_U32,          MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL, base, enable_thumbnail) \
-    ENTRY(base, enable_mvc,     U32, RK_U32,            MPP_DEC_CFG_CHANGE_ENABLE_MVC,      base, enable_mvc) \
-    ENTRY(base, disable_dpb_chk, U32, RK_U32,           MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK, base, disable_dpb_chk) \
-    ENTRY(base, disable_thread, U32, RK_U32,            MPP_DEC_CFG_CHANGE_DISABLE_THREAD,  base, disable_thread) \
-    ENTRY(cb, pkt_rdy_cb,       Ptr, MppExtCbFunc,      MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cb) \
-    ENTRY(cb, pkt_rdy_ctx,      Ptr, MppExtCbCtx,       MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_ctx) \
-    ENTRY(cb, pkt_rdy_cmd,      S32, RK_S32,            MPP_DEC_CB_CFG_CHANGE_PKT_RDY,      cb, pkt_rdy_cmd) \
-    ENTRY(cb, frm_rdy_cb,       Ptr, MppExtCbFunc,      MPP_DEC_CB_CFG_CHANGE_FRM_RDY,      cb, frm_rdy_cb) \
-    ENTRY(cb, frm_rdy_ctx,      Ptr, MppExtCbCtx,       MPP_DEC_CB_CFG_CHANGE_FRM_RDY,      cb, frm_rdy_ctx) \
-    ENTRY(cb, frm_rdy_cmd,      S32, RK_S32,            MPP_DEC_CB_CFG_CHANGE_FRM_RDY,      cb, frm_rdy_cmd)
+    ENTRY(base, type,               U32,    MPP_DEC_CFG_CHANGE_TYPE,                base, type) \
+    ENTRY(base, coding,             U32,    MPP_DEC_CFG_CHANGE_CODING,              base, coding) \
+    ENTRY(base, hw_type,            U32,    MPP_DEC_CFG_CHANGE_HW_TYPE,             base, hw_type) \
+    ENTRY(base, batch_mode,         U32,    MPP_DEC_CFG_CHANGE_BATCH_MODE,          base, batch_mode) \
+    ENTRY(base, out_fmt,            U32,    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT,       base, out_fmt) \
+    ENTRY(base, fast_out,           U32,    MPP_DEC_CFG_CHANGE_FAST_OUT,            base, fast_out) \
+    ENTRY(base, fast_parse,         U32,    MPP_DEC_CFG_CHANGE_FAST_PARSE,          base, fast_parse) \
+    ENTRY(base, split_parse,        U32,    MPP_DEC_CFG_CHANGE_SPLIT_PARSE,         base, split_parse) \
+    ENTRY(base, internal_pts,       U32,    MPP_DEC_CFG_CHANGE_INTERNAL_PTS,        base, internal_pts) \
+    ENTRY(base, sort_pts,           U32,    MPP_DEC_CFG_CHANGE_SORT_PTS,            base, sort_pts) \
+    ENTRY(base, disable_error,      U32,    MPP_DEC_CFG_CHANGE_DISABLE_ERROR,       base, disable_error) \
+    ENTRY(base, enable_vproc,       U32,    MPP_DEC_CFG_CHANGE_ENABLE_VPROC,        base, enable_vproc) \
+    ENTRY(base, enable_fast_play,   U32,    MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY,    base, enable_fast_play) \
+    ENTRY(base, enable_hdr_meta,    U32,    MPP_DEC_CFG_CHANGE_ENABLE_HDR_META,     base, enable_hdr_meta) \
+    ENTRY(base, enable_thumbnail,   U32,    MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL,    base, enable_thumbnail) \
+    ENTRY(base, enable_mvc,         U32,    MPP_DEC_CFG_CHANGE_ENABLE_MVC,          base, enable_mvc) \
+    ENTRY(base, disable_dpb_chk,    U32,    MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK,   base, disable_dpb_chk) \
+    ENTRY(base, disable_thread,     U32,    MPP_DEC_CFG_CHANGE_DISABLE_THREAD,      base, disable_thread) \
+    ENTRY(cb, pkt_rdy_cb,           Ptr,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_cb) \
+    ENTRY(cb, pkt_rdy_ctx,          Ptr,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_ctx) \
+    ENTRY(cb, pkt_rdy_cmd,          S32,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_cmd) \
+    ENTRY(cb, frm_rdy_cb,           Ptr,    MPP_DEC_CB_CFG_CHANGE_FRM_RDY,          cb, frm_rdy_cb) \
+    ENTRY(cb, frm_rdy_ctx,          Ptr,    MPP_DEC_CB_CFG_CHANGE_FRM_RDY,          cb, frm_rdy_ctx) \
+    ENTRY(cb, frm_rdy_cmd,          S32,    MPP_DEC_CB_CFG_CHANGE_FRM_RDY,          cb, frm_rdy_cmd)
 
 MppDecCfgService::MppDecCfgService() :
     mTrie(NULL)
