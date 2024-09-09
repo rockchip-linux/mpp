@@ -370,7 +370,6 @@ static MPP_RET hal_h265d_vdpu383_scalinglist_packet(void *hal, void *ptr, void *
 static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
 {
     RK_S32 i;
-    RK_U32 addr;
     RK_U32 log2_min_cb_size;
     RK_S32 width, height;
     HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
@@ -383,130 +382,136 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
                 __FILE__, __FUNCTION__, __LINE__);
         return MPP_ERR_NULL_PTR;
     }
-    void *pps_ptr = mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->spspps_offset;
-    if (dxva_ctx->pp.ps_update_flag) {
+
+    // SPS
+    {
+        void *pps_ptr = mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->spspps_offset;
         RK_U64 *pps_packet = reg_ctx->pps_buf;
+
         if (NULL == pps_ptr) {
             mpp_err("pps_data get ptr error");
             return MPP_ERR_NOMEM;
         }
 
-        for (i = 0; i < 14; i++) pps_packet[i] = 0;
-
-        mpp_set_bitput_ctx(&bp, pps_packet, 22); // 22*64bits
-
-        // SPS
-        mpp_put_bits(&bp, dxva_ctx->pp.vps_id, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.chroma_format_idc, 2);
-
         log2_min_cb_size = dxva_ctx->pp.log2_min_luma_coding_block_size_minus3 + 3;
         width = (dxva_ctx->pp.PicWidthInMinCbsY << log2_min_cb_size);
         height = (dxva_ctx->pp.PicHeightInMinCbsY << log2_min_cb_size);
-        mpp_put_bits(&bp, width, 16);
-        mpp_put_bits(&bp, height, 16);
-        mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_luma_minus8, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_chroma_minus8, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_max_pic_order_cnt_lsb_minus4 + 4, 5);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size, 2);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_min_luma_coding_block_size_minus3 + 3, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_min_transform_block_size_minus2 + 2, 3);
 
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_transform_block_size, 2);
-        mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_inter, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_intra, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.scaling_list_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.amp_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.sample_adaptive_offset_enabled_flag, 1);
-        ///<-zrh comment ^  68 bit above
-        mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.pcm_loop_filter_disabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_pcm_luma_coding_block_size, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
+        mpp_set_bitput_ctx(&bp, pps_packet, 22); // 22*64bits
 
-        mpp_put_bits(&bp, dxva_ctx->pp.num_short_term_ref_pic_sets, 7);
-        mpp_put_bits(&bp, dxva_ctx->pp.long_term_ref_pics_present_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.num_long_term_ref_pics_sps, 6);
-        mpp_put_bits(&bp, dxva_ctx->pp.sps_temporal_mvp_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
-        // SPS extenstion
-        mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_rotation_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_context_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.implicit_rdpcm_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.explicit_rdpcm_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.extended_precision_processing_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.intra_smoothing_disabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.sps_max_dec_pic_buffering_minus1, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.separate_colour_plane_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.high_precision_offsets_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.persistent_rice_adaptation_enabled_flag, 1);
+        if (dxva_ctx->pp.ps_update_flag) {
+            mpp_put_bits(&bp, dxva_ctx->pp.vps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_format_idc, 2);
 
-        /* PPS */
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_id, 6);
-        mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.dependent_slice_segments_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.output_flag_present_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.num_extra_slice_header_bits, 13);
+            mpp_put_bits(&bp, width, 16);
+            mpp_put_bits(&bp, height, 16);
+            mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_luma_minus8, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_chroma_minus8, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_max_pic_order_cnt_lsb_minus4 + 4, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size, 2);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_min_luma_coding_block_size_minus3 + 3, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_min_transform_block_size_minus2 + 2, 3);
 
-        mpp_put_bits(&bp, dxva_ctx->pp.sign_data_hiding_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.cabac_init_present_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l0_default_active_minus1 + 1, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l1_default_active_minus1 + 1, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.init_qp_minus26, 7);
-        mpp_put_bits(&bp, dxva_ctx->pp.constrained_intra_pred_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.cu_qp_delta_enabled_flag, 1);
-        mpp_put_bits(&bp, log2_min_cb_size + dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size - dxva_ctx->pp.diff_cu_qp_delta_depth, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_transform_block_size, 2);
+            mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_inter, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_intra, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.scaling_list_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.amp_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.sample_adaptive_offset_enabled_flag, 1);
+            ///<-zrh comment ^  68 bit above
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_loop_filter_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_pcm_luma_coding_block_size, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
 
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_cb_qp_offset, 5);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_cr_qp_offset, 5);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_slice_chroma_qp_offsets_present_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.weighted_pred_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.weighted_bipred_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.transquant_bypass_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.tiles_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.entropy_coding_sync_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_loop_filter_across_slices_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_short_term_ref_pic_sets, 7);
+            mpp_put_bits(&bp, dxva_ctx->pp.long_term_ref_pics_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_long_term_ref_pics_sps, 6);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_temporal_mvp_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
+            // SPS extenstion
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_rotation_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_context_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.implicit_rdpcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.explicit_rdpcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.extended_precision_processing_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.intra_smoothing_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_max_dec_pic_buffering_minus1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.separate_colour_plane_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.high_precision_offsets_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.persistent_rice_adaptation_enabled_flag, 1);
 
-        mpp_put_bits(&bp, dxva_ctx->pp.loop_filter_across_tiles_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.deblocking_filter_override_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_deblocking_filter_disabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_beta_offset_div2, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.pps_tc_offset_div2, 4);
-        mpp_put_bits(&bp, dxva_ctx->pp.lists_modification_present_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.log2_parallel_merge_level_minus2 + 2, 3);
-        mpp_put_bits(&bp, dxva_ctx->pp.slice_segment_header_extension_present_flag, 1);
-        mpp_put_bits(&bp, 0, 3);
+            /* PPS */
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_id, 6);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.dependent_slice_segments_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.output_flag_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_extra_slice_header_bits, 13);
 
-        // PPS externsion
-        if (dxva_ctx->pp.log2_max_transform_skip_block_size > 2) {
-            mpp_put_bits(&bp, dxva_ctx->pp.log2_max_transform_skip_block_size - 2, 2);
+            mpp_put_bits(&bp, dxva_ctx->pp.sign_data_hiding_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.cabac_init_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l0_default_active_minus1 + 1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l1_default_active_minus1 + 1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.init_qp_minus26, 7);
+            mpp_put_bits(&bp, dxva_ctx->pp.constrained_intra_pred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.cu_qp_delta_enabled_flag, 1);
+            mpp_put_bits(&bp, log2_min_cb_size + dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size - dxva_ctx->pp.diff_cu_qp_delta_depth, 3);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_cb_qp_offset, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_cr_qp_offset, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_slice_chroma_qp_offsets_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.weighted_pred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.weighted_bipred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transquant_bypass_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.tiles_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.entropy_coding_sync_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_loop_filter_across_slices_enabled_flag, 1);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.loop_filter_across_tiles_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.deblocking_filter_override_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_deblocking_filter_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_beta_offset_div2, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_tc_offset_div2, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.lists_modification_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_parallel_merge_level_minus2 + 2, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.slice_segment_header_extension_present_flag, 1);
+            mpp_put_bits(&bp, 0, 3);
+
+            // PPS externsion
+            if (dxva_ctx->pp.log2_max_transform_skip_block_size > 2) {
+                mpp_put_bits(&bp, dxva_ctx->pp.log2_max_transform_skip_block_size - 2, 2);
+            } else {
+                mpp_put_bits(&bp, 0, 2);
+            }
+            mpp_put_bits(&bp, dxva_ctx->pp.cross_component_prediction_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_enabled_flag, 1);
+
+            RK_S32 log2_min_cu_chroma_qp_delta_size = log2_min_cb_size +
+                                                      dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size -
+                                                      dxva_ctx->pp.diff_cu_chroma_qp_offset_depth;
+            mpp_put_bits(&bp, log2_min_cu_chroma_qp_delta_size, 3);
+            for (i = 0; i < 6; i++)
+                mpp_put_bits(&bp, dxva_ctx->pp.cb_qp_offset_list[i], 5);
+            for (i = 0; i < 6; i++)
+                mpp_put_bits(&bp, dxva_ctx->pp.cr_qp_offset_list[i], 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_len_minus1, 3);
+
+            /* mvc0 && mvc1 */
+            mpp_put_bits(&bp, 0xffff, 16);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 6);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 1);
         } else {
-            mpp_put_bits(&bp, 0, 2);
+            bp.index = 4;
+            bp.bitpos = 41;
+            bp.bvalue = bp.pbuf[bp.index] & MPP_GENMASK(bp.bitpos - 1, 0);
         }
-        mpp_put_bits(&bp, dxva_ctx->pp.cross_component_prediction_enabled_flag, 1);
-        mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_enabled_flag, 1);
-
-        RK_S32 log2_min_cu_chroma_qp_delta_size = log2_min_cb_size +
-                                                  dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size -
-                                                  dxva_ctx->pp.diff_cu_chroma_qp_offset_depth;
-        mpp_put_bits(&bp, log2_min_cu_chroma_qp_delta_size, 3);
-        for (i = 0; i < 6; i++)
-            mpp_put_bits(&bp, dxva_ctx->pp.cb_qp_offset_list[i], 5);
-        for (i = 0; i < 6; i++)
-            mpp_put_bits(&bp, dxva_ctx->pp.cr_qp_offset_list[i], 5);
-        mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_len_minus1, 3);
-
-        /* mvc0 && mvc1 */
-        mpp_put_bits(&bp, 0xffff, 16);
-        mpp_put_bits(&bp, 0, 1);
-        mpp_put_bits(&bp, 0, 6);
-        mpp_put_bits(&bp, 0, 1);
-        mpp_put_bits(&bp, 0, 1);
-
         /* poc info */
         {
             RK_S32 dpb_valid[15] = {0}, refpic_poc[15] = {0};
@@ -544,7 +549,6 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
             memset(row_height, 0, sizeof(row_height));
 
             if (dxva_ctx->pp.tiles_enabled_flag) {
-
                 if (dxva_ctx->pp.uniform_spacing_flag == 0) {
                     RK_S32 maxcuwidth = dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size + log2_min_cb_size;
                     RK_S32 ctu_width_in_pic = (width +
@@ -564,9 +568,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
                         sum += row_height[i];
                     }
                     row_height[i] = ctu_height_in_pic - sum;
-                } // end of (pps->uniform_spacing_flag == 0)
-                else {
-
+                }  else {
                     RK_S32    pic_in_cts_width = (width +
                                                   (1 << (log2_min_cb_size +
                                                          dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size)) - 1)
@@ -586,8 +588,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
                         row_height[i] = ((i + 1) * pic_in_cts_height) / (dxva_ctx->pp.num_tile_rows_minus1 + 1) -
                                         (i * pic_in_cts_height) / (dxva_ctx->pp.num_tile_rows_minus1 + 1);
                 }
-            } // pps->tiles_enabled_flag
-            else {
+            } else {
                 RK_S32 MaxCUWidth = (1 << (dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size + log2_min_cb_size));
                 column_width[0] = (width  + MaxCUWidth - 1) / MaxCUWidth;
                 row_height[0]   = (height + MaxCUWidth - 1) / MaxCUWidth;
@@ -599,12 +600,12 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
             for (i = 0; i < 22; i++)
                 mpp_put_bits(&bp, row_height[i], 12);
         }
-    }
-    mpp_put_align(&bp, 64, 0);//128
-    /* --- end spspps data ------*/
+        mpp_put_align(&bp, 64, 0);//128
+        memcpy(pps_ptr, reg_ctx->pps_buf, 176);
+    } /* --- end spspps data ------*/
 
     if (dxva_ctx->pp.scaling_list_enabled_flag) {
-        MppDevRegOffsetCfg trans_cfg;
+        RK_U32 addr;
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->sclst_offset;
 
         if (dxva_ctx->pp.scaling_list_data_present_flag) {
@@ -618,14 +619,9 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         hal_h265d_vdpu383_scalinglist_packet(hal, ptr_scaling + addr, dxva);
 
         hw_reg->common_addr.reg132_scanlist_addr = reg_ctx->bufs_fd;
-
-        /* need to config addr */
-        trans_cfg.reg_idx = 132;
-        trans_cfg.offset = addr + reg_ctx->sclst_offset;
-        mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(reg_ctx->dev, 132, addr + reg_ctx->sclst_offset);
     }
 
-    memcpy(pps_ptr, reg_ctx->pps_buf, 176);
 #ifdef dump
     fwrite(pps_ptr, 1, 80 * 64, fp);
     RK_U32 *tmp = (RK_U32 *)pps_ptr;
