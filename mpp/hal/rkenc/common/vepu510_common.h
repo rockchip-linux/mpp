@@ -905,6 +905,44 @@ typedef struct Vepu510RcRoi_t {
     Vepu510RoiCfg roi_cfg;
 } Vepu510RcRoi;
 
+/* class: scaling list  */
+/* 0x00002200 reg2176- 0x00002584 reg2401*/
+typedef struct Vepu510SclCfg_t {
+    /* 0x2200 - 0x221F, valid for h.264/h.h265, jpeg no use */
+    RK_U32 tu8_intra_y[16];
+    RK_U32 tu8_intra_u[16]; /* tu8_inter_y[16] for h.264 */
+
+    /* 0x2220 - 0x2584, valid for h.265 only */
+    RK_U32 tu8_intra_v[16];
+    RK_U32 tu8_inter_y[16];
+    RK_U32 tu8_inter_u[16];
+    RK_U32 tu8_inter_v[16];
+    RK_U32 tu16_intra_y_ac[16];
+    RK_U32 tu16_intra_u_ac[16];
+    RK_U32 tu16_intra_v_ac[16];
+    RK_U32 tu16_inter_y_ac[16];
+    RK_U32 tu16_inter_u_ac[16];
+    RK_U32 tu16_inter_v_ac[16];
+    RK_U32 tu32_intra_y_ac[16];
+    RK_U32 tu32_inter_y_ac[16];
+
+    /* 0x2580 */
+    struct {
+        RK_U32 tu16_intra_y_dc  : 8;
+        RK_U32 tu16_intra_u_dc  : 8;
+        RK_U32 tu16_intra_v_dc  : 8;
+        RK_U32 tu16_inter_y_dc  : 8;
+    } tu_dc0;
+
+    /* 0x2584 */
+    struct {
+        RK_U32 tu16_inter_u_dc  : 8;
+        RK_U32 tu16_inter_v_dc  : 8;
+        RK_U32 tu32_intra_y_dc  : 8;
+        RK_U32 tu32_inter_y_dc  : 8;
+    } tu_dc1;
+} Vepu510SclCfg;
+
 /* class: st */
 /* 0x00004000 reg4096 - 0x0000424c reg4243*/
 typedef struct Vepu510Status_t {

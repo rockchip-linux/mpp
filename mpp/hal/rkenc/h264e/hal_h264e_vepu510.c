@@ -31,6 +31,29 @@
 #define MAX_TASK_CNT            2
 #define VEPU540C_MAX_ROI_NUM    8
 
+/* Custom Quant Matrices: Joint Video Team */
+static RK_U8 vepu510_h264_cqm_jvt8i[64] = {
+    6, 10, 13, 16, 18, 23, 25, 27,
+    10, 11, 16, 18, 23, 25, 27, 29,
+    13, 16, 18, 23, 25, 27, 29, 31,
+    16, 18, 23, 25, 27, 29, 31, 33,
+    18, 23, 25, 27, 29, 31, 33, 36,
+    23, 25, 27, 29, 31, 33, 36, 38,
+    25, 27, 29, 31, 33, 36, 38, 40,
+    27, 29, 31, 33, 36, 38, 40, 42
+};
+
+static RK_U8 vepu510_h264_cqm_jvt8p[64] = {
+    9, 13, 15, 17, 19, 21, 22, 24,
+    13, 13, 17, 19, 21, 22, 24, 25,
+    15, 17, 19, 21, 22, 24, 25, 27,
+    17, 19, 21, 22, 24, 25, 27, 28,
+    19, 21, 22, 24, 25, 27, 28, 30,
+    21, 22, 24, 25, 27, 28, 30, 32,
+    22, 24, 25, 27, 28, 30, 32, 33,
+    24, 25, 27, 28, 30, 32, 33, 35
+};
+
 typedef struct Vepu510RoiH264BsCfg_t {
     RK_U64 force_inter   : 42;
     RK_U64 mode_mask     : 9;
@@ -2106,6 +2129,31 @@ static void setup_vepu510_anti_smear(HalH264eVepu510Ctx *ctx)
     hal_h264e_dbg_func("leave\n");
 }
 
+static void setup_vepu510_scaling_list(HalH264eVepu510Ctx *ctx)
+{
+    HalVepu510RegSet *regs = ctx->regs_set;
+    Vepu510SclCfg *s = &regs->reg_scl;
+    RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
+    RK_U8 idx;
+
+    hal_h264e_dbg_func("enter\n");
+
+    /* intra4x4 and inter4x4 is not supported on VEPU500.
+     * valid range: 0x2200 ~ 0x221F
+     */
+    if (ctx->pps->pic_scaling_matrix_present == 1) {
+        for (idx = 0; idx < 64; idx++) {
+            p[idx] = vepu510_h264_cqm_jvt8i[63 - idx]; /* intra8x8 */
+            p[idx + 64] = vepu510_h264_cqm_jvt8p[63 - idx]; /* inter8x8 */
+        }
+    } else if (ctx->pps->pic_scaling_matrix_present == 2) {
+        //TODO: Update scaling list for (scaling_list_mode == 2)
+        mpp_log_f("scaling_list_mode 2 is not supported yet\n");
+    }
+
+    hal_h264e_dbg_func("leave\n");
+}
+
 static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
 {
     HalH264eVepu510Ctx *ctx = (HalH264eVepu510Ctx *)hal;
@@ -2139,6 +2187,7 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     setup_vepu510_anti_ringing(ctx);
     setup_vepu510_anti_flicker(ctx);
     setup_vepu510_anti_smear(ctx);
+    setup_vepu510_scaling_list(ctx);
 
     setup_vepu510_rc_base(regs, ctx, rc_task);
     setup_vepu510_io_buf(regs, ctx->offsets, task);

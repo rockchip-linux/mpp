@@ -810,6 +810,7 @@ typedef struct H265eV510RegSet_t {
     Vepu510RcRoi              reg_rc_roi;
     H265eVepu510Param         reg_param;
     H265eVepu510Sqi           reg_sqi;
+    Vepu510SclCfg             reg_scl;
     Vepu510Dbg                reg_dbg;
 } H265eV510RegSet;
 

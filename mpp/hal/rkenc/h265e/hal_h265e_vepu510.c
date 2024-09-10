@@ -248,6 +248,28 @@ static RK_U32 rdo_lambda_table_P[60] = {
     0x01120000, 0x01600000, 0x01c00000, 0x02240000,
 };
 
+static RK_U8 vepu510_h265_cqm_intra8[64] = {
+    16, 16, 16, 16, 17, 18, 21, 24,
+    16, 16, 16, 16, 17, 19, 22, 25,
+    16, 16, 17, 18, 20, 22, 25, 29,
+    16, 16, 18, 21, 24, 27, 31, 36,
+    17, 17, 20, 24, 30, 35, 41, 47,
+    18, 19, 22, 27, 35, 44, 54, 65,
+    21, 22, 25, 31, 41, 54, 70, 88,
+    24, 25, 29, 36, 47, 65, 88, 115
+};
+
+static RK_U8 vepu510_h265_cqm_inter8[64] = {
+    16, 16, 16, 16, 17, 18, 20, 24,
+    16, 16, 16, 17, 18, 20, 24, 25,
+    16, 16, 17, 18, 20, 24, 25, 28,
+    16, 17, 18, 20, 24, 25, 28, 33,
+    17, 18, 20, 24, 25, 28, 33, 41,
+    18, 20, 24, 25, 28, 33, 41, 54,
+    20, 24, 25, 28, 33, 41, 54, 71,
+    24, 25, 28, 33, 41, 54, 71, 91
+};
+
 static void setup_ext_line_bufs(H265eV510HalContext *ctx)
 {
     RK_S32 i;
@@ -1855,6 +1877,60 @@ static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK
     hal_h265e_dbg_func("leave\n");
 }
 
+static void vepu510_h265_set_scaling_list(H265eV510HalContext *ctx)
+{
+    Vepu510H265eFrmCfg *frm_cfg = ctx->frm;
+    H265eV510RegSet *regs = frm_cfg->regs_set;
+    Vepu510SclCfg *s = &regs->reg_scl;
+    RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
+    RK_U32 scl_lst_sel = regs->reg_frm.rdo_cfg.scl_lst_sel;
+    RK_U8 idx;
+
+    hal_h265e_dbg_func("enter\n");
+
+    if (scl_lst_sel == 1) {
+        for (idx = 0; idx < 64; idx++) {
+            /* TU8 intra Y/U/V */
+            p[idx + 64 * 0] = vepu510_h265_cqm_intra8[63 - idx];
+            p[idx + 64 * 1] = vepu510_h265_cqm_intra8[63 - idx];
+            p[idx + 64 * 2] = vepu510_h265_cqm_intra8[63 - idx];
+
+            /* TU8 inter Y/U/V */
+            p[idx + 64 * 3] = vepu510_h265_cqm_inter8[63 - idx];
+            p[idx + 64 * 4] = vepu510_h265_cqm_inter8[63 - idx];
+            p[idx + 64 * 5] = vepu510_h265_cqm_inter8[63 - idx];
+
+            /* TU16 intra Y/U/V AC */
+            p[idx + 64 * 6] = vepu510_h265_cqm_intra8[63 - idx];
+            p[idx + 64 * 7] = vepu510_h265_cqm_intra8[63 - idx];
+            p[idx + 64 * 8] = vepu510_h265_cqm_intra8[63 - idx];
+
+            /* TU16 inter Y/U/V AC */
+            p[idx + 64 *  9] = vepu510_h265_cqm_inter8[63 - idx];
+            p[idx + 64 * 10] = vepu510_h265_cqm_inter8[63 - idx];
+            p[idx + 64 * 11] = vepu510_h265_cqm_inter8[63 - idx];
+
+            /* TU32 intra/inter Y AC */
+            p[idx + 64 * 12] = vepu510_h265_cqm_intra8[63 - idx];
+            p[idx + 64 * 13] = vepu510_h265_cqm_inter8[63 - idx];
+        }
+
+        s->tu_dc0.tu16_intra_y_dc = 16;
+        s->tu_dc0.tu16_intra_u_dc = 16;
+        s->tu_dc0.tu16_intra_v_dc = 16;
+        s->tu_dc0.tu16_inter_y_dc = 16;
+        s->tu_dc1.tu16_inter_u_dc = 16;
+        s->tu_dc1.tu16_inter_v_dc = 16;
+        s->tu_dc1.tu32_intra_y_dc = 16;
+        s->tu_dc1.tu32_inter_y_dc = 16;
+    } else if (scl_lst_sel == 2) {
+        //TODO: Update scaling list for (scaling_list_mode == 2)
+        mpp_log_f("scaling_list_mode 2 is not supported yet\n");
+    }
+
+    hal_h265e_dbg_func("leave\n");
+}
+
 MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
 {
     H265eV510HalContext *ctx = (H265eV510HalContext *)hal;
@@ -1980,6 +2056,7 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
         reg_frm->synt_nal.nal_unit_type  = syn->sp.temporal_id ?  NAL_TSA_R : i_nal_type;
     }
 
+    vepu510_h265_set_scaling_list(ctx);
     vepu510_h265_set_hw_address(ctx, reg_frm, task);
     vepu510_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep);
     vepu510_h265_set_rc_regs(ctx, regs, task);
@@ -2106,6 +2183,16 @@ MPP_RET hal_h265e_v510_start(void *hal, HalEncTask *enc_task)
     cfg.reg = &hw_regs->reg_sqi;
     cfg.size = sizeof(H265eVepu510Sqi);
     cfg.offset = VEPU510_SQI_OFFSET;
+
+    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
+    if (ret) {
+        mpp_err_f("set register write failed %d\n", ret);
+        return ret;
+    }
+
+    cfg.reg = &hw_regs->reg_scl;
+    cfg.size = sizeof(hw_regs->reg_scl);
+    cfg.offset = VEPU510_SCL_OFFSET ;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
     if (ret) {

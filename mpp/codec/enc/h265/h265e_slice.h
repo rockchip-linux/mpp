@@ -275,7 +275,7 @@ typedef struct H265eSps_e {
 
     RK_U32          m_bTemporalIdNestingFlag; // temporal_id_nesting_flag
 
-    RK_U32          m_scalingListEnabledFlag;
+    RK_U32          m_scalingListEnabledFlag; //TODO: replaced with scaling_list_mode
     RK_U32          m_scalingListPresentFlag;
     RK_U32          m_maxDecPicBuffering[MAX_SUB_LAYERS];
 

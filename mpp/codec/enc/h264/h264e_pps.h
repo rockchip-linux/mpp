@@ -52,7 +52,7 @@ typedef struct H264ePps_t {
     RK_S32      transform_8x8_mode;
 
     // Only support flat and default scaling list
-    RK_S32      pic_scaling_matrix_present;
+    RK_S32      pic_scaling_matrix_present; //TODO: replaced with scaling_list_mode
     RK_S32      use_default_scaling_matrix[H264_SCALING_MATRIX_TYPE_BUTT];
 } H264ePps;
 

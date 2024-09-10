@@ -625,10 +625,6 @@ typedef struct H264eVepu510SqiCfg_t {
     } rdo_atf_resi_thd;
 } H264eVepu510Sqi;
 
-typedef struct Vepu510SclCfg_t {
-    RK_U32 q_scal_list_0_225[226];
-} Vepu510SclCfg;
-
 /* class: mmu */
 /* 0x0000f000 reg15360 - 0x0000f024 reg15369 */
 typedef struct HalVepu510Reg_t {

@@ -494,12 +494,11 @@ static MPP_RET h265e_sps_write(H265eSps *sps, H265eStream *s)
     h265e_stream_write_ue_with_log(s, sps->m_quadtreeTUMaxDepthInter - 1,   "max_transform_hierarchy_depth_inter");
     h265e_stream_write_ue_with_log(s, sps->m_quadtreeTUMaxDepthIntra - 1,   "max_transform_hierarchy_depth_intra");
     h265e_stream_write1_with_log(s, sps->m_scalingListEnabledFlag ? 1 : 0,       "scaling_list_enabled_flag");
-    if (sps->m_scalingListEnabledFlag) {
-        h265e_stream_write1_with_log(s, sps->m_scalingListPresentFlag ? 1 : 0, "sps_scaling_list_data_present_flag");
-        if (sps->m_scalingListPresentFlag) {
-            mpp_log("to do m_scalingListPresentFlag");
-            ;//codeScalingList(m_slice->getScalingList()); //todo only support default
-        }
+    if (sps->m_scalingListEnabledFlag == 1)
+        h265e_stream_write1_with_log(s, 0, "sps_scaling_list_data_present_flag");
+    else if (sps->m_scalingListEnabledFlag == 2) {
+        //TODO:
+        mpp_err_f("m_scalingListEnabledFlag == 2 not supported yet\n");
     }
     h265e_stream_write1_with_log(s, sps->m_useAMP ? 1 : 0, "amp_enabled_flag");
     h265e_stream_write1_with_log(s, sps->m_bUseSAO ? 1 : 0, "sample_adaptive_offset_enabled_flag");
