@@ -192,6 +192,7 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
 {
     H265eSlice  *slice = h->slice;
     H265eReferencePictureSet* rps = slice->m_rps;
+    H265eSyntax_new *syn = (H265eSyntax_new*)&h->syntax;
     RK_U32 numRpsCurrTempList = 0;
     RK_S32 ref_num = 0;
     H265eDpbFrm *ref_frame;
@@ -339,11 +340,15 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
 
     sp->recon_pic.slot_idx = h->dpb->curr->slot_idx;
     ref_frame = slice->m_refPicList[0][0];
-    if (ref_frame != NULL) {
+
+    if (ref_frame) {
+        if (ref_frame->status.force_pskip)
+            ref_frame->slot_idx = syn->pre_ref_idx;
         sp->ref_pic.slot_idx = ref_frame->slot_idx;
     } else {
         sp->ref_pic.slot_idx = h->dpb->curr->slot_idx;
     }
+
     return  0;
 }
 

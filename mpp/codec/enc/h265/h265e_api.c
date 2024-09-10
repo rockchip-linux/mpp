@@ -364,6 +364,7 @@ static MPP_RET h265e_proc_enc_skip(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MppPacket pkt = task->packet;
+    H265eSyntax_new *syntax = &p->syntax;
     RK_U8 *ptr = mpp_packet_get_pos(pkt);
     RK_U32 offset = mpp_packet_get_length(pkt);
     RK_U32 len    = mpp_packet_get_size(pkt) - offset;
@@ -375,6 +376,7 @@ static MPP_RET h265e_proc_enc_skip(void *ctx, HalEncTask *task)
     new_length = h265e_code_slice_skip_frame(ctx, p->slice, ptr, len);
     task->length = new_length;
     task->rc_task->info.bit_real = 8 * new_length;
+    syntax->pre_ref_idx = syntax->sp.recon_pic.slot_idx;
     mpp_packet_add_segment_info(pkt, NAL_TRAIL_R, offset, new_length);
 
     h265e_dbg_func("leave\n");

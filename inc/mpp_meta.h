@@ -99,6 +99,8 @@ typedef enum MppMetaKey_e {
     KEY_LVL4_INTRA_NUM          = FOURCC_META('l', '4', 'i', ' '),
     /* output P skip frame indicator */
     KEY_OUTPUT_PSKIP            = FOURCC_META('o', 'p', 's', 'p'),
+    /* input P skip frame request */
+    KEY_INPUT_PSKIP             = FOURCC_META('i', 'p', 's', 'p'),
     KEY_ENC_SSE                 = FOURCC_META('e', 's', 's', 'e'),
 
     /*

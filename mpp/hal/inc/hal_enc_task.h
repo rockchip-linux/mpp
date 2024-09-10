@@ -115,6 +115,7 @@ typedef union EncAsyncStatus_u {
 
         RK_U32      hal_task_reset_rdy  : 1;    // reset hal task to start
         RK_U32      rc_check_frm_drop   : 1;    // rc  stage
+        RK_U32      check_frm_pskip     : 1;    // pskip frame check
         RK_U32      pkt_buf_rdy         : 1;    // prepare pkt buf
 
         RK_U32      enc_start           : 1;    // enc stage

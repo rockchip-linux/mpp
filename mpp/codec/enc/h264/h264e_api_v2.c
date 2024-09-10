@@ -48,6 +48,7 @@ typedef struct {
     MppEncCfgSet        *cfg;
     MppEncRefs          refs;
     RK_U32              idr_request;
+    RK_U32              pre_ref_idx;
 
     /* H.264 high level syntax */
     H264eSps            sps;
@@ -773,7 +774,15 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
     // update frame usage
     frms->seq_idx = curr->seq_idx;
     frms->curr_idx = curr->slot_idx;
-    frms->refr_idx = (refr) ? refr->slot_idx : curr->slot_idx;
+
+    if (refr) {
+        if (refr->status.force_pskip)
+            frms->refr_idx = p->pre_ref_idx;
+        else
+            frms->refr_idx = refr->slot_idx;
+    } else {
+        frms->refr_idx = curr->slot_idx;
+    }
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(frms->usage); i++)
         frms->usage[i] = dpb->frames[i].on_used;
@@ -887,6 +896,7 @@ static MPP_RET h264e_sw_enc(void *ctx, HalEncTask *task)
 
     rc_info->bit_real = task->length;
     rc_info->quality_real = rc_info->quality_target;
+    p->pre_ref_idx = p->frms.refr_idx;
     mpp_packet_add_segment_info(packet, H264_NALU_TYPE_SLICE, length, final_len);
 
     return MPP_OK;

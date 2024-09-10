@@ -75,6 +75,7 @@ static MppMetaDef meta_defs[] = {
     {   KEY_LVL16_INTRA_NUM,    TYPE_S32,       },
     {   KEY_LVL8_INTRA_NUM,     TYPE_S32,       },
     {   KEY_LVL4_INTRA_NUM,     TYPE_S32,       },
+    {   KEY_INPUT_PSKIP,        TYPE_S32,       },
     {   KEY_OUTPUT_PSKIP,       TYPE_S32,       },
     {   KEY_ENC_SSE,            TYPE_S64,       },
 

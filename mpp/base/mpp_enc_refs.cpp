@@ -893,7 +893,7 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
     }
 
     if (usr_cfg->force_flag & ENC_FORCE_PSKIP) {
-        frm->is_non_ref = 1;
+        frm->force_pskip = 1;
 
         usr_cfg->force_flag &= ~ENC_FORCE_PSKIP;
     }
