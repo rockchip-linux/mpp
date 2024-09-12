@@ -28,6 +28,7 @@
 #include "mpp_time.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
+#include "mpp_soc.h"
 
 #include "utils.h"
 #include "mpi_enc_utils.h"
@@ -180,6 +181,23 @@ static RK_S32 aq_step_p_ipc[16] = {
     6,  8,  9,  10,
 };
 
+static RK_S32 get_mdinfo_size(MpiEncTestData *p, MppCodingType type)
+{
+    RockchipSocType soc_type = mpp_get_soc_type();
+    RK_S32 md_size;
+    RK_U32 w = p->hor_stride, h = p->ver_stride;
+
+    if (soc_type == ROCKCHIP_SOC_RK3588) {
+        md_size = (MPP_ALIGN(w, 64) >> 6) * (MPP_ALIGN(h, 64) >> 6) * 32;
+    } else {
+        md_size = (MPP_VIDEO_CodingHEVC == type) ?
+                  (MPP_ALIGN(w, 32) >> 5) * (MPP_ALIGN(h, 32) >> 5) * 16 :
+                  (MPP_ALIGN(w, 64) >> 6) * (MPP_ALIGN(h, 16) >> 4) * 16;
+    }
+
+    return md_size;
+}
+
 MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
 {
     MpiEncTestArgs *cmd = info->cmd;
@@ -221,9 +239,7 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->atl_str = cmd->atl_str;
     p->sao_str_i = cmd->sao_str_i;
     p->sao_str_p = cmd->sao_str_p;
-
-    p->mdinfo_size  = (MPP_ALIGN(p->hor_stride, 64) >> 6) *
-                      (MPP_ALIGN(p->ver_stride, 64) >> 6) * 32;
+    p->mdinfo_size  = get_mdinfo_size(p, cmd->type);
 
     if (cmd->file_input) {
         if (!strncmp(cmd->file_input, "/dev/video", 10)) {
