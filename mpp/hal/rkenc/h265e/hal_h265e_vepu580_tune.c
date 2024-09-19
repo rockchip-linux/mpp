@@ -602,9 +602,9 @@ static void vepu580_h265e_tune_stat_update(void *p, EncRcTaskInfo *rc_info)
 
     rc_info->motion_level = 0;
     if (md_cnt * 100 > 15 * mbs)
-        rc_info->motion_level = 2;
+        rc_info->motion_level = 200;
     else if (md_cnt * 100 > 5 * mbs)
-        rc_info->motion_level = 1;
+        rc_info->motion_level = 100;
     else
         rc_info->motion_level = 0;
 

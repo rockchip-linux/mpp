@@ -2508,9 +2508,9 @@ static MPP_RET hal_h264e_vepu580_ret_task(void * hal, HalEncTask * task)
 
     rc_info->motion_level = 0;
     if (md_cnt * 100 > 15 * mbs)
-        rc_info->motion_level = 2;
+        rc_info->motion_level = 200;
     else if (md_cnt * 100 > 5 * mbs)
-        rc_info->motion_level = 1;
+        rc_info->motion_level = 100;
     else
         rc_info->motion_level = 0;
 
