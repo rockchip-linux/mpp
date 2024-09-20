@@ -747,7 +747,7 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask * task)
         } else
             qp_out_f0 = p->usr_cfg.init_quality;
 
-        p->qp_out = p->usr_cfg.scene_mode ? qp_out_f0 + 2 : qp_out_f0 + 6; //TODO: ok ??
+        p->qp_out = qp_out_f0;
         p->count_real_bit = 0;
         p->count_pred_bit = 0;
         p->count_frame = 0;
