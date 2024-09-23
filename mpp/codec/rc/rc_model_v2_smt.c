@@ -547,7 +547,7 @@ static MPP_RET smt_start_prepare(void *ctx, EncRcTask *task)
 
     p->frame_type = frm->is_intra ? INTRA_FRAME : INTER_P_FRAME;
     if (frm->ref_mode == REF_TO_PREV_INTRA)
-        p->frame_type = INTER_VI_FRAME;
+        p->frame_type = info->frame_type = INTER_VI_FRAME;
 
     switch (p->gop_mode) {
     case MPP_GOP_ALL_INTER: {
@@ -897,10 +897,10 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask * task)
     qp_add_p = 4;
     if (md_lvl_sum >= 700 || md_lvl_0 == 200) {
         qp_add = 6;
-        qp_add_p = 5;
+        qp_add_p = 6;
     } else if (md_lvl_sum >= 400 || md_lvl_0 == 100) {
         qp_add = 5;
-        qp_add_p = 4;
+        qp_add_p = 5;
     }
     if (cplx_lvl_sum >= 12) {
         qp_add++;
@@ -910,8 +910,12 @@ MPP_RET rc_model_v2_smt_start(void *ctx, EncRcTask * task)
     if (p->frame_type == INTRA_FRAME)
         p->qp_out = mpp_clip(p->qp_out, fm_min_iqp + qp_add, fm_max_iqp);
     else if (p->frame_type == INTER_VI_FRAME) {
+        RK_S32 vi_max_qp = (fm_max_pqp > 42) ? (fm_max_pqp - 5) :
+                           (fm_max_pqp > 39) ? (fm_max_pqp - 3) :
+                           (fm_max_pqp > 35) ? (fm_max_pqp - 2) : fm_max_pqp;
         p->qp_out -= 1;
         p->qp_out = mpp_clip(p->qp_out, fm_min_pqp + qp_add - 1, fm_max_pqp);
+        p->qp_out = mpp_clip(p->qp_out, p->qp_out, vi_max_qp);
     } else
         p->qp_out = mpp_clip(p->qp_out, fm_min_pqp + qp_add_p, fm_max_pqp);
 
