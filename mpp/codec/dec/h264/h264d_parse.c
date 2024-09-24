@@ -234,7 +234,8 @@ static MPP_RET parser_one_nalu(H264_SLICE_t *currSlice)
         return MPP_OK;
     }
     //!< check whether supprot mvc
-    if (currSlice->mvcExt.valid && !currSlice->p_Dec->cfg->base.enable_mvc) {
+    if (currSlice->mvcExt.view_id && currSlice->mvcExt.valid &&
+        !currSlice->p_Dec->cfg->base.enable_mvc) {
         currSlice->p_Dec->nalu_ret = MvcDisAble;
         return MPP_OK;
     }
