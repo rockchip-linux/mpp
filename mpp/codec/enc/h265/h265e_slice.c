@@ -351,11 +351,29 @@ RK_S32 get_num_rps_cur_templist(H265eReferencePictureSet* rps)
 }
 
 
-void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf)
+void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf,
+                             RK_U32 slice_segment_addr)
 {
     RK_U32 i = 0;
-    mpp_writer_put_bits(bitIf, 1, 1); //first_slice_segment_in_pic_flag
+    RK_U32 slice_address_addr_bits = 0;
+    H265eSps *sps = slice->m_sps;
+    RK_U32 pic_width_in_ctb = (sps->m_picWidthInLumaSamples + sps->m_maxCUSize - 1) /
+                              sps->m_maxCUSize;
+    RK_U32 pic_height_in_ctb = (sps->m_picHeightInLumaSamples + sps->m_maxCUSize - 1) /
+                               sps->m_maxCUSize;
+    RK_U32 max_ctu_num = pic_width_in_ctb * pic_height_in_ctb;
+
+    mpp_writer_put_bits(bitIf, (slice_segment_addr == 0), 1); //first_slice_segment_in_pic_flag
     mpp_writer_put_ue(bitIf, slice->m_ppsId);
+
+    if (slice_segment_addr != 0) {
+        while (max_ctu_num > (1 << slice_address_addr_bits)) {
+            slice_address_addr_bits++;
+        }
+        //slice_segment_address
+        mpp_writer_put_bits(bitIf, slice_segment_addr, slice_address_addr_bits);
+    }
+
     H265eReferencePictureSet* rps = slice->m_rps;
     slice->m_enableTMVPFlag = 0;
     if (!slice->m_dependentSliceSegmentFlag) {
@@ -522,6 +540,9 @@ void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf)
             }
         }
     }
+    if (slice->m_pps->m_tiles_enabled_flag) {
+        mpp_writer_put_ue(bitIf, 0);    // num_entry_point_offsets
+    }
     if (slice->m_pps->m_sliceHeaderExtensionPresentFlag) {
         mpp_writer_put_ue(bitIf, slice->slice_header_extension_length);
         for (i = 0; i < slice->slice_header_extension_length; i++) {
@@ -544,7 +565,7 @@ void code_skip_flag(H265eSlice *slice, RK_U32 abs_part_idx, DataCu *cu)
     h265e_dbg_skip("tpelx = %d", tpelx);
     if (cu->cur_addr == 0 ) {
         ctxSkip = 0;
-    } else if ((tpely == 0) || (tpelx == 0)) {
+    } else if ((tpely == 0) || (tpelx == cu->tile_start_x)) {
         ctxSkip = 1;
     } else {
         ctxSkip = 2;
@@ -586,7 +607,7 @@ static void encode_cu(H265eSlice *slice, RK_U32 abs_part_idx, RK_U32 depth, Data
 
     h265e_dbg_skip("EncodeCU depth %d, abs_part_idx %d", depth, abs_part_idx);
 
-    if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples)) {
+    if ((rpelx <= cu->tile_end_x) && (bpely <= cu->tile_end_y)) {
         h265e_dbg_skip("code_split_flag in depth %d", depth);
         code_split_flag(slice, abs_part_idx, depth, cu);
     } else {
@@ -605,7 +626,7 @@ static void encode_cu(H265eSlice *slice, RK_U32 abs_part_idx, RK_U32 depth, Data
             h265e_dbg_skip("depth %d partUnitIdx = %d, qNumParts %d, abs_part_idx %d", depth, partUnitIdx, qNumParts, abs_part_idx);
             lpelx = cu->pixelX + sps->raster2pelx[sps->zscan2raster[abs_part_idx]];
             tpely = cu->pixelY + sps->raster2pely[sps->zscan2raster[abs_part_idx]];
-            if ((lpelx < sps->m_picWidthInLumaSamples) && (tpely < sps->m_picHeightInLumaSamples)) {
+            if ((lpelx <= cu->tile_end_x) && (tpely <= cu->tile_end_y)) {
                 encode_cu(slice, abs_part_idx, depth + 1, cu);
             }
         }
@@ -626,21 +647,21 @@ static void proc_cu8(DataCu *cu, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
     memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
 }
 
-static void proc_cu16(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
+static void proc_cu16(DataCu *cu, RK_U32 pos_x, RK_U32 pos_y,
+                      RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
 {
     RK_U32 m;
-    H265eSps *sps = slice->m_sps;
     RK_S32 newPuIdx;
 
     h265e_dbg_skip("cu 16 pos_x %d pos_y %d", pos_x, pos_y);
 
-    if ((cu->pixelX + pos_x + 15 < sps->m_picWidthInLumaSamples) &&
-        (cu->pixelY + pos_y + 15 < sps->m_picHeightInLumaSamples)) {
+    if ((cu->pixelX + pos_x + 15 <= cu->tile_end_x) &&
+        (cu->pixelY + pos_y + 15 <= cu->tile_end_y)) {
         h265e_dbg_skip("16 ctu puIdx %d no need split", puIdx);
         memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
-    } else if ((cu->pixelX + pos_x >=  sps->m_picWidthInLumaSamples) ||
-               (cu->pixelY + pos_y  >= sps->m_picHeightInLumaSamples)) {
+    } else if ((cu->pixelX + pos_x > cu->tile_end_x) ||
+               (cu->pixelY + pos_y > cu->tile_end_y)) {
         h265e_dbg_skip("16 ctu puIdx %d out of pic", puIdx);
         memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
@@ -652,24 +673,23 @@ static void proc_cu16(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y,
     }
 }
 
-
-static void proc_cu32(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y, RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
+static void proc_cu32(DataCu *cu, RK_U32 pos_x, RK_U32 pos_y,
+                      RK_S32 nSubPart, RK_S32 cuDepth, RK_S32 puIdx)
 {
     RK_U32 m;
-    H265eSps *sps = slice->m_sps;
     RK_S32 nSize = 32;
     RK_U32 cu_x_1, cu_y_1;
     RK_S32 newPuIdx;
 
     h265e_dbg_skip("cu 32 pos_x %d pos_y %d", pos_x, pos_y);
 
-    if ((cu->pixelX + pos_x + 31 < sps->m_picWidthInLumaSamples) &&
-        (cu->pixelY + pos_y + 31 < sps->m_picHeightInLumaSamples)) {
+    if ((cu->pixelX + pos_x + 31 <= cu->tile_end_x) &&
+        (cu->pixelY + pos_y + 31 <= cu->tile_end_y)) {
         h265e_dbg_skip("32 ctu puIdx %d no need split", puIdx);
         memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
-    } else if ((cu->pixelX + pos_x >=  sps->m_picWidthInLumaSamples) ||
-               (cu->pixelY + pos_y  >= sps->m_picHeightInLumaSamples)) {
+    } else if ((cu->pixelX + pos_x > cu->tile_end_x) ||
+               (cu->pixelY + pos_y > cu->tile_end_y)) {
         h265e_dbg_skip("32 ctu puIdx %d out of pic", puIdx);
         memset(cu->m_cuDepth + puIdx * nSubPart, cuDepth, nSubPart);
         return;
@@ -679,7 +699,7 @@ static void proc_cu32(H265eSlice *slice, DataCu *cu, RK_U32 pos_x, RK_U32 pos_y,
         cu_x_1 = pos_x + (m & 1) * (nSize >> 1);
         cu_y_1 = pos_y + (m >> 1) * (nSize >> 1);
         newPuIdx = puIdx * 4 + m;
-        proc_cu16(slice, cu, cu_x_1, cu_y_1, nSubPart / 4, cuDepth + 1, newPuIdx);
+        proc_cu16(cu, cu_x_1, cu_y_1, nSubPart / 4, cuDepth + 1, newPuIdx);
     }
 }
 
@@ -700,13 +720,13 @@ static void proc_ctu64(H265eSlice *slice, DataCu *cu)
         cu->m_cuDepth[k] = 0;
         cu->m_cuSize[k] = m_nCtuSize;
     }
-    if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples))
+    if ((rpelx <= cu->tile_end_x) && (bpely <= cu->tile_end_y))
         return;
 
     for (m = 0; m < 4; m ++) {
         cu_x_1 = (m & 1) * (m_nCtuSize >> 1);
         cu_y_1 = (m >> 1) * (m_nCtuSize >> 1);
-        proc_cu32(slice, cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
+        proc_cu32(cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
     }
 
     for (k = 0; k < numPartions; k++) {
@@ -758,13 +778,13 @@ static void proc_ctu32(H265eSlice *slice, DataCu *cu)
         cu->m_cuDepth[k] = 0;
         cu->m_cuSize[k] = m_nCtuSize;
     }
-    if ((rpelx < sps->m_picWidthInLumaSamples) && (bpely < sps->m_picHeightInLumaSamples))
+    if ((rpelx <= cu->tile_end_x) && (bpely <= cu->tile_end_y))
         return;
 
     for (m = 0; m < 4; m ++) {
         cu_x_1 = (m & 1) * (m_nCtuSize >> 1);
         cu_y_1 = (m >> 1) * (m_nCtuSize >> 1);
-        proc_cu16(slice, cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
+        proc_cu16(cu, cu_x_1, cu_y_1, numPartions / 4, cuDepth + 1, m);
     }
 
     for (k = 0; k < numPartions; k++) {
@@ -776,25 +796,16 @@ static void proc_ctu32(H265eSlice *slice, DataCu *cu)
     }
 }
 
-RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_S32 len)
+static void h265e_code_skip_tile(void *ctx, H265eSlice *slice, MppWriteCtx *bitIf, TileInfo *tile)
 {
+    DataCu cu;
     void (*proc_ctu)(H265eSlice *, DataCu *);
-    MppWriteCtx bitIf;
     H265eCtx *p = (H265eCtx *)ctx;
     H265eSps *sps = &p->sps;
     H265eCabacCtx *cabac_ctx = &slice->m_cabac;
-    h265e_dbg_func("enter\n");
-    RK_U32 mb_wd = (sps->m_picWidthInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
-    RK_U32 mb_h = (sps->m_picHeightInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
     RK_U32 cu_cnt;
-    RK_U32 offset_x = 0;
-    RK_U32 offset_y = 0;
-    RK_U32 mb_total = mb_wd * mb_h;
-
-    if (!buf || !len) {
-        mpp_err("buf or size no set");
-        return MPP_NOK;
-    }
+    RK_U32 offset_x = tile->tile_start_x;
+    RK_U32 offset_y = tile->tile_start_y;
 
     if (sps->m_maxCUSize == 32)
         /* rk3528 maxCUSize[32] depth[3], other chips maxCUSize[64] depth[4],
@@ -803,17 +814,17 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
     else
         proc_ctu = proc_ctu64;
 
-    mpp_writer_init(&bitIf, buf, len);
-    h265e_write_nal(&bitIf, slice->temporal_id);
-    h265e_code_slice_header(slice, &bitIf);
-    h265e_write_algin(&bitIf);
+    h265e_write_nal(bitIf, slice->temporal_id);
+    h265e_code_slice_header(slice, bitIf, tile->ctu_addr);
+    h265e_write_algin(bitIf);
     h265e_reset_enctropy((void*)slice);
-    h265e_cabac_init(cabac_ctx, &bitIf);
-    DataCu cu;
-    cu.mb_w = mb_wd;
-    cu.mb_h = mb_h;
+    h265e_cabac_init(cabac_ctx, bitIf);
+
     slice->is_referenced = 0;
-    for (cu_cnt = 0; cu_cnt < mb_total - 1; cu_cnt++) {
+    cu.tile_start_x = tile->tile_start_x;
+    cu.tile_end_x = tile->tile_end_x;
+    cu.tile_end_y = tile->tile_end_y;
+    for (cu_cnt = 0; cu_cnt < tile->mb_total - 1; cu_cnt++) {
         cu.pixelX = offset_x;
         cu.pixelY = offset_y;
         cu.cur_addr = cu_cnt;
@@ -821,8 +832,8 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
         encode_cu(slice, 0, 0, &cu);
         h265e_cabac_encodeBinTrm(cabac_ctx, 0);
         offset_x += sps->m_maxCUSize;
-        if (offset_x >= sps->m_picWidthInLumaSamples) {
-            offset_x = 0;
+        if (offset_x > tile->tile_end_x) {
+            offset_x = tile->tile_start_x;
             offset_y += sps->m_maxCUSize;
         }
     }
@@ -834,7 +845,53 @@ RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_
     encode_cu(slice, 0, 0, &cu);
     h265e_cabac_encodeBinTrm(cabac_ctx, 1);
     h265e_cabac_finish(cabac_ctx);
-    h265e_write_algin(&bitIf);
+    h265e_write_algin(bitIf);
+}
+
+RK_S32 h265e_code_slice_skip_frame(void *ctx, H265eSlice *slice, RK_U8 *buf, RK_S32 len)
+{
+    H265eCtx *p = (H265eCtx *)ctx;
+    H265eSps *sps = &p->sps;
+    H265ePps *pps = &p->pps;
+    TileInfo tile;
+    MppWriteCtx bitIf;
+    RK_U32 mb_wd;
+    RK_U32 mb_h;
+    RK_S32 i;
+
+    h265e_dbg_func("enter\n");
+    if (!buf || !len) {
+        mpp_err("buf or size no set");
+        return MPP_NOK;
+    }
+
+    mpp_writer_init(&bitIf, buf, len);
+    tile.ctu_addr = 0;
+    tile.tile_start_y = 0;
+    tile.tile_end_y = sps->m_picHeightInLumaSamples - 1;
+
+    if (pps->m_nNumTileColumnsMinus1) {
+        tile.tile_start_x = 0;
+        for (i = 0; i <= pps->m_nNumTileColumnsMinus1; i++) {
+            tile.mb_total = pps->m_nTileColumnWidthArray[i] * pps->m_nTileRowHeightArray[i];
+            if (i != pps->m_nNumTileColumnsMinus1)
+                tile.tile_end_x = tile.tile_start_x +
+                                  (pps->m_nTileColumnWidthArray[i] * sps->m_maxCUSize) - 1;
+            else
+                tile.tile_end_x = sps->m_picWidthInLumaSamples - 1;
+            h265e_code_skip_tile(ctx, slice, &bitIf, &tile);
+            tile.tile_start_x += (pps->m_nTileColumnWidthArray[i] * sps->m_maxCUSize);
+            tile.ctu_addr += pps->m_nTileColumnWidthArray[i];
+        }
+    } else {
+        mb_wd = (sps->m_picWidthInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
+        mb_h = (sps->m_picHeightInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
+        tile.mb_total = mb_wd * mb_h;
+        tile.tile_start_x = 0;
+        tile.tile_end_x = sps->m_picWidthInLumaSamples - 1;
+        h265e_code_skip_tile(ctx, slice, &bitIf, &tile);
+    }
+
     h265e_dbg_func("leave\n");
     return mpp_writer_bytes(&bitIf);
 }

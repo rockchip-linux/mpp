@@ -41,10 +41,20 @@ typedef struct DataCu_t {
     RK_U8   m_cuDepth[256];
     RK_U32  pixelX;
     RK_U32  pixelY;
-    RK_U32  mb_w;
-    RK_U32  mb_h;
     RK_U32  cur_addr;
+    RK_U32  tile_start_x;
+    RK_U32  tile_end_x;
+    RK_U32  tile_end_y;
 } DataCu;
+
+typedef struct TileInfo_t {
+    RK_U32 tile_start_x;
+    RK_U32 tile_end_x;
+    RK_U32 tile_start_y;
+    RK_U32 tile_end_y;
+    RK_U32 mb_total;
+    RK_U32 ctu_addr;
+} TileInfo;
 
 typedef struct H265eReferencePictureSet_e {
     RK_S32  m_deltaRIdxMinus1;
