@@ -2764,7 +2764,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     if (frm->is_i_refresh)
         setup_intra_refresh(ctx, frm->seq_idx % ctx->cfg->rc.gop);
 
-    if (cfg->tune.qpmap_en && (!rc_task->info.complex_scene) &&
+    if (cfg->tune.deblur_en && (!rc_task->info.complex_scene) &&
         cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC &&
         cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) {
         if (MPP_OK != vepu580_setup_qpmap_buf(ctx))

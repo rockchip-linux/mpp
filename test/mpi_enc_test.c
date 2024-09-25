@@ -390,7 +390,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
-    mpp_enc_cfg_set_s32(cfg, "tune:qpmap_en", 1);
     mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
     mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 0);
     mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);

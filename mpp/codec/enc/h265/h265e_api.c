@@ -119,7 +119,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.sao_str_i = 0;
     p->cfg->tune.sao_str_p = 1;
     p->cfg->tune.deblur_str = 3;
-    p->cfg->tune.qpmap_en = 0;
+    p->cfg->tune.deblur_en = 0;
     p->cfg->tune.rc_container = 0;
     p->cfg->tune.vmaf_opt = 0;
 

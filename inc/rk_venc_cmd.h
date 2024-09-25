@@ -1439,7 +1439,6 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_ATL_STR             = (1 << 9),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I           = (1 << 10),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P           = (1 << 11),
-    MPP_ENC_TUNE_CFG_CHANGE_QPMAP_EN            = (1 << 12),
     MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER        = (1 << 13),
     MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT            = (1 << 14)
 } MppEncFineTuneCfgChange;
@@ -1458,7 +1457,6 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              atl_str; /* anti_stripe */
     RK_S32              sao_str_i; /* anti blur */
     RK_S32              sao_str_p; /* anti blur */
-    RK_S32              qpmap_en;
     RK_S32              rc_container;
     RK_S32              vmaf_opt;
 } MppEncFineTuneCfg;

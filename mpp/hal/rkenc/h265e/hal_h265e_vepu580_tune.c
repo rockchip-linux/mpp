@@ -633,8 +633,8 @@ static MPP_RET vepu580_setup_qpmap_buf(H265eV580HalContext *ctx)
     RK_S32 md_flag_size = ctx->md_flag_size
                           = ctu_w * ctu_h * 16;
 
-    if (!ctx->cfg->tune.qpmap_en) {
-        mpp_log("qpmap_en is closed!\n");
+    if (!ctx->cfg->tune.deblur_en) {
+        mpp_log("deblurring is closed!\n");
         goto __RET;
     }
 

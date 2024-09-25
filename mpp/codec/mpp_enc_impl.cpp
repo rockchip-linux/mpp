@@ -942,14 +942,6 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_QPMAP_EN)
-            dst->qpmap_en = src->qpmap_en;
-
-        if (dst->qpmap_en < 0 || dst->qpmap_en > 1) {
-            mpp_err("invalid qpmap_en %d not in range [0, 1]\n", dst->qpmap_en);
-            ret = MPP_ERR_VALUE;
-        }
-
         if (change & MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER)
             dst->rc_container = src->rc_container;
 

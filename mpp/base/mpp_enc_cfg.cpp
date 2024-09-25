@@ -266,7 +266,6 @@ public:
     ENTRY(tune, atl_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATL_STR,     tune, atl_str) \
     ENTRY(tune, sao_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I,   tune, sao_str_i) \
     ENTRY(tune, sao_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P,   tune, sao_str_p) \
-    ENTRY(tune, qpmap_en,       S32,        MPP_ENC_TUNE_CFG_CHANGE_QPMAP_EN,       tune, qpmap_en) \
     ENTRY(tune, rc_container,   S32,        MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER,   tune, rc_container) \
     ENTRY(tune, vmaf_opt,       S32,        MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT,       tune, vmaf_opt)
 
