@@ -231,6 +231,143 @@ static void vepu580_h265e_tune_deinit(void *tune)
     MPP_FREE(tune);
 }
 
+static void vepu580_h265e_tune_atf(H265eV580HalContext *ctx, RK_U32 sm_flag)
+{
+    H265eV580RegSet *regs = ctx->frm->regs_set[0];
+    vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
+    RdoAtfSkipCfg *s;
+    RdoAtfCfg* p;
+    RK_U32 atf_idx = ctx->cfg->tune.vmaf_opt ? 3 : sm_flag;
+
+    s = &reg_rdo->rdo_b64_skip_atf;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
+
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b64_atf_wgt[atf_idx][0];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b64_atf_wgt[atf_idx][1];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b64_atf_wgt[atf_idx][2];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b64_atf_wgt[atf_idx][3];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b64_atf_wgt[atf_idx][4];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b64_atf_wgt[atf_idx][5];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b64_atf_wgt[atf_idx][6];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b64_atf_wgt[atf_idx][7];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b64_atf_wgt[atf_idx][8];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b64_atf_wgt[atf_idx][9];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b64_atf_wgt[atf_idx][10];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b64_atf_wgt[atf_idx][11];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b64_atf_wgt[atf_idx][12];
+
+    p = &reg_rdo->rdo_b32_intra_atf;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
+    p->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b32_atf_wgt[atf_idx][0];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b32_atf_wgt[atf_idx][1];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b32_atf_wgt[atf_idx][2];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b32_atf_wgt[atf_idx][3];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b32_atf_wgt[atf_idx][4];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b32_atf_wgt[atf_idx][5];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b32_atf_wgt[atf_idx][6];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b32_atf_wgt[atf_idx][7];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b32_atf_wgt[atf_idx][8];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b32_atf_wgt[atf_idx][9];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b32_atf_wgt[atf_idx][10];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b32_atf_wgt[atf_idx][11];
+
+    s = &reg_rdo->rdo_b32_skip_atf;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd0 =  1;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd1 =  2;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd2 =  4;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd3 =  6;
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  =  skip_b32_atf_wgt[atf_idx][0];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  =  skip_b32_atf_wgt[atf_idx][1];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  =  skip_b32_atf_wgt[atf_idx][2];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  =  skip_b32_atf_wgt[atf_idx][3];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  =  skip_b32_atf_wgt[atf_idx][4];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  =  skip_b32_atf_wgt[atf_idx][5];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  =  skip_b32_atf_wgt[atf_idx][6];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  =  skip_b32_atf_wgt[atf_idx][7];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  =  skip_b32_atf_wgt[atf_idx][8];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  =  skip_b32_atf_wgt[atf_idx][9];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  =  skip_b32_atf_wgt[atf_idx][10];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  =  skip_b32_atf_wgt[atf_idx][11];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  =  skip_b32_atf_wgt[atf_idx][12];
+
+    p = &reg_rdo->rdo_b16_intra_atf;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
+    p->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b16_atf_wgt[atf_idx][0];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b16_atf_wgt[atf_idx][1];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b16_atf_wgt[atf_idx][2];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b16_atf_wgt[atf_idx][3];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b16_atf_wgt[atf_idx][4];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b16_atf_wgt[atf_idx][5];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b16_atf_wgt[atf_idx][6];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b16_atf_wgt[atf_idx][7];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b16_atf_wgt[atf_idx][8];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b16_atf_wgt[atf_idx][9];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b16_atf_wgt[atf_idx][10];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b16_atf_wgt[atf_idx][11];
+
+    s = &reg_rdo->rdo_b16_skip_atf;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b16_atf_wgt[atf_idx][0];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b16_atf_wgt[atf_idx][1];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b16_atf_wgt[atf_idx][2];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b16_atf_wgt[atf_idx][3];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b16_atf_wgt[atf_idx][4];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b16_atf_wgt[atf_idx][5];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b16_atf_wgt[atf_idx][6];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b16_atf_wgt[atf_idx][7];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b16_atf_wgt[atf_idx][8];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b16_atf_wgt[atf_idx][9];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b16_atf_wgt[atf_idx][10];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b16_atf_wgt[atf_idx][11];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b16_atf_wgt[atf_idx][12];
+
+    p = &reg_rdo->rdo_b8_intra_atf;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
+    p->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
+    p->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b8_atf_wgt[atf_idx][0];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b8_atf_wgt[atf_idx][1];
+    p->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b8_atf_wgt[atf_idx][2];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b8_atf_wgt[atf_idx][3];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b8_atf_wgt[atf_idx][4];
+    p->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b8_atf_wgt[atf_idx][5];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b8_atf_wgt[atf_idx][6];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b8_atf_wgt[atf_idx][7];
+    p->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b8_atf_wgt[atf_idx][8];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b8_atf_wgt[atf_idx][9];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b8_atf_wgt[atf_idx][10];
+    p->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b8_atf_wgt[atf_idx][11];
+
+    s = &reg_rdo->rdo_b8_skip_atf;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
+    s->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
+    s->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b8_atf_wgt[atf_idx][0];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b8_atf_wgt[atf_idx][1];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b8_atf_wgt[atf_idx][2];
+    s->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b8_atf_wgt[atf_idx][3];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b8_atf_wgt[atf_idx][4];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b8_atf_wgt[atf_idx][5];
+    s->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b8_atf_wgt[atf_idx][6];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b8_atf_wgt[atf_idx][7];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b8_atf_wgt[atf_idx][8];
+    s->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b8_atf_wgt[atf_idx][9];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b8_atf_wgt[atf_idx][10];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b8_atf_wgt[atf_idx][11];
+    s->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b8_atf_wgt[atf_idx][12];
+}
+
 static void vepu580_h265e_tune_reg_patch(void *p)
 {
     HalH265eVepu580Tune *tune = (HalH265eVepu580Tune *)p;
@@ -248,152 +385,24 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     hevc_vepu580_rc_klut *rc_regs =  &regs->reg_rc_klut;
     hevc_vepu580_wgt *reg_wgt = &regs->reg_wgt;
     vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
-    RdoAtfSkipCfg *p_rdo_atf_skip;
-    RdoAtfCfg* p_rdo_atf;
     RK_U32 scene_motion_flag = tune->ap_motion_flag * 2 + tune->curr_scene_motion_flag;
     MppEncHwCfg *hw = &ctx->cfg->hw;
     RK_S32 vmaf_opt = ctx->cfg->tune.vmaf_opt;
     RK_U32 pre_intra_idx = vmaf_opt ? 3 : scene_motion_flag;
-    RK_U32 atf_idx = vmaf_opt ? 3 : scene_motion_flag;
 
     if (scene_motion_flag > 3) {
         mpp_err_f("scene_motion_flag is a wrong value %d\n", scene_motion_flag);
         return;
     }
 
-
     memcpy(&reg_wgt->lvl32_intra_CST_WGT0, lvl32_preintra_cst_wgt[pre_intra_idx],
            sizeof(lvl32_preintra_cst_wgt[pre_intra_idx]));
     memcpy(&reg_wgt->lvl16_intra_CST_WGT0, lvl16_preintra_cst_wgt[pre_intra_idx],
            sizeof(lvl16_preintra_cst_wgt[pre_intra_idx]));
 
-    p_rdo_atf_skip = &reg_rdo->rdo_b64_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
-
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b64_atf_wgt[atf_idx][0];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b64_atf_wgt[atf_idx][1];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b64_atf_wgt[atf_idx][2];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b64_atf_wgt[atf_idx][3];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b64_atf_wgt[atf_idx][4];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b64_atf_wgt[atf_idx][5];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b64_atf_wgt[atf_idx][6];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b64_atf_wgt[atf_idx][7];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b64_atf_wgt[atf_idx][8];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b64_atf_wgt[atf_idx][9];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b64_atf_wgt[atf_idx][10];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b64_atf_wgt[atf_idx][11];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b64_atf_wgt[atf_idx][12];
-
-    p_rdo_atf = &reg_rdo->rdo_b32_intra_atf;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
-    p_rdo_atf->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b32_atf_wgt[atf_idx][0];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b32_atf_wgt[atf_idx][1];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b32_atf_wgt[atf_idx][2];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b32_atf_wgt[atf_idx][3];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b32_atf_wgt[atf_idx][4];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b32_atf_wgt[atf_idx][5];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b32_atf_wgt[atf_idx][6];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b32_atf_wgt[atf_idx][7];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b32_atf_wgt[atf_idx][8];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b32_atf_wgt[atf_idx][9];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b32_atf_wgt[atf_idx][10];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b32_atf_wgt[atf_idx][11];
-
-    p_rdo_atf_skip = &reg_rdo->rdo_b32_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 =  1;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 =  2;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 =  4;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 =  6;
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  =  skip_b32_atf_wgt[atf_idx][0];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  =  skip_b32_atf_wgt[atf_idx][1];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  =  skip_b32_atf_wgt[atf_idx][2];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  =  skip_b32_atf_wgt[atf_idx][3];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  =  skip_b32_atf_wgt[atf_idx][4];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  =  skip_b32_atf_wgt[atf_idx][5];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  =  skip_b32_atf_wgt[atf_idx][6];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  =  skip_b32_atf_wgt[atf_idx][7];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  =  skip_b32_atf_wgt[atf_idx][8];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  =  skip_b32_atf_wgt[atf_idx][9];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  =  skip_b32_atf_wgt[atf_idx][10];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  =  skip_b32_atf_wgt[atf_idx][11];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  =  skip_b32_atf_wgt[atf_idx][12];
-
-    p_rdo_atf = &reg_rdo->rdo_b16_intra_atf;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
-    p_rdo_atf->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b16_atf_wgt[atf_idx][0];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b16_atf_wgt[atf_idx][1];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b16_atf_wgt[atf_idx][2];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b16_atf_wgt[atf_idx][3];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b16_atf_wgt[atf_idx][4];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b16_atf_wgt[atf_idx][5];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b16_atf_wgt[atf_idx][6];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b16_atf_wgt[atf_idx][7];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b16_atf_wgt[atf_idx][8];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b16_atf_wgt[atf_idx][9];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b16_atf_wgt[atf_idx][10];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b16_atf_wgt[atf_idx][11];
-
-    p_rdo_atf_skip = &reg_rdo->rdo_b16_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b16_atf_wgt[atf_idx][0];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b16_atf_wgt[atf_idx][1];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b16_atf_wgt[atf_idx][2];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b16_atf_wgt[atf_idx][3];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b16_atf_wgt[atf_idx][4];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b16_atf_wgt[atf_idx][5];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b16_atf_wgt[atf_idx][6];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b16_atf_wgt[atf_idx][7];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b16_atf_wgt[atf_idx][8];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b16_atf_wgt[atf_idx][9];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b16_atf_wgt[atf_idx][10];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b16_atf_wgt[atf_idx][11];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b16_atf_wgt[atf_idx][12];
-
-    p_rdo_atf = &reg_rdo->rdo_b8_intra_atf;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 24;
-    p_rdo_atf->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 48;
-    p_rdo_atf->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 64;
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = intra_b8_atf_wgt[atf_idx][0];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt01  = intra_b8_atf_wgt[atf_idx][1];
-    p_rdo_atf->rdo_b_atf_wgt0.cu_rdo_atf_wgt02  = intra_b8_atf_wgt[atf_idx][2];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt10  = intra_b8_atf_wgt[atf_idx][3];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt11  = intra_b8_atf_wgt[atf_idx][4];
-    p_rdo_atf->rdo_b_atf_wgt1.cu_rdo_atf_wgt12  = intra_b8_atf_wgt[atf_idx][5];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt20  = intra_b8_atf_wgt[atf_idx][6];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt21  = intra_b8_atf_wgt[atf_idx][7];
-    p_rdo_atf->rdo_b_atf_wgt2.cu_rdo_atf_wgt22  = intra_b8_atf_wgt[atf_idx][8];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt30  = intra_b8_atf_wgt[atf_idx][9];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt31  = intra_b8_atf_wgt[atf_idx][10];
-    p_rdo_atf->rdo_b_atf_wgt3.cu_rdo_atf_wgt32  = intra_b8_atf_wgt[atf_idx][11];
-
-    p_rdo_atf_skip = &reg_rdo->rdo_b8_skip_atf;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
-    p_rdo_atf_skip->rdo_b_cime_thd0.cu_rdo_cime_thd1 = 2;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd2 = 4;
-    p_rdo_atf_skip->rdo_b_cime_thd1.cu_rdo_cime_thd3 = 6;
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt00  = skip_b8_atf_wgt[atf_idx][0];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt10  = skip_b8_atf_wgt[atf_idx][1];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt11  = skip_b8_atf_wgt[atf_idx][2];
-    p_rdo_atf_skip->rdo_b_atf_wgt0.cu_rdo_atf_wgt12  = skip_b8_atf_wgt[atf_idx][3];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt20  = skip_b8_atf_wgt[atf_idx][4];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt21  = skip_b8_atf_wgt[atf_idx][5];
-    p_rdo_atf_skip->rdo_b_atf_wgt1.cu_rdo_atf_wgt22  = skip_b8_atf_wgt[atf_idx][6];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt30  = skip_b8_atf_wgt[atf_idx][7];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt31  = skip_b8_atf_wgt[atf_idx][8];
-    p_rdo_atf_skip->rdo_b_atf_wgt2.cu_rdo_atf_wgt32  = skip_b8_atf_wgt[atf_idx][9];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt40  = skip_b8_atf_wgt[atf_idx][10];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt41  = skip_b8_atf_wgt[atf_idx][11];
-    p_rdo_atf_skip->rdo_b_atf_wgt3.cu_rdo_atf_wgt42  = skip_b8_atf_wgt[atf_idx][12];
+    /* Do not adjust the ATF weight when skip bias is enabled */
+    if (!hw->skip_bias_en)
+        vepu580_h265e_tune_atf(ctx, scene_motion_flag);
 
     reg_rdo->preintra_b32_cst_wgt.pre_intra32_cst_wgt00 = pre_intra_b32_cost[scene_motion_flag][0];
     reg_rdo->preintra_b32_cst_wgt.pre_intra32_cst_wgt01 = pre_intra_b32_cost[scene_motion_flag][1];
@@ -469,12 +478,12 @@ static void vepu580_h265e_tune_reg_patch(void *p)
         reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = qnt_bias_i[scene_motion_flag];
         reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = qnt_bias_p[scene_motion_flag];
     }
+
     reg_wgt->rime_sqi_thd.cime_sad_th0 = rime_sqi_cime_sad_th[scene_motion_flag];
     reg_wgt->fme_sqi_thd0.cime_sad_pu16_th = fme_sqi_cime_sad_pu16_th[scene_motion_flag];
     reg_wgt->fme_sqi_thd0.cime_sad_pu32_th = fme_sqi_cime_sad_pu32_th[scene_motion_flag];
     reg_wgt->fme_sqi_thd1.cime_sad_pu64_th = fme_sqi_cime_sad_pu64_th[scene_motion_flag];
     rc_regs->klut_ofst.chrm_klut_ofst = chrm_klut_ofst[scene_motion_flag];
-
 }
 
 static void vepu580_h265e_tune_stat_update(void *p, EncRcTaskInfo *rc_info)
