@@ -458,6 +458,10 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
     pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;
     {
         RockchipSocType soc_type = mpp_get_soc_type();
+        RK_S32 index;
+        RK_S32 mb_w = (sps->m_picWidthInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
+        RK_S32 mb_h = (sps->m_picHeightInLumaSamples + sps->m_maxCUSize - 1) / sps->m_maxCUSize;
+        RK_S32 tile_width;
 
         /* check tile support on rk3566 and rk3568 */
         if (soc_type == ROCKCHIP_SOC_RK3566 || soc_type == ROCKCHIP_SOC_RK3568) {
@@ -477,7 +481,18 @@ MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
         if (pps->m_nNumTileColumnsMinus1) {
             pps->m_tiles_enabled_flag = 1;
             pps->m_bTileUniformSpacing = 1;
-            pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;;
+            pps->m_loopFilterAcrossTilesEnabledFlag = !codec->lpf_acs_tile_disable;
+
+            /* calc width per tile */
+            for (index = 0; index < pps->m_nNumTileColumnsMinus1; index++) {
+                tile_width = (index + 1) * mb_w / (pps->m_nNumTileColumnsMinus1 + 1) -
+                             index * mb_w / (pps->m_nNumTileColumnsMinus1 + 1);
+                pps->m_nTileColumnWidthArray[index] = tile_width;
+                pps->m_nTileRowHeightArray[index] = mb_h;
+            }
+            tile_width = mb_w - index * mb_w / (pps->m_nNumTileColumnsMinus1 + 1);
+            pps->m_nTileColumnWidthArray[index] = tile_width;
+            pps->m_nTileRowHeightArray[index] = mb_h;
         }
     }
 

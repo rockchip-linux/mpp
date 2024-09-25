@@ -120,11 +120,11 @@ static void fill_picture_parameters(const H265eCtx *h,
         pp->num_tile_columns_minus1 = pps->m_nNumTileColumnsMinus1;
         pp->num_tile_rows_minus1 = pps->m_nNumTileRowsMinus1;
 
-        for (i = 0; i < pp->num_tile_columns_minus1; i++)
-            pp->column_width_minus1[i] = pps->m_nTileColumnWidthArray[i];
+        for (i = 0; i <= pp->num_tile_columns_minus1; i++)
+            pp->column_width_minus1[i] = pps->m_nTileColumnWidthArray[i] - 1;
 
-        for (i = 0; i < pp->num_tile_rows_minus1; i++)
-            pp->row_height_minus1[i] = pps->m_nTileRowHeightArray[i];
+        for (i = 0; i <= pp->num_tile_rows_minus1; i++)
+            pp->row_height_minus1[i] = pps->m_nTileRowHeightArray[i] - 1;
     }
 }
 

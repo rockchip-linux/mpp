@@ -1331,7 +1331,8 @@ static void vepu541_h265_set_me_regs(H265eV541HalContext *ctx, H265eSyntax_new *
         regs->me_ram.cach_l2_tag  = 0x3;
 }
 
-static void vepu540_h265_set_me_ram(H265eSyntax_new *syn, H265eV541RegSet *regs, RK_U32 index)
+static void vepu540_h265_set_me_ram(H265eSyntax_new *syn, H265eV541RegSet *regs,
+                                    RK_U32 index, RK_S32 tile_start_x)
 {
     RK_U32 cime_w = 11, cime_h = 7;
     RK_U32 pic_cime_temp = 0;
@@ -1340,15 +1341,9 @@ static void vepu540_h265_set_me_ram(H265eSyntax_new *syn, H265eV541RegSet *regs,
         regs->me_ram.cime_linebuf_w = pic_cime_temp / 64;
     } else {
         RK_S32 pic_wd64 = MPP_ALIGN(syn->pp.pic_width, 64) >> 6;
-        RK_S32 tile_ctu_stax = index * pic_wd64 / (syn->pp.num_tile_columns_minus1 + 1);
-        RK_S32 tile_ctu_endx = 0;
+        RK_S32 tile_ctu_stax = tile_start_x;
+        RK_S32 tile_ctu_endx = tile_start_x + syn->pp.column_width_minus1[index];
         RK_S32 cime_srch_w = regs->me_rnge.cime_srch_h;
-
-        if (index == syn->pp.num_tile_columns_minus1) {
-            tile_ctu_endx = ((regs->enc_rsl.pic_wd8_m1 + 1) * 8 + 63) / 64 - 1;
-        } else {
-            tile_ctu_endx = (index + 1) * pic_wd64 / (syn->pp.num_tile_columns_minus1 + 1) - 1;
-        }
 
         if (tile_ctu_stax < (cime_srch_w + 3) / 4) {
             if (tile_ctu_endx + 1 + (cime_srch_w + 3) / 4 > pic_wd64)
@@ -1668,21 +1663,18 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     hal_h265e_leave();
     return MPP_OK;
 }
-void hal_h265e_v540_set_uniform_tile(H265eV541RegSet *regs, H265eSyntax_new *syn, RK_U32 index)
+void hal_h265e_v540_set_uniform_tile(H265eV541RegSet *regs, H265eSyntax_new *syn,
+                                     RK_U32 index, RK_S32 tile_start_x)
 {
     if (syn->pp.tiles_enabled_flag) {
-        RK_S32 mb_w = MPP_ALIGN(syn->pp.pic_width, 64) / 64;
         RK_S32 mb_h = MPP_ALIGN(syn->pp.pic_height, 64) / 64;
-        RK_S32 tile_width = (index + 1) * mb_w / (syn->pp.num_tile_columns_minus1 + 1) -
-                            index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
-        if (index == syn->pp.num_tile_columns_minus1) {
-            tile_width = mb_w - index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
-        }
+        RK_S32 tile_width = syn->pp.column_width_minus1[index] + 1;
+
         regs->tile_cfg.tile_width_m1 = tile_width - 1;
         regs->tile_cfg.tile_height_m1 = mb_h - 1;
         regs->rc_cfg.rc_ctu_num   = tile_width;
         regs->tile_cfg.tile_en = syn->pp.tiles_enabled_flag;
-        regs->tile_pos.tile_x = (index * mb_w / (syn->pp.num_tile_columns_minus1 + 1));
+        regs->tile_pos.tile_x = tile_start_x;
         regs->tile_pos.tile_y = 0;
         if (index > 0) {
             RK_U32 tmp = regs->lpfr_addr_hevc;
@@ -1707,6 +1699,7 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
     hal_h265e_enter();
     RK_U32 stream_len = 0;
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
+    RK_S32 tile_start_x = 0;
 
     if (enc_task->flags.err) {
         hal_h265e_err("enc_task->flags.err %08x, return e arly",
@@ -1721,13 +1714,13 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
         MppDevRegWrCfg cfg;
         MppDevRegRdCfg cfg1;
 
-        vepu540_h265_set_me_ram(syn, hw_regs, k);
+        vepu540_h265_set_me_ram(syn, hw_regs, k, tile_start_x);
 
         /* set input info */
         vepu541_h265_set_l2_regs(ctx, (H265eV54xL2RegSet*)ctx->l2_regs);
         vepu541_h265_set_patch_info(ctx->dev, syn, (Vepu541Fmt)fmt->format, enc_task);
         if (title_num > 1)
-            hal_h265e_v540_set_uniform_tile(hw_regs, syn, k);
+            hal_h265e_v540_set_uniform_tile(hw_regs, syn, k, tile_start_x);
         if (k > 0) {
             MppDevRegOffsetCfg cfg_fd;
             RK_U32 offset = mpp_packet_get_length(enc_task->packet);
@@ -1807,6 +1800,7 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
             }
 
         }
+        tile_start_x += (syn->pp.column_width_minus1[k] + 1);
     }
 
     hal_h265e_dbg_detail("vpu client is sending %d regs", length);

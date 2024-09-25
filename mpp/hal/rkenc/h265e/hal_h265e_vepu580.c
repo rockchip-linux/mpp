@@ -254,7 +254,8 @@ static RK_U8 lvl16_intra_cst_wgt[8] = {17, 17, 17, 18, 17, 18, 18};
 
 #include "hal_h265e_vepu580_tune.c"
 
-static void vepu580_h265_set_me_ram(H265eSyntax_new *syn, hevc_vepu580_base *regs, RK_U32 index)
+static void vepu580_h265_set_me_ram(H265eSyntax_new *syn, hevc_vepu580_base *regs,
+                                    RK_U32 index, RK_S32 tile_start_x)
 {
     RK_S32 frm_sta = 0, frm_end = 0, pic_w = 0;
     RK_S32 srch_w = regs->reg0220_me_rnge.cme_srch_h * 4;
@@ -277,14 +278,8 @@ static void vepu580_h265_set_me_ram(H265eSyntax_new *syn, hevc_vepu580_base *reg
         }
         frm_end = mpp_clip(frm_end, 0, pic_wd64 - 1);
     } else {
-        RK_S32 tile_ctu_stax = index * pic_wd64 / (syn->pp.num_tile_columns_minus1 + 1);
-        RK_S32 tile_ctu_endx = 0;
-
-        if (index == syn->pp.num_tile_columns_minus1) {
-            tile_ctu_endx = ((regs->reg0196_enc_rsl.pic_wd8_m1 + 1) * 8 + 63) / 64 - 1;
-        } else {
-            tile_ctu_endx = (index + 1) * pic_wd64 / (syn->pp.num_tile_columns_minus1 + 1) - 1;
-        }
+        RK_S32 tile_ctu_stax = tile_start_x;
+        RK_S32 tile_ctu_endx = tile_start_x + syn->pp.column_width_minus1[index];
 
         if (x_gmv - srch_w < 0) {
             frm_sta = tile_ctu_stax + (x_gmv - srch_w - 15) / 16;
@@ -2787,13 +2782,12 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 
-void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *syn, RK_U32 index)
+void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *syn,
+                                     RK_U32 index, RK_S32 tile_start_x)
 {
     if (syn->pp.tiles_enabled_flag) {
-        RK_S32 mb_w = MPP_ALIGN(syn->pp.pic_width, 64) / 64;
         RK_S32 mb_h = MPP_ALIGN(syn->pp.pic_height, 64) / 64;
-        RK_S32 tile_width = (index + 1) * mb_w / (syn->pp.num_tile_columns_minus1 + 1) -
-                            index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
+        RK_S32 tile_width = syn->pp.column_width_minus1[index] + 1;
 
         if (!regs->reg0192_enc_pic.cur_frm_ref &&
             !(regs->reg0238_synt_pps.lpf_fltr_acrs_til &&
@@ -2819,7 +2813,6 @@ void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *s
         regs->reg0193_dual_core.dchs_ofst = 2;
 
         if (index == syn->pp.num_tile_columns_minus1) {
-            tile_width = mb_w - index * mb_w / (syn->pp.num_tile_columns_minus1 + 1);
             regs->reg0193_dual_core.dchs_txid = 0;
             regs->reg0193_dual_core.dchs_txe = 0;
         }
@@ -2827,7 +2820,7 @@ void hal_h265e_v580_set_uniform_tile(hevc_vepu580_base *regs, H265eSyntax_new *s
         regs->reg0252_tile_cfg.tile_h_m1 = mb_h - 1;
         regs->reg212_rc_cfg.rc_ctu_num   = tile_width;
         regs->reg0252_tile_cfg.tile_en = syn->pp.tiles_enabled_flag;
-        regs->reg0253_tile_pos.tile_x = (index * mb_w / (syn->pp.num_tile_columns_minus1 + 1));
+        regs->reg0253_tile_pos.tile_x = tile_start_x;
         regs->reg0253_tile_pos.tile_y = 0;
 
         hal_h265e_dbg_detail("tile_x %d, rc_ctu_num %d, tile_width_m1 %d",
@@ -2846,6 +2839,7 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
     Vepu580H265eFrmCfg *frm = ctx->frm;
     RK_U32 k = 0;
     MPP_RET ret = MPP_OK;
+    RK_S32 tile_start_x = 0;
 
     hal_h265e_enter();
 
@@ -2881,12 +2875,12 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
         if (k)
             memcpy(hw_regs, frm->regs_set[0], sizeof(*hw_regs));
 
-        vepu580_h265_set_me_ram(syn, reg_base, k);
+        vepu580_h265_set_me_ram(syn, reg_base, k, tile_start_x);
 
         /* set input info */
         vepu580_h265_set_patch_info(frm->reg_cfg, syn, (Vepu541Fmt)fmt->format, enc_task);
         if (tile_num > 1)
-            hal_h265e_v580_set_uniform_tile(reg_base, syn, k);
+            hal_h265e_v580_set_uniform_tile(reg_base, syn, k, tile_start_x);
 
         if (k) {
             RK_U32 offset = 0;
@@ -2955,6 +2949,7 @@ MPP_RET hal_h265e_v580_start(void *hal, HalEncTask *enc_task)
             } else
                 mpp_dev_ioctl(ctx->dev, MPP_DEV_DELIMIT, NULL);
         }
+        tile_start_x += (syn->pp.column_width_minus1[k] + 1);
     }
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
