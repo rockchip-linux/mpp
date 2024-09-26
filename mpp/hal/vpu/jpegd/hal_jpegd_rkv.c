@@ -83,8 +83,6 @@ MPP_RET jpegd_write_rkv_htbl(JpegdHalCtx *ctx, JpegdSyntax *jpegd_syntax)
     MPP_RET ret = MPP_OK;
 
     JpegdSyntax *s = jpegd_syntax;
-    AcTable *ac_ptr0 = NULL, *ac_ptr1 = NULL;
-    DcTable *dc_ptr0 = NULL, *dc_ptr1 = NULL;
     void * htbl_ptr[6] = {NULL};
     RK_U32 i, j, k = 0;
     RK_U8 *p_htbl_value = (RK_U8 *)mpp_buffer_get_ptr(ctx->pTableBase) + RKD_HUFFMAN_VALUE_TBL_OFFSET;
@@ -100,30 +98,14 @@ MPP_RET jpegd_write_rkv_htbl(JpegdHalCtx *ctx, JpegdSyntax *jpegd_syntax)
     AcTable *ac_ptr;
     DcTable *dc_ptr;
 
-    if (s->ac_index[0] == HUFFMAN_TABLE_ID_ZERO) {
-        /* Luma's AC uses Huffman table zero */
-        ac_ptr0 = &(s->ac_table[HUFFMAN_TABLE_ID_ZERO]);
-        ac_ptr1 = &(s->ac_table[HUFFMAN_TABLE_ID_ONE]);
-    } else {
-        ac_ptr0 = &(s->ac_table[HUFFMAN_TABLE_ID_ONE]);
-        ac_ptr1 = &(s->ac_table[HUFFMAN_TABLE_ID_ZERO]);
-    }
+    htbl_ptr[0] = &s->dc_table[s->dc_index[0]];
+    htbl_ptr[1] = &s->ac_table[s->ac_index[0]];
 
-    if (s->dc_index[0] == HUFFMAN_TABLE_ID_ZERO) {
-        /* Luma's DC uses Huffman table zero */
-        dc_ptr0 = &(s->dc_table[HUFFMAN_TABLE_ID_ZERO]);
-        dc_ptr1 = &(s->dc_table[HUFFMAN_TABLE_ID_ONE]);
-    } else {
-        dc_ptr0 = &(s->dc_table[HUFFMAN_TABLE_ID_ONE]);
-        dc_ptr1 = &(s->dc_table[HUFFMAN_TABLE_ID_ZERO]);
-    }
+    htbl_ptr[2] = &s->dc_table[s->dc_index[1]];
+    htbl_ptr[3] = &s->ac_table[s->ac_index[1]];
 
-    htbl_ptr[0] = dc_ptr0;
-    htbl_ptr[1] = ac_ptr0;
-    htbl_ptr[2] = dc_ptr1;
-    htbl_ptr[3] = ac_ptr1;
-    htbl_ptr[4] = dc_ptr1;
-    htbl_ptr[5] = ac_ptr1;
+    htbl_ptr[4] = htbl_ptr[2];
+    htbl_ptr[5] = htbl_ptr[3];
 
     for (k = 0; k < s->nb_components; k++) {
         dc_ptr = (DcTable *)htbl_ptr[k * 2];
