@@ -17,6 +17,7 @@
 
 #define MODULE_TAG  "h264d_sei"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -249,6 +250,12 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         tmp_byte = 0xFF;
         sei_msg->type = 0;
         while (tmp_byte == 0xFF) {
+            if (p_bitctx->bytes_left_ < 2 || sei_msg->type > INT_MAX - 255) {
+                mpp_err("parse payload_type error: byte_left %d payload_type %d\n",
+                        p_bitctx->bytes_left_, sei_msg->type);
+                return MPP_ERR_STREAM;
+            }
+
             READ_BITS(p_bitctx, 8, &tmp_byte);
             sei_msg->type += tmp_byte;
         }
@@ -256,8 +263,20 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         tmp_byte = 0xFF;
         sei_msg->payload_size = 0;
         while (tmp_byte == 0xFF) {
+            if ((RK_S32)p_bitctx->bytes_left_ < sei_msg->payload_size + 1) {
+                mpp_err("parse payload_size error: byte_left %d payload_size %d\n",
+                        p_bitctx->bytes_left_, sei_msg->payload_size + 1);
+                return MPP_ERR_STREAM;
+            }
+
             READ_BITS(p_bitctx, 8, &tmp_byte);
             sei_msg->payload_size += tmp_byte;
+        }
+
+        if ((RK_S32)p_bitctx->bytes_left_ < sei_msg->payload_size) {
+            mpp_err("parse payload_size error: byte_left %d payload_size %d\n",
+                    p_bitctx->bytes_left_, sei_msg->payload_size);
+            return MPP_ERR_STREAM;
         }
 
         H264D_DBG(H264D_DBG_SEI, "SEI type %d, payload size: %d\n", sei_msg->type, sei_msg->payload_size);

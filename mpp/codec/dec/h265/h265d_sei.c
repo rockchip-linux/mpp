@@ -422,13 +422,31 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
         payload_size = 0;
         byte = 0xFF;
         while (byte == 0xFF) {
+            if (gb->bytes_left_ < 2 || payload_type > INT_MAX - 255) {
+                mpp_err("parse payload_type error: byte_left %d payload_type %d\n",
+                        gb->bytes_left_, payload_type);
+                return MPP_ERR_STREAM;
+            }
+
             READ_BITS(gb, 8, &byte);
             payload_type += byte;
         }
         byte = 0xFF;
         while (byte == 0xFF) {
+            if ((RK_S32)gb->bytes_left_ < payload_size + 1) {
+                mpp_err("parse payload_size error: byte_left %d payload_size %d\n",
+                        gb->bytes_left_, payload_size + 1);
+                return MPP_ERR_STREAM;
+            }
+
             READ_BITS(gb, 8, &byte);
             payload_size += byte;
+        }
+
+        if ((RK_S32)gb->bytes_left_ < payload_size) {
+            mpp_err("parse payload_size error: byte_left %d payload_size %d\n",
+                    gb->bytes_left_, payload_size);
+            return MPP_ERR_STREAM;
         }
 
         memset(&payload_bitctx, 0, sizeof(payload_bitctx));
