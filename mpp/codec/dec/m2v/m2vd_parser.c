@@ -964,9 +964,11 @@ static int m2vd_decode_seq_header(M2VDParserContext *ctx)
     height = MPP_ALIGN(height, 16);
     width = MPP_ALIGN(width, 16);
 
-    if (width != ctx->seq_head.decode_width ||
-        height != ctx->seq_head.decode_height)
-        ctx->info_changed = 1;
+    if (ctx->seq_head.decode_width && ctx->seq_head.decode_height) {
+        if (width != ctx->seq_head.decode_width ||
+            height != ctx->seq_head.decode_height)
+            ctx->info_changed = 1;
+    }
 
     ctx->seq_head.decode_width = width;
     ctx->seq_head.decode_height = height;
