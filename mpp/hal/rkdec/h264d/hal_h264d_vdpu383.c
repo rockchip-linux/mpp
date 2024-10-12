@@ -608,8 +608,8 @@ static MPP_RET init_ctrl_regs(Vdpu383H264dRegSet *regs)
     ctrl_regs->reg16.error_spread_disable = 0;
     ctrl_regs->reg16.roi_error_ctu_cal_en = 0;
 
-    ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffffff;
-    ctrl_regs->reg21_cabac_error_en_highbits = 0x3ff3ffff;
+    ctrl_regs->reg20_cabac_error_en_lowbits = 0xfffedfff;
+    ctrl_regs->reg21_cabac_error_en_highbits = 0x0ffbf9ff;
 
     /* performance */
     ctrl_regs->reg28.axi_perf_work_e = 1;
