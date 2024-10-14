@@ -1,7 +1,7 @@
 Source: mpp
 Priority: optional
 Maintainer: Randy Li <randy.li@rock-chips.com>
-Build-Depends: debhelper (>= 9), cmake
+Build-Depends: debhelper (>= 9), cmake, dh-exec
 Standards-Version: 3.9.5
 Section: libs
 Homepage: http://www.rock-chips.com
