@@ -100,6 +100,11 @@ MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
             mpp_log_f("warning: for profile %d transform_8x8_mode should be 0\n",
                       codec->profile);
         }
+        if (pps->pic_scaling_matrix_present) {
+            pps->pic_scaling_matrix_present = 0;
+            mpp_log_f("warning: for profile %d pic_scaling_matrix_present should be 0\n",
+                      codec->profile);
+        }
     } else {
         pps->second_chroma_qp_index_offset_present = 1;
         pps->second_chroma_qp_index_offset = codec->chroma_cr_qp_offset;
