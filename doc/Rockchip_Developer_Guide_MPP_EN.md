@@ -412,6 +412,10 @@ The command parameter is RK_U32*. It is used to disable error handling of the MP
 
 The command parameter is RK_U32*. It is used to enable the immediate output mode of H.264 decoder. Once enabled the H.264 decoder ignores the frame sequence discontinuity caused by frame dropping or picture order count, just outputs the current decoded image immediately. This command is called before decode_put_packet.
 
+- MPP_DEC_SET_ENABLE_FAST_PLAY
+
+The command parameter is FastPlayMode\*. It is used to enable the fast play of H.264, without waiting for dpb full to output the frame. If the current frame is decoded after the I frame but displayed before the I frame, frame loss may occur. The command is called before decode_put_packet.
+
 ## 3.2.2 reset
 
 The reset interface is used to restore the decoder to the state after normal initialization.

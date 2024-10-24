@@ -433,6 +433,10 @@ decode函数是decode_put_packet与decode_get_frame数据的结合，为用户�
 
 命令参数为RK_U32\*，用于使能H.264解码器的立即输出模式。一旦使能，H.264解码器会忽略丢帧导致的帧序不连续情况，立即输出解码的图像。命令调用时机在decode_put_packet之前。
 
+- MPP_DEC_SET_ENABLE_FAST_PLAY
+
+命令参数为FastPlayMode\*，用于使能H.264解码器的快速起播，不必等到dpb full之后出帧。如果当前帧在I帧之后解码，但在I帧之前显示，可能会出现丢帧的情况。命令调用时机在decode_put_packet之前。
+
 ### 3.2.2 reset
 
 reset接口用于把解码器恢复为正常初始化后的状态。
