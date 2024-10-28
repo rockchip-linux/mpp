@@ -839,6 +839,7 @@ static MPP_RET setup_vepu541_intra_refresh(H265eV541RegSet *regs, H265eV541HalCo
     RK_U32 stride_h = MPP_ALIGN(w / 16, 4);
     RK_U32 stride_v = MPP_ALIGN(h / 16, 4);
     RK_U32 i = 0;
+    RK_U32 roi_buf_size;
 
     hal_h265e_dbg_func("enter\n");
 
@@ -847,17 +848,17 @@ static MPP_RET setup_vepu541_intra_refresh(H265eV541RegSet *regs, H265eV541HalCo
         goto RET;
     }
 
-    if (NULL == ctx->roi_buf) {
-        RK_S32 roi_buf_size = vepu541_get_roi_buf_size(w, h);
-
+    roi_buf_size = vepu541_get_roi_buf_size(w, h);
+    if (ctx->roi_buf_size < roi_buf_size) {
         if (NULL == ctx->roi_grp)
             mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
-
+        if (ctx->roi_buf)
+            mpp_buffer_put(ctx->roi_buf);
+        MPP_FREE(ctx->roi_buf_tmp);
+        ctx->roi_buf_tmp = mpp_calloc_size(Vepu541RoiCfg, roi_buf_size);
         mpp_buffer_get(ctx->roi_grp, &ctx->roi_buf, roi_buf_size);
         ctx->roi_buf_size = roi_buf_size;
     }
-    if (NULL == ctx->roi_buf_tmp)
-        ctx->roi_buf_tmp = (Vepu541RoiCfg *)mpp_malloc(Vepu541RoiCfg, stride_h * stride_v);
 
     mpp_assert(ctx->roi_buf);
     mpp_assert(ctx->roi_buf_tmp);
