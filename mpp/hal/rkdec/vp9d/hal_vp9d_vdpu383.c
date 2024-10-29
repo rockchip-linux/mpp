@@ -13,6 +13,7 @@
 #include "mpp_common.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_bitput.h"
+#include "mpp_compat_impl.h"
 
 #include "hal_vp9d_debug.h"
 #include "hal_vp9d_com.h"
@@ -850,16 +851,16 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         fbc_en = MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe));
 
         if (fbc_en) {
-            RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
-            RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 8);
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
+            RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
             RK_U32 fbd_offset;
 
             vp9_hw_regs->ctrl_regs.reg9.fbc_e = 1;
-            vp9_hw_regs->vp9d_paras.reg68_hor_virstride = w / 64;
+            vp9_hw_regs->vp9d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
             fbd_offset = vp9_hw_regs->vp9d_paras.reg68_hor_virstride * h * 4;
             vp9_hw_regs->vp9d_addrs.reg193_fbc_payload_offset = fbd_offset;
             /* error stride */
-            vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = w / 64;
+            vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = fbc_hdr_stride / 64;
         } else {
             sw_y_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
             sw_uv_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
@@ -953,6 +954,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
         if (fbc_en) {
             y_hor_virstride = uv_hor_virstride = MPP_ALIGN(ref_frame_width_y, 64) / 64;
+            if (*compat_ext_fbc_hdr_256_odd)
+                y_hor_virstride = uv_hor_virstride = (MPP_ALIGN(ref_frame_width_y, 256) | 256) / 64;
         } else {
             y_hor_virstride = uv_hor_virstride = (mpp_align_128_odd_plus_64((ref_frame_width_y * bit_depth) >> 3) >> 4);
         }

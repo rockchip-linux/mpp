@@ -437,13 +437,13 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
         uv_virstride = hor_virstride * ver_virstride / 2;
 
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
             RK_U32 fbd_offset;
 
-            fbd_offset = pixel_width * MPP_ALIGN(ver_virstride, 64) / 16;
+            fbd_offset = fbc_hdr_stride * MPP_ALIGN(ver_virstride, 64) / 16;
 
             regs->ctrl_regs.reg9.fbc_e = 1;
-            regs->h264d_paras.reg68_hor_virstride = pixel_width / 64;
+            regs->h264d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
             regs->h264d_addrs.reg193_fbc_payload_offset = fbd_offset;
         } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
             regs->ctrl_regs.reg9.tile_e = 1;

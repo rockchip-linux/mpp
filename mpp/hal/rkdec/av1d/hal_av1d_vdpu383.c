@@ -2313,11 +2313,11 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
             if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
                 RK_U32 fbd_offset;
-                RK_U32 w = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
-                RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 8);
+                RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
+                RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
 
                 regs->ctrl_regs.reg9.fbc_e = 1;
-                regs->av1d_paras.reg68_hor_virstride = w / 64;
+                regs->av1d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
                 fbd_offset = regs->av1d_paras.reg68_hor_virstride * h * 4;
                 regs->av1d_addrs.reg193_fbc_payload_offset = fbd_offset;
             } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
@@ -2345,7 +2345,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
                     ver_virstride = mpp_frame_get_ver_stride(mframe);
                     y_virstride = hor_virstride * ver_virstride;
                     if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-                        hor_virstride = MPP_ALIGN(mpp_frame_get_width(mframe), 64) / 4;
+                        hor_virstride = mpp_frame_get_fbc_hdr_stride(mframe) / 4;
                     } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
                         hor_virstride = MPP_ALIGN(hor_virstride * 6, 16);
                         y_virstride += y_virstride / 2;

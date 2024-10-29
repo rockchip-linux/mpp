@@ -380,11 +380,11 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
                         is_fbc, y_virstride, hor_virstride, ver_virstride);
 
         if (is_fbc) {
-            RK_U32 pixel_width = MPP_ALIGN(mpp_frame_get_width(mframe), 64);
+            RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
             RK_U32 fbd_offset;
 
             regs->ctrl_regs.reg9.fbc_e = 1;
-            regs->avs2d_paras.reg68_hor_virstride = pixel_width / 64;
+            regs->avs2d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
             fbd_offset = regs->avs2d_paras.reg68_hor_virstride * MPP_ALIGN(ver_virstride, 64) * 4;
             regs->avs2d_addrs.reg193_fbc_payload_offset = fbd_offset;
         } else if (is_tile) {
