@@ -216,8 +216,15 @@ static MPP_RET iep2_deinit(IepCtx ictx)
 
     close(ctx->fd);
 
-    mpp_buffer_put(ctx->mv_buf);
-    mpp_buffer_put(ctx->md_buf);
+    if (ctx->mv_buf) {
+        mpp_buffer_put(ctx->mv_buf);
+        ctx->mv_buf = NULL;
+    }
+
+    if (ctx->md_buf) {
+        mpp_buffer_put(ctx->md_buf);
+        ctx->md_buf = NULL;
+    }
 
     if (ctx->memGroup) {
         mpp_buffer_group_put(ctx->memGroup);
