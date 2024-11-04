@@ -96,7 +96,10 @@ static MPP_RET parser_pps(BitReadCtx_t *p_bitctx, H264_SPS_t *cur_sps, H264_PPS_
     READ_ONEBIT(p_bitctx, &cur_pps->redundant_pic_cnt_present_flag);
     VAL_CHECK(ret , cur_pps->redundant_pic_cnt_present_flag == 0);
 
-    if (mpp_has_more_rbsp_data(p_bitctx)) {
+    if (mpp_has_more_rbsp_data(p_bitctx) &&
+        (cur_sps->profile_idc != 66) && /* base line profile */
+        (cur_sps->profile_idc != 77) && /* Main profile */
+        (cur_sps->profile_idc != 88)) { /* Extended profile */
         READ_ONEBIT(p_bitctx, &cur_pps->transform_8x8_mode_flag);
         READ_ONEBIT(p_bitctx, &cur_pps->pic_scaling_matrix_present_flag);
         if (cur_pps->pic_scaling_matrix_present_flag) {
