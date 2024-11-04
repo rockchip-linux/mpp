@@ -102,6 +102,8 @@ static MPP_RET read_VUI(BitReadCtx_t *p_bitctx, H264_VUI_t *vui)
             READ_BITS(p_bitctx, 8, &vui->colour_primaries);
             READ_BITS(p_bitctx, 8, &vui->transfer_characteristics);
             READ_BITS(p_bitctx, 8, &vui->matrix_coefficients);
+            if (vui->matrix_coefficients >= MPP_FRAME_SPC_NB)
+                vui->matrix_coefficients = MPP_FRAME_SPC_UNSPECIFIED;
         }
     }
     READ_ONEBIT(p_bitctx, &vui->chroma_location_info_present_flag);
