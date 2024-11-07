@@ -193,6 +193,9 @@ static MPP_RET os_allocator_drm_open(void **ctx, size_t alignment, MppAllocFlagT
         for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dev_drm); i++)
             mpp_err("%s\n", dev_drm[i]);
         return MPP_ERR_UNKNOW;
+    } else {
+        /* drop master by default to avoid becoming the drm master */
+        drm_ioctl(fd, DRM_IOCTL_DROP_MASTER, 0);
     }
 
     drm_dbg_dev("open drm dev fd %d flags %x\n", fd, flags);
