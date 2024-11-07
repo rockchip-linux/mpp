@@ -444,7 +444,7 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
     }
 
     /* Dolby Vision RPUs masquerade as unregistered NALs of type 28. */
-    if (p_strm->nalu_type == H264_NALU_TYPE_UNSPECIFIED28)
+    if (p_Cur->p_Dec->cfg->base.enable_hdr_meta && p_strm->nalu_type == H264_NALU_TYPE_UNSPECIFIED28)
         mpp_h264d_fill_dynamic_meta(p_Cur, p_strm->nalu_buf + 2, p_strm->nalu_len - 2, DOLBY);
 
     if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
