@@ -83,6 +83,8 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
     AvsdSyntax_t *p_syn = &p_hal->syn;
     AvsdPlusRegs_t *p_regs = (AvsdPlusRegs_t *)p_hal->p_regs;
 
+    p_regs->sw02.dec_timeout_e = 1;
+
     //!< set wrok_out pic info
     if (p_hal->work_out < 0) {
         p_hal->work_out = get_queue_pic(p_hal);
