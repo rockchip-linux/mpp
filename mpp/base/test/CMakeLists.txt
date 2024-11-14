@@ -57,3 +57,6 @@ add_mpp_base_test(mpp_sys_cfg)
 
 # kmpp_obj unit test
 add_mpp_base_test(kmpp_obj)
+
+# mpp_sys_cfgi unit test
+add_mpp_base_test(mpp_sys_cfg_st)

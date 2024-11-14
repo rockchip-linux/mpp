@@ -9,6 +9,7 @@ add_library(mpp_base STATIC
     mpp_enc_cfg.cpp
     mpp_dec_cfg.cpp
     mpp_sys_cfg.cpp
+    mpp_sys_cfg_st.cpp
     mpp_cluster.cpp
     mpp_buf_slot.cpp
     mpp_buffer_impl.cpp
