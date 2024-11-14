@@ -260,7 +260,7 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
             mpp_err_f("can not found H.264 decoder hardware on platform %x\n", vcodec_type);
             return ret;
         }
-        mpp_env_get_u32("use_mpp_mode", &mode, MODE_NULL);
+        mpp_env_get_u32("use_mpp_mode", &mode, cfg->cfg->base.codec_mode);
         if (MODE_NULL == mode) {
             MppDecBaseCfg *base = &cfg->cfg->base;
 

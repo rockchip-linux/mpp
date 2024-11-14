@@ -541,6 +541,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
         if (change & MPP_DEC_CFG_CHANGE_DISABLE_THREAD)
             dst_base->disable_thread = src_base->disable_thread;
 
+        if (change & MPP_DEC_CFG_CHANGE_CODEC_MODE)
+            dst_base->codec_mode = src_base->codec_mode;
+
         dst_base->change = change;
         src_base->change = 0;
     }
@@ -1066,6 +1069,11 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
         cfg->disable_dpb_chk = (param) ? (*((RK_U32 *)param)) : (0);
         cfg->change |= MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK;
         dec_dbg_func("disable dpb discontinuous check %d\n", cfg->disable_dpb_chk);
+    } break;
+    case MPP_DEC_SET_CODEC_MODE : {
+        cfg->codec_mode = (param) ? (*((RK_U32 *)param)) : (0);
+        cfg->change |= MPP_DEC_CFG_CHANGE_CODEC_MODE;
+        dec_dbg_func("force use codec device %d\n", cfg->codec_mode);
     } break;
     default : {
         mpp_err_f("unsupported cfg update cmd %x\n", cmd);
