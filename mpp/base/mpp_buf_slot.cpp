@@ -1270,6 +1270,10 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
                 MppFrameImpl *src = (MppFrameImpl *)val;
 
                 dst->fmt = src->fmt;
+                dst->hor_stride = src->hor_stride;
+                dst->hor_stride_pixel = src->hor_stride_pixel;
+                dst->ver_stride = src->ver_stride;
+                dst->buf_size = src->buf_size;
 
                 if (MPP_FRAME_FMT_IS_FBC(dst->fmt) && impl->hal_fbc_adj_cfg.func)
                     impl->hal_fbc_adj_cfg.func(impl, dst, impl->hal_fbc_adj_cfg.expand);
