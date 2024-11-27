@@ -77,15 +77,15 @@ int main()
 
     mpp_log("mpp_trie_test start\n");
 
-    mpp_trie_init(&trie, sizeof(TestAction));
+    mpp_trie_init(&trie, "test_trie");
 
     start = mpp_time();
     for (i = 0; i < info_cnt; i++)
-        mpp_trie_add_info(trie, test_info[i].name, &test_info[i]);
+        mpp_trie_add_info(trie, test_info[i].name, &test_info[i], sizeof(test_info[i]));
     end = mpp_time();
     mpp_log("add act time %lld us\n", end - start);
 
-    ret = mpp_trie_add_info(trie, NULL, NULL);
+    ret = mpp_trie_add_info(trie, NULL, NULL, 0);
     if (ret) {
         mpp_loge("mpp_trie_add_info last failed\n");
         goto DONE;
@@ -100,8 +100,8 @@ int main()
         info = mpp_trie_get_info(trie, name);
         end = mpp_time();
 
-        if (info && info->ctx)
-            act = (TestAction *)info->ctx;
+        if (info)
+            act = (TestAction *)mpp_trie_info_ctx(info);
 
         if (act && act->proc)
             act->proc(act->ctx, end - start);

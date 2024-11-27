@@ -62,7 +62,7 @@ MPP_RET mpp_opt_setup(MppOpt opt, void *ctx)
     if (NULL == impl)
         return MPP_NOK;
 
-    mpp_trie_init(&impl->trie, sizeof(MppOptInfo));
+    mpp_trie_init(&impl->trie, "mpp_opt");
     if (impl->trie) {
         impl->ctx = ctx;
         return MPP_OK;
@@ -79,9 +79,9 @@ MPP_RET mpp_opt_add(MppOpt opt, MppOptInfo *info)
         return MPP_NOK;
 
     if (NULL == info)
-        return mpp_trie_add_info(impl->trie, NULL, NULL);
+        return mpp_trie_add_info(impl->trie, NULL, NULL, 0);
 
-    return mpp_trie_add_info(impl->trie, info->name, info);
+    return mpp_trie_add_info(impl->trie, info->name, info, sizeof(*info));
 }
 
 MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
@@ -113,7 +113,7 @@ MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
                 continue;
             }
 
-            info = node->ctx;
+            info = mpp_trie_info_ctx(node);
             if (info->proc)
                 step = info->proc(impl->ctx, next);
 

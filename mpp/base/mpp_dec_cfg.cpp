@@ -84,7 +84,7 @@ public:
             (RK_U32)((long)&(((MppDecCfgSet *)0)->field_change.field_data)), \
             sizeof((((MppDecCfgSet *)0)->field_change.field_data)), \
         }; \
-        mpp_trie_add_info(mTrie, #base":"#name, &tmp); \
+        mpp_trie_add_info(mTrie, #base":"#name, &tmp, sizeof(tmp)); \
     } while (0);
 
 #define ENTRY_TABLE(ENTRY)  \
@@ -118,7 +118,7 @@ public:
 MppDecCfgService::MppDecCfgService() :
     mTrie(NULL)
 {
-    MPP_RET ret = mpp_trie_init(&mTrie, sizeof(MppCfgInfo));
+    MPP_RET ret = mpp_trie_init(&mTrie, "MppDecCfg");
     if (ret) {
         mpp_err_f("failed to init dec cfg set trie\n");
         return ;
@@ -126,7 +126,7 @@ MppDecCfgService::MppDecCfgService() :
 
     ENTRY_TABLE(EXPAND_AS_TRIE)
 
-    mpp_trie_add_info(mTrie, NULL, NULL);
+    mpp_trie_add_info(mTrie, NULL, NULL, 0);
 
     mHead.node_count = mpp_trie_get_node_count(mTrie);
     mHead.info_count = mpp_trie_get_info_count(mTrie);
@@ -224,11 +224,11 @@ MPP_RET mpp_dec_cfg_deinit(MppDecCfg cfg)
         } \
         MppDecCfgImpl *p = (MppDecCfgImpl *)cfg; \
         MppTrieInfo *node = MppDecCfgService::get()->get_info(name); \
-        MppCfgInfo *info = (MppCfgInfo *)(node ? node->ctx : NULL); \
+        MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        mpp_dec_cfg_dbg_set("name %s type %s\n", node->name, strof_cfg_type(info->data_type)); \
+        mpp_dec_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
         MPP_RET ret = MPP_CFG_SET_##cfg_type(info, &p->cfg, val); \
         return ret; \
     }
@@ -249,11 +249,11 @@ DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, St);
         } \
         MppDecCfgImpl *p = (MppDecCfgImpl *)cfg; \
         MppTrieInfo *node = MppDecCfgService::get()->get_info(name); \
-        MppCfgInfo *info = (MppCfgInfo *)(node ? node->ctx : NULL); \
+        MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        mpp_dec_cfg_dbg_set("name %s type %s\n", node->name, strof_cfg_type(info->data_type)); \
+        mpp_dec_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
         MPP_RET ret = MPP_CFG_GET_##cfg_type(info, &p->cfg, val); \
         return ret; \
     }
@@ -276,9 +276,9 @@ void mpp_dec_cfg_show(void)
         MppTrieInfo *node = root;
 
         do {
-            MppCfgInfo *info = (MppCfgInfo *)node->ctx;
+            MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
-            mpp_log("%-25s type %s\n", node->name, strof_cfg_type(info->data_type));
+            mpp_log("%-25s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type));
 
             node = srv->get_info_next(node);
             if (!node)
