@@ -136,6 +136,7 @@ typedef struct vcpu383_ref_info_t {
     RK_U32 dpb_idx;
     RK_U32 seg_idx;
     RK_U32 colmv_exist_flag;
+    RK_U32 cdf_valid;
     RK_U32 coeff_idx;
     RK_U32 mi_rows;
     RK_U32 mi_cols;
@@ -2047,6 +2048,28 @@ __RETURN:
     return ret;
 }
 
+/*
+ * cdf buf structure:
+ *
+ *      base_addr0 +--------------------------+
+ *      434x128bit |   def_non_coeff_cdf      |
+ *  base_addr0+433 +--------------------------+
+ *
+ *      base_addr1 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_0      |
+ *                 |   (base_q_idx <= 20)     |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_1      |
+ *                 | (20 < base_q_idx <= 60)  |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_2      |
+ *                 | (60 < base_q_idx <= 120) |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_3      |
+ *                 |   (base_q_idx > 120)     |
+ * base_addr1+1415 +--------------------------+
+ */
+
 static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
@@ -2065,16 +2088,13 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
     }
 #endif
-    if (dxva->format.frame_type == AV1_FRAME_KEY || dxva->primary_ref_frame == 7 /* AV1_PRIMARY_REF_NONE */) {
-        if (dxva->quantization.base_qindex <= 20)
-            coeff_cdf_idx = 0;
-        else if (dxva->quantization.base_qindex <= 60)
-            coeff_cdf_idx = 1;
-        else if (dxva->quantization.base_qindex <= 120)
-            coeff_cdf_idx = 2;
-        else
-            coeff_cdf_idx = 3;
+    /* def coeff cdf idx */
+    coeff_cdf_idx = dxva->quantization.base_qindex <= 20 ? 0 :
+                    dxva->quantization.base_qindex <= 60  ? 1 :
+                    dxva->quantization.base_qindex <= 120 ? 2 : 3;
 
+    if (dxva->format.frame_type == AV1_FRAME_KEY ||
+        dxva->primary_ref_frame == 7) { /* AV1_PRIMARY_REF_NONE */
         regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
         regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
 #ifdef DUMP_AV1D_VDPU383_DATAS
@@ -2090,7 +2110,8 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         mapped_idx = dxva->ref_frame_idx[dxva->primary_ref_frame];
 
         coeff_cdf_idx = reg_ctx->ref_info_tbl[mapped_idx].coeff_idx;
-        if (!dxva->coding.disable_frame_end_update_cdf) {
+        if (!dxva->coding.disable_frame_end_update_cdf &&
+            reg_ctx->ref_info_tbl[mapped_idx].cdf_valid) {
             cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->frame_refs[mapped_idx].Index);
             buf_tmp = cdf_buf->buf[0];
         } else {
@@ -2130,6 +2151,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
                 else
                     reg_ctx->ref_info_tbl[i].coeff_idx = coeff_cdf_idx;
             } else {
+                reg_ctx->ref_info_tbl[i].cdf_valid = 1;
                 reg_ctx->ref_info_tbl[i].coeff_idx = 0;
             }
         }
