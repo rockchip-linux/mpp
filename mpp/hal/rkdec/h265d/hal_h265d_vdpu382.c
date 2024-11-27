@@ -713,8 +713,6 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (Vdpu382H265dRegSet*)reg_ctx->hw_regs;
     memset(hw_regs, 0, sizeof(Vdpu382H265dRegSet));
 
-    hal_h265d_v382_output_pps_packet(hal, syn->dec.syntax.data);
-
     if (NULL == reg_ctx->hw_regs) {
         return MPP_ERR_NULL_PTR;
     }
@@ -911,6 +909,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                 SET_POC_HIGNBIT_INFO(hw_regs->highpoc, i, poc_highbit, 3);
         }
     }
+    hal_h265d_v382_output_pps_packet(hal, syn->dec.syntax.data);
 
     trans_cfg.reg_idx = 161;
     trans_cfg.offset = reg_ctx->spspps_offset;

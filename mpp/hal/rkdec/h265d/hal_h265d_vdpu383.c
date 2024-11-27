@@ -925,8 +925,6 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (Vdpu383H265dRegSet*)reg_ctx->hw_regs;
     memset(hw_regs, 0, sizeof(Vdpu383H265dRegSet));
 
-    hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
-
     if (NULL == reg_ctx->hw_regs) {
         return MPP_ERR_NULL_PTR;
     }
@@ -1066,22 +1064,6 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hal_h265d_vdpu383_rps(syn->dec.syntax.data, rps_ptr, reg_ctx->sw_rps_buf, reg_ctx->fast_mode);
 
-    MppDevRegOffsetCfg trans_cfg;
-
-    /* pps */
-    hw_regs->common_addr.reg131_gbl_base = reg_ctx->bufs_fd;
-    hw_regs->h265d_paras.reg67_global_len = 0xc; //22 * 8;
-
-    trans_cfg.reg_idx = 131;
-    trans_cfg.offset = reg_ctx->spspps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    /* rps */
-    hw_regs->common_addr.reg129_rps_base = reg_ctx->bufs_fd;
-    trans_cfg.reg_idx = 129;
-    trans_cfg.offset = reg_ctx->rps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
     hw_regs->common_addr.reg128_strm_base = mpp_buffer_get_fd(streambuf);
     hw_regs->h265d_paras.reg66_stream_len = ((dxva_ctx->bitstream_size + 15) & (~15)) + 64;
     aglin_offset =  hw_regs->h265d_paras.reg66_stream_len - dxva_ctx->bitstream_size;
@@ -1162,6 +1144,24 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
     }
+
+    MppDevRegOffsetCfg trans_cfg;
+
+    /* pps */
+    hw_regs->common_addr.reg131_gbl_base = reg_ctx->bufs_fd;
+    hw_regs->h265d_paras.reg67_global_len = 0xc; //22 * 8;
+
+    trans_cfg.reg_idx = 131;
+    trans_cfg.offset = reg_ctx->spspps_offset;
+    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+
+    /* rps */
+    hw_regs->common_addr.reg129_rps_base = reg_ctx->bufs_fd;
+    trans_cfg.reg_idx = 129;
+    trans_cfg.offset = reg_ctx->rps_offset;
+    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+
+    hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_ctx->pp.RefPicList); i++) {
 

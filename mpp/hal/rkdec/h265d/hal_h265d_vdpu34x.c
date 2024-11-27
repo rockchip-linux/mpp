@@ -907,12 +907,6 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (Vdpu34xH265dRegSet*)reg_ctx->hw_regs;
     memset(hw_regs, 0, sizeof(Vdpu34xH265dRegSet));
 
-    if (reg_ctx->is_v34x) {
-        hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
-    } else {
-        hal_h265d_output_pps_packet(hal, syn->dec.syntax.data);
-    }
-
     if (NULL == reg_ctx->hw_regs) {
         return MPP_ERR_NULL_PTR;
     }
@@ -1133,6 +1127,12 @@ static MPP_RET hal_h265d_vdpu34x_gen_regs(void *hal,  HalTaskInfo *syn)
         h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
+    }
+
+    if (reg_ctx->is_v34x) {
+        hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
+    } else {
+        hal_h265d_output_pps_packet(hal, syn->dec.syntax.data);
     }
 
     trans_cfg.reg_idx = 161;
