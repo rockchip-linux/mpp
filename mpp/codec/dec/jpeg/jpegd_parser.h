@@ -139,7 +139,6 @@ typedef struct JpegdCtx {
     RK_S32                   scan_all_marker;
 
     RK_U8                    *buffer;
-    RK_U32                   buf_size;
 
     /* current start code */
     RK_S32                   start_code;

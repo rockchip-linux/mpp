@@ -39,10 +39,10 @@ static RK_U8 jpegd_find_marker(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
     const RK_U8 *buf_ptr = NULL;
     RK_U8 val = 0;
     RK_U8 start_code = 0xff;
-    RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
+    RK_U32 strm_len = buf_end - *pbuf_ptr + 1;
 
     while (*pbuf_ptr < buf_end) {
-        buf_ptr = memchr(*pbuf_ptr, start_code, buf_size);
+        buf_ptr = memchr(*pbuf_ptr, start_code, strm_len);
 
         if (!buf_ptr) {
             mpp_err("Start codec not found!\n");
@@ -67,9 +67,9 @@ static MPP_RET jpegd_find_eoi(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
 {
     const RK_U8 *buf_ptr = NULL;
     RK_S32 eoi = 0xffd9;
-    RK_U32 buf_size = buf_end - *pbuf_ptr + 1;
+    RK_U32 strm_len = buf_end - *pbuf_ptr + 1;
 
-    buf_ptr = memchr(*pbuf_ptr, eoi, buf_size);
+    buf_ptr = memchr(*pbuf_ptr, eoi, strm_len);
 
     if (buf_ptr && (buf_end > buf_ptr)) {
         return MPP_OK;
@@ -731,18 +731,18 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
     const RK_U8 *const buf = ctx->buffer;
-    RK_U32 buf_size = ctx->buf_size;
+    RK_U32 strm_len = ctx->streamLength;
     BitReadCtx_t *gb = ctx->bit_ctx;
     JpegdSyntax *syntax = ctx->syntax;
     RK_S32 start_code = 0xffd8;
 
     const RK_U8 *buf_ptr = buf;
-    const RK_U8 *const buf_end = buf + buf_size;
+    const RK_U8 *const buf_end = buf + strm_len;
 
     syntax->htbl_entry = 0;
     syntax->qtbl_entry = 0;
 
-    if (buf_size < 8 || !memchr(buf_ptr, start_code, 8)) {
+    if (strm_len < 8 || !memchr(buf_ptr, start_code, 8)) {
         // not jpeg
         ret = MPP_ERR_STREAM;
         goto fail;
@@ -834,23 +834,24 @@ static MPP_RET jpegd_decode_frame(JpegdCtx *ctx)
             /* stream behind SOS is decoded by hardware */
             syntax->strm_offset = buf_ptr - buf + syntax->sos_len;
             syntax->cur_pos = (RK_U8 *)buf + syntax->strm_offset;
-            syntax->pkt_len = ctx->buf_size;
-            jpegd_dbg_marker("This packet owns %d bytes,\n"
+            syntax->pkt_len = ctx->streamLength;
+            jpegd_dbg_marker("This packet owns %d bytes with length %zu\n"
                              "\t\thas been decoded %d bytes by software\n"
                              "\t\tbuf_ptr:%p, buf:%p, sos_len:%d\n"
                              "\t\thardware start address:%p",
+                             mpp_packet_get_size(ctx->input_packet),
                              syntax->pkt_len,
                              syntax->strm_offset, buf_ptr, buf,
                              syntax->sos_len, syntax->cur_pos);
 
-            if (syntax->strm_offset >= ctx->buf_size) {
+            if (syntax->strm_offset >= ctx->streamLength) {
                 mpp_err_f("stream offset %d is larger than buffer size %d\n",
-                          syntax->strm_offset, ctx->buf_size);
+                          syntax->strm_offset, ctx->streamLength);
                 ret = MPP_ERR_UNKNOW;
                 goto fail;
             }
 
-            if ((syntax->strm_offset + 2) < ctx->buf_size &&
+            if ((syntax->strm_offset + 2) < ctx->streamLength &&
                 buf_ptr[syntax->sos_len] == 0xff && buf_ptr[syntax->sos_len + 1] == 0xd8) {
                 jpegd_dbg_marker("Encontered SOI again, parse again!\n");
                 break;
@@ -1120,7 +1121,6 @@ static MPP_RET jpegd_parse(void *ctx, HalDecTask *task)
     task->valid = 0;
 
     JpegCtx->buffer = (RK_U8 *)mpp_packet_get_data(JpegCtx->input_packet);
-    JpegCtx->buf_size = (RK_U32)mpp_packet_get_size(JpegCtx->input_packet);
 
     memset(JpegCtx->syntax, 0, sizeof(JpegdSyntax));
 
