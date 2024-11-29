@@ -2088,6 +2088,9 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
     }
 #endif
+    if (dxva->format.frame_type == AV1_FRAME_KEY)
+        for (i = 0; i < NUM_REF_FRAMES; i++)
+            reg_ctx->ref_info_tbl[i].cdf_valid = 0;
     /* def coeff cdf idx */
     coeff_cdf_idx = dxva->quantization.base_qindex <= 20 ? 0 :
                     dxva->quantization.base_qindex <= 60  ? 1 :
