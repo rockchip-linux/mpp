@@ -24,6 +24,7 @@ add_library(mpp_base STATIC
     mpp_cfg.cpp
     mpp_2str.c
     mpp_dec_hdr_meta.c
+    kmpp_obj.c
     )
 
 set_target_properties(mpp_base PROPERTIES FOLDER "mpp/base")
