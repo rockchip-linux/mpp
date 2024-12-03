@@ -144,10 +144,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_colorspace(frame->frame, s->h265dctx->colorspace);
         mpp_frame_set_mastering_display(frame->frame, s->mastering_display);
         mpp_frame_set_content_light(frame->frame, s->content_light);
-        if (s->hdr_dynamic_meta && s->hdr_dynamic) {
-            mpp_frame_set_hdr_dynamic_meta(frame->frame, s->hdr_dynamic_meta);
-            s->hdr_dynamic = 0;
-        }
+
         h265d_dbg(H265D_DBG_GLOBAL, "poc %d w_stride %d h_stride %d\n",
                   s->poc, s->h265dctx->coded_width, s->h265dctx->coded_height);
         ret = mpp_buf_slot_get_unused(s->slots, &frame->slot_index);
@@ -180,6 +177,11 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
     if (!ref) {
         mpp_err( "alloc_frame error\n");
         return MPP_ERR_NOMEM;
+    }
+    // set hdr dynamic meta
+    if (s->hdr_dynamic_meta && s->hdr_dynamic) {
+        mpp_frame_set_hdr_dynamic_meta(ref->frame, s->hdr_dynamic_meta);
+        s->hdr_dynamic = 0;
     }
 
     *mframe = ref->frame;
