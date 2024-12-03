@@ -154,7 +154,7 @@ static void fill_slice_parameters( const H265eCtx *h,
     sp->ref_pic_lst_mdf_l0  = slice->ref_pic_list_modification_flag_l0;
 
     sp->num_refidx_l1_act   = 0;
-    sp->num_refidx_l0_act   = 1;
+    sp->num_refidx_l0_act   = 0;
 
     sp->num_refidx_act_ovrd = (((RK_U32)slice->m_numRefIdx[0] != slice->m_pps->m_numRefIdxL0DefaultActive)
                                || (slice->m_sliceType == B_SLICE &&

@@ -20,5 +20,6 @@
 #define HWID_VEPU58X                (0x50603312)
 #define HWID_VEPU540C               (0x50603313)
 #define HWID_VEPU510                (0x506f2314)
+#define HWID_VEPU511                (0x50602715)
 
 #endif /* __VEPU5XX_H__ */

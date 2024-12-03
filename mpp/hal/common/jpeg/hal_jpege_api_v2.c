@@ -32,6 +32,7 @@
 #include "hal_jpege_vepu2_v2.h"
 #include "hal_jpege_vepu540c.h"
 #include "hal_jpege_vpu720.h"
+#include "hal_jpege_vepu511.h"
 
 typedef struct HaljpegeCtx_t {
     const MppEncHalApi  *api;
@@ -50,9 +51,15 @@ static MPP_RET hal_jpege_init(void *hal, MppEncHalCfg *cfg)
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
 
-    if ((vcodec_type & HAVE_RKVENC) &&
-        (HWID_VEPU540C == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))) {
-        api = &hal_jpege_vepu540c;
+    if (vcodec_type & HAVE_RKVENC) {
+        if (HWID_VEPU540C == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))
+            api = &hal_jpege_vepu540c;
+        else if (HWID_VEPU511 == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))
+            api = &hal_jpege_vepu511;
+        else {
+            mpp_err("vcodec type %08x can not find JPEG encoder device\n", vcodec_type);
+            ret = MPP_NOK;
+        }
     } else if (vcodec_type & (HAVE_VEPU2 | HAVE_VEPU2_JPEG)) {
         api = &hal_jpege_vepu2;
     } else if (vcodec_type & HAVE_VEPU1) {

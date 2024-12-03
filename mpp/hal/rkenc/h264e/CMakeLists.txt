@@ -16,6 +16,7 @@ set(HAL_H264E_SRC
     hal_h264e_vepu580.c
     hal_h264e_vepu540c.c
     hal_h264e_vepu510.c
+    hal_h264e_vepu511.c
     )
 
 add_library(hal_h264e_rkv STATIC

@@ -194,6 +194,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     RK_S32 minCUSize, log2MinCUSize;
     RK_S32 tuQTMinLog2Size = 2, tuQTMaxLog2Size;
     MppEncCpbInfo *cpb_info = mpp_enc_ref_cfg_get_cpb_info(ref_cfg);
+    RockchipSocType soc_type;
     RK_U32 *tmp = &sps->zscan2raster[0];
 
     memset(convertToBit, -1, sizeof(convertToBit));
@@ -208,7 +209,8 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     minCUDepth = (codec->max_cu_size >> (maxCUDepth - 1));
 
     tuQTMaxLog2Size = convertToBit[codec->max_cu_size] + 2 - 1;
-    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
+    soc_type = mpp_get_soc_type();
+    if (soc_type == ROCKCHIP_SOC_RK3576 || soc_type == ROCKCHIP_SOC_RV1126B) {
         tuQTMaxLog2Size = tuQTMaxLog2Size + 1;
     }
 
