@@ -25,10 +25,12 @@
 #define MPP_OBJ_DBG_SET                 (0x00000001)
 #define MPP_OBJ_DBG_GET                 (0x00000002)
 
-#define kmpp_obj_dbg(flag, fmt, ...)     _mpp_dbg(kmpp_obj_debug, flag, fmt, ## __VA_ARGS__)
+#define kmpp_obj_dbg(flag, fmt, ...)    _mpp_dbg(kmpp_obj_debug, flag, fmt, ## __VA_ARGS__)
 
-#define kmpp_obj_dbg_set(fmt, ...)       kmpp_obj_dbg(MPP_OBJ_DBG_SET, fmt, ## __VA_ARGS__)
-#define kmpp_obj_dbg_get(fmt, ...)       kmpp_obj_dbg(MPP_OBJ_DBG_GET, fmt, ## __VA_ARGS__)
+#define kmpp_obj_dbg_set(fmt, ...)      kmpp_obj_dbg(MPP_OBJ_DBG_SET, fmt, ## __VA_ARGS__)
+#define kmpp_obj_dbg_get(fmt, ...)      kmpp_obj_dbg(MPP_OBJ_DBG_GET, fmt, ## __VA_ARGS__)
+
+#define U64_TO_PTR(ptr)                 ((void *)(intptr_t)(ptr))
 
 #define ENTRY_TO_PTR(tbl, entry)        ((char *)entry + tbl->data_offset)
 #define ENTRY_TO_s32_PTR(tbl, entry)    ((rk_s32 *)ENTRY_TO_PTR(tbl, entry))
@@ -259,7 +261,7 @@ rk_s32 kmpp_objdef_init(KmppObjDef *def, const char *name)
             goto DONE;
         }
 
-        root = (void *)s.trie_root;
+        root = U64_TO_PTR(s.trie_root);
         info = mpp_trie_get_info_from_root(root, "__size");
         obj_size = info ? *(RK_S32 *)mpp_trie_info_ctx(info) : 0;
 
@@ -428,7 +430,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def)
     impl->trie = def_impl->trie;
     impl->need_free = 1;
     impl->shm = shm;
-    impl->entry = (void *)shm->kobj_uaddr;
+    impl->entry = U64_TO_PTR(shm->kobj_uaddr);
 
     *obj = impl;
 
