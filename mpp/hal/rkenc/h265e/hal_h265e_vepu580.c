@@ -2000,7 +2000,7 @@ static MPP_RET vepu580_h265_set_pp_regs(H265eV580RegSet *regs, VepuFmtCfg *fmt,
     reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 
-    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format))
+    if (MPP_FRAME_FMT_IS_YUV(prep_cfg->format))
         reg_base->reg0198_src_fmt.src_range = 1;
     else
         reg_base->reg0198_src_fmt.src_range = (prep_cfg->range == MPP_FRAME_RANGE_JPEG) ? 1 : 0;
