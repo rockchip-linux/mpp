@@ -332,6 +332,12 @@ typedef struct MppEncRcCfg_t {
     RK_S32  fps_out_flex;
     RK_S32  fps_out_num;
     RK_S32  fps_out_denom;
+    /*
+     * Whether to encoder IDR when fps_out is changed.
+     * 0 -- default value, SPS, PPS headers and IDR will be added.
+     * 1 -- only SPS, PPS headers is added.
+     */
+    RK_S32  fps_chg_no_idr;
 
     /*
      * gop - group of picture, gap between Intra frame

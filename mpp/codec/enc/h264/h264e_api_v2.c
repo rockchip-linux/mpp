@@ -670,7 +670,8 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
     /*
      * NOTE: When sps/pps is update we need to update dpb and slice info
      */
-    h264e_dpb_setup(&p->dpb, p->cfg, &p->sps);
+    if (!p->dpb.total_cnt)
+        h264e_dpb_setup(&p->dpb, p->cfg, &p->sps);
 
     mpp_packet_reset(p->hdr_pkt);
 

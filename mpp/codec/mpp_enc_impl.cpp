@@ -254,7 +254,7 @@ static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
     return 0;
 }
 
-static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
+static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg, RK_BOOL *encode_idr)
 {
     RK_S32 resend = 0;
     static const char *resend_reason[] = {
@@ -266,8 +266,12 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         "set cfg change codec",
     };
 
-    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG)
+    *encode_idr = RK_TRUE;
+
+    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG) {
+        *encode_idr = RK_FALSE;
         return 0;
+    }
 
     do {
         if (cmd == MPP_ENC_SET_IDR_FRAME)
@@ -282,12 +286,15 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
         if (cmd == MPP_ENC_SET_RC_CFG) {
             RK_U32 change = *(RK_U32 *)param;
             RK_U32 check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                                MPP_ENC_RC_CFG_CHANGE_FPS_IN |
                                 MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
                                 MPP_ENC_RC_CFG_CHANGE_GOP;
 
             if (change & check_flag) {
                 resend = 2;
+
+                if (cfg->rc.fps_chg_no_idr && (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT))
+                    *encode_idr = RK_FALSE;
+
                 break;
             }
         }
@@ -309,12 +316,15 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 
             change = cfg->rc.change;
             check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                         MPP_ENC_RC_CFG_CHANGE_FPS_IN |
                          MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
                          MPP_ENC_RC_CFG_CHANGE_GOP;
 
             if (change & check_flag) {
                 resend = 4;
+
+                if (cfg->rc.fps_chg_no_idr && (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT))
+                    *encode_idr = RK_FALSE;
+
                 break;
             }
             if (check_codec_to_resend_hdr(&cfg->codec)) {
@@ -326,6 +336,8 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg)
 
     if (resend)
         enc_dbg_detail("send header for %s\n", resend_reason[resend]);
+    else
+        *encode_idr = RK_FALSE;
 
     return resend;
 }
@@ -571,6 +583,7 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             dst->fps_out_flex = src->fps_out_flex;
             dst->fps_out_num = src->fps_out_num;
             dst->fps_out_denom = src->fps_out_denom;
+            dst->fps_chg_no_idr = src->fps_chg_no_idr;
         }
 
         if (change & MPP_ENC_RC_CFG_CHANGE_GOP) {
@@ -1004,6 +1017,7 @@ static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param)
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
+    RK_BOOL encode_idr = RK_FALSE;
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
@@ -1203,8 +1217,10 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     } break;
     }
 
-    if (check_resend_hdr(cmd, param, &enc->cfg)) {
-        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+    if (check_resend_hdr(cmd, param, &enc->cfg, &encode_idr)) {
+        if (encode_idr)
+            enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+
         enc->hdr_status.val = 0;
     }
     if (check_rc_cfg_update(cmd, &enc->cfg))

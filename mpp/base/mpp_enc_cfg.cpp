@@ -104,6 +104,7 @@ public:
     ENTRY(rc,   fps_out_num,    S32,        MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_num) \
     ENTRY(rc,   fps_out_denom,  S32,        MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denom) \
     ENTRY(rc,   fps_out_denorm, S32,        MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_out_denom) \
+    ENTRY(rc,   fps_chg_no_idr, S32,        MPP_ENC_RC_CFG_CHANGE_FPS_OUT,          rc, fps_chg_no_idr) \
     ENTRY(rc,   gop,            S32,        MPP_ENC_RC_CFG_CHANGE_GOP,              rc, gop) \
     ENTRY(rc,   ref_cfg,        Ptr,        MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG,      rc, ref_cfg) \
     ENTRY(rc,   max_reenc_times,U32,        MPP_ENC_RC_CFG_CHANGE_MAX_REENC,        rc, max_reenc_times) \
