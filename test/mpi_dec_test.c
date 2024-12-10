@@ -265,8 +265,10 @@ static int dec_advanced(MpiDecLoopData *data)
     MppCtx ctx  = data->ctx;
     MppApi *mpi = data->mpi;
     MppPacket packet = NULL;
-    MppFrame  frame  = data->frame;
-    MppTask task = NULL;
+    MppPacket packet_ret = NULL;
+    MppFrame frame = data->frame;
+    MppFrame frame_ret = NULL;
+    MppMeta meta = NULL;
     RK_U32 quiet = data->quiet;
     FileBufSlot *slot = NULL;
     FrmCrc *checkcrc = &data->checkcrc;
@@ -281,119 +283,73 @@ static int dec_advanced(MpiDecLoopData *data)
     if (slot->eos)
         mpp_packet_set_eos(packet);
 
-    ret = mpi->poll(ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK);
+    /* use the MppFrame with prealloced buffer and do not release */
+    meta = mpp_packet_get_meta(packet);
+    if (meta)
+        mpp_meta_set_frame(meta, KEY_OUTPUT_FRAME, frame);
+
+    ret = mpi->decode_put_packet(ctx, packet);
     if (ret) {
-        mpp_err("%p mpp input poll failed\n", ctx);
-        return ret;
-    }
-
-    ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
-    if (ret) {
-        mpp_err("%p mpp task input dequeue failed\n", ctx);
-        return ret;
-    }
-
-    mpp_assert(task);
-
-    mpp_task_meta_set_packet(task, KEY_INPUT_PACKET, packet);
-    mpp_task_meta_set_frame (task, KEY_OUTPUT_FRAME,  frame);
-
-    ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);  /* input queue */
-    if (ret) {
-        mpp_err("%p mpp task input enqueue failed\n", ctx);
-        return ret;
+        mpp_err("%p mpp decode put packet failed ret %d\n", ctx, ret);
+        data->loop_end = 1;
+        goto DONE;
     }
 
     if (!data->first_pkt)
         data->first_pkt = mpp_time();
 
-    /* poll and wait here */
-    ret = mpi->poll(ctx, MPP_PORT_OUTPUT, MPP_POLL_BLOCK);
-    if (ret) {
-        mpp_err("%p mpp output poll failed\n", ctx);
-        return ret;
+    ret = mpi->decode_get_frame(ctx, &frame_ret);
+    if (ret || !frame_ret) {
+        mpp_err("%p mpp decode get frame failed ret %d frame %p\n", ctx, ret, frame_ret);
+        data->loop_end = 1;
+        goto DONE;
     }
 
-    ret = mpi->dequeue(ctx, MPP_PORT_OUTPUT, &task); /* output queue */
-    if (ret) {
-        mpp_err("%p mpp task output dequeue failed\n", ctx);
-        return ret;
+    if (!data->first_frm)
+        data->first_frm = mpp_time();
+
+    if (frame_ret != frame)
+        mpp_err_f("mismatch frame %p -> %p\n", frame_ret, frame);
+
+    /* write frame to file here */
+    if (data->fp_output)
+        dump_mpp_frame_to_file(frame_ret, data->fp_output);
+
+    if (data->fp_verify) {
+        calc_frm_crc(frame_ret, checkcrc);
+        write_frm_crc(data->fp_verify, checkcrc);
     }
 
-    mpp_assert(task);
+    mpp_log_q(quiet, "%p decoded frame %d\n", ctx, data->frame_count);
+    data->frame_count++;
 
-    if (task) {
-        MppFrame frame_out = NULL;
+    if (mpp_frame_get_eos(frame_ret))
+        mpp_log_q(quiet, "%p found eos frame\n", ctx);
 
-        mpp_task_meta_get_frame(task, KEY_OUTPUT_FRAME, &frame_out);
+    fps_calc_inc(cmd->fps);
 
-        if (frame) {
-            if (!data->first_frm)
-                data->first_frm = mpp_time();
-
-            /* write frame to file here */
-            if (data->fp_output)
-                dump_mpp_frame_to_file(frame, data->fp_output);
-
-            if (data->fp_verify) {
-                calc_frm_crc(frame, checkcrc);
-                write_frm_crc(data->fp_verify, checkcrc);
-            }
-
-            mpp_log_q(quiet, "%p decoded frame %d\n", ctx, data->frame_count);
-            data->frame_count++;
-
-            if (mpp_frame_get_eos(frame_out)) {
-                mpp_log_q(quiet, "%p found eos frame\n", ctx);
-            }
-            fps_calc_inc(cmd->fps);
+    meta = mpp_frame_get_meta(frame);
+    if (meta) {
+        ret = mpp_meta_get_packet(meta, KEY_INPUT_PACKET, &packet_ret);
+        if (ret || !packet_ret) {
+            mpp_err("%p mpp meta get packet failed ret %d\n", ctx, ret);
+            goto DONE;
         }
 
-        if (data->frame_num > 0) {
-            if (data->frame_count >= data->frame_num)
-                data->loop_end = 1;
-        } else if (data->frame_num == 0) {
-            if (slot->eos)
-                data->loop_end = 1;
-        }
-
-        /* output queue */
-        ret = mpi->enqueue(ctx, MPP_PORT_OUTPUT, task);
-        if (ret)
-            mpp_err("%p mpp task output enqueue failed\n", ctx);
+        if (packet_ret != packet)
+            mpp_err_f("mismatch packet %p -> %p\n", packet, packet_ret);
     }
 
-    /*
-     * The following input port task dequeue and enqueue is to make sure that
-     * the input packet can be released. We can directly deinit the input packet
-     * after frame output in most cases.
-     */
-    if (0) {
-        mpp_packet_deinit(&packet);
-    } else {
-        ret = mpi->dequeue(ctx, MPP_PORT_INPUT, &task);  /* input queue */
-        if (ret) {
-            mpp_err("%p mpp task input dequeue failed\n", ctx);
-            return ret;
-        }
-
-        mpp_assert(task);
-        if (task) {
-            MppPacket packet_out = NULL;
-
-            mpp_task_meta_get_packet(task, KEY_INPUT_PACKET, &packet_out);
-
-            if (!packet_out || packet_out != packet)
-                mpp_err_f("mismatch packet %p -> %p\n", packet, packet_out);
-
-            mpp_packet_deinit(&packet_out);
-
-            /* input empty task back to mpp to maintain task status */
-            ret = mpi->enqueue(ctx, MPP_PORT_INPUT, task);
-            if (ret)
-                mpp_err("%p mpp task input enqueue failed\n", ctx);
-        }
+    if (data->frame_num > 0) {
+        if (data->frame_count >= data->frame_num)
+            data->loop_end = 1;
+    } else if (data->frame_num == 0) {
+        if (slot->eos)
+            data->loop_end = 1;
     }
+
+DONE:
+    mpp_packet_deinit(&packet);
 
     return ret;
 }

@@ -419,6 +419,11 @@ int main(int argc, char **argv)
 
     mpi_dec_test_cmd_options(cmd);
 
+    if (cmd->type == MPP_VIDEO_CodingMJPEG) {
+        mpp_log("mpi_dec_mt_test not support mjpeg yet\n");
+        goto RET;
+    }
+
     ret = mt_dec_decode(cmd);
     if (MPP_OK == ret)
         mpp_log("test success\n");
@@ -430,4 +435,3 @@ RET:
 
     return ret;
 }
-
