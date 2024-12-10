@@ -29,12 +29,12 @@ static MppMemPool mpp_packet_pool = mpp_mem_pool_init_f(module_name, sizeof(MppP
 #define setup_mpp_packet_name(packet) \
     ((MppPacketImpl*)packet)->name = module_name;
 
-MPP_RET check_is_mpp_packet(void *packet)
+MPP_RET check_is_mpp_packet_f(void *packet, const char *caller)
 {
     if (packet && ((MppPacketImpl*)packet)->name == module_name)
         return MPP_OK;
 
-    mpp_err_f("pointer %p failed on check\n", packet);
+    mpp_err("MppPacket %p failed on check from %s\n", packet, caller);
     mpp_abort();
     return MPP_NOK;
 }

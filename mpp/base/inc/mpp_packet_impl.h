@@ -97,7 +97,8 @@ MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset
 void    mpp_packet_copy_segment_info(MppPacket dst, MppPacket src);
 
 /* pointer check function */
-MPP_RET check_is_mpp_packet(void *ptr);
+MPP_RET check_is_mpp_packet_f(void *ptr, const char *caller);
+#define check_is_mpp_packet(ptr) check_is_mpp_packet_f(ptr, __FUNCTION__)
 
 #ifdef __cplusplus
 }
