@@ -6,6 +6,7 @@ set(HAL_H264D_SRC
     hal_h264d_vdpu34x.c
     hal_h264d_vdpu382.c
     hal_h264d_vdpu383.c
+    hal_h264d_vdpu384a.c
     hal_h264d_rkv_reg.c
     hal_h264d_vdpu2.c
     hal_h264d_vdpu1.c
@@ -14,6 +15,6 @@ set(HAL_H264D_SRC
 
 add_library(hal_h264d STATIC ${HAL_H264D_SRC})
 
-target_link_libraries(hal_h264d vdpu34x_com vdpu383_com mpp_base mpp_hal)
+target_link_libraries(hal_h264d vdpu34x_com vdpu383_com vdpu384a_com mpp_base mpp_hal)
 set_target_properties(hal_h264d PROPERTIES FOLDER "mpp/hal")
 
