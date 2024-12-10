@@ -108,6 +108,8 @@ Mpp::Mpp(MppCtx ctx)
       mMppOutPort(NULL),
       mInputTaskQueue(NULL),
       mOutputTaskQueue(NULL),
+      mInputTaskCount(1),
+      mOutputTaskCount(1),
       mInputTimeout(MPP_POLL_BUTT),
       mOutputTimeout(MPP_POLL_BUTT),
       mInputTask(NULL),
@@ -176,12 +178,12 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
             mpp_buffer_group_get_internal(&mPacketGroup, MPP_BUFFER_TYPE_ION | MPP_BUFFER_FLAGS_CACHABLE);
             mpp_buffer_group_limit_config(mPacketGroup, 0, 3);
 
-            mpp_task_queue_setup(mInputTaskQueue, 4);
-            mpp_task_queue_setup(mOutputTaskQueue, 4);
-        } else {
-            mpp_task_queue_setup(mInputTaskQueue, 1);
-            mpp_task_queue_setup(mOutputTaskQueue, 1);
+            mInputTaskCount = 4;
+            mOutputTaskCount = 4;
         }
+
+        mpp_task_queue_setup(mInputTaskQueue, mInputTaskCount);
+        mpp_task_queue_setup(mOutputTaskQueue, mOutputTaskCount);
 
         mUsrInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
         mUsrOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
@@ -223,13 +225,14 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         if (mInputTimeout == MPP_POLL_NON_BLOCK) {
             mEncAyncIo = 1;
 
-            input_task_count = check_frm_task_cnt_cap(coding);
-            if (input_task_count == 1)
+            mInputTaskCount = check_frm_task_cnt_cap(coding);
+            if (mInputTaskCount == 1)
                 mInputTimeout = MPP_POLL_BLOCK;
         }
+        mOutputTaskCount = 8;
 
-        mpp_task_queue_setup(mInputTaskQueue, input_task_count);
-        mpp_task_queue_setup(mOutputTaskQueue, 8);
+        mpp_task_queue_setup(mInputTaskQueue, mInputTaskCount);
+        mpp_task_queue_setup(mOutputTaskQueue, mOutputTaskCount);
 
         mUsrInPort  = mpp_task_queue_get_port(mInputTaskQueue,  MPP_PORT_INPUT);
         mUsrOutPort = mpp_task_queue_get_port(mOutputTaskQueue, MPP_PORT_OUTPUT);
@@ -388,24 +391,27 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         put_packet(extra);
     }
 
-    if (!mEosTask) {
-        /* handle eos packet on block mode */
-        ret = poll(MPP_PORT_INPUT, MPP_POLL_BLOCK);
-        if (ret < 0)
-            goto RET;
+    /* non-jpeg mode - reserve extra task for incoming eos packet */
+    if (mInputTaskCount > 1) {
+        if (!mEosTask) {
+            /* handle eos packet on block mode */
+            ret = poll(MPP_PORT_INPUT, MPP_POLL_BLOCK);
+            if (ret < 0)
+                goto RET;
 
-        dequeue(MPP_PORT_INPUT, &mEosTask);
-        if (NULL == mEosTask) {
-            mpp_err_f("fail to reserve eos task\n", ret);
-            ret = MPP_NOK;
-            goto RET;
+            dequeue(MPP_PORT_INPUT, &mEosTask);
+            if (NULL == mEosTask) {
+                mpp_err_f("fail to reserve eos task\n", ret);
+                ret = MPP_NOK;
+                goto RET;
+            }
         }
-    }
 
-    if (mpp_packet_get_eos(packet)) {
-        mpp_assert(mEosTask);
-        task_dequeue = mEosTask;
-        mEosTask = NULL;
+        if (mpp_packet_get_eos(packet)) {
+            mpp_assert(mEosTask);
+            task_dequeue = mEosTask;
+            mEosTask = NULL;
+        }
     }
 
     /* Use reserved task to send eos packet */
@@ -441,8 +447,8 @@ MPP_RET Mpp::put_packet(MppPacket packet)
         ret = MPP_OK;
     } else {
         /* packet zero copy path */
-        mpp_log_f("not support zero copy path\n");
         timeout = MPP_POLL_BLOCK;
+        ret = MPP_OK;
     }
 
     /* setup task */
@@ -466,7 +472,7 @@ MPP_RET Mpp::put_packet(MppPacket packet)
     mPacketPutCount++;
 
     if (timeout && !pkt_copy)
-        ret = poll(MPP_PORT_INPUT, timeout);
+        poll(MPP_PORT_INPUT, timeout);
 
 RET:
     /* wait enqueued task finished */

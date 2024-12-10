@@ -178,6 +178,8 @@ public:
     MppPort         mMppOutPort;
     MppTaskQueue    mInputTaskQueue;
     MppTaskQueue    mOutputTaskQueue;
+    RK_S32          mInputTaskCount;
+    RK_S32          mOutputTaskCount;
 
     MppPollType     mInputTimeout;
     MppPollType     mOutputTimeout;

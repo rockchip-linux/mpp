@@ -979,6 +979,16 @@ void *mpp_dec_advanced_thread(void *data)
         mpp_task_meta_get_packet(mpp_task, KEY_INPUT_PACKET, &packet);
         mpp_task_meta_get_frame (mpp_task, KEY_OUTPUT_FRAME,  &frame);
 
+        if (!frame && packet) {
+            MppMeta meta = mpp_packet_get_meta(packet);
+
+            if (meta) {
+                mpp_meta_get_frame(meta, KEY_OUTPUT_FRAME, &frame);
+                if (frame)
+                    task.status.mpp_in_frm_at_pkt = 1;
+            }
+        }
+
         if (NULL == packet || NULL == frame) {
             mpp_port_enqueue(input, mpp_task);
             task.status.mpp_pkt_in_rdy = 0;
@@ -1022,18 +1032,21 @@ void *mpp_dec_advanced_thread(void *data)
                 goto DEC_OUT;
             }
 
+            dec_dbg_detail("slot change %d\n", mpp_buf_slot_is_changed(frame_slots));
             if (mpp_buf_slot_is_changed(frame_slots)) {
                 size_t slot_size = mpp_buf_slot_get_size(frame_slots);
                 size_t buffer_size = mpp_buffer_get_size(output_buffer);
 
+                dec_dbg_detail("change size required %d vs input %d\n", slot_size, buffer_size);
                 if (slot_size == buffer_size) {
                     mpp_buf_slot_ready(frame_slots);
                 }
 
+                mpp_assert(slot_size <= buffer_size);
+
                 if (slot_size > buffer_size) {
                     mpp_err_f("required buffer size %d is larger than input buffer size %d\n",
                               slot_size, buffer_size);
-                    mpp_assert(slot_size <= buffer_size);
                 }
             }
 
@@ -1080,19 +1093,41 @@ void *mpp_dec_advanced_thread(void *data)
          * final user will release the mpp_frame they had input
          */
     DEC_OUT:
-        mpp_task_meta_set_packet(mpp_task, KEY_INPUT_PACKET, packet);
-        mpp_port_enqueue(input, mpp_task);
-        mpp_task = NULL;
+        if (task.status.mpp_in_frm_at_pkt) {
+            mpp_list *list = mpp->mFrmOut;
+            MppMeta meta = mpp_frame_get_meta(frame);
 
-        // send finished task to output port
-        mpp_port_poll(output, MPP_POLL_BLOCK);
-        mpp_port_dequeue(output, &mpp_task);
-        mpp_task_meta_set_frame(mpp_task, KEY_OUTPUT_FRAME, frame);
-        mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(frame));
+            if (meta)
+                mpp_meta_set_packet(meta, KEY_INPUT_PACKET, packet);
 
-        // setup output task here
-        mpp_port_enqueue(output, mpp_task);
-        mpp_task = NULL;
+            mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(frame));
+
+            list->lock();
+            list->add_at_tail(&frame, sizeof(frame));
+            mpp->mFramePutCount++;
+            list->signal();
+            list->unlock();
+
+            mpp_port_enqueue(input, mpp_task);
+            mpp_task = NULL;
+
+            task.status.mpp_in_frm_at_pkt = 0;
+        } else {
+            mpp_task_meta_set_packet(mpp_task, KEY_INPUT_PACKET, packet);
+            mpp_port_enqueue(input, mpp_task);
+            mpp_task = NULL;
+
+            // send finished task to output port
+            mpp_port_poll(output, MPP_POLL_BLOCK);
+            mpp_port_dequeue(output, &mpp_task);
+            mpp_task_meta_set_frame(mpp_task, KEY_OUTPUT_FRAME, frame);
+            mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(frame));
+
+            // setup output task here
+            mpp_port_enqueue(output, mpp_task);
+            mpp_task = NULL;
+        }
+
         packet = NULL;
         frame = NULL;
 

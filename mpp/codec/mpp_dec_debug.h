@@ -31,7 +31,7 @@
 
 #define dec_dbg_func(fmt, ...)          mpp_dec_dbg_f(MPP_DEC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define dec_dbg_status(fmt, ...)        mpp_dec_dbg_f(MPP_DEC_DBG_STATUS, fmt, ## __VA_ARGS__)
-#define dec_dbg_detail(fmt, ...)        mpp_dec_dbg(MPP_DEC_DBG_DETAIL, fmt, ## __VA_ARGS__)
+#define dec_dbg_detail(fmt, ...)        mpp_dec_dbg_f(MPP_DEC_DBG_DETAIL, fmt, ## __VA_ARGS__)
 #define dec_dbg_reset(fmt, ...)         mpp_dec_dbg(MPP_DEC_DBG_RESET, fmt, ## __VA_ARGS__)
 #define dec_dbg_notify(fmt, ...)        mpp_dec_dbg_f(MPP_DEC_DBG_NOTIFY, fmt, ## __VA_ARGS__)
 

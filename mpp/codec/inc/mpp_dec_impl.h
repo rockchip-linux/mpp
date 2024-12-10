@@ -205,6 +205,7 @@ typedef union DecTaskStatus_u {
         RK_U32      info_task_gen_rdy : 1;
         RK_U32      curr_task_rdy     : 1;
         RK_U32      task_parsed_rdy   : 1;
+        RK_U32      mpp_in_frm_at_pkt : 1;
     };
 } DecTaskStatus;
 
