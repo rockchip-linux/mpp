@@ -276,9 +276,14 @@ void mpp_dec_cfg_show(void)
         MppTrieInfo *node = root;
 
         do {
-            MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
+            if (node->ctx_len == sizeof(MppCfgInfo)) {
+                MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
-            mpp_log("%-25s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type));
+                mpp_log("%-25s type %s - %d:%d\n", mpp_trie_info_name(node),
+                        strof_cfg_type(info->data_type), info->data_offset, info->data_size);
+            } else {
+                mpp_log("%-25s size - %d\n", mpp_trie_info_name(node), node->ctx_len);
+            }
 
             node = srv->get_info_next(node);
             if (!node)

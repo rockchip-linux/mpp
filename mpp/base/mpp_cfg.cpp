@@ -50,7 +50,11 @@ const char *strof_cfg_type(CfgType type)
         "RK_U64",
         "struct",
         "void *",
+        "unknown"
     };
+
+    if (type < 0 || type >= CFG_FUNC_TYPE_BUTT)
+        type = CFG_FUNC_TYPE_BUTT;
 
     return cfg_type_names[type];
 }
