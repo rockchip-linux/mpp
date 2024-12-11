@@ -208,8 +208,6 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
-        RK_S32 input_task_count = 1;
-
         mPktOut = new mpp_list(list_wraper_packet);
         mFrmIn  = new mpp_list(list_wraper_frame);
 
@@ -241,7 +239,7 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
         MppEncInitCfg cfg = {
             coding,
-            input_task_count,
+            mInputTaskCount,
             this,
         };
 
