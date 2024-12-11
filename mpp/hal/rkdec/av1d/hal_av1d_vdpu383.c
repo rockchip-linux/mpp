@@ -13,8 +13,8 @@
 #include "mpp_buffer_impl.h"
 
 // #include "av1.h"
-#include "hal_av1d_vdpu383_reg.h"
 #include "hal_av1d_common.h"
+#include "vdpu383_av1d.h"
 #include "vdpu383_com.h"
 
 #include "av1d_syntax.h"
@@ -1958,29 +1958,29 @@ static void vdpu383_av1d_rcb_reg_cfg(Av1dHalCtx *p_hal, MppBuffer buf)
     RK_U32 fd = mpp_buffer_get_fd(buf);
     RK_U32 i;
 
-    regs->rcb_paras.reg140_rcb_strmd_row_offset           = fd;
-    regs->rcb_paras.reg142_rcb_strmd_tile_row_offset      = fd;
-    regs->rcb_paras.reg144_rcb_inter_row_offset           = fd;
-    regs->rcb_paras.reg146_rcb_inter_tile_row_offset      = fd;
-    regs->rcb_paras.reg148_rcb_intra_row_offset           = fd;
-    regs->rcb_paras.reg150_rcb_intra_tile_row_offset      = fd;
-    regs->rcb_paras.reg152_rcb_filterd_row_offset         = fd;
-    regs->rcb_paras.reg154_rcb_filterd_protect_row_offset = fd;
-    regs->rcb_paras.reg156_rcb_filterd_tile_row_offset    = fd;
-    regs->rcb_paras.reg158_rcb_filterd_tile_col_offset    = fd;
-    regs->rcb_paras.reg160_rcb_filterd_av1_upscale_tile_col_offset = fd;
+    regs->common_addr.reg140_rcb_strmd_row_offset           = fd;
+    regs->common_addr.reg142_rcb_strmd_tile_row_offset      = fd;
+    regs->common_addr.reg144_rcb_inter_row_offset           = fd;
+    regs->common_addr.reg146_rcb_inter_tile_row_offset      = fd;
+    regs->common_addr.reg148_rcb_intra_row_offset           = fd;
+    regs->common_addr.reg150_rcb_intra_tile_row_offset      = fd;
+    regs->common_addr.reg152_rcb_filterd_row_offset         = fd;
+    regs->common_addr.reg154_rcb_filterd_protect_row_offset = fd;
+    regs->common_addr.reg156_rcb_filterd_tile_row_offset    = fd;
+    regs->common_addr.reg158_rcb_filterd_tile_col_offset    = fd;
+    regs->common_addr.reg160_rcb_filterd_av1_upscale_tile_col_offset = fd;
 
-    regs->rcb_paras.reg141_rcb_strmd_row_len            = reg_ctx->rcb_buf_info[RCB_STRMD_ROW].size;
-    regs->rcb_paras.reg143_rcb_strmd_tile_row_len       = reg_ctx->rcb_buf_info[RCB_STRMD_TILE_ROW].size;
-    regs->rcb_paras.reg145_rcb_inter_row_len            = reg_ctx->rcb_buf_info[RCB_INTER_ROW].size;
-    regs->rcb_paras.reg147_rcb_inter_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTER_TILE_ROW].size;
-    regs->rcb_paras.reg149_rcb_intra_row_len            = reg_ctx->rcb_buf_info[RCB_INTRA_ROW].size;
-    regs->rcb_paras.reg151_rcb_intra_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTRA_TILE_ROW].size;
-    regs->rcb_paras.reg153_rcb_filterd_row_len          = reg_ctx->rcb_buf_info[RCB_FILTERD_ROW].size;
-    regs->rcb_paras.reg155_rcb_filterd_protect_row_len  = reg_ctx->rcb_buf_info[RCB_FILTERD_PROTECT_ROW].size;
-    regs->rcb_paras.reg157_rcb_filterd_tile_row_len     = reg_ctx->rcb_buf_info[RCB_FILTERD_TILE_ROW].size;
-    regs->rcb_paras.reg159_rcb_filterd_tile_col_len     = reg_ctx->rcb_buf_info[RCB_FILTERD_TILE_COL].size;
-    regs->rcb_paras.reg161_rcb_filterd_av1_upscale_tile_col_len  = reg_ctx->rcb_buf_info[RCB_FILTERD_AV1_UP_TILE_COL].size;
+    regs->common_addr.reg141_rcb_strmd_row_len            = reg_ctx->rcb_buf_info[RCB_STRMD_ROW].size;
+    regs->common_addr.reg143_rcb_strmd_tile_row_len       = reg_ctx->rcb_buf_info[RCB_STRMD_TILE_ROW].size;
+    regs->common_addr.reg145_rcb_inter_row_len            = reg_ctx->rcb_buf_info[RCB_INTER_ROW].size;
+    regs->common_addr.reg147_rcb_inter_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTER_TILE_ROW].size;
+    regs->common_addr.reg149_rcb_intra_row_len            = reg_ctx->rcb_buf_info[RCB_INTRA_ROW].size;
+    regs->common_addr.reg151_rcb_intra_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTRA_TILE_ROW].size;
+    regs->common_addr.reg153_rcb_filterd_row_len          = reg_ctx->rcb_buf_info[RCB_FILTERD_ROW].size;
+    regs->common_addr.reg155_rcb_filterd_protect_row_len  = reg_ctx->rcb_buf_info[RCB_FILTERD_PROTECT_ROW].size;
+    regs->common_addr.reg157_rcb_filterd_tile_row_len     = reg_ctx->rcb_buf_info[RCB_FILTERD_TILE_ROW].size;
+    regs->common_addr.reg159_rcb_filterd_tile_col_len     = reg_ctx->rcb_buf_info[RCB_FILTERD_TILE_COL].size;
+    regs->common_addr.reg161_rcb_filterd_av1_upscale_tile_col_len  = reg_ctx->rcb_buf_info[RCB_FILTERD_AV1_UP_TILE_COL].size;
 
     for (i = 0; i < RCB_BUF_COUNT; i++)
         mpp_dev_set_reg_offset(p_hal->dev, reg_ctx->rcb_buf_info[i].reg_idx, reg_ctx->rcb_buf_info[i].offset);
@@ -2278,7 +2278,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         prepare_uncompress_header(p_hal, dxva, (RK_U64 *)ctx->header_data, sizeof(ctx->header_data) / 8);
         memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, sizeof(ctx->header_data));
         regs->av1d_paras.reg67_global_len = VDPU383_UNCMPS_HEADER_SIZE / 16; // 128 bit as unit
-        regs->com_pkt_addr.reg131_gbl_base = ctx->bufs_fd;
+        regs->common_addr.reg131_gbl_base = ctx->bufs_fd;
         // mpp_dev_set_reg_offset(p_hal->dev, 131, ctx->offset_uncomps);
 #ifdef DUMP_AV1D_VDPU383_DATAS
         {
@@ -2293,7 +2293,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         p_hal->strm_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);
         regs->av1d_paras.reg66_stream_len = MPP_ALIGN(p_hal->strm_len + 15, 128);
         mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
-        regs->com_pkt_addr.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
+        regs->common_addr.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
         regs->av1d_paras.reg65_strm_start_bit = (ctx->offset_uncomps & 0xf) * 8; // bit start to decode
         mpp_dev_set_reg_offset(p_hal->dev, 128, ctx->offset_uncomps & 0xfffffff0);
         /* error */
@@ -2408,26 +2408,6 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
             }
         }
 
-        // regs->av1d_addrs.reg192_payload_st_cur_base;
-        // regs->av1d_addrs.reg193_fbc_payload_offset;
-        // regs->av1d_addrs.reg194_payload_st_error_ref_base;
-        // regs->av1d_addrs.reg195_payload_st_ref0_base;
-        // regs->av1d_addrs.reg196_payload_st_ref1_base;
-        // regs->av1d_addrs.reg197_payload_st_ref2_base;
-        // regs->av1d_addrs.reg198_payload_st_ref3_base;
-        // regs->av1d_addrs.reg199_payload_st_ref4_base;
-        // regs->av1d_addrs.reg200_payload_st_ref5_base;
-        // regs->av1d_addrs.reg201_payload_st_ref6_base;
-        // regs->av1d_addrs.reg202_payload_st_ref7_base;
-        // regs->av1d_addrs.reg203_payload_st_ref8_base;
-        // regs->av1d_addrs.reg204_payload_st_ref9_base;
-        // regs->av1d_addrs.reg205_payload_st_ref10_base;
-        // regs->av1d_addrs.reg206_payload_st_ref11_base;
-        // regs->av1d_addrs.reg207_payload_st_ref12_base;
-        // regs->av1d_addrs.reg208_payload_st_ref13_base;
-        // regs->av1d_addrs.reg209_payload_st_ref14_base;
-        // regs->av1d_addrs.reg210_payload_st_ref15_base;
-
         HalBuf *mv_buf = NULL;
         vdpu383_av1d_colmv_setup(p_hal, dxva);
         mv_buf = hal_bufs_get_buf(ctx->colmv_bufs, dxva->CurrPic.Index7Bits);
@@ -2472,7 +2452,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
         switch (thumbnail_mode) {
         case MPP_FRAME_THUMBNAIL_ONLY:
-            regs->com_pkt_addr.reg133_scale_down_tile_base = fd;
+            regs->common_addr.reg133_scale_down_base = fd;
             origin_buf = hal_bufs_get_buf(ctx->origin_bufs, dxva->CurrPic.Index7Bits);
             fd = mpp_buffer_get_fd(origin_buf->buf[0]);
             regs->av1d_addrs.reg168_decout_base = fd;
@@ -2482,7 +2462,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
                                      (void *)&regs->av1d_paras);
             break;
         case MPP_FRAME_THUMBNAIL_MIXED:
-            regs->com_pkt_addr.reg133_scale_down_tile_base = fd;
+            regs->common_addr.reg133_scale_down_base = fd;
             vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
                                      (void *)&regs->av1d_paras);
             break;
@@ -2525,18 +2505,9 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &regs->com_pkt_addr;
-        wr_cfg.size = sizeof(regs->com_pkt_addr);
+        wr_cfg.reg = &regs->common_addr;
+        wr_cfg.size = sizeof(regs->common_addr);
         wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
-
-        wr_cfg.reg = &regs->rcb_paras;
-        wr_cfg.size = sizeof(regs->rcb_paras);
-        wr_cfg.offset = OFFSET_RCB_PARAS_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);

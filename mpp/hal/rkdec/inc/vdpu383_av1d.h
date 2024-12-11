@@ -3,109 +3,16 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_AV1D_VDPU383_REG_H__
-#define __HAL_AV1D_VDPU383_REG_H__
+#ifndef __VDPU383_AV1D_H__
+#define __VDPU383_AV1D_H__
 
 #include "rk_type.h"
 #include "vdpu383_com.h"
 
-typedef struct Vdpu383RegComPktAddr_t {
-    /* SWREG128_STRM_BASE */
-    RK_U32 reg128_strm_base;
-
-    /* SWREG129_RPS_BASE */
-    RK_U32 reg129_rps_base;
-
-    /* SWREG130_CABACTBL_BASE */
-    RK_U32 reg130_cabactbl_base;
-
-    /* SWREG131_GBL_BASE */
-    RK_U32 reg131_gbl_base;
-
-    /* SWREG132_SCANLIST_ADDR */
-    RK_U32 reg132_scanlist_addr;
-
-    /* SWREG133_SCALE_DOWN_TILE_BASE */
-    RK_U32 reg133_scale_down_tile_base;
-
-    /* SWREG134_SCALE_DOWN_TILE_BASE */
-    RK_U32 reg134_fgs_base;
-} Vdpu383RegComPktAddr;
-
-typedef struct Vdpu383RegRcbParas_t {
-    /* SWREG140_RCB_STRMD_ROW_OFFSET */
-    RK_U32 reg140_rcb_strmd_row_offset;
-
-    /* SWREG141_RCB_STRMD_ROW_LEN */
-    RK_U32 reg141_rcb_strmd_row_len;
-
-    /* SWREG142_RCB_STRMD_TILE_ROW_OFFSET */
-    RK_U32 reg142_rcb_strmd_tile_row_offset;
-
-    /* SWREG143_RCB_STRMD_TILE_ROW_LEN */
-    RK_U32 reg143_rcb_strmd_tile_row_len;
-
-    /* SWREG144_RCB_INTER_ROW_OFFSET */
-    RK_U32 reg144_rcb_inter_row_offset;
-
-    /* SWREG145_RCB_INTER_ROW_LEN */
-    RK_U32 reg145_rcb_inter_row_len;
-
-    /* SWREG146_RCB_INTER_TILE_ROW_OFFSET */
-    RK_U32 reg146_rcb_inter_tile_row_offset;
-
-    /* SWREG147_RCB_INTER_TILE_ROW_LEN */
-    RK_U32 reg147_rcb_inter_tile_row_len;
-
-    /* SWREG148_RCB_INTRA_ROW_OFFSET */
-    RK_U32 reg148_rcb_intra_row_offset;
-
-    /* SWREG149_RCB_INTRA_ROW_LEN */
-    RK_U32 reg149_rcb_intra_row_len;
-
-    /* SWREG150_RCB_INTRA_TILE_ROW_OFFSET */
-    RK_U32 reg150_rcb_intra_tile_row_offset;
-
-    /* SWREG151_RCB_INTRA_TILE_ROW_LEN */
-    RK_U32 reg151_rcb_intra_tile_row_len;
-
-    /* SWREG152_RCB_FILTERD_ROW_OFFSET */
-    RK_U32 reg152_rcb_filterd_row_offset;
-
-    /* SWREG153_RCB_FILTERD_ROW_LEN */
-    RK_U32 reg153_rcb_filterd_row_len;
-
-    /* SWREG154_RCB_FILTERD_PROTECT_ROW_OFFSET */
-    RK_U32 reg154_rcb_filterd_protect_row_offset;
-
-    /* SWREG155_RCB_FILTERD_PROTECT_ROW_LEN */
-    RK_U32 reg155_rcb_filterd_protect_row_len;
-
-    /* SWREG156_RCB_FILTERD_TILE_ROW_OFFSET */
-    RK_U32 reg156_rcb_filterd_tile_row_offset;
-
-    /* SWREG157_RCB_FILTERD_TILE_ROW_LEN */
-    RK_U32 reg157_rcb_filterd_tile_row_len;
-
-    /* SWREG158_RCB_FILTERD_TILE_COL_OFFSET */
-    RK_U32 reg158_rcb_filterd_tile_col_offset;
-
-    /* SWREG159_RCB_FILTERD_TILE_COL_LEN */
-    RK_U32 reg159_rcb_filterd_tile_col_len;
-
-    /* SWREG160_RCB_FILTERD_AV1_UPSCALE_TILE_COL_OFFSET */
-    RK_U32 reg160_rcb_filterd_av1_upscale_tile_col_offset;
-
-    /* SWREG161_RCB_FILTERD_AV1_UPSCALE_TILE_COL_LEN */
-    RK_U32 reg161_rcb_filterd_av1_upscale_tile_col_len;
-
-} Vdpu383RegRcbParas;
 
 typedef struct Vdpu383RegAv1dParas_t {
-    struct SWREG64_H26X_PARA {
-        RK_U32 reserve0                       : 4;
-        RK_U32 unused_bits                    : 28;
-    } reg64;
+    /* SWREG64_AV1_PARA */
+    RK_U32 reg64_unused_bits;
 
     /* SWREG65_STREAM_PARAM_SET */
     RK_U32 reg65_strm_start_bit;
@@ -353,12 +260,11 @@ typedef struct Vdpu383RegAv1dAddr_t {
 typedef struct Vdpu383Av1dRegSet_t {
     Vdpu383RegVersion     reg_version;
     Vdpu383CtrlReg        ctrl_regs;         /* 8-30 */
-    Vdpu383RegComPktAddr  com_pkt_addr;      /* 128-133 */
-    Vdpu383RegRcbParas    rcb_paras;         /* 140-161 */
+    Vdpu383RegCommonAddr  common_addr;       /* 128-134, 140-161 */
     Vdpu383RegAv1dParas   av1d_paras;        /* 64-106 */
     Vdpu383RegAv1dAddr    av1d_addrs;        /* 168-185(ref) */
     /* 192-210(fbc) */
     /* 216-232(col mv) */
 } Vdpu383Av1dRegSet;
 
-#endif /* __HAL_AV1D_VDPU383_REG_H__ */
+#endif /* __VDPU383_AV1D_H__ */
