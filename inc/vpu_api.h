@@ -94,6 +94,7 @@ typedef enum VPU_API_CMD {
     VPU_API_SET_OUTPUT_BLOCK,
     VPU_API_GET_EOS_STATUS,
     VPU_API_SET_OUTPUT_MODE,
+    VPU_API_SET_FRAME_INFO,
 
     /* get sps/pps header */
     VPU_API_GET_EXTRA_INFO = 0x200,

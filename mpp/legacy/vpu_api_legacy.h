@@ -77,6 +77,7 @@ private:
     RK_U32 init_ok;
     RK_U32 frame_count;
     RK_U32 set_eos;
+    MppFrame frm_info;
 
     /* encoder parameters */
     MppBufferGroup memGroup;
