@@ -81,6 +81,7 @@ typedef struct HalDecTask_t {
     // packet need to be copied to hardware buffer
     // parser will create this packet and mpp_dec will copy it to hardware bufffer
     MppPacket       input_packet;
+    RK_S32          input_no_copy;
 
     // current task input slot index
     RK_S32          input;

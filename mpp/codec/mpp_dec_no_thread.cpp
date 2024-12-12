@@ -107,14 +107,23 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
      */
     dec_dbg_detail("detail: %p hal_pkt_buf_in %p\n", dec, task->hal_pkt_buf_in);
     if (!task->hal_pkt_buf_in) {
-        MppBuffer hal_buf_in = NULL;
+        MppBuffer hal_buf_in = mpp_packet_get_buffer(task_dec->input_packet);
         RK_S32 slot_pkt = -1;
 
         mpp_buf_slot_get_unused(packet_slots, &slot_pkt);
         mpp_assert(slot_pkt >= 0);
         stream_size = mpp_packet_get_size(task_dec->input_packet);
 
-        mpp_buf_slot_get_prop(packet_slots, slot_pkt, SLOT_BUFFER, &hal_buf_in);
+        if (NULL == hal_buf_in) {
+            mpp_buf_slot_get_prop(packet_slots, slot_pkt, SLOT_BUFFER, &hal_buf_in);
+        } else {
+            /* use external buffer and set to slot */
+            task_dec->input_no_copy = 1;
+
+            mpp_buf_slot_set_prop(packet_slots, slot_pkt, SLOT_BUFFER, hal_buf_in);
+            mpp_buffer_attach_dev(hal_buf_in, dec->dev);
+        }
+
         if (NULL == hal_buf_in) {
             mpp_buffer_get(mpp->mPacketGroup, &hal_buf_in, stream_size);
             if (hal_buf_in) {
@@ -138,18 +147,22 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
      * 6. copy data to hardware buffer
      */
     if (!status->dec_pkt_copy_rdy) {
-        void *src = mpp_packet_get_data(task_dec->input_packet);
-        size_t length = mpp_packet_get_length(task_dec->input_packet);
+        if (!task_dec->input_no_copy) {
+            void *src = mpp_packet_get_data(task_dec->input_packet);
+            size_t length = mpp_packet_get_length(task_dec->input_packet);
 
-        mpp_assert(task->hal_pkt_buf_in);
-        mpp_assert(task_dec->input_packet);
+            mpp_assert(task->hal_pkt_buf_in);
+            mpp_assert(task_dec->input_packet);
 
-        dec_dbg_detail("detail: %p copy to hw length %d\n", dec, length);
-        mpp_buffer_write(task->hal_pkt_buf_in, 0, src, length);
-        mpp_buffer_sync_partial_end(task->hal_pkt_buf_in, 0, length);
+            dec_dbg_detail("detail: %p copy to hw length %d\n", dec, length);
+            mpp_buffer_write(task->hal_pkt_buf_in, 0, src, length);
+            mpp_buffer_sync_partial_end(task->hal_pkt_buf_in, 0, length);
+
+        }
 
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
+
         status->dec_pkt_copy_rdy = 1;
     }
 
@@ -161,6 +174,12 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         mpp_parser_parse(dec->parser, task_dec);
         mpp_clock_pause(dec->clocks[DEC_PRS_PARSE]);
         status->task_parsed_rdy = 1;
+
+        /* add extra output slot operaton for jpeg decoding */
+        if (task_dec->input_no_copy && task_dec->output >= 0) {
+            mpp_buf_slot_set_flag(frame_slots, task_dec->output, SLOT_QUEUE_USE);
+            mpp_buf_slot_enqueue(frame_slots, task_dec->output, QUEUE_DISPLAY);
+        }
     }
 
     dec_dbg_detail("detail: %p parse output slot %d valid %d\n", dec,
@@ -292,6 +311,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     mpp_hal_hw_start(dec->hal, &task->info);
     mpp_hal_hw_wait(dec->hal, &task->info);
     dec->dec_hw_run_count++;
+
     /*
      * when hardware decoding is done:
      * 1. clear decoding flag (mark buffer is ready)

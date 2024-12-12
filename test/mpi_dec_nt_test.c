@@ -91,10 +91,24 @@ static int dec_loop(MpiDecLoopData *data)
         }
     }
 
-    mpp_packet_set_data(packet, slot->data);
-    mpp_packet_set_size(packet, slot->size);
-    mpp_packet_set_pos(packet, slot->data);
-    mpp_packet_set_length(packet, slot->size);
+    if (!slot->buf) {
+        /* non-jpeg decoding */
+        mpp_packet_set_data(packet, slot->data);
+        mpp_packet_set_size(packet, slot->size);
+        mpp_packet_set_pos(packet, slot->data);
+        mpp_packet_set_length(packet, slot->size);
+    } else {
+        /* jpeg decoding */
+        void *buf = mpp_buffer_get_ptr(slot->buf);
+        size_t size = mpp_buffer_get_size(slot->buf);
+
+        mpp_packet_set_data(packet, buf);
+        mpp_packet_set_size(packet, size);
+        mpp_packet_set_pos(packet, buf);
+        mpp_packet_set_length(packet, size);
+        mpp_packet_set_buffer(packet, slot->buf);
+    }
+
     // setup eos flag
     if (pkt_eos)
         mpp_packet_set_eos(packet);
@@ -142,6 +156,9 @@ static int dec_loop(MpiDecLoopData *data)
                     mpp_err("%p info change ready failed ret %d\n", ctx, ret);
                     break;
                 }
+
+                mpp_frame_deinit(&frame);
+                continue;
             } else {
                 char log_buf[256];
                 RK_S32 log_size = sizeof(log_buf) - 1;
@@ -331,43 +348,11 @@ int dec_nt_decode(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
-    if (cmd->simple) {
-        ret = mpp_packet_init(&packet, NULL, 0);
-        mpp_err_f("mpp_packet_init get %p\n", packet);
-        if (ret) {
-            mpp_err("mpp_packet_init failed\n");
-            goto MPP_TEST_OUT;
-        }
-    } else {
-        RK_U32 hor_stride = MPP_ALIGN(width, 16);
-        RK_U32 ver_stride = MPP_ALIGN(height, 16);
-
-        ret = mpp_frame_init(&frame); /* output frame */
-        if (ret) {
-            mpp_err("mpp_frame_init failed\n");
-            goto MPP_TEST_OUT;
-        }
-
-        data.frm_grp = dec_buf_mgr_setup(data.buf_mgr, hor_stride * ver_stride * 4, 4, cmd->buf_mode);
-        if (!data.frm_grp) {
-            mpp_err("failed to get buffer group for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        /*
-         * NOTE: For jpeg could have YUV420 and YUV422 the buffer should be
-         * larger for output. And the buffer dimension should align to 16.
-         * YUV420 buffer is 3/2 times of w*h.
-         * YUV422 buffer is 2 times of w*h.
-         * So create larger buffer with 2 times w*h.
-         */
-        ret = mpp_buffer_get(data.frm_grp, &frm_buf, hor_stride * ver_stride * 4);
-        if (ret) {
-            mpp_err("failed to get buffer for input frame ret %d\n", ret);
-            goto MPP_TEST_OUT;
-        }
-
-        mpp_frame_set_buffer(frame, frm_buf);
+    ret = mpp_packet_init(&packet, NULL, 0);
+    mpp_err_f("mpp_packet_init get %p\n", packet);
+    if (ret) {
+        mpp_err("mpp_packet_init failed\n");
+        goto MPP_TEST_OUT;
     }
 
     // decoder demo
