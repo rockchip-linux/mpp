@@ -514,8 +514,8 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
 
     if (buffer->ref_count <= 0) {
         buf_add_log(buffer, BUF_REF_DEC, caller);
-        mpp_err_f("found non-positive ref_count %d caller %s\n",
-                  buffer->ref_count, buffer->caller);
+        mpp_err_f("buffer from %s found non-positive ref_count %d caller %s\n",
+                  buffer->caller, buffer->ref_count, caller);
         mpp_abort();
         ret = MPP_NOK;
         pthread_mutex_unlock(&buffer->lock);
