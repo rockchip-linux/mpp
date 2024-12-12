@@ -44,6 +44,7 @@ typedef struct MppMemPoolNode_t {
 
 typedef struct MppMemPoolImpl_t {
     void                *check;
+    const char          *caller;
     size_t              size;
     pthread_mutex_t     lock;
     struct list_head    service_link;
@@ -70,7 +71,7 @@ public:
         return &lock;
     }
 
-    MppMemPoolImpl *get_pool(size_t size);
+    MppMemPoolImpl *get_pool(const char *caller, size_t size);
     void put_pool(MppMemPoolImpl *impl);
 
 private:
@@ -97,7 +98,7 @@ MppMemPoolService::~MppMemPoolService()
     }
 }
 
-MppMemPoolImpl *MppMemPoolService::get_pool(size_t size)
+MppMemPoolImpl *MppMemPoolService::get_pool(const char *caller, size_t size)
 {
     MppMemPoolImpl *pool = mpp_malloc(MppMemPoolImpl, 1);
     if (NULL == pool)
@@ -110,6 +111,7 @@ MppMemPoolImpl *MppMemPoolService::get_pool(size_t size)
     pthread_mutexattr_destroy(&attr);
 
     pool->check = pool;
+    pool->caller = caller;
     pool->size = size;
     pool->used_count = 0;
     pool->unused_count = 0;
@@ -146,8 +148,8 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
     }
 
     if (!list_empty(&impl->used)) {
-        mpp_err_f("found %d used buffer size %d\n",
-                  impl->used_count, impl->size);
+        mpp_err_f("pool %s found %d used buffer size %d\n",
+                  impl->caller, impl->used_count, impl->size);
 
         list_for_each_entry_safe(node, m, &impl->used, MppMemPoolNode, list) {
             MPP_FREE(node);
@@ -156,8 +158,8 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
     }
 
     if (impl->used_count || impl->unused_count)
-        mpp_err_f("pool size %d found leaked buffer used:unused [%d:%d]\n",
-                  impl->size, impl->used_count, impl->unused_count);
+        mpp_err_f("pool %s size %d found leaked buffer used:unused [%d:%d]\n",
+                  impl->caller, impl->size, impl->used_count, impl->unused_count);
 
     pthread_mutex_unlock(&impl->lock);
 
@@ -174,7 +176,7 @@ MppMemPool mpp_mem_pool_init_f(const char *caller, size_t size)
 {
     mem_pool_dbg_flow("pool %d init from %s", size, caller);
 
-    return (MppMemPool)MppMemPoolService::getInstance()->get_pool(size);
+    return (MppMemPool)MppMemPoolService::getInstance()->get_pool(caller, size);
 }
 
 void mpp_mem_pool_deinit_f(const char *caller, MppMemPool pool)
