@@ -48,18 +48,6 @@ static MPP_RET hal_jpegd_wait(void *hal, HalTaskInfo *task)
     return self->hal_api.wait (hal, task);
 }
 
-static MPP_RET hal_jpegd_reset(void *hal)
-{
-    JpegdHalCtx *self = (JpegdHalCtx *)hal;
-    return self->hal_api.reset (hal);
-}
-
-static MPP_RET hal_jpegd_flush(void *hal)
-{
-    JpegdHalCtx *self = (JpegdHalCtx *)hal;
-    return self->hal_api.flush (hal);
-}
-
 static MPP_RET hal_jpegd_control(void *hal, MpiCmd cmd_type, void *param)
 {
     JpegdHalCtx *self = (JpegdHalCtx *)hal;
@@ -126,8 +114,6 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_jpegd_vdpu2_gen_regs;
         p_api->start = hal_jpegd_vdpu2_start;
         p_api->wait = hal_jpegd_vdpu2_wait;
-        p_api->reset = hal_jpegd_vdpu2_reset;
-        p_api->flush = hal_jpegd_vdpu2_flush;
         p_api->control = hal_jpegd_vdpu2_control;
     } break;
     case VPU_CLIENT_VDPU1 :
@@ -137,8 +123,6 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_jpegd_vdpu1_gen_regs;
         p_api->start = hal_jpegd_vdpu1_start;
         p_api->wait = hal_jpegd_vdpu1_wait;
-        p_api->reset = hal_jpegd_vdpu1_reset;
-        p_api->flush = hal_jpegd_vdpu1_flush;
         p_api->control = hal_jpegd_vdpu1_control;
     } break;
     case VPU_CLIENT_JPEG_DEC : {
@@ -147,8 +131,6 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
         p_api->reg_gen = hal_jpegd_rkv_gen_regs;
         p_api->start = hal_jpegd_rkv_start;
         p_api->wait = hal_jpegd_rkv_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
         p_api->control = hal_jpegd_rkv_control;
     } break;
     default : {
@@ -187,7 +169,7 @@ const MppHalApi hal_api_jpegd = {
     .reg_gen = hal_jpegd_reg_gen,
     .start = hal_jpegd_start,
     .wait = hal_jpegd_wait,
-    .reset = hal_jpegd_reset,
-    .flush = hal_jpegd_flush,
+    .reset = NULL,
+    .flush = NULL,
     .control = hal_jpegd_control,
 };

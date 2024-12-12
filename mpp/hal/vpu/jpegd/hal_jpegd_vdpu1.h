@@ -24,8 +24,6 @@ MPP_RET hal_jpegd_vdpu1_deinit(void *hal);
 MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn);
 MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task);
 MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_vdpu1_reset(void *hal);
-MPP_RET hal_jpegd_vdpu1_flush(void *hal);
 MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param);
 
 #endif /* __HAL_JPEGD_VDPU1_H__ */

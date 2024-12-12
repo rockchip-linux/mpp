@@ -1043,25 +1043,6 @@ __SKIP_HARD:
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu1_reset(void *hal)
-{
-    jpegd_dbg_func("enter\n");
-    MPP_RET ret = MPP_OK;
-    JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
-    (void)JpegHalCtx;
-
-    return ret;
-}
-
-MPP_RET hal_jpegd_vdpu1_flush(void *hal)
-{
-    jpegd_dbg_func("enter\n");
-    MPP_RET ret = MPP_OK;
-
-    (void)hal;
-    return ret;
-}
-
 MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
 {
     jpegd_dbg_func("enter\n");
