@@ -104,7 +104,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
         sps->constraint_set0 = 0;
         sps->constraint_set1 = 0;
         sps->constraint_set2 = 0;
-        sps->constraint_set3 = 1;
+        sps->constraint_set3 = 0;
         sps->constraint_set4 = 0;
         sps->constraint_set5 = 0;
     } break;
