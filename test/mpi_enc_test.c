@@ -21,6 +21,7 @@
 #define MODULE_TAG "mpi_enc_test"
 
 #include <string.h>
+#include <math.h>
 #include "rk_mpi.h"
 
 #include "mpp_env.h"
@@ -658,6 +659,8 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
     RK_U32 cap_num = 0;
     DataCrc checkcrc;
     MPP_RET ret = MPP_OK;
+    RK_FLOAT psnr_const = 0;
+    RK_U32 sse_unit_in_pixel = 0;
 
     memset(&checkcrc, 0, sizeof(checkcrc));
     checkcrc.sum = mpp_malloc(RK_ULONG, 512);
@@ -689,6 +692,10 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
         }
 
         mpp_packet_deinit(&packet);
+
+        sse_unit_in_pixel = p->type == MPP_VIDEO_CodingAVC ? 16 : 8;
+        psnr_const = (16 + log2(MPP_ALIGN(p->width, sse_unit_in_pixel) *
+                                MPP_ALIGN(p->height, sse_unit_in_pixel)));
     }
     while (!p->pkt_eos) {
         MppMeta meta = NULL;
@@ -919,6 +926,8 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                     RK_S32 lt_idx = -1;
                     RK_S32 avg_qp = -1, bps_rt = -1;
                     RK_S32 use_lt_idx = -1;
+                    RK_S64 sse = 0;
+                    RK_FLOAT psnr = 0;
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &temporal_id))
                         log_len += snprintf(log_buf + log_len, log_size - log_len,
@@ -938,6 +947,12 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
 
                     if (MPP_OK == mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &use_lt_idx))
                         log_len += snprintf(log_buf + log_len, log_size - log_len, " vi");
+
+                    if (MPP_OK == mpp_meta_get_s64(meta, KEY_ENC_SSE, &sse)) {
+                        psnr = 3.01029996 * (psnr_const - log2(sse));
+                        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                            " psnr %.4f", psnr);
+                    }
                 }
 
                 mpp_log_q(quiet, "chn %d %s\n", chn, log_buf);
