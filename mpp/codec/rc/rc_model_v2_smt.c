@@ -189,8 +189,8 @@ MPP_RET bits_model_smt_init(RcModelV2SmtCtx *ctx)
     mpp_pid_set_param(&ctx->pid_lower_all, 4, 6, 0, 100, gop_len);
     mpp_pid_set_param(&ctx->pid_upper_all, 4, 6, 0, 100, gop_len);
 
-    ave_bits_lower = axb_div_c(ctx->usr_cfg.bps_min, fps->fps_out_denom, fps->fps_out_num);
-    ave_bits_uppper = axb_div_c(ctx->usr_cfg.bps_max, fps->fps_out_denom, fps->fps_out_num);
+    ave_bits_lower = (RK_S64)ctx->usr_cfg.bps_min * fps->fps_out_denom / fps->fps_out_num;
+    ave_bits_uppper = (RK_S64)ctx->usr_cfg.bps_max * fps->fps_out_denom / fps->fps_out_num;
 
     ctx->acc_intra_count = 0;
     ctx->acc_inter_count = 0;
@@ -295,7 +295,7 @@ MPP_RET bits_model_update_smt(RcModelV2SmtCtx *ctx, RK_S32 real_bit)
     ctx->last_fps_bits += real_bit;
     /* new fps start */
     mod = ctx->acc_intra_count + ctx->acc_inter_count;
-    mod = mod % fps->fps_out_num;
+    mod = mod % (fps->fps_out_num / fps->fps_out_denom);
     if (0 == mod) {
         bps_target_tmp = (ctx->usr_cfg.bps_min + ctx->usr_cfg.bps_max) >> 1;
         if (bps_target_tmp * 3 > (ctx->last_fps_bits * 2))
@@ -591,8 +591,8 @@ static MPP_RET smt_start_prepare(void *ctx, EncRcTask *task)
             } else {
                 RK_S32 diff_bit_lr = mpp_data_mean_v2(p->pid_lower_p);
                 RK_S32 diff_bit_hr = mpp_data_mean_v2(p->pid_upper_p);
-                RK_S32 lr = axb_div_c(b_min, fps->fps_out_denom, fps->fps_out_num);
-                RK_S32 hr = axb_div_c(b_max, fps->fps_out_denom, fps->fps_out_num);
+                RK_S32 lr = (RK_S64)b_min * fps->fps_out_denom / fps->fps_out_num;
+                RK_S32 hr = (RK_S64)b_max * fps->fps_out_denom / fps->fps_out_num;
 
                 bits_lower = p->bits_per_lower_p - diff_bit_lr;
                 if (bits_lower > 2 * lr)
