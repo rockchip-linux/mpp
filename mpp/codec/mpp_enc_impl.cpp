@@ -2471,14 +2471,15 @@ static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
         mpp_meta_set_s32(meta, KEY_LVL4_INTRA_NUM,  rc_task->info.lvl4_intra_num);
 
         mpp_meta_set_s64(meta, KEY_ENC_SSE,  rc_task->info.sse);
-        /* frame type */
-        mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA,    frm->is_intra);
         mpp_meta_set_s32(meta, KEY_OUTPUT_PSKIP,    frm->force_pskip || is_pskip);
         mpp_meta_set_s32(meta, KEY_ENC_BPS_RT, rc_task->info.rt_bits);
 
         if (rc_task->info.frame_type == INTER_VI_FRAME)
             mpp_meta_set_s32(meta, KEY_ENC_USE_LTR, rc_task->cpb.refr.lt_idx);
     }
+    /* frame type */
+    mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA,    frm->is_intra);
+
     /* start qp and average qp */
     mpp_meta_set_s32(meta, KEY_ENC_START_QP,    rc_task->info.quality_target);
     mpp_meta_set_s32(meta, KEY_ENC_AVERAGE_QP,  rc_task->info.quality_real);
