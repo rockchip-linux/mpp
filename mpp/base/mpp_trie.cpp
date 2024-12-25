@@ -906,5 +906,5 @@ void mpp_trie_dump(MppTrie trie, const char *func)
             mpp_logi("%2d   | %4d | %4d |\n", i, next_cnt[i], tag_len[i]);
     }
 
-    mpp_logi("%s dumping node end\n", func, p->node_used);
+    mpp_logi("%s dumping node end\n", func);
 }
