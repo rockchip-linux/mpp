@@ -42,9 +42,8 @@ typedef struct {
     RK_U32          got_eos;
 
     // runtime parameter
-    RK_U32          need_split;
     RK_U32          frame_count;
-    RK_U32          internal_pts;
+    MppDecCfgSet    *dec_cfg;
 
     // parser context
     Mpg4dParser     parser;
@@ -91,12 +90,7 @@ static MPP_RET mpg4d_init(void *dec, ParserCfg *cfg)
     p->frame_slots  = cfg->frame_slots;
     p->packet_slots = cfg->packet_slots;
     p->task_count   = 2;
-#ifdef __ANDROID__
-    p->need_split   = 1;//cfg->need_split;
-#else
-    p->need_split   = cfg->cfg->base.split_parse;
-#endif
-    p->internal_pts = cfg->cfg->base.internal_pts;
+    p->dec_cfg      = cfg->cfg;
     p->stream       = stream;
     p->stream_size  = stream_size;
     p->task_pkt     = task_pkt;
@@ -240,7 +234,7 @@ static MPP_RET mpg4d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         }
     }
 
-    if (!p->need_split ||
+    if (!p->dec_cfg->base.split_parse ||
         (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA)) {
         p->got_eos = eos;
         task->flags.eos = eos;
