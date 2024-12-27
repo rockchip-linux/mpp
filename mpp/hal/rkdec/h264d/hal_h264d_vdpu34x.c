@@ -975,24 +975,17 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     regs->h264d_addr.pps_base = ctx->bufs_fd;
-    MppDevRegOffsetCfg trans_cfg;
-    trans_cfg.reg_idx = 161;
-    trans_cfg.offset = ctx->spspps_offset;
-    mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(p_hal->dev, 161, ctx->spspps_offset);
 
     memcpy((char *)ctx->bufs_ptr + ctx->rps_offset, (void *)ctx->rps, sizeof(ctx->rps));
     regs->h264d_addr.rps_base = ctx->bufs_fd;
-    trans_cfg.reg_idx = 163;
-    trans_cfg.offset = ctx->rps_offset;
-    mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(p_hal->dev, 163, ctx->rps_offset);
 
     regs->common.reg012.scanlist_addr_valid_en = 1;
     if (p_hal->pp->scaleing_list_enable_flag) {
         memcpy((char *)ctx->bufs_ptr + ctx->sclst_offset, (void *)ctx->sclst, sizeof(ctx->sclst));
         regs->h264d_addr.scanlist_addr = ctx->bufs_fd;
-        trans_cfg.reg_idx = 180;
-        trans_cfg.offset = ctx->sclst_offset;
-        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(p_hal->dev, 180, ctx->sclst_offset);
     } else {
         regs->h264d_addr.scanlist_addr = 0;
     }

@@ -615,7 +615,6 @@ static MPP_RET hal_h265e_vepu540c_prepare(void *hal)
 static MPP_RET
 vepu540c_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_fmt, HalEncTask *task)
 {
-    MppDevRegOffsetCfg cfg_fd;
     RK_U32 hor_stride = syn->pp.hor_stride;
     RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
@@ -664,18 +663,14 @@ vepu540c_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_
 
     /* input cb addr */
     if (u_offset) {
-        cfg_fd.reg_idx = 161;
-        cfg_fd.offset = u_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        ret = mpp_dev_set_reg_offset(dev, 161, u_offset);
         if (ret)
             mpp_err_f("set input cb addr offset failed %d\n", ret);
     }
 
     /* input cr addr */
     if (v_offset) {
-        cfg_fd.reg_idx = 162;
-        cfg_fd.offset = v_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        ret = mpp_dev_set_reg_offset(dev, 162, v_offset);
         if (ret)
             mpp_err_f("set input cr addr offset failed %d\n", ret);
     }

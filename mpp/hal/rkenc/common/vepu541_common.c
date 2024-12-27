@@ -661,13 +661,8 @@ MPP_RET vepu541_set_osd(Vepu541OsdCfg *cfg)
             }
             regs->osd_addr[i] = fd;
 
-            if (tmp->buf_offset) {
-                MppDevRegOffsetCfg trans_cfg;
-
-                trans_cfg.reg_idx = VEPU541_OSD_ADDR_IDX_BASE + i;
-                trans_cfg.offset = tmp->buf_offset;
-                mpp_dev_ioctl(cfg->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-            }
+            if (tmp->buf_offset)
+                mpp_dev_set_reg_offset(dev, VEPU541_OSD_ADDR_IDX_BASE + i, tmp->buf_offset);
 
             /* There should be enough buffer and offset should be 16B aligned */
             if (buf_size < tmp->buf_offset + blk_len ||
@@ -867,13 +862,8 @@ MPP_RET vepu540_set_osd(Vepu541OsdCfg *cfg)
             }
             regs->osd_addr[k] = fd;
 
-            if (tmp->buf_offset) {
-                MppDevRegOffsetCfg trans_cfg;
-
-                trans_cfg.reg_idx = VEPU541_OSD_ADDR_IDX_BASE + k;
-                trans_cfg.offset = tmp->buf_offset;
-                mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-            }
+            if (tmp->buf_offset)
+                mpp_dev_set_reg_offset(dev, VEPU541_OSD_ADDR_IDX_BASE + k, tmp->buf_offset);
 
             /* There should be enough buffer and offset should be 16B aligned */
             if (buf_size < tmp->buf_offset + blk_len ||

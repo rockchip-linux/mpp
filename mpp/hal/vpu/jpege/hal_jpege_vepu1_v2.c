@@ -147,7 +147,6 @@ static MPP_RET hal_jpege_vepu1_set_extra_info(MppDev dev, JpegeSyntax *syntax,
     RK_U32 hor_stride   = syntax->hor_stride;
     RK_U32 ver_stride   = syntax->ver_stride;
     RK_U32 offset = 0;
-    MppDevRegOffsetCfg trans_cfg;
 
     switch (fmt) {
     case MPP_FMT_YUV420SP :
@@ -155,33 +154,25 @@ static MPP_RET hal_jpege_vepu1_set_extra_info(MppDev dev, JpegeSyntax *syntax,
         if (start_mbrow) {
             offset = 16 * start_mbrow * hor_stride;
 
-            trans_cfg.reg_idx = 11;
-            trans_cfg.offset = offset;
-            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            mpp_dev_set_reg_offset(dev, 11, offset);
         }
 
         offset = hor_stride * ver_stride + hor_stride * start_mbrow * 16 / 2;
         if (fmt == MPP_FMT_YUV420P)
             offset = hor_stride * start_mbrow * 16 / 4 + hor_stride * ver_stride;
 
-        trans_cfg.reg_idx = 12;
-        trans_cfg.offset = offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(dev, 12, offset);
 
         if (fmt == MPP_FMT_YUV420P)
             offset = hor_stride * start_mbrow * 16 / 4 + hor_stride * ver_stride * 5 / 4;
 
-        trans_cfg.reg_idx = 13;
-        trans_cfg.offset = offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(dev, 13, offset);
     } break;
     default : {
         if (start_mbrow) {
             offset = start_mbrow * hor_stride;
 
-            trans_cfg.reg_idx = 11;
-            trans_cfg.offset = offset;
-            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+            mpp_dev_set_reg_offset(dev, 11, offset);
         }
     } break;
     }

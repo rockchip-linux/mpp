@@ -64,7 +64,6 @@ RK_S32 vdpu383_get_rcb_buf_size(Vdpu383RcbInfo *info, RK_S32 width, RK_S32 heigh
 void vdpu383_setup_rcb(Vdpu383RegCommonAddr *reg, MppDev dev,
                        MppBuffer buf, Vdpu383RcbInfo *info)
 {
-    MppDevRegOffsetCfg trans_cfg;
     RK_U32 i;
 
     reg->reg140_rcb_strmd_row_offset           = mpp_buffer_get_fd(buf);
@@ -92,11 +91,8 @@ void vdpu383_setup_rcb(Vdpu383RegCommonAddr *reg, MppDev dev,
     reg->reg161_rcb_filterd_av1_upscale_tile_col_len = info[RCB_FILTERD_AV1_UP_TILE_COL].size;
 
     for (i = 0; i < RCB_BUF_COUNT; i++) {
-        if (info[i].offset) {
-            trans_cfg.reg_idx = info[i].reg_idx;
-            trans_cfg.offset = info[i].offset;
-            mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-        }
+        if (info[i].offset)
+            mpp_dev_set_reg_offset(dev, info[i].reg_idx, info[i].offset);
     }
 }
 

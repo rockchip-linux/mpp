@@ -404,7 +404,6 @@ static RK_S32 hal_h265d_v382_output_pps_packet(void *hal, void *dxva)
     }
 
     if (dxva_cxt->pp.scaling_list_enabled_flag) {
-        MppDevRegOffsetCfg trans_cfg;
         RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->sclst_offset;
 
         if (dxva_cxt->pp.scaling_list_data_present_flag) {
@@ -421,9 +420,7 @@ static RK_S32 hal_h265d_v382_output_pps_packet(void *hal, void *dxva)
         hw_reg->common.reg012.scanlist_addr_valid_en = 1;
 
         /* need to config addr */
-        trans_cfg.reg_idx = 180;
-        trans_cfg.offset = addr + reg_ctx->sclst_offset;
-        mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(reg_ctx->dev, 180, addr + reg_ctx->sclst_offset);
     }
 
     for (i = 0; i < 64; i++)
@@ -790,7 +787,6 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     hal_h265d_slice_output_rps(syn->dec.syntax.data, rps_ptr);
 #endif
 
-    MppDevRegOffsetCfg trans_cfg;
     /* cabac table */
     hw_regs->h265d_addr.reg197_cabactbl_base    = reg_ctx->bufs_fd;
     /* pps */
@@ -911,13 +907,9 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     hal_h265d_v382_output_pps_packet(hal, syn->dec.syntax.data);
 
-    trans_cfg.reg_idx = 161;
-    trans_cfg.offset = reg_ctx->spspps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(reg_ctx->dev, 161, reg_ctx->spspps_offset);
     /* rps */
-    trans_cfg.reg_idx = 163;
-    trans_cfg.offset = reg_ctx->rps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(reg_ctx->dev, 163, reg_ctx->rps_offset);
 
     hw_regs->common.reg013.cur_pic_is_idr = dxva_cxt->pp.IdrPicFlag;//p_hal->slice_long->idr_flag;
 

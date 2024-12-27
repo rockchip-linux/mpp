@@ -74,7 +74,6 @@ RK_S32 vdpu34x_get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 heigh
 
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu34xRcbInfo *info)
 {
-    MppDevRegOffsetCfg trans_cfg;
     RK_S32 fd = mpp_buffer_get_fd(buf);
 
     reg->reg139_rcb_dblk_base           = fd;
@@ -88,65 +87,26 @@ void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdp
     reg->reg138_rcb_inter_col_base      = fd;
     reg->reg142_rcb_filter_col_base     = fd;
 
-    if (info[RCB_DBLK_ROW].offset) {
-        trans_cfg.reg_idx = 139;
-        trans_cfg.offset = info[RCB_DBLK_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_INTRA_ROW].offset) {
-        trans_cfg.reg_idx = 133;
-        trans_cfg.offset = info[RCB_INTRA_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_TRANSD_ROW].offset) {
-        trans_cfg.reg_idx = 134;
-        trans_cfg.offset = info[RCB_TRANSD_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_STRMD_ROW].offset) {
-        trans_cfg.reg_idx = 136;
-        trans_cfg.offset = info[RCB_STRMD_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_INTER_ROW].offset) {
-        trans_cfg.reg_idx = 137;
-        trans_cfg.offset = info[RCB_INTER_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_SAO_ROW].offset) {
-        trans_cfg.reg_idx = 140;
-        trans_cfg.offset = info[RCB_SAO_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_FBC_ROW].offset) {
-        trans_cfg.reg_idx = 141;
-        trans_cfg.offset = info[RCB_FBC_ROW].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_TRANSD_COL].offset) {
-        trans_cfg.reg_idx = 135;
-        trans_cfg.offset = info[RCB_TRANSD_COL].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_INTER_COL].offset) {
-        trans_cfg.reg_idx = 138;
-        trans_cfg.offset = info[RCB_INTER_COL].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (info[RCB_FILT_COL].offset) {
-        trans_cfg.reg_idx = 142;
-        trans_cfg.offset = info[RCB_FILT_COL].offset;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
+    if (info[RCB_DBLK_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 139, info[RCB_DBLK_ROW].offset);
+    if (info[RCB_INTRA_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 133, info[RCB_INTRA_ROW].offset);
+    if (info[RCB_TRANSD_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 134, info[RCB_TRANSD_ROW].offset);
+    if (info[RCB_STRMD_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 136, info[RCB_STRMD_ROW].offset);
+    if (info[RCB_INTER_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 137, info[RCB_INTER_ROW].offset);
+    if (info[RCB_SAO_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 140, info[RCB_SAO_ROW].offset);
+    if (info[RCB_FBC_ROW].offset)
+        mpp_dev_set_reg_offset(dev, 141, info[RCB_FBC_ROW].offset);
+    if (info[RCB_TRANSD_COL].offset)
+        mpp_dev_set_reg_offset(dev, 135, info[RCB_TRANSD_COL].offset);
+    if (info[RCB_INTER_COL].offset)
+        mpp_dev_set_reg_offset(dev, 138, info[RCB_INTER_COL].offset);
+    if (info[RCB_FILT_COL].offset)
+        mpp_dev_set_reg_offset(dev, 142, info[RCB_FILT_COL].offset);
 }
 
 static RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b)

@@ -348,7 +348,6 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(MppDev dev, JpegeSyntax *syntax,
                                               RK_U32 start_mbrow)
 {
     VepuOffsetCfg cfg;
-    MppDevRegOffsetCfg trans_cfg;
 
     cfg.fmt = syntax->format;
     cfg.width = syntax->width;
@@ -360,26 +359,14 @@ static MPP_RET hal_jpege_vepu2_set_extra_info(MppDev dev, JpegeSyntax *syntax,
 
     get_vepu_offset_cfg(&cfg);
 
-    if (cfg.offset_byte[0]) {
-        trans_cfg.reg_idx = VEPU2_REG_INPUT_Y;
-        trans_cfg.offset = cfg.offset_byte[0];
+    if (cfg.offset_byte[0])
+        mpp_dev_set_reg_offset(dev, VEPU2_REG_INPUT_Y, cfg.offset_byte[0]);
 
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
+    if (cfg.offset_byte[1])
+        mpp_dev_set_reg_offset(dev, VEPU2_REG_INPUT_U, cfg.offset_byte[1]);
 
-    if (cfg.offset_byte[1]) {
-        trans_cfg.reg_idx = VEPU2_REG_INPUT_U;
-        trans_cfg.offset = cfg.offset_byte[1];
-
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
-
-    if (cfg.offset_byte[2]) {
-        trans_cfg.reg_idx = VEPU2_REG_INPUT_V;
-        trans_cfg.offset = cfg.offset_byte[2];
-
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-    }
+    if (cfg.offset_byte[2])
+        mpp_dev_set_reg_offset(dev, VEPU2_REG_INPUT_V, cfg.offset_byte[2]);
 
     return MPP_OK;
 }

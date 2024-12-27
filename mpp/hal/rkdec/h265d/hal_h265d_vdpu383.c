@@ -1145,21 +1145,14 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
         return MPP_OK;
     }
 
-    MppDevRegOffsetCfg trans_cfg;
-
     /* pps */
     hw_regs->common_addr.reg131_gbl_base = reg_ctx->bufs_fd;
     hw_regs->h265d_paras.reg67_global_len = 0xc; //22 * 8;
-
-    trans_cfg.reg_idx = 131;
-    trans_cfg.offset = reg_ctx->spspps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(reg_ctx->dev, 131, reg_ctx->spspps_offset);
 
     /* rps */
     hw_regs->common_addr.reg129_rps_base = reg_ctx->bufs_fd;
-    trans_cfg.reg_idx = 129;
-    trans_cfg.offset = reg_ctx->rps_offset;
-    mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(reg_ctx->dev, 129, reg_ctx->rps_offset);
 
     hal_h265d_v345_output_pps_packet(hal, syn->dec.syntax.data);
 

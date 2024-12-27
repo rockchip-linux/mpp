@@ -730,7 +730,6 @@ static MPP_RET hal_h265e_vepu54x_prepare(void *hal)
 static MPP_RET
 vepu541_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_fmt, HalEncTask *task)
 {
-    MppDevRegOffsetCfg cfg_fd;
     RK_U32 hor_stride = syn->pp.hor_stride;
     RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
@@ -776,25 +775,19 @@ vepu541_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, Vepu541Fmt input_f
 
     /* input cb addr */
     if (u_offset) {
-        cfg_fd.reg_idx = 71;
-        cfg_fd.offset = u_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        mpp_dev_set_reg_offset(dev, 71, u_offset);
         if (ret)
             mpp_err_f("set input cb addr offset failed %d\n", ret);
     }
 
     /* input cr addr */
     if (v_offset) {
-        cfg_fd.reg_idx = 72;
-        cfg_fd.offset = v_offset;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        mpp_dev_set_reg_offset(dev, 72, v_offset);
         if (ret)
             mpp_err_f("set input cr addr offset failed %d\n", ret);
     }
 
-    cfg_fd.reg_idx = 83;
-    cfg_fd.offset = mpp_buffer_get_size(task->output);
-    ret = mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+    mpp_dev_set_reg_offset(dev, 83, mpp_buffer_get_size(task->output));
     if (ret)
         mpp_err_f("set output max addr offset failed %d\n", ret);
 
@@ -1398,7 +1391,6 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     HalBuf *recon_buf, *ref_buf;
     MppBuffer md_info_buf = enc_task->md_info;
     H265eSyntax_new *syn = (H265eSyntax_new *)enc_task->syntax.data;
-    MppDevRegOffsetCfg cfg_fd;
 
     hal_h265e_enter();
 
@@ -1412,9 +1404,7 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
         regs->rfpw_h_addr_hevc  = mpp_buffer_get_fd(recon_buf->buf[0]);
         regs->rfpw_b_addr_hevc  = regs->rfpw_h_addr_hevc;
 
-        cfg_fd.reg_idx = 75;
-        cfg_fd.offset = ctx->fbc_header_len;
-        mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+        mpp_dev_set_reg_offset(ctx->dev, 75, ctx->fbc_header_len);
     }
 
     regs->dspw_addr_hevc = mpp_buffer_get_fd(recon_buf->buf[1]);
@@ -1424,9 +1414,7 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     regs->dspr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[1]);
     regs->cmvr_addr_hevc = mpp_buffer_get_fd(ref_buf->buf[2]);
 
-    cfg_fd.reg_idx = 77;
-    cfg_fd.offset = ctx->fbc_header_len;
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+    mpp_dev_set_reg_offset(ctx->dev, 77, ctx->fbc_header_len);
 
     if (syn->pp.tiles_enabled_flag) {
         if (NULL == ctx->tile_grp)
@@ -1460,9 +1448,7 @@ void vepu54x_h265_set_hw_address(H265eV541HalContext *ctx, H265eV541RegSet *regs
     regs->bsbr_addr_hevc    = regs->bsbb_addr_hevc;
     regs->bsbw_addr_hevc    = regs->bsbb_addr_hevc;
 
-    cfg_fd.reg_idx = 86;
-    cfg_fd.offset = mpp_packet_get_length(task->packet);
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+    mpp_dev_set_reg_offset(ctx->dev, 86, mpp_packet_get_length(task->packet));
 
     regs->pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     regs->pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
@@ -1723,23 +1709,14 @@ MPP_RET hal_h265e_v540_start(void *hal, HalEncTask *enc_task)
         if (title_num > 1)
             hal_h265e_v540_set_uniform_tile(hw_regs, syn, k, tile_start_x);
         if (k > 0) {
-            MppDevRegOffsetCfg cfg_fd;
             RK_U32 offset = mpp_packet_get_length(enc_task->packet);
 
             offset += stream_len;
             hw_regs->bsbb_addr_hevc    = mpp_buffer_get_fd(enc_task->output);
             hw_regs->bsbw_addr_hevc    = hw_regs->bsbb_addr_hevc;
-            cfg_fd.reg_idx = 86;
-            cfg_fd.offset = offset;
-            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
-
-            cfg_fd.reg_idx = 75;
-            cfg_fd.offset = ctx->fbc_header_len;
-            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
-
-            cfg_fd.reg_idx = 77;
-            cfg_fd.offset = ctx->fbc_header_len;
-            mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &cfg_fd);
+            mpp_dev_set_reg_offset(ctx->dev, 86, offset);
+            mpp_dev_set_reg_offset(ctx->dev, 75, ctx->fbc_header_len);
+            mpp_dev_set_reg_offset(ctx->dev, 77, ctx->fbc_header_len);
         }
 
         cfg.reg = ctx->regs;

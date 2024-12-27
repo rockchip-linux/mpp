@@ -657,19 +657,14 @@ MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task)
         memcpy(reg_ctx->bufs_ptr + reg_ctx->sclst_offset, reg_ctx->scalist_dat, sizeof(reg_ctx->scalist_dat));
         regs->common.reg012.scanlist_addr_valid_en = 1;
 
-        MppDevRegOffsetCfg trans_cfg;
-        trans_cfg.reg_idx = 161;
-        trans_cfg.offset = reg_ctx->shph_offset;
         regs->avs2d_addr.head_base = reg_ctx->bufs_fd;
-        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(p_hal->dev, 161, reg_ctx->shph_offset);
 
         regs->avs2d_param.reg105.head_len = AVS2_RKV_SHPH_SIZE / 16;
         regs->avs2d_param.reg105.head_len -= (regs->avs2d_param.reg105.head_len > 0) ? 1 : 0;
 
-        trans_cfg.reg_idx = 180;
-        trans_cfg.offset = reg_ctx->sclst_offset;
         regs->avs2d_addr.scanlist_addr = reg_ctx->bufs_fd;
-        mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(p_hal->dev, 180, reg_ctx->sclst_offset);
     }
 
     if (avs2d_hal_debug & AVS2D_HAL_DBG_IN) {

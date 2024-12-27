@@ -499,22 +499,10 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     memcpy(qtbl_base, ctx->qtbl_sw_buf, JPEGE_VPU720_QTABLE_SIZE * sizeof(RK_U16));
     mpp_buffer_sync_end(ctx->qtbl_buffer);
 
-    MppDevRegOffsetCfg trans_cfg_offset;
-    MppDevRegOffsetCfg trans_cfg_size;
-    MppDevRegOffsetCfg trans_cfg_chroma;
-
-    trans_cfg_offset.reg_idx = 20;
-    trans_cfg_offset.offset = mpp_packet_get_length(task->packet);
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg_offset);
-    trans_cfg_size.reg_idx = 17;
-    trans_cfg_size.offset = mpp_buffer_get_size(task->output);
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, & trans_cfg_size);
-    trans_cfg_chroma.reg_idx = 23;
-    trans_cfg_chroma.offset = ctx->fmt_cfg.u_offset;
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg_chroma);
-    trans_cfg_chroma.reg_idx = 24;
-    trans_cfg_chroma.offset = ctx->fmt_cfg.v_offset;
-    mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_OFFSET, &trans_cfg_chroma);
+    mpp_dev_set_reg_offset(ctx->dev, 20, mpp_packet_get_length(task->packet));
+    mpp_dev_set_reg_offset(ctx->dev, 17, mpp_buffer_get_size(task->output));
+    mpp_dev_set_reg_offset(ctx->dev, 23, ctx->fmt_cfg.u_offset);
+    mpp_dev_set_reg_offset(ctx->dev, 24, ctx->fmt_cfg.v_offset);
 
     ctx->frame_num++;
 

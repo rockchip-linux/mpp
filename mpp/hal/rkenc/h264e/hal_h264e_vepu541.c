@@ -964,23 +964,10 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, MppDev dev,
         }
     }
 
-    MppDevRegOffsetCfg trans_cfg;
-
-    trans_cfg.reg_idx = 71;
-    trans_cfg.offset = off_in[0];
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 72;
-    trans_cfg.offset = off_in[1];
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 83;
-    trans_cfg.offset = siz_out;
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
-
-    trans_cfg.reg_idx = 86;
-    trans_cfg.offset = off_out;
-    mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+    mpp_dev_set_reg_offset(dev, 71, off_in[0]);
+    mpp_dev_set_reg_offset(dev, 72, off_in[1]);
+    mpp_dev_set_reg_offset(dev, 83, siz_out);
+    mpp_dev_set_reg_offset(dev, 86, off_out);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1144,7 +1131,6 @@ static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, MppDev dev,
 {
     HalBuf *curr = hal_bufs_get_buf(bufs, frms->curr_idx);
     HalBuf *refr = hal_bufs_get_buf(bufs, frms->refr_idx);
-    MppDevRegOffsetCfg trans_cfg;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -1160,9 +1146,7 @@ static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, MppDev dev,
         regs->reg075.rfpw_b_addr = fd;
         regs->reg080.dspw_addr = mpp_buffer_get_fd(buf_thumb);
 
-        trans_cfg.reg_idx = 75;
-        trans_cfg.offset = fbc_hdr_size;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(dev, 75, fbc_hdr_size);
     }
 
     if (refr && refr->cnt) {
@@ -1177,9 +1161,7 @@ static void setup_vepu541_recn_refr(Vepu541H264eRegSet *regs, MppDev dev,
         regs->reg077.rfpr_b_addr = fd;
         regs->reg081.dspr_addr = mpp_buffer_get_fd(buf_thumb);
 
-        trans_cfg.reg_idx = 77;
-        trans_cfg.offset = fbc_hdr_size;
-        mpp_dev_ioctl(dev, MPP_DEV_REG_OFFSET, &trans_cfg);
+        mpp_dev_set_reg_offset(dev, 77, fbc_hdr_size);
     }
 
     hal_h264e_dbg_func("leave\n");
