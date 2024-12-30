@@ -1,3 +1,99 @@
+## 1.0.8 (2024-12-30)
+### Feature
+- [enc]: Add switch for disable IDR encoding when FPS changed.
+- [test]: Add PSNR info for video encoder
+- [mpp_buf_slots]: Add coding attribute to buf slots
+- [mpp_sys_cfg]: Add mpp_sys_cfg function
+- [dec_nt_test]: Support jpeg decoding on decode
+- [mpp_dec]: Add jpeg put/get decode support
+- [mpp_obj]: Add mpp_obj for kernel object
+- [mpp_trie]: Add functions for import / export
+- [rk_type.h]: Add kernel driver compat define
+- [mpp_dec]: add control for select codec device
+- [mpp_dec]: support hdr10plus dynamic metadata parse
+- [hal_avsd]: enable hw dec timeout
+- [vpu_api]: Support configuration to disable decoding errors
+- [enc]: Support use frame meta to cfg pskip
+- [vepu510]: Add scaling list regs setup
+
+### Fix
+- [enc]: Fix CPB size not enough problem
+- [m4v_parser]: Fix split_parse setting failure issue
+- [mpp_trie]: Remove a redundant variables from log
+- [mpp_enc]: Set frm type in pkt meta
+- [mpp_sys_cfg]: Fix compile warning
+- [rc_smt]: Fix the variable overflow issue
+- [h264e_sps]: fix constraint_set3_flag flag issue
+- [vpu_legacy]: Fix vpu fbc configuration issue
+- [mpp_buffer]: Fix buffer put log
+- [mpp_mem_pool]: Record pool buffer allocator caller
+- [mpp]: Fix input_task_count for async enc
+- [av1d]: Fix uninitialized fbc_hdr_stride issue
+- [cfg]: fix cfg test segment fault problem
+- [drm]: Call drop master by default
+- [vepu580]: fix is_yuv/is_fbc typo
+- [misc]: Fix compile on 32bit platform
+- [jpegd]: replace packet size with stream length
+- [av1_vdpu383]: Fix the CDF issue between GOPs
+- [mpp_enc_impl]: fix rc cfg for jpeg enc
+- [av1_vdpu383]: fix cdf usage issue
+- [hal_h265d]: Avoid reg offset duplicate setting issue
+- [vepu580]: fix incorrect color range problem
+- [buf_slots]: Fix the issue of fmt conv during info change
+- [h264d]: force reset matrix coefficients when parse unknown value
+- [h264d]: Parse hdr parameters on enable_hdr_meta enabled
+- [h264d_parser]: Fix pps parsing issue
+- [hal_vdpu383]: fix fbc hor_stride mismatch issue
+- [hal_vepu580]: re-get roi buf when resolution switch
+- [hal_vepu541]: re-get roi buf when resolution switch
+- [iep2]: Remove unnessary log on init failed
+- [h264_dpb]: Add env variables to force fast play mode
+- [h265e_slice]: fix compilation warning
+- [hal_avs2d_vdpu383]: handle scene reference frame
+- [debain]: fix typo in compat version
+- [debian]: Update debian control
+- [debain]: Update debian/control
+- [debain]: Update compat to 10
+- [h264e_pps]: add pic_scaling_matrix_present check
+- [h2645d_sei]: fix read byte overflow error
+- [m2vd]: Fix refer frame error on beginning
+- [vdpu383]: fix err detection mask issue
+- [test]: Fix AQ table error
+- [vepu580]: Add md info internal buffer
+- [vepu580]: Add ATF weight adjust switch for H.265
+- [tune]: Replace qpmap_en with deblur_en
+- [vepu580]: Adjust frame-level QP for VI frame
+- [hal_jpegd]: fix huffman table selection
+- [h265]: fix pskip when enable tile mode
+- [smt_rc]: Fix first frame QP error
+- [h264d]: fix no output for mvc stream
+- [vepu580]: Fix motion level assignment error
+- [avsd]: Fix attach dev error issue
+- [h265d]: Fix conformance window offsets for chroma formats
+- [test]: Fix mdinfo size according to soc type
+- [h265d_vdpu383]: fix dec err when ps_update_flag=0
+- [vepu510]: Sync code from enc_tune branch
+- [mpp_cfg]: Fix compile warning
+- [h265d]: fix output err causeby refs cleard
+- [h264d]: remove error check for B frame has only one ref
+- [test]: Fix test demo stuck issue
+
+### Docs
+- Update 1.0.8 CHANGELOG.md
+- update doc for fast play
+
+### Refactor
+- [hal]: Update the reg offset setting method.
+- [mpi]: Add ops name when assign for reading friendly
+- [av1d_vdpu383]: Regs definition sync with other protocols.
+- [vproc]: Refactor iep2 progress
+- [h265]: unify calculation tile width
+
+### Chore
+- [hal_jpegd]: Remove reset / flush functions
+- [test]: Use put/get in mpi_dec_test for jpeg
+- [MppPacket]: Add caller log on check failure
+
 ## 1.0.7 (2024-09-04)
 ### Feature
 - [rc_smt]: Add rc container for smart mode
