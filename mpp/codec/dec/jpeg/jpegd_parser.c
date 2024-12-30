@@ -69,6 +69,11 @@ static MPP_RET jpegd_find_eoi(const RK_U8 **pbuf_ptr, const RK_U8 *buf_end)
     RK_S32 eoi = 0xffd9;
     RK_U32 strm_len = buf_end - *pbuf_ptr + 1;
 
+    if (*pbuf_ptr >= buf_end) {
+        mpp_err("buf ptr %p is overflow the buf end %p.", *pbuf_ptr, buf_end);
+        return MPP_NOK;
+    }
+
     buf_ptr = memchr(*pbuf_ptr, eoi, strm_len);
 
     if (buf_ptr && (buf_end > buf_ptr)) {
