@@ -652,6 +652,25 @@ RK_S32 mpi_enc_opt_bias_p(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_kmpp(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->kmpp_en = atoi(next);
+        if (cmd->kmpp_en) {
+            if (access("/dev/vcodec", F_OK | R_OK | W_OK)) {
+                mpp_err("failed to access /dev/vcodec, check kmpp devices\n");
+                return -1;
+            }
+        }
+        return 1;
+    }
+
+    mpp_err("invalid kmpp enable\n");
+    return 0;
+}
+
 static MppOptInfo enc_opts[] = {
     {"i",       "input_file",           "input frame file",                         mpi_enc_opt_i},
     {"o",       "output_file",          "output encoded bitstream file",            mpi_enc_opt_o},
@@ -686,7 +705,8 @@ static MppOptInfo enc_opts[] = {
     {"sao_p",   "sao_str_p",            "sao_str_p, 0:off 1 2 3",                   mpi_enc_opt_sao_p},
     {"bc",      "bitrate container",    "rc_container, 0:off 1:weak 2:strong",      mpi_enc_opt_bc},
     {"ibias",   "bias i",               "bias_i",                                   mpi_enc_opt_bias_i},
-    {"pbias",   "bias p",               "bias_p",                                   mpi_enc_opt_bias_p}
+    {"pbias",   "bias p",               "bias_p",                                   mpi_enc_opt_bias_p},
+    {"kmpp",    "kmpp path enable",     "kmpp path enable",                         mpi_enc_opt_kmpp}
 };
 
 static RK_U32 enc_opt_cnt = MPP_ARRAY_ELEMS(enc_opts);
