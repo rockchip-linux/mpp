@@ -1452,7 +1452,7 @@ static MPP_RET hal_h265d_vdpu383_control(void *hal, MpiCmd cmd_type, void *param
 
         if (fmt == MPP_FMT_YUV422SP) {
             mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
-        } else if (fmt == MPP_FMT_YUV444SP) {
+        } else if (fmt == MPP_FMT_YUV444SP || fmt == MPP_FMT_YUV444SP_10BIT) {
             mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_444);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {

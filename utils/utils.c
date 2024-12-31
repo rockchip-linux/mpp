@@ -189,6 +189,31 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
         fwrite(tmp, 1, width * height * 2, fp);
         mpp_free(tmp);
     } break;
+    case MPP_FMT_YUV444SP_10BIT : {
+        RK_U32 i, k;
+        RK_U8 *base_y = base;
+        RK_U8 *base_c = base + h_stride * v_stride;
+        RK_U8 *tmp_line = (RK_U8 *)mpp_malloc(RK_U16, width);
+
+        if (!tmp_line) {
+            mpp_log("tmp_line malloc fail");
+            return;
+        }
+
+        for (i = 0; i < height; i++, base_y += h_stride) {
+            for (k = 0; k < MPP_ALIGN(width, 8) / 8; k++)
+                rearrange_pix(tmp_line, base_y, k);
+            fwrite(tmp_line, width * sizeof(RK_U16), 1, fp);
+        }
+
+        for (i = 0; i < (height * 2); i++, base_c += h_stride) {
+            for (k = 0; k < MPP_ALIGN(width, 8) / 8; k++)
+                rearrange_pix(tmp_line, base_c, k);
+            fwrite(tmp_line, width * sizeof(RK_U16), 1, fp);
+        }
+
+        MPP_FREE(tmp_line);
+    } break;
     case MPP_FMT_YUV400: {
         RK_U32 i;
         RK_U8 *base_y = base;

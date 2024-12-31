@@ -294,7 +294,8 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
     const RK_U32 height = mpp_frame_get_height(frame);
     const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
     RK_U32 depth = ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP_10BIT ||
-                    (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP_10BIT) ? 10 : 8;
+                    (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP_10BIT ||
+                    (fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV444SP_10BIT) ? 10 : 8;
     RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
     RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
     RK_U32 hal_hor_stride = (codec_hor_stride) ?
@@ -319,7 +320,8 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
     case MPP_FMT_YUV420SP_10BIT:
-    case MPP_FMT_YUV422SP_10BIT: {
+    case MPP_FMT_YUV422SP_10BIT:
+    case MPP_FMT_YUV444SP_10BIT: {
         hor_stride_pixel = hal_hor_stride * 8 / 10;
     } break;
     case MPP_FMT_YUV422_YVYU:
@@ -356,6 +358,9 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
         } break;
         case MPP_FMT_YUV444SP : {
             size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 24);
+        } break;
+        case MPP_FMT_YUV444SP_10BIT : {
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 30);
         } break;
         default : {
             size = hal_hor_stride * hal_ver_stride * 3 / 2;
@@ -466,6 +471,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
         case MPP_FMT_YUV422SP : {
             downscale_buf_size = down_scale_y_virstride * 2;
         } break;
+        case MPP_FMT_YUV444SP_10BIT :
         case MPP_FMT_YUV444SP : {
             downscale_buf_size = down_scale_y_virstride * 3;
         } break;
