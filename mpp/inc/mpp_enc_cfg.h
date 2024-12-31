@@ -43,9 +43,17 @@ typedef struct MppEncCfgSet_t {
 
     MppEncSliceSplit    split;
     MppEncRefCfg        ref_cfg;
-    MppEncROICfg        roi;
+    union {
+        MppEncROICfg    roi;
+        /* for kmpp venc roi */
+        MppEncROICfgLegacy roi_legacy;
+    };
+    /* for kmpp venc osd */
+    MppEncOSDData3      osd;
     MppEncOSDPltCfg     plt_cfg;
     MppEncOSDPlt        plt_data;
+    /* for kmpp venc ref */
+    MppEncRefParam      ref_param;
 
     // quality fine tuning config
     MppEncFineTuneCfg   tune;

@@ -140,9 +140,12 @@ public:
     ENTRY(rc,   fqp_max_i,      S32,        MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_i) \
     ENTRY(rc,   fqp_max_p,      S32,        MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_p) \
     ENTRY(rc,   cu_qp_delta_depth, S32,     MPP_ENC_RC_CFG_CHANGE_QPDD,             rc, cu_qp_delta_depth) \
+    ENTRY(rc,   mt_st_swth_frm_qp, S32,     MPP_ENC_RC_CFG_CHANGE_FQP,              rc, mt_st_swth_frm_qp) \
     /* prep config */ \
     ENTRY(prep, width,          S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
     ENTRY(prep, height,         S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, height) \
+    ENTRY(prep, max_width,      S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, max_width) \
+    ENTRY(prep, max_height,     S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, max_height) \
     ENTRY(prep, hor_stride,     S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, hor_stride) \
     ENTRY(prep, ver_stride,     S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, ver_stride) \
     ENTRY(prep, format,         S32,        MPP_ENC_PREP_CFG_CHANGE_FORMAT,         prep, format) \
@@ -248,6 +251,7 @@ public:
     ENTRY(hw,   aq_step_i,      St,         MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I,        hw, aq_step_i) \
     ENTRY(hw,   aq_step_p,      St,         MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P,        hw, aq_step_p) \
     ENTRY(hw,   mb_rc_disable,  S32,        MPP_ENC_HW_CFG_CHANGE_MB_RC,            hw, mb_rc_disable) \
+    ENTRY(hw,   aq_rnge_arr,    St,         MPP_ENC_HW_CFG_CHANGE_AQ_RNGE_ARR,      hw, aq_rnge_arr) \
     ENTRY(hw,   mode_bias,      St,         MPP_ENC_HW_CFG_CHANGE_CU_MODE_BIAS,     hw, mode_bias) \
     ENTRY(hw,   skip_bias_en,   S32,        MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS,     hw, skip_bias_en) \
     ENTRY(hw,   skip_sad,       S32,        MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS,     hw, skip_sad) \
@@ -255,6 +259,9 @@ public:
     ENTRY(hw,   qbias_i,        S32,        MPP_ENC_HW_CFG_CHANGE_QBIAS_I,          hw, qbias_i) \
     ENTRY(hw,   qbias_p,        S32,        MPP_ENC_HW_CFG_CHANGE_QBIAS_P,          hw, qbias_p) \
     ENTRY(hw,   qbias_en,       S32,        MPP_ENC_HW_CFG_CHANGE_QBIAS_EN,         hw, qbias_en) \
+    ENTRY(hw,   qbias_arr,      St,         MPP_ENC_HW_CFG_CHANGE_QBIAS_ARR,        hw, qbias_arr) \
+    ENTRY(hw,   flt_str_i,      S32,        MPP_ENC_HW_CFG_CHANGE_FLT_STR_I,        hw, flt_str_i) \
+    ENTRY(hw,   flt_str_p,      S32,        MPP_ENC_HW_CFG_CHANGE_FLT_STR_P,        hw, flt_str_p) \
     /* quality fine tuning config */ \
     ENTRY(tune, scene_mode,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode) \
     ENTRY(tune, deblur_en,      S32,        MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN,      tune, deblur_en) \
@@ -268,7 +275,15 @@ public:
     ENTRY(tune, sao_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I,   tune, sao_str_i) \
     ENTRY(tune, sao_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P,   tune, sao_str_p) \
     ENTRY(tune, rc_container,   S32,        MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER,   tune, rc_container) \
-    ENTRY(tune, vmaf_opt,       S32,        MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT,       tune, vmaf_opt)
+    ENTRY(tune, vmaf_opt,       S32,        MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT,       tune, vmaf_opt) \
+    ENTRY(tune, motion_static_switch_enable, S32, MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE, tune, motion_static_switch_enable) \
+    ENTRY(tune, atr_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR,        tune, atr_str) \
+    ENTRY(tune, atf_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATF_STR,        tune, atf_str) \
+    ENTRY(tune, lgt_chg_lvl,    S32,        MPP_ENC_TUNE_CFG_CHANGE_LGT_CHG_LVL,    tune, lgt_chg_lvl) \
+    ENTRY(tune, static_frm_num, S32,        MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM, tune, static_frm_num) \
+    ENTRY(tune, madp16_th,      S32,        MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH,      tune, madp16_th) \
+    ENTRY(tune, skip16_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT,     tune, skip16_wgt) \
+    ENTRY(tune, skip32_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT,     tune, skip32_wgt)
 
 MppEncCfgService::MppEncCfgService() :
     mTrie(NULL)

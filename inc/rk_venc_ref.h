@@ -213,6 +213,30 @@ typedef struct MppEncRefPreset_t {
 
 typedef void* MppEncRefCfg;
 
+/* for kmpp enc ref cfg */
+typedef enum MppEncRefCfgMode_e {
+    REF_IPPP,
+    REF_TSVC1,
+    REF_TSVC2,
+    REF_TSVC3,
+    REF_VI,
+    REF_HIR_SKIP,
+    REF_BUTT,
+} MppEncRefCfgMode;
+
+typedef struct MppEncRefParam_t {
+    MppEncRefCfgMode    cfg_mode;
+
+    RK_S32              gop_len;
+    /*used for smartp ref*/
+    RK_S32              vi_len;
+
+    /*used for skip reg*/
+    RK_U32              base_N;
+    RK_U32              enh_M;
+    RK_U32              pre_en;
+} MppEncRefParam;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

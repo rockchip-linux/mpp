@@ -418,6 +418,7 @@ typedef struct MppEncRcCfg_t {
     RK_S32                  fqp_max_i;
     RK_S32                  fqp_max_p;
     RK_S32                  cu_qp_delta_depth;
+    RK_S32                  mt_st_swth_frm_qp;
 
     RK_S32                  hier_qp_en;
     RK_S32                  hier_qp_delta[4];
@@ -444,6 +445,10 @@ typedef enum MppEncHwCfgChange_e {
     MPP_ENC_HW_CFG_CHANGE_QBIAS_I       = (1 << 10),
     MPP_ENC_HW_CFG_CHANGE_QBIAS_P       = (1 << 11),
     MPP_ENC_HW_CFG_CHANGE_QBIAS_EN      = (1 << 12),
+    MPP_ENC_HW_CFG_CHANGE_AQ_RNGE_ARR   = (1 << 13),
+    MPP_ENC_HW_CFG_CHANGE_QBIAS_ARR     = (1 << 14),
+    MPP_ENC_HW_CFG_CHANGE_FLT_STR_I     = (1 << 15),
+    MPP_ENC_HW_CFG_CHANGE_FLT_STR_P     = (1 << 16),
     MPP_ENC_HW_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncHwCfgChange;
 
@@ -462,6 +467,8 @@ typedef struct MppEncHwCfg_t {
     RK_S32                  qbias_i;
     RK_S32                  qbias_p;
     RK_S32                  qbias_en;
+    RK_S32                  flt_str_i;
+    RK_S32                  flt_str_p;
     RK_U32                  aq_thrd_i[16];
     RK_U32                  aq_thrd_p[16];
     RK_S32                  aq_step_i[16];
@@ -498,6 +505,19 @@ typedef struct MppEncHwCfg_t {
     RK_S32                  skip_bias_en;
     RK_S32                  skip_sad;
     RK_S32                  skip_bias;
+
+    /* vepu500
+     * 0-2: I frame thd; 3-6: I frame bias
+     * 7-9: P frame thd; 10-13: I block bias of P frame
+     * 14-17: P block bias of P frame
+     */
+    RK_S32                  qbias_arr[18];
+    /* vepu500
+     * 0: aq16_range; 1: aq32_range; 2: aq8_range
+     * 3: aq16_diff0; 4: aq16_diff1
+     * 0 ~ 4 for I frame, 5 ~ 9 for P frame
+     */
+    RK_S32                  aq_rnge_arr[10];
 } MppEncHwCfg;
 
 /*
@@ -568,6 +588,8 @@ typedef struct MppEncPrepCfg_t {
     RK_S32              height;
     RK_S32              hor_stride;
     RK_S32              ver_stride;
+    RK_S32              max_width;
+    RK_S32              max_height;
 
     /*
      * Mpp encoder input/output color config
@@ -1031,13 +1053,11 @@ typedef struct MppEncH265CuCfg_t {
     RK_U32  strong_intra_smoothing_enabled_flag;    /*INTRA_SMOOTH*/
     RK_U32  pcm_enabled_flag;                       /*default: 0, enable ipcm*/
     RK_U32  pcm_loop_filter_disabled_flag;
-
 } MppEncH265CuCfg;
 
 typedef struct MppEncH265RefCfg_t {
     RK_U32  num_lt_ref_pic;                         /*default: 0*/
 } MppEncH265RefCfg;
-
 
 typedef struct MppEncH265DblkCfg_t {
     RK_U32  slice_deblocking_filter_disabled_flag;  /* default value: 0. {0,1} */
@@ -1289,9 +1309,15 @@ typedef struct MppEncROIRegion_t {
  * @brief MPP encoder's ROI configuration
  */
 typedef struct MppEncROICfg_t {
-    RK_U32              number;        /**< ROI rectangle number */
-    MppEncROIRegion     *regions;      /**< ROI parameters */
+    RK_U32              number;         /**< ROI rectangle number */
+    MppEncROIRegion     *regions;       /**< ROI parameters */
 } MppEncROICfg;
+
+typedef struct MppEncROICfg0_t {
+    RK_U32              change;         /**< change flag */
+    RK_U32              number;         /**< ROI rectangle number */
+    MppEncROIRegion     regions[8];     /**< ROI parameters */
+} MppEncROICfgLegacy;
 
 /**
  * @brief Mpp ROI parameter for vepu54x / vepu58x
@@ -1410,6 +1436,66 @@ typedef struct MppEncOSDData2_t {
     MppEncOSDRegion2    region[8];
 } MppEncOSDData2;
 
+/* kmpp osd configure */
+typedef struct MppOsdBuf_t {
+    RK_S32              fd;
+    void                *buf;
+} MppOsdBuf;
+
+typedef struct EncOSDInvCfg_t {
+    RK_U32              yg_inv_en;
+    RK_U32              uvrb_inv_en;
+    RK_U32              alpha_inv_en;
+    RK_U32              inv_sel;
+    RK_U32              uv_sw_inv_en;
+    RK_U32              inv_size;
+    RK_U32              inv_stride;
+    MppOsdBuf           inv_buf;
+} EncOSDInvCfg;
+
+typedef struct EncOSDAlphaCfg_t {
+    RK_U32              alpha_swap;
+    RK_U32              bg_alpha;
+    RK_U32              fg_alpha;
+    RK_U32              fg_alpha_sel;
+} EncOSDAlphaCfg;
+
+typedef struct EncOSDQpCfg_t {
+    RK_U32              qp_adj_en;
+    RK_U32              qp_adj_sel;
+    RK_S32              qp;
+    RK_U32              qp_max;
+    RK_U32              qp_min;
+    RK_U32              qp_prj;
+} EncOSDQpCfg;
+
+typedef struct MppEncOSDRegion3_t {
+    RK_U32              enable;
+    RK_U32              range_trns_en;
+    RK_U32              range_trns_sel;
+    RK_U32              fmt;
+    RK_U32              rbuv_swap;
+    RK_U32              lt_x;
+    RK_U32              lt_y;
+    RK_U32              rb_x;
+    RK_U32              rb_y;
+    RK_U32              stride;
+    RK_U32              ch_ds_mode;
+    RK_U32              osd_endn;
+    EncOSDInvCfg        inv_cfg;
+    EncOSDAlphaCfg      alpha_cfg;
+    EncOSDQpCfg         qp_cfg;
+    MppOsdBuf           osd_buf;
+    RK_U8               lut[8];  //vuy vuy alpha
+} MppEncOSDRegion3;
+
+typedef struct MppEncOSDData3_t {
+    RK_U32              change;
+    RK_U32              num_region;
+    MppEncOSDRegion3    region[8];
+} MppEncOSDData3;
+/* kmpp osd configure end */
+
 typedef struct MppEncUserData_t {
     RK_U32              len;
     void                *pdata;
@@ -1429,6 +1515,7 @@ typedef struct MppEncUserDataSet_t {
 typedef enum MppEncSceneMode_e {
     MPP_ENC_SCENE_MODE_DEFAULT,
     MPP_ENC_SCENE_MODE_IPC,
+    MPP_ENC_SCENE_MODE_IPC_PTZ,
     MPP_ENC_SCENE_MODE_BUTT,
 } MppEncSceneMode;
 
@@ -1446,7 +1533,16 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I           = (1 << 10),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P           = (1 << 11),
     MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER        = (1 << 13),
-    MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT            = (1 << 14)
+    MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT            = (1 << 14),
+    MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE = (1 << 15),
+    MPP_ENC_TUNE_CFG_CHANGE_ATR_STR             = (1 << 16),
+    MPP_ENC_TUNE_CFG_CHANGE_ATF_STR             = (1 << 17),
+    MPP_ENC_TUNE_CFG_CHANGE_LGT_CHG_LVL         = (1 << 18),
+    MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM      = (1 << 19),
+    MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH           = (1 << 20),
+    MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT          = (1 << 21),
+    MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT          = (1 << 22),
+    MPP_ENC_TUNE_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncFineTuneCfgChange;
 
 typedef struct MppEncFineTuneCfg_t {
@@ -1465,6 +1561,16 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              sao_str_p; /* anti blur */
     RK_S32              rc_container;
     RK_S32              vmaf_opt;
+
+    RK_S32              motion_static_switch_enable;
+    RK_S32              atr_str;/* maybe use atr_str_i/p */
+    RK_S32              atf_str;
+    /* vepu500 only */
+    RK_S32              lgt_chg_lvl; /* light change level, [0, 3] */
+    RK_S32              static_frm_num; /* static frame number, [0, 7] */
+    RK_S32              madp16_th; /* madp threshold for static block detection, [0, 63] */
+    RK_S32              skip16_wgt; /* weight for skip16, 0 or [3, 8] */
+    RK_S32              skip32_wgt; /* weight for skip32, 0 or [3, 8] */
 } MppEncFineTuneCfg;
 
 #endif /*__RK_VENC_CMD_H__*/
