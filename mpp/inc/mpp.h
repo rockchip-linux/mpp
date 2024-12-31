@@ -23,6 +23,8 @@
 #include "mpp_dec.h"
 #include "mpp_enc.h"
 #include "mpp_impl.h"
+#include "kmpp_obj.h"
+#include "kmpp.h"
 
 #define MPP_DBG_FUNCTION                    (0x00000001)
 #define MPP_DBG_PACKET                      (0x00000002)
@@ -199,6 +201,9 @@ public:
     /* dump info for debug */
     MppDump         mDump;
 
+    /* kmpp infos */
+    Kmpp            *mKmpp;
+    KmppObj         mVencInitKcfg;
 private:
     void clear();
 

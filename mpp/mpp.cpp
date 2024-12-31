@@ -38,6 +38,8 @@
 
 #include "mpp_dec_cfg_impl.h"
 
+#include "kmpp.h"
+
 #define MPP_TEST_FRAME_SIZE     SZ_1M
 #define MPP_TEST_PACKET_SIZE    SZ_512K
 
@@ -134,7 +136,8 @@ Mpp::Mpp(MppCtx ctx)
     mpp_dec_cfg_set_default(&mDecInitcfg);
     mDecInitcfg.base.enable_vproc = MPP_VPROC_MODE_DEINTELACE;
     mDecInitcfg.base.change  |= MPP_DEC_CFG_CHANGE_ENABLE_VPROC;
-
+    mKmpp = NULL;
+    mVencInitKcfg = NULL;
     mpp_dump_init(&mDump);
 }
 
@@ -159,6 +162,26 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
     mType = type;
     mCoding = coding;
+
+    /* init kmpp venc */
+    if (mVencInitKcfg) {
+        mKmpp = mpp_calloc(Kmpp, 1);
+        if (!mKmpp) {
+            mpp_err("failed to alloc kmpp context\n");
+            return MPP_NOK;
+        }
+        mKmpp->mClientFd = -1;
+        mpp_get_api(mKmpp);
+        mKmpp->mVencInitKcfg = mVencInitKcfg;
+        ret = mKmpp->mApi->init(mKmpp, type, coding);
+        if (ret) {
+            mpp_err("failed to init kmpp ret %d\n", ret);
+            return ret;
+        }
+        mInitDone = 1;
+
+        return ret;
+    }
 
     mpp_task_queue_init(&mInputTaskQueue, this, "input");
     mpp_task_queue_init(&mOutputTaskQueue, this, "output");
@@ -342,6 +365,13 @@ void Mpp::clear()
     if (mFrameGroup && !mExternalBufferMode) {
         mpp_buffer_group_put(mFrameGroup);
         mFrameGroup = NULL;
+    }
+
+    if (mKmpp) {
+        if (mKmpp->mApi && mKmpp->mApi->clear)
+            mKmpp->mApi->clear(mKmpp);
+
+        MPP_FREE(mKmpp);
     }
 
     mpp_dump_deinit(&mDump);
@@ -645,6 +675,9 @@ MPP_RET Mpp::put_frame(MppFrame frame)
 
     mpp_dbg_pts("%p input frame pts %lld\n", this, mpp_frame_get_pts(frame));
 
+    if (mKmpp && mKmpp->mApi && mKmpp->mApi->put_frame)
+        return mKmpp->mApi->put_frame(mKmpp, frame);
+
     if (mInputTimeout == MPP_POLL_NON_BLOCK) {
         set_io_mode(MPP_IO_MODE_NORMAL);
         return put_frame_async(frame);
@@ -762,6 +795,9 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
 
     if (!mInitDone)
         return MPP_ERR_INIT;
+
+    if (mKmpp && mKmpp->mApi && mKmpp->mApi->get_packet)
+        return mKmpp->mApi->get_packet(mKmpp, packet);
 
     if (mInputTimeout == MPP_POLL_NON_BLOCK) {
         set_io_mode(MPP_IO_MODE_NORMAL);
@@ -1010,6 +1046,9 @@ MPP_RET Mpp::control(MpiCmd cmd, MppParam param)
 
     mpp_ops_ctrl(mDump, cmd);
 
+    if (mKmpp && mKmpp->mApi && mKmpp->mApi->control)
+        return mKmpp->mApi->control(mKmpp, cmd, param);
+
     switch (cmd & CMD_MODULE_ID_MASK) {
     case CMD_MODULE_OSAL : {
         ret = control_osal(cmd, param);
@@ -1062,6 +1101,9 @@ MPP_RET Mpp::reset()
 {
     if (!mInitDone)
         return MPP_ERR_INIT;
+
+    if (mKmpp && mKmpp->mApi && mKmpp->mApi->reset)
+        return mKmpp->mApi->reset(mKmpp);
 
     mpp_ops_reset(mDump);
 
@@ -1152,7 +1194,15 @@ MPP_RET Mpp::control_mpp(MpiCmd cmd, MppParam param)
         else
             mOutputTimeout = timeout;
     } break;
+    case MPP_SET_VENC_INIT_KCFG: {
+        KmppObj obj = param;
 
+        if (!obj) {
+            mpp_err_f("ctrl %d invalid param %p\n", cmd, param);
+            return MPP_ERR_VALUE;
+        }
+        mVencInitKcfg = obj;
+    } break;
     case MPP_START : {
         start();
     } break;
