@@ -55,6 +55,7 @@
 #define CMD_ENC_CFG_REF                 (0x00008200)
 #define CMD_ENC_CFG_ROI                 (0x00008300)
 #define CMD_ENC_CFG_OSD                 (0x00008400)
+#define CMD_ENC_CFG_USERDATA            (0x00008500)
 
 typedef enum {
     MPP_OSAL_CMD_BASE                   = CMD_MODULE_OSAL,
@@ -75,6 +76,8 @@ typedef enum {
     MPP_SET_INPUT_TIMEOUT,              /* parameter type RK_S64 */
     MPP_SET_OUTPUT_TIMEOUT,             /* parameter type RK_S64 */
     MPP_SET_DISABLE_THREAD,             /* MPP no thread mode and use external thread to decode */
+    MPP_SET_SELECT_TIMEOUT,             /* kmpp path select operation timeout */
+    MPP_SET_VENC_INIT_KCFG,             /* kmpp path venc init cfg set */
 
     MPP_STATE_CMD_BASE                  = CMD_MODULE_MPP | CMD_STATE_OPS,
     MPP_START,
@@ -144,6 +147,7 @@ typedef enum {
     MPP_ENC_SET_QP_RANGE,               /* used for adjusting qp range, the parameter can be 1 or 2 */
     MPP_ENC_SET_ROI_CFG,                /* set MppEncROICfg structure */
     MPP_ENC_SET_CTU_QP,                 /* for H265 Encoder,set CTU's size and QP */
+    MPP_ENC_GET_ROI_CFG,                /* get MppEncROICfg structure */
 
     MPP_ENC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_QUERY,
     /* query encoder runtime information for encode stage */
@@ -187,12 +191,16 @@ typedef enum {
 
     MPP_ENC_CFG_REF                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_REF,
     MPP_ENC_SET_REF_CFG,                /* set MppEncRefCfg structure */
+    MPP_ENC_GET_REF_CFG,
 
     MPP_ENC_CFG_OSD                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_OSD,
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_GET_OSD_PLT_CFG,            /* get OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
 
+    MPP_ENC_CFG_USERDATA                = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_USERDATA,
+    MPP_ENC_SET_USERDATA,
+    MPP_ENC_GET_USERDATA,
     MPP_ENC_CMD_END,
 
     MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
