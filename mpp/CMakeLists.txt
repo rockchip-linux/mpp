@@ -40,6 +40,7 @@ add_subdirectory(hal)
 # add mpp implement
 # ----------------------------------------------------------------------------
 set (MPP_SRC
+    kmpp.c
     mpp_info.cpp
     mpp.cpp
     mpp_impl.cpp

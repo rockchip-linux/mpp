@@ -23,6 +23,7 @@ set(MPP_DRIVER
     driver/mpp_device.c
     driver/mpp_service.c
     driver/vcodec_service.c
+    driver/mpp_vcodec_client.c
 )
 
 add_library(osal STATIC
