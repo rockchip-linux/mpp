@@ -85,6 +85,10 @@ typedef void* KmppObj;
 typedef void (*KmppObjPreset)(void *obj);
 typedef rk_s32 (*KmppObjDump)(void *obj);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* query objdef from /dev/kmpp_objs */
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
 rk_s32 kmpp_objdef_put(KmppObjDef def);
@@ -144,5 +148,9 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller);
 
 #define kmpp_obj_udump(obj) kmpp_obj_udump_f(obj, __FUNCTION__)
 #define kmpp_obj_kdump(obj) kmpp_obj_kdump_f(obj, __FUNCTION__)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __KMPP_OBJ_H__ */
