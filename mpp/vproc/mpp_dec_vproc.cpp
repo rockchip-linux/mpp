@@ -471,7 +471,8 @@ static MPP_RET dec_vproc_config_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm,
 
         /* refer to IEP */
         if (ctx->pre_ff_mode == IEP2_FF_MODE_FIELD) {
-            RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
+            RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_UND) ?
+                                 fo_from_syntax : (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
             RK_U32 is_tff = 0;
 
             if (fo_from_iep != fo_from_syntax) {
@@ -487,6 +488,9 @@ static MPP_RET dec_vproc_config_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm,
                 params.param.mode.dil_order = IEP2_FIELD_ORDER_TFF;
             else
                 params.param.mode.dil_order = IEP2_FIELD_ORDER_BFF;
+
+            vproc_dbg_status("Config field order: is TFF %d, syn %d vs iep %d\n",
+                             is_tff, fo_from_syntax, fo_from_iep);
         }
     }
     ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
@@ -548,7 +552,8 @@ MPP_RET dec_vproc_output_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 is
                 }
             } else {
                 RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
-                RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
+                RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_UND) ?
+                                     fo_from_syntax : (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
                 RK_U32 is_tff = 0;
 
                 if (fo_from_iep != fo_from_syntax) {
@@ -559,6 +564,9 @@ MPP_RET dec_vproc_output_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 is
                 } else {
                     is_tff = fo_from_syntax;
                 }
+
+                vproc_dbg_status("Output field order: is TFF %d, syn %d vs iep %d\n",
+                                 is_tff, fo_from_syntax, fo_from_iep);
 
                 if (is_tff) {
                     dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
