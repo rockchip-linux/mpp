@@ -712,11 +712,13 @@ static MPP_RET h264e_start(void *ctx, HalEncTask *task)
         RK_S32 force_use_lt_idx = -1;
         RK_S32 force_frame_qp = -1;
         RK_S32 base_layer_pid = -1;
+        RK_S32 force_tid = -1;
 
         mpp_meta_get_s32(meta, KEY_ENC_MARK_LTR, &force_lt_idx);
         mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &force_use_lt_idx);
         mpp_meta_get_s32(meta, KEY_ENC_FRAME_QP, &force_frame_qp);
         mpp_meta_get_s32(meta, KEY_ENC_BASE_LAYER_PID, &base_layer_pid);
+        mpp_meta_get_s32(meta, KEY_TEMPORAL_ID, &force_tid);
 
         if (force_lt_idx >= 0) {
             frm_cfg->force_flag |= ENC_FORCE_LT_REF_IDX;
@@ -727,6 +729,11 @@ static MPP_RET h264e_start(void *ctx, HalEncTask *task)
             frm_cfg->force_flag |= ENC_FORCE_REF_MODE;
             frm_cfg->force_ref_mode = REF_TO_LT_REF_IDX;
             frm_cfg->force_ref_arg = force_use_lt_idx;
+        }
+
+        if (force_tid >= 0) {
+            frm_cfg->force_flag |= ENC_FORCE_TEMPORAL_ID;
+            frm_cfg->force_temporal_id = force_tid;
         }
 
         if (force_frame_qp >= 0) {

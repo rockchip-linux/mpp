@@ -888,6 +888,17 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         usr_cfg->force_flag &= ~ENC_FORCE_LT_REF_IDX;
     }
 
+    if (usr_cfg->force_flag & ENC_FORCE_TEMPORAL_ID) {
+        if (usr_cfg->force_temporal_id >= cfg->max_tlayers ||
+            frm->is_idr || frm->is_lt_ref)
+            mpp_err_f("Invalid temporal_id %d, frm is %s\n", usr_cfg->force_temporal_id,
+                      frm->is_idr ? "IDR" : (frm->is_lt_ref ? "LTR" : "st"));
+        else
+            frm->temporal_id = usr_cfg->force_temporal_id;
+
+        usr_cfg->force_flag &= ~ENC_FORCE_TEMPORAL_ID;
+    }
+
     if (usr_cfg->force_flag & ENC_FORCE_REF_MODE) {
         frm->ref_mode = usr_cfg->force_ref_mode;
         frm->ref_arg = usr_cfg->force_ref_arg;
