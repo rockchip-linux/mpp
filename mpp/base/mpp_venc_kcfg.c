@@ -7,6 +7,7 @@
 
 #include "rk_venc_kcfg.h"
 #include <string.h>
+#include <pthread.h>
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
@@ -37,32 +38,34 @@ static char *kcfg_names[] = {
     [MPP_VENC_KCFG_TYPE_STOP]   = "KmppVencStopCfg",
 };
 static KmppObjDef kcfg_defs[MPP_VENC_KCFG_TYPE_BUTT] = {NULL};
+static pthread_mutex_t lock;
 
 static void mpp_venc_kcfg_def_init() __attribute__((constructor));
 static void mpp_venc_kcfg_def_deinit() __attribute__((destructor));
 
 static void mpp_venc_kcfg_def_init(void)
 {
-    MPP_RET ret = MPP_OK;
-    RK_U32 i;
+    pthread_mutexattr_t attr;
 
-    for (i = 0; i < MPP_VENC_KCFG_TYPE_BUTT; i++) {
-        ret = (MPP_RET)kmpp_objdef_get(&kcfg_defs[i], kcfg_names[i]);
-        if (ret)
-            mpp_err_f("failed to get MppVencKcfg obj def %d\n", i);
-    }
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&lock, &attr);
+    pthread_mutexattr_destroy(&attr);
 }
 
 static void mpp_venc_kcfg_def_deinit(void)
 {
     RK_U32 i;
 
+    pthread_mutex_lock(&lock);
     for (i = 0; i < MPP_VENC_KCFG_TYPE_BUTT; i++) {
         if (kcfg_defs[i]) {
             kmpp_objdef_put(kcfg_defs[i]);
             kcfg_defs[i] = NULL;
         }
     }
+    pthread_mutex_unlock(&lock);
+    pthread_mutex_destroy(&lock);
 }
 
 MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type)
@@ -80,6 +83,18 @@ MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type)
     }
 
     mpp_env_get_u32("venc_kcfg_debug", &venc_kcfg_debug, 0);
+
+    pthread_mutex_lock(&lock);
+    if (kcfg_defs[type] == NULL) {
+        MPP_RET ret = (MPP_RET)kmpp_objdef_get(&kcfg_defs[type], kcfg_names[type]);
+
+        if (ret) {
+            mpp_err_f("failed to get %s obj def %d\n", kcfg_names[type], type);
+            pthread_mutex_unlock(&lock);
+            return MPP_NOK;
+        }
+    }
+    pthread_mutex_unlock(&lock);
 
     kmpp_obj_get(&obj, kcfg_defs[type]);
 
