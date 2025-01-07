@@ -359,7 +359,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             size_total = get_afbc_min_size(aligned_pixel, aligned_height, 16);
         } break;
         case MPP_FMT_YUV444SP : {
-            size_total = get_afbc_min_size(aligned_pixel, aligned_byte, 24);
+            size_total = get_afbc_min_size(aligned_pixel, aligned_height, 24);
         } break;
         default : {
             size_total = aligned_byte * aligned_height * 3 / 2;

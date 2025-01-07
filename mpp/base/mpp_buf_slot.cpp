@@ -351,7 +351,7 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
             size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 16);
         } break;
         case MPP_FMT_YUV444SP : {
-            size = get_afbc_min_size(hor_stride_pixel, hal_hor_stride, 24);
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 24);
         } break;
         default : {
             size = hal_hor_stride * hal_ver_stride * 3 / 2;
