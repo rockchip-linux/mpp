@@ -717,7 +717,7 @@ static MPP_RET dec_vproc_dei_v2_detection(MppDecVprocCtxImpl *ctx, MppFrame frm)
         }
 
         if (ctx->dei_info.frm_mode == IEP2_FF_MODE_FRAME &&
-            ctx->pre_ff_mode != IEP2_FF_MODE_FRAME) {
+            ctx->pre_ff_mode == IEP2_FF_MODE_FIELD) {
             // ff_mode changed, clear field output and remained frame
             mpp_buffer_put(ctx->out_buf0);
             mpp_buffer_put(ctx->out_buf1);
