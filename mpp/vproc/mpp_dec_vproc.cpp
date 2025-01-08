@@ -114,12 +114,13 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
 
     mpp_frame_init(&out);
     mpp_frame_copy(out, frame);
-    mpp_frame_set_errinfo(out, err);
     impl = (MppFrameImpl *)out;
     if (pts >= 0)
         impl->pts = pts;
     if (buf)
         impl->buffer = buf;
+
+    impl->errinfo |= err;
 
     list->lock();
     list->add_at_tail(&out, sizeof(out));
@@ -533,12 +534,8 @@ MPP_RET dec_vproc_output_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 is
             RK_S64 curr_pts = mpp_frame_get_pts(ctx->prev_frm0);
             RK_S64 first_pts = (prev_pts + curr_pts) / 2;
 
-            frame_err = mpp_frame_get_errinfo(ctx->prev_frm0) ||
-                        mpp_frame_get_discard(ctx->prev_frm0);
-            frame_err |= mpp_frame_get_errinfo(frm) ||
-                         mpp_frame_get_discard(frm);
-            frame_err |= mpp_frame_get_errinfo(ctx->prev_frm1) ||
-                         mpp_frame_get_discard(ctx->prev_frm1);
+            frame_err |= mpp_frame_get_errinfo(ctx->prev_frm0) + mpp_frame_get_discard(ctx->prev_frm0);
+            frame_err |= mpp_frame_get_errinfo(ctx->prev_frm1) + mpp_frame_get_discard(ctx->prev_frm1);
 
             if (ctx->pd_mode) {
                 // NOTE: we need to process pts here if PD mode
