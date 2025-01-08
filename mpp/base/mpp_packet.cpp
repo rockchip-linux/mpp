@@ -178,6 +178,9 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 
     MPP_FREE(p->segments_ext);
 
+    if (p->release)
+        p->release(p->release_ctx, p->release_arg);
+
     mpp_mem_pool_put(mpp_packet_pool, *packet);
     *packet = NULL;
     return MPP_OK;
@@ -600,6 +603,18 @@ const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
         return NULL;
 
     return (const MppPktSeg *)p->segments;
+}
+
+void mpp_packet_set_release(MppPacket packet, ReleaseCb release, void *ctx, void *arg)
+{
+    if (check_is_mpp_packet(packet))
+        return;
+
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    p->release = release;
+    p->release_ctx = ctx;
+    p->release_arg = arg;
 }
 
 /*
