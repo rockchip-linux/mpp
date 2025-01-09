@@ -139,7 +139,6 @@ public:
     ENTRY(rc,   fqp_min_p,      S32,        MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_min_p) \
     ENTRY(rc,   fqp_max_i,      S32,        MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_i) \
     ENTRY(rc,   fqp_max_p,      S32,        MPP_ENC_RC_CFG_CHANGE_FQP,              rc, fqp_max_p) \
-    ENTRY(rc,   cu_qp_delta_depth, S32,     MPP_ENC_RC_CFG_CHANGE_QPDD,             rc, cu_qp_delta_depth) \
     ENTRY(rc,   mt_st_swth_frm_qp, S32,     MPP_ENC_RC_CFG_CHANGE_FQP,              rc, mt_st_swth_frm_qp) \
     /* prep config */ \
     ENTRY(prep, width,          S32,        MPP_ENC_PREP_CFG_CHANGE_INPUT,          prep, width) \
@@ -202,6 +201,7 @@ public:
     ENTRY(h265, scaling_list,   U32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.defalut_ScalingList_enable) \
     ENTRY(h265, cb_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.cb_qp_offset) \
     ENTRY(h265, cr_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.cr_qp_offset) \
+    ENTRY(h265, diff_cu_qp_delta_depth, S32, MPP_ENC_H265_CFG_TRANS_CHANGE,                 codec.h265, trans_cfg.diff_cu_qp_delta_depth) \
     ENTRY(h265, dblk_disable,   U32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_deblocking_filter_disabled_flag) \
     ENTRY(h265, dblk_alpha,     S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_beta_offset_div2) \
     ENTRY(h265, dblk_beta,      S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_tc_offset_div2) \

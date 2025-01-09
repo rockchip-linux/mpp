@@ -385,7 +385,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     }
 
     mpp_enc_cfg_set_s32(cfg, "rc:max_reenc_times", 0);
-    mpp_enc_cfg_set_s32(cfg, "rc:cu_qp_delta_depth", p->cu_qp_delta_depth);
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
@@ -541,7 +540,9 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         if (constraint_set & 0x3f0000)
             mpp_enc_cfg_set_s32(cfg, "h264:constraint_set", constraint_set);
     } break;
-    case MPP_VIDEO_CodingHEVC :
+    case MPP_VIDEO_CodingHEVC : {
+        mpp_enc_cfg_set_s32(cfg, "h265:diff_cu_qp_delta_depth", p->cu_qp_delta_depth);
+    } break;
     case MPP_VIDEO_CodingMJPEG :
     case MPP_VIDEO_CodingVP8 : {
     } break;

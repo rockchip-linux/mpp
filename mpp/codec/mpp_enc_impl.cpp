@@ -696,9 +696,6 @@ MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg 
             dst->refresh_num = src->refresh_num;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_QPDD)
-            dst->cu_qp_delta_depth = src->cu_qp_delta_depth;
-
         // parameter checking
         if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
             mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",

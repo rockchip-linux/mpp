@@ -239,7 +239,6 @@ typedef enum MppEncRcCfgChange_e {
     MPP_ENC_RC_CFG_CHANGE_REFRESH       = (1 << 27),
     MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG   = (1 << 28),
     MPP_ENC_RC_CFG_CHANGE_FQP           = (1 << 29),
-    MPP_ENC_RC_CFG_CHANGE_QPDD          = (1 << 30),
     MPP_ENC_RC_CFG_CHANGE_ALL           = (0xFFFFFFFF),
 } MppEncRcCfgChange;
 
@@ -417,7 +416,6 @@ typedef struct MppEncRcCfg_t {
     RK_S32                  fqp_min_p;
     RK_S32                  fqp_max_i;
     RK_S32                  fqp_max_p;
-    RK_S32                  cu_qp_delta_depth;
     RK_S32                  mt_st_swth_frm_qp;
 
     RK_S32                  hier_qp_en;
@@ -1077,6 +1075,7 @@ typedef struct MppEncH265TransCfg_t {
     RK_U32  defalut_ScalingList_enable;             /* default: 0 */
     RK_S32  cb_qp_offset;
     RK_S32  cr_qp_offset;
+    RK_S32  diff_cu_qp_delta_depth;
 } MppEncH265TransCfg;
 
 typedef struct MppEncH265MergeCfg_t {
