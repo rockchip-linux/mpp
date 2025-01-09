@@ -1068,6 +1068,7 @@ typedef struct MppEncH265DblkCfg_t {
 typedef struct MppEncH265SaoCfg_t {
     RK_U32  slice_sao_luma_disable;
     RK_U32  slice_sao_chroma_disable;
+    RK_U32  sao_bit_ratio;
 } MppEncH265SaoCfg;
 
 typedef struct MppEncH265TransCfg_t {
