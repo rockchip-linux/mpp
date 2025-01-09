@@ -49,7 +49,6 @@ extern "C" {
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
 rk_s32 kmpp_objdef_put(KmppObjDef def);
 
-rk_u32 kmpp_objdef_lookup(KmppObjDef *def, const char *name);
 rk_s32 kmpp_objdef_dump(KmppObjDef def);
 
 /* mpp objcet internal element set / get function */

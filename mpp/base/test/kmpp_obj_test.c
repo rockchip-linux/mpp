@@ -33,6 +33,7 @@ int main()
     }
 
     kmpp_obj_udump(obj);
+    kmpp_obj_kdump(obj);
 
     ret = kmpp_obj_put(obj);
     if (ret) {
@@ -64,6 +65,7 @@ int main()
     }
 
     kmpp_obj_udump(obj);
+    kmpp_obj_kdump(obj);
 
     ret = kmpp_obj_put(obj);
     if (ret) {
