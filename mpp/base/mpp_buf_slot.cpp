@@ -366,9 +366,9 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
     }
 
     info_set->h_stride_by_byte = hal_hor_stride;
-    info_set->v_stride = hal_hor_stride;
+    info_set->v_stride = hal_ver_stride;
     info_set->h_stride_by_pixel = hor_stride_pixel;
-    info_set->size_total = impl->buf_size;
+    info_set->size_total = size;
 
     return;
 }
