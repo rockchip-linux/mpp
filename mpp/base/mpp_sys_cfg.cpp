@@ -22,6 +22,7 @@
 #include "mpp_sys_cfg.h"
 #include "mpp_soc.h"
 #include "mpp_mem_pool.h"
+#include "mpp_compat_impl.h"
 
 #define MPP_SYS_CFG_DBG_FUNC            (0x00000001)
 #define MPP_SYS_CFG_DBG_INFO            (0x00000002)
@@ -97,12 +98,12 @@ public:
     ENTRY(dec_buf_chk, unit_size,   U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, unit_size) \
     ENTRY(dec_buf_chk, has_metadata,    U32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_METADATA,   dec_buf_chk, has_metadata) \
     ENTRY(dec_buf_chk, has_thumbnail,   U32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_THUMBNAIL,  dec_buf_chk, has_thumbnail) \
+    ENTRY(dec_buf_chk, h_stride_by_byte,  U32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_H_STRIDE_BYTE,   dec_buf_chk, h_stride_by_byte) \
+    ENTRY(dec_buf_chk, v_stride,          U32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_V_STRIDE,        dec_buf_chk, v_stride) \
     /* read-only config */ \
     ENTRY(dec_buf_chk, cap_fbc,     U32, RK_U32,            0,                                              dec_buf_chk, cap_fbc) \
     ENTRY(dec_buf_chk, cap_tile,    U32, RK_U32,            0,                                              dec_buf_chk, cap_tile) \
-    ENTRY(dec_buf_chk, h_stride_by_byte,    U32, RK_U32,    0,                                              dec_buf_chk, h_stride_by_byte) \
     ENTRY(dec_buf_chk, h_stride_by_pixel,   U32, RK_U32,    0,                                              dec_buf_chk, h_stride_by_pixel) \
-    ENTRY(dec_buf_chk, v_stride,    U32, RK_U32,            0,                                              dec_buf_chk, v_stride) \
     ENTRY(dec_buf_chk, offset_y,    U32, RK_U32,            0,                                              dec_buf_chk, offset_y) \
     ENTRY(dec_buf_chk, size_total,  U32, RK_U32,            0,                                              dec_buf_chk, size_total) \
     ENTRY(dec_buf_chk, size_fbc_hdr, U32, RK_U32,           0,                                              dec_buf_chk, size_fbc_hdr) \
@@ -261,16 +262,16 @@ static RK_S32 get_afbc_min_size(RK_S32 width, RK_S32 height, RK_S32 bpp)
 }
 
 /*
- * in:  fmt_fbc,type,width
+ * in:  fmt_fbc,type,width,h_stride
  * out: stride_w
  *
- * in:  fmt_fbc,type,height
+ * in:  fmt_fbc,type,height,v_stride
  * out: stride_h
  *
- * in:  fmt_fbc,type,fmt_codec,width
+ * in:  fmt_fbc,type,fmt_codec,width,h_stride
  * out: h_stride_by_byte
  *
- * in:  fmt_fbc,type,fmt_codec,width,height
+ * in:  fmt_fbc,type,fmt_codec,width,height,h_stride,v_stride
  * out: buffer_size
  */
 MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
@@ -281,46 +282,54 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
                                           (cfg->fmt_hdr & MPP_FRAME_HDR_MASK));
     MppFrameFormat fmt_raw = cfg->fmt_codec;
 
+    RK_U32 aligned_pixel = 0;
+    RK_U32 aligned_pixel_byte = 0;
+    RK_U32 aligned_byte = 0;
+    RK_U32 aligned_height = 0;
+    RK_U32 size_total = 0;
+    RK_U32 depth = MPP_FRAME_FMT_IS_YUV_10BIT(fmt) ? 10 : 8;
+
     if (type == MPP_VIDEO_CodingUnused) {
         mpp_err("The coding type is invalid");
         return MPP_NOK;
     }
 
+    /* use codec stride */
+    if (cfg->h_stride_by_byte)
+        aligned_pixel = cfg->h_stride_by_byte * 8 / depth;
+    if (cfg->v_stride)
+        aligned_height = cfg->v_stride;
+
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         /* fbc case */
-        RK_U32 aligned_pixel;
-        RK_U32 aligned_pixel_byte;
-        RK_U32 aligned_byte;
-        RK_U32 aligned_height;
-        RK_U32 size_total;
-
         switch (type) {
         case MPP_VIDEO_CodingHEVC :
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(cfg->height, 8);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
         case MPP_VIDEO_CodingAVC :
         case MPP_VIDEO_CodingAVSPLUS :
         case MPP_VIDEO_CodingAVS :
         case MPP_VIDEO_CodingAVS2 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(cfg->height, 16);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(cfg->height, 64);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
         } break;
         default : {
             aligned_pixel = MPP_ALIGN(cfg->width, 16);
-            aligned_height = MPP_ALIGN(cfg->height, 16);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
         } break;
         }
 
-        if (MPP_FRAME_FMT_IS_YUV_10BIT(fmt))
-            aligned_pixel_byte = aligned_pixel * 10 / 8;
+        /*fbc stride default 64 align*/
+        if (*compat_ext_fbc_hdr_256_odd)
+            aligned_pixel_byte = (MPP_ALIGN(aligned_pixel, 256) | 256) * depth >> 3;
         else
-            aligned_pixel_byte = aligned_pixel;
+            aligned_pixel_byte = MPP_ALIGN(aligned_pixel, 64) * depth >> 3;
 
         switch (type) {
         case MPP_VIDEO_CodingAVC :
@@ -373,33 +382,25 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     } else {
         /* tile case */
         /* raster case */
-        RK_U32 aligned_pixel;
-        RK_U32 aligned_pixel_byte;
-        RK_U32 aligned_byte;
-        RK_U32 aligned_height;
-        RK_U32 size_total;
         RockchipSocType soc_type = mpp_get_soc_type();
 
         switch (type) {
         case MPP_VIDEO_CodingHEVC :
         case MPP_VIDEO_CodingVP9 : {
-            aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(cfg->height, 64);
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
         } break;
         case MPP_VIDEO_CodingAV1 : {
-            aligned_pixel = MPP_ALIGN(cfg->width, 128);
-            aligned_height = MPP_ALIGN(cfg->height, 128);
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 128);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 128);
         } break;
         default : {
-            aligned_pixel = MPP_ALIGN(cfg->width, 16);
-            aligned_height = MPP_ALIGN(cfg->height, 16);
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
         } break;
         }
 
-        if (MPP_FRAME_FMT_IS_YUV_10BIT(fmt))
-            aligned_pixel_byte = aligned_pixel * 10 / 8;
-        else
-            aligned_pixel_byte = aligned_pixel;
+        aligned_pixel_byte = aligned_pixel * depth / 8;
 
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {

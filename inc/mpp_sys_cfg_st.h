@@ -16,6 +16,7 @@ typedef struct MppSysCfgStHStrd_t {
     MppCodingType  type;
     RK_U32         fmt_fbc;
     RK_U32         width;
+    RK_U32         h_stride_by_byte;
 
     /* output args start */
     RK_U32 h_stride_by_pixel;
@@ -28,7 +29,7 @@ typedef struct MppSysCfgStHByteStrd_t {
     RK_U32         fmt_fbc;
     RK_U32         width;
 
-    /* output args start */
+    /* in/output args start */
     RK_U32 h_stride_by_byte;
 } MppSysCfgStHByteStrd;
 
@@ -38,7 +39,7 @@ typedef struct MppSysCfgStVStrd_t {
     RK_U32         fmt_fbc;
     RK_U32         height;
 
-    /* output args start */
+    /* in/output args start */
     RK_U32 v_stride;
 } MppSysCfgStVStrd;
 
@@ -50,10 +51,12 @@ typedef struct MppSysCfgStSize_t {
     RK_U32         width;
     RK_U32         height;
 
-    /* output args start */
-    RK_U32 h_stride_by_pixel;
+    /* in/output args start */
     RK_U32 h_stride_by_byte;
     RK_U32 v_stride;
+
+    /* output args start */
+    RK_U32 h_stride_by_pixel;
     RK_U32 size_total;
     RK_U32 size_fbc_hdr;
     RK_U32 size_fbc_bdy;

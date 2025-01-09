@@ -391,6 +391,8 @@ static void prepare_info_set_by_sys_cfg(MppBufSlotsImpl *impl, MppFrame frame,
 {
     const RK_U32 width  = mpp_frame_get_width(frame);
     const RK_U32 height = mpp_frame_get_height(frame);
+    const RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
+    const RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
     const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
     MPP_RET ret = MPP_OK;
     MppSysCfg cfg;
@@ -409,6 +411,8 @@ static void prepare_info_set_by_sys_cfg(MppBufSlotsImpl *impl, MppFrame frame,
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_hdr", fmt & MPP_FRAME_HDR_MASK);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", width);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", height);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", codec_hor_stride);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:v_stride", codec_ver_stride);
 
     /* get result */
     mpp_sys_cfg_ioctl(cfg);

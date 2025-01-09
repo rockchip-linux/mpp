@@ -30,6 +30,7 @@ MPP_RET mpp_sys_cfg_st_get_h_stride(MppSysCfgStHStrd *h_stride_cfg)
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:type", h_stride_cfg->type);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", h_stride_cfg->fmt_fbc);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", h_stride_cfg->width);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", h_stride_cfg->h_stride_by_byte);
 
     /* get result */
     mpp_sys_cfg_ioctl(cfg);
@@ -65,6 +66,7 @@ MPP_RET mpp_sys_cfg_st_get_byte_stride(MppSysCfgStHByteStrd *byte_stride_cfg)
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_codec", byte_stride_cfg->fmt_codec);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", byte_stride_cfg->fmt_fbc);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", byte_stride_cfg->width);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", byte_stride_cfg->h_stride_by_byte);
 
     /* get result */
     mpp_sys_cfg_ioctl(cfg);
@@ -99,6 +101,7 @@ MPP_RET mpp_sys_cfg_st_get_v_stride(MppSysCfgStVStrd *v_stride_cfg)
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:type", v_stride_cfg->type);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", v_stride_cfg->fmt_fbc);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", v_stride_cfg->height);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:v_stride", v_stride_cfg->v_stride);
 
     /* get result */
     mpp_sys_cfg_ioctl(cfg);
@@ -134,6 +137,8 @@ MPP_RET mpp_sys_cfg_st_get_size(MppSysCfgStSize *size_cfg)
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", size_cfg->fmt_fbc);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", size_cfg->width);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", size_cfg->height);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", size_cfg->h_stride_by_byte);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:v_stride", size_cfg->v_stride);
 
     /* get result */
     mpp_sys_cfg_ioctl(cfg);

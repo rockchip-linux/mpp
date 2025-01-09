@@ -23,6 +23,8 @@ typedef enum MppSysDecBufCkhCfgChange_e {
     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT       = (1 << 10),
     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_METADATA    = (1 << 11),
     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_THUMBNAIL   = (1 << 12),
+    MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_H_STRIDE_BYTE    = (1 << 13),
+    MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_V_STRIDE         = (1 << 14),
 
     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_ALL              = (0xFFFFFFFF),
 } MppSysDecBufCkhChange;

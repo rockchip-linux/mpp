@@ -49,6 +49,8 @@ int main()
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", MPP_FRAME_FBC_AFBC_V1);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", width);
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", height);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", 0);
+    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_pixel", 0);
 
     /* try get readonly parameter */
     ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:cap_fbc", 1);
