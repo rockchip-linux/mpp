@@ -153,6 +153,9 @@ static RK_S32 trie_get_node(MppTrieImpl *trie, RK_S32 prev, RK_U64 key)
 
 MPP_RET mpp_trie_init(MppTrie *trie, const char *name)
 {
+    MppTrieImpl *p = NULL;
+    MPP_RET ret = MPP_ERR_NOMEM;
+
     if (!trie) {
         mpp_err_f("invalid NULL input trie automation\n");
         return MPP_ERR_NULL_PTR;
@@ -160,48 +163,57 @@ MPP_RET mpp_trie_init(MppTrie *trie, const char *name)
 
     mpp_env_get_u32("mpp_trie_debug", &mpp_trie_debug, 0);
 
-    RK_S32 name_len = strnlen(name, MPP_TRIE_NAME_MAX) + 1;
-    MPP_RET ret = MPP_ERR_NOMEM;
-    MppTrieImpl *p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl) + name_len);
-    if (!p) {
-        mpp_err_f("create trie impl failed\n");
-        goto DONE;
+    if (name) {
+        RK_S32 name_len = strnlen(name, MPP_TRIE_NAME_MAX) + 1;
+
+        p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl) + name_len);
+        if (!p) {
+            mpp_err_f("create trie impl failed\n");
+            goto DONE;
+        }
+
+        p->name = (char *)(p + 1);
+        p->name_len = name_len;
+        strncpy(p->name, name, name_len);
+
+        p->node_count = DEFAULT_NODE_COUNT;
+        p->nodes = mpp_calloc(MppTrieNode, p->node_count);
+        if (!p->nodes) {
+            mpp_err_f("create %d nodes failed\n", p->node_count);
+            goto DONE;
+        }
+
+        p->info_count = DEFAULT_INFO_COUNT;
+        p->info = mpp_calloc(MppTrieInfoInt, p->info_count);
+        if (!p->info) {
+            mpp_err_f("failed to alloc %d info\n", p->info_count);
+            goto DONE;
+        }
+
+        p->info_buf_size = SZ_4K;
+        p->info_buf = mpp_calloc_size(void, p->info_buf_size);
+        if (!p->info_buf) {
+            mpp_err_f("failed to alloc %d info buffer\n", p->info_buf_size);
+            goto DONE;
+        }
+
+        p->name_buf_size = SZ_4K;
+        p->name_buf = mpp_calloc_size(void, p->name_buf_size);
+        if (!p->name_buf) {
+            mpp_err_f("failed to alloc %d name buffer\n", p->info_buf_size);
+            goto DONE;
+        }
+
+        /* get node 0 as root node*/
+        trie_get_node(p, -1, 0);
+    } else {
+        p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl));
+        if (!p) {
+            mpp_err_f("create trie impl failed\n");
+            goto DONE;
+        }
     }
 
-    p->name = (char *)(p + 1);
-    p->name_len = name_len;
-    strncpy(p->name, name, name_len);
-
-    p->node_count = DEFAULT_NODE_COUNT;
-    p->nodes = mpp_calloc(MppTrieNode, p->node_count);
-    if (!p->nodes) {
-        mpp_err_f("create %d nodes failed\n", p->node_count);
-        goto DONE;
-    }
-
-    p->info_count = DEFAULT_INFO_COUNT;
-    p->info = mpp_calloc(MppTrieInfoInt, p->info_count);
-    if (!p->info) {
-        mpp_err_f("failed to alloc %d info\n", p->info_count);
-        goto DONE;
-    }
-
-    p->info_buf_size = SZ_4K;
-    p->info_buf = mpp_calloc_size(void, p->info_buf_size);
-    if (!p->info_buf) {
-        mpp_err_f("failed to alloc %d info buffer\n", p->info_buf_size);
-        goto DONE;
-    }
-
-    p->name_buf_size = SZ_4K;
-    p->name_buf = mpp_calloc_size(void, p->name_buf_size);
-    if (!p->name_buf) {
-        mpp_err_f("failed to alloc %d name buffer\n", p->info_buf_size);
-        goto DONE;
-    }
-
-    /* get node 0 as root node*/
-    trie_get_node(p, -1, 0);
     ret = MPP_OK;
 
 DONE:
