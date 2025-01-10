@@ -318,7 +318,8 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
     }
 
     switch (fmt & MPP_FRAME_FMT_MASK) {
-    case MPP_FMT_YUV420SP_10BIT: {
+    case MPP_FMT_YUV420SP_10BIT:
+    case MPP_FMT_YUV422SP_10BIT: {
         hor_stride_pixel = hal_hor_stride * 8 / 10;
     } break;
     case MPP_FMT_YUV422_YVYU:
@@ -343,6 +344,9 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
         switch ((fmt & MPP_FRAME_FMT_MASK)) {
         case MPP_FMT_YUV420SP_10BIT : {
             size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 15);
+        } break;
+        case MPP_FMT_YUV422SP_10BIT : {
+            size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 20);
         } break;
         case MPP_FMT_YUV420SP : {
             size = get_afbc_min_size(hor_stride_pixel, hal_ver_stride, 12);

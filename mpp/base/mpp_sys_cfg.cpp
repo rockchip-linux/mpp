@@ -352,6 +352,9 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_FMT_YUV420SP_10BIT : {
             size_total = get_afbc_min_size(aligned_pixel, aligned_height, 15);
         } break;
+        case MPP_FMT_YUV422SP_10BIT : {
+            size_total = get_afbc_min_size(aligned_pixel, aligned_height, 20);
+        } break;
         case MPP_FMT_YUV420SP : {
             size_total = get_afbc_min_size(aligned_pixel, aligned_height, 12);
         } break;
