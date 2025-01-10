@@ -153,66 +153,55 @@ static RK_S32 trie_get_node(MppTrieImpl *trie, RK_S32 prev, RK_U64 key)
 
 MPP_RET mpp_trie_init(MppTrie *trie, const char *name)
 {
-    MppTrieImpl *p = NULL;
-    MPP_RET ret = MPP_ERR_NOMEM;
-
-    if (!trie) {
-        mpp_err_f("invalid NULL input trie automation\n");
+    if (!trie || !name) {
+        mpp_err_f("invalid trie %p name %p\n", trie, name);
         return MPP_ERR_NULL_PTR;
     }
 
     mpp_env_get_u32("mpp_trie_debug", &mpp_trie_debug, 0);
 
-    if (name) {
-        RK_S32 name_len = strnlen(name, MPP_TRIE_NAME_MAX) + 1;
-
-        p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl) + name_len);
-        if (!p) {
-            mpp_err_f("create trie impl failed\n");
-            goto DONE;
-        }
-
-        p->name = (char *)(p + 1);
-        p->name_len = name_len;
-        strncpy(p->name, name, name_len);
-
-        p->node_count = DEFAULT_NODE_COUNT;
-        p->nodes = mpp_calloc(MppTrieNode, p->node_count);
-        if (!p->nodes) {
-            mpp_err_f("create %d nodes failed\n", p->node_count);
-            goto DONE;
-        }
-
-        p->info_count = DEFAULT_INFO_COUNT;
-        p->info = mpp_calloc(MppTrieInfoInt, p->info_count);
-        if (!p->info) {
-            mpp_err_f("failed to alloc %d info\n", p->info_count);
-            goto DONE;
-        }
-
-        p->info_buf_size = SZ_4K;
-        p->info_buf = mpp_calloc_size(void, p->info_buf_size);
-        if (!p->info_buf) {
-            mpp_err_f("failed to alloc %d info buffer\n", p->info_buf_size);
-            goto DONE;
-        }
-
-        p->name_buf_size = SZ_4K;
-        p->name_buf = mpp_calloc_size(void, p->name_buf_size);
-        if (!p->name_buf) {
-            mpp_err_f("failed to alloc %d name buffer\n", p->info_buf_size);
-            goto DONE;
-        }
-
-        /* get node 0 as root node*/
-        trie_get_node(p, -1, 0);
-    } else {
-        p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl));
-        if (!p) {
-            mpp_err_f("create trie impl failed\n");
-            goto DONE;
-        }
+    RK_S32 name_len = strnlen(name, MPP_TRIE_NAME_MAX) + 1;
+    MPP_RET ret = MPP_ERR_NOMEM;
+    MppTrieImpl *p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl) + name_len);
+    if (!p) {
+        mpp_err_f("create trie impl failed\n");
+        goto DONE;
     }
+
+    p->name = (char *)(p + 1);
+    p->name_len = name_len;
+    strncpy(p->name, name, name_len);
+
+    p->node_count = DEFAULT_NODE_COUNT;
+    p->nodes = mpp_calloc(MppTrieNode, p->node_count);
+    if (!p->nodes) {
+        mpp_err_f("create %d nodes failed\n", p->node_count);
+        goto DONE;
+    }
+
+    p->info_count = DEFAULT_INFO_COUNT;
+    p->info = mpp_calloc(MppTrieInfoInt, p->info_count);
+    if (!p->info) {
+        mpp_err_f("failed to alloc %d info\n", p->info_count);
+        goto DONE;
+    }
+
+    p->info_buf_size = SZ_4K;
+    p->info_buf = mpp_calloc_size(void, p->info_buf_size);
+    if (!p->info_buf) {
+        mpp_err_f("failed to alloc %d info buffer\n", p->info_buf_size);
+        goto DONE;
+    }
+
+    p->name_buf_size = SZ_4K;
+    p->name_buf = mpp_calloc_size(void, p->name_buf_size);
+    if (!p->name_buf) {
+        mpp_err_f("failed to alloc %d name buffer\n", p->info_buf_size);
+        goto DONE;
+    }
+
+    /* get node 0 as root node*/
+    trie_get_node(p, -1, 0);
 
     ret = MPP_OK;
 
@@ -227,6 +216,64 @@ DONE:
 
     *trie = p;
     return ret;
+}
+
+MPP_RET mpp_trie_init_by_root(MppTrie *trie, void *root)
+{
+    MppTrieImpl *p;
+    MppTrieInfo *info;
+    RK_S32 i;
+
+    if (!trie || !root) {
+        mpp_loge_f("invalid trie %px root %px\n", trie, root);
+        return MPP_NOK;
+    }
+
+    *trie = NULL;
+    p = mpp_calloc_size(MppTrieImpl, sizeof(MppTrieImpl));
+    if (!p) {
+        mpp_err_f("create trie impl failed\n");
+        return MPP_NOK;
+    }
+
+    info = mpp_trie_get_info_from_root(root, "__name__");
+    if (info)
+        p->name = (char *)mpp_trie_info_ctx(info);
+
+    info = mpp_trie_get_info_from_root(root, "__node__");
+    if (info)
+        p->node_used = *(RK_U32 *)mpp_trie_info_ctx(info);
+
+    info = mpp_trie_get_info_from_root(root, "__info__");
+    if (info)
+        p->info_used = *(RK_U32 *)mpp_trie_info_ctx(info);
+
+    /* import and update new buffer */
+    p->nodes = (MppTrieNode *)root;
+
+    if (mpp_trie_debug & MPP_TRIE_DBG_IMPORT)
+        mpp_trie_dump(p, "root import");
+
+    info = mpp_trie_get_info_first(p);
+
+    for (i = 0; i < p->info_used; i++) {
+        const char *name = mpp_trie_info_name(info);
+        MppTrieInfo *info_set = info;
+        MppTrieInfo *info_ret = mpp_trie_get_info(p, name);
+
+        info = mpp_trie_get_info_next(p, info);
+
+        if (info_ret && info_set == info_ret && info_ret->index == i)
+            continue;
+
+        mpp_loge_f("trie check on import found mismatch info %s [%d:%p] - [%d:%p]\n",
+                   name, i, info_set, info_ret ? info_ret->index : -1, info_ret);
+        return MPP_NOK;
+    }
+
+    *trie = p;
+
+    return MPP_OK;
 }
 
 MPP_RET mpp_trie_deinit(MppTrie trie)
@@ -590,8 +637,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_
 
     /* check and enlarge info record buffer */
     if (info_used >= p->info_count) {
-        rk_s32 old_count = p->info_count;
-        rk_s32 new_count = old_count * 2;
+        RK_S32 old_count = p->info_count;
+        RK_S32 new_count = old_count * 2;
         void *ptr = mpp_realloc_size(p->info, void, sizeof(MppTrieInfoInt) * new_count);
 
         if (!ptr) {
@@ -608,8 +655,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_
 
     /* check and enlarge contex buffer */
     if (info_buf_pos + (RK_S32)ctx_len > p->info_buf_size) {
-        rk_s32 old_size = p->info_buf_size;
-        rk_s32 new_size = old_size * 2;
+        RK_S32 old_size = p->info_buf_size;
+        RK_S32 new_size = old_size * 2;
         void *ptr = mpp_realloc_size(p->info_buf, void, new_size);
         if (!ptr) {
             mpp_err_f("failed to realloc new info buffer %d\n", new_size);
@@ -625,8 +672,8 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_
 
     /* check and enlarge name string buffer */
     if (name_buf_pos + len + 1 >= p->name_buf_size) {
-        rk_s32 old_size = p->name_buf_size;
-        rk_s32 new_size = old_size * 2;
+        RK_S32 old_size = p->name_buf_size;
+        RK_S32 new_size = old_size * 2;
         void *ptr = mpp_realloc_size(p->name_buf, void, new_size);
 
         if (!ptr) {
@@ -703,7 +750,7 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_
     info = &p->info[info_used];
     info->index = info_used;
     info->ctx_len = ctx_len;
-    info->str_len = MPP_ALIGN(len + 1, sizeof(rk_u32));
+    info->str_len = MPP_ALIGN(len + 1, sizeof(RK_U32));
     info->ctx_offset = info_buf_pos;
     info->name_offset = name_buf_pos;
 
@@ -716,69 +763,6 @@ MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_
 
     trie_dbg_set("trie %p add %d info %s at node %d pos %d ctx %p size %d done\n",
                  trie, i, s, idx, info_used, ctx, ctx_len);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_trie_import(MppTrie trie, void *root)
-{
-    MppTrieImpl *p = (MppTrieImpl *)trie;
-    MppTrieInfo *info;
-    RK_S32 i;
-
-    if (!p || !root) {
-        mpp_err_f("invalid trie %p root %p\n", trie, root);
-        return MPP_NOK;
-    }
-
-    /* free all old buffer */
-    MPP_FREE(p->nodes);
-    MPP_FREE(p->info);
-    MPP_FREE(p->info_buf);
-    MPP_FREE(p->name_buf);
-
-    info = mpp_trie_get_info_from_root(root, "__name__");
-    if (info)
-        p->name = (char *)mpp_trie_info_ctx(info);
-
-    info = mpp_trie_get_info_from_root(root, "__node__");
-    if (info)
-        p->node_used = *(rk_u32 *)mpp_trie_info_ctx(info);
-
-    info = mpp_trie_get_info_from_root(root, "__info__");
-    if (info)
-        p->info_used = *(rk_u32 *)mpp_trie_info_ctx(info);
-
-    /* import and update new buffer */
-    p->nodes = (MppTrieNode *)root;
-
-    /* set count to zero to avoid free on deinit */
-    p->node_count = 0;
-    p->info_count = 0;
-    p->info_buf_size = 0;
-    p->info_buf_pos = 0;
-    p->name_buf_size = 0;
-    p->name_buf_pos = 0;
-
-    if (mpp_trie_debug & MPP_TRIE_DBG_LAST_STEP)
-        mpp_trie_dump(trie, "root import");
-
-    info = mpp_trie_get_info_first(trie);
-
-    for (i = 0; i < p->info_used; i++) {
-        const char *name = mpp_trie_info_name(info);
-        MppTrieInfo *info_set = info;
-        MppTrieInfo *info_ret = mpp_trie_get_info(p, name);
-
-        info = mpp_trie_get_info_next(trie, info);
-
-        if (info_ret && info_set == info_ret && info_ret->index == i)
-            continue;
-
-        mpp_loge("trie check on import found mismatch info %s [%d:%p] - [%d:%p]\n",
-                 name, i, info_set, info_ret ? info_ret->index : -1, info_ret);
-        return MPP_NOK;
-    }
 
     return MPP_OK;
 }

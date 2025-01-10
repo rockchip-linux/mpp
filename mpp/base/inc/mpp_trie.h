@@ -55,11 +55,11 @@ extern "C" {
 #endif
 
 MPP_RET mpp_trie_init(MppTrie *trie, const char *name);
+MPP_RET mpp_trie_init_by_root(MppTrie *trie, void *root);
 MPP_RET mpp_trie_deinit(MppTrie trie);
 
 /* Add NULL info to mark the last trie entry */
 MPP_RET mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, RK_U32 ctx_len);
-MPP_RET mpp_trie_import(MppTrie trie, void *root);
 
 RK_S32 mpp_trie_get_node_count(MppTrie trie);
 RK_S32 mpp_trie_get_info_count(MppTrie trie);
