@@ -23,9 +23,15 @@ while [ $# -gt 0 ]; do
     case $1 in
         --help | -h)
             echo "Execute make-Makefiles.sh in *arm/* or *aarch64/* with some args."
+            echo "  use --toolchain to set toolchain e.g. --toolchain path/aarch64-none-linux-gnu-"
             echo "  use --rebuild to rebuild after clean"
             echo "  use --clean to clean all build file"
             exit 1
+            ;;
+        --toolchain)
+            TOOLCHAIN=$2
+            echo "toolchain: ${TOOLCHAIN}"
+            shift
             ;;
         --rebuild)
             ${MAKE_PROGRAM} clean

@@ -24,7 +24,14 @@ fi
 
 # generate Makefile
 cmake -DCMAKE_BUILD_TYPE=Release \
+      -DTOOLCHAIN=${TOOLCHAIN} \
       -DCMAKE_TOOLCHAIN_FILE=./arm.linux.cross.cmake \
       -DHAVE_DRM=ON \
       -G "Unix Makefiles" \
       ${MPP_TOP}
+
+if [ "${CMAKE_PARALLEL_ENABLE}" = "0" ]; then
+    cmake --build .
+else
+    cmake --build . -j
+fi
