@@ -173,6 +173,11 @@ static MPP_RET hal_h265d_vdpu383_init(void *hal, MppHalCfg *cfg)
         return ret;
     }
 
+    if (cfg->hal_fbc_adj_cfg) {
+        cfg->hal_fbc_adj_cfg->func = vdpu383_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->expand = 16;
+    }
+
     (void) cfg;
     return MPP_OK;
 }

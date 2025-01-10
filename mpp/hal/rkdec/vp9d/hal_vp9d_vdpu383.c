@@ -365,6 +365,11 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
 
     hw_ctx->last_segid_flag = 1;
 
+    if (cfg->hal_fbc_adj_cfg) {
+        cfg->hal_fbc_adj_cfg->func = vdpu383_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->expand = 0;
+    }
+
     return ret;
 __FAILED:
     hal_vp9d_vdpu383_deinit(hal);
