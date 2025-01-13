@@ -42,21 +42,6 @@
  * 2. Flow control metadata
  *
  */
-typedef enum MppMetaDataType_e {
-    /*
-     * mpp meta data of data flow
-     * reference counter will be used for these meta data type
-     */
-    TYPE_FRAME                  = FOURCC_META('m', 'f', 'r', 'm'),
-    TYPE_PACKET                 = FOURCC_META('m', 'p', 'k', 't'),
-    TYPE_BUFFER                 = FOURCC_META('m', 'b', 'u', 'f'),
-
-    /* mpp meta data of normal data type */
-    TYPE_S32                    = FOURCC_META('s', '3', '2', ' '),
-    TYPE_S64                    = FOURCC_META('s', '6', '4', ' '),
-    TYPE_PTR                    = FOURCC_META('p', 't', 'r', ' '),
-} MppMetaType;
-
 typedef enum MppMetaKey_e {
     /* data flow key */
     KEY_INPUT_FRAME             = FOURCC_META('i', 'f', 'r', 'm'),

@@ -22,11 +22,6 @@
 #include "mpp_list.h"
 #include "mpp_meta.h"
 
-typedef struct MppMetaDef_t {
-    MppMetaKey          key;
-    MppMetaType         type;
-} MppMetaDef;
-
 typedef struct MppMetaVal_t {
     RK_U32              state;
     union {
@@ -36,6 +31,7 @@ typedef struct MppMetaVal_t {
         MppFrame        frame;
         MppPacket       packet;
         MppBuffer       buffer;
+        RK_U64          val_kptr;   /* kernel object userspace address */
     };
 } MppMetaVal;
 
