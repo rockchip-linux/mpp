@@ -1855,7 +1855,7 @@ RK_U32 get_field_dpb_combine_flag(H264_FrameStore_t *p_last, H264_StorePic_t *p)
                 struct h264_store_pic_t *pic = NULL;
 
                 pic = p_last->structure == TOP_FIELD ? p_last->top_field : p_last->bottom_field;
-                if (pic && !pic->combine_flag)
+                if (pic && pic->mem_mark->mframe && !pic->combine_flag)
                     mpp_frame_set_errinfo(pic->mem_mark->mframe, 1);
             }
         }
