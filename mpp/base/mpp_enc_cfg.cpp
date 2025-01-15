@@ -278,7 +278,6 @@ public:
     ENTRY(tune, rc_container,   S32,        MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER,   tune, rc_container) \
     ENTRY(tune, vmaf_opt,       S32,        MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT,       tune, vmaf_opt) \
     ENTRY(tune, motion_static_switch_enable, S32, MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE, tune, motion_static_switch_enable) \
-    ENTRY(tune, atr_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR,        tune, atr_str) \
     ENTRY(tune, atf_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATF_STR,        tune, atf_str) \
     ENTRY(tune, lgt_chg_lvl,    S32,        MPP_ENC_TUNE_CFG_CHANGE_LGT_CHG_LVL,    tune, lgt_chg_lvl) \
     ENTRY(tune, static_frm_num, S32,        MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM, tune, static_frm_num) \

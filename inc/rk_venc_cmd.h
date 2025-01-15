@@ -1535,13 +1535,12 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER        = (1 << 13),
     MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT            = (1 << 14),
     MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE = (1 << 15),
-    MPP_ENC_TUNE_CFG_CHANGE_ATR_STR             = (1 << 16),
-    MPP_ENC_TUNE_CFG_CHANGE_ATF_STR             = (1 << 17),
-    MPP_ENC_TUNE_CFG_CHANGE_LGT_CHG_LVL         = (1 << 18),
-    MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM      = (1 << 19),
-    MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH           = (1 << 20),
-    MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT          = (1 << 21),
-    MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT          = (1 << 22),
+    MPP_ENC_TUNE_CFG_CHANGE_ATF_STR             = (1 << 16),
+    MPP_ENC_TUNE_CFG_CHANGE_LGT_CHG_LVL         = (1 << 17),
+    MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM      = (1 << 18),
+    MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH           = (1 << 19),
+    MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT          = (1 << 20),
+    MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT          = (1 << 21),
     MPP_ENC_TUNE_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncFineTuneCfgChange;
 
@@ -1563,7 +1562,6 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              vmaf_opt;
 
     RK_S32              motion_static_switch_enable;
-    RK_S32              atr_str;/* maybe use atr_str_i/p */
     RK_S32              atf_str;
     /* vepu500 only */
     RK_S32              lgt_chg_lvl; /* light change level, [0, 3] */
