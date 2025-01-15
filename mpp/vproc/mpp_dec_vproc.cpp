@@ -100,7 +100,6 @@ typedef struct MppDecVprocCtxImpl_t {
     MppFrame            prev_frm0;
     RK_S32              prev_idx1;
     MppFrame            prev_frm1;
-    RK_U32              detection; /* 0: field, 1: frame */
     enum IEP2_FF_MODE   pre_ff_mode;
     RK_U32              pd_mode;
     MppBuffer           out_buf0;
@@ -540,80 +539,80 @@ MPP_RET dec_vproc_output_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 is
             ctx->prev_idx1 = -1;
             ctx->prev_frm1 = NULL;
         }
-    } else {
-        switch (dei_mode) {
-        case MPP_FRAME_FLAG_IEP_DEI_I4O2: {
-            RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm1);
-            RK_S64 curr_pts = mpp_frame_get_pts(ctx->prev_frm0);
-            RK_S64 first_pts = (prev_pts + curr_pts) / 2;
+        return ret;
+    }
 
-            frame_err |= mpp_frame_get_errinfo(ctx->prev_frm0) + mpp_frame_get_discard(ctx->prev_frm0);
-            frame_err |= mpp_frame_get_errinfo(ctx->prev_frm1) + mpp_frame_get_discard(ctx->prev_frm1);
+    switch (dei_mode) {
+    case MPP_FRAME_FLAG_IEP_DEI_I4O2: {
+        RK_S64 prev_pts = mpp_frame_get_pts(ctx->prev_frm1);
+        RK_S64 curr_pts = mpp_frame_get_pts(ctx->prev_frm0);
+        RK_S64 first_pts = (prev_pts + curr_pts) / 2;
 
-            if (ctx->pd_mode) {
-                // NOTE: we need to process pts here if PD mode
-                if (ctx->dei_info.pd_flag != PD_COMP_FLAG_NON &&
-                    ctx->dei_info.pd_types != PD_TYPES_UNKNOWN) {
-                    vproc_dbg_out("output at pd mode, frame poc %d\n", mpp_frame_get_poc(frm));
-                    dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
-                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
-                    ctx->out_buf0 = NULL;
-                }
-            } else {
-                RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
-                RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_UND) ?
-                                     fo_from_syntax : (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
-                RK_U32 is_tff = 0;
+        frame_err |= mpp_frame_get_errinfo(ctx->prev_frm0) + mpp_frame_get_discard(ctx->prev_frm0);
+        frame_err |= mpp_frame_get_errinfo(ctx->prev_frm1) + mpp_frame_get_discard(ctx->prev_frm1);
 
-                if (fo_from_iep != fo_from_syntax) {
-                    if (ctx->dei_info.dil_order_confidence_ratio > 30)
-                        is_tff = fo_from_iep;
-                    else
-                        is_tff = fo_from_syntax;
-                } else {
-                    is_tff = fo_from_syntax;
-                }
-
-                vproc_dbg_status("Output field order: is TFF %d, syn %d vs iep %d\n",
-                                 is_tff, fo_from_syntax, fo_from_iep);
-
-                if (is_tff) {
-                    vproc_dbg_out("output at I4O2 for tff, frame poc %d\n", mpp_frame_get_poc(frm));
-                    dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
-                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
-                    vproc_dbg_out("output at I4O2 for bff, frame poc %d\n", mpp_frame_get_poc(frm));
-                    dec_vproc_put_frame(mpp, frm, dst1, curr_pts, frame_err);
-                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                        dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
-                } else {
-                    vproc_dbg_out("output at I4O2 for bff, frame poc %d\n", mpp_frame_get_poc(frm));
-                    dec_vproc_put_frame(mpp, frm, dst1, first_pts, frame_err);
-                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                        dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
-                    vproc_dbg_out("output at I4O2 for tff, frame poc %d\n", mpp_frame_get_poc(frm));
-                    dec_vproc_put_frame(mpp, frm, dst0, curr_pts, frame_err);
-                    if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                        dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
-                }
-
+        if (ctx->pd_mode) {
+            // NOTE: we need to process pts here if PD mode
+            if (ctx->dei_info.pd_flag != PD_COMP_FLAG_NON &&
+                ctx->dei_info.pd_types != PD_TYPES_UNKNOWN) {
+                vproc_dbg_out("output at pd mode, frame poc %d\n", mpp_frame_get_poc(frm));
+                dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
+                if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
                 ctx->out_buf0 = NULL;
-                ctx->out_buf1 = NULL;
             }
-        } break;
-        case MPP_FRAME_FLAG_IEP_DEI_I2O1:
-        case MPP_FRAME_FLAG_IEP_DEI_I4O1: {
-            vproc_dbg_out("output at I2O1, frame poc %d\n", mpp_frame_get_poc(frm));
-            dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
-            if (vproc_debug & VPROC_DBG_DUMP_OUT)
-                dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
-            ctx->out_buf0 = NULL;
-        }
-        default: {
-        } break;
-        }
+        } else {
+            RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
+            RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_UND) ?
+                                 fo_from_syntax : (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
+            RK_U32 is_tff = 0;
 
+            if (fo_from_iep != fo_from_syntax) {
+                if (ctx->dei_info.dil_order_confidence_ratio > 30)
+                    is_tff = fo_from_iep;
+                else
+                    is_tff = fo_from_syntax;
+            } else {
+                is_tff = fo_from_syntax;
+            }
+
+            vproc_dbg_status("Output field order: is TFF %d, syn %d vs iep %d\n",
+                             is_tff, fo_from_syntax, fo_from_iep);
+
+            if (is_tff) {
+                vproc_dbg_out("output at I4O2 for tff, frame poc %d\n", mpp_frame_get_poc(frm));
+                dec_vproc_put_frame(mpp, frm, dst0, first_pts, frame_err);
+                if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
+                vproc_dbg_out("output at I4O2 for bff, frame poc %d\n", mpp_frame_get_poc(frm));
+                dec_vproc_put_frame(mpp, frm, dst1, curr_pts, frame_err);
+                if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                    dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, ver_stride);
+            } else {
+                vproc_dbg_out("output at I4O2 for bff, frame poc %d\n", mpp_frame_get_poc(frm));
+                dec_vproc_put_frame(mpp, frm, dst1, first_pts, frame_err);
+                if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                    dump_mppbuffer(dst1, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+                vproc_dbg_out("output at I4O2 for tff, frame poc %d\n", mpp_frame_get_poc(frm));
+                dec_vproc_put_frame(mpp, frm, dst0, curr_pts, frame_err);
+                if (vproc_debug & VPROC_DBG_DUMP_OUT)
+                    dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+            }
+
+            ctx->out_buf0 = NULL;
+            ctx->out_buf1 = NULL;
+        }
+    } break;
+    case MPP_FRAME_FLAG_IEP_DEI_I2O1:
+    case MPP_FRAME_FLAG_IEP_DEI_I4O1: {
+        vproc_dbg_out("output at I2O1, frame poc %d\n", mpp_frame_get_poc(frm));
+        dec_vproc_put_frame(mpp, frm, dst0, -1, frame_err);
+        if (vproc_debug & VPROC_DBG_DUMP_OUT)
+            dump_mppbuffer(dst0, "/data/dump/dump_output.yuv", hor_stride, mpp_frame_get_height(frm));
+        ctx->out_buf0 = NULL;
+    }
+    default:
+        break;
     }
 
     return ret;
@@ -627,134 +626,31 @@ static MPP_RET dec_vproc_dei_v2_deinterlace(MppDecVprocCtxImpl *ctx, MppFrame fr
 
     /* refer to syntax */
     if (((mode & MPP_FRAME_FLAG_PAIRED_FIELD) == MPP_FRAME_FLAG_FRAME) &&
-        !(mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK)) {
-        ctx->detection = 1;
-        dec_vproc_output_dei_v2(ctx, frm, 1);
-    } else {
-        if (ctx->prev_frm1 && ctx->prev_frm0) {
-            // 5 in 2 out case
-            vproc_dbg_status("5 field in and 2 frame out\n");
-
-            if (!ctx->pd_mode) {
-                dil_mode = IEP2_DIL_MODE_I5O2;
-            } else {
-                dil_mode = IEP2_DIL_MODE_PD;
-            }
-
-            dec_vproc_config_dei_v2(ctx, frm, dil_mode);
-
-            mode = mode | MPP_FRAME_FLAG_IEP_DEI_I4O2;
-            mpp_frame_set_mode(frm, mode);
-            // start hardware
-            ctx->start_dei((MppDecVprocCtx *)ctx, mode);
-
-            dec_vproc_output_dei_v2(ctx, frm, 0);
-
-            if (ctx->dei_info.pd_types == PD_TYPES_UNKNOWN) {
-                ctx->pd_mode = 0;
-            } else {
-                ctx->pd_mode = 1;
-            }
-
-        } else if (ctx->prev_frm0 && ! ctx->prev_frm1) {
-            vproc_dbg_status("Wait for next frame to turn into I5O2");
-
-            if (ctx->out_buf0) {
-                mpp_buffer_put(ctx->out_buf0);
-                ctx->out_buf0 = NULL;
-            }
-
-            if (ctx->out_buf1) {
-                mpp_buffer_put(ctx->out_buf1);
-                ctx->out_buf1 = NULL;
-            }
-        } else {
-            // 2 in 1 out case
-            vproc_dbg_status("2 field in and 1 frame out\n");
-            dil_mode = IEP2_DIL_MODE_I1O1T;
-
-            dec_vproc_config_dei_v2(ctx, frm, dil_mode);
-
-            mode = mode | MPP_FRAME_FLAG_IEP_DEI_I2O1;
-            mpp_frame_set_mode(frm, mode);
-            // start hardware
-            ctx->start_dei((MppDecVprocCtx *)ctx, mode);
-
-            dec_vproc_output_dei_v2(ctx, frm, 0);
-        }
-    }
-
-    return ret;
-}
-
-static MPP_RET dec_vproc_dei_v2_detection(MppDecVprocCtxImpl *ctx, MppFrame frm)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 mode = mpp_frame_get_mode(frm);
-    enum IEP2_DIL_MODE dil_mode = IEP2_DIL_MODE_DISABLE;
-
-    /* refer to syntax and IEP */
-    if (ctx->pre_ff_mode == IEP2_FF_MODE_FRAME) {
-        ctx->detection = 1;
-    } else if (ctx->pre_ff_mode == IEP2_FF_MODE_FIELD) {
-        ctx->detection = 0;
-    } else {
-        if (((mode & MPP_FRAME_FLAG_PAIRED_FIELD) == MPP_FRAME_FLAG_FRAME) &&
-            !(mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK)) {
-            ctx->detection = 1;
-        } else {
-            ctx->detection = 0;
-        }
-    }
-
-    /* TODO: diff detection strategy */
+        !(mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK))
+        return dec_vproc_output_dei_v2(ctx, frm, 1);
 
     if (ctx->prev_frm1 && ctx->prev_frm0) {
         // 5 in 2 out case
         vproc_dbg_status("5 field in and 2 frame out\n");
 
-        if (ctx->detection) {
-            dil_mode = IEP2_DIL_MODE_DECT;
-        } else if (!ctx->pd_mode) {
+        if (!ctx->pd_mode)
             dil_mode = IEP2_DIL_MODE_I5O2;
-        } else {
+        else
             dil_mode = IEP2_DIL_MODE_PD;
-        }
 
         dec_vproc_config_dei_v2(ctx, frm, dil_mode);
 
+        mode = mode | MPP_FRAME_FLAG_IEP_DEI_I4O2;
+        mpp_frame_set_mode(frm, mode);
         // start hardware
         ctx->start_dei((MppDecVprocCtx *)ctx, mode);
 
-        if (ctx->dei_info.frm_mode == IEP2_FF_MODE_FRAME) {
-            ctx->detection = 1;
-        } else if (ctx->dei_info.pd_types == PD_TYPES_UNKNOWN) {
+        dec_vproc_output_dei_v2(ctx, frm, 0);
+
+        if (ctx->dei_info.pd_types == PD_TYPES_UNKNOWN)
             ctx->pd_mode = 0;
-            ctx->detection = 0;
-        } else {
+        else
             ctx->pd_mode = 1;
-            ctx->detection = 0;
-        }
-
-        if (ctx->dei_info.frm_mode == IEP2_FF_MODE_FRAME &&
-            ctx->pre_ff_mode == IEP2_FF_MODE_FIELD) {
-            // ff_mode changed, clear field output and remained frame
-            mpp_buffer_put(ctx->out_buf0);
-            mpp_buffer_put(ctx->out_buf1);
-            ctx->out_buf0 = NULL;
-            ctx->out_buf1 = NULL;
-            vproc_dbg_status("Clr out and prev for changing from Frame  to Field\n");
-            dec_vproc_clr_prev1(ctx);
-        }
-
-        if (!ctx->detection) {
-            mode = mode | MPP_FRAME_FLAG_IEP_DEI_I4O2;
-            mpp_frame_set_mode(frm, mode);
-
-            dec_vproc_output_dei_v2(ctx, frm, 0);
-        }
-
-        ctx->pre_ff_mode = ctx->dei_info.frm_mode;
 
     } else if (ctx->prev_frm0 && ! ctx->prev_frm1) {
         vproc_dbg_status("Wait for next frame to turn into I5O2");
@@ -783,9 +679,82 @@ static MPP_RET dec_vproc_dei_v2_detection(MppDecVprocCtxImpl *ctx, MppFrame frm)
         dec_vproc_output_dei_v2(ctx, frm, 0);
     }
 
-    if (ctx->detection) {
-        dec_vproc_output_dei_v2(ctx, frm, 1);
+    return ret;
+}
+
+static MPP_RET dec_vproc_dei_v2_detection(MppDecVprocCtxImpl *ctx, MppFrame frm)
+{
+    MPP_RET ret = MPP_OK;
+    RK_U32 mode = mpp_frame_get_mode(frm);
+    enum IEP2_DIL_MODE dil_mode = IEP2_DIL_MODE_DISABLE;
+    RK_U32 is_frame = 0;
+
+    if (ctx->pre_ff_mode == IEP2_FF_MODE_UND) {
+        if (((mode & MPP_FRAME_FLAG_PAIRED_FIELD) == MPP_FRAME_FLAG_FRAME) &&
+            !(mode & MPP_FRAME_FLAG_FIELD_ORDER_MASK))
+            is_frame = 1;
+        else
+            is_frame = 0;
+    } else {
+        is_frame = ctx->pre_ff_mode == IEP2_FF_MODE_FRAME ? 1 : 0;
     }
+
+    /* TODO: diff detection strategy */
+    if (ctx->prev_frm1 && ctx->prev_frm0) {
+        // 5 in 2 out case
+        vproc_dbg_status("5 field in and 2 frame out\n");
+
+        if (!ctx->pd_mode)
+            dil_mode = IEP2_DIL_MODE_I5O2;
+        else
+            dil_mode = IEP2_DIL_MODE_PD;
+
+        dec_vproc_config_dei_v2(ctx, frm, dil_mode);
+
+        // start hardware
+        ctx->start_dei((MppDecVprocCtx *)ctx, mode);
+
+        if (ctx->dei_info.frm_mode == IEP2_FF_MODE_FRAME) {
+            is_frame = 1;
+        } else if (ctx->dei_info.pd_types == PD_TYPES_UNKNOWN) {
+            ctx->pd_mode = 0;
+            is_frame = 0;
+        } else {
+            ctx->pd_mode = 1;
+            is_frame = 0;
+        }
+
+        if (!is_frame) {
+            mode = mode | MPP_FRAME_FLAG_IEP_DEI_I4O2;
+            mpp_frame_set_mode(frm, mode);
+        }
+    } else if (ctx->prev_frm0 && ! ctx->prev_frm1) {
+        vproc_dbg_status("Wait for next frame to turn into I5O2");
+
+        if (ctx->out_buf0) {
+            mpp_buffer_put(ctx->out_buf0);
+            ctx->out_buf0 = NULL;
+        }
+
+        if (ctx->out_buf1) {
+            mpp_buffer_put(ctx->out_buf1);
+            ctx->out_buf1 = NULL;
+        }
+    } else {
+        // 2 in 1 out case
+        vproc_dbg_status("2 field in and 1 frame out\n");
+        dil_mode = IEP2_DIL_MODE_I1O1T;
+
+        dec_vproc_config_dei_v2(ctx, frm, dil_mode);
+
+        mode = mode | MPP_FRAME_FLAG_IEP_DEI_I2O1;
+        mpp_frame_set_mode(frm, mode);
+        // start hardware
+        ctx->start_dei((MppDecVprocCtx *)ctx, mode);
+    }
+
+    ret = dec_vproc_output_dei_v2(ctx, frm, is_frame);
+    ctx->pre_ff_mode = ctx->dei_info.frm_mode;
 
     return ret;
 }
@@ -1113,18 +1082,6 @@ RK_U32 dec_vproc_get_version(MppDecVprocCtx ctx)
 
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
     return p->com_ctx->ver;
-}
-
-void dec_vproc_enable_detect(MppDecVprocCtx ctx)
-{
-    if (NULL == ctx) {
-        mpp_err_f("found NULL input\n");
-        return;
-    }
-
-    MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *) ctx;
-    p->detection = 1;
-    return;
 }
 
 MPP_RET dec_vproc_set_mode(MppDecVprocCtx ctx, MppVprocMode mode)

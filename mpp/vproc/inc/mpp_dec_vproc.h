@@ -49,7 +49,6 @@ MPP_RET dec_vproc_stop(MppDecVprocCtx ctx);
 MPP_RET dec_vproc_signal(MppDecVprocCtx ctx);
 MPP_RET dec_vproc_reset(MppDecVprocCtx ctx);
 RK_U32 dec_vproc_get_version(MppDecVprocCtx ctx);
-void dec_vproc_enable_detect(MppDecVprocCtx ctx);
 MPP_RET dec_vproc_set_mode(MppDecVprocCtx ctx, MppVprocMode mode);
 
 #ifdef __cplusplus
