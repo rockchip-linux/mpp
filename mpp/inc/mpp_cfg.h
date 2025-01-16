@@ -33,7 +33,6 @@ typedef enum CfgType_e {
 typedef struct MppCfgInfo_t {
     CfgType             data_type;
     /* update flag info 32bit */
-    RK_U32              flag_type;
     RK_U32              flag_offset;
     RK_U32              flag_value;
     /* data access info */

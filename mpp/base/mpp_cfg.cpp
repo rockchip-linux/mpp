@@ -86,7 +86,7 @@ static MPP_RET mpp_cfg_get(MppCfgInfo *info, void *cfg, void *val)
         base_type *dst = CFG_TO_##type##_PTR(info, cfg); \
         base_type old = dst[0]; \
         dst[0] = val; \
-        if (!info->flag_type) { \
+        if (!info->flag_value) { \
             mpp_cfg_dbg_set("%p + %d set " #type " change %d -> %d\n", cfg, info->data_offset, old, val); \
         } else { \
             if (old != val) { \

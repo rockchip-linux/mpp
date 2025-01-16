@@ -10,14 +10,39 @@
 #include "mpp_trie.h"
 
 typedef enum EntryType_e {
-    ENTRY_TYPE_s32,
-    ENTRY_TYPE_u32,
-    ENTRY_TYPE_s64,
-    ENTRY_TYPE_u64,
-    ENTRY_TYPE_ptr,
-    ENTRY_TYPE_fp,      /* function poineter */
-    ENTRY_TYPE_st,
-    ENTRY_TYPE_BUTT,
+    /* commaon fix size value */
+    ENTRY_TYPE_FIX      = 0x0,
+    ENTRY_TYPE_s32      = (ENTRY_TYPE_FIX + 0),
+    ENTRY_TYPE_u32      = (ENTRY_TYPE_FIX + 1),
+    ENTRY_TYPE_s64      = (ENTRY_TYPE_FIX + 2),
+    ENTRY_TYPE_u64      = (ENTRY_TYPE_FIX + 3),
+    /* value only structure */
+    ENTRY_TYPE_st       = (ENTRY_TYPE_FIX + 4),
+
+    /* kernel and userspace share data */
+    ENTRY_TYPE_SHARE    = 0x6,
+    /* share memory between kernel and userspace */
+    ENTRY_TYPE_shm      = (ENTRY_TYPE_SHARE + 0),
+
+    /* kernel access only data */
+    ENTRY_TYPE_KERNEL   = 0x8,
+    /* kenrel object poineter */
+    ENTRY_TYPE_kobj     = (ENTRY_TYPE_KERNEL + 0),
+    /* kenrel normal data poineter */
+    ENTRY_TYPE_kptr     = (ENTRY_TYPE_KERNEL + 1),
+    /* kernel function poineter */
+    ENTRY_TYPE_kfp      = (ENTRY_TYPE_KERNEL + 2),
+
+    /* userspace access only data */
+    ENTRY_TYPE_USER     = 0xc,
+    /* userspace object poineter */
+    ENTRY_TYPE_uobj     = (ENTRY_TYPE_USER + 0),
+    /* userspace normal data poineter */
+    ENTRY_TYPE_uptr     = (ENTRY_TYPE_USER + 1),
+    /* userspace function poineter */
+    ENTRY_TYPE_ufp      = (ENTRY_TYPE_USER + 2),
+
+    ENTRY_TYPE_BUTT     = 0xf,
 } EntryType;
 
 /* location table */
@@ -26,12 +51,26 @@ typedef union MppLocTbl_u {
     struct {
         rk_u16          data_offset;
         rk_u16          data_size       : 12;
-        EntryType       data_type       : 3;
-        rk_u16          flag_type       : 1;
+        EntryType       data_type       : 4;
         rk_u16          flag_offset;
         rk_u16          flag_value;
     };
 } KmppLocTbl;
+
+/* MUST be the same to the KmppObjShm in rk-mpp-kobj.h */
+typedef struct KmppShmPtr_t {
+    /* uaddr - the userspace base address for userspace access */
+    union {
+        rk_u64 uaddr;
+        void *uptr;
+    };
+    /* kaddr - the kernel base address for kernel access */
+    union {
+        rk_u64 kaddr;
+        void *kptr;
+    };
+    /* DO NOT access reserved data only used by kernel */
+} KmppShmPtr;
 
 /* KmppObjDef - mpp object name size and access table trie definition */
 typedef void* KmppObjDef;
@@ -71,6 +110,7 @@ rk_s32 kmpp_obj_get_hnd_size(KmppObj obj);
  */
 void *kmpp_obj_get_entry(KmppObj obj);
 
+/* value access function */
 rk_s32 kmpp_obj_set_s32(KmppObj obj, const char *name, rk_s32 val);
 rk_s32 kmpp_obj_get_s32(KmppObj obj, const char *name, rk_s32 *val);
 rk_s32 kmpp_obj_set_u32(KmppObj obj, const char *name, rk_u32 val);
@@ -79,13 +119,8 @@ rk_s32 kmpp_obj_set_s64(KmppObj obj, const char *name, rk_s64 val);
 rk_s32 kmpp_obj_get_s64(KmppObj obj, const char *name, rk_s64 *val);
 rk_s32 kmpp_obj_set_u64(KmppObj obj, const char *name, rk_u64 val);
 rk_s32 kmpp_obj_get_u64(KmppObj obj, const char *name, rk_u64 *val);
-rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void *val);
-rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val);
-rk_s32 kmpp_obj_set_fp(KmppObj obj, const char *name, void *val);
-rk_s32 kmpp_obj_get_fp(KmppObj obj, const char *name, void **val);
 rk_s32 kmpp_obj_set_st(KmppObj obj, const char *name, void *val);
 rk_s32 kmpp_obj_get_st(KmppObj obj, const char *name, void *val);
-
 rk_s32 kmpp_obj_tbl_set_s32(KmppObj obj, KmppLocTbl *tbl, rk_s32 val);
 rk_s32 kmpp_obj_tbl_get_s32(KmppObj obj, KmppLocTbl *tbl, rk_s32 *val);
 rk_s32 kmpp_obj_tbl_set_u32(KmppObj obj, KmppLocTbl *tbl, rk_u32 val);
@@ -94,16 +129,31 @@ rk_s32 kmpp_obj_tbl_set_s64(KmppObj obj, KmppLocTbl *tbl, rk_s64 val);
 rk_s32 kmpp_obj_tbl_get_s64(KmppObj obj, KmppLocTbl *tbl, rk_s64 *val);
 rk_s32 kmpp_obj_tbl_set_u64(KmppObj obj, KmppLocTbl *tbl, rk_u64 val);
 rk_s32 kmpp_obj_tbl_get_u64(KmppObj obj, KmppLocTbl *tbl, rk_u64 *val);
+rk_s32 kmpp_obj_tbl_set_st(KmppObj obj, KmppLocTbl *tbl, void *val);
+rk_s32 kmpp_obj_tbl_get_st(KmppObj obj, KmppLocTbl *tbl, void *val);
+
+/* userspace access only function */
+rk_s32 kmpp_obj_set_obj(KmppObj obj, const char *name, KmppObj val);
+rk_s32 kmpp_obj_get_obj(KmppObj obj, const char *name, KmppObj *val);
+rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void *val);
+rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val);
+rk_s32 kmpp_obj_set_fp(KmppObj obj, const char *name, void *val);
+rk_s32 kmpp_obj_get_fp(KmppObj obj, const char *name, void **val);
+rk_s32 kmpp_obj_tbl_set_obj(KmppObj obj, KmppLocTbl *tbl, KmppObj val);
+rk_s32 kmpp_obj_tbl_get_obj(KmppObj obj, KmppLocTbl *tbl, KmppObj *val);
 rk_s32 kmpp_obj_tbl_set_ptr(KmppObj obj, KmppLocTbl *tbl, void *val);
 rk_s32 kmpp_obj_tbl_get_ptr(KmppObj obj, KmppLocTbl *tbl, void **val);
 rk_s32 kmpp_obj_tbl_set_fp(KmppObj obj, KmppLocTbl *tbl, void *val);
 rk_s32 kmpp_obj_tbl_get_fp(KmppObj obj, KmppLocTbl *tbl, void **val);
-rk_s32 kmpp_obj_tbl_set_st(KmppObj obj, KmppLocTbl *tbl, void *val);
-rk_s32 kmpp_obj_tbl_get_st(KmppObj obj, KmppLocTbl *tbl, void *val);
+
+/* share access function */
+rk_s32 kmpp_obj_set_shm(KmppObj obj, const char *name, KmppShmPtr *val);
+rk_s32 kmpp_obj_get_shm(KmppObj obj, const char *name, KmppShmPtr *val);
+rk_s32 kmpp_obj_tbl_set_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
+rk_s32 kmpp_obj_tbl_get_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
 
 /* run a callback function */
 rk_s32 kmpp_obj_run(KmppObj obj, const char *name);
-
 /* dump by userspace */
 rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller);
 /* dump by kernel */

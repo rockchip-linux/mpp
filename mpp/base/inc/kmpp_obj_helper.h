@@ -23,7 +23,6 @@
         .data_offset = offsetof(KMPP_OBJ_IMPL_TYPE, f1), \
         .data_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->f1), \
         .data_type = ENTRY_TYPE_##ftype, \
-        .flag_type = flag_value ? 1 : 0, \
         .flag_offset = offsetof(KMPP_OBJ_IMPL_TYPE, field_flag), \
         .flag_value = flag_value, \
     }
@@ -33,7 +32,6 @@
         .data_offset = offsetof(KMPP_OBJ_IMPL_TYPE, f1), \
         .data_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->f1), \
         .data_type = ENTRY_TYPE_##ftype, \
-        .flag_type = 0, \
         .flag_offset = 0, \
         .flag_value = 0, \
     }
@@ -49,7 +47,6 @@
         .data_offset = offsetof(KMPP_OBJ_IMPL_TYPE, f1.f2), \
         .data_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->f1.f2), \
         .data_type = ENTRY_TYPE_##ftype, \
-        .flag_type = flag_value ? 1 : 0, \
         .flag_offset = offsetof(KMPP_OBJ_IMPL_TYPE, field_flag), \
         .flag_value = flag_value, \
     }
@@ -59,7 +56,6 @@
         .data_offset = offsetof(KMPP_OBJ_IMPL_TYPE, f1.f2), \
         .data_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->f1.f2), \
         .data_type = ENTRY_TYPE_##ftype, \
-        .flag_type = 0, \
         .flag_offset = 0, \
         .flag_value = 0, \
     }

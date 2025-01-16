@@ -78,7 +78,6 @@ public:
     do { \
         MppCfgInfo tmp = { \
             CFG_FUNC_TYPE_##cfg_type, \
-            (RK_U32)((flag) ? 1 : 0), \
             (RK_U32)((long)&(((MppDecCfgSet *)0)->field_change.change)), \
             flag, \
             (RK_U32)((long)&(((MppDecCfgSet *)0)->field_change.field_data)), \

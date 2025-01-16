@@ -16,11 +16,17 @@ rk_s32 kmpp_obj_impl_set_s64(KmppLocTbl *tbl, void *entry, rk_s64 val);
 rk_s32 kmpp_obj_impl_get_s64(KmppLocTbl *tbl, void *entry, rk_s64 *val);
 rk_s32 kmpp_obj_impl_set_u64(KmppLocTbl *tbl, void *entry, rk_u64 val);
 rk_s32 kmpp_obj_impl_get_u64(KmppLocTbl *tbl, void *entry, rk_u64 *val);
+rk_s32 kmpp_obj_impl_set_st(KmppLocTbl *tbl, void *entry, void *val);
+rk_s32 kmpp_obj_impl_get_st(KmppLocTbl *tbl, void *entry, void *val);
+
+rk_s32 kmpp_obj_impl_set_shm(KmppLocTbl *tbl, void *entry, KmppShmPtr *val);
+rk_s32 kmpp_obj_impl_get_shm(KmppLocTbl *tbl, void *entry, KmppShmPtr *val);
+
+rk_s32 kmpp_obj_impl_set_obj(KmppLocTbl *tbl, void *entry, void *val);
+rk_s32 kmpp_obj_impl_get_obj(KmppLocTbl *tbl, void *entry, void **val);
 rk_s32 kmpp_obj_impl_set_ptr(KmppLocTbl *tbl, void *entry, void *val);
 rk_s32 kmpp_obj_impl_get_ptr(KmppLocTbl *tbl, void *entry, void **val);
 rk_s32 kmpp_obj_impl_set_fp(KmppLocTbl *tbl, void *entry, void *val);
 rk_s32 kmpp_obj_impl_get_fp(KmppLocTbl *tbl, void *entry, void **val);
-rk_s32 kmpp_obj_impl_set_st(KmppLocTbl *tbl, void *entry, void *val);
-rk_s32 kmpp_obj_impl_get_st(KmppLocTbl *tbl, void *entry, void *val);
 
 #endif /* __KMPP_OBJ_IMPL_H__ */
