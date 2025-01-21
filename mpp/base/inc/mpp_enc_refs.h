@@ -32,11 +32,12 @@
  * When encoder is running user can change the frame property by MppEncRefFrmUsrCfg.
  */
 #define ENC_FORCE_IDR           (0x00000001)
-#define ENC_FORCE_PSKIP         (0x00000002)
-#define ENC_FORCE_NONREF        (0x00000004)
-#define ENC_FORCE_LT_REF_IDX    (0x00000008)
-#define ENC_FORCE_TEMPORAL_ID   (0x00000010)
-#define ENC_FORCE_REF_MODE      (0x00000020)
+#define ENC_FORCE_NONREF        (0x00000002)
+#define ENC_FORCE_LT_REF_IDX    (0x00000004)
+#define ENC_FORCE_TEMPORAL_ID   (0x00000008)
+#define ENC_FORCE_REF_MODE      (0x00000010)
+#define ENC_FORCE_PSKIP_IS_REF  (0x00000020)
+#define ENC_FORCE_PSKIP_NON_REF (0x00000040)
 
 typedef struct MppEncRefFrmForceCfg_t {
     RK_U32              force_flag;

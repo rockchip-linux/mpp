@@ -300,28 +300,27 @@ void sort_delta_poc(H265eReferencePictureSet *rps)
     }
 }
 
-
 void h265e_dpb_apply_rps(H265eDpb *dpb, H265eReferencePictureSet *rps, int curPoc)
 {
     H265eDpbFrm *outPic = NULL;
-    RK_S32 i, isReference;
+    RK_S32 i;
     // loop through all pictures in the reference picture buffer
     RK_U32 index = 0;
     H265eDpbFrm *frame_list = &dpb->frame_list[0];
+
     h265e_dbg_func("enter\n");
+
     for (index = 0; index < MPP_ARRAY_ELEMS(dpb->frame_list); index++) {
         outPic = &frame_list[index];
         if (!outPic->inited || !outPic->slice->is_referenced) {
             continue;
         }
 
-        isReference = 0;
         // loop through all pictures in the Reference Picture Set
         // to see if the picture should be kept as reference picture
         for (i = 0; i < rps->num_positive_pic + rps->num_negative_pic; i++) {
             h265e_dbg_dpb("outPic->slice->poc %d,curPoc %d dealt %d", outPic->slice->poc, curPoc, rps->delta_poc[i]);
             if (!outPic->is_long_term && outPic->slice->poc == curPoc + rps->delta_poc[i]) {
-                isReference = 1;
                 outPic->used_by_cur = (rps->m_used[i] == 1);
                 outPic->is_long_term = 0;
             }
@@ -330,27 +329,16 @@ void h265e_dpb_apply_rps(H265eDpb *dpb, H265eReferencePictureSet *rps, int curPo
         for (; i < rps->m_numberOfPictures; i++) {
             if (rps->check_lt_msb[i] == 0) {
                 if (outPic->is_long_term && (outPic->slice->poc == rps->m_RealPoc[i])) {
-                    isReference = 1;
                     outPic->used_by_cur = (rps->m_used[i] == 1);
                 }
             } else {
                 if (outPic->is_long_term && (outPic->slice->poc == rps->m_RealPoc[i])) {
-                    isReference = 1;
                     outPic->used_by_cur = (rps->m_used[i] == 1);
                 }
             }
         }
-
-        // mark the picture as "unused for reference" if it is not in
-        // the Reference Picture Set
-        if (outPic->slice->poc != curPoc && isReference == 0) {
-            h265e_dbg_dpb("free unreference buf poc %d", outPic->slice->poc);
-            outPic->slice->is_referenced = 0;
-            outPic->used_by_cur = 0;
-            outPic->dpb_used = 0;
-            outPic->is_long_term = 0;
-        }
     }
+
     h265e_dbg_func("leave\n");
 }
 
@@ -703,6 +691,26 @@ void h265e_dpb_cpb2rps(H265eDpb *dpb, RK_S32 curPoc, H265eSlice *slice, EncCpbSt
     h265e_dbg_func("leave\n");
 }
 
+MPP_RET h265e_pskip_ref_check(H265eDpb *dpb, EncCpbStatus *cpb, H265eDpbFrm *frm)
+{
+    MPP_RET ret = MPP_OK;
+
+    h265e_dbg_func("enter\n");
+
+    if ((cpb->curr.force_pskip_is_ref) && (frm->slot_idx == dpb->curr->slice->m_refPicList[0][0]->slot_idx)) {
+        h265e_dbg_dpb("hold refr buf as skip frm recon buf, poc %d slot idx %d.", frm->slice->poc, frm->slot_idx);
+        ret = MPP_NOK;
+    }
+
+    if ((cpb->refr.force_pskip_is_ref) && (frm->slot_idx == dpb->curr->slice->m_refPicList[0][0]->prev_ref_idx)) {
+        h265e_dbg_dpb("hold refr buf as skip frm recon buf, poc %d slot idx %d.", frm->slice->poc, frm->slot_idx);
+        ret = MPP_NOK;
+    }
+
+    h265e_dbg_func("leave\n");
+    return ret;
+}
+
 void h265e_dpb_free_unsed(H265eDpb *dpb, EncCpbStatus *cpb)
 {
     RK_S32 i = 0;
@@ -722,16 +730,16 @@ void h265e_dpb_free_unsed(H265eDpb *dpb, EncCpbStatus *cpb)
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dpb->frame_list); i++) {
         H265eDpbFrm *frm = &dpb->frame_list[i];
-
         if (!frm->dpb_used)
             continue;
-
         if (h265e_check_frame_cpb(frm, MAX_REFS, &cpb->final[0])) {
-            h265e_dbg_dpb("cpb final unreference buf poc %d", frm->slice->poc);
-            frm->is_long_term = 0;
-            frm->used_by_cur = 0;
-            frm->dpb_used = 0;
-            frm->slice->is_referenced = 0;
+            if (!h265e_pskip_ref_check(dpb, cpb, frm)) {
+                h265e_dbg_dpb("cpb final unreference buf poc %d", frm->slice->poc);
+                frm->is_long_term = 0;
+                frm->used_by_cur = 0;
+                frm->dpb_used = 0;
+                frm->slice->is_referenced = 0;
+            }
         }
     }
 

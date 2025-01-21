@@ -67,6 +67,7 @@ typedef struct  H265eDpbFrm_t {
     RK_S32              seq_idx;
     RK_S32              gop_idx;
     RK_S32              gop_cnt;
+    RK_S32              prev_ref_idx;
     EncFrmStatus        status;
 
     union {

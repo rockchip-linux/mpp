@@ -84,8 +84,13 @@ typedef enum MppMetaKey_e {
     KEY_LVL4_INTRA_NUM          = FOURCC_META('l', '4', 'i', ' '),
     /* output P skip frame indicator */
     KEY_OUTPUT_PSKIP            = FOURCC_META('o', 'p', 's', 'p'),
-    /* input P skip frame request */
+    /*
+     * Input P-skip frame request
+     * KEY_INPUT_PSKIP: The skip frame will be referenced in the next frame.
+     * KEY_INPUT_PSKIP_NON_REF: The skip frame will not be referenced as a frame.
+     */
     KEY_INPUT_PSKIP             = FOURCC_META('i', 'p', 's', 'p'),
+    KEY_INPUT_PSKIP_NON_REF     = FOURCC_META('i', 'p', 'n', 'r'),
     KEY_ENC_SSE                 = FOURCC_META('e', 's', 's', 'e'),
 
     /*

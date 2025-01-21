@@ -1655,11 +1655,15 @@ static MPP_RET mpp_enc_force_pskip_check(Mpp *mpp, EncAsyncTaskInfo *task)
     mpp_enc_refs_get_cpb_info(enc->refs, &cpb_info);
     max_tid = cpb_info.max_st_tid;
 
-    if (frm->is_idr) {
+    if (task->usr.force_flag & ENC_FORCE_IDR) {
+        enc_dbg_detail("task %d, FORCE IDR should not be set as pskip frames", frm->seq_idx);
+        ret = MPP_NOK;
+    }
+    if (cpb->curr.is_idr) {
         enc_dbg_detail("task %d, IDR frames should not be set as pskip frames", frm->seq_idx);
         ret = MPP_NOK;
     }
-    if (frm->is_lt_ref) {
+    if (cpb->curr.is_lt_ref) {
         enc_dbg_detail("task %d, LTR frames should not be set as pskip frames", frm->seq_idx);
         ret = MPP_NOK;
     }
@@ -1689,7 +1693,10 @@ static MPP_RET mpp_enc_force_pskip(Mpp *mpp, EncAsyncTaskInfo *task)
     enc_dbg_func("enter\n");
 
     frm_cfg->force_pskip++;
-    frm_cfg->force_flag |= ENC_FORCE_PSKIP;
+    if (frm->force_pskip)
+        frm_cfg->force_flag |= ENC_FORCE_PSKIP_NON_REF;
+    else if (frm->force_pskip_is_ref)
+        frm_cfg->force_flag |= ENC_FORCE_PSKIP_IS_REF;
 
     /* NOTE: in some condition the pskip should not happen */
     mpp_enc_refs_set_usr_cfg(enc->refs, frm_cfg);
@@ -1697,22 +1704,32 @@ static MPP_RET mpp_enc_force_pskip(Mpp *mpp, EncAsyncTaskInfo *task)
     enc_dbg_detail("task %d enc proc dpb\n", frm->seq_idx);
     mpp_enc_refs_get_cpb(enc->refs, cpb);
 
-    enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
-    ENC_RUN_FUNC2(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
-
     ret = mpp_enc_force_pskip_check(mpp, task);
+
     if (ret) {
         mpp_enc_refs_rollback(enc->refs);
         frm_cfg->force_pskip--;
-        frm_cfg->force_flag &= ~ENC_FORCE_PSKIP;
+        if (frm->force_pskip)
+            frm_cfg->force_flag &= ~ENC_FORCE_PSKIP_NON_REF;
+        else if (frm->force_pskip_is_ref)
+            frm_cfg->force_flag &= ~ENC_FORCE_PSKIP_IS_REF;
         return MPP_NOK;
     }
+
+    enc_dbg_frm_status("frm %d start ***********************************\n", cpb->curr.seq_idx);
+    ENC_RUN_FUNC2(enc_impl_proc_dpb, impl, hal_task, mpp, ret);
 
     enc_dbg_detail("task %d rc frame start\n", frm->seq_idx);
     ENC_RUN_FUNC2(rc_frm_start, enc->rc_ctx, rc_task, mpp, ret);
 
+    enc_dbg_detail("task %d rc hal start\n", frm->seq_idx);
+    ENC_RUN_FUNC2(rc_hal_start, enc->rc_ctx, rc_task, mpp, ret);
+
     enc_dbg_detail("task %d enc sw enc start\n", frm->seq_idx);
     ENC_RUN_FUNC2(enc_impl_sw_enc, impl, hal_task, mpp, ret);
+
+    enc_dbg_detail("task %d rc hal end\n", frm->seq_idx);
+    ENC_RUN_FUNC2(rc_hal_end, enc->rc_ctx, rc_task, mpp, ret);
 
     enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
     ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
@@ -1721,6 +1738,39 @@ TASK_DONE:
     enc_dbg_func("leave\n");
     return ret;
 }
+
+static MPP_RET mpp_enc_get_pskip_mode(Mpp *mpp, EncAsyncTaskInfo *task, MppPskipMode *skip_mode)
+{
+    MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
+    EncRcTask *rc_task = &task->rc;
+    EncFrmStatus *frm = &rc_task->frm;
+    HalEncTask *hal_task = &task->task;
+    MPP_RET ret = MPP_OK;
+
+    skip_mode->pskip_is_ref = 0;
+    skip_mode->pskip_is_non_ref = 0;
+    enc->frame = hal_task->frame;
+
+    if (mpp_frame_has_meta(enc->frame)) {
+        MppMeta frm_meta = mpp_frame_get_meta(enc->frame);
+        if (frm_meta) {
+            mpp_meta_get_s32(frm_meta, KEY_INPUT_PSKIP, &skip_mode->pskip_is_ref);
+            mpp_meta_get_s32(frm_meta, KEY_INPUT_PSKIP_NON_REF, &skip_mode->pskip_is_non_ref);
+        }
+    }
+
+    if (skip_mode->pskip_is_ref == 1 && skip_mode->pskip_is_non_ref == 1) {
+        mpp_err("task %d, Don't cfg pskip frame to be both a ref and non-ref at the same time");
+        ret = MPP_NOK;
+    } else {
+        frm->force_pskip = skip_mode->pskip_is_non_ref;
+        frm->force_pskip_is_ref = skip_mode->pskip_is_ref;
+        ret = MPP_OK;
+    }
+
+    return ret;
+}
+
 
 static void mpp_enc_add_sw_header(MppEncImpl *enc, HalEncTask *hal_task)
 {
@@ -1816,17 +1866,11 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
 
     enc_dbg_detail("task %d check force pskip start\n", frm->seq_idx);
     if (!status->check_frm_pskip) {
-        RK_S32 force_pskip = 0;
+        MppPskipMode skip_mode;
         status->check_frm_pskip = 1;
 
-        if (mpp_frame_has_meta(enc->frame)) {
-            MppMeta frm_meta = mpp_frame_get_meta(enc->frame);
-            if (frm_meta)
-                mpp_meta_get_s32(frm_meta, KEY_INPUT_PSKIP, &force_pskip);
-        }
-
-        if (force_pskip == 1) {
-            frm->force_pskip = 1;
+        mpp_enc_get_pskip_mode((Mpp*)enc->mpp, task, &skip_mode);
+        if (skip_mode.pskip_is_ref || skip_mode.pskip_is_non_ref) {
             ret = mpp_enc_force_pskip((Mpp*)enc->mpp, task);
             if (ret)
                 enc_dbg_detail("task %d set force pskip failed.", frm->seq_idx);
@@ -1992,7 +2036,7 @@ static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncAsyncTaskInfo *task)
     enc_dbg_func("enter\n");
 
     frm_cfg->force_pskip++;
-    frm_cfg->force_flag |= ENC_FORCE_PSKIP;
+    frm_cfg->force_flag |= ENC_FORCE_PSKIP_NON_REF;
 
     /* NOTE: in some condition the pskip should not happen */
 
@@ -2251,17 +2295,11 @@ static MPP_RET try_proc_low_deley_task(Mpp *mpp, EncAsyncTaskInfo *task, EncAsyn
 
     enc_dbg_detail("task %d check force pskip start\n", frm->seq_idx);
     if (!status->check_frm_pskip) {
-        RK_S32 force_pskip = 0;
+        MppPskipMode skip_mode;
         status->check_frm_pskip = 1;
 
-        if (mpp_frame_has_meta(enc->frame)) {
-            MppMeta frm_meta = mpp_frame_get_meta(enc->frame);
-            if (frm_meta)
-                mpp_meta_get_s32(frm_meta, KEY_INPUT_PSKIP, &force_pskip);
-        }
-
-        if (force_pskip == 1) {
-            frm->force_pskip = 1;
+        mpp_enc_get_pskip_mode((Mpp*)enc->mpp, task, &skip_mode);
+        if (skip_mode.pskip_is_ref || skip_mode.pskip_is_non_ref) {
             ret = mpp_enc_force_pskip((Mpp*)enc->mpp, task);
             if (ret)
                 enc_dbg_detail("task %d set force pskip failed.", frm->seq_idx);
@@ -3121,19 +3159,12 @@ static MPP_RET proc_async_task(MppEncImpl *enc, EncAsyncWait *wait)
         goto SEND_TASK_INFO;
 
     if (!status->check_frm_pskip) {
-        RK_S32 force_pskip = 0;
+        MppPskipMode skip_mode;
         status->check_frm_pskip = 1;
 
-        if (mpp_frame_has_meta(hal_task->frame)) {
-            MppMeta frm_meta = mpp_frame_get_meta(hal_task->frame);
-            if (frm_meta)
-                mpp_meta_get_s32(frm_meta, KEY_INPUT_PSKIP, &force_pskip);
-        }
-
-        if (force_pskip == 1) {
-            frm->force_pskip = 1;
+        mpp_enc_get_pskip_mode((Mpp*)enc->mpp, async, &skip_mode);
+        if (skip_mode.pskip_is_ref || skip_mode.pskip_is_non_ref) {
             ret = mpp_enc_force_pskip((Mpp*)enc->mpp, async);
-
             if (ret)
                 enc_dbg_detail("task %d set force pskip failed.", frm->seq_idx);
             else

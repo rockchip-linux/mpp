@@ -28,6 +28,11 @@
 
 #define HDR_ADDED_MASK  0xe
 
+typedef struct MppPskipMode_t {
+    RK_S32 pskip_is_ref;
+    RK_S32 pskip_is_non_ref;
+} MppPskipMode;
+
 typedef union MppEncHeaderStatus_u {
     RK_U32 val;
     struct {

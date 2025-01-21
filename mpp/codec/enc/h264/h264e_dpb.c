@@ -460,7 +460,7 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
         H264eDpbFrm *frm = find_cpb_frame(dpb, &init[i]);
         dpb->map[i] = frm;
         if (frm) {
-            if (!frm->on_used)
+            if (!frm->on_used && !frm->status.force_pskip_is_ref)
                 mpp_err_f("warning frm %d is used by cpb but on not used status\n",
                           frm->seq_idx);
             frm->dpb_used = 1;
@@ -492,7 +492,7 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
         RK_S32 j;
 
         for (j = 0; j < MAX_CPB_REFS; j++) {
-            if (p == dpb->map[j]) {
+            if (p == dpb->map[j] || p->as_pskip_ref) {
                 valid = 1;
                 break;
             }
@@ -502,7 +502,8 @@ MPP_RET h264e_dpb_proc(H264eDpb *dpb, EncCpbStatus *cpb)
                       i, valid, p->on_used);
 
         if (valid) {
-            if (!p->on_used || !p->status.valid) {
+            if ((!p->as_pskip_ref) &&
+                (!p->on_used || !p->status.valid)) {
                 mpp_assert(p->on_used);
                 mpp_assert(p->status.valid);
                 h264e_dpb_dump_frms(dpb);
@@ -671,6 +672,9 @@ void h264e_dpb_check(H264eDpb *dpb, EncCpbStatus *cpb)
 
                     h264e_dbg_dpb("frm %d num %d poc %d\n",
                                   tmp->seq_idx, tmp->frame_num, tmp->poc);
+
+                    if (tmp->as_pskip_ref)
+                        continue;
 
                     if (!tmp->on_used)
                         continue;

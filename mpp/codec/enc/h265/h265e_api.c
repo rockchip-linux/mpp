@@ -310,6 +310,7 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
     H265eCtx *p = (H265eCtx *)ctx;
     EncRcTask    *rc_task = task->rc_task;
     EncCpbStatus *cpb = &task->rc_task->cpb;
+
     h265e_dbg_func("enter\n");
     h265e_dpb_proc_cpb(p->dpb, cpb);
     h265e_dpb_get_curr(p->dpb);
@@ -383,8 +384,9 @@ static MPP_RET h265e_proc_enc_skip(void *ctx, HalEncTask *task)
     new_length = h265e_code_slice_skip_frame(ctx, p->slice, ptr, len);
     task->length = new_length;
     task->rc_task->info.bit_real = 8 * new_length;
-    syntax->pre_ref_idx = syntax->sp.recon_pic.slot_idx;
+    p->dpb->curr->prev_ref_idx = syntax->sp.recon_pic.slot_idx;
     mpp_packet_add_segment_info(pkt, NAL_TRAIL_R, offset, new_length);
+    mpp_buffer_sync_partial_end(mpp_packet_get_buffer(pkt), offset, new_length);
 
     h265e_dbg_func("leave\n");
     return MPP_OK;

@@ -65,6 +65,8 @@ typedef struct  H264eDpbFrm_t {
 
     /* frame status */
     EncFrmStatus        status;
+    RK_S32              prev_ref_idx;
+    RK_S32              as_pskip_ref;
 
     /* frame number from H264eSlice */
     RK_S32              frame_num;

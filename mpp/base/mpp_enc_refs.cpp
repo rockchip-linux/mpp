@@ -906,10 +906,16 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         usr_cfg->force_flag &= ~ENC_FORCE_REF_MODE;
     }
 
-    if (usr_cfg->force_flag & ENC_FORCE_PSKIP) {
-        frm->force_pskip = 1;
+    if (usr_cfg->force_flag & ENC_FORCE_PSKIP_NON_REF) {
+        frm->is_non_ref = 1;
 
-        usr_cfg->force_flag &= ~ENC_FORCE_PSKIP;
+        usr_cfg->force_flag &= ~ENC_FORCE_PSKIP_NON_REF;
+    }
+
+    if (usr_cfg->force_flag & ENC_FORCE_PSKIP_IS_REF) {
+        frm->force_pskip_is_ref = 1;
+
+        usr_cfg->force_flag &= ~ENC_FORCE_PSKIP_IS_REF;
     }
 
     frm->non_recn = frm->is_non_ref || (p->igop == 1);

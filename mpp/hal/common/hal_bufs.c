@@ -225,7 +225,7 @@ HalBuf *hal_bufs_get_buf(HalBufs bufs, RK_S32 buf_idx)
     RK_S32 i;
 
     if (NULL == impl || buf_idx < 0 || buf_idx >= impl->max_cnt) {
-        mpp_err_f("invalid input impl %p buf_idx %d\n", impl, buf_idx);
+        mpp_err_f("invalid input impl %p buf_idx %d max_cnt %d\n", impl, buf_idx, impl->max_cnt);
         return NULL;
     }
 
