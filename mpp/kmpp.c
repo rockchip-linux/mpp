@@ -395,6 +395,9 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
                     mpp_packet_init(&pkt, ptr + venc_packet->offset, len);
                     mpp_packet_set_release(pkt, kmpp_release_venc_packet, ctx, venc_packet);
                 }
+                mpp_packet_set_dts(pkt, venc_packet->u64dts);
+                mpp_packet_set_pts(pkt, venc_packet->u64pts);
+                mpp_packet_set_flag(pkt, venc_packet->flag);
             }
             *packet = pkt;
         }
