@@ -97,6 +97,7 @@ MppTrie kmpp_objdef_get_trie(KmppObjDef def);
 
 /* import kernel object ref */
 rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def);
+rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppObjDef def, KmppShmPtr *sptr);
 rk_s32 kmpp_obj_put(KmppObj obj);
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
 
@@ -109,6 +110,8 @@ rk_s32 kmpp_obj_get_hnd_size(KmppObj obj);
  * entry = handle + entry_offset
  */
 void *kmpp_obj_get_entry(KmppObj obj);
+/* offset is the entry offset from kernel share object body */
+rk_s32 kmpp_obj_get_offset(KmppObj obj, const char *name);
 
 /* value access function */
 rk_s32 kmpp_obj_set_s32(KmppObj obj, const char *name, rk_s32 val);

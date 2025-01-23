@@ -17,6 +17,7 @@
 #define MODULE_TAG "mpp_meta"
 
 #include <string.h>
+#include <endian.h>
 
 #include "mpp_mem.h"
 #include "mpp_list.h"
@@ -34,85 +35,71 @@
 
 typedef enum MppMetaDataType_e {
     /* mpp meta data of normal data type */
-    TYPE_S32,
-    TYPE_S64,
-    TYPE_PTR,
-    TYPE_FRAME,
-    TYPE_PACKET,
-    TYPE_BUFFER,
-    TYPE_KPTR,
-    TYPE_BUTT,
+    TYPE_VAL_32 = '3',
+    TYPE_VAL_64 = '6',
+    TYPE_KPTR   = 'k',
+    TYPE_UPTR   = 'u',
+    TYPE_SPTR   = 's',
 } MppMetaType;
 
-#define META_KEY_TO_U64(key, type)      ((RK_U64)((RK_U32)key) | ((RK_U64)type << 32))
-
-static const char *meta_type_name[] = {
-    "TYPE_S32",
-    "TYPE_S64",
-    "TYPE_PTR",
-    "TYPE_FRAME",
-    "TYPE_PACKET",
-    "TYPE_BUFFER",
-    "TYPE_KPTR",
-    NULL,
-};
+#define META_KEY_TO_U64(key, type)      ((RK_U64)((RK_U32)htobe32(key)) | ((RK_U64)type << 32))
 
 static RK_U64 meta_defs[] = {
     /* categorized by type */
     /* data flow type */
-    META_KEY_TO_U64(KEY_INPUT_FRAME,        TYPE_FRAME),
-    META_KEY_TO_U64(KEY_OUTPUT_FRAME,       TYPE_FRAME),
-    META_KEY_TO_U64(KEY_INPUT_PACKET,       TYPE_PACKET),
-    META_KEY_TO_U64(KEY_OUTPUT_PACKET,      TYPE_PACKET),
+    META_KEY_TO_U64(KEY_INPUT_FRAME,        TYPE_SPTR),
+    META_KEY_TO_U64(KEY_OUTPUT_FRAME,       TYPE_SPTR),
+    META_KEY_TO_U64(KEY_INPUT_PACKET,       TYPE_SPTR),
+    META_KEY_TO_U64(KEY_OUTPUT_PACKET,      TYPE_SPTR),
     /* buffer for motion detection */
-    META_KEY_TO_U64(KEY_MOTION_INFO,        TYPE_BUFFER),
+    META_KEY_TO_U64(KEY_MOTION_INFO,        TYPE_SPTR),
     /* buffer storing the HDR information for current frame*/
-    META_KEY_TO_U64(KEY_HDR_INFO,           TYPE_BUFFER),
+    META_KEY_TO_U64(KEY_HDR_INFO,           TYPE_SPTR),
     /* the offset of HDR meta data in frame buffer */
-    META_KEY_TO_U64(KEY_HDR_META_OFFSET,    TYPE_S32),
-    META_KEY_TO_U64(KEY_HDR_META_SIZE,      TYPE_S32),
+    META_KEY_TO_U64(KEY_HDR_META_OFFSET,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_HDR_META_SIZE,      TYPE_VAL_32),
 
-    META_KEY_TO_U64(KEY_OUTPUT_INTRA,       TYPE_S32),
-    META_KEY_TO_U64(KEY_INPUT_BLOCK,        TYPE_S32),
-    META_KEY_TO_U64(KEY_OUTPUT_BLOCK,       TYPE_S32),
-    META_KEY_TO_U64(KEY_INPUT_IDR_REQ,      TYPE_S32),
+    META_KEY_TO_U64(KEY_OUTPUT_INTRA,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_INPUT_BLOCK,        TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_OUTPUT_BLOCK,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_INPUT_IDR_REQ,      TYPE_VAL_32),
 
     /* extra information for tsvc */
-    META_KEY_TO_U64(KEY_TEMPORAL_ID,        TYPE_S32),
-    META_KEY_TO_U64(KEY_LONG_REF_IDX,       TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_AVERAGE_QP,     TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_START_QP,       TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_BPS_RT,         TYPE_S32),
+    META_KEY_TO_U64(KEY_TEMPORAL_ID,        TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LONG_REF_IDX,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_AVERAGE_QP,     TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_START_QP,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_BPS_RT,         TYPE_VAL_32),
 
-    META_KEY_TO_U64(KEY_ROI_DATA,           TYPE_PTR),
-    META_KEY_TO_U64(KEY_ROI_DATA2,          TYPE_PTR),
-    META_KEY_TO_U64(KEY_OSD_DATA,           TYPE_PTR),
-    META_KEY_TO_U64(KEY_OSD_DATA2,          TYPE_PTR),
-    META_KEY_TO_U64(KEY_USER_DATA,          TYPE_PTR),
-    META_KEY_TO_U64(KEY_USER_DATAS,         TYPE_PTR),
-    META_KEY_TO_U64(KEY_QPMAP0,             TYPE_BUFFER),
-    META_KEY_TO_U64(KEY_MV_LIST,            TYPE_PTR),
+    META_KEY_TO_U64(KEY_ROI_DATA,           TYPE_UPTR),
+    META_KEY_TO_U64(KEY_ROI_DATA2,          TYPE_UPTR),
+    META_KEY_TO_U64(KEY_OSD_DATA,           TYPE_UPTR),
+    META_KEY_TO_U64(KEY_OSD_DATA2,          TYPE_UPTR),
+    META_KEY_TO_U64(KEY_USER_DATA,          TYPE_UPTR),
+    META_KEY_TO_U64(KEY_USER_DATAS,         TYPE_UPTR),
+    META_KEY_TO_U64(KEY_QPMAP0,             TYPE_SPTR),
+    META_KEY_TO_U64(KEY_MV_LIST,            TYPE_UPTR),
 
-    META_KEY_TO_U64(KEY_LVL64_INTER_NUM,    TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL32_INTER_NUM,    TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL16_INTER_NUM,    TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL8_INTER_NUM,     TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL32_INTRA_NUM,    TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL16_INTRA_NUM,    TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL8_INTRA_NUM,     TYPE_S32),
-    META_KEY_TO_U64(KEY_LVL4_INTRA_NUM,     TYPE_S32),
-    META_KEY_TO_U64(KEY_INPUT_PSKIP,        TYPE_S32),
-    META_KEY_TO_U64(KEY_OUTPUT_PSKIP,       TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_SSE,            TYPE_S64),
+    META_KEY_TO_U64(KEY_LVL64_INTER_NUM,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL32_INTER_NUM,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL16_INTER_NUM,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL8_INTER_NUM,     TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL32_INTRA_NUM,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL16_INTRA_NUM,    TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL8_INTRA_NUM,     TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_LVL4_INTRA_NUM,     TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_INPUT_PSKIP,        TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_OUTPUT_PSKIP,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_SSE,            TYPE_VAL_64),
 
-    META_KEY_TO_U64(KEY_ENC_MARK_LTR,       TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_USE_LTR,        TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_FRAME_QP,       TYPE_S32),
-    META_KEY_TO_U64(KEY_ENC_BASE_LAYER_PID, TYPE_S32),
+    META_KEY_TO_U64(KEY_ENC_MARK_LTR,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_USE_LTR,        TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_FRAME_QP,       TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_ENC_BASE_LAYER_PID, TYPE_VAL_32),
 
-    META_KEY_TO_U64(KEY_DEC_TBN_EN,         TYPE_S32),
-    META_KEY_TO_U64(KEY_DEC_TBN_Y_OFFSET,   TYPE_S32),
-    META_KEY_TO_U64(KEY_DEC_TBN_UV_OFFSET,  TYPE_S32),
+    META_KEY_TO_U64(KEY_DEC_TBN_EN,         TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_DEC_TBN_Y_OFFSET,   TYPE_VAL_32),
+    META_KEY_TO_U64(KEY_DEC_TBN_UV_OFFSET,  TYPE_VAL_32),
 };
 
 class MppMetaService
@@ -310,9 +297,9 @@ MPP_RET mpp_meta_dump(MppMeta meta)
             continue;
 
         const char *key = (const char *)&meta_defs[i];
-        const char *type = (const char *)&meta_type_name[(meta_defs[i] >> 32)];
 
-        mpp_log("key %c%c%c%c type %s\n", key[3], key[2], key[1], key[0], type);
+        mpp_log("key %c%c%c%c - %c\n", key[0], key[1], key[2], key[3],
+                (meta_defs[i] >> 32) & 0xff);
     }
 
     return MPP_OK;
@@ -377,9 +364,9 @@ MPP_RET mpp_meta_dump(MppMeta meta)
         return ret; \
     }
 
-MPP_META_ACCESSOR(s32, RK_S32, TYPE_S32, val_s32)
-MPP_META_ACCESSOR(s64, RK_S64, TYPE_S64, val_s64)
-MPP_META_ACCESSOR(ptr, void *, TYPE_PTR, val_ptr)
-MPP_META_ACCESSOR(frame, MppFrame, TYPE_FRAME, frame)
-MPP_META_ACCESSOR(packet, MppPacket, TYPE_PACKET, packet)
-MPP_META_ACCESSOR(buffer, MppBuffer, TYPE_BUFFER, buffer)
+MPP_META_ACCESSOR(s32, RK_S32, TYPE_VAL_32, val_s32)
+MPP_META_ACCESSOR(s64, RK_S64, TYPE_VAL_64, val_s64)
+MPP_META_ACCESSOR(ptr, void *, TYPE_UPTR, val_ptr)
+MPP_META_ACCESSOR(frame, MppFrame, TYPE_SPTR, frame)
+MPP_META_ACCESSOR(packet, MppPacket, TYPE_SPTR, packet)
+MPP_META_ACCESSOR(buffer, MppBuffer, TYPE_SPTR, buffer)
