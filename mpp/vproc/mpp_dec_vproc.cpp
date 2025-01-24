@@ -509,7 +509,7 @@ static MPP_RET dec_vproc_config_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm,
     params.param.com.sswap = IEP2_YUV_SWAP_SP_UV;
     params.param.com.dswap = IEP2_YUV_SWAP_SP_UV;
     params.param.com.width = img.act_w;
-    params.param.com.height = img.vir_h;
+    params.param.com.height = img.act_h;
     params.param.com.hor_stride = img.vir_w;//img.act_w;
     ops->control(ctx->iep_ctx, IEP_CMD_SET_DEI_CFG, &params);
 
