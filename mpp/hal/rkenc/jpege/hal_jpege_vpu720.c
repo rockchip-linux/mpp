@@ -381,6 +381,8 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     RK_U8 *qtbl_base = (RK_U8 *)mpp_buffer_get_ptr(ctx->qtbl_buffer);
     RK_S32 bitpos;
     RK_U32 i, j;
+    RK_U32 encode_width;
+    RK_U32 encode_height;
 
     hal_jpege_enter();
 
@@ -454,10 +456,12 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
 
     memcpy(&ctx->qtbl_sw_buf[64 * 2], &ctx->qtbl_sw_buf[64], sizeof(RK_U16) * 64);
 
-    reg_base->reg029_sw_enc_rsl.pic_wd8_m1 = MPP_ALIGN(syntax->width, 8) / 8 - 1;
-    reg_base->reg029_sw_enc_rsl.pic_hd8_m1 = MPP_ALIGN(syntax->height, 8) / 8 - 1;
-    reg_base->reg030_sw_src_fill.pic_wfill_jpeg = (syntax->width & 0x7) ? (8 - (syntax->width & 7)) : 0;
-    reg_base->reg030_sw_src_fill.pic_hfill_jpeg = (syntax->height & 0x7) ? (8 - (syntax->height & 7)) : 0;
+    encode_width = MPP_ALIGN(syntax->width, syntax->mcu_width);
+    encode_height = MPP_ALIGN(syntax->height, syntax->mcu_height);
+    reg_base->reg029_sw_enc_rsl.pic_wd8_m1 = encode_width / 8 - 1;
+    reg_base->reg029_sw_enc_rsl.pic_hd8_m1 = encode_height / 8 - 1;
+    reg_base->reg030_sw_src_fill.pic_wfill_jpeg = encode_width - syntax->width;
+    reg_base->reg030_sw_src_fill.pic_hfill_jpeg = encode_height - syntax->height;
 
     reg_base->reg032_sw_src_fmt.src_fmt = ctx->fmt_cfg.input_format;
     reg_base->reg032_sw_src_fmt.out_fmt = ctx->fmt_cfg.out_format;
