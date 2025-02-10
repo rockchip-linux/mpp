@@ -46,7 +46,7 @@ The hierarchical diagram of MPP platform in system architecture is shown below:
 
 -   Kernel driver layer
 
-Linux kernel codec hardware driver contains device driver and related MMU, memory, clock, power management module. The supported platforms are mainly Linux kernel version 3.10, 4.4, 4.19 and 5.10. MPP libraries depend on kernel drivers.
+Linux kernel codec hardware driver contains device driver and related MMU, memory, clock, power management module. The supported platforms are mainly Linux kernel version 3.10, 4.4, 4.19, 5.10 and 6.1. MPP libraries depend on kernel drivers.
 
 -   MPP layer
 
