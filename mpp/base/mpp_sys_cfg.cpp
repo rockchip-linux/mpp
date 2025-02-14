@@ -24,17 +24,19 @@
 #include "mpp_mem_pool.h"
 #include "mpp_compat_impl.h"
 
-#define MPP_SYS_CFG_DBG_FUNC            (0x00000001)
-#define MPP_SYS_CFG_DBG_INFO            (0x00000002)
-#define MPP_SYS_CFG_DBG_SET             (0x00000004)
-#define MPP_SYS_CFG_DBG_GET             (0x00000008)
+#define SYS_CFG_DBG_FUNC                (0x00000001)
+#define SYS_CFG_DBG_INFO                (0x00000002)
+#define SYS_CFG_DBG_SET                 (0x00000004)
+#define SYS_CFG_DBG_GET                 (0x00000008)
+#define SYS_CFG_DBG_DEC_BUF             (0x00000010)
 
-#define mpp_sys_cfg_dbg(flag, fmt, ...) _mpp_dbg_f(mpp_sys_cfg_debug, flag, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg(flag, fmt, ...)     _mpp_dbg_f(mpp_sys_cfg_debug, flag, fmt, ## __VA_ARGS__)
 
-#define mpp_sys_cfg_dbg_func(fmt, ...)  mpp_sys_cfg_dbg(MPP_SYS_CFG_DBG_FUNC, fmt, ## __VA_ARGS__)
-#define mpp_sys_cfg_dbg_info(fmt, ...)  mpp_sys_cfg_dbg(MPP_SYS_CFG_DBG_INFO, fmt, ## __VA_ARGS__)
-#define mpp_sys_cfg_dbg_set(fmt, ...)   mpp_sys_cfg_dbg(MPP_SYS_CFG_DBG_SET, fmt, ## __VA_ARGS__)
-#define mpp_sys_cfg_dbg_get(fmt, ...)   mpp_sys_cfg_dbg(MPP_SYS_CFG_DBG_GET, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg_func(fmt, ...)      sys_cfg_dbg(SYS_CFG_DBG_FUNC, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg_info(fmt, ...)      sys_cfg_dbg(SYS_CFG_DBG_INFO, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg_set(fmt, ...)       sys_cfg_dbg(SYS_CFG_DBG_SET, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg_get(fmt, ...)       sys_cfg_dbg(SYS_CFG_DBG_GET, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg_dec_buf(fmt, ...)   sys_cfg_dbg(SYS_CFG_DBG_DEC_BUF, fmt, ## __VA_ARGS__)
 
 #define SYS_CFG_CNT 3
 
@@ -128,7 +130,7 @@ MppSysCfgService::MppSysCfgService() :
     mHead.info_count = mpp_trie_get_info_count(mTrie);
     mHead.info_size = mpp_trie_get_buf_size(mTrie);
 
-    mpp_sys_cfg_dbg_func("node cnt: %d\n", mHead.node_count);
+    sys_cfg_dbg_func("node cnt: %d\n", mHead.node_count);
 }
 
 MppSysCfgService::~MppSysCfgService()
@@ -199,6 +201,7 @@ typedef enum SysCfgAlignType_e {
     SYS_CFG_ALIGN_256,
     SYS_CFG_ALIGN_256_ODD,
     SYS_CFG_ALIGN_128_ODD_PLUS_64,
+    SYS_CFG_ALIGN_LEN_DEFAULT,
     SYS_CFG_ALIGN_LEN_420,
     SYS_CFG_ALIGN_LEN_422,
     SYS_CFG_ALIGN_LEN_444,
@@ -225,6 +228,7 @@ static RK_U32 mpp_sys_cfg_align(SysCfgAlignType type, RK_U32 val)
         else
             return ((MPP_ALIGN(val, 128) | 128) + 64);
     };
+    case SYS_CFG_ALIGN_LEN_DEFAULT: { return (9 * MPP_ALIGN(val, 16) / 5);};
     case SYS_CFG_ALIGN_LEN_420:
     case SYS_CFG_ALIGN_LEN_422: { return (2 * MPP_ALIGN(val, 16));};
     case SYS_CFG_ALIGN_LEN_444: { return (3 * MPP_ALIGN(val, 16));};
@@ -287,6 +291,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     RK_U32 aligned_byte = 0;
     RK_U32 aligned_height = 0;
     RK_U32 size_total = 0;
+    RK_U32 size_total_old = 0;
     RK_U32 depth = MPP_FRAME_FMT_IS_YUV_10BIT(fmt) ? 10 : 8;
 
     if (type == MPP_VIDEO_CodingUnused) {
@@ -388,15 +393,15 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_VIDEO_CodingHEVC :
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 128);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 128);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
         default : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
         }
 
@@ -421,19 +426,54 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         } break;
         }
 
-        if (aligned_byte > 1920 && type != MPP_VIDEO_CodingMJPEG) {
+        /*
+         * NOTE: rk3576 use 128 odd plus 64 for all non jpeg format
+         * all the other socs use 256 odd on larger than 1080p
+         */
+        if ((aligned_byte > 1920 || soc_type == ROCKCHIP_SOC_RK3576) && type != MPP_VIDEO_CodingMJPEG) {
+            rk_s32 update = 0;
+
             switch (soc_type) {
             case ROCKCHIP_SOC_RK3568 :
             case ROCKCHIP_SOC_RK3562 :
             case ROCKCHIP_SOC_RK3528 :
             case ROCKCHIP_SOC_RK3588 : {
                 aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_256_ODD, aligned_byte);
+                update = 1;
             } break;
             case ROCKCHIP_SOC_RK3576 : {
                 aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_128_ODD_PLUS_64, aligned_byte);
+                update = 1;
             } break;
             default : {
             } break;
+            }
+
+            /*
+             * recalc aligned_pixel here
+             * NOTE: no RGB format here in fact
+             */
+            if (update) {
+                switch (fmt & MPP_FRAME_FMT_MASK) {
+                case MPP_FMT_YUV420SP_10BIT:
+                case MPP_FMT_YUV422SP_10BIT:
+                case MPP_FMT_YUV444SP_10BIT: {
+                    aligned_pixel = aligned_byte * 8 / 10;
+                } break;
+                case MPP_FMT_YUV422_YVYU:
+                case MPP_FMT_YUV422_YUYV:
+                case MPP_FMT_RGB565:
+                case MPP_FMT_BGR565: {
+                    aligned_pixel = aligned_byte / 2;
+                } break;
+                case MPP_FMT_RGB888:
+                case MPP_FMT_BGR888: {
+                    aligned_pixel = aligned_byte / 3;
+                } break;
+                default : {
+                    aligned_pixel = aligned_byte;
+                } break;
+                }
             }
         }
 
@@ -442,15 +482,27 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         cfg->v_stride = aligned_height;
 
         size_total = aligned_byte * aligned_height;
+        size_total_old = size_total;
+        sys_cfg_dbg_dec_buf("aligned_byte %d\n", aligned_byte);
+        sys_cfg_dbg_dec_buf("aligned_pixel %d\n", aligned_pixel);
+        sys_cfg_dbg_dec_buf("aligned_height %d\n", aligned_height);
+        sys_cfg_dbg_dec_buf("size_total %d\n", size_total);
+        sys_cfg_dbg_dec_buf("fmt_raw %x\n", fmt_raw);
+
         switch (fmt_raw) {
         case MPP_FMT_YUV420SP :
         case MPP_FMT_YUV420SP_10BIT :
         case MPP_FMT_YUV420P :
         case MPP_FMT_YUV420SP_VU : {
+            SysCfgAlignType align_type = SYS_CFG_ALIGN_LEN_DEFAULT;
+
+            /* hevc and vp9 - SYS_CFG_ALIGN_LEN_DEFAULT */
             if (type == MPP_VIDEO_CodingAV1)
-                size_total = mpp_sys_cfg_align(SYS_CFG_ALIGN_LEN_420_AV1, size_total);
-            else
-                size_total = mpp_sys_cfg_align(SYS_CFG_ALIGN_LEN_420, size_total);
+                align_type = SYS_CFG_ALIGN_LEN_420_AV1;
+            else if (type == MPP_VIDEO_CodingAVC)
+                align_type = SYS_CFG_ALIGN_LEN_420;
+
+            size_total = mpp_sys_cfg_align(align_type, size_total);
         } break;
         case MPP_FMT_YUV422SP :
         case MPP_FMT_YUV422SP_10BIT :
@@ -462,12 +514,16 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_FMT_YUV422_VYUY :
         case MPP_FMT_YUV440SP :
         case MPP_FMT_YUV411SP : {
+            SysCfgAlignType align_type;
+
             if (type == MPP_VIDEO_CodingAVC)
-                size_total = mpp_sys_cfg_align(SYS_CFG_ALIGN_LEN_422_AVC, size_total);
+                align_type = SYS_CFG_ALIGN_LEN_422_AVC;
             else if (type == MPP_VIDEO_CodingAV1)
-                size_total = mpp_sys_cfg_align(SYS_CFG_ALIGN_LEN_422_AV1, size_total);
+                align_type = SYS_CFG_ALIGN_LEN_422_AV1;
             else
-                size_total = mpp_sys_cfg_align(SYS_CFG_ALIGN_LEN_422, size_total);
+                align_type = SYS_CFG_ALIGN_LEN_422;
+
+            size_total = mpp_sys_cfg_align(align_type, size_total);
         } break;
         case MPP_FMT_YUV400 : {
             /* do nothing */
@@ -481,6 +537,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             size_total = size_total * 3 / 2;
         }
         }
+        sys_cfg_dbg_dec_buf("size total %d -> %d\n", size_total_old, size_total);
 
         cfg->size_total = size_total;
     }
@@ -522,7 +579,7 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
             mpp_log_f("can not set readonly cfg %s\n", mpp_trie_info_name(node)); \
             return MPP_NOK; \
         } \
-        mpp_sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
+        sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
                             strof_cfg_type(info->data_type)); \
         MPP_RET ret = MPP_CFG_SET_##cfg_type(info, p, val); \
         return ret; \
@@ -548,7 +605,7 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, St);
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        mpp_sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
+        sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
                             strof_cfg_type(info->data_type)); \
         MPP_RET ret = MPP_CFG_GET_##cfg_type(info, p, val); \
         return ret; \
