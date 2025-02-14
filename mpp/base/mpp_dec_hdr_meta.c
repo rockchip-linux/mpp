@@ -125,6 +125,7 @@ void fill_hdr_meta_to_frame(MppFrame frame, MppCodingType in_type)
          *  avs trc = 12
          */
         switch (codec_type) {
+        case HDR_AV1 :
         case HDR_HEVC :
         case HDR_H264 : {
             if (static_meta->color_trc == MPP_FRAME_TRC_ARIB_STD_B67)
