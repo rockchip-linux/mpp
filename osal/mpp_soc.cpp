@@ -60,12 +60,14 @@
 #define CAP_CODING_VDPU381      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
 #define CAP_CODING_VDPU382      (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
 #define CAP_CODING_VDPU383      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
+#define CAP_CODING_VDPU384A     (HAVE_AVC|HAVE_HEVC)
 
 #define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
 #define CAP_CODING_VEPU22       (HAVE_HEVC)
 #define CAP_CODING_VEPU54X      (HAVE_AVC|HAVE_HEVC)
 #define CAP_CODING_VEPU540C     (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
+#define CAP_CODING_VEPU511      (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
 
 static const MppDecHwCap vdpu1 = {
     .cap_coding         = CAP_CODING_VDPU,
@@ -428,6 +430,24 @@ static const MppDecHwCap vdpu383 = {
     .reserved           = 0,
 };
 
+static const MppDecHwCap vdpu384a = {
+    .cap_coding         = CAP_CODING_VDPU384A,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_compress = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 0,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
 static const MppDecHwCap avspd = {
     .cap_coding         = CAP_CODING_AVSPD,
     .type               = VPU_CLIENT_AVSPLUS_DEC,
@@ -638,6 +658,17 @@ static const MppEncHwCap vepu510 = {
     .reserved           = 0,
 };
 
+static const MppEncHwCap vepu511 = {
+    .cap_coding         = CAP_CODING_VEPU511,
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 0,
+    .cap_hw_osd         = 1,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
 static const MppEncHwCap rkjpege_vpu720 = {
     .cap_coding         = HAVE_MJPEG,
     .type               = VPU_CLIENT_JPEG_ENC,
@@ -704,6 +735,17 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
+         * rk3128 has
+         * 1 - vpu1
+         * 2 - RK hevc 1080p decoder
+         */
+        "rk3128",
+        ROCKCHIP_SOC_RK312X,
+        HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
+        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
+        {   &vepu1, NULL, NULL, NULL, },
+    },
+    {   /*
          * rk3128h has
          * 1 - vpu2
          * 2 - RK H.264/H.265 1080p@60fps decoder
@@ -714,17 +756,6 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
         {   &vdpu341_lite_1080p, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu2_no_jpeg, NULL, NULL, NULL, },
-    },
-    {   /*
-         * rk3128 has
-         * 1 - vpu1
-         * 2 - RK hevc 1080p decoder
-         */
-        "rk3128",
-        ROCKCHIP_SOC_RK312X,
-        HAVE_VDPU1 | HAVE_VDPU1_PP | HAVE_VEPU1 | HAVE_HEVC_DEC,
-        {   &rk_hevc_1080p, &vdpu1, &vdpu1_jpeg_pp, NULL, NULL, NULL, },
-        {   &vepu1, NULL, NULL, NULL, },
     },
     {   /*
          * rk3368 has
@@ -749,20 +780,6 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu2, NULL, NULL, NULL, },
     },
     {   /*
-         * rk3228h has
-         * 1 - vpu2
-         * 2 - RK H.264/H.265 4K decoder
-         * 3 - avs+ decoder
-         * 4 - H.265 1080p encoder
-         * rk3228h first for string matching
-         */
-        "rk3228h",
-        ROCKCHIP_SOC_RK3228H,
-        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_VEPU22,
-        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avspd, NULL, NULL, },
-        {   &vepu2_no_jpeg, &vepu22, NULL, NULL, },
-    },
-    {   /*
          * rk3328 has codec:
          * 1 - vpu2
          * 2 - RK H.264/H.265/VP9 4K decoder
@@ -785,6 +802,20 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC,
         {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, NULL, NULL, NULL, },
         {   &vepu2_no_jpeg, NULL, NULL, NULL, },
+    },
+    {   /*
+         * rk3228h has
+         * 1 - vpu2
+         * 2 - RK H.264/H.265 4K decoder
+         * 3 - avs+ decoder
+         * 4 - H.265 1080p encoder
+         * rk3228h first for string matching
+         */
+        "rk3228h",
+        ROCKCHIP_SOC_RK3228H,
+        HAVE_VDPU2 | HAVE_VDPU2_PP | HAVE_VEPU2 | HAVE_RKVDEC | HAVE_AVSDEC | HAVE_VEPU22,
+        {   &vdpu341_lite, &vdpu2, &vdpu2_jpeg_pp, &avspd, NULL, NULL, },
+        {   &vepu2_no_jpeg, &vepu22, NULL, NULL, },
     },
     {   /*
          * rk3229 has
@@ -918,19 +949,6 @@ static const MppSocInfo mpp_soc_infos[] = {
         {   &vepu58x, &vepu2, &vepu2_jpeg_enhanced, NULL, },
     },
     {   /*
-         * rk3528a has codec:
-         * 1 - vpu2 for jpeg/vp8 decoder
-         * 2 - RK H.264/H.265/VP9 4K decoder
-         * 3 - RK H.264/H.265 1080P encoder
-         * 4 - RK jpeg decoder
-         */
-        "rk3528a",
-        ROCKCHIP_SOC_RK3528,
-        HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC | HAVE_AVSDEC,
-        {   &vdpu382a, &rkjpegd, &vdpu2, &avspd, NULL, NULL, },
-        {   &vepu540c, NULL, NULL, NULL, },
-    },
-    {   /*
          * rk3528 has codec:
          * 1 - vpu2 for jpeg/vp8 decoder
          * 2 - RK H.264/H.265 4K decoder
@@ -941,6 +959,19 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3528,
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC | HAVE_AVSDEC,
         {   &vdpu382, &rkjpegd, &vdpu2, &avspd, NULL, NULL, },
+        {   &vepu540c, NULL, NULL, NULL, },
+    },
+    {   /*
+        * rk3528a has codec:
+         * 1 - vpu2 for jpeg/vp8 decoder
+         * 2 - RK H.264/H.265/VP9 4K decoder
+         * 3 - RK H.264/H.265 1080P encoder
+         * 4 - RK jpeg decoder
+         */
+        "rk3528a",
+        ROCKCHIP_SOC_RK3528,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_VDPU2 | HAVE_JPEG_DEC | HAVE_AVSDEC,
+        {   &vdpu382a, &rkjpegd, &vdpu2, &avspd, NULL, NULL, },
         {   &vepu540c, NULL, NULL, NULL, },
     },
     {   /*
@@ -966,6 +997,18 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_JPEG_ENC,
         {   &vdpu383, &rkjpegd, NULL, NULL, NULL, NULL},
         {   &vepu510, &rkjpege_vpu720, NULL, NULL},
+    },
+    {   /*
+         * rv1126b has codec:
+         * 1 - RK H.264/H.265 4K decoder
+         * 2 - RK H.264/H.265/jpeg 4K encoder
+         * 3 - RK jpeg decoder
+         */
+        "rv1126b",
+        ROCKCHIP_SOC_RV1126B,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
+        {   &vdpu384a, &rkjpegd, NULL, NULL, NULL, NULL},
+        {   &vepu511, NULL, NULL, NULL},
     },
 };
 
@@ -1009,9 +1052,9 @@ static void read_soc_name(char *name, RK_S32 size)
 
 static const MppSocInfo *check_soc_info(const char *soc_name)
 {
-    RK_U32 i;
+    RK_S32 i;
 
-    for (i = 0; i < MPP_ARRAY_ELEMS(mpp_soc_infos); i++) {
+    for (i = MPP_ARRAY_ELEMS(mpp_soc_infos) - 1; i >= 0; i--) {
         const char *compatible = mpp_soc_infos[i].compatible;
 
         if (strstr(soc_name, compatible)) {
