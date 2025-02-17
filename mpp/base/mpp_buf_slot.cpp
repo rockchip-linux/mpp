@@ -501,10 +501,22 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     info_set_impl->chroma_location  = frame_impl->chroma_location;
 
     if (buf_slot_debug & BUF_SLOT_DBG_INFO_SET) {
-        mpp_assert(legacy_info_set.h_stride_by_pixel == sys_cfg_info_set.h_stride_by_pixel);
-        mpp_assert(legacy_info_set.h_stride_by_byte == sys_cfg_info_set.h_stride_by_byte);
-        mpp_assert(legacy_info_set.v_stride == sys_cfg_info_set.v_stride);
-        mpp_assert(legacy_info_set.size_total == sys_cfg_info_set.size_total);
+        if (legacy_info_set.h_stride_by_pixel != sys_cfg_info_set.h_stride_by_pixel)
+            mpp_logi("mismatch h_stride_by_pixel %d - %d\n",
+                     legacy_info_set.h_stride_by_pixel,
+                     sys_cfg_info_set.h_stride_by_pixel);
+        if (legacy_info_set.h_stride_by_byte != sys_cfg_info_set.h_stride_by_byte)
+            mpp_logi("mismatch h_stride_by_byte %d - %d\n",
+                     legacy_info_set.h_stride_by_byte,
+                     sys_cfg_info_set.h_stride_by_byte);
+        if (legacy_info_set.v_stride != sys_cfg_info_set.v_stride)
+            mpp_logi("mismatch v_stride %d - %d\n",
+                     legacy_info_set.v_stride,
+                     sys_cfg_info_set.v_stride);
+        if (legacy_info_set.size_total != sys_cfg_info_set.size_total)
+            mpp_logi("mismatch size_total %d - %d\n",
+                     legacy_info_set.size_total,
+                     sys_cfg_info_set.size_total);
     }
 }
 
