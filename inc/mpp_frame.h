@@ -260,6 +260,8 @@ typedef enum {
     MPP_FMT_YUV444SP        = (MPP_FRAME_FMT_YUV + 15), /* YYYY... UVUVUVUV...      */
     MPP_FMT_YUV444P         = (MPP_FRAME_FMT_YUV + 16), /* YYYY... UUUU... VVVV...  */
     MPP_FMT_YUV444SP_10BIT  = (MPP_FRAME_FMT_YUV + 17),
+    MPP_FMT_AYUV2BPP        = (MPP_FRAME_FMT_YUV + 18), /* YYYY... UVUVUVUV...      */
+    MPP_FMT_AYUV1BPP        = (MPP_FRAME_FMT_YUV + 19),
     MPP_FMT_YUV_BUTT,
 
     MPP_FMT_RGB565          = (MPP_FRAME_FMT_RGB + 0),  /* 16-bit RGB               */
@@ -276,6 +278,8 @@ typedef enum {
     MPP_FMT_ABGR8888        = (MPP_FRAME_FMT_RGB + 11), /* 32-bit RGB               */
     MPP_FMT_BGRA8888        = (MPP_FRAME_FMT_RGB + 12), /* 32-bit RGB               */
     MPP_FMT_RGBA8888        = (MPP_FRAME_FMT_RGB + 13), /* 32-bit RGB               */
+    MPP_FMT_ARGB4444        = (MPP_FRAME_FMT_RGB + 14), /* 16-bit RGB               */
+    MPP_FMT_ARGB1555        = (MPP_FRAME_FMT_RGB + 15), /* 2-bit RGB                */
     MPP_FMT_RGB_BUTT,
 
     MPP_FMT_BUTT,
