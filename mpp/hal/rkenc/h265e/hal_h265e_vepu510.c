@@ -2531,6 +2531,8 @@ MPP_RET hal_h265e_v510_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
     }
 
+    task->part_first = 1;
+    task->part_last = 0;
     task->flags.reg_idx = ctx->task_idx;
     ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
     frm_cfg->frame_count = ctx->frame_count++;
