@@ -246,7 +246,8 @@ RK_U32 mpp_frame_get_fbc_offset(MppFrame frame)
         if (fbc_version == MPP_FRAME_FBC_AFBC_V1) {
             fbc_offset = MPP_ALIGN(MPP_ALIGN(p->width, 16) *
                                    MPP_ALIGN(p->height, 16) / 16, SZ_4K);
-        } else if (fbc_version == MPP_FRAME_FBC_AFBC_V2) {
+        } else if (fbc_version == MPP_FRAME_FBC_AFBC_V2 ||
+                   fbc_version == MPP_FRAME_FBC_RKFBC) {
             fbc_offset = 0;
         }
         p->fbc_offset = fbc_offset;

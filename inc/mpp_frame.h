@@ -214,6 +214,14 @@ typedef enum {
  */
 #define MPP_FRAME_FBC_AFBC_V2       (0x00200000)
 
+/*
+* RKFBC is for video decoder output and video encoder Input.
+* It has default header stride to be calculated * from width and height:
+* Header stride = MPP_ALIGN(width, 64) / 64 * 16
+* Payload offset is always set to zero.
+*/
+#define MPP_FRAME_FBC_RKFBC         (0x00400000)
+
 #define MPP_FRAME_FMT_LE_MASK       (0x01000000)
 
 #define MPP_FRAME_FMT_IS_YUV(fmt)   (((fmt & MPP_FRAME_FMT_COLOR_MASK) == MPP_FRAME_FMT_YUV) && \
@@ -228,6 +236,7 @@ typedef enum {
  * For MPP_FRAME_FBC_AFBC_V1 the 16byte aligned stride is used.
  */
 #define MPP_FRAME_FMT_IS_FBC(fmt)   (fmt & MPP_FRAME_FBC_MASK)
+#define MPP_FRAME_FMT_IS_RKFBC(fmt) (fmt & MPP_FRAME_FBC_RKFBC)
 
 #define MPP_FRAME_FMT_IS_HDR(fmt)   (fmt & MPP_FRAME_HDR_MASK)
 
