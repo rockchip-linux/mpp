@@ -227,6 +227,8 @@ struct MppBufSlotsImpl_t {
     size_t              buf_size;
     RK_S32              buf_count;
     RK_S32              used_count;
+    RK_U32              align_chk_log_env;
+    RK_U32              align_chk_log_en;
     // buffer size equal to (h_stride * v_stride) * numerator / denominator
     // internal parameter
     RK_U32              numerator;
@@ -500,8 +502,8 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     info_set_impl->colorspace       = frame_impl->colorspace;
     info_set_impl->chroma_location  = frame_impl->chroma_location;
 
-    if (buf_slot_debug & BUF_SLOT_DBG_INFO_SET) {
-        buf_slot_debug = buf_slot_debug & ~BUF_SLOT_DBG_INFO_SET;
+    if (impl->align_chk_log_en) {
+        impl->align_chk_log_en = 0;
         if (legacy_info_set.h_stride_by_pixel != sys_cfg_info_set.h_stride_by_pixel)
             mpp_logi("mismatch h_stride_by_pixel %d - %d\n",
                      legacy_info_set.h_stride_by_pixel,
@@ -865,6 +867,8 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         impl->denominator   = 5;
         impl->slots_idx     = buf_slot_idx++;
         impl->info_change_slot_idx = -1;
+        impl->align_chk_log_env = (buf_slot_debug & BUF_SLOT_DBG_INFO_SET) ? 1 : 0;
+        impl->align_chk_log_en = impl->align_chk_log_env;
 
         *slots = impl;
         return MPP_OK;
@@ -1170,6 +1174,8 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
             impl->info_changed = 1;
             impl->info_change_slot_idx = index;
+
+            impl->align_chk_log_en = impl->align_chk_log_env;
 
             if (old->width || old->height) {
                 mpp_dbg_info("info change found\n");
