@@ -42,7 +42,10 @@ typedef enum MppMetaDataType_e {
     TYPE_SPTR   = 's',
 } MppMetaType;
 
-#define META_KEY_TO_U64(key, type)      ((RK_U64)((RK_U32)htobe32(key)) | ((RK_U64)type << 32))
+static inline RK_U64 META_KEY_TO_U64(RK_U32 key, RK_U32 type)
+{
+    return (RK_U64)((RK_U32)htobe32(key)) | ((RK_U64)type << 32);
+}
 
 static RK_U64 meta_defs[] = {
     /* categorized by type */
