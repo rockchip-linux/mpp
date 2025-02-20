@@ -390,10 +390,16 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         RockchipSocType soc_type = mpp_get_soc_type();
 
         switch (type) {
-        case MPP_VIDEO_CodingHEVC :
-        case MPP_VIDEO_CodingVP9 : {
+        case MPP_VIDEO_CodingHEVC : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
             aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+        } break;
+        case MPP_VIDEO_CodingVP9 : {
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
+            if (soc_type == ROCKCHIP_SOC_RK3399 || soc_type == ROCKCHIP_SOC_RK3588)
+                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            else
+                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 128);
