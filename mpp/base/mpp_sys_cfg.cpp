@@ -440,6 +440,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             rk_s32 update = 0;
 
             switch (soc_type) {
+            case ROCKCHIP_SOC_RK3399 :
             case ROCKCHIP_SOC_RK3568 :
             case ROCKCHIP_SOC_RK3562 :
             case ROCKCHIP_SOC_RK3528 :
