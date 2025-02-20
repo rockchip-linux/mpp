@@ -280,7 +280,7 @@ MppApi结构体封装了MPP的对外API接口，用户通过使用MppApi结构�
 | dequeue           | 函数指针 | MPP_RET (\*dequeue)(MppCtx ctx, MppPortType type, MppTask \*task) <br/>端口出队列接口，用于从端口中取出MppTask结构。 <br/>ctx ：MPP实例上下文。 <br/>type ：端口类型，分为输入端口与输出端口。 <br/>task ：MppTask。 <br/>返回值 ：0为正常，有数据可取出，非零为错误码。 |
 | enqueue           | 函数指针 | MPP_RET (\*enqueue)(MppCtx ctx, MppPortType type, MppTask task) <br/>端口入队列接口，用于往端口送入MppTask结构。 <br/>ctx ：MPP实例上下文。 <br/>type ：端口类型，分为输入端口与输出端口。 <br/>task ：MppTask。 <br/>返回值 ：0为正常，有数据可取出，非零为错误码。 |
 | reset             | 函数指针 | MPP_RET (\*reset)(MppCtx ctx) <br/>复位接口，用于对MppCtx的内部状态进行复位，回到可用的初始化状态。需要注意的是，reset接口是阻塞的同步接口。 <br/>ctx ：MPP实例上下文。 <br/>返回值 ：0为正常，有数据可取出，非零为错误码。 |
-| control           | 函数指针 | MPP_RET (\*control)(MppCtx ctx, MpiCmd cmd, MppParam param) <br/>控制接口，用于向MPP实例进行额外控制操作的接口。 <br/>ctx ：MPP实例上下文。 <br/>cmd ：Mpi命令类型，表示控制命令的不同类型的。 <br/>task ：Mpi命令参数，表示控制控制命令的附加参数。 <br/>返回值 ：0为正常，有数据可取出，非零为错误码。 |
+| control           | 函数指针 | MPP_RET (\*control)(MppCtx ctx, MpiCmd cmd, MppParam param) <br/>控制接口，用于向MPP实例进行额外控制操作的接口。 <br/>ctx ：MPP实例上下文。 <br/>cmd ：Mpi命令类型，表示控制命令的不同类型的。 <br/>param ：Mpi命令参数，表示控制控制命令的附加参数。 <br/>返回值 ：0为正常，有数据可取出，非零为错误码。 |
 
 # 第三章 MPI接口使用说明
 
