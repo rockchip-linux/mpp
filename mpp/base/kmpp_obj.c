@@ -244,7 +244,7 @@ void kmpp_objs_init(void)
 
     fd = open(dev, O_RDWR);
     if (fd < 0) {
-        mpp_loge_f("%s open failed ret fd %d\n", dev, fd);
+        kmpp_obj_dbg_flow("%s open failed ret fd %d\n", dev, fd);
         goto __failed;
     }
 
