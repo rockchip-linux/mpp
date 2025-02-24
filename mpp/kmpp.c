@@ -32,6 +32,10 @@
 #include "mpp_vcodec_client.h"
 #include "mpp_enc_cfg_impl.h"
 
+#define MPP_PACKET_FLAG_INTRA           (0x00000010)
+#define MPP_PACKET_FLAG_PARTITION       (0x00000020)
+#define MPP_PACKET_FLAG_EOI             (0x00000040)
+
 typedef struct KmppFrameInfos_t {
     RK_U32  width;
     RK_U32  height;
@@ -398,6 +402,11 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
                 mpp_packet_set_dts(pkt, venc_packet->u64dts);
                 mpp_packet_set_pts(pkt, venc_packet->u64pts);
                 mpp_packet_set_flag(pkt, venc_packet->flag);
+                if (venc_packet->flag & MPP_PACKET_FLAG_INTRA) {
+                    MppMeta meta = mpp_packet_get_meta(pkt);
+
+                    mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, 1);
+                }
             }
             *packet = pkt;
         }
