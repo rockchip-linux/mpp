@@ -254,7 +254,7 @@ void kmpp_objs_init(void)
         goto __failed;
     }
 
-    root = (void *)ioc;
+    root = (void *)(intptr_t)ioc;
     kmpp_obj_dbg_trie("query fd %d root %p from kernel\n", fd, root);
 
     ret = mpp_trie_init_by_root(&trie, root);
@@ -509,7 +509,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def)
 
     ioc->count = 1;
     ioc->flag = 0;
-    ioc->name_uaddr[0] = (__u64)def_impl->name;
+    ioc->name_uaddr[0] = (__u64)(intptr_t)def_impl->name;
 
     ret = ioctl(def_impl->fd, KMPP_SHM_IOC_GET_SHM, ioc);
     if (ret) {
@@ -527,7 +527,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def)
     impl->entry = U64_TO_PTR(ioc->kobj_uaddr[0] + def_impl->entry_offset);
 
     /* write userspace object address to share memory userspace private value */
-    *(RK_U64 *)U64_TO_PTR(ioc->kobj_uaddr[0] + def_impl->priv_offset) = (RK_U64)impl;
+    *(RK_U64 *)U64_TO_PTR(ioc->kobj_uaddr[0] + def_impl->priv_offset) = (RK_U64)(intptr_t)impl;
 
     *obj = impl;
 
@@ -561,7 +561,7 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppObjDef def, KmppShmPtr *sptr)
     impl->entry = sptr->uptr + def_impl->entry_offset;
 
     /* write userspace object address to share memory userspace private value */
-    *(RK_U64 *)U64_TO_PTR(sptr->uaddr + def_impl->priv_offset) = (RK_U64)impl;
+    *(RK_U64 *)U64_TO_PTR(sptr->uaddr + def_impl->priv_offset) = (RK_U64)(intptr_t)impl;
 
     *obj = impl;
 
@@ -580,7 +580,7 @@ rk_s32 kmpp_obj_put(KmppObj obj)
 
             ioc->count = 1;
             ioc->flag = 0;
-            ioc->kobj_uaddr[0] = (__u64)impl->shm;
+            ioc->kobj_uaddr[0] = (__u64)(intptr_t)impl->shm;
 
             ret = ioctl(def->fd, KMPP_SHM_IOC_PUT_SHM, ioc);
             if (ret)
