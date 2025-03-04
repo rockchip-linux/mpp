@@ -127,8 +127,8 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
         }
     }
 
-    hnd = kmpp_obj_get_hnd(ctx->mVencInitKcfg);
-    size = kmpp_obj_get_hnd_size(ctx->mVencInitKcfg);
+    hnd = kmpp_obj_to_shm(ctx->mVencInitKcfg);
+    size = kmpp_obj_to_shm_size(ctx->mVencInitKcfg);
     kmpp_obj_get_u32(ctx->mVencInitKcfg, "chan_dup", &ctx->mChanDup);
 
     ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_CREATE, 0, size, hnd);
@@ -516,8 +516,8 @@ static MPP_RET control(Kmpp *ctx, MpiCmd cmd, MppParam param)
     case MPP_SET_VENC_INIT_KCFG: {
         KmppObj obj = param;
 
-        arg = kmpp_obj_get_hnd(obj);
-        size = kmpp_obj_get_hnd_size(obj);
+        arg = kmpp_obj_to_shm(obj);
+        size = kmpp_obj_to_shm_size(obj);
     } break;
     case MPP_SET_SELECT_TIMEOUT: {
         struct timeval *p = (struct timeval *)param;

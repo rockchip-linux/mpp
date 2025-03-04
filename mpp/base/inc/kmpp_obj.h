@@ -97,17 +97,20 @@ MppTrie kmpp_objdef_get_trie(KmppObjDef def);
 
 /* import kernel object ref */
 rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def);
-rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppObjDef def, KmppShmPtr *sptr);
+rk_s32 kmpp_obj_get_by_name(KmppObj *obj, const char *name);
+rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr);
 rk_s32 kmpp_obj_put(KmppObj obj);
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
+rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out);
 
-/* handle is the kernel share object userspace base address for kernel ioctl */
-void *kmpp_obj_get_hnd(KmppObj obj);
-/* handle size defined the copy size for kernel ioctl */
-rk_s32 kmpp_obj_get_hnd_size(KmppObj obj);
+/* KmppShmPtr is the kernel share object userspace base address for kernel ioctl */
+KmppShmPtr *kmpp_obj_to_shm(KmppObj obj);
+/* KmppShmPtr size defined the copy size for kernel ioctl */
+rk_s32 kmpp_obj_to_shm_size(KmppObj obj);
+const char *kmpp_obj_get_name(KmppObj obj);
 /*
  * entry is the userspace address for kernel share object body
- * entry = handle + entry_offset
+ * entry = KmppShmPtr->uaddr + entry_offset
  */
 void *kmpp_obj_get_entry(KmppObj obj);
 /* offset is the entry offset from kernel share object body */
@@ -154,6 +157,10 @@ rk_s32 kmpp_obj_set_shm(KmppObj obj, const char *name, KmppShmPtr *val);
 rk_s32 kmpp_obj_get_shm(KmppObj obj, const char *name, KmppShmPtr *val);
 rk_s32 kmpp_obj_tbl_set_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
 rk_s32 kmpp_obj_tbl_get_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
+
+/* helper for get share object from a share memory element */
+rk_s32 kmpp_obj_set_shm_obj(KmppObj obj, const char *name, KmppObj val);
+rk_s32 kmpp_obj_get_shm_obj(KmppObj obj, const char *name, KmppObj *val);
 
 /* run a callback function */
 rk_s32 kmpp_obj_run(KmppObj obj, const char *name);
