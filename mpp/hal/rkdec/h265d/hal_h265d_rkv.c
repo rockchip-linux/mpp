@@ -727,8 +727,6 @@ static void update_stream_buffer(MppBuffer streambuf, HalTaskInfo *syn)
 MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     RK_S32 i = 0;
-    RK_S32 log2_min_cb_size;
-    RK_S32 width, height;
     RK_S32 stride_y, stride_uv, virstrid_y, virstrid_yuv;
     H265d_REGS_t *hw_regs;
     RK_S32 ret = MPP_SUCCESS;
@@ -739,6 +737,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_U32 sw_ref_valid = 0;
     RK_U32 stream_buf_size = 0;
     HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
+    MppFrame mframe;
 
     if (syn->dec.flags.parse_err ||
         (syn->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
@@ -797,20 +796,12 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (H265d_REGS_t*)reg_ctx->hw_regs;
     memset(hw_regs, 0, sizeof(H265d_REGS_t));
 
-    log2_min_cb_size = dxva_cxt->pp.log2_min_luma_coding_block_size_minus3 + 3;
-
-    width = (dxva_cxt->pp.PicWidthInMinCbsY << log2_min_cb_size);
-    height = (dxva_cxt->pp.PicHeightInMinCbsY << log2_min_cb_size);
-
-    stride_y = ((MPP_ALIGN(width, 64)
-                 * (dxva_cxt->pp.bit_depth_luma_minus8 + 8)) >> 3);
-    stride_uv = ((MPP_ALIGN(width, 64)
-                  * (dxva_cxt->pp.bit_depth_chroma_minus8 + 8)) >> 3);
-
-    stride_y = hevc_hor_align(stride_y);
-    stride_uv = hevc_hor_align(stride_uv);
-    virstrid_y = hevc_ver_align(height) * stride_y;
-    virstrid_yuv  = virstrid_y + stride_uv * hevc_ver_align(height) / 2;
+    mpp_buf_slot_get_prop(reg_ctx->slots, dxva_cxt->pp.CurrPic.Index7Bits,
+                          SLOT_FRAME_PTR, &mframe);
+    stride_y = mpp_frame_get_hor_stride(mframe);
+    stride_uv = mpp_frame_get_hor_stride(mframe);
+    virstrid_y = mpp_frame_get_ver_stride(mframe) * stride_y;
+    virstrid_yuv  = virstrid_y + stride_uv * mpp_frame_get_ver_stride(mframe) / 2;
 
     hw_regs->sw_picparameter.sw_slice_num = dxva_cxt->slice_count;
     hw_regs->sw_picparameter.sw_y_hor_virstride = stride_y >> 4;

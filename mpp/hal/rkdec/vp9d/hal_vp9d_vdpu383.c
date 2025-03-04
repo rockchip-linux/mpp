@@ -684,7 +684,6 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 {
     RK_S32 i;
     RK_U8  bit_depth = 0;
-    RK_U32 pic_h[3] = { 0 };
     RK_U32 ref_frame_width_y;
     RK_U32 ref_frame_height_y;
     RK_S32 stream_len = 0, aglin_offset = 0;
@@ -696,6 +695,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 sw_y_virstride;
     RK_U32 sw_uv_virstride;
     RK_U8  ref_idx = 0;
+    RK_U8  ref_frame_idx = 0;
     RK_U32 *reg_ref_base = NULL;
     RK_U32 *reg_payload_ref_base = NULL;
     RK_S32 intraFlag = 0;
@@ -711,6 +711,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 mv_size = pic_param->width * pic_param->height / 2;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
     MppFrame mframe;
+    MppFrame ref_frame = NULL;
 
     if (p_hal->fast_mode) {
         for (i = 0; i < MAX_GEN_REG; i++) {
@@ -847,9 +848,6 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 
     //--- caculate the yuv_frame_size and mv_size
     bit_depth = pic_param->BitDepthMinus8Luma + 8;
-    pic_h[0] = vp9_ver_align(pic_param->height);
-    pic_h[1] = vp9_ver_align(pic_param->height) / 2;
-    pic_h[2] = pic_h[1];
 
     {
         mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
@@ -867,9 +865,9 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             /* error stride */
             vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = fbc_hdr_stride / 64;
         } else {
-            sw_y_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
-            sw_uv_hor_virstride = (mpp_align_128_odd_plus_64((pic_param->width * bit_depth) >> 3) >> 4);
-            sw_y_virstride = pic_h[0] * sw_y_hor_virstride;
+            sw_y_hor_virstride = mpp_frame_get_hor_stride(mframe) >> 4;
+            sw_uv_hor_virstride = sw_y_hor_virstride;
+            sw_y_virstride = mpp_frame_get_ver_stride(mframe) * sw_y_hor_virstride;
             sw_uv_virstride = sw_y_virstride / 2;
 
             vp9_hw_regs->ctrl_regs.reg9.fbc_e = 0;
@@ -953,23 +951,30 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     reg_payload_ref_base = vp9_hw_regs->vp9d_addrs.reg195_210_payload_st_ref_base;
     for (i = 0; i < 3; i++) {
         ref_idx = pic_param->frame_refs[i].Index7Bits;
+        ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         ref_frame_width_y = pic_param->ref_frame_coded_width[ref_idx];
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
-        pic_h[0] = vp9_ver_align(ref_frame_height_y);
-        pic_h[1] = vp9_ver_align(ref_frame_height_y) / 2;
+        if (ref_frame_idx < 0x7f)
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &ref_frame);
         if (fbc_en) {
             y_hor_virstride = uv_hor_virstride = MPP_ALIGN(ref_frame_width_y, 64) / 64;
             if (*compat_ext_fbc_hdr_256_odd)
                 y_hor_virstride = uv_hor_virstride = (MPP_ALIGN(ref_frame_width_y, 256) | 256) / 64;
         } else {
-            y_hor_virstride = uv_hor_virstride = (mpp_align_128_odd_plus_64((ref_frame_width_y * bit_depth) >> 3) >> 4);
+            if (ref_frame)
+                y_hor_virstride = uv_hor_virstride = (mpp_frame_get_hor_stride(ref_frame) >> 4);
+            else
+                y_hor_virstride = uv_hor_virstride = (mpp_align_128_odd_plus_64((ref_frame_width_y * bit_depth) >> 3) >> 4);
         }
-        y_virstride = y_hor_virstride * pic_h[0];
+        if (ref_frame)
+            y_virstride = y_hor_virstride * mpp_frame_get_ver_stride(ref_frame);
+        else
+            y_virstride = y_hor_virstride * vp9_ver_align(ref_frame_height_y);
 
-        if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
-            mpp_buf_slot_get_prop(p_hal ->slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
+        if (ref_frame_idx < 0x7f) {
+            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_BUFFER, &framebuf);
             if (hw_ctx->origin_bufs && mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
-                origin_buf = hal_bufs_get_buf(hw_ctx->origin_bufs, pic_param->ref_frame_map[ref_idx].Index7Bits);
+                origin_buf = hal_bufs_get_buf(hw_ctx->origin_bufs, ref_frame_idx);
                 framebuf = origin_buf->buf[0];
             }
 
@@ -1000,11 +1005,11 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
                 reg_ref_base[i] = mpp_buffer_get_fd(framebuf);
                 reg_payload_ref_base[i] = mpp_buffer_get_fd(framebuf);
             } else {
-                mpp_log("ref buff address is no valid used out as base slot index 0x%x", pic_param->ref_frame_map[ref_idx].Index7Bits);
+                mpp_log("ref buff address is no valid used out as base slot index 0x%x", ref_frame_idx);
                 reg_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
                 reg_payload_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
             }
-            mv_buf = hal_bufs_get_buf(hw_ctx->cmv_bufs, pic_param->ref_frame_map[ref_idx].Index7Bits);
+            mv_buf = hal_bufs_get_buf(hw_ctx->cmv_bufs, ref_frame_idx);
         } else {
             reg_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
             reg_payload_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
