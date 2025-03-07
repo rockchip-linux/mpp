@@ -396,7 +396,9 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         } break;
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
-            if (soc_type == ROCKCHIP_SOC_RK3399 || soc_type == ROCKCHIP_SOC_RK3588)
+            if (soc_type == ROCKCHIP_SOC_RK3399)
+                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
+            else if (soc_type == ROCKCHIP_SOC_RK3588)
                 aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
             else
                 aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
@@ -436,7 +438,8 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
          * NOTE: rk3576 use 128 odd plus 64 for all non jpeg format
          * all the other socs use 256 odd on larger than 1080p
          */
-        if ((aligned_byte > 1920 || soc_type == ROCKCHIP_SOC_RK3576) && type != MPP_VIDEO_CodingMJPEG) {
+        if ((aligned_byte > 1920 || soc_type == ROCKCHIP_SOC_RK3576 || soc_type == ROCKCHIP_SOC_RK3399)
+            && type != MPP_VIDEO_CodingMJPEG) {
             rk_s32 update = 0;
 
             switch (soc_type) {
