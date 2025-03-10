@@ -129,6 +129,7 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
 
     hnd = kmpp_obj_get_hnd(ctx->mVencInitKcfg);
     size = kmpp_obj_get_hnd_size(ctx->mVencInitKcfg);
+    kmpp_obj_get_u32(ctx->mVencInitKcfg, "chan_dup", &ctx->mChanDup);
 
     ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_CREATE, 0, size, hnd);
     if (ret) {
@@ -136,10 +137,12 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
         return ret;
     }
 
-    ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_START, 0, 0, 0);
-    if (ret) {
-        mpp_err("chan %d VCODEC_CHAN_START failed\n", ctx->mChanId);
-        return ret;
+    if (!ctx->mChanDup) {
+        ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_START, 0, 0, 0);
+        if (ret) {
+            mpp_err("chan %d VCODEC_CHAN_START failed\n", ctx->mChanId);
+            return ret;
+        }
     }
 
     if (ctx->mPacketGroup == NULL)
