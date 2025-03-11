@@ -3173,10 +3173,8 @@ static MPP_RET hal_h265e_vepu580_status_check(RK_U32 hw_status)
     if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
         hal_h265e_dbg_detail("RKV_ENC_INT_SAFE_CLEAR_FINISH");
 
-    if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW) {
+    if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
         hal_h265e_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
-        ret = MPP_NOK;
-    }
 
     if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL) {
         hal_h265e_err("RKV_ENC_INT_BUS_WRITE_FULL");
