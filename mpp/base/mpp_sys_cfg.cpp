@@ -394,6 +394,15 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
             aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
+        /*
+         * avc aligned to ctu
+         * p_Vid->width = p_Vid->PicWidthInMbs * 16
+         * p_Vid->height = p_Vid->FrameHeightInMbs * 16
+         */
+        case MPP_VIDEO_CodingAVC : {
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+        } break;
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
             if (soc_type == ROCKCHIP_SOC_RK3399)
