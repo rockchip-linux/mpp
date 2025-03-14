@@ -239,6 +239,7 @@ typedef struct avs_dec_ctx_t {
     RK_U32                   vec_flag; //!< video_edit_code_flag
 
     RK_U32                   disable_error;
+    RK_U32                   dis_err_clr_mark;
 } AvsdCtx_t;
 
 #ifdef  __cplusplus

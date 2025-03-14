@@ -1322,6 +1322,7 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
     case MPP_DEC_SET_PARSER_FAST_MODE :
     case MPP_DEC_SET_IMMEDIATE_OUT :
     case MPP_DEC_SET_DISABLE_ERROR :
+    case MPP_DEC_SET_DIS_ERR_CLR_MARK :
     case MPP_DEC_SET_ENABLE_DEINTERLACE :
     case MPP_DEC_SET_ENABLE_FAST_PLAY :
     case MPP_DEC_SET_ENABLE_MVC :

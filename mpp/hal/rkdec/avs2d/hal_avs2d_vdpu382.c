@@ -680,7 +680,8 @@ MPP_RET hal_avs2d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
 
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->cfg->base.disable_error) {
         ret = MPP_NOK;
         goto __RETURN;
     }
@@ -872,7 +873,8 @@ MPP_RET hal_avs2d_vdpu382_start(void *hal, HalTaskInfo *task)
     AVS2D_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == p_hal);
 
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->cfg->base.disable_error) {
         ret = MPP_NOK;
         goto __RETURN;
     }
@@ -1100,7 +1102,8 @@ MPP_RET hal_avs2d_vdpu382_wait(void *hal, HalTaskInfo *task)
     reg_ctx = (Avs2dVdpu382RegCtx_t *)p_hal->reg_ctx;
     p_regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
 
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->cfg->base.disable_error) {
         AVS2D_HAL_DBG(AVS2D_HAL_DBG_ERROR, "found task error.\n");
         ret = MPP_NOK;
         goto __RETURN;

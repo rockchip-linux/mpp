@@ -788,16 +788,16 @@ static MPP_RET hal_h265d_vdpu384a_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_S32 fd = -1;
     RK_U32 mv_size = 0;
     RK_S32 distance = INT_MAX;
+    HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
 
     (void) fd;
     if (syn->dec.flags.parse_err ||
-        syn->dec.flags.ref_err) {
+        (syn->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
 
     h265d_dxva2_picture_context_t *dxva_ctx = (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
-    HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
     HalBuf *origin_buf = NULL;
 
     if (reg_ctx ->fast_mode) {
@@ -1080,7 +1080,7 @@ static MPP_RET hal_h265d_vdpu384a_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if ((reg_ctx->error_index[syn->dec.reg_index] == dxva_ctx->pp.CurrPic.Index7Bits) &&
-        !dxva_ctx->pp.IntraPicFlag && !reg_ctx->cfg->base.disable_error) {
+        !dxva_ctx->pp.IntraPicFlag) {
         h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
@@ -1177,7 +1177,7 @@ static MPP_RET hal_h265d_vdpu384a_start(void *hal, HalTaskInfo *task)
     RK_U32 i;
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -1282,7 +1282,7 @@ static MPP_RET hal_h265d_vdpu384a_wait(void *hal, HalTaskInfo *task)
     p = (RK_U8*)hw_regs;
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         goto ERR_PROC;
     }

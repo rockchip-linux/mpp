@@ -1723,6 +1723,9 @@ RK_S32 VpuApiLegacy::control(VpuCodecContext *ctx, VPU_API_CMD cmd, void *param)
     case VPU_API_SET_DISABLE_ERROR: {
         mpicmd = MPP_DEC_SET_DISABLE_ERROR;
     } break;
+    case VPU_API_SET_DIS_ERR_CLR_MARK: {
+        mpicmd = MPP_DEC_SET_DIS_ERR_CLR_MARK;
+    } break;
     case VPU_API_SET_IMMEDIATE_OUT: {
         mpicmd = MPP_DEC_SET_IMMEDIATE_OUT;
     } break;

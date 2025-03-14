@@ -182,6 +182,9 @@ static MPP_RET avsd_control(void *decoder, MpiCmd cmd_type, void *param)
     case MPP_DEC_SET_DISABLE_ERROR: {
         p_dec->disable_error = *((RK_U32 *)param);
     } break;
+    case MPP_DEC_SET_DIS_ERR_CLR_MARK: {
+        p_dec->dis_err_clr_mark = *((RK_U32 *)param);
+    } break;
     default : {
     } break;
     }
@@ -312,10 +315,6 @@ static MPP_RET avsd_parse(void *decoder, HalDecTask *task)
         avsd_commit_syntaxs(p_dec->syn, task);
         avsd_update_dpb(p_dec);
     }
-    if (p_dec->disable_error) {
-        task->flags.ref_err = 0;
-        task->flags.parse_err = 0;
-    }
     AVSD_PARSE_TRACE("Out.");
 
     return ret = MPP_OK;
@@ -331,20 +330,18 @@ static MPP_RET avsd_callback(void *decoder, void *info)
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdCtx_t *p_dec = (AvsdCtx_t *)decoder;
     DecCbHalDone *ctx = (DecCbHalDone *)info;
+    MppFrame mframe = NULL;
+    HalDecTask *task_dec = (HalDecTask *)ctx->task;
 
     AVSD_PARSE_TRACE("In.");
-    if (!p_dec->disable_error) {
-        MppFrame mframe = NULL;
-        HalDecTask *task_dec = (HalDecTask *)ctx->task;
 
-        mpp_buf_slot_get_prop(p_dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
-        if (mframe) {
-            if (ctx->hard_err || task_dec->flags.ref_err) {
-                if (task_dec->flags.used_for_ref) {
-                    mpp_frame_set_errinfo(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
-                } else {
-                    mpp_frame_set_discard(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
-                }
+    mpp_buf_slot_get_prop(p_dec->frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
+    if (mframe) {
+        if (ctx->hard_err || task_dec->flags.ref_err) {
+            if (task_dec->flags.used_for_ref) {
+                mpp_frame_set_errinfo(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
+            } else {
+                mpp_frame_set_discard(mframe, MPP_FRAME_FLAG_PAIRED_FIELD);
             }
         }
     }

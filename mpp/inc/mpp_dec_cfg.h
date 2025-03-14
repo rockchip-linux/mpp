@@ -43,6 +43,7 @@ typedef enum MppDecCfgChange_e {
     /* reserve high bit for global config */
     MPP_DEC_CFG_CHANGE_DISABLE_THREAD    = (1 << 28),
     MPP_DEC_CFG_CHANGE_CODEC_MODE        = (1 << 29),
+    MPP_DEC_CFG_CHANGE_DIS_ERR_CLR_MARK  = (1 << 30),
 
     MPP_DEC_CFG_CHANGE_ALL               = (0xFFFFFFFF),
 } MppDecCfgChange;
@@ -95,6 +96,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              disable_dpb_chk;
     RK_U32              disable_thread;
     RK_U32              codec_mode;
+    RK_U32              dis_err_clr_mark;
 } MppDecBaseCfg;
 
 typedef enum MppDecCbCfgChange_e {

@@ -75,6 +75,7 @@ static MPP_RET mpp_dec_update_cfg(MppDecImpl *p)
     p->parser_fast_mode     = base->fast_parse;
     p->enable_deinterlace   = base->enable_vproc;
     p->disable_error        = base->disable_error;
+    p->dis_err_clr_mark     = base->dis_err_clr_mark;
 
     mpp_env_get_u32("enable_deinterlace", &p->enable_deinterlace, base->enable_vproc);
 
@@ -140,6 +141,7 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
     case MPP_DEC_SET_IMMEDIATE_OUT :
     case MPP_DEC_SET_OUTPUT_FORMAT :
     case MPP_DEC_SET_DISABLE_ERROR :
+    case MPP_DEC_SET_DIS_ERR_CLR_MARK :
     case MPP_DEC_SET_ENABLE_DEINTERLACE :
     case MPP_DEC_SET_ENABLE_FAST_PLAY :
     case MPP_DEC_SET_ENABLE_MVC :
@@ -293,7 +295,7 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
     mpp_assert(index >= 0);
     mpp_assert(frame);
 
-    if (dec->cfg.base.disable_error) {
+    if (dec->cfg.base.disable_error && dec->cfg.base.dis_err_clr_mark) {
         mpp_frame_set_errinfo(frame, 0);
         mpp_frame_set_discard(frame, 0);
     }
@@ -520,6 +522,9 @@ MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src)
 
         if (change & MPP_DEC_CFG_CHANGE_DISABLE_ERROR)
             dst_base->disable_error = src_base->disable_error;
+
+        if (change & MPP_DEC_CFG_CHANGE_DIS_ERR_CLR_MARK)
+            dst_base->dis_err_clr_mark = src_base->dis_err_clr_mark;
 
         if (change & MPP_DEC_CFG_CHANGE_ENABLE_VPROC)
             dst_base->enable_vproc = src_base->enable_vproc;
@@ -1047,6 +1052,11 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param)
         cfg->disable_error = (param) ? (*((RK_U32 *)param)) : (1);
         cfg->change |= MPP_DEC_CFG_CHANGE_DISABLE_ERROR;
         dec_dbg_func("disable error %d\n", cfg->disable_error);
+    } break;
+    case MPP_DEC_SET_DIS_ERR_CLR_MARK: {
+        cfg->dis_err_clr_mark = (param) ? (*((RK_U32 *)param)) : (1);
+        cfg->change |= MPP_DEC_CFG_CHANGE_DIS_ERR_CLR_MARK;
+        dec_dbg_func("disable error not mark%d\n", cfg->dis_err_clr_mark);
     } break;
     case MPP_DEC_SET_IMMEDIATE_OUT : {
         cfg->fast_out = (param) ? (*((RK_U32 *)param)) : (0);

@@ -632,7 +632,7 @@ MPP_RET rkv_h264d_gen_regs(void *hal, HalTaskInfo *task)
     INP_CHECK(ret, NULL == p_hal);
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !p_hal->cfg->base.disable_error)) {
         goto __RETURN;
     }
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
@@ -694,7 +694,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     INP_CHECK(ret, NULL == p_hal);
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !p_hal->cfg->base.disable_error)) {
         goto __RETURN;
     }
 
@@ -767,7 +767,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
                              reg_ctx->regs;
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !p_hal->cfg->base.disable_error)) {
         goto __SKIP_HARD;
     }
 

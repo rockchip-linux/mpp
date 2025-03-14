@@ -166,6 +166,7 @@ MPP_RET hal_avsd_init(void *decoder, MppHalCfg *cfg)
 
     FUN_CHECK(ret = init_hard_platform(p_hal, cfg->coding));
     cfg->dev = p_hal->dev;
+    p_hal->dec_cfg = cfg->cfg;
 
     //!< run init funtion
     FUN_CHECK(ret = p_hal->hal_api.init(decoder, cfg));

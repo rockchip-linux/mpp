@@ -107,6 +107,7 @@ public:
     ENTRY(base, disable_dpb_chk,    U32,    MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK,   base, disable_dpb_chk) \
     ENTRY(base, disable_thread,     U32,    MPP_DEC_CFG_CHANGE_DISABLE_THREAD,      base, disable_thread) \
     ENTRY(base, codec_mode,         U32,    MPP_DEC_CFG_CHANGE_CODEC_MODE,          base, codec_mode) \
+    ENTRY(base, dis_err_clr_mark,   U32,    MPP_DEC_CFG_CHANGE_DIS_ERR_CLR_MARK,    base, dis_err_clr_mark) \
     ENTRY(cb, pkt_rdy_cb,           Ptr,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_cb) \
     ENTRY(cb, pkt_rdy_ctx,          Ptr,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_ctx) \
     ENTRY(cb, pkt_rdy_cmd,          S32,    MPP_DEC_CB_CFG_CHANGE_PKT_RDY,          cb, pkt_rdy_cmd) \

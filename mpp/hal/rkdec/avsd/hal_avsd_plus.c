@@ -653,7 +653,8 @@ MPP_RET hal_avsd_plus_gen_regs(void *decoder, HalTaskInfo *task)
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
     AVSD_HAL_TRACE("In.");
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->dec_cfg->base.disable_error) {
         goto __RETURN;
     }
     p_hal->data_offset = p_hal->syn.bitstream_offset;
@@ -680,7 +681,8 @@ MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    if (task->dec.flags.parse_err || task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->dec_cfg->base.disable_error) {
         goto __RETURN;
     }
 
@@ -755,8 +757,8 @@ MPP_RET hal_avsd_plus_wait(void *decoder, HalTaskInfo *task)
     AVSD_HAL_TRACE("In.");
     INP_CHECK(ret, NULL == decoder);
 
-    if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+    if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
+        !p_hal->dec_cfg->base.disable_error) {
         goto __SKIP_HARD;
     }
 
@@ -777,7 +779,8 @@ __SKIP_HARD:
     update_parameters(p_hal);
     memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
     if (!p_hal->first_field && p_hal->syn.pp.pictureStructure == FIELDPICTURE &&
-        !task->dec.flags.parse_err && !task->dec.flags.ref_err) {
+        ((!task->dec.flags.parse_err && !task->dec.flags.ref_err) ||
+         p_hal->dec_cfg->base.disable_error)) {
         repeat_other_field(p_hal, task);
     }
 

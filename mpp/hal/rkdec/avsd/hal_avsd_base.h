@@ -107,6 +107,7 @@ typedef struct avsd_hal_ctx_t {
     MppCodingType            coding;
     MppCbCtx                 *dec_cb;
     MppDev                   dev;
+    MppDecCfgSet             *dec_cfg;
 
     AvsdSyntax_t             syn;
     RK_U32                   *p_regs;

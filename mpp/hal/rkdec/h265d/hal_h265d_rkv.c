@@ -738,16 +738,16 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     MppBuffer framebuf = NULL;
     RK_U32 sw_ref_valid = 0;
     RK_U32 stream_buf_size = 0;
+    HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
 
     if (syn->dec.flags.parse_err ||
-        syn->dec.flags.ref_err) {
+        (syn->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
 
     h265d_dxva2_picture_context_t *dxva_cxt =
         (h265d_dxva2_picture_context_t *)syn->dec.syntax.data;
-    HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
 
     void *rps_ptr = NULL;
     if (reg_ctx ->fast_mode) {
@@ -922,7 +922,7 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     RK_U32 i;
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -998,7 +998,7 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
     }
 
     if (task->dec.flags.parse_err ||
-        task->dec.flags.ref_err) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         goto ERR_PROC;
     }
