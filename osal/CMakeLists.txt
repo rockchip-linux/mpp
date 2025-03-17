@@ -44,7 +44,7 @@ add_library(osal OBJECT
     mpp_lock.cpp
     mpp_time.cpp
     mpp_list.cpp
-    mpp_mem.cpp
+    mpp_mem.c
     mpp_env.cpp
     mpp_log.cpp
     osal_2str.c
