@@ -427,7 +427,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     if (NULL == tag)
         tag = group->tag;
 
-    strncpy(p->tag, tag, sizeof(p->tag));
+    strncpy(p->tag, tag, sizeof(p->tag) - 1);
     p->caller = caller;
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);

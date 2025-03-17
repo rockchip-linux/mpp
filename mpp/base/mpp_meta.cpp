@@ -189,7 +189,7 @@ MppMetaImpl *MppMetaService::get_meta(const char *tag, const char *caller)
         const char *tag_src = (tag) ? (tag) : (MODULE_TAG);
         RK_U32 i;
 
-        strncpy(impl->tag, tag_src, sizeof(impl->tag));
+        strncpy(impl->tag, tag_src, sizeof(impl->tag) - 1);
         impl->caller = caller;
         impl->meta_id = MPP_FETCH_ADD(&meta_id, 1);
         INIT_LIST_HEAD(&impl->list_meta);
