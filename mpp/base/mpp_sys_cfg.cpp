@@ -416,6 +416,13 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 128);
             aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
         } break;
+        case MPP_VIDEO_CodingVP8 :
+        case MPP_VIDEO_CodingH263 :
+        case MPP_VIDEO_CodingMPEG2 :
+        case MPP_VIDEO_CodingMPEG4 : {
+            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+        } break;
         default : {
             aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
             aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
