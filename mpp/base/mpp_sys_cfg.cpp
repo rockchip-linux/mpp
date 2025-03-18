@@ -389,10 +389,11 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         /* raster case */
         RockchipSocType soc_type = mpp_get_soc_type();
 
+        aligned_pixel = cfg->width;
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+            aligned_pixel = MPP_ALIGN(cfg->width, 64);
+            aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         /*
          * avc aligned to ctu
@@ -400,40 +401,41 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
          * p_Vid->height = p_Vid->FrameHeightInMbs * 16
          */
         case MPP_VIDEO_CodingAVC : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_pixel = MPP_ALIGN(cfg->width, 16);
+            aligned_height = MPP_ALIGN(cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingVP9 : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 64);
             if (soc_type == ROCKCHIP_SOC_RK3399)
-                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
+                aligned_height = MPP_ALIGN(cfg->height, 64);
             else if (soc_type == ROCKCHIP_SOC_RK3588)
-                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+                aligned_height = MPP_ALIGN(cfg->height, 16);
             else
-                aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+                aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         case MPP_VIDEO_CodingAV1 : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 128);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+            aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         case MPP_VIDEO_CodingVP8 :
         case MPP_VIDEO_CodingH263 :
         case MPP_VIDEO_CodingMPEG2 :
         case MPP_VIDEO_CodingMPEG4 : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN(cfg->height, 16);
+        } break;
+        case MPP_VIDEO_CodingAVS2 : {
+            aligned_pixel = MPP_ALIGN(cfg->width, 64);
+            aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         default : {
-            aligned_pixel = MPP_ALIGN(aligned_pixel ? aligned_pixel : cfg->width, 16);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+            aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         }
 
-        aligned_pixel_byte = aligned_pixel * depth / 8;
+        aligned_pixel_byte = cfg->h_stride_by_byte ? cfg->h_stride_by_byte :
+                             aligned_pixel * depth / 8;
 
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {
-            aligned_byte = MPP_ALIGN(aligned_pixel_byte, 64);
+            aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_64, aligned_pixel_byte);
         } break;
         case MPP_VIDEO_CodingVP9 : {
             if (soc_type == ROCKCHIP_SOC_RK3576)
@@ -443,10 +445,13 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
                 aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_256_ODD, aligned_pixel_byte);
         } break;
         case MPP_VIDEO_CodingAV1 : {
-            aligned_byte = MPP_ALIGN(aligned_pixel_byte, 128);
+            if (soc_type == ROCKCHIP_SOC_RK3588)
+                aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_16, aligned_pixel_byte);
+            else
+                aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_128, aligned_pixel_byte);
         } break;
         default : {
-            aligned_byte = MPP_ALIGN(aligned_pixel_byte, 16);
+            aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_16, aligned_pixel_byte);
         } break;
         }
 
