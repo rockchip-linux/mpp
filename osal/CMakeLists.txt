@@ -30,7 +30,7 @@ add_library(osal OBJECT
     mpp_singleton.c
     mpp_soc.c
     mpp_platform.c
-    mpp_runtime.cpp
+    mpp_runtime.c
     mpp_allocator.cpp
     mpp_mem_pool.c
     mpp_callback.cpp
