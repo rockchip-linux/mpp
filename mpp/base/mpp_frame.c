@@ -1,32 +1,21 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_frame"
 
 #include <string.h>
 
-#include "mpp_mem.h"
 #include "mpp_debug.h"
-#include "mpp_common.h"
-#include "mpp_frame_impl.h"
-#include "mpp_meta_impl.h"
 #include "mpp_mem_pool.h"
+#include "mpp_singleton.h"
+
+#include "mpp_meta_impl.h"
+#include "mpp_frame_impl.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_frame_pool = mpp_mem_pool_init(module_name, sizeof(MppFrameImpl), NULL);
+static MppMemPool pool_frame = NULL;
 
 static void setup_mpp_frame_name(MppFrameImpl *frame)
 {
@@ -42,6 +31,24 @@ static void setup_mpp_frame_defaults(MppFrameImpl *frame)
 }
 
 #define check_is_mpp_frame(frame) _check_is_mpp_frame(__FUNCTION__, frame)
+
+static void mpp_frame_srv_init()
+{
+    if (pool_frame)
+        return;
+
+    pool_frame = mpp_mem_pool_init_f("MppFrame", sizeof(MppFrameImpl));
+}
+
+static void mpp_frame_srv_deinit()
+{
+    if (pool_frame) {
+        mpp_mem_pool_deinit_f(pool_frame);
+        pool_frame = NULL;
+    }
+}
+
+MPP_SINGLETON(MPP_SGLN_FRAME, mpp_frame, mpp_frame_srv_init, mpp_frame_srv_deinit)
 
 MPP_RET _check_is_mpp_frame(const char *func, void *frame)
 {
@@ -60,7 +67,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get_f(mpp_frame_pool);
+    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get_f(pool_frame);
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
@@ -90,7 +97,7 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     if (p->stopwatch)
         mpp_stopwatch_put(p->stopwatch);
 
-    mpp_mem_pool_put_f(mpp_frame_pool, *frame);
+    mpp_mem_pool_put_f(pool_frame, *frame);
     *frame = NULL;
     return MPP_OK;
 }
@@ -107,7 +114,7 @@ MppBuffer mpp_frame_get_buffer(MppFrame frame)
 void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
 {
     if (check_is_mpp_frame(frame))
-        return ;
+        return;
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
     if (p->buffer != buffer) {
@@ -146,7 +153,7 @@ MppMeta mpp_frame_get_meta(MppFrame frame)
 void mpp_frame_set_meta(MppFrame frame, MppMeta meta)
 {
     if (check_is_mpp_frame(frame))
-        return ;
+        return;
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
     if (p->meta) {
@@ -167,7 +174,7 @@ MppFrameStatus *mpp_frame_get_status(MppFrame frame)
 void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable)
 {
     if (check_is_mpp_frame(frame))
-        return ;
+        return;
 
     MppFrameImpl *p = (MppFrameImpl *)frame;
     if (enable && NULL == p->stopwatch) {
