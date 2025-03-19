@@ -19,6 +19,7 @@ typedef enum MppSingletonId_e {
     /* hardware platform */
     MPP_SGLN_SOC,
     MPP_SGLN_PLATFORM,
+    MPP_SGLN_SERVER,
     /* software platform */
     MPP_SGLN_RUNTIME,
     /* base module */

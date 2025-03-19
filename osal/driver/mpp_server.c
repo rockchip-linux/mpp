@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2021 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_server"
@@ -26,12 +15,13 @@
 #include "mpp_time.h"
 #include "osal_2str.h"
 #include "mpp_common.h"
+#include "mpp_thread.h"
 #include "mpp_mem_pool.h"
+#include "mpp_singleton.h"
 
+#include "mpp_server.h"
 #include "mpp_device_debug.h"
 #include "mpp_service_impl.h"
-#include "mpp_server.h"
-#include "mpp_thread.h"
 
 #define MAX_BATCH_TASK      8
 #define MAX_SESSION_TASK    4
@@ -61,6 +51,21 @@
         mpp_assert(count >= 0); \
     } while (0)
 
+#define get_srv_server() \
+    ({ \
+        MppDevServer *__tmp; \
+        if (!srv_server) { \
+            mpp_server_init(); \
+        } \
+        __tmp = srv_server; \
+        if (!__tmp || !__tmp->inited) { \
+            mpp_err("mpp server srv not init for %s at %s\n", \
+                    __tmp ? __tmp->server_error : "invalid server", __FUNCTION__); \
+            __tmp = NULL; \
+        } \
+        __tmp; \
+    })
+
 typedef struct MppDevTask_t     MppDevTask;
 typedef struct MppDevBatTask_t  MppDevBatTask;
 typedef struct MppDevSession_t  MppDevSession;
@@ -77,15 +82,15 @@ struct MppDevTask_t {
     MppDevSession       *session;
     MppDevBatTask       *batch;
 
-    RK_S32              slot_idx;
+    rk_s32              slot_idx;
 
     /* lock by server */
-    RK_S32              task_id;
+    rk_s32              task_id;
     /* lock by batch */
-    RK_S32              batch_slot_id;
+    rk_s32              batch_slot_id;
 
     MppReqV1            *req;
-    RK_S32              req_cnt;
+    rk_s32              req_cnt;
 };
 
 struct MppDevBatTask_t {
@@ -96,21 +101,21 @@ struct MppDevBatTask_t {
     /* link to session tasks */
     struct list_head    link_tasks;
 
-    RK_U32              batch_id;
+    rk_u32              batch_id;
 
     MppDevBatCmd        *bat_cmd;
     MppReqV1            *send_reqs;
     MppReqV1            *wait_reqs;
 
     /* lock and clean by server */
-    RK_S32              send_req_cnt;
-    RK_S32              wait_req_cnt;
+    rk_s32              send_req_cnt;
+    rk_s32              wait_req_cnt;
 
     /* lock by server */
-    RK_S32              fill_cnt;
-    RK_S32              fill_full;
-    RK_S32              fill_timeout;
-    RK_S32              poll_cnt;
+    rk_s32              fill_cnt;
+    rk_s32              fill_full;
+    rk_s32              fill_timeout;
+    rk_s32              poll_cnt;
 };
 
 struct MppDevSession_t {
@@ -126,10 +131,10 @@ struct MppDevSession_t {
     MppDevMppService    *ctx;
     MppDevBatServ       *server;
 
-    RK_S32              client;
+    rk_s32              client;
 
-    RK_S32              task_wait;
-    RK_S32              task_done;
+    rk_s32              task_wait;
+    rk_s32              task_done;
 
     MppDevTask          tasks[MAX_SESSION_TASK];
 };
@@ -137,33 +142,50 @@ struct MppDevSession_t {
 struct MppDevBatServ_t {
     MppMutex            lock;
 
-    RK_S32              server_fd;
-    RK_U32              batch_id;
-    RK_U32              task_id;
+    rk_s32              server_fd;
+    rk_u32              batch_id;
+    rk_u32              task_id;
 
     /* timer for serializing process */
     MppTimer            timer;
 
     /* session register */
     struct list_head    session_list;
-    RK_S32              session_count;
+    rk_s32              session_count;
 
     /* batch task queue */
     struct list_head    list_batch;
     struct list_head    list_batch_free;
     MppMemPool          batch_pool;
-    RK_S32              batch_max_count;
-    RK_S32              batch_task_size;
-    RK_S32              batch_run;
-    RK_S32              batch_free;
-    RK_S32              max_task_in_batch;
+    rk_s32              batch_max_count;
+    rk_s32              batch_task_size;
+    rk_s32              batch_run;
+    rk_s32              batch_free;
+    rk_s32              max_task_in_batch;
 
     /* link to all pending tasks */
     struct list_head    pending_task;
-    RK_S32              pending_count;
+    rk_s32              pending_count;
 };
 
-RK_U32 mpp_server_debug = 0;
+typedef struct MppDevServer_t {
+    const char          *server_error;
+    const char          *server_name;
+    rk_s32              inited;
+    rk_u32              enable;
+    MppMutex            lock;
+    MppDevBatServ       *bat_server[VPU_CLIENT_BUTT];
+
+    MppMemPool          session_pool;
+    MppMemPool          batch_pool;
+
+    rk_s32              max_task_in_batch;
+
+    const MppServiceCmdCap *cmd_cap;
+} MppDevServer;
+
+static MppDevServer *srv_server = NULL;
+static rk_u32 mpp_server_debug = 0;
 
 static void batch_reset(MppDevBatTask *batch)
 {
@@ -182,7 +204,7 @@ MppDevBatTask *batch_add(MppDevBatServ *server)
     MppDevBatTask *batch = (MppDevBatTask *)mpp_mem_pool_get(server->batch_pool);
 
     mpp_assert(batch);
-    if (NULL == batch)
+    if (!batch)
         return batch;
 
     INIT_LIST_HEAD(&batch->link_server);
@@ -217,7 +239,7 @@ void batch_del(MppDevBatServ *server, MppDevBatTask *batch)
 
 void batch_send(MppDevBatServ *server, MppDevBatTask *batch)
 {
-    RK_S32 ret = 0;
+    rk_s32 ret = 0;
 
     mpp_assert(batch->send_req_cnt);
 
@@ -241,20 +263,20 @@ void process_task(void *p)
 {
     MppDevBatServ *server = (MppDevBatServ *)p;
     MppMutex *lock = &server->lock;
-    RK_S32 ret = MPP_OK;
+    rk_s32 ret = rk_ok;
     MppDevTask *task;
     MppDevBatTask *batch;
     MppDevSession *session = NULL;
     MppDevBatCmd *bat_cmd;
     MppReqV1 *req = NULL;
-    RK_S32 pending = 0;
+    rk_s32 pending = 0;
 
     mpp_serv_dbg_flow("process task start\n");
 
     /* 1. try poll and get finished task */
     do {
         batch = list_first_entry_or_null(&server->list_batch, MppDevBatTask, link_server);
-        if (NULL == batch)
+        if (!batch)
             break;
 
         mpp_assert(batch->wait_req_cnt);
@@ -263,7 +285,7 @@ void process_task(void *p)
             MppDevTask *n;
 
             list_for_each_entry_safe(task, n, &batch->link_tasks, MppDevTask, link_batch) {
-                RK_S32 batch_slot_id = task->batch_slot_id;
+                rk_s32 batch_slot_id = task->batch_slot_id;
                 MppDevBatCmd *cmd = batch->bat_cmd + batch_slot_id;
 
                 mpp_assert(batch_slot_id < server->max_task_in_batch);
@@ -354,7 +376,7 @@ try_proc_pending_task:
 
         batch = list_first_entry_or_null(&server->list_batch_free, MppDevBatTask, link_server);
         mpp_assert(batch);
-        if (NULL == batch) {
+        if (!batch) {
             mpp_log_f("batch run %d free %d\n", server->batch_run, server->batch_free);
             return;
         }
@@ -417,7 +439,7 @@ try_proc_pending_task:
     req->data_ptr = REQ_DATA_PTR(bat_cmd);
 
     {
-        RK_S32 i;
+        rk_s32 i;
 
         for (i = 0; i < task->req_cnt; i++)
             batch->send_reqs[batch->send_req_cnt++] = task->req[i];
@@ -461,14 +483,14 @@ static void *mpp_server_thread(void *ctx)
     return NULL;
 }
 
-MPP_RET send_task(MppDevMppService *ctx)
+rk_s32 send_task(MppDevMppService *ctx)
 {
     MppDevTask *task = NULL;
     MppDevSession *session = (MppDevSession *)ctx->serv_ctx;
 
-    if (NULL == session || NULL == session->server) {
+    if (!session || !session->server) {
         mpp_err_f("invalid ctx %p session %p send task\n", ctx, session);
-        return MPP_NOK;
+        return rk_nok;
     }
 
     MppDevBatServ *server = session->server;
@@ -499,19 +521,19 @@ MPP_RET send_task(MppDevMppService *ctx)
     mpp_timer_set_enable(server->timer, 1);
     mpp_mutex_unlock(&server->lock);
 
-    return MPP_OK;
+    return rk_ok;
 }
 
-MPP_RET wait_task(MppDevMppService *ctx, RK_S64 timeout)
+rk_s32 wait_task(MppDevMppService *ctx, rk_s64 timeout)
 {
-    RK_S32 ret = MPP_OK;
+    rk_s32 ret = rk_ok;
     MppDevTask *task = NULL;
     MppDevSession *session = (MppDevSession *)ctx->serv_ctx;
     (void) timeout;
 
-    if (NULL == session) {
+    if (!session) {
         mpp_err_f("invalid ctx %p send task\n", ctx);
-        return MPP_NOK;
+        return rk_nok;
     }
 
     task = list_first_entry_or_null(&session->list_wait, MppDevTask, link_session);
@@ -530,170 +552,40 @@ MPP_RET wait_task(MppDevMppService *ctx, RK_S64 timeout)
     list_del_init(&task->link_session);
     list_add_tail(&task->link_session, &session->list_done);
 
-    mpp_assert(session->task_wait == session->task_done);
-
-    return (MPP_RET)ret;
+    return ret;
 }
 
-class MppDevServer
-{
-private:
-    // avoid any unwanted function
-    MppDevServer();
-    ~MppDevServer();
-    MppDevServer(const MppDevServer &);
-    MppDevServer &operator=(const MppDevServer &);
-
-    void clear();
-
-    const char          *mServerError;
-    const char          *mServerName;
-    RK_S32              mInited;
-    RK_U32              mEnable;
-
-    MppDevBatServ       *mBatServer[VPU_CLIENT_BUTT];
-
-    MppMemPool          mSessionPool;
-    MppMemPool          mBatchPool;
-
-    RK_S32              mMaxTaskInBatch;
-
-    const MppServiceCmdCap *mCmdCap;
-
-public:
-    static MppDevServer *get_inst() {
-        static MppDevServer inst;
-        return &inst;
-    }
-
-    MppMutex        lock;
-    MppDevBatServ  *bat_server_get(MppClientType client_type);
-    MPP_RET         bat_server_put(MppClientType client_type);
-
-    MPP_RET attach(MppDevMppService *ctx);
-    MPP_RET detach(MppDevMppService *ctx);
-
-    MPP_RET check_status(void);
-};
-
-MppDevServer::MppDevServer() :
-    mServerError(NULL),
-    mServerName(NULL),
-    mInited(0),
-    mEnable(1),
-    mSessionPool(NULL),
-    mBatchPool(NULL),
-    mMaxTaskInBatch(0),
-    mCmdCap(NULL)
-{
-    RK_S32 batch_task_size = 0;
-
-    mpp_env_get_u32("mpp_server_debug", &mpp_server_debug, 0);
-    mpp_env_get_u32("mpp_server_enable", &mEnable, 1);
-    mpp_env_get_u32("mpp_server_batch_task", (RK_U32 *)&mMaxTaskInBatch,
-                    MAX_BATCH_TASK);
-
-    mpp_assert(mMaxTaskInBatch >= 1 && mMaxTaskInBatch <= 32);
-    batch_task_size = sizeof(MppDevBatTask) + mMaxTaskInBatch *
-                      (sizeof(MppReqV1) * (MAX_REQ_SEND_CNT + MAX_REQ_WAIT_CNT) +
-                       sizeof(MppDevBatCmd));
-
-    mCmdCap = mpp_get_mpp_service_cmd_cap();
-    if (MPP_OK != mpp_service_check_cmd_valid(MPP_CMD_SET_SESSION_FD, mCmdCap)) {
-        mServerError = "mpp_service cmd not support";
-        return;
-    }
-
-    do {
-        mServerName = mpp_get_mpp_service_name();
-        if (NULL == mServerName) {
-            mServerError = "get service device failed";
-            break;
-        }
-
-        mSessionPool = mpp_mem_pool_init(sizeof(MppDevSession));
-        if (NULL == mSessionPool) {
-            mServerError = "create session pool failed";
-            break;
-        }
-
-        mBatchPool = mpp_mem_pool_init(batch_task_size);
-        if (NULL == mBatchPool) {
-            mServerError = "create batch tack pool failed";
-            break;
-        }
-
-        mInited = 1;
-    } while (0);
-
-    if (!mInited) {
-        clear();
-        return;
-    }
-    mpp_mutex_init(&lock);
-
-    memset(mBatServer, 0, sizeof(mBatServer));
-}
-
-MppDevServer::~MppDevServer()
-{
-    RK_S32 i;
-
-    for (i = 0; i < VPU_CLIENT_BUTT; i++)
-        bat_server_put((MppClientType)i);
-
-    mpp_mutex_destroy(&lock);
-
-    clear();
-}
-
-void MppDevServer::clear()
-{
-    if (mSessionPool) {
-        mpp_mem_pool_deinit(mSessionPool);
-        mSessionPool = NULL;
-    }
-
-    if (mBatchPool) {
-        mpp_mem_pool_deinit(mBatchPool);
-        mBatchPool = NULL;
-    }
-    mInited = 0;
-    mEnable = 0;
-}
-
-MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
+static MppDevBatServ *bat_server_get(MppDevServer *srv, MppClientType client_type)
 {
     MppDevBatServ *server = NULL;
+    char timer_name[32];
 
-    mpp_mutex_lock(&lock);
+    mpp_mutex_lock(&srv->lock);
 
-    server = mBatServer[client_type];
+    server = srv->bat_server[client_type];
     if (server) {
-        mpp_mutex_unlock(&lock);
+        mpp_mutex_unlock(&srv->lock);
         return server;
     }
 
     server = mpp_calloc(MppDevBatServ, 1);
-    if (NULL == server) {
+    if (!server) {
         mpp_err("mpp server failed to get bat server\n");
-        mpp_mutex_unlock(&lock);
+        mpp_mutex_unlock(&srv->lock);
         return NULL;
     }
 
-    server->server_fd = open(mServerName, O_RDWR | O_CLOEXEC);
+    server->server_fd = open(srv->server_name, O_RDWR | O_CLOEXEC);
     if (server->server_fd < 0) {
         mpp_err("mpp server get bat server failed to open device\n");
         goto failed;
     }
 
-    char timer_name[32];
-
     snprintf(timer_name, sizeof(timer_name) - 1, "%s_bat",
              strof_client_type(client_type));
 
     server->timer = mpp_timer_get(timer_name);
-    if (NULL == server->timer) {
+    if (!server->timer) {
         mpp_err("mpp server get bat server failed to create timer\n");
         goto failed;
     }
@@ -709,11 +601,12 @@ MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
     INIT_LIST_HEAD(&server->list_batch_free);
     INIT_LIST_HEAD(&server->pending_task);
 
-    server->batch_pool = mBatchPool;
-    server->max_task_in_batch = mMaxTaskInBatch;
+    server->batch_pool = srv->batch_pool;
+    server->max_task_in_batch = srv->max_task_in_batch;
 
-    mBatServer[client_type] = server;
-    mpp_mutex_unlock(&lock);
+    srv->bat_server[client_type] = server;
+    mpp_mutex_unlock(&srv->lock);
+
     return server;
 
 failed:
@@ -730,24 +623,25 @@ failed:
         mpp_mutex_destroy(&server->lock);
     }
     MPP_FREE(server);
-    mpp_mutex_unlock(&lock);
-    return server;
+    mpp_mutex_unlock(&srv->lock);
+
+    return NULL;
 }
 
-MPP_RET MppDevServer::bat_server_put(MppClientType client_type)
+static rk_s32 bat_server_put(MppDevServer *srv, MppClientType client_type)
 {
-    MppDevBatTask *batch, *n;
     MppDevBatServ *server = NULL;
+    MppDevBatTask *batch, *n;
 
-    mpp_mutex_lock(&lock);
+    mpp_mutex_lock(&srv->lock);
 
-    if (NULL == mBatServer[client_type]) {
-        mpp_mutex_unlock(&lock);
-        return MPP_OK;
+    if (!srv->bat_server[client_type]) {
+        mpp_mutex_unlock(&srv->lock);
+        return rk_ok;
     }
 
-    server = mBatServer[client_type];
-    mBatServer[client_type] = NULL;
+    server = srv->bat_server[client_type];
+    srv->bat_server[client_type] = NULL;
 
     mpp_assert(server->batch_run == 0);
     mpp_assert(list_empty(&server->list_batch));
@@ -773,41 +667,38 @@ MPP_RET MppDevServer::bat_server_put(MppClientType client_type)
     }
     mpp_mutex_destroy(&server->lock);
     MPP_FREE(server);
-    mpp_mutex_unlock(&lock);
+    mpp_mutex_unlock(&srv->lock);
 
-    return MPP_OK;
+    return rk_ok;
 }
 
-MPP_RET MppDevServer::attach(MppDevMppService *ctx)
+static rk_s32 server_attach(MppDevServer *srv, MppDevMppService *ctx)
 {
-    RK_U32 i;
-
-    if (!mInited) {
-        mpp_err("mpp server failed for %s\n", mServerError);
-        return MPP_NOK;
-    }
-
     MppClientType client_type = (MppClientType)ctx->client_type;
+    MppDevBatServ *server;
+    MppDevSession *session;
+    rk_u32 i;
 
     if (client_type < 0 || client_type >= VPU_CLIENT_BUTT) {
         mpp_err("mpp server attach failed with invalid client type %d\n", client_type);
-        return MPP_NOK;
+        return rk_nok;
     }
 
     /* if client type server is not created create it first */
-    MppDevBatServ *server = bat_server_get(client_type);
-    if (NULL == server) {
+    server = bat_server_get(srv, client_type);
+    if (!server) {
         mpp_err("mpp server get bat server with client type %d failed\n", client_type);
-        return MPP_NOK;
+        return rk_nok;
     }
 
-    mpp_mutex_lock(&lock);
+    mpp_mutex_lock(&srv->lock);
     if (ctx->serv_ctx) {
-        mpp_mutex_unlock(&lock);
-        return MPP_OK;
+        mpp_mutex_unlock(&srv->lock);
+        return rk_ok;
     }
 
-    MppDevSession *session = (MppDevSession *)mpp_mem_pool_get(mSessionPool);
+    session = (MppDevSession *)mpp_mem_pool_get(srv->session_pool);
+
     INIT_LIST_HEAD(&session->list_server);
     INIT_LIST_HEAD(&session->list_wait);
     INIT_LIST_HEAD(&session->list_done);
@@ -836,7 +727,7 @@ MPP_RET MppDevServer::attach(MppDevMppService *ctx)
     list_add_tail(&session->list_server, &server->session_list);
     ctx->serv_ctx = session;
 
-    if (mEnable) {
+    if (srv->enable) {
         ctx->batch_io = 1;
         ctx->server = server->server_fd;
     } else {
@@ -846,29 +737,23 @@ MPP_RET MppDevServer::attach(MppDevMppService *ctx)
 
     server->batch_max_count++;
     server->session_count++;
-    mpp_mutex_unlock(&lock);
+    mpp_mutex_unlock(&srv->lock);
 
-    return MPP_OK;
+    return rk_ok;
 }
 
-MPP_RET MppDevServer::detach(MppDevMppService *ctx)
+static rk_s32 server_detach(MppDevServer *srv, MppDevMppService *ctx)
 {
-    if (!mInited) {
-        mpp_err("mpp server failed for %s\n", mServerError);
-        return MPP_NOK;
-    }
-
     MppClientType client_type = (MppClientType)ctx->client_type;
-
-    MppDevBatServ *server = bat_server_get(client_type);
+    MppDevBatServ *server = bat_server_get(srv, client_type);
     MppDevSession *session = (MppDevSession *)ctx->serv_ctx;
 
     mpp_assert(server);
 
-    mpp_mutex_lock(&lock);
-    if (NULL == ctx->serv_ctx) {
-        mpp_mutex_unlock(&lock);
-        return MPP_OK;
+    mpp_mutex_lock(&srv->lock);
+    if (!ctx->serv_ctx) {
+        mpp_mutex_unlock(&srv->lock);
+        return rk_ok;
     }
 
     ctx->server = ctx->client;
@@ -885,52 +770,172 @@ MPP_RET MppDevServer::detach(MppDevMppService *ctx)
 
     mpp_mutex_cond_destroy(&session->cond_lock);
 
-    mpp_mem_pool_put(mSessionPool, session);
+    mpp_mem_pool_put(srv->session_pool, session);
     server->batch_max_count++;
     server->session_count++;
 
-    mpp_mutex_unlock(&lock);
-    return MPP_OK;
+    mpp_mutex_unlock(&srv->lock);
+
+    return rk_ok;
 }
 
-MPP_RET MppDevServer::check_status(void)
+static void server_clear(MppDevServer *srv)
 {
-    if (!mInited) {
-        mpp_err("mpp server failed for %s\n", mServerError);
-        return MPP_NOK;
+    if (srv) {
+        if (srv->session_pool) {
+            mpp_mem_pool_deinit(srv->session_pool);
+            srv->session_pool = NULL;
+        }
+
+        if (srv->batch_pool) {
+            mpp_mem_pool_deinit(srv->batch_pool);
+            srv->batch_pool = NULL;
+        }
+
+        srv->inited = 0;
+        srv->enable = 0;
+
+        mpp_free(srv);
+    }
+}
+
+static void mpp_server_init()
+{
+    MppDevServer *srv = srv_server;
+    rk_s32 batch_task_size = 0;
+
+    if (srv)
+        return;
+
+    srv = mpp_calloc(MppDevServer, 1);
+    if (!srv) {
+        mpp_err_f("failed to allocate mpp_server service\n");
+        return;
     }
 
-    return MPP_OK;
+    srv_server = srv;
+
+    srv->server_error = NULL;
+    srv->server_name = NULL;
+    srv->inited = 0;
+    srv->enable = 1;
+    srv->session_pool = NULL;
+    srv->batch_pool = NULL;
+    srv->max_task_in_batch = 0;
+    srv->cmd_cap = NULL;
+
+    mpp_env_get_u32("mpp_server_debug", &mpp_server_debug, 0);
+    mpp_env_get_u32("mpp_server_enable", &srv->enable, 1);
+    mpp_env_get_u32("mpp_server_batch_task", (rk_u32 *)&srv->max_task_in_batch,
+                    MAX_BATCH_TASK);
+
+    mpp_assert(srv->max_task_in_batch >= 1 && srv->max_task_in_batch <= 32);
+    batch_task_size = sizeof(MppDevBatTask) + srv->max_task_in_batch *
+                      (sizeof(MppReqV1) * (MAX_REQ_SEND_CNT + MAX_REQ_WAIT_CNT) +
+                       sizeof(MppDevBatCmd));
+
+    srv->cmd_cap = mpp_get_mpp_service_cmd_cap();
+    if (rk_ok != mpp_service_check_cmd_valid(MPP_CMD_SET_SESSION_FD, srv->cmd_cap)) {
+        srv->server_error = "mpp_service cmd not support";
+        return;
+    }
+
+    mpp_mutex_init(&srv->lock);
+    memset(srv->bat_server, 0, sizeof(srv->bat_server));
+
+    do {
+        srv->server_name = mpp_get_mpp_service_name();
+        if (!srv->server_name) {
+            srv->server_error = "get service device failed";
+            break;
+        }
+
+        srv->session_pool = mpp_mem_pool_init(sizeof(MppDevSession));
+        if (!srv->session_pool) {
+            srv->server_error = "create session pool failed";
+            break;
+        }
+
+        srv->batch_pool = mpp_mem_pool_init(batch_task_size);
+        if (!srv->batch_pool) {
+            srv->server_error = "create batch tack pool failed";
+            break;
+        }
+
+        srv->inited = 1;
+    } while (0);
+
+    if (!srv->inited) {
+        server_clear(srv);
+        srv_server = NULL;
+    }
 }
 
-MPP_RET mpp_server_attach(MppDev ctx)
+static void mpp_server_deinit()
 {
-    MppDevMppService *dev = (MppDevMppService *)ctx;
+    MppDevServer *srv = srv_server;
 
-    return MppDevServer::get_inst()->attach(dev);
+    srv_server = NULL;
+
+    if (srv) {
+        rk_s32 i;
+
+        for (i = 0; i < VPU_CLIENT_BUTT; i++)
+            bat_server_put(srv, (MppClientType)i);
+
+        mpp_mutex_destroy(&srv->lock);
+        server_clear(srv);
+    }
 }
 
-MPP_RET mpp_server_detach(MppDev ctx)
+rk_s32 mpp_server_attach(MppDev ctx)
 {
-    MppDevMppService *dev = (MppDevMppService *)ctx;
+    MppDevServer *srv = get_srv_server();
+    rk_s32 ret = rk_nok;
 
-    return MppDevServer::get_inst()->detach(dev);
+    if (srv && ctx) {
+        MppDevMppService *dev = (MppDevMppService *)ctx;
+
+        ret = server_attach(srv, dev);
+    }
+
+    return ret;
 }
 
-MPP_RET mpp_server_send_task(MppDev ctx)
+rk_s32 mpp_server_detach(MppDev ctx)
 {
-    MPP_RET ret = MppDevServer::get_inst()->check_status();
-    if (!ret)
+    MppDevServer *srv = get_srv_server();
+    rk_s32 ret = rk_nok;
+
+    if (srv && ctx) {
+        MppDevMppService *dev = (MppDevMppService *)ctx;
+
+        ret = server_detach(srv, dev);
+    }
+
+    return ret;
+}
+
+rk_s32 mpp_server_send_task(MppDev ctx)
+{
+    MppDevServer *srv = get_srv_server();
+    rk_s32 ret = rk_nok;
+
+    if (srv && ctx)
         ret = send_task((MppDevMppService *)ctx);
 
     return ret;
 }
 
-MPP_RET mpp_server_wait_task(MppDev ctx, RK_S64 timeout)
+rk_s32 mpp_server_wait_task(MppDev ctx, rk_s64 timeout)
 {
-    MPP_RET ret = MppDevServer::get_inst()->check_status();
-    if (!ret)
+    MppDevServer *srv = get_srv_server();
+    rk_s32 ret = rk_nok;
+
+    if (srv && ctx)
         ret = wait_task((MppDevMppService *)ctx, timeout);
 
     return ret;
 }
+
+MPP_SINGLETON(MPP_SGLN_SERVER, mpp_server, mpp_server_init, mpp_server_deinit)
