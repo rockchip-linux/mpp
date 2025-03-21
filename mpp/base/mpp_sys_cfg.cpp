@@ -311,7 +311,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_VIDEO_CodingHEVC :
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 8);
+            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingAVC :
         case MPP_VIDEO_CodingAVSPLUS :
