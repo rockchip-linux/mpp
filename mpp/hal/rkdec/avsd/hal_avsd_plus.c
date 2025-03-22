@@ -528,11 +528,13 @@ static MPP_RET update_parameters(AvsdHalCtx_t *p_hal)
 
 static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 {
-    RK_U8 i = 0;
+    RK_U32 i = 0;
     RK_U8 *pdata = NULL;
     MppBuffer mbuffer = NULL;
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdPlusRegs_t *p_regs = (AvsdPlusRegs_t *)p_hal->p_regs;
+    RK_U32 stream_remain = 0;
+    RK_U8 *ptr = NULL;
 
     //!< re-find start code and calculate offset
     p_hal->data_offset = p_regs->sw12.rlc_vlc_base >> 10;
@@ -541,13 +543,27 @@ static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 
     mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
     pdata = (RK_U8 *)mpp_buffer_get_ptr(mbuffer) + p_hal->data_offset;
+    stream_remain = p_hal->syn.bitstream_size - p_hal->data_offset;
 
-    while (i < 16) {
-        if (pdata[i] == 0 && pdata[i + 1] == 0 && pdata[i + 2] == 1) {
-            p_hal->data_offset += i;
+    AVSD_HAL_DBG(AVSD_HAL_DBG_OFFSET, "frame_no=%d, poc %d, stream %d, offset %d, remain %d\n",
+                 p_hal->frame_no, p_hal->syn.pp.pictureDistance, p_hal->syn.bitstream_size,
+                 p_hal->data_offset, stream_remain);
+
+    while (stream_remain > 3) {
+        ptr = memchr(pdata, 1, stream_remain);
+
+        if (!ptr)
             break;
+
+        stream_remain = stream_remain - (ptr - pdata + 1);
+
+        if (!ptr[-1] && !ptr[-2]) {
+            p_hal->data_offset = p_hal->syn.bitstream_size - stream_remain - 3;
+            break;
+        } else {
+            pdata = ptr + 1;
+            ptr = NULL;
         }
-        i++;
     }
     AVSD_HAL_DBG(AVSD_HAL_DBG_OFFSET, "frame_no=%d, i=%d, offset=%d\n",
                  p_hal->frame_no, i, p_hal->data_offset);
@@ -676,7 +692,7 @@ MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
         wr_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
         wr_cfg.offset = 0;
 
-        {
+        if (avsd_hal_debug & AVSD_HAL_DBG_ERROR) {
             static RK_U32 frame_no = 0;
             static FILE *fp = NULL;
             RK_U32 i;
