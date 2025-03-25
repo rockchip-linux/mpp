@@ -130,7 +130,8 @@ typedef union KmppEntry_u {
         struct {
             EntryType       prop            : 4;
             EntryValFlag    flag            : 4;
-            EntryValUsage   usage           : 24;
+            EntryValUsage   usage           : 8;
+            rk_u32          reserve         : 16;
             rk_u32          val;
         } v;
         struct {
