@@ -38,7 +38,7 @@
 
 #define ENTRY_TO_TRIE1(ftype, type, f1) \
     do { \
-        KmppLocTbl tbl = FIELD_TO_LOCTBL_ACCESS1(f1, ftype); \
+        KmppEntry tbl = FIELD_TO_LOCTBL_ACCESS1(f1, ftype); \
         kmpp_objdef_add_entry(KMPP_OBJ_IMPL_DEF, #f1, &tbl); \
     } while (0);
 
@@ -62,7 +62,7 @@
 
 #define ENTRY_TO_TRIE2(ftype, type, f1, f2) \
     do { \
-        KmppLocTbl tbl = FIELD_TO_LOCTBL_ACCESS2(KMPP_OBJ_IMPL_TYPE, f1, f2, ftype); \
+        KmppEntry tbl = FIELD_TO_LOCTBL_ACCESS2(KMPP_OBJ_IMPL_TYPE, f1, f2, ftype); \
         kmpp_objdef_add_entry(KMPP_OBJ_IMPL_DEF, #f1":"#f2, &tbl); \
     } while (0);
 

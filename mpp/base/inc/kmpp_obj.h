@@ -9,53 +9,146 @@
 #include <linux/types.h>
 #include "mpp_trie.h"
 
+
+/*
+ * kernel - userspace transaction trie node ctx info (64 bit) definition
+ *
+ * +------+--------------------+---------------------------+
+ * | 8bit |       24 bit       |          32 bit           |
+ * +------+--------------------+---------------------------+
+ *
+ * bit 0~3 - 4-bit entry type (EntryType)
+ * 0 - invalid entry
+ * 1 - trie self info node
+ * 2 - access location table node
+ * 3 - ioctl cmd node
+ *
+ * bit 4~7 - 4-bit entry flag (EntryFlag) for different entry type
+ */
 typedef enum EntryType_e {
-    /* commaon fix size value */
-    ENTRY_TYPE_FIX      = 0x0,
-    ENTRY_TYPE_s32      = (ENTRY_TYPE_FIX + 0),
-    ENTRY_TYPE_u32      = (ENTRY_TYPE_FIX + 1),
-    ENTRY_TYPE_s64      = (ENTRY_TYPE_FIX + 2),
-    ENTRY_TYPE_u64      = (ENTRY_TYPE_FIX + 3),
-    /* value only structure */
-    ENTRY_TYPE_st       = (ENTRY_TYPE_FIX + 4),
-
-    /* kernel and userspace share data */
-    ENTRY_TYPE_SHARE    = 0x6,
-    /* share memory between kernel and userspace */
-    ENTRY_TYPE_shm      = (ENTRY_TYPE_SHARE + 0),
-
-    /* kernel access only data */
-    ENTRY_TYPE_KERNEL   = 0x8,
-    /* kenrel object poineter */
-    ENTRY_TYPE_kobj     = (ENTRY_TYPE_KERNEL + 0),
-    /* kenrel normal data poineter */
-    ENTRY_TYPE_kptr     = (ENTRY_TYPE_KERNEL + 1),
-    /* kernel function poineter */
-    ENTRY_TYPE_kfp      = (ENTRY_TYPE_KERNEL + 2),
-
-    /* userspace access only data */
-    ENTRY_TYPE_USER     = 0xc,
-    /* userspace object poineter */
-    ENTRY_TYPE_uobj     = (ENTRY_TYPE_USER + 0),
-    /* userspace normal data poineter */
-    ENTRY_TYPE_uptr     = (ENTRY_TYPE_USER + 1),
-    /* userspace function poineter */
-    ENTRY_TYPE_ufp      = (ENTRY_TYPE_USER + 2),
-
-    ENTRY_TYPE_BUTT     = 0xf,
+    ENTRY_TYPE_NONE     = 0x0,  /* invalid entry type */
+    ENTRY_TYPE_VAL      = 0x1,  /* 32-bit value  */
+    ENTRY_TYPE_STR      = 0x2,  /* string info property */
+    ENTRY_TYPE_LOC_TBL  = 0x3,  /* entry location table */
+    ENTRY_TYPE_BUTT,
 } EntryType;
 
-/* location table */
-typedef union MppLocTbl_u {
-    rk_u64              val;
-    struct {
-        rk_u16          data_offset;
-        rk_u16          data_size       : 12;
-        EntryType       data_type       : 4;
-        rk_u16          flag_offset;
-        rk_u16          flag_value;
+/*
+ * 4-bit extention flag for different entry property
+ * EntryValFlag     - for ENTRY_TYPE_VAL
+ * EntryValFlag     - for ENTRY_TYPE_STR
+ * EntryLocTblFlag  - for ENTRY_TYPE_LOC_TBL
+ */
+typedef enum EntryValFlag_e {
+    /*
+     * 0 - value is unsigned value
+     * 1 - value is signed value
+     */
+    VALUE_SIGNED        = 0x1,
+} EntryValFlag;
+
+typedef enum EntryValUsage_e {
+    VALUE_NORMAL        = 0x0,
+
+    VALUE_TRIE          = 0x10,
+    /* trie info value */
+    VALUE_TRIE_INFO     = (VALUE_TRIE + 1),
+    /* trie offset from the trie root */
+    VALUE_TRIE_OFFSET   = (VALUE_TRIE + 2),
+
+    /* ioctl cmd */
+    VALUE_IOCTL_CMD     = 0x20,
+} EntryValUsage;
+
+typedef enum EntryStrFlag_e {
+    STRING_NORMAL       = 0x0,
+    /* string is trie self info */
+    STRING_TRIE         = 0x1,
+} EntryStrFlag;
+
+typedef enum EntryLocTblFlag_e {
+    /*
+     * bit 4    - element can be accessed by kernel
+     * bit 5    - element can be accessed by userspace
+     * bit 6    - element is read-only
+     */
+    LOCTBL_KERNEL       = 0x1,
+    LOCTBL_USERSPACE    = 0x2,
+    LOCTBL_READONLY     = 0x4,
+} EntryLocTblFlag;
+
+typedef enum ElemType_e {
+    /* commaon fix size value */
+    ELEM_TYPE_FIX       = 0x0,
+    ELEM_TYPE_s32       = (ELEM_TYPE_FIX + 0),
+    ELEM_TYPE_u32       = (ELEM_TYPE_FIX + 1),
+    ELEM_TYPE_s64       = (ELEM_TYPE_FIX + 2),
+    ELEM_TYPE_u64       = (ELEM_TYPE_FIX + 3),
+    /* pointer type stored by 64-bit */
+    ELEM_TYPE_ptr       = (ELEM_TYPE_FIX + 4),
+    /* value only structure */
+    ELEM_TYPE_st        = (ELEM_TYPE_FIX + 5),
+
+    /* kernel and userspace share data */
+    ELEM_TYPE_SHARE     = 0x6,
+    /* share memory between kernel and userspace */
+    ELEM_TYPE_shm       = (ELEM_TYPE_SHARE + 0),
+
+    /* kernel access only data */
+    ELEM_TYPE_KERNEL    = 0x8,
+    /* kenrel object poineter */
+    ELEM_TYPE_kobj      = (ELEM_TYPE_KERNEL + 0),
+    /* kenrel normal data poineter */
+    ELEM_TYPE_kptr      = (ELEM_TYPE_KERNEL + 1),
+    /* kernel function poineter */
+    ELEM_TYPE_kfp       = (ELEM_TYPE_KERNEL + 2),
+
+    /* userspace access only data */
+    ELEM_TYPE_USER      = 0xc,
+    /* userspace object poineter */
+    ELEM_TYPE_uobj      = (ELEM_TYPE_USER + 0),
+    /* userspace normal data poineter */
+    ELEM_TYPE_uptr      = (ELEM_TYPE_USER + 1),
+    /* userspace function poineter */
+    ELEM_TYPE_ufp       = (ELEM_TYPE_USER + 2),
+
+    ELEM_TYPE_BUTT      = 0xf,
+} ElemType;
+
+/* element update flag type */
+typedef enum ElemFlagType_e {
+    ELEM_FLAG_NONE,     /* element without update flag */
+    ELEM_FLAG_START,    /* element update flag will align to new 32bit */
+    ELEM_FLAG_UPDATE,   /* element flag increase by one */
+    ELEM_FLAG_HOLD,     /* element flag equal to previous one */
+} ElemFlagType;
+
+typedef union KmppEntry_u {
+    rk_u64                  val;
+    union {
+        EntryType           type            : 4;
+        struct {
+            EntryType       prop            : 4;
+            EntryValFlag    flag            : 4;
+            EntryValUsage   usage           : 24;
+            rk_u32          val;
+        } v;
+        struct {
+            EntryType       prop            : 4;
+            EntryValFlag    flag            : 4;
+            rk_u32          len             : 24;
+            rk_u32          offset;
+        } str;
+        struct {
+            EntryType       type            : 4;
+            EntryLocTblFlag flag            : 4;
+            ElemType        elem_type       : 8;
+            rk_u16          elem_size;
+            rk_u16          elem_offset;
+            rk_u16          flag_offset;    /* define by ElemFlagType */
+        } tbl;
     };
-} KmppLocTbl;
+} KmppEntry;
 
 /* MUST be the same to the KmppObjShm in rk-mpp-kobj.h */
 typedef struct KmppShmPtr_t {
@@ -127,16 +220,16 @@ rk_s32 kmpp_obj_set_u64(KmppObj obj, const char *name, rk_u64 val);
 rk_s32 kmpp_obj_get_u64(KmppObj obj, const char *name, rk_u64 *val);
 rk_s32 kmpp_obj_set_st(KmppObj obj, const char *name, void *val);
 rk_s32 kmpp_obj_get_st(KmppObj obj, const char *name, void *val);
-rk_s32 kmpp_obj_tbl_set_s32(KmppObj obj, KmppLocTbl *tbl, rk_s32 val);
-rk_s32 kmpp_obj_tbl_get_s32(KmppObj obj, KmppLocTbl *tbl, rk_s32 *val);
-rk_s32 kmpp_obj_tbl_set_u32(KmppObj obj, KmppLocTbl *tbl, rk_u32 val);
-rk_s32 kmpp_obj_tbl_get_u32(KmppObj obj, KmppLocTbl *tbl, rk_u32 *val);
-rk_s32 kmpp_obj_tbl_set_s64(KmppObj obj, KmppLocTbl *tbl, rk_s64 val);
-rk_s32 kmpp_obj_tbl_get_s64(KmppObj obj, KmppLocTbl *tbl, rk_s64 *val);
-rk_s32 kmpp_obj_tbl_set_u64(KmppObj obj, KmppLocTbl *tbl, rk_u64 val);
-rk_s32 kmpp_obj_tbl_get_u64(KmppObj obj, KmppLocTbl *tbl, rk_u64 *val);
-rk_s32 kmpp_obj_tbl_set_st(KmppObj obj, KmppLocTbl *tbl, void *val);
-rk_s32 kmpp_obj_tbl_get_st(KmppObj obj, KmppLocTbl *tbl, void *val);
+rk_s32 kmpp_obj_tbl_set_s32(KmppObj obj, KmppEntry *tbl, rk_s32 val);
+rk_s32 kmpp_obj_tbl_get_s32(KmppObj obj, KmppEntry *tbl, rk_s32 *val);
+rk_s32 kmpp_obj_tbl_set_u32(KmppObj obj, KmppEntry *tbl, rk_u32 val);
+rk_s32 kmpp_obj_tbl_get_u32(KmppObj obj, KmppEntry *tbl, rk_u32 *val);
+rk_s32 kmpp_obj_tbl_set_s64(KmppObj obj, KmppEntry *tbl, rk_s64 val);
+rk_s32 kmpp_obj_tbl_get_s64(KmppObj obj, KmppEntry *tbl, rk_s64 *val);
+rk_s32 kmpp_obj_tbl_set_u64(KmppObj obj, KmppEntry *tbl, rk_u64 val);
+rk_s32 kmpp_obj_tbl_get_u64(KmppObj obj, KmppEntry *tbl, rk_u64 *val);
+rk_s32 kmpp_obj_tbl_set_st(KmppObj obj, KmppEntry *tbl, void *val);
+rk_s32 kmpp_obj_tbl_get_st(KmppObj obj, KmppEntry *tbl, void *val);
 
 /* userspace access only function */
 rk_s32 kmpp_obj_set_obj(KmppObj obj, const char *name, KmppObj val);
@@ -145,18 +238,18 @@ rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void *val);
 rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val);
 rk_s32 kmpp_obj_set_fp(KmppObj obj, const char *name, void *val);
 rk_s32 kmpp_obj_get_fp(KmppObj obj, const char *name, void **val);
-rk_s32 kmpp_obj_tbl_set_obj(KmppObj obj, KmppLocTbl *tbl, KmppObj val);
-rk_s32 kmpp_obj_tbl_get_obj(KmppObj obj, KmppLocTbl *tbl, KmppObj *val);
-rk_s32 kmpp_obj_tbl_set_ptr(KmppObj obj, KmppLocTbl *tbl, void *val);
-rk_s32 kmpp_obj_tbl_get_ptr(KmppObj obj, KmppLocTbl *tbl, void **val);
-rk_s32 kmpp_obj_tbl_set_fp(KmppObj obj, KmppLocTbl *tbl, void *val);
-rk_s32 kmpp_obj_tbl_get_fp(KmppObj obj, KmppLocTbl *tbl, void **val);
+rk_s32 kmpp_obj_tbl_set_obj(KmppObj obj, KmppEntry *tbl, KmppObj val);
+rk_s32 kmpp_obj_tbl_get_obj(KmppObj obj, KmppEntry *tbl, KmppObj *val);
+rk_s32 kmpp_obj_tbl_set_ptr(KmppObj obj, KmppEntry *tbl, void *val);
+rk_s32 kmpp_obj_tbl_get_ptr(KmppObj obj, KmppEntry *tbl, void **val);
+rk_s32 kmpp_obj_tbl_set_fp(KmppObj obj, KmppEntry *tbl, void *val);
+rk_s32 kmpp_obj_tbl_get_fp(KmppObj obj, KmppEntry *tbl, void **val);
 
 /* share access function */
 rk_s32 kmpp_obj_set_shm(KmppObj obj, const char *name, KmppShmPtr *val);
 rk_s32 kmpp_obj_get_shm(KmppObj obj, const char *name, KmppShmPtr *val);
-rk_s32 kmpp_obj_tbl_set_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
-rk_s32 kmpp_obj_tbl_get_shm(KmppObj obj, KmppLocTbl *tbl, KmppShmPtr *val);
+rk_s32 kmpp_obj_tbl_set_shm(KmppObj obj, KmppEntry *tbl, KmppShmPtr *val);
+rk_s32 kmpp_obj_tbl_get_shm(KmppObj obj, KmppEntry *tbl, KmppShmPtr *val);
 
 /* helper for get share object from a share memory element */
 rk_s32 kmpp_obj_set_shm_obj(KmppObj obj, const char *name, KmppObj val);
