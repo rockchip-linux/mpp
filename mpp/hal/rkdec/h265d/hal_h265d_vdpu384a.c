@@ -698,7 +698,7 @@ static void h265d_refine_rcb_size(Vdpu384aRcbInfo *rcb_info,
     // save space mode : half for RCB_FILTERD_ROW, half for RCB_FILTERD_PROTECT_ROW
     if (width > 4096)
         filterd_row_append = 27648;
-    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2) + filterd_row_append;
     rcb_info[RCB_FILTERD_PROTECT_ROW].size = MPP_RCB_BYTES(rcb_bits / 2) + filterd_row_append;
     rcb_bits += ext_row_align_size;
     if (tile_row_cut_num)

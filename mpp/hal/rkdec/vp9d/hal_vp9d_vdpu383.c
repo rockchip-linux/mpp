@@ -422,7 +422,7 @@ static void vp9d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
     if (width > 4096)
         filterd_row_append = 27648;
     rcb_bits = (RK_U32)(MPP_ALIGN(width, 64) * (41 * bit_depth + 13));
-    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_bits += ext_row_align_size;
     if (tile_row_num > 1)

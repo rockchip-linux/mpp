@@ -309,7 +309,7 @@ static void avs2d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
     if (width > 4096)
         filterd_row_append = 27648;
     rcb_bits = MPP_ALIGN(width, 64) * (30 * bit_depth + 9);
-    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
 

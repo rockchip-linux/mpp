@@ -762,7 +762,7 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu383RcbInfo *rcb_info
     rcb_bits = width * 17 * ((6 + 3 * row_uv_para) * (mbaff ? 2 : 1) + 2 * row_uv_para + 1.5);
     if (width > 4096)
         filterd_row_append = 27648;
-    rcb_info[RCB_FILTERD_ROW].size = MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FILTERD_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
 
     rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
