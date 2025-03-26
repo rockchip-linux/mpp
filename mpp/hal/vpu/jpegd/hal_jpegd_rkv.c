@@ -821,7 +821,8 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
         }
 
         if (MPP_FRAME_FMT_IS_RGB(output_fmt)) {
-            if (soc_type == ROCKCHIP_SOC_RK3576) {
+            // The new JPEG decoder defaults to no RGB support.
+            if (soc_type >= ROCKCHIP_SOC_RK3576) {
                 ret = MPP_ERR_VALUE;
             } else if (soc_type >= ROCKCHIP_SOC_RK3588) {
                 // only rgb565be and rgb888 supported
