@@ -894,7 +894,27 @@ static void vepu511_h265_set_prep(void *hal, HalEncTask *task, H265eV511RegSet *
     reg_frm->common.enc_pic.rec_fbc_dis = 0;
 
     reg_frm->rdo_cfg.chrm_spcl  = 0;
-    reg_frm->rdo_cfg.cu_inter_e = 0x5b;
+
+    /*
+     * H265 Max Inter/Intra cu prediction Mode.
+     * More prediction modes lead to better compression performance but increase computational cycles.
+     *
+     * Default speed preset configuration to 0.67 PPC, ~40 FPS for 4K resolution at 500MHz:
+     * - Set Inter prediction 32/16/8 CUs at 1/3/2 and Intra 32/16/8/4 CUs at 1,
+     *   Maximize the number of modes while ensuring the prediction hierarchy remains unchanged.
+     * - Set cime_fuse = 1, disable dual-window search for higher real-time performance.
+     * - Set fme_lvl_mrg = 1, enable FME's depth1 and depth2 joint search,
+     *   improves real-time performance but will reduce the compression ratio.
+     * - Set cime_srch_lftw/rgtw/uph/dwnh = 12/12/15/15, expand CIME search range degraded real-time performance.
+     * - Set rime_prelvl_en = 0, disable RIME pre-level to improve real-time performance.
+     * - Set fmdc_adju_split32 = 0, enable CU32 block prediction.
+     *   Setting fmdc_adju_split32 = 1 restricts prediction to CU16/8 only, improving real-time performance.
+    */
+    reg_frm->rdo_cfg.cu_inter_e = 0x5a;
+    reg_frm->rdo_intra_mode.intra_pu4_mode_num  = 1;
+    reg_frm->rdo_intra_mode.intra_pu8_mode_num  = 1;
+    reg_frm->rdo_intra_mode.intra_pu16_mode_num = 1;
+    reg_frm->rdo_intra_mode.intra_pu32_mode_num = 1;
 
     if (syn->pp.num_long_term_ref_pics_sps) {
         reg_frm->rdo_cfg.ltm_col = 0;
@@ -919,12 +939,6 @@ static void vepu511_h265_set_prep(void *hal, HalEncTask *task, H265eV511RegSet *
 
         reg_frm->synt_nal.nal_unit_type = i_nal_type;
     }
-
-    reg_frm->rdo_intra_mode.intra_pu4_mode_num  = 1;
-    reg_frm->rdo_intra_mode.intra_pu8_mode_num  = 2;
-    reg_frm->rdo_intra_mode.intra_pu16_mode_num = 2;
-    reg_frm->rdo_intra_mode.intra_pu32_mode_num = 2;
-
 }
 
 static void vepu511_h265_set_split(H265eV511RegSet *regs, MppEncCfgSet *enc_cfg)
@@ -1008,19 +1022,20 @@ static void vepu511_h265_set_me_regs(H265eV511HalContext *ctx, H265eSyntax_new *
     reg_frm->common.me_cach.fme_prefsu_en = 0;
 
     /* CIME: 0x1760 - 0x176C */
-    s->me_sqi_comb.cime_pmv_num = 1;
-    s->me_sqi_comb.cime_fuse   = 1;
-    s->me_sqi_comb.move_lambda = 2;
+    s->me_sqi_comb.cime_pmv_num     = 1;
+    s->me_sqi_comb.cime_fuse        = 1;
+    s->me_sqi_comb.move_lambda      = 2;
     s->me_sqi_comb.rime_lvl_mrg     = 0;
-    s->me_sqi_comb.rime_prelvl_en   = 3;
+    s->me_sqi_comb.rime_prelvl_en   = 0;
     s->me_sqi_comb.rime_prersu_en   = 0;
-    s->me_sqi_comb.fme_lvl_mrg = 0;
-    s->cime_mvd_th_comb.cime_mvd_th0 = 8;
-    s->cime_mvd_th_comb.cime_mvd_th1 = 20;
-    s->cime_mvd_th_comb.cime_mvd_th2 = 32;
-    s->cime_madp_th_comb.cime_madp_th = 16;
+    s->me_sqi_comb.fme_lvl_mrg      = 1;
+
+    s->cime_mvd_th_comb.cime_mvd_th0     = 8;
+    s->cime_mvd_th_comb.cime_mvd_th1     = 20;
+    s->cime_mvd_th_comb.cime_mvd_th2     = 32;
+    s->cime_madp_th_comb.cime_madp_th    = 16;
     s->cime_madp_th_comb.ratio_consi_cfg = 8;
-    s->cime_madp_th_comb.ratio_bmv_dist = 8;
+    s->cime_madp_th_comb.ratio_bmv_dist  = 8;
     s->cime_multi_comb.cime_multi0 = 8;
     s->cime_multi_comb.cime_multi1 = 12;
     s->cime_multi_comb.cime_multi2 = 16;
@@ -1345,6 +1360,7 @@ static void vepu511_h265_set_rc_regs(H265eV511HalContext *ctx, H265eV511RegSet *
     reg_rc->roi_qthd2.qpmax_area6 = h265->qpmax_map[6] > 0 ? h265->qpmax_map[6] : rc_cfg->quality_max;
     reg_rc->roi_qthd2.qpmin_area7 = h265->qpmin_map[7] > 0 ? h265->qpmin_map[7] : rc_cfg->quality_min;
     reg_rc->roi_qthd3.qpmax_area7 = h265->qpmax_map[7] > 0 ? h265->qpmax_map[7] : rc_cfg->quality_max;
+    reg_rc->roi_cfg.fmdc_adj1_hevc.fmdc_adju_split32 = 0;
 }
 
 static void vepu511_h265_set_quant_regs(H265eV511HalContext *ctx, H265eV511RegSet *regs)
@@ -1931,7 +1947,7 @@ static void vepu511_h265_set_slice_regs(H265eSyntax_new *syn, H265eVepu511Frame 
     regs->synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
     regs->synt_sli1.sli_cb_qp_ofst = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
                                      syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
-    regs->synt_sli1.max_mrg_cnd           = syn->sp.max_mrg_cnd;
+    regs->synt_sli1.max_mrg_cnd           = 1;
 
     regs->synt_sli1.col_ref_idx           = syn->sp.col_ref_idx;
     regs->synt_sli1.col_frm_l0_flg        = syn->sp.col_frm_l0_flg;
