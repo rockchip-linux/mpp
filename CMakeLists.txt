@@ -6,6 +6,7 @@
 # ----------------------------------------------------------------------------
 
 # vim: syntax=cmake
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 if(NOT CMAKE_BUILD_TYPE)
     # default to Release build for GCC builds
     set(CMAKE_BUILD_TYPE Debug CACHE STRING
