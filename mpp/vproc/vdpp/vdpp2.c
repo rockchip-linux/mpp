@@ -356,6 +356,9 @@ static void set_hist_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_
         dci_vsd_mode = VDPP_DCI_VSD_MODE_2;
     }
 
+    dci_vsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP) ? 0 : dci_vsd_mode;
+    dci_hsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP) ? 0 : dci_hsd_mode;
+
     switch (dci_hsd_mode) {
     case VDPP_DCI_HSD_DISABLE:
         hsd_sample_num = 2;
@@ -403,12 +406,8 @@ static void set_hist_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_
     dst_reg->dci.reg2.sw_vdpp_src_pic_height = MPP_ALIGN_DOWN(src_params->src_height, vsd_sample_num) - 1;
     dst_reg->dci.reg3.sw_dci_data_format = src_params->dci_format;
     dst_reg->dci.reg3.sw_dci_csc_range = src_params->dci_csc_range;
-    dst_reg->dci.reg3.sw_dci_vsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP)
-                                        ? 0
-                                        : dci_vsd_mode;
-    dst_reg->dci.reg3.sw_dci_hsd_mode = (src_params->working_mode == VDPP_WORK_MODE_VEP)
-                                        ? 0
-                                        : dci_hsd_mode;
+    dst_reg->dci.reg3.sw_dci_vsd_mode = dci_vsd_mode;
+    dst_reg->dci.reg3.sw_dci_hsd_mode = dci_hsd_mode;
     dst_reg->dci.reg3.sw_dci_alpha_swap = src_params->dci_alpha_swap;
     dst_reg->dci.reg3.sw_dci_rb_swap = src_params->dci_rbuv_swap;
     dst_reg->dci.reg3.sw_dci_blk_hsize = sw_dci_blk_hsize;
