@@ -51,37 +51,29 @@ static MPP_RET hal_jpege_init(void *hal, MppEncHalCfg *cfg)
 
     mpp_env_get_u32("hal_jpege_debug", &hal_jpege_debug, 0);
 
-    if (vcodec_type & HAVE_RKVENC) {
-        if (HWID_VEPU540C == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))
-            api = &hal_jpege_vepu540c;
-        else if (HWID_VEPU511 == mpp_get_client_hw_id(VPU_CLIENT_RKVENC))
-            api = &hal_jpege_vepu511;
-        else {
-            mpp_err("vcodec type %08x can not find JPEG encoder device\n", vcodec_type);
-            ret = MPP_NOK;
-        }
-    } else if (vcodec_type & (HAVE_VEPU2 | HAVE_VEPU2_JPEG)) {
+    if (vcodec_type & (HAVE_VEPU2 | HAVE_VEPU2_JPEG)) {
         api = &hal_jpege_vepu2;
     } else if (vcodec_type & HAVE_VEPU1) {
         api = &hal_jpege_vepu1;
     } else if (vcodec_type & HAVE_JPEG_ENC) {
         api = &hal_jpege_vpu720;
-    } else {
-        mpp_err("vcodec type %08x can not find JPEG encoder device\n",
-                vcodec_type);
-        ret = MPP_NOK;
+    } else if (vcodec_type & HAVE_RKVENC) {
+        RK_U32 hw_id = mpp_get_client_hw_id(VPU_CLIENT_RKVENC);
+
+        if (hw_id == HWID_VEPU540C)
+            api = &hal_jpege_vepu540c;
+        else if (hw_id == HWID_VEPU511)
+            api = &hal_jpege_vepu511;
     }
 
-    mpp_assert(api);
+    if (!api) {
+        mpp_err("vcodec type %08x can not find JPEG encoder device\n", vcodec_type);
+        return MPP_NOK;
+    }
 
-    if (!ret)
-        hw_ctx = mpp_calloc_size(void, api->ctx_size);
-
+    hw_ctx = mpp_calloc_size(void, api->ctx_size);
     ctx->api = api;
     ctx->hw_ctx = hw_ctx;
-
-    if (ret)
-        return ret;
 
     ret = api->init(hw_ctx, cfg);
     return ret;
