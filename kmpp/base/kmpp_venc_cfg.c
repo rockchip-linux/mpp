@@ -3,9 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#define MODULE_TAG "mpp_venc_kcfg"
+#define MODULE_TAG "kmpp_venc_cfg"
 
-#include "rk_venc_kcfg.h"
 #include <string.h>
 #include <pthread.h>
 
@@ -15,6 +14,7 @@
 #include "mpp_common.h"
 
 #include "kmpp_obj.h"
+#include "rk_venc_kcfg.h"
 
 #define VENC_KCFG_DBG_FUNC              (0x00000001)
 #define VENC_KCFG_DBG_INFO              (0x00000002)
@@ -31,19 +31,19 @@
 static RK_U32 venc_kcfg_debug = 0;
 
 static char *kcfg_names[] = {
-    [MPP_VENC_KCFG_TYPE_INIT]   = "KmppVencInitCfg",
-    [MPP_VENC_KCFG_TYPE_DEINIT] = "KmppVencDeinitCfg",
-    [MPP_VENC_KCFG_TYPE_RESET]  = "KmppVencResetCfg",
-    [MPP_VENC_KCFG_TYPE_START]  = "KmppVencStartCfg",
-    [MPP_VENC_KCFG_TYPE_STOP]   = "KmppVencStopCfg",
+    [KMPP_VENC_CFG_TYPE_INIT]   = "KmppVencInitCfg",
+    [KMPP_VENC_CFG_TYPE_DEINIT] = "KmppVencDeinitCfg",
+    [KMPP_VENC_CFG_TYPE_RESET]  = "KmppVencResetCfg",
+    [KMPP_VENC_CFG_TYPE_START]  = "KmppVencStartCfg",
+    [KMPP_VENC_CFG_TYPE_STOP]   = "KmppVencStopCfg",
 };
-static KmppObjDef kcfg_defs[MPP_VENC_KCFG_TYPE_BUTT] = {NULL};
+static KmppObjDef kcfg_defs[KMPP_VENC_CFG_TYPE_BUTT] = {NULL};
 static pthread_mutex_t lock;
 
-static void mpp_venc_kcfg_def_init() __attribute__((constructor));
-static void mpp_venc_kcfg_def_deinit() __attribute__((destructor));
+static void kmpp_venc_cfg_def_init() __attribute__((constructor));
+static void kmpp_venc_cfg_def_deinit() __attribute__((destructor));
 
-static void mpp_venc_kcfg_def_init(void)
+static void kmpp_venc_cfg_def_init(void)
 {
     pthread_mutexattr_t attr;
 
@@ -53,12 +53,12 @@ static void mpp_venc_kcfg_def_init(void)
     pthread_mutexattr_destroy(&attr);
 }
 
-static void mpp_venc_kcfg_def_deinit(void)
+static void kmpp_venc_cfg_def_deinit(void)
 {
     RK_U32 i;
 
     pthread_mutex_lock(&lock);
-    for (i = 0; i < MPP_VENC_KCFG_TYPE_BUTT; i++) {
+    for (i = 0; i < KMPP_VENC_CFG_TYPE_BUTT; i++) {
         if (kcfg_defs[i]) {
             kmpp_objdef_put(kcfg_defs[i]);
             kcfg_defs[i] = NULL;
@@ -68,7 +68,7 @@ static void mpp_venc_kcfg_def_deinit(void)
     pthread_mutex_destroy(&lock);
 }
 
-MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type)
+MPP_RET kmpp_venc_cfg_init(KmppVenccfg *cfg, MppVencKcfgType type)
 {
     KmppObj obj = NULL;
 
@@ -77,7 +77,7 @@ MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type)
         return MPP_ERR_NULL_PTR;
     }
 
-    if (type >= MPP_VENC_KCFG_TYPE_BUTT) {
+    if (type >= KMPP_VENC_CFG_TYPE_BUTT) {
         mpp_err_f("invalid config type %d\n", type);
         return MPP_ERR_VALUE;
     }
@@ -103,10 +103,10 @@ MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type)
     return obj ? MPP_OK : MPP_NOK;
 }
 
-MPP_RET mpp_venc_kcfg_init_by_name(MppVencKcfg *cfg, const char *name)
+MPP_RET kmpp_venc_cfg_init_by_name(KmppVenccfg *cfg, const char *name)
 {
     KmppObj obj = NULL;
-    MppVencKcfgType type = MPP_VENC_KCFG_TYPE_BUTT;
+    MppVencKcfgType type = KMPP_VENC_CFG_TYPE_BUTT;
     RK_U32 i;
 
     if (!cfg) {
@@ -114,14 +114,14 @@ MPP_RET mpp_venc_kcfg_init_by_name(MppVencKcfg *cfg, const char *name)
         return MPP_ERR_NULL_PTR;
     }
 
-    for (i = 0; i < MPP_VENC_KCFG_TYPE_BUTT; i++) {
+    for (i = 0; i < KMPP_VENC_CFG_TYPE_BUTT; i++) {
         if (!strncmp(name, kcfg_names[i], strlen(kcfg_names[i]))) {
             type = i;
             break;
         }
     }
 
-    if (type >= MPP_VENC_KCFG_TYPE_BUTT) {
+    if (type >= KMPP_VENC_CFG_TYPE_BUTT) {
         mpp_err_f("invalid config name %s\n", name);
         return MPP_ERR_VALUE;
     }
@@ -135,7 +135,7 @@ MPP_RET mpp_venc_kcfg_init_by_name(MppVencKcfg *cfg, const char *name)
     return obj ? MPP_OK : MPP_NOK;
 }
 
-MPP_RET mpp_venc_kcfg_deinit(MppVencKcfg cfg)
+MPP_RET kmpp_venc_cfg_deinit(KmppVenccfg cfg)
 {
     KmppObj obj = cfg;
 
@@ -149,8 +149,8 @@ MPP_RET mpp_venc_kcfg_deinit(MppVencKcfg cfg)
     return MPP_OK;
 }
 
-#define MPP_VENC_KCFG_ACCESS(set_type, get_type, cfg_type) \
-    MPP_RET mpp_venc_kcfg_set_##cfg_type(MppVencKcfg cfg, const char *name, set_type val) \
+#define KMPP_VENC_CFG_ACCESS(set_type, get_type, cfg_type) \
+    MPP_RET kmpp_venc_cfg_set_##cfg_type(KmppVenccfg cfg, const char *name, set_type val) \
     { \
         if (!cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
@@ -160,7 +160,7 @@ MPP_RET mpp_venc_kcfg_deinit(MppVencKcfg cfg)
         MPP_RET ret = (MPP_RET)kmpp_obj_set_##cfg_type(obj, name, val); \
         return ret; \
     } \
-    MPP_RET mpp_venc_kcfg_get_##cfg_type(MppVencKcfg cfg, const char *name, get_type val) \
+    MPP_RET kmpp_venc_cfg_get_##cfg_type(KmppVenccfg cfg, const char *name, get_type val) \
     { \
         if (!cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
@@ -171,14 +171,14 @@ MPP_RET mpp_venc_kcfg_deinit(MppVencKcfg cfg)
         return ret; \
     }
 
-MPP_VENC_KCFG_ACCESS(RK_S32, RK_S32*, s32);
-MPP_VENC_KCFG_ACCESS(RK_U32, RK_U32*, u32);
-MPP_VENC_KCFG_ACCESS(RK_S64, RK_S64*, s64);
-MPP_VENC_KCFG_ACCESS(RK_U64, RK_U64*, u64);
-MPP_VENC_KCFG_ACCESS(void *, void **, ptr);
-MPP_VENC_KCFG_ACCESS(void *, void  *, st);
+KMPP_VENC_CFG_ACCESS(RK_S32, RK_S32*, s32);
+KMPP_VENC_CFG_ACCESS(RK_U32, RK_U32*, u32);
+KMPP_VENC_CFG_ACCESS(RK_S64, RK_S64*, s64);
+KMPP_VENC_CFG_ACCESS(RK_U64, RK_U64*, u64);
+KMPP_VENC_CFG_ACCESS(void *, void **, ptr);
+KMPP_VENC_CFG_ACCESS(void *, void  *, st);
 
-void mpp_venc_kcfg_show(MppVencKcfg cfg)
+void kmpp_venc_cfg_show(KmppVenccfg cfg)
 {
     KmppObj obj = cfg;
 

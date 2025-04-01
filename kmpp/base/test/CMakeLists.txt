@@ -1,9 +1,9 @@
 # vim: syntax=cmake
 # ----------------------------------------------------------------------------
-# mpp/base built-in unit test case
+# kmpp/base built-in unit test case
 # ----------------------------------------------------------------------------
 # macro for adding osal sub-module unit test
-macro(add_mpp_base_test module)
+macro(add_kmpp_base_test module)
     set(test_name ${module}_test)
     string(TOUPPER ${test_name} test_tag)
     #message(STATUS "moduule   : ${module}")
@@ -19,41 +19,5 @@ macro(add_mpp_base_test module)
     endif()
 endmacro()
 
-# task system unit test
-add_mpp_base_test(mpp_task)
-
-# mpp_buffer unit test
-add_mpp_base_test(mpp_buffer)
-
-# mpp_packet unit test
-add_mpp_base_test(mpp_packet)
-
-# mpp_meta unit test
-add_mpp_base_test(mpp_meta)
-
-# mpp_bitwriter unit test
-add_mpp_base_test(mpp_bit)
-
-# mpp_bitread unit test
-add_mpp_base_test(mpp_bit_read)
-
-# mpp_trie unit test
-add_mpp_base_test(mpp_trie)
-
-# mpp_cluster unit test
-add_mpp_base_test(mpp_cluster)
-
-# mpp_enc_cfg unit test
-add_mpp_base_test(mpp_enc_cfg)
-
-# mpp_enc_ref unit test
-add_mpp_base_test(mpp_enc_ref)
-
-# mpp_dec_cfg unit test
-add_mpp_base_test(mpp_dec_cfg)
-
-# mpp_sys_cfg unit test
-add_mpp_base_test(mpp_sys_cfg)
-
-# mpp_sys_cfgi unit test
-add_mpp_base_test(mpp_sys_cfg_st)
+# kmpp object unit test
+add_kmpp_base_test(kmpp_obj)

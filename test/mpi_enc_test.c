@@ -100,7 +100,7 @@ typedef struct {
     CamSource *cam_ctx;
     MppEncRoiCtx roi_ctx;
 
-    MppVencKcfg init_kcfg;
+    KmppVenccfg init_kcfg;
 
     // resources
     size_t header_size;
@@ -204,11 +204,11 @@ static RK_S32 get_mdinfo_size(MpiEncTestData *p, MppCodingType type)
 
 static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
 {
-    MppVencKcfg init_kcfg = NULL;
+    KmppVenccfg init_kcfg = NULL;
     MpiEncTestData *p = &info->ctx;
     MPP_RET ret = MPP_NOK;
 
-    mpp_venc_kcfg_init(&init_kcfg, MPP_VENC_KCFG_TYPE_INIT);
+    kmpp_venc_cfg_init(&init_kcfg, KMPP_VENC_CFG_TYPE_INIT);
     if (!init_kcfg) {
         mpp_err_f("kmpp_venc_init_cfg_init failed\n");
         return ret;
@@ -216,21 +216,21 @@ static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
 
     p->init_kcfg = init_kcfg;
 
-    mpp_venc_kcfg_set_u32(init_kcfg, "type", MPP_CTX_ENC);
-    mpp_venc_kcfg_set_u32(init_kcfg, "coding", p->type);
-    mpp_venc_kcfg_set_s32(init_kcfg, "chan_id", 0);
-    mpp_venc_kcfg_set_s32(init_kcfg, "online", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "buf_size", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "max_strm_cnt", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "shared_buf_en", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "smart_en", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "max_width", p->width);
-    mpp_venc_kcfg_set_u32(init_kcfg, "max_height", p->height);
-    mpp_venc_kcfg_set_u32(init_kcfg, "max_lt_cnt", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "qpmap_en", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "chan_dup", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "tmvp_enable", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "only_smartp", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "type", MPP_CTX_ENC);
+    kmpp_venc_cfg_set_u32(init_kcfg, "coding", p->type);
+    kmpp_venc_cfg_set_s32(init_kcfg, "chan_id", 0);
+    kmpp_venc_cfg_set_s32(init_kcfg, "online", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "buf_size", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "max_strm_cnt", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "shared_buf_en", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "smart_en", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "max_width", p->width);
+    kmpp_venc_cfg_set_u32(init_kcfg, "max_height", p->height);
+    kmpp_venc_cfg_set_u32(init_kcfg, "max_lt_cnt", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "qpmap_en", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "chan_dup", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "tmvp_enable", 0);
+    kmpp_venc_cfg_set_u32(init_kcfg, "only_smartp", 0);
 
     ret = p->mpi->control(p->ctx, MPP_SET_VENC_INIT_KCFG, init_kcfg);
     if (ret)
@@ -1178,7 +1178,7 @@ MPP_TEST_OUT:
         p->roi_ctx = NULL;
     }
     if (p->init_kcfg)
-        mpp_venc_kcfg_deinit(p->init_kcfg);
+        kmpp_venc_cfg_deinit(p->init_kcfg);
 
     test_ctx_deinit(p);
 

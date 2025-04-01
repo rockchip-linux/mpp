@@ -335,11 +335,21 @@ add_subdirectory(osal)
 # ----------------------------------------------------------------------------
 add_subdirectory(utils)
 
+# Media Process Platform include
+include_directories(mpp/inc)
+include_directories(mpp/base/inc)
+# Kernel Media Process Platform include
+include_directories(kmpp/inc)
+include_directories(kmpp/base/inc)
+
+# ----------------------------------------------------------------------------
+#  Kernel Media Process Platform library
+# ----------------------------------------------------------------------------
+add_subdirectory(kmpp)
+
 # ----------------------------------------------------------------------------
 #  Media Process Platform library
 # ----------------------------------------------------------------------------
-# Media Process Platform include
-include_directories(mpp/inc)
 add_subdirectory(mpp)
 
 # ----------------------------------------------------------------------------
