@@ -2053,9 +2053,12 @@ MPP_RET init_picture(H264_SLICE_t *currSlice)
     H264dErrCtx_t *p_err   = &p_Dec->errctx;
 
     //!< discard stream before I_SLICE
-    p_err->i_slice_no += ((!currSlice->layer_id) && (H264_I_SLICE == currSlice->slice_type ||
-                                                     (p_Vid->recovery.valid_flag && p_Vid->recovery.first_frm_valid &&
-                                                      p_Vid->recovery.first_frm_id == currSlice->frame_num))) ? 1 : 0;
+    if (!p_err->i_slice_no && p_Vid->recovery.valid_flag && p_Vid->recovery.first_frm_valid &&
+        p_Vid->recovery.first_frm_id == currSlice->frame_num) {
+        p_err->i_slice_no += (!currSlice->layer_id) ? 1 : 0;
+    } else {
+        p_err->i_slice_no += ((!currSlice->layer_id) && (H264_I_SLICE == currSlice->slice_type)) ? 1 : 0;
+    }
 
     if (!p_err->i_slice_no) {
         H264D_WARNNING("[Discard] Discard slice before I Slice. \n");
