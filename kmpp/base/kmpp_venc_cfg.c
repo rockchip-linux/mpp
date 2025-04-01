@@ -96,7 +96,7 @@ MPP_RET kmpp_venc_cfg_init(KmppVenccfg *cfg, MppVencKcfgType type)
     }
     pthread_mutex_unlock(&lock);
 
-    kmpp_obj_get(&obj, kcfg_defs[type]);
+    kmpp_obj_get_f(&obj, kcfg_defs[type]);
 
     *cfg = obj;
 
@@ -128,7 +128,7 @@ MPP_RET kmpp_venc_cfg_init_by_name(KmppVenccfg *cfg, const char *name)
 
     mpp_env_get_u32("venc_kcfg_debug", &venc_kcfg_debug, 0);
 
-    kmpp_obj_get(&obj, kcfg_defs[type]);
+    kmpp_obj_get_f(&obj, kcfg_defs[type]);
 
     *cfg = obj;
 
@@ -144,9 +144,7 @@ MPP_RET kmpp_venc_cfg_deinit(KmppVenccfg cfg)
         return MPP_ERR_NULL_PTR;
     }
 
-    kmpp_obj_put(obj);
-
-    return MPP_OK;
+    return kmpp_obj_put_f(obj);
 }
 
 #define KMPP_VENC_CFG_ACCESS(set_type, get_type, cfg_type) \

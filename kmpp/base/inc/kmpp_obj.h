@@ -182,6 +182,7 @@ extern "C" {
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
 rk_s32 kmpp_objdef_put(KmppObjDef def);
 
+rk_s32 kmpp_objdef_get_entry(KmppObjDef def, const char *name, KmppEntry **tbl);
 rk_s32 kmpp_objdef_dump(KmppObjDef def);
 
 /* mpp objcet internal element set / get function */
@@ -190,12 +191,19 @@ rk_s32 kmpp_objdef_get_entry_size(KmppObjDef def);
 MppTrie kmpp_objdef_get_trie(KmppObjDef def);
 
 /* import kernel object ref */
-rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def);
-rk_s32 kmpp_obj_get_by_name(KmppObj *obj, const char *name);
-rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr);
-rk_s32 kmpp_obj_put(KmppObj obj);
+rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller);
+rk_s32 kmpp_obj_get_by_name(KmppObj *obj, const char *name, const char *caller);
+rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller);
+rk_s32 kmpp_obj_put(KmppObj obj, const char *caller);
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
-rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out);
+rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
+
+#define kmpp_obj_get_f(obj, def)                kmpp_obj_get(obj, def, __FUNCTION__)
+#define kmpp_obj_get_by_name_f(obj, name)       kmpp_obj_get_by_name(obj, name, __FUNCTION__)
+#define kmpp_obj_get_by_sptr_f(obj, sptr)       kmpp_obj_get_by_sptr(obj, sptr, __FUNCTION__)
+#define kmpp_obj_put_f(obj)                     kmpp_obj_put(obj, __FUNCTION__)
+#define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
+#define kmpp_obj_ioctl_f(obj, cmd, in, out)     kmpp_obj_ioctl(obj, cmd, in, out, __FUNCTION__)
 
 /* KmppShmPtr is the kernel share object userspace base address for kernel ioctl */
 KmppShmPtr *kmpp_obj_to_shm(KmppObj obj);
@@ -206,9 +214,9 @@ const char *kmpp_obj_get_name(KmppObj obj);
  * entry is the userspace address for kernel share object body
  * entry = KmppShmPtr->uaddr + entry_offset
  */
-void *kmpp_obj_get_entry(KmppObj obj);
+void *kmpp_obj_to_entry(KmppObj obj);
 /* offset is the entry offset from kernel share object body */
-rk_s32 kmpp_obj_get_offset(KmppObj obj, const char *name);
+rk_s32 kmpp_obj_to_offset(KmppObj obj, const char *name);
 
 /* value access function */
 rk_s32 kmpp_obj_set_s32(KmppObj obj, const char *name, rk_s32 val);
@@ -255,6 +263,10 @@ rk_s32 kmpp_obj_tbl_get_shm(KmppObj obj, KmppEntry *tbl, KmppShmPtr *val);
 /* helper for get share object from a share memory element */
 rk_s32 kmpp_obj_set_shm_obj(KmppObj obj, const char *name, KmppObj val);
 rk_s32 kmpp_obj_get_shm_obj(KmppObj obj, const char *name, KmppObj *val);
+
+/* update flag check function */
+rk_s32 kmpp_obj_test(KmppObj obj, const char *name);
+rk_s32 kmpp_obj_tbl_test(KmppObj obj, KmppEntry *tbl);
 
 /* run a callback function */
 rk_s32 kmpp_obj_run(KmppObj obj, const char *name);

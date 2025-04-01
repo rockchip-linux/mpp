@@ -5,6 +5,7 @@
 # ----------------------------------------------------------------------------
 add_library(kmpp_base STATIC
     kmpp_obj.c
+    kmpp_frame.c
     kmpp_venc_cfg.c
     )
 

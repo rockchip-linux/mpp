@@ -42,7 +42,7 @@ static rk_s32 kmpp_obj_std_test(const char *name, rk_u32 flag)
     if (flag & TEST_DEF_DUMP)
         kmpp_objdef_dump(def);
 
-    ret = kmpp_obj_get(&obj, def);
+    ret = kmpp_obj_get_f(&obj, def);
     if (ret) {
         mpp_log("kmpp_obj_get %s failed ret %d\n", name, ret);
         goto done;
@@ -53,7 +53,7 @@ static rk_s32 kmpp_obj_std_test(const char *name, rk_u32 flag)
     if (flag & TEST_OBJ_KDUMP)
         kmpp_obj_kdump(obj);
 
-    ret = kmpp_obj_put(obj);
+    ret = kmpp_obj_put_f(obj);
     if (ret) {
         mpp_log("kmpp_obj_put %s failed\n", name);
         goto done;
@@ -69,7 +69,7 @@ static rk_s32 kmpp_obj_std_test(const char *name, rk_u32 flag)
 
 done:
     if (obj)
-        kmpp_obj_put(obj);
+        kmpp_obj_put_f(obj);
     if (def)
         kmpp_objdef_put(def);
 
@@ -81,7 +81,7 @@ static rk_s32 kmpp_obj_by_name_test(const char *name, rk_u32 flag)
     KmppObj obj = NULL;
     MPP_RET ret = MPP_NOK;
 
-    ret = kmpp_obj_get_by_name(&obj, name);
+    ret = kmpp_obj_get_by_name_f(&obj, name);
     if (ret) {
         mpp_log("kmpp_obj_get_by_name %s failed ret %d\n", name, ret);
         goto done;
@@ -92,7 +92,7 @@ static rk_s32 kmpp_obj_by_name_test(const char *name, rk_u32 flag)
     if (flag & TEST_OBJ_KDUMP)
         kmpp_obj_kdump(obj);
 
-    ret = kmpp_obj_put(obj);
+    ret = kmpp_obj_put_f(obj);
     if (ret) {
         mpp_log("kmpp_obj_put %s failed\n", name);
         goto done;
@@ -101,7 +101,7 @@ static rk_s32 kmpp_obj_by_name_test(const char *name, rk_u32 flag)
 
 done:
     if (obj)
-        kmpp_obj_put(obj);
+        kmpp_obj_put_f(obj);
 
     return ret;
 }
@@ -116,7 +116,7 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     MPP_RET ret = MPP_NOK;
     rk_u32 val = 0;
 
-    ret = kmpp_obj_get_by_name(&grp, "KmppBufGrp");
+    ret = kmpp_obj_get_by_name_f(&grp, "KmppBufGrp");
     if (ret) {
         mpp_log("buf grp get obj failed ret %d\n", ret);
         goto done;
@@ -188,12 +188,12 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     test_detail("object %s write parameters ready\n", kmpp_obj_get_name(grp_cfg));
 
     /* enable KmppBufGrpCfg by ioctl */
-    ret = kmpp_obj_ioctl(grp, 0, grp, NULL);
+    ret = kmpp_obj_ioctl_f(grp, 0, grp, NULL);
 
     test_detail("object %s ioctl ret %d\n", kmpp_obj_get_name(grp), ret);
 
     /* get KmppBuffer for buffer allocation */
-    ret = kmpp_obj_get_by_name(&buf, "KmppBuffer");
+    ret = kmpp_obj_get_by_name_f(&buf, "KmppBuffer");
     if (ret) {
         mpp_log("kmpp_obj_get_by_name failed ret %d\n", ret);
         goto done;
@@ -224,7 +224,7 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     }
 
     /* enable KmppBufferCfg by ioctl */
-    ret = kmpp_obj_ioctl(buf, 0, buf, NULL);
+    ret = kmpp_obj_ioctl_f(buf, 0, buf, NULL);
 
     test_detail("object %s ioctl ret %d\n", kmpp_obj_get_name(buf), ret);
 
@@ -234,10 +234,10 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
 
 done:
     if (grp)
-        kmpp_obj_put(grp);
+        kmpp_obj_put_f(grp);
 
     if (buf)
-        kmpp_obj_put(buf);
+        kmpp_obj_put_f(buf);
 
     return ret;
 }
