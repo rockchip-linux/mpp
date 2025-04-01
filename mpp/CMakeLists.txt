@@ -63,14 +63,14 @@ endif()
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_SHARED} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${MPP_SHARED} mpp_codec mpp_hal mpp_vproc kmpp
-                      ${BEGIN_WHOLE_ARCHIVE} mpp_base ${END_WHOLE_ARCHIVE})
+                      ${BEGIN_WHOLE_ARCHIVE} mpp_base kmpp_base ${END_WHOLE_ARCHIVE})
 
 # build static library
 add_library(${MPP_STATIC} STATIC ${MPP_SRC})
 set_target_properties(${MPP_STATIC} PROPERTIES FOLDER "mpp" OUTPUT_NAME "${MPP_SHARED}")
 set_target_properties(${MPP_STATIC} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc
-    ${BEGIN_WHOLE_ARCHIVE} mpp_base ${END_WHOLE_ARCHIVE})
+target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc kmpp
+                      ${BEGIN_WHOLE_ARCHIVE} mpp_base kmpp_base ${END_WHOLE_ARCHIVE})
 
 add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
     COMMAND ${CMAKE_AR} x $<TARGET_FILE:${MPP_STATIC}>
