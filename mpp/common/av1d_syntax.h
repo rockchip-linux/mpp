@@ -245,7 +245,7 @@ typedef struct _DXVA_PicParams_AV1 {
     UCHAR coded_lossless;
     RK_S32 all_lossless;
     UCHAR interp_filter;
-    UCHAR RefFrameMapTextureIndex[7];
+    UCHAR RefFrameMapTextureIndex[8];
     UINT32 upscaled_width;
     UINT32 frame_to_show_map_idx;
     UINT32 show_existing_frame;
