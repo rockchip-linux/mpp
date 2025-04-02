@@ -32,10 +32,6 @@
 #include "mpp_vcodec_client.h"
 #include "mpp_enc_cfg_impl.h"
 
-#define MPP_PACKET_FLAG_INTRA           (0x00000010)
-#define MPP_PACKET_FLAG_PARTITION       (0x00000020)
-#define MPP_PACKET_FLAG_EOI             (0x00000040)
-
 typedef struct KmppFrameInfos_t {
     RK_U32  width;
     RK_U32  height;

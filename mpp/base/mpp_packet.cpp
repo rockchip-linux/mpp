@@ -355,7 +355,7 @@ RK_U32 mpp_packet_is_partition(const MppPacket packet)
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
 
-    return p->status.partition;
+    return (p->status.partition) || (p->flag & MPP_PACKET_FLAG_PARTITION);
 }
 
 RK_U32 mpp_packet_is_soi(const MppPacket packet)
@@ -375,7 +375,7 @@ RK_U32 mpp_packet_is_eoi(const MppPacket packet)
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
 
-    return p->status.eoi;
+    return (p->status.eoi) || (p->flag & MPP_PACKET_FLAG_EOI);
 }
 
 MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
