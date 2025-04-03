@@ -305,6 +305,9 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     if (cfg->v_stride)
         aligned_height = cfg->v_stride;
 
+    sys_cfg_dbg_dec_buf("org pixel wxh: [%d %d]\n", cfg->width, cfg->height);
+    sys_cfg_dbg_dec_buf("outside stride wxh: [%d %d]\n",
+                        cfg->h_stride_by_byte, cfg->v_stride);
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         /* fbc case */
         switch (type) {
@@ -329,12 +332,14 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
         } break;
         }
+        sys_cfg_dbg_dec_buf("spec aligned pixel wxh: [%d %d]\n", aligned_pixel, aligned_height);
 
         /*fbc stride default 64 align*/
         if (*compat_ext_fbc_hdr_256_odd)
             aligned_pixel_byte = (MPP_ALIGN(aligned_pixel, 256) | 256) * depth >> 3;
         else
             aligned_pixel_byte = MPP_ALIGN(aligned_pixel, 64) * depth >> 3;
+        sys_cfg_dbg_dec_buf("need 256 odd align: %d\n", *compat_ext_fbc_hdr_256_odd);
 
         switch (type) {
         case MPP_VIDEO_CodingAVC :
@@ -356,6 +361,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_byte = MPP_ALIGN(aligned_pixel_byte, 16);
         } break;
         }
+        sys_cfg_dbg_dec_buf("dec hw aligned hor_byte: [%d]\n", aligned_byte);
 
         cfg->h_stride_by_byte = aligned_byte;
         cfg->h_stride_by_pixel = aligned_pixel;
@@ -382,6 +388,10 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             mpp_err("dec out fmt 0x%x is no support", fmt_raw & MPP_FRAME_FMT_MASK);
         } break;
         }
+        sys_cfg_dbg_dec_buf("res aligned_pixel %d\n", aligned_pixel);
+        sys_cfg_dbg_dec_buf("res aligned_byte %d\n", aligned_byte);
+        sys_cfg_dbg_dec_buf("res aligned_height %d\n", aligned_height);
+        sys_cfg_dbg_dec_buf("res GPU aligned size_total: [%d]\n", size_total);
 
         cfg->size_total = size_total;
     } else {
@@ -429,6 +439,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_height = MPP_ALIGN(cfg->height, 8);
         } break;
         }
+        sys_cfg_dbg_dec_buf("spec aligned pixel wxh: [%d %d]\n", aligned_pixel, aligned_height);
 
         aligned_pixel_byte = cfg->h_stride_by_byte ? cfg->h_stride_by_byte :
                              aligned_pixel * depth / 8;
@@ -454,6 +465,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             aligned_byte = mpp_sys_cfg_align(SYS_CFG_ALIGN_16, aligned_pixel_byte);
         } break;
         }
+        sys_cfg_dbg_dec_buf("dec hw aligned hor_byte: [%d %d]\n", aligned_byte);
 
         /*
          * NOTE: rk3576 use 128 odd plus 64 for all non jpeg format
@@ -507,6 +519,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
                 }
             }
         }
+        sys_cfg_dbg_dec_buf("dec hw performance aligned hor_byte: [%d]\n", aligned_pixel);
 
         cfg->h_stride_by_byte = aligned_byte;
         cfg->h_stride_by_pixel = aligned_pixel;
@@ -514,11 +527,10 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
 
         size_total = aligned_byte * aligned_height;
         size_total_old = size_total;
-        sys_cfg_dbg_dec_buf("aligned_byte %d\n", aligned_byte);
-        sys_cfg_dbg_dec_buf("aligned_pixel %d\n", aligned_pixel);
-        sys_cfg_dbg_dec_buf("aligned_height %d\n", aligned_height);
-        sys_cfg_dbg_dec_buf("size_total %d\n", size_total);
         sys_cfg_dbg_dec_buf("fmt_raw %x\n", fmt_raw);
+        sys_cfg_dbg_dec_buf("res aligned_pixel %d\n", aligned_pixel);
+        sys_cfg_dbg_dec_buf("res aligned_byte %d\n", aligned_byte);
+        sys_cfg_dbg_dec_buf("res aligned_height %d\n", aligned_height);
 
         switch (fmt_raw) {
         case MPP_FMT_YUV420SP :
@@ -568,7 +580,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
             size_total = size_total * 3 / 2;
         }
         }
-        sys_cfg_dbg_dec_buf("size total %d -> %d\n", size_total_old, size_total);
+        sys_cfg_dbg_dec_buf("res size total %d -> %d\n", size_total_old, size_total);
 
         cfg->size_total = size_total;
     }
