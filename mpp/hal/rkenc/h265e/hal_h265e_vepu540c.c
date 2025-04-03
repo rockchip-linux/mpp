@@ -431,21 +431,16 @@ static void vepu540c_h265_global_cfg_set(H265eV540cHalContext *ctx, H265eV540cRe
     vepu540c_h265_rdo_cfg(reg_rdo);
 
     if (ctx->frame_type == INTRA_FRAME) {
-        RK_U8 *thd  = (RK_U8 *)&rc_regs->aq_tthd0;
-        RK_S8 *step = (RK_S8 *)&rc_regs->aq_stp0;
-
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i]  = hw->aq_thrd_i[i];
-            step[i] = hw->aq_step_i[i] & 0x3f;
+            rc_regs->aq_tthd[i]  = hw->aq_thrd_i[i];
+            rc_regs->aq_step[i] = hw->aq_step_i[i] & 0x3f;
         }
         reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 11;
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_moda_qp, sizeof(lamd_moda_qp));
     } else {
-        RK_U8 *thd  = (RK_U8 *)&rc_regs->aq_tthd0;
-        RK_S8 *step = (RK_S8 *)&rc_regs->aq_stp0;
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i]  = hw->aq_thrd_p[i];
-            step[i] = hw->aq_step_p[i] & 0x3f;
+            rc_regs->aq_tthd[i] = hw->aq_thrd_p[i];
+            rc_regs->aq_step[i] = hw->aq_step_p[i] & 0x3f;
         }
         reg_wgt->iprd_lamb_satd_ofst.lambda_satd_offset = 11;
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_modb_qp, sizeof(lamd_modb_qp));

@@ -768,85 +768,14 @@ typedef struct Vepu540cRcROiCfg_t {
     /* 0x1040 */
     RK_U32 reserved_1040;
 
-    /* 0x00001044 reg1041 */
-    struct {
-        RK_U32 aq_tthd0    : 8;
-        RK_U32 aq_tthd1    : 8;
-        RK_U32 aq_tthd2    : 8;
-        RK_U32 aq_tthd3    : 8;
-    } aq_tthd0;
+    /* 0x00001044 reg1041 - 0x00001050 reg1044 */
+    RK_U8 aq_tthd[16];
 
-    /* 0x00001048 reg1042 */
-    struct {
-        RK_U32 aq_tthd4    : 8;
-        RK_U32 aq_tthd5    : 8;
-        RK_U32 aq_tthd6    : 8;
-        RK_U32 aq_tthd7    : 8;
-    } aq_tthd1;
-
-    /* 0x0000104c reg1043 */
-    struct {
-        RK_U32 aq_tthd8     : 8;
-        RK_U32 aq_tthd9     : 8;
-        RK_U32 aq_tthd10    : 8;
-        RK_U32 aq_tthd11    : 8;
-    } aq_tthd2;
-
-    /* 0x00001050 reg1044 */
-    struct {
-        RK_U32 aq_tthd12    : 8;
-        RK_U32 aq_tthd13    : 8;
-        RK_U32 aq_tthd14    : 8;
-        RK_U32 aq_tthd15    : 8;
-    } aq_tthd3;
-
-    /* 0x00001054 reg1045 */
-    struct {
-        RK_U32 aq_stp_s0     : 6;
-        RK_U32 reserved      : 2;
-        RK_U32 aq_stp_0t1    : 6;
-        RK_U32 reserved1     : 2;
-        RK_U32 aq_stp_1t2    : 6;
-        RK_U32 reserved2     : 2;
-        RK_U32 aq_stp_2t3    : 6;
-        RK_U32 reserved3     : 2;
-    } aq_stp0;
-
-    /* 0x00001058 reg1046 */
-    struct {
-        RK_U32 aq_stp_3t4    : 6;
-        RK_U32 reserved      : 2;
-        RK_U32 aq_stp_4t5    : 6;
-        RK_U32 reserved1     : 2;
-        RK_U32 aq_stp_5t6    : 6;
-        RK_U32 reserved2     : 2;
-        RK_U32 aq_stp_6t7    : 6;
-        RK_U32 reserved3     : 2;
-    } aq_stp1;
-
-    /* 0x0000105c reg1047 */
-    struct {
-        RK_U32 aq_stp_8t9      : 6;
-        RK_U32 reserved        : 2;
-        RK_U32 aq_stp_9t10     : 6;
-        RK_U32 reserved1       : 2;
-        RK_U32 aq_stp_10t11    : 6;
-        RK_U32 reserved2       : 2;
-        RK_U32 aq_stp_11t12    : 6;
-        RK_U32 reserved3       : 2;
-    } aq_stp2;
-
-    /* 0x00001060 reg1048 */
-    struct {
-        RK_U32 aq_stp_12t13    : 6;
-        RK_U32 reserved        : 2;
-        RK_U32 aq_stp_13t14    : 6;
-        RK_U32 reserved1       : 2;
-        RK_U32 aq_stp_14t15    : 6;
-        RK_U32 reserved2       : 2;
-        RK_U32 aq_stp_b15      : 6;
-        RK_U32 reserved3       : 2;
-    } aq_stp3;
+    /*
+     * 0x00001054 reg1045 - 0x00001060 reg1048
+     * only low 6 bits is valid for per step.
+     */
+    RK_U8 aq_step[16];
 
     /* 0x00001064 reg1049 */
     struct {

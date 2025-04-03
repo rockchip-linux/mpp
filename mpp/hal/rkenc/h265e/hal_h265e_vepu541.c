@@ -567,20 +567,14 @@ static void vepu541_h265_set_l2_regs(H265eV541HalContext *ctx, H265eV54xL2RegSet
     memcpy(&regs->lamd_modb_qp[0], lamd_modb_qp, sizeof(lamd_modb_qp));
 
     if (ctx->frame_type == INTRA_FRAME) {
-        RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
-        RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
-
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i]  = hw->aq_thrd_i[i];
-            step[i] = hw->aq_step_i[i] & 0x3f;
+            regs->aq_tthd[i] = hw->aq_thrd_i[i];
+            regs->aq_step[i] = hw->aq_step_i[i] & 0x3f;
         }
     } else {
-        RK_U8 *thd  = (RK_U8 *)&regs->aq_thd0;
-        RK_S8 *step = (RK_S8 *)&regs->aq_qp_dlt0;
-
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i]  = hw->aq_thrd_p[i];
-            step[i] = hw->aq_step_p[i] & 0x3f;
+            regs->aq_tthd[i] = hw->aq_thrd_p[i];
+            regs->aq_step[i] = hw->aq_step_p[i] & 0x3f;
         }
     }
 

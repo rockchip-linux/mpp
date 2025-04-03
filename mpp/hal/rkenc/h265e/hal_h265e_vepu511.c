@@ -2082,7 +2082,6 @@ static void vepu511_h265_set_aq(H265eV511HalContext *ctx, H265eV511RegSet *regs)
 {
     MppEncHwCfg *hw = &ctx->cfg->hw;
     Vepu511RcRoi *rc_regs =  &regs->reg_rc_roi;
-    RK_U8* thd = (RK_U8*)&rc_regs->aq_tthd0;
     RK_S32 *aq_step, *aq_rnge;
     RK_U32 *aq_thd;
     RK_U32 i;
@@ -2116,7 +2115,7 @@ static void vepu511_h265_set_aq(H265eV511HalContext *ctx, H265eV511RegSet *regs)
     rc_regs->aq_stp2.aq_stp_b15 = aq_step[15];
 
     for (i = 0; i < 16; i++)
-        thd[i] = aq_thd[i];
+        rc_regs->aq_tthd[i] = aq_thd[i];
 
     rc_regs->aq_clip.aq16_rnge = aq_rnge[0];
     rc_regs->aq_clip.aq32_rnge = aq_rnge[1];

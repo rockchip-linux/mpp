@@ -1429,20 +1429,15 @@ static void setup_vepu540c_l2(HalVepu540cRegSet *regs, H264eSlice *slice, MppEnc
         regs->reg_rc_roi.madp_st_thd1.madp_th2 = 15 << 4;
     }
 
-    {
-        RK_U8* thd = (RK_U8*)&regs->reg_rc_roi.aq_tthd0;
-        RK_U8* step = (RK_U8*)&regs->reg_rc_roi.aq_stp0;
-
-        if (slice->slice_type == H264_I_SLICE) {
-            for (i = 0; i < MPP_ARRAY_ELEMS(h264_aq_tthd_default); i++) {
-                thd[i] = hw->aq_thrd_i[i];
-                step[i] = hw->aq_step_i[i] & 0x3f;
-            }
-        } else {
-            for (i = 0; i < MPP_ARRAY_ELEMS(h264_P_aq_step_default); i++) {
-                thd[i] = hw->aq_thrd_p[i];
-                step[i] = hw->aq_step_p[i] & 0x3f;
-            }
+    if (slice->slice_type == H264_I_SLICE) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(h264_aq_tthd_default); i++) {
+            regs->reg_rc_roi.aq_tthd[i] = hw->aq_thrd_i[i];
+            regs->reg_rc_roi.aq_step[i] = hw->aq_step_i[i] & 0x3f;
+        }
+    } else {
+        for (i = 0; i < MPP_ARRAY_ELEMS(h264_P_aq_step_default); i++) {
+            regs->reg_rc_roi.aq_tthd[i] = hw->aq_thrd_p[i];
+            regs->reg_rc_roi.aq_step[i] = hw->aq_step_p[i] & 0x3f;
         }
     }
 

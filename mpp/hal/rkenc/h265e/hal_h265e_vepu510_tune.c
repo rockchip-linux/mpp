@@ -111,13 +111,12 @@ static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
     RK_U32 i = 0;
     RK_S32 aq_step[16];
 
-    RK_U8 *thd  = (RK_U8 *)&r->aq_tthd0;
     for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
         if (ctx->frame_type == INTRA_FRAME) {
-            thd[i] = hw->aq_thrd_i[i];
+            r->aq_tthd[i] = hw->aq_thrd_i[i];
             aq_step[i] = hw->aq_step_i[i] & 0x1F;
         } else {
-            thd[i] = hw->aq_thrd_p[i];
+            r->aq_tthd[i] = hw->aq_thrd_p[i];
             aq_step[i] = hw->aq_step_p[i] & 0x1F;
         }
     }

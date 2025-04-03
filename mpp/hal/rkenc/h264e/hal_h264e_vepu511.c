@@ -1774,7 +1774,6 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncHwCfg *hw = &cfg->hw;
     Vepu511RcRoi *s = &ctx->regs_set->reg_rc_roi;
-    RK_U8* thd = (RK_U8*)&s->aq_tthd0;
     RK_S32 *aq_step, *aq_thd;
     RK_U8 i;
 
@@ -1787,7 +1786,7 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
     }
 
     for (i = 0; i < 16; i++)
-        thd[i] = aq_thd[i] & 0xff;
+        s->aq_tthd[i] = aq_thd[i] & 0xff;
 
     s->aq_stp0.aq_stp_s0 = aq_step[0] & 0x1f;
     s->aq_stp0.aq_stp_0t1 = aq_step[1] & 0x1f;

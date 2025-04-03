@@ -789,37 +789,8 @@ typedef struct Vepu510RcRoi_t {
     /* 0x00001040 reg1040 */
     RK_U32 reserved_1040;
 
-    /* 0x00001044 reg1041 */
-    struct {
-        RK_U32 aq_tthd0    : 8;
-        RK_U32 aq_tthd1    : 8;
-        RK_U32 aq_tthd2    : 8;
-        RK_U32 aq_tthd3    : 8;
-    } aq_tthd0;
-
-    /* 0x00001048 reg1042 */
-    struct {
-        RK_U32 aq_tthd4    : 8;
-        RK_U32 aq_tthd5    : 8;
-        RK_U32 aq_tthd6    : 8;
-        RK_U32 aq_tthd7    : 8;
-    } aq_tthd1;
-
-    /* 0x0000104c reg1043 */
-    struct {
-        RK_U32 aq_tthd8     : 8;
-        RK_U32 aq_tthd9     : 8;
-        RK_U32 aq_tthd10    : 8;
-        RK_U32 aq_tthd11    : 8;
-    } aq_tthd2;
-
-    /* 0x00001050 reg1044 */
-    struct {
-        RK_U32 aq_tthd12    : 8;
-        RK_U32 aq_tthd13    : 8;
-        RK_U32 aq_tthd14    : 8;
-        RK_U32 aq_tthd15    : 8;
-    } aq_tthd3;
+    /* 0x00001044 reg1041 - 0x00001050 reg1044 */
+    RK_U8 aq_tthd[16];
 
     /* 0x00001054 reg1045 */
     struct {

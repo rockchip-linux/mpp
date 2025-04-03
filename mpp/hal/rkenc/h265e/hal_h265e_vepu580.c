@@ -1336,6 +1336,7 @@ static void vepu580_h265_global_cfg_set(H265eV580HalContext *ctx, H265eV580RegSe
     hevc_vepu580_rc_klut *rc_regs = &regs->reg_rc_klut;
     hevc_vepu580_wgt *reg_wgt = &regs->reg_wgt;
     vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
+
     vepu580_h265_sobel_cfg(reg_wgt);
     vepu580_h265_rdo_cfg(reg_rdo);
     vepu580_h265_rdo_bias_cfg(reg_rdo, hw);
@@ -1344,22 +1345,15 @@ static void vepu580_h265_global_cfg_set(H265eV580HalContext *ctx, H265eV580RegSe
     memcpy(&reg_wgt->iprd_wgt_qp_hevc_0_51[0], lamd_satd_qp, sizeof(lamd_satd_qp));
 
     if (ctx->frame_type == INTRA_FRAME) {
-        RK_U8 *thd = (RK_U8 *)&rc_regs->aq_tthd0;
-        RK_S8 *step = (RK_S8 *)&rc_regs->aq_stp0;
-
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i] = hw->aq_thrd_i[i];
-            step[i] = hw->aq_step_i[i] & 0x3f;
+            rc_regs->aq_tthd[i] = hw->aq_thrd_i[i];
+            rc_regs->aq_step[i] = hw->aq_step_i[i] & 0x3f;
         }
-
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_moda_qp, sizeof(lamd_moda_qp));
     } else {
-        RK_U8 *thd = (RK_U8 *)&rc_regs->aq_tthd0;
-        RK_S8 *step = (RK_S8 *)&rc_regs->aq_stp0;
-
         for (i = 0; i < MPP_ARRAY_ELEMS(aq_thd_default); i++) {
-            thd[i] = hw->aq_thrd_p[i];
-            step[i] = hw->aq_step_p[i] & 0x3f;
+            rc_regs->aq_tthd[i] = hw->aq_thrd_p[i];
+            rc_regs->aq_step[i] = hw->aq_step_p[i] & 0x3f;
         }
         memcpy(&reg_wgt->rdo_wgta_qp_grpa_0_51[0], lamd_modb_qp, sizeof(lamd_modb_qp));
     }

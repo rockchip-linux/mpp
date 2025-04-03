@@ -272,85 +272,15 @@ typedef struct H265eV54xL2RegSet_t {
         RK_U32 reserved1     : 8;
     } madi_cfg;
 
-    /* 0x2e4 - AQ_THD0 */
-    struct {
-        RK_U32 aq_thld0 : 8;
-        RK_U32 aq_thld1 : 8;
-        RK_U32 aq_thld2 : 8;
-        RK_U32 aq_thld3 : 8;
-    } aq_thd0;
+    /* 0x2e4 - AQ_THD0 - 0x2f0 - AQ_THD3 */
+    RK_U8 aq_tthd[16];
 
-    /* 0x2e8 - AQ_THD1 */
-    struct {
-        RK_U32 aq_thld4 : 8;
-        RK_U32 aq_thld5 : 8;
-        RK_U32 aq_thld6 : 8;
-        RK_U32 aq_thld7 : 8;
-    } aq_thd1;
+    /*
+     * 0x2f4 - AQ_QP_DLT0 - 0x300 - AQ_QP_DLT3
+     * only low 6 bits is valid for per step.
+     */
+    RK_U8 aq_step[16];
 
-    /* 0x2ec - AQ_THD2 */
-    struct {
-        RK_U32 aq_thld8  : 8;
-        RK_U32 aq_thld9  : 8;
-        RK_U32 aq_thld10 : 8;
-        RK_U32 aq_thld11 : 8;
-    } aq_thd2;
-
-    /* 0x2f0 - AQ_THD3 */
-    struct {
-        RK_U32 aq_thld12 : 8;
-        RK_U32 aq_thld13 : 8;
-        RK_U32 aq_thld14 : 8;
-        RK_U32 aq_thld15 : 8;
-    } aq_thd3;
-
-    /* 0x2f4 - AQ_QP_DLT0 */
-    struct {
-        RK_S32 qp_delta0 : 6;
-        RK_S32 reserved0 : 2;
-        RK_S32 qp_delta1 : 6;
-        RK_S32 reserved1 : 2;
-        RK_S32 qp_delta2 : 6;
-        RK_S32 reserved2 : 2;
-        RK_S32 qp_delta3 : 6;
-        RK_S32 reserved3 : 2;
-    } aq_qp_dlt0;
-
-    /* 0x2f8 - AQ_QP_DLT1 */
-    struct {
-        RK_S32 qp_delta4 : 6;
-        RK_S32 reserved0 : 2;
-        RK_S32 qp_delta5 : 6;
-        RK_S32 reserved1 : 2;
-        RK_S32 qp_delta6 : 6;
-        RK_S32 reserved2 : 2;
-        RK_S32 qp_delta7 : 6;
-        RK_S32 reserved3 : 2;
-    } aq_qp_dlt1;
-
-    /* 0x2fc - AQ_QP_DLT2 */
-    struct {
-        RK_S32 qp_delta8  : 6;
-        RK_S32 reserved0  : 2;
-        RK_S32 qp_delta9  : 6;
-        RK_S32 reserved1  : 2;
-        RK_S32 qp_delta10 : 6;
-        RK_S32 reserved2  : 2;
-        RK_S32 qp_delta11 : 6;
-        RK_S32 reserved3  : 2;
-    } aq_qp_dlt2;
-
-    /* 0x300 - AQ_QP_DLT3 */
-    struct {
-        RK_S32 qp_delta12 : 6;
-        RK_S32 reserved0  : 2;
-        RK_S32 qp_delta13 : 6;
-        RK_S32 reserved1  : 2;
-        RK_S32 qp_delta14 : 6;
-        RK_S32 reserved2  : 2;
-        RK_S32 qp_delta15 : 6;
-        RK_S32 reserved3  : 2;
-    } aq_qp_dlt3;
     /*0x304-0x30c*/
     RK_U32 reserve[3];
     /*pre_intra class mode */
