@@ -148,6 +148,8 @@ typedef struct {
     RK_S32 gop_len;
     RK_S32 vi_len;
     RK_S32 scene_mode;
+    RK_S32 deblur_en;
+
     RK_S32 cu_qp_delta_depth;
     RK_S32 anti_flicker_str;
     RK_S32 atr_str_i;
@@ -206,7 +208,11 @@ static RK_S32 get_mdinfo_size(MpiEncTestData *p, MppCodingType type)
     RK_S32 md_size;
     RK_U32 w = p->hor_stride, h = p->ver_stride;
 
-    if (soc_type == ROCKCHIP_SOC_RK3588) {
+    if (soc_type == ROCKCHIP_SOC_RV1126B) {
+        md_size = (MPP_VIDEO_CodingHEVC == type) ?
+                  (MPP_ALIGN(w, 32) >> 5) * (MPP_ALIGN(h, 32) >> 5) * 20 :
+                  (MPP_ALIGN(w, 64) >> 6) * (MPP_ALIGN(h, 16) >> 4) * 16;
+    } else if (soc_type == ROCKCHIP_SOC_RK3588) {
         md_size = (MPP_ALIGN(w, 64) >> 6) * (MPP_ALIGN(h, 64) >> 6) * 32;
     } else {
         md_size = (MPP_VIDEO_CodingHEVC == type) ?
@@ -238,11 +244,11 @@ static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
     mpp_venc_kcfg_set_u32(init_kcfg, "buf_size", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_strm_cnt", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "shared_buf_en", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "smart_en", 0);
+    mpp_venc_kcfg_set_u32(init_kcfg, "smart_en", p->rc_mode == MPP_ENC_RC_MODE_SMTRC);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_width", p->width);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_height", p->height);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_lt_cnt", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "qpmap_en", 0);
+    mpp_venc_kcfg_set_u32(init_kcfg, "qpmap_en", p->deblur_en);
     mpp_venc_kcfg_set_u32(init_kcfg, "chan_dup", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "tmvp_enable", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "only_smartp", 0);
@@ -288,6 +294,7 @@ MPP_RET test_ctx_init(MpiEncMultiCtxInfo *info)
     p->fps_out_den  = cmd->fps_out_den;
     p->fps_out_num  = cmd->fps_out_num;
     p->scene_mode   = cmd->scene_mode;
+    p->deblur_en    = cmd->deblur_en;
     p->cu_qp_delta_depth = cmd->cu_qp_delta_depth;
     p->anti_flicker_str = cmd->anti_flicker_str;
     p->atr_str_i = cmd->atr_str_i;
