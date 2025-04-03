@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------
 # add mpp_dec implement
 # ----------------------------------------------------------------------------
-add_library(mpp_codec STATIC
+add_library(mpp_codec OBJECT
     mpp_enc_impl.cpp
     mpp_enc_v2.cpp
     enc_impl.cpp
@@ -13,7 +13,7 @@ add_library(mpp_codec STATIC
     mpp_parser.cpp
     )
 
-add_library(mpp_rc STATIC mpp_rc.cpp)
+add_library(mpp_rc OBJECT mpp_rc.cpp)
 
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
 

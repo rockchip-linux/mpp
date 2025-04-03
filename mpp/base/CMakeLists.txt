@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------
 # add mpp basic components
 # ----------------------------------------------------------------------------
-add_library(mpp_base STATIC
+add_library(mpp_base OBJECT
     mpp_enc_refs.cpp
     mpp_enc_ref.cpp
     mpp_enc_cfg.cpp
@@ -30,7 +30,7 @@ add_library(mpp_base STATIC
 
 set_target_properties(mpp_base PROPERTIES FOLDER "mpp/base")
 
-target_link_libraries(mpp_base osal)
+#target_link_libraries(mpp_base osal)
 
 # unit test
 add_subdirectory(test)

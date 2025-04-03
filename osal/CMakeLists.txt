@@ -26,7 +26,7 @@ set(MPP_DRIVER
     driver/mpp_vcodec_client.c
 )
 
-add_library(osal STATIC
+add_library(osal OBJECT
     mpp_soc.cpp
     mpp_platform.cpp
     mpp_runtime.cpp
