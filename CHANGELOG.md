@@ -1,3 +1,109 @@
+## 1.0.9 (2025-04-03)
+### Feature
+- [kmpp_frame]: Add KmppFrame module
+- [vepu_511]: Add rv1126b 265e/264e/jpge support
+- [mpp_meta]: Add osd_data3 fmt for 1103b/1126b
+- [kmpp_obj]: Sync to new KmppEntry share object
+- [err_proc]: Add a new command: DIS_ERR_CLR_MARK
+- [mpi_enc_test]: Support enc for kmpp flow
+- [kmpp_obj]: Add more kmpp_obj functions
+- [vdpu384a]: Support RV1126B new features
+- [mpp_soc]: Support rv1126b soc
+- [kmpp_obj]: Sync to new kmpp_meta
+- [kmpp_obj]: Sync to loctbl without flag_type
+- [mpp_buf_slot]: buf_slot add coded width alignment config
+- [h265d]: Add vdpu383 hevc yuv444_10bit support
+- [vproc]: Add more log for debugging
+- [mpp]: Support kmpp access
+- [kmpp]: Add kmpp module
+- [rk_mpi_cmd]: Merge cmds from mpp_interface
+- [build]: Add --toolchain to config toolchain for linux
+- [mpp_meta]: Use trie to index the meta key
+- [mpp_packet]: Add realease callback info
+- [kmpp_obj]: Update to new objdef query mode
+- [mpp_trie]: Allow empty name trie for import
+- [enc]: Support setting temporal_id
+- [mpp_enc_cfg]: Merge enc cfgs from mpp_interface
+- [mpp_sys_cfg_st]: Provide packaging for use on products
+- [mpp_sys_cfg]: Add raster/tile/fbc buffer alignment
+- [mpp_sys_cfg]: Support sys_cfg buffer alignment
+- [kmpp_obj]: Add kmpp_obj_get_hnd func
+- [mpp_venc_kcfg]: Add mpp_venc_kcfg module
+
+### Fix
+- [sys_cfg]: Add debug info
+- [sys_cfg]: fix fbc ver stride calc issue
+- [sys_cfg]: Fix external configuration stride issue
+- [sys_cfg]: Support alignment for mpeg2/mpeg4/h263/vp8.
+- [sys_cfg]: AVC is aligned to ctu to avoid info change
+- [sys_cfg]: Fix RK3399 hor/ver stride calculation issue.
+- [sys_cfg]: Fix HAL layer buffer alignment issue
+- [h264d]: Recovery only takes effect when no IDR frames present
+- [hal_jpege_api]: Fix jpege api path judgment
+- [vdpp]: Fix vdpp blk_size calculation.
+- [mpp_venc_kcfg]: Revert to mpp interface
+- [cmake]: Fix kmpp_base symbol missing
+- [av1_syntax]: Fix array out-of-bounds issue.
+- [build]: fix build failure with CMake 4.0
+- [vepu_511]: Speed grade configuration of 0.67
+- [mpp_frame]: Add rk_fbc fmt for 1126b
+- [jpegd_rkv]: New JPEG IP supports tile 4x4 output by default.
+- [jpeg_rkv]: New JPEG IP defaults to no RGB support.
+- [hal_rcb]: Fix rcb buf size calc issue
+- [kmpp_obj]: Fix rockit compile error
+- [avsd]: Skip redundant zeros between fields inside one picture
+- [av1]: parameter is 16 bits
+- [base]: Fix strncpy compile warning
+- [hal_h265e_vepu580]: Fix overflow status check
+- [kmpp]: Fix channel dup issue
+- [os_log]: Modify default log option for linux
+- [kmpp_obj]: Fix warning on arm32
+- [kmpp]: Set KEY_OUTPUT_INTRA meta to packet
+- [sys_cfg]: Align rk3399 h_stride to an odd multiple of 265.
+- [mpp_sys]: Fix old IP vertical alignment to 16 issue
+- [kmpp_obj]: Disable /dev/kmpp_objs not found log
+- [mpp_soc]: Fix cap_fbc for rv1126b
+- [sys_cfg]: Optimize comparison information printing.
+- [sys_cfg]: Print comparison information only once.
+- [mpp_meta]: Fix compile error
+- [vepu510]: Mark frame first part when split slice out
+- [hdr_meta]: Fix hdr format for av1
+- [mpp_sys_cfg]: Fix align pixel stride on rk3576
+- [vproc]: fix height out of boundary problem
+- [mpp_sys_cfg]: Fix abnormal stride calculation.
+- [h264d]: disable ref erorr when decode recovery frame period
+- [jpege_vpu720]: Correct encoded size config
+- [buf_slot]: Correct coding mistakes.
+- [build]: Avoid exporting toolchain to system PATH
+- [mpp_enc]: Fix some exceptions when force pskip
+- [kmpp]: Fill pts/dts/flag to MppPacket
+- [vproc]: fix frame output disorder problem
+- [vproc]: Fix field disordered problem
+- [mpp_enc_cfg]: Remove a redundant atr_str
+- []: Fix abnormal FBC info issue in Info Change
+- [h264d]: Fix segment fault problem
+- [vproc]: Fix error info missed problem
+- [vproc]: Fix output blank buffer problem
+- [fbc]: Fix RK3588 av1 FBC usage issue
+- [sys_cfg/buf_slot]: support yuv422sp 10bit
+- [mpp_enc_cfg]: Add sao_bit_ratio from mpp_interface
+- [buf_slot]: Correct coding mistakes.
+- [mpp_venc_kcfg]: Get objdef at runtime
+- [jpegd]: Avoid buffer overrun
+- [sys_cfg/buf_slot]: fix fbc yuv444sp buf calculation issue
+- [kmpp_obj]: Add extern C
+
+### Docs
+- Update 1.0.9 CHANGELOG.md
+
+### Refactor
+- [kmpp]: Move kmpp to seperate directory
+- [mpp_trie]: Replace root import
+- [mpp_enc_cfg]: Adjust cu_qp_delta_depth
+
+### Chore
+- [mpp_buf_slot]: Modify sys_cfg mismatch print
+
 ## 1.0.8 (2024-12-30)
 ### Feature
 - [enc]: Add switch for disable IDR encoding when FPS changed.
