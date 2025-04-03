@@ -9,7 +9,6 @@
 #include <linux/types.h>
 #include "mpp_trie.h"
 
-
 /*
  * kernel - userspace transaction trie node ctx info (64 bit) definition
  *
@@ -151,26 +150,6 @@ typedef union KmppEntry_u {
     };
 } KmppEntry;
 
-/* MUST be the same to the KmppObjShm in rk-mpp-kobj.h */
-typedef struct KmppShmPtr_t {
-    /* uaddr - the userspace base address for userspace access */
-    union {
-        rk_u64 uaddr;
-        void *uptr;
-    };
-    /* kaddr - the kernel base address for kernel access */
-    union {
-        rk_u64 kaddr;
-        void *kptr;
-    };
-    /* DO NOT access reserved data only used by kernel */
-} KmppShmPtr;
-
-/* KmppObjDef - mpp object name size and access table trie definition */
-typedef void* KmppObjDef;
-/* KmppObj - mpp object for string name access and function access */
-typedef void* KmppObj;
-
 typedef void (*KmppObjPreset)(void *obj);
 typedef rk_s32 (*KmppObjDump)(void *obj);
 
@@ -183,6 +162,7 @@ rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
 rk_s32 kmpp_objdef_put(KmppObjDef def);
 
 rk_s32 kmpp_objdef_get_entry(KmppObjDef def, const char *name, KmppEntry **tbl);
+rk_s32 kmpp_objdef_get_offset(KmppObjDef def, const char *name);
 rk_s32 kmpp_objdef_dump(KmppObjDef def);
 
 /* mpp objcet internal element set / get function */

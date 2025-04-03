@@ -182,4 +182,32 @@ typedef void* MppBufferGroup;
 typedef void* MppTask;
 typedef void* MppMeta;
 
+/* KmppObjDef - mpp object name size and access table trie definition */
+typedef void* KmppObjDef;
+/* KmppObj    - mpp object for string name access and function access */
+typedef void* KmppObj;
+
+/* kmpp transaction object */
+typedef void* KmppMeta;
+typedef void* KmppFrame;
+typedef void* KmppPacket;
+
+typedef void* KmppBuffer;
+typedef void* KmppBufGrp;
+
+/* MUST be the same to the KmppObjShm in rk-mpp-kobj.h */
+typedef struct KmppShmPtr_t {
+    /* uaddr - the userspace base address for userspace access */
+    union {
+        rk_u64 uaddr;
+        void *uptr;
+    };
+    /* kaddr - the kernel base address for kernel access */
+    union {
+        rk_u64 kaddr;
+        void *kptr;
+    };
+    /* DO NOT access reserved data only used by kernel */
+} KmppShmPtr;
+
 #endif /*__RK_TYPE_H__*/

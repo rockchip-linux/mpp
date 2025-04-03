@@ -8,8 +8,6 @@
 
 #include "mpp_frame.h"
 
-typedef void* KmppFrame;
-
 #define KMPP_FRAME_ENTRY_TABLE(ENTRY, prefix) \
     ENTRY(prefix, u32, rk_u32, width) \
     ENTRY(prefix, u32, rk_u32, height) \

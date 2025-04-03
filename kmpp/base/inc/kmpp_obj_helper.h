@@ -219,10 +219,8 @@ rk_s32 KMPP_OBJ_FUNC2(prefix, init)(void) __attribute__((constructor)); \
 rk_s32 KMPP_OBJ_FUNC2(prefix, init)(void) \
 { \
     kmpp_objdef_get(&KMPP_OBJ_DEF(prefix), KMPP_OBJ_DEF_NAME(KMPP_OBJ_INTF_TYPE)); \
-    if (!KMPP_OBJ_DEF(prefix)) { \
-        mpp_loge_f(#prefix " init failed\n"); \
+    if (!KMPP_OBJ_DEF(prefix)) \
         return rk_nok; \
-    } \
     KMPP_OBJ_ADD_IOCTL(prefix); \
     KMPP_OBJ_ENTRY_TABLE(ENTRY_QUERY, prefix) \
     KMPP_OBJ_ENTRY_RO_TABLE(ENTRY_QUERY, prefix) \
