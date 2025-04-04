@@ -38,6 +38,21 @@
 #include "mpp_enc_roi_utils.h"
 #include "mpp_rc_api.h"
 
+static RK_S32 qbias_arr_hevc[18] = {
+    3, 6, 13, 171, 171, 171, 171,
+    3, 6, 13, 171, 171, 220, 171, 85, 85, 85, 85
+};
+
+static RK_S32 qbias_arr_avc[18] = {
+    3, 6, 13, 683, 683, 683, 683,
+    3, 6, 13, 683, 683, 683, 683, 341, 341, 341, 341
+};
+
+static RK_S32 aq_rnge_arr[10] = {
+    5, 5, 10, 12, 12,
+    5, 5, 10, 12, 12
+};
+
 static RK_S32 aq_thd_smart[16] = {
     1,  3,  3,  3,  3,  3,  5,  5,
     8,  8,  8, 15, 15, 20, 25, 28
@@ -424,6 +439,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_p_ipc);
     }
 
+    mpp_enc_cfg_set_st(cfg, "hw:aq_rnge_arr", aq_rnge_arr);
+
     mpp_enc_cfg_set_s32(cfg, "rc:max_reenc_times", 0);
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
@@ -494,8 +511,11 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     /* setup qp for different codec and rc_mode */
     switch (p->type) {
-    case MPP_VIDEO_CodingAVC :
+    case MPP_VIDEO_CodingAVC : {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_avc);
+    } break;
     case MPP_VIDEO_CodingHEVC : {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_hevc);
         switch (p->rc_mode) {
         case MPP_ENC_RC_MODE_FIXQP : {
             RK_S32 fix_qp = cmd->qp_init;
