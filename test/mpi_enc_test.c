@@ -414,6 +414,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     RK_U32 flip;
     RK_U32 gop_mode = p->gop_mode;
     MppEncRefCfg ref = NULL;
+
     /* setup default parameter */
     if (p->fps_in_den == 0)
         p->fps_in_den = 1;
@@ -427,40 +428,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
 
-    if (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
-        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd_smart);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd_smart);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_smart);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_smart);
-    } else {
-        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_i_ipc);
-        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_p_ipc);
-    }
-
-    mpp_enc_cfg_set_st(cfg, "hw:aq_rnge_arr", aq_rnge_arr);
-
-    mpp_enc_cfg_set_s32(cfg, "rc:max_reenc_times", 0);
-    mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
-    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
-    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
-    mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
-    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
-    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
-
-    mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
-    mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
-    mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
-    mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
-    mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 0);
-    mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);
-    mpp_enc_cfg_set_s32(cfg, "hw:qbias_i", cmd->bias_i);
-    mpp_enc_cfg_set_s32(cfg, "hw:qbias_p", cmd->bias_p);
-    mpp_enc_cfg_set_s32(cfg, "hw:skip_bias_en", 0);
-    mpp_enc_cfg_set_s32(cfg, "hw:skip_bias", 4);
-    mpp_enc_cfg_set_s32(cfg, "hw:skip_sad", 8);
-
+    /* setup preprocess parameters */
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
     mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
@@ -468,6 +436,15 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
     mpp_enc_cfg_set_s32(cfg, "prep:range", MPP_FRAME_RANGE_JPEG);
 
+    mpp_env_get_u32("mirroring", &mirroring, 0);
+    mpp_env_get_u32("rotation", &rotation, 0);
+    mpp_env_get_u32("flip", &flip, 0);
+
+    mpp_enc_cfg_set_s32(cfg, "prep:mirroring", mirroring);
+    mpp_enc_cfg_set_s32(cfg, "prep:rotation", rotation);
+    mpp_enc_cfg_set_s32(cfg, "prep:flip", flip);
+
+    /* setup rate control parameters */
     mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
     mpp_enc_cfg_set_u32(cfg, "rc:max_reenc_times", 0);
     mpp_enc_cfg_set_u32(cfg, "rc:super_mode", 0);
@@ -511,11 +488,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     /* setup qp for different codec and rc_mode */
     switch (p->type) {
-    case MPP_VIDEO_CodingAVC : {
-        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_avc);
-    } break;
     case MPP_VIDEO_CodingHEVC : {
-        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_hevc);
         switch (p->rc_mode) {
         case MPP_ENC_RC_MODE_FIXQP : {
             RK_S32 fix_qp = cmd->qp_init;
@@ -627,14 +600,6 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
         mpp_enc_cfg_set_s32(cfg, "split:out", p->split_out);
     }
 
-    mpp_env_get_u32("mirroring", &mirroring, 0);
-    mpp_env_get_u32("rotation", &rotation, 0);
-    mpp_env_get_u32("flip", &flip, 0);
-
-    mpp_enc_cfg_set_s32(cfg, "prep:mirroring", mirroring);
-    mpp_enc_cfg_set_s32(cfg, "prep:rotation", rotation);
-    mpp_enc_cfg_set_s32(cfg, "prep:flip", flip);
-
     // config gop_len and ref cfg
     mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop_len ? p->gop_len : p->fps_out_num * 2);
 
@@ -649,6 +614,49 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
         mpp_enc_cfg_set_ptr(cfg, "rc:ref_cfg", ref);
     }
+
+    /* setup fine tuning paramters */
+    mpp_enc_cfg_set_s32(cfg, "tune:speed", cmd->speed);
+    mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
+    mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
+    mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
+
+    mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
+    mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
+    mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
+    mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 0);
+
+    /* setup hardware specified parameters */
+    if (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_smart);
+    } else {
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_i_ipc);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_p_ipc);
+    }
+    mpp_enc_cfg_set_st(cfg, "hw:aq_rnge_arr", aq_rnge_arr);
+
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_i", cmd->bias_i);
+    mpp_enc_cfg_set_s32(cfg, "hw:qbias_p", cmd->bias_p);
+
+    if (p->type == MPP_VIDEO_CodingAVC) {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_avc);
+    } else if (p->type == MPP_VIDEO_CodingHEVC) {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_hevc);
+    }
+
+    mpp_enc_cfg_set_s32(cfg, "hw:skip_bias_en", 0);
+    mpp_enc_cfg_set_s32(cfg, "hw:skip_bias", 4);
+    mpp_enc_cfg_set_s32(cfg, "hw:skip_sad", 8);
 
     ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);
     if (ret) {

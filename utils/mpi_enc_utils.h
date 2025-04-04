@@ -88,7 +88,7 @@ typedef struct MpiEncTestArgs_t {
     RK_S32              atl_str;
     RK_S32              sao_str_i;
     RK_S32              sao_str_p;
-
+    RK_S32              speed;
     /* -dbe deblur enable flag
      * -dbs deblur strength
      */

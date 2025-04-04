@@ -652,6 +652,23 @@ RK_S32 mpi_enc_opt_bias_p(void *ctx, const char *next)
     return 0;
 }
 
+RK_S32 mpi_enc_opt_speed(void *ctx, const char *next)
+{
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+
+    if (next) {
+        cmd->speed = atoi(next);
+        if (cmd->speed > 3 || cmd->speed < 0) {
+            cmd->speed = 0;
+            mpp_err("invalid speed %d set to default 0\n", cmd->speed);
+        }
+        return 1;
+    }
+
+    mpp_err("invalid speed mode\n");
+    return 0;
+}
+
 RK_S32 mpi_enc_opt_kmpp(void *ctx, const char *next)
 {
     MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
@@ -706,6 +723,7 @@ static MppOptInfo enc_opts[] = {
     {"bc",      "bitrate container",    "rc_container, 0:off 1:weak 2:strong",      mpi_enc_opt_bc},
     {"ibias",   "bias i",               "bias_i",                                   mpi_enc_opt_bias_i},
     {"pbias",   "bias p",               "bias_p",                                   mpi_enc_opt_bias_p},
+    {"speed",   "enc speed",            "speed",                                    mpi_enc_opt_speed},
     {"kmpp",    "kmpp path enable",     "kmpp path enable",                         mpi_enc_opt_kmpp}
 };
 

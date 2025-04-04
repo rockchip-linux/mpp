@@ -1541,6 +1541,7 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH           = (1 << 19),
     MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT          = (1 << 20),
     MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT          = (1 << 21),
+    MPP_ENC_TUNE_CFG_CHANGE_SPEED               = (1 << 22),
     MPP_ENC_TUNE_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncFineTuneCfgChange;
 
@@ -1570,7 +1571,7 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              skip16_wgt; /* weight for skip16, 0 or [3, 8] */
     RK_S32              skip32_wgt; /* weight for skip32, 0 or [3, 8] */
     RK_S32              qpmap_en;
-    RK_S32              enc_spd;/*enc speed [0..3] ,  0:full mode; 1:fast; 2:faster; 3:fastest */
+    RK_S32              speed; /*enc speed [0..3], 0:full mode; 1:fast; 2:faster; 3:fastest */
     RK_S32              reserved[4];
 } MppEncFineTuneCfg;
 

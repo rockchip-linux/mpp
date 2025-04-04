@@ -269,11 +269,11 @@ public:
     ENTRY(tune, anti_flicker_str,S32,       MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR,tune, anti_flicker_str) \
     ENTRY(tune, lambda_idx_i,   S32,        MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I,   tune, lambda_idx_i) \
     ENTRY(tune, lambda_idx_p,   S32,        MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P,   tune, lambda_idx_p) \
-    ENTRY(tune, atr_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_I,   tune, atr_str_i) \
-    ENTRY(tune, atr_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P,   tune, atr_str_p) \
-    ENTRY(tune, atl_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATL_STR,     tune, atl_str) \
-    ENTRY(tune, sao_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I,   tune, sao_str_i) \
-    ENTRY(tune, sao_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P,   tune, sao_str_p) \
+    ENTRY(tune, atr_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_I,      tune, atr_str_i) \
+    ENTRY(tune, atr_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P,      tune, atr_str_p) \
+    ENTRY(tune, atl_str,        S32,        MPP_ENC_TUNE_CFG_CHANGE_ATL_STR,        tune, atl_str) \
+    ENTRY(tune, sao_str_i,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I,      tune, sao_str_i) \
+    ENTRY(tune, sao_str_p,      S32,        MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P,      tune, sao_str_p) \
     ENTRY(tune, rc_container,   S32,        MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER,   tune, rc_container) \
     ENTRY(tune, vmaf_opt,       S32,        MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT,       tune, vmaf_opt) \
     ENTRY(tune, motion_static_switch_enable, S32, MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE, tune, motion_static_switch_enable) \
@@ -282,7 +282,8 @@ public:
     ENTRY(tune, static_frm_num, S32,        MPP_ENC_TUNE_CFG_CHANGE_STATIC_FRM_NUM, tune, static_frm_num) \
     ENTRY(tune, madp16_th,      S32,        MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH,      tune, madp16_th) \
     ENTRY(tune, skip16_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT,     tune, skip16_wgt) \
-    ENTRY(tune, skip32_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT,     tune, skip32_wgt)
+    ENTRY(tune, skip32_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT,     tune, skip32_wgt) \
+    ENTRY(tune, speed,          S32,        MPP_ENC_TUNE_CFG_CHANGE_SPEED,          tune, speed)
 
 MppEncCfgService::MppEncCfgService() :
     mTrie(NULL)
