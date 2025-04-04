@@ -540,7 +540,16 @@ RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
     MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
 
     if (next) {
-        cmd->anti_flicker_str = atoi(next);
+        RK_S32 val = atoi(next);
+
+        if (val >= 0 && val <= 3 ) {
+            cmd->anti_flicker_str = val;
+            cmd->atf_str = val;
+        } else {
+            cmd->anti_flicker_str = 0;
+            cmd->atf_str = 0;
+            mpp_err("invalid atf_str %d set to default 0\n", val);
+        }
         return 1;
     }
 
@@ -752,6 +761,7 @@ static MppOptInfo enc_opts[] = {
     {"lmd",     "lambda idx",           "lambda_idx_p 0~8",                         mpi_enc_opt_lmd},
     {"lmdi",    "lambda i idx",         "lambda_idx_i 0~8",                         mpi_enc_opt_lmdi},
     {"speed",   "enc speed",            "speed mode",                               mpi_enc_opt_speed},
+    {"atf",     "atf",                  "anti_flicker_str, 0:off 1 2 3",            mpi_enc_opt_atf},
     {"kmpp",    "kmpp path enable",     "kmpp path enable",                         mpi_enc_opt_kmpp}
 };
 

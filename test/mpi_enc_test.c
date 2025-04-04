@@ -617,6 +617,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     /* setup fine tuning paramters */
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:atf_str", cmd->atf_str);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
     mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
