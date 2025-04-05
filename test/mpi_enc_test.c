@@ -616,18 +616,19 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
     }
 
     /* setup fine tuning paramters */
-    mpp_enc_cfg_set_s32(cfg, "tune:speed", cmd->speed);
     mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
     mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
     mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
-    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
-    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
-
-    mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", cmd->deblur_en);
     mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
+    mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
+    mpp_enc_cfg_set_s32(cfg, "tune:lambda_idx_p", cmd->lambda_idx_p);
+    mpp_enc_cfg_set_s32(cfg, "tune:lambda_idx_i", cmd->lambda_idx_i);
     mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
+    mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
+    mpp_enc_cfg_set_s32(cfg, "tune:speed", cmd->speed);
     mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 0);
 
     /* setup hardware specified parameters */
