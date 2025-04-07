@@ -139,6 +139,18 @@ typedef enum MppMetaKey_e {
     KEY_DEC_TBN_EN              = FOURCC_META('t', 'b', 'e', 'n'),
     KEY_DEC_TBN_Y_OFFSET        = FOURCC_META('t', 'b', 'y', 'o'),
     KEY_DEC_TBN_UV_OFFSET       = FOURCC_META('t', 'b', 'c', 'o'),
+
+    /* combo frame */
+    KEY_COMBO_FRAME             = FOURCC_META('c', 'f', 'r', 'm'),
+    KEY_CHANNEL_ID              = FOURCC_META('c', 'h', 'a', 'n'),
+
+    /* Preprocess (pp) operation metat data */
+    /* Motion Detection output buffer */
+    KEY_PP_MD_BUF               = FOURCC_META('m', 'd', 'b', 'f'),
+    /* Occlusion Detection output buffer */
+    KEY_PP_OD_BUF               = FOURCC_META('o', 'd', 'b', 'f'),
+    /* pp output data */
+    KEY_PP_OUT                  = FOURCC_META('o', 'p', 'p', ' '),
 } MppMetaKey;
 
 #define mpp_meta_get(meta) mpp_meta_get_with_tag(meta, MODULE_TAG, __FUNCTION__)
