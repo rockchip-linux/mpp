@@ -597,10 +597,10 @@ static MPP_RET h265e_pps_write(H265ePps *pps, H265eSps *sps, H265eStream *s)
         h265e_stream_write1_with_log(s, pps->m_bTileUniformSpacing, "uniform_spacing_flag");
         if (!pps->m_bTileUniformSpacing) {
             for ( i = 0; i < pps->m_nNumTileColumnsMinus1; i++) {
-                h265e_stream_write_ue_with_log(s, pps->m_nTileColumnWidthArray[i + 1] - pps->m_nTileColumnWidthArray[i] - 1, "column_width_minus1");
+                h265e_stream_write_ue_with_log(s, pps->m_nTileColumnWidthArray[i] - 1, "column_width_minus1");
             }
             for (i = 0; i < pps->m_nNumTileRowsMinus1; i++) {
-                h265e_stream_write_ue_with_log(s, pps->m_nTileRowHeightArray[i + 1] - pps->m_nTileRowHeightArray[i - 1], "row_height_minus1");
+                h265e_stream_write_ue_with_log(s, pps->m_nTileRowHeightArray[i] - 1, "row_height_minus1");
             }
         }
         mpp_assert((pps->m_nNumTileColumnsMinus1 + pps->m_nNumTileRowsMinus1) != 0);
