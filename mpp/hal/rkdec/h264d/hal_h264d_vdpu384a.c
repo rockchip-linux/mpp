@@ -384,6 +384,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu384aH264dRegSet *regs, Ha
 
             regs->h264d_paras.reg68_dpb_hor_virstride = fbc_hdr_stride / 64;
             regs->h264d_addrs.reg193_dpb_fbc64x4_payload_offset = fbd_offset;
+            regs->h264d_paras.reg80_error_ref_hor_virstride = regs->h264d_paras.reg68_dpb_hor_virstride;
         } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
             regs->ctrl_regs.reg9.dpb_data_sel = 1;
             regs->ctrl_regs.reg9.dpb_output_dis = 1;
@@ -391,6 +392,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu384aH264dRegSet *regs, Ha
 
             regs->h264d_paras.reg77_pp_m_hor_stride = hor_virstride * 6 / 16;
             regs->h264d_paras.reg79_pp_m_y_virstride = (y_virstride + uv_virstride) / 16;
+            regs->h264d_paras.reg80_error_ref_hor_virstride = regs->h264d_paras.reg77_pp_m_hor_stride;
         } else {
             regs->ctrl_regs.reg9.dpb_data_sel = 1;
             regs->ctrl_regs.reg9.dpb_output_dis = 1;
@@ -399,7 +401,10 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu384aH264dRegSet *regs, Ha
             regs->h264d_paras.reg77_pp_m_hor_stride = hor_virstride / 16;
             regs->h264d_paras.reg78_pp_m_uv_hor_stride = hor_virstride / 16;
             regs->h264d_paras.reg79_pp_m_y_virstride = y_virstride / 16;
+            regs->h264d_paras.reg80_error_ref_hor_virstride = regs->h264d_paras.reg77_pp_m_hor_stride;
         }
+        regs->h264d_paras.reg81_error_ref_raster_uv_hor_virstride = regs->h264d_paras.reg78_pp_m_uv_hor_stride;
+        regs->h264d_paras.reg82_error_ref_virstride = regs->h264d_paras.reg79_pp_m_y_virstride;
     }
     //!< set current
     {
