@@ -249,7 +249,7 @@ typedef enum {
 typedef enum {
     MPP_FMT_YUV420SP        = (MPP_FRAME_FMT_YUV + 0),  /* YYYY... UV... (NV12)     */
     /*
-     * A rockchip specific pixel format, without gap between pixel aganist
+     * A rockchip specific pixel format, without gap between pixel against
      * the P010_10LE/P010_10BE
      */
     MPP_FMT_YUV420SP_10BIT  = (MPP_FRAME_FMT_YUV + 1),
