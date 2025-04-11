@@ -219,6 +219,7 @@ struct MppBufSlotsImpl_t {
     RK_U32              eos;
 
     // buffer parameter, default alignement is 16
+    MppSysCfg           sys_cfg;
     AlignFunc           hal_hor_align;          // default NULL
     AlignFunc           hal_ver_align;          // default NULL
     AlignFunc           hal_len_align;          // default NULL
@@ -396,37 +397,25 @@ static void prepare_info_set_by_sys_cfg(MppBufSlotsImpl *impl, MppFrame frame,
     const RK_U32 codec_hor_stride = mpp_frame_get_hor_stride(frame);
     const RK_U32 codec_ver_stride = mpp_frame_get_ver_stride(frame);
     const MppFrameFormat fmt = mpp_frame_get_fmt(frame);
-    MPP_RET ret = MPP_OK;
-    MppSysCfg cfg;
-
-    ret = mpp_sys_cfg_get(&cfg);
-    if (ret) {
-        mpp_err("mpp_sys_cfg_get failed\n");
-        return;
-    }
 
     /* set correct parameter */
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:enable", 1);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:type", impl->coding_type);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_codec", fmt & MPP_FRAME_FMT_MASK);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_fbc", fmt & MPP_FRAME_FBC_MASK);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:fmt_hdr", fmt & MPP_FRAME_HDR_MASK);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:width", width);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:height", height);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:h_stride_by_byte", codec_hor_stride);
-    ret = mpp_sys_cfg_set_u32(cfg, "dec_buf_chk:v_stride", codec_ver_stride);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:enable", 1);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:type", impl->coding_type);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:fmt_codec", fmt & MPP_FRAME_FMT_MASK);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:fmt_fbc", fmt & MPP_FRAME_FBC_MASK);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:fmt_hdr", fmt & MPP_FRAME_HDR_MASK);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:width", width);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:height", height);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:h_stride_by_byte", codec_hor_stride);
+    mpp_sys_cfg_set_u32(impl->sys_cfg, "dec_buf_chk:v_stride", codec_ver_stride);
 
     /* get result */
-    mpp_sys_cfg_ioctl(cfg);
+    mpp_sys_cfg_ioctl(impl->sys_cfg);
 
-    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:h_stride_by_byte", &info_set->h_stride_by_byte);
-    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:h_stride_by_pixel", &info_set->h_stride_by_pixel);
-    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:v_stride", &info_set->v_stride);
-    ret = mpp_sys_cfg_get_u32(cfg, "dec_buf_chk:size_total", &info_set->size_total);
-
-    ret = mpp_sys_cfg_put(cfg);
-    if (ret)
-        mpp_err("mpp_sys_cfg_put failed\n");
+    mpp_sys_cfg_get_u32(impl->sys_cfg, "dec_buf_chk:h_stride_by_byte", &info_set->h_stride_by_byte);
+    mpp_sys_cfg_get_u32(impl->sys_cfg, "dec_buf_chk:h_stride_by_pixel", &info_set->h_stride_by_pixel);
+    mpp_sys_cfg_get_u32(impl->sys_cfg, "dec_buf_chk:v_stride", &info_set->v_stride);
+    mpp_sys_cfg_get_u32(impl->sys_cfg, "dec_buf_chk:size_total", &info_set->size_total);
 
     return;
 }
@@ -787,6 +776,9 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
     MppBufSlotEntry *slot = (MppBufSlotEntry *)impl->slots;
     RK_S32 i;
 
+    if (impl->sys_cfg)
+        mpp_sys_cfg_put(impl->sys_cfg);
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(impl->queue); i++) {
         if (!list_empty(&impl->queue[i]))
             dump_slots(impl);
@@ -839,6 +831,11 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
     mpp_env_get_u32("use_legacy_align", &use_legacy_align, 0);
 
     do {
+        if (mpp_sys_cfg_get(&impl->sys_cfg)) {
+            mpp_err_f("mpp_sys_cfg_get failed\n");
+            break;
+        }
+
         impl->lock = new Mutex();
         if (NULL == impl->lock)
             break;
