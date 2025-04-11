@@ -1097,7 +1097,7 @@ static MPP_RET hal_h265d_vdpu383_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->ctrl_regs.reg16.roi_error_ctu_cal_en = 0;
 
     hw_regs->ctrl_regs.reg20_cabac_error_en_lowbits = 0xffffffff;
-    hw_regs->ctrl_regs.reg21_cabac_error_en_highbits = 0x3ff3ffff;
+    hw_regs->ctrl_regs.reg21_cabac_error_en_highbits = 0x3ff3f9ff;
 
     hw_regs->ctrl_regs.reg13_core_timeout_threshold = 0xffff;
 
