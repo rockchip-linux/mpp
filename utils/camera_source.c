@@ -37,7 +37,6 @@ typedef struct CamFrame_t {
     void        *start;
     size_t      length;
     RK_S32      export_fd;
-    RK_S32      sequence;
     MppBuffer   buffer;
 } CamFrame;
 
