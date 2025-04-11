@@ -443,6 +443,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
 
         aligned_pixel_byte = cfg->h_stride_by_byte ? cfg->h_stride_by_byte :
                              aligned_pixel * depth / 8;
+        aligned_height = cfg->v_stride ? cfg->v_stride : aligned_height;
 
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {
