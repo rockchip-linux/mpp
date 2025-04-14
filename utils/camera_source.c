@@ -227,7 +227,6 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
         buf.memory  = V4L2_MEMORY_MMAP;
         buf.index   = i;
         struct v4l2_plane planes[FMT_NUM_PLANES];
-        buf.memory = V4L2_MEMORY_MMAP;
         if (V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
             buf.m.planes = planes;
             buf.length = FMT_NUM_PLANES;
@@ -291,7 +290,6 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
         buf.type    = type;
         buf.memory  = V4L2_MEMORY_MMAP;
         buf.index   = i;
-        buf.memory = V4L2_MEMORY_MMAP;
 
         if (V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
             buf.m.planes = planes;
