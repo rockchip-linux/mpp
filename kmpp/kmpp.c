@@ -362,10 +362,8 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
 
     memcpy(&timeout, &ctx->mTimeout, sizeof(timeout));
     ret = select(ctx->mClientFd + 1, &read_fds, NULL, NULL, &timeout);
-    if (ret <= 0) {
-        mpp_err("get venc stream error %d\n", ret);
+    if (ret <= 0)
         return MPP_NOK;
-    }
 
     if (FD_ISSET(ctx->mClientFd, &read_fds)) {
         VencPacket *venc_packet = mpp_mem_pool_get(ctx->mVencPacketPool);
