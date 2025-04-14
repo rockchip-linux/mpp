@@ -488,6 +488,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     /* setup qp for different codec and rc_mode */
     switch (p->type) {
+    case MPP_VIDEO_CodingAVC :
     case MPP_VIDEO_CodingHEVC : {
         switch (p->rc_mode) {
         case MPP_ENC_RC_MODE_FIXQP : {
