@@ -309,12 +309,11 @@ static MPP_RET put_frame(Kmpp *ctx, MppFrame frame)
     frame_info.offset_x = mpp_frame_get_offset_x(frame);
     frame_info.offset_y = mpp_frame_get_offset_y(frame);
     frame_info.fmt = mpp_frame_get_fmt(frame);
-    frame_info.fd = mpp_buffer_get_fd(buf);
-    // frame_info.pts = mpp_frame_get_pts(frame);
-    // frame_info.jpeg_chan_id = mpp_frame_get_jpege_chan_id(frame);
-    // frame_info.eos = mpp_frame_get_eos(frame);
-    // frame_info.pskip = mpp_frame_get_pskip_request(frame);
-    // frame_info.pskip_num = mpp_frame_get_pskip_num(frame);
+    frame_info.eos = mpp_frame_get_eos(frame);
+    frame_info.pts = mpp_frame_get_pts(frame);
+    frame_info.dts = mpp_frame_get_dts(frame);
+    if (buf)
+        frame_info.fd = mpp_buffer_get_fd(buf);
     if (mpp_frame_has_meta(frame)) {
         MppMeta meta = mpp_frame_get_meta(frame);
         MppPacket packet = NULL;
@@ -367,6 +366,9 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
 
     if (FD_ISSET(ctx->mClientFd, &read_fds)) {
         VencPacket *venc_packet = mpp_mem_pool_get(ctx->mVencPacketPool);
+        MppPacket pkt = NULL;
+        void *ptr = NULL;
+        RK_U32 len;
 
         ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_BUF_RDY, 0, sizeof(VencPacket), venc_packet);
         if (ret) {
@@ -374,39 +376,35 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
             return MPP_NOK;
         }
 
-        if (venc_packet->len) {
-            MppPacket pkt = NULL;
-            void *ptr = NULL;
-            RK_U32 len = venc_packet->len;
+        ptr = (void *)(intptr_t)(venc_packet->u64priv_data);
+        len = venc_packet->len;
 
-            ptr = (void *)(intptr_t)(venc_packet->u64priv_data);
+        if (ctx->mPacket) {
+            void *dst;
 
+            pkt = ctx->mPacket;
+            ctx->mPacket = NULL;
             if (ptr) {
-                if (ctx->mPacket) {
-                    void *dst;
-
-                    pkt = ctx->mPacket;
-                    ctx->mPacket = NULL;
-                    dst = mpp_packet_get_pos(pkt);
-                    memcpy(dst, ptr + venc_packet->offset, len);
-                    mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_END, 0, sizeof(VencPacket), venc_packet);
-                    mpp_packet_set_length(pkt, len);
-                    mpp_mem_pool_put(ctx->mVencPacketPool, venc_packet);
-                } else {
-                    mpp_packet_init(&pkt, ptr + venc_packet->offset, len);
-                    mpp_packet_set_release(pkt, kmpp_release_venc_packet, ctx, venc_packet);
-                }
-                mpp_packet_set_dts(pkt, venc_packet->u64dts);
-                mpp_packet_set_pts(pkt, venc_packet->u64pts);
-                mpp_packet_set_flag(pkt, venc_packet->flag);
-                if (venc_packet->flag & MPP_PACKET_FLAG_INTRA) {
-                    MppMeta meta = mpp_packet_get_meta(pkt);
-
-                    mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, 1);
-                }
+                dst = mpp_packet_get_pos(pkt);
+                memcpy(dst, ptr + venc_packet->offset, len);
             }
-            *packet = pkt;
+            mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_END, 0, sizeof(VencPacket), venc_packet);
+            mpp_packet_set_length(pkt, len);
+            mpp_mem_pool_put(ctx->mVencPacketPool, venc_packet);
+        } else {
+            mpp_packet_init(&pkt, ptr + venc_packet->offset, len);
+            mpp_packet_set_release(pkt, kmpp_release_venc_packet, ctx, venc_packet);
         }
+
+        mpp_packet_set_dts(pkt, venc_packet->u64dts);
+        mpp_packet_set_pts(pkt, venc_packet->u64pts);
+        mpp_packet_set_flag(pkt, venc_packet->flag);
+        if (venc_packet->flag & MPP_PACKET_FLAG_INTRA) {
+            MppMeta meta = mpp_packet_get_meta(pkt);
+
+            mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, 1);
+        }
+        *packet = pkt;
     }
 
     return MPP_OK;
