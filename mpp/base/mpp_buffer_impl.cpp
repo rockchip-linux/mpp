@@ -59,7 +59,7 @@ private:
     RK_U32              total_max;
 
     // misc group for internal / externl buffer with different type
-    RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT];
+    RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT][MPP_ALLOCATOR_WITH_FLAG_NUM];
     RK_U32              misc_count;
     /* preset allocator apis */
     MppAllocator        mAllocator[MPP_BUFFER_TYPE_BUTT][MPP_ALLOCATOR_WITH_FLAG_NUM];
@@ -895,7 +895,7 @@ MppBufferService::MppBufferService()
       total_max(0),
       misc_count(0)
 {
-    RK_S32 i, j;
+    RK_S32 i, j, k;
 
     INIT_LIST_HEAD(&mListGroup);
     INIT_LIST_HEAD(&mListOrphan);
@@ -905,7 +905,8 @@ MppBufferService::MppBufferService()
     // NOTE: Do not create misc group at beginning. Only create on when needed.
     for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
         for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++)
-            misc[i][j] = 0;
+            for (k = 0; k < MPP_ALLOCATOR_WITH_FLAG_NUM; k++)
+                misc[i][j][k] = 0;
 
     for (i = 0; i < (RK_S32)HASH_SIZE(mHashGroup); i++)
         INIT_HLIST_HEAD(&mHashGroup[i]);
@@ -915,7 +916,7 @@ MppBufferService::MppBufferService()
 
 MppBufferService::~MppBufferService()
 {
-    RK_S32 i, j;
+    RK_S32 i, j, k;
 
     finalizing = 1;
 
@@ -923,14 +924,13 @@ MppBufferService::~MppBufferService()
     if (misc_count) {
         mpp_log_f("cleaning misc group\n");
         for (i = 0; i < MPP_BUFFER_MODE_BUTT; i++)
-            for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++) {
-                RK_U32 id = misc[i][j];
+            for (j = 0; j < MPP_BUFFER_TYPE_BUTT; j++)
+                for (k = 0; k < MPP_ALLOCATOR_WITH_FLAG_NUM; k++) {
+                    RK_U32 id = MPP_FETCH_AND(&misc[i][j][k], 0);
 
-                if (id) {
-                    put_group(__FUNCTION__, get_group_by_id(id));
-                    misc[i][j] = 0;
+                    if (id)
+                        put_group(__FUNCTION__, get_group_by_id(id));
                 }
-            }
     }
 
     // then remove the remaining group which is the leak one
@@ -996,6 +996,22 @@ RK_U32 MppBufferService::get_group_id()
     return id;
 }
 
+static RK_U32 type_to_flag(MppBufferType type)
+{
+    RK_U32 flag = MPP_ALLOC_FLAG_NONE;
+
+    if (type & MPP_BUFFER_FLAGS_DMA32)
+        flag += MPP_ALLOC_FLAG_DMA32;
+
+    if (type & MPP_BUFFER_FLAGS_CACHABLE)
+        flag += MPP_ALLOC_FLAG_CACHABLE;
+
+    if (type & MPP_BUFFER_FLAGS_CONTIG)
+        flag += MPP_ALLOC_FLAG_CMA;
+
+    return flag;
+}
+
 MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *caller,
                                                 MppBufferMode mode, MppBufferType type,
                                                 RK_U32 is_misc)
@@ -1018,14 +1034,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
         return NULL;
     }
 
-    if (type & MPP_BUFFER_FLAGS_DMA32)
-        flag += MPP_ALLOC_FLAG_DMA32;
-
-    if (type & MPP_BUFFER_FLAGS_CACHABLE)
-        flag += MPP_ALLOC_FLAG_CACHABLE;
-
-    if (type & MPP_BUFFER_FLAGS_CONTIG)
-        flag += MPP_ALLOC_FLAG_CMA;
+    flag = type_to_flag(type);
 
     p->flags = (MppAllocFlagType)flag;
 
@@ -1095,7 +1104,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     buf_grp_add_log(p, GRP_CREATE, caller);
 
     if (is_misc) {
-        misc[mode][buffer_type] = id;
+        misc[mode][buffer_type][flag] = id;
         p->is_misc = 1;
         misc_count++;
     }
@@ -1105,14 +1114,17 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
 
 RK_U32 MppBufferService::get_misc(MppBufferMode mode, MppBufferType type)
 {
+    RK_U32 flag = type_to_flag(type);
+
     type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     if (type == MPP_BUFFER_TYPE_NORMAL)
         return 0;
 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
     mpp_assert(type < MPP_BUFFER_TYPE_BUTT);
+    mpp_assert(flag < MPP_ALLOC_FLAG_TYPE_NB);
 
-    return misc[mode][type];
+    return misc[mode][type][flag];
 }
 
 void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
@@ -1179,6 +1191,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
 {
     MppBufferMode mode = group->mode;
     MppBufferType type = group->type;
+    RK_U32 flag = type_to_flag(type);
     RK_U32 id = group->group_id;
 
     mpp_assert(group->count_used == 0);
@@ -1202,8 +1215,8 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
     mpp_mem_pool_put(mpp_buf_grp_pool, group);
     group_count--;
 
-    if (id == misc[mode][type]) {
-        misc[mode][type] = 0;
+    if (id == misc[mode][type][flag]) {
+        misc[mode][type][flag] = 0;
         misc_count--;
     }
 }

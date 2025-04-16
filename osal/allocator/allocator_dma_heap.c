@@ -366,6 +366,7 @@ static MppAllocFlagType os_allocator_dma_heap_flags(void *ctx)
 
 os_allocator allocator_dma_heap = {
     .type = MPP_BUFFER_TYPE_DMA_HEAP,
+    .name = "dma_heap",
     .open = os_allocator_dma_heap_open,
     .close = os_allocator_dma_heap_close,
     .alloc = os_allocator_dma_heap_alloc,

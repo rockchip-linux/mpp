@@ -34,8 +34,6 @@
 #include "mpp_common.h"
 #include "mpp_runtime.h"
 
-static RK_U32 drm_debug = 0;
-
 #define DRM_FUNCTION                (0x00000001)
 #define DRM_DEVICE                  (0x00000002)
 #define DRM_IOCTL                   (0x00000004)
@@ -44,6 +42,8 @@ static RK_U32 drm_debug = 0;
 #define drm_dbg_func(fmt, ...)      drm_dbg(DRM_FUNCTION, fmt, ## __VA_ARGS__)
 #define drm_dbg_dev(fmt, ...)       drm_dbg(DRM_DEVICE, fmt, ## __VA_ARGS__)
 #define drm_dbg_ioctl(fmt, ...)     drm_dbg(DRM_IOCTL, fmt, ## __VA_ARGS__)
+
+static RK_U32 drm_debug = 0;
 
 /* memory type definitions. */
 enum drm_rockchip_gem_mem_type {
@@ -152,8 +152,8 @@ static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, RK_U32 fl
         return ret;
 
     *handle = dmcb.handle;
-    drm_dbg_func("dev %d alloc aligned %d flags %x handle %d size %lld\n", fd,
-                 align, dmcb.flags, dmcb.handle, dmcb.size);
+    drm_dbg_func("dev %d alloc aligned %d flags %x|%x handle %d size %lld\n", fd,
+                 align, flags, dmcb.flags, dmcb.handle, dmcb.size);
 
     return ret;
 }
@@ -265,7 +265,7 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
     RK_S32 fd_ext = data->fd;
     MPP_RET ret = MPP_OK;
 
-    drm_dbg_func("enter dev %d\n", p->drm_device);
+    drm_dbg_func("enter dev %d fd %d\n", p->drm_device, fd_ext);
 
     mpp_assert(fd_ext > 0);
 
@@ -277,7 +277,7 @@ static MPP_RET os_allocator_drm_import(void *ctx, MppBufferInfo *data)
         ret = MPP_NOK;
     }
 
-    drm_dbg_func("leave dev %d\n", p->drm_device);
+    drm_dbg_func("leave dev %d fd %d -> %d\n", p->drm_device, fd_ext, data->fd);
 
     return ret;
 }
@@ -375,6 +375,7 @@ static MppAllocFlagType os_allocator_drm_flags(void *ctx)
 
 os_allocator allocator_drm = {
     .type = MPP_BUFFER_TYPE_DRM,
+    .name = "drm",
     .open = os_allocator_drm_open,
     .close = os_allocator_drm_close,
     .alloc = os_allocator_drm_alloc,

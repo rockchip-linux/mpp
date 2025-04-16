@@ -150,6 +150,7 @@ static MppAllocFlagType os_allocator_ext_dma_flags(void *ctx)
 
 os_allocator allocator_ext_dma = {
     .type = MPP_BUFFER_TYPE_EXT_DMA,
+    .name = "ext_dma",
     .open = allocator_ext_dma_open,
     .close = allocator_ext_dma_close,
     .alloc = allocator_ext_dma_alloc,

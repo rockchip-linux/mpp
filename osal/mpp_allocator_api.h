@@ -12,6 +12,7 @@ typedef MPP_RET (*OsAllocatorFunc)(void *ctx, MppBufferInfo *info);
 
 typedef struct os_allocator_t {
     MppBufferType type;
+    const char *name;
 
     MPP_RET (*open)(void **ctx, size_t alignment, MppAllocFlagType flags);
     MPP_RET (*close)(void *ctx);
