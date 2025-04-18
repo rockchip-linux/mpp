@@ -166,9 +166,9 @@ typedef struct VdpuAv1dRegCtx_t {
     vdpu383RefInfo  ref_info_tbl[NUM_REF_FRAMES];
 
     MppBuffer       cdf_rd_def_base;
-    HalBufs         cdf_bufs;
-    RK_U32          cdf_count;
-    RK_U32          cdf_size;
+    HalBufs         cdf_segid_bufs;
+    RK_U32          cdf_segid_count;
+    RK_U32          cdf_segid_size;
     RK_U32          cdf_coeff_cdf_idxs[NUM_REF_FRAMES];
     // RK_U32          cdfs_last[NUM_REF_FRAMES];
 
@@ -1354,9 +1354,9 @@ static void hal_av1d_release_res(void *hal)
         BUF_PUT(reg_ctx->rcb_bufs[i]);
 
     vdpu_av1d_filtermem_release(reg_ctx);
-    if (reg_ctx->cdf_bufs) {
-        hal_bufs_deinit(reg_ctx->cdf_bufs);
-        reg_ctx->cdf_bufs = NULL;
+    if (reg_ctx->cdf_segid_bufs) {
+        hal_bufs_deinit(reg_ctx->cdf_segid_bufs);
+        reg_ctx->cdf_segid_bufs = NULL;
     }
     if (reg_ctx->colmv_bufs) {
         hal_bufs_deinit(reg_ctx->colmv_bufs);
@@ -2018,30 +2018,28 @@ static MPP_RET vdpu383_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxv
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    size_t size = 0;
+    size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
+                        (MPP_ALIGN(dxva->height, 128) / 128) * \
+                        32 * 16;
+    size = ALL_CDF_SIZE + segid_size;
 
     /* the worst case is the frame is error with whole frame */
-    if (reg_ctx->cdf_bufs == NULL) {
-        size_t size = ALL_CDF_SIZE;
-        size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
-                            (MPP_ALIGN(dxva->height, 128) / 128) * \
-                            32 * 16;
-
-        size += segid_size;
-
-        if (reg_ctx->cdf_bufs) {
-            hal_bufs_deinit(reg_ctx->cdf_bufs);
-            reg_ctx->cdf_bufs = NULL;
+    if (reg_ctx->cdf_segid_bufs == NULL || reg_ctx->cdf_segid_size < size) {
+        if (reg_ctx->cdf_segid_bufs) {
+            hal_bufs_deinit(reg_ctx->cdf_segid_bufs);
+            reg_ctx->cdf_segid_bufs = NULL;
         }
 
-        hal_bufs_init(&reg_ctx->cdf_bufs);
-        if (reg_ctx->cdf_bufs == NULL) {
+        hal_bufs_init(&reg_ctx->cdf_segid_bufs);
+        if (reg_ctx->cdf_segid_bufs == NULL) {
             mpp_err_f("cdf bufs init fail");
             goto __RETURN;
         }
 
-        reg_ctx->cdf_size = size;
-        reg_ctx->cdf_count = mpp_buf_slot_get_count(p_hal->slots);
-        hal_bufs_setup(reg_ctx->cdf_bufs, reg_ctx->cdf_count, 1, &size);
+        reg_ctx->cdf_segid_size = size;
+        reg_ctx->cdf_segid_count = mpp_buf_slot_get_count(p_hal->slots);
+        hal_bufs_setup(reg_ctx->cdf_segid_bufs, reg_ctx->cdf_segid_count, 1, &size);
     }
 
 __RETURN:
@@ -2115,7 +2113,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         coeff_cdf_idx = reg_ctx->ref_info_tbl[mapped_idx].coeff_idx;
         if (!dxva->coding.disable_frame_end_update_cdf &&
             reg_ctx->ref_info_tbl[mapped_idx].cdf_valid) {
-            cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->frame_refs[mapped_idx].Index);
+            cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->frame_refs[mapped_idx].Index);
             buf_tmp = cdf_buf->buf[0];
         } else {
             buf_tmp = reg_ctx->cdf_rd_def_base;
@@ -2133,7 +2131,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         }
 #endif
     }
-    cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->CurrPic.Index7Bits);
+    cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->CurrPic.Index7Bits);
     regs->av1d_addrs.reg185_av1_noncoef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
     regs->av1d_addrs.reg179_av1_coef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
     regs->av1d_addrs.reg182_av1_wr_segid_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
@@ -2610,7 +2608,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
         DXVA_PicParams_AV1 *dxva = (DXVA_PicParams_AV1*)task->dec.syntax.data;
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_bufs, dxva->CurrPic.Index7Bits);
+        cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->CurrPic.Index7Bits);
         dump_data_to_file(dump_cur_fname_path, (void *)mpp_buffer_get_ptr(cdf_buf->buf[0]),
                           (NON_COEF_CDF_SIZE + COEF_CDF_SIZE) * 8, 128, 0, 0);
     }
