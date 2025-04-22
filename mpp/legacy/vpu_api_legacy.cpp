@@ -112,12 +112,23 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
     RK_S32 rc_mode  = cfg->rc_mode;
     RK_U32 is_fix_qp = (rc_mode == MPP_ENC_RC_MODE_FIXQP) ? 1 : 0;
 
+    RK_S32 qp_max   = (cfg->reserved[0] & 0xFF00) >> 8;
+    RK_S32 qp_min   = cfg->reserved[0] & 0x00FF;
+
+    if (qp_max == 0 || qp_max < qp) {
+        qp_max = 51;
+    }
+    if (qp_min == 0 || qp_min > qp) {
+        qp_min = 10;
+    }
+
     mpp_log("setup encoder rate control config:\n");
     mpp_log("width %4d height %4d format %d:%x\n", width, height, cfg->format, fmt);
     mpp_log("rc_mode %s qp %d bps %d\n", (rc_mode) ? ("CBR") : ("CQP"), qp, bps);
     mpp_log("fps in %d fps out %d gop %d\n", fps_in, fps_out, gop);
     mpp_log("setup encoder stream feature config:\n");
     mpp_log("profile %d level %d cabac %d\n", profile, level, cabac_en);
+    mpp_log("setup encoder qp_init %d qp_min %d qp_max %d\n", qp, qp_min, qp_max);
 
     mpp_assert(width);
     mpp_assert(height);
@@ -175,10 +186,10 @@ static MPP_RET vpu_api_set_enc_cfg(MppCtx mpp_ctx, MppApi *mpi, MppEncCfg enc_cf
         mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_en", cabac_en);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_init", is_fix_qp ? qp : -1);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min", is_fix_qp  ? qp : 10);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max", is_fix_qp ? qp : 51);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min_i", 10);
-        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max_i", 51);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min", is_fix_qp ? qp : qp_min);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max", is_fix_qp ? qp : qp_max);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_min_i", is_fix_qp ? 10 : qp_min);
+        mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_max_i", is_fix_qp ? 51 : qp_max);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_step", 4);
         mpp_enc_cfg_set_s32(enc_cfg, "h264:qp_delta_ip", 3);
     } break;
