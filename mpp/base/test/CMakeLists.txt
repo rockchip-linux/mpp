@@ -57,3 +57,6 @@ add_mpp_base_test(mpp_sys_cfg)
 
 # mpp_sys_cfgi unit test
 add_mpp_base_test(mpp_sys_cfg_st)
+
+# mpp_cfg_io unit test
+add_mpp_base_test(mpp_cfg)
