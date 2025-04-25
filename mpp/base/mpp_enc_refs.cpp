@@ -594,7 +594,7 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
     RK_S32 cpb_st_used_size = 0;
     RK_S32 seq_idx = 0;
     RK_S32 st_idx;
-    RK_S32 walk_len = MPP_MAX(info->lt_gop, info->st_gop);
+    RK_S32 walk_len = MPP_MAX(lt_cfg_cnt, st_cfg_cnt);
 
     if (cfg->ready)
         goto DONE;
