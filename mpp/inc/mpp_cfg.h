@@ -40,6 +40,18 @@ typedef struct MppCfgInfo_t {
     RK_S32              data_size;
 } MppCfgInfo;
 
+/* header size 128 byte */
+typedef struct MppCfgInfoHead_t {
+    char            version[116];
+    RK_S32          info_size;
+    RK_S32          info_count;
+    RK_S32          node_count;
+} MppCfgInfoHead;
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 MPP_RET mpp_cfg_set_s32(MppCfgInfo *info, void *cfg, RK_S32 val);
 MPP_RET mpp_cfg_get_s32(MppCfgInfo *info, void *cfg, RK_S32 *val);
 MPP_RET mpp_cfg_set_u32(MppCfgInfo *info, void *cfg, RK_U32 val);
@@ -65,18 +77,6 @@ MPP_RET mpp_cfg_get_ptr(MppCfgInfo *info, void *cfg, void **val);
 #define MPP_CFG_GET_St(info, cfg, val)  (mpp_cfg_get_st )(info, cfg, (void *)(val))
 #define MPP_CFG_SET_Ptr(info, cfg, val) (mpp_cfg_set_ptr)(info, cfg, val)
 #define MPP_CFG_GET_Ptr(info, cfg, val) (mpp_cfg_get_ptr)(info, cfg, (void **)(val))
-
-/* header size 128 byte */
-typedef struct MppCfgInfoHead_t {
-    char            version[116];
-    RK_S32          info_size;
-    RK_S32          info_count;
-    RK_S32          node_count;
-} MppCfgInfoHead;
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
 
 const char *strof_cfg_type(CfgType type);
 
