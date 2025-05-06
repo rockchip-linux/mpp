@@ -288,7 +288,7 @@ public:
 MppEncCfgService::MppEncCfgService() :
     mTrie(NULL)
 {
-    MPP_RET ret;
+    rk_s32 ret;
 
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
@@ -458,6 +458,9 @@ void mpp_enc_cfg_show(void)
         MppTrieInfo *node = root;
 
         do {
+            if (mpp_trie_info_is_self(node))
+                continue;
+
             if (node->ctx_len == sizeof(MppCfgInfo)) {
                 MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
@@ -466,11 +469,7 @@ void mpp_enc_cfg_show(void)
             } else {
                 mpp_log("%-25s size - %d\n", mpp_trie_info_name(node), node->ctx_len);
             }
-
-            node = srv->get_info_next(node);
-            if (!node)
-                break;
-        } while (1);
+        } while ((node = srv->get_info_next(node)));
     }
     mpp_log("dumping valid configure string done\n");
 

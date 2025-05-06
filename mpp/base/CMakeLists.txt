@@ -19,7 +19,7 @@ add_library(mpp_base OBJECT
     mpp_task_impl.cpp
     mpp_task.cpp
     mpp_meta.cpp
-    mpp_trie.cpp
+    mpp_trie.c
     mpp_bitwrite.c
     mpp_bitread.c
     mpp_bitput.c

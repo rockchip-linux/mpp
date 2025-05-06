@@ -116,7 +116,7 @@ public:
 MppSysCfgService::MppSysCfgService() :
     mTrie(NULL)
 {
-    MPP_RET ret = mpp_trie_init(&mTrie, "MppSysCfg");
+    rk_s32 ret = mpp_trie_init(&mTrie, "MppSysCfg");
     if (ret) {
         mpp_err_f("failed to init dec cfg set trie\n");
         return ;

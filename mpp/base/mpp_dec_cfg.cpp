@@ -118,7 +118,7 @@ public:
 MppDecCfgService::MppDecCfgService() :
     mTrie(NULL)
 {
-    MPP_RET ret = mpp_trie_init(&mTrie, "MppDecCfg");
+    rk_s32 ret = mpp_trie_init(&mTrie, "MppDecCfg");
     if (ret) {
         mpp_err_f("failed to init dec cfg set trie\n");
         return ;
@@ -276,6 +276,9 @@ void mpp_dec_cfg_show(void)
         MppTrieInfo *node = root;
 
         do {
+            if (mpp_trie_info_is_self(node))
+                continue;
+
             if (node->ctx_len == sizeof(MppCfgInfo)) {
                 MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
@@ -284,11 +287,7 @@ void mpp_dec_cfg_show(void)
             } else {
                 mpp_log("%-25s size - %d\n", mpp_trie_info_name(node), node->ctx_len);
             }
-
-            node = srv->get_info_next(node);
-            if (!node)
-                break;
-        } while (1);
+        } while ((node = srv->get_info_next(node)));
     }
     mpp_log("dumping valid configure string done\n");
 
