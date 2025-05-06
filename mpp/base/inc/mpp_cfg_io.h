@@ -70,11 +70,12 @@ rk_s32 mpp_cfg_del(MppCfgObj obj);
 
 /* attach MppCfgInfo for access location */
 rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info);
-/* all MppCfgObject ready and build trie for string access */
-rk_s32 mpp_cfg_build_trie(MppCfgObj obj, MppTrie *trie);
 
 void mpp_cfg_dump(MppCfgObj obj, const char *func);
 #define mpp_cfg_dump_f(obj) mpp_cfg_dump(obj, __FUNCTION__)
+
+/* mark all MppCfgObject ready and build trie for string access */
+MppTrie mpp_cfg_to_trie(MppCfgObj obj);
 
 /* mpp_cfg output to string and input from string */
 rk_s32 mpp_cfg_to_string(MppCfgObj obj, MppCfgStrFmt fmt, char **buf);

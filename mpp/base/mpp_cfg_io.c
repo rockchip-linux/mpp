@@ -372,6 +372,11 @@ rk_s32 mpp_cfg_put_all(MppCfgObj obj)
         return rk_nok;
     }
 
+    if (impl->trie) {
+        mpp_trie_deinit(impl->trie);
+        impl->trie = NULL;
+    }
+
     root = impl->parent;
     do {
         mpp_cfg_put_all_child(impl);
@@ -507,7 +512,8 @@ typedef struct MppCfgFullNameCtx_t {
 
 static void add_obj_info(MppCfgIoImpl *impl, void *data)
 {
-    if (impl->info.data_type < CFG_FUNC_TYPE_BUTT) {
+    /* NOTE: skip the root object and the invalid object */
+    if (impl->info.data_type < CFG_FUNC_TYPE_BUTT && impl->parent) {
         MppCfgFullNameCtx *ctx = (MppCfgFullNameCtx *)data;
 
         get_full_name(impl, ctx->buf, ctx->buf_size);
@@ -515,48 +521,47 @@ static void add_obj_info(MppCfgIoImpl *impl, void *data)
     }
 }
 
-rk_s32 mpp_cfg_build_trie(MppCfgObj obj, MppTrie *trie)
+MppTrie mpp_cfg_to_trie(MppCfgObj obj)
 {
     MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
-    MppCfgFullNameCtx ctx;
     MppTrie p = NULL;
-    rk_s32 ret = rk_nok;
-    char name[256];
 
-    if (!impl || !trie) {
-        mpp_loge_f("invalid param obj %p trie %p\n", impl, trie);
-        return ret;
-    }
+    do {
+        MppCfgFullNameCtx ctx;
+        rk_s32 ret = rk_nok;
+        char name[256];
 
-    *trie = NULL;
+        if (!impl) {
+            mpp_loge_f("invalid param obj\n", impl);
+            break;
+        }
 
-    if (impl->parent) {
-        mpp_loge_f("invalid param obj %p not root\n", impl);
-        return ret;
-    }
+        if (impl->parent) {
+            mpp_loge_f("invalid param obj %p not root\n", impl);
+            break;
+        }
 
-    if (impl->trie) {
-        *trie = impl->trie;
-        return rk_ok;
-    }
+        if (impl->trie) {
+            p = impl->trie;
+            break;
+        }
 
-    ret = mpp_trie_init(&p, impl->name);
-    if (ret || !p) {
-        mpp_loge_f("failed to init obj %s trie\n", impl->name);
-        return ret;
-    }
+        ret = mpp_trie_init(&p, impl->name);
+        if (ret || !p) {
+            mpp_loge_f("failed to init obj %s trie\n", impl->name);
+            break;
+        }
 
-    ctx.trie = p;
-    ctx.buf = name;
-    ctx.buf_size = sizeof(name) - 1;
+        ctx.trie = p;
+        ctx.buf = name;
+        ctx.buf_size = sizeof(name) - 1;
 
-    loop_all_children(impl, add_obj_info, &ctx);
-    mpp_trie_add_info(p, NULL, NULL, 0);
-    impl->trie = p;
+        loop_all_children(impl, add_obj_info, &ctx);
+        mpp_trie_add_info(p, NULL, NULL, 0);
+        impl->trie = p;
+    } while (0);
 
-    *trie = p;
-
-    return ret;
+    return p;
 }
 
 /* check valid len, get offset position */
@@ -1519,14 +1524,12 @@ rk_s32 mpp_cfg_to_struct(MppCfgObj obj, MppCfgObj type, void *st)
 
     impl = (MppCfgIoImpl *)obj;
     orig = (MppCfgIoImpl *)type;
-    trie = NULL;
+    trie = mpp_cfg_to_trie(orig);
 
     str.buf = name;
     str.buf_size = sizeof(name) - 1;
     str.offset = 0;
     str.depth = 0;
-
-    mpp_cfg_build_trie(orig, &trie);
 
     write_struct(impl, trie, &str, st + orig->info.data_offset);
 
