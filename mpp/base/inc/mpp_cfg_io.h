@@ -6,8 +6,7 @@
 #ifndef __MPP_CFG_IO__
 #define __MPP_CFG_IO__
 
-#include "mpp_trie.h"
-#include "mpp_cfg.h"
+#include "mpp_internal.h"
 
 typedef enum MppCfgType_e {
     MPP_CFG_TYPE_INVALID = 0,

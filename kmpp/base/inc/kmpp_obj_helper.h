@@ -34,7 +34,11 @@
 
 #else /* all input macro defined */
 
+#include <string.h>
 #include <linux/stddef.h>
+
+#include "mpp_debug.h"
+#include "kmpp_obj.h"
 
 #define KMPP_OBJ_TO_STR(x)      #x
 #define KMPP_OBJ_DEF(x)         x##_def
@@ -75,9 +79,6 @@
 #else
 #define KMPP_OBJ_ADD_IOCTL(x)
 #endif
-
-#include <string.h>
-#include "mpp_debug.h"
 
 #define KMPP_OBJ_ENTRY_FUNC(prefix, ftype, type, field, ...) \
     static KmppEntry *tbl_##prefix##_##field = NULL; \

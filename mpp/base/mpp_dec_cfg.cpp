@@ -27,6 +27,7 @@
 #include "mpp_thread.h"
 
 #include "mpp_cfg.h"
+#include "mpp_trie.h"
 #include "mpp_dec_cfg_impl.h"
 
 #define MPP_DEC_CFG_DBG_FUNC            (0x00000001)

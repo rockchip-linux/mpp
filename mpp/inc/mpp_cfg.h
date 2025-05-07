@@ -17,28 +17,7 @@
 #ifndef __MPP_CFG_H__
 #define __MPP_CFG_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
-
-typedef enum CfgType_e {
-    CFG_FUNC_TYPE_S32,
-    CFG_FUNC_TYPE_U32,
-    CFG_FUNC_TYPE_S64,
-    CFG_FUNC_TYPE_U64,
-    CFG_FUNC_TYPE_St,
-    CFG_FUNC_TYPE_Ptr,
-    CFG_FUNC_TYPE_BUTT,
-} CfgType;
-
-typedef struct MppCfgInfo_t {
-    CfgType             data_type;
-    /* update flag info 32bit */
-    RK_U32              flag_offset;
-    RK_U32              flag_value;
-    /* data access info */
-    RK_U32              data_offset;
-    RK_S32              data_size;
-} MppCfgInfo;
+#include "mpp_internal.h"
 
 /* header size 128 byte */
 typedef struct MppCfgInfoHead_t {

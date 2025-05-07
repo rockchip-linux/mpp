@@ -16,6 +16,8 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 
+#include "mpp_trie.h"
+#include "mpp_cfg.h"
 #include "mpp_cfg_io.h"
 #include "rk_venc_cfg.h"
 

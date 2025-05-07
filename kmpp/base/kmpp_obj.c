@@ -5,17 +5,20 @@
 
 #define  MODULE_TAG "kmpp_obj"
 
+#include <linux/types.h>
+
 #include <string.h>
 #include <sys/ioctl.h>
 
-#include "mpp_list.h"
 #include "mpp_env.h"
-#include "mpp_mem.h"
+#include "mpp_list.h"
+#include "mpp_lock.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
-#include "mpp_lock.h"
+#include "mpp_mem_pool.h"
 
 #include "mpp_trie.h"
+#include "mpp_cfg_io.h"
 #include "kmpp_obj_impl.h"
 
 #define KMPP_SHM_IOC_MAGIC              'm'
@@ -94,6 +97,17 @@ typedef struct KmppObjIocArg_t {
 } KmppObjIocArg;
 
 typedef struct KmppObjDefImpl_t {
+    /* userspace objdef */
+    MppCfgObj cfg;
+    MppMemPool pool;
+    rk_s32 flag_max_pos;
+    rk_s32 flag_offset;
+    rk_s32 buf_size;
+    KmppObjInit init;
+    KmppObjDeinit deinit;
+    KmppObjDump dump;
+
+    /* comment data of userspace / kernel objdef */
     MppTrie trie;
     rk_s32 index;
     rk_s32 ref_cnt;
@@ -412,6 +426,178 @@ rk_s32 kmpp_objdef_put(KmppObjDef def)
     return ret;
 }
 
+rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name)
+{
+    KmppObjDefImpl *impl = NULL;
+    rk_s32 name_len;
+    rk_s32 name_buf_size;
+    char *buf;
+
+    if (!def || !name || size <= 0) {
+        mpp_loge_f("invalid param def %p size %d name %p\n", def, size, name);
+        return rk_nok;
+    }
+
+    *def = NULL;
+    name_len = strlen(name);
+    name_buf_size = MPP_ALIGN(name_len + 1, sizeof(rk_s32));
+    impl = mpp_calloc_size(KmppObjDefImpl, sizeof(KmppObjDefImpl) + name_buf_size);
+    if (!impl) {
+        mpp_loge_f("alloc objdef size %d failed\n", sizeof(KmppObjDefImpl) + name_buf_size);
+        return rk_nok;
+    }
+
+    buf = (char *)(impl + 1);
+    memcpy(buf, name, name_len);
+    buf[name_len] = '\0';
+    impl->name = buf;
+    impl->entry_size = size;
+    impl->buf_size = size + sizeof(KmppObjImpl);
+    impl->ref_cnt = 1;
+
+    obj_dbg_flow("kmpp_objdef_register %-16s size %d\n", name, impl, size);
+
+    *def = impl;
+
+    return rk_ok;
+}
+
+rk_s32 kmpp_objdef_unregister(KmppObjDef def)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+    rk_s32 ret = rk_nok;
+
+    if (impl) {
+        if (impl->cfg) {
+            mpp_cfg_put_all(impl->cfg);
+            impl->cfg = NULL;
+            /* When init with MppCfgObj the trie is associated to the MppCfgObj */
+            impl->trie = NULL;
+        }
+        if (impl->trie) {
+            ret = mpp_trie_deinit(impl->trie);
+            impl->trie = NULL;
+        }
+        if (impl->pool) {
+            mpp_mem_pool_deinit(impl->pool);
+            impl->pool = NULL;
+        }
+
+        mpp_free(impl);
+        ret = rk_ok;
+    }
+
+    return ret;
+}
+
+rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+    rk_s32 ret = rk_nok;
+
+    if (impl) {
+        impl->cfg = root;
+        impl->trie = mpp_cfg_to_trie(root);
+        ret = rk_ok;
+    }
+
+    return ret;
+}
+
+rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+    rk_s32 ret = rk_nok;
+
+    if (!impl->trie) {
+        if (!name)
+            return rk_ok;
+
+        mpp_trie_init(&impl->trie, impl->name);
+    }
+
+    if (impl->trie) {
+        MppTrie trie = impl->trie;
+
+        if (name) {
+            ret = mpp_trie_add_info(trie, name, tbl, tbl ? sizeof(*tbl) : 0);
+
+            if (tbl->tbl.flag_offset > impl->flag_max_pos)
+                impl->flag_max_pos = tbl->tbl.flag_offset;
+
+            obj_dbg_entry("objdef %-16s add entry %-16s flag offset %4d\n",
+                          impl->name, name, tbl->tbl.flag_offset);
+        } else {
+            rk_s32 old_size = impl->buf_size;
+
+            /* record object impl size */
+            ret = mpp_trie_add_info(trie, "__index", &impl->index, sizeof(rk_s32));
+            ret = mpp_trie_add_info(trie, "__size", &impl->entry_size, sizeof(rk_s32));
+            ret |= mpp_trie_add_info(trie, NULL, NULL, 0);
+
+            /* When last entry finish update and create memory pool */
+            if (impl->flag_max_pos) {
+                rk_s32 flag_size = MPP_ALIGN(impl->flag_max_pos, 8) / 8;
+
+                impl->flag_offset = impl->buf_size;
+                flag_size -= impl->entry_size;
+                flag_size = MPP_ALIGN(flag_size, 4);
+                impl->buf_size += flag_size;
+            }
+
+            obj_dbg_entry("objdef %-16s entry size %4d buf size %4d -> %4d\n", impl->name,
+                          impl->entry_size, old_size, impl->buf_size);
+
+            impl->pool = mpp_mem_pool_init(impl->buf_size);
+            if (!impl->pool) {
+                mpp_loge_f("get mem pool size %d failed\n", impl->buf_size);
+                ret = rk_nok;
+            }
+        }
+    }
+
+    if (ret)
+        mpp_loge("objdef %s add entry %s failed ret %d\n", impl ? impl->name : NULL, name, ret);
+
+    return ret;
+}
+
+rk_s32 kmpp_objdef_add_init(KmppObjDef def, KmppObjInit init)
+{
+    if (def) {
+        KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+        impl->init = init;
+        return rk_ok;
+    }
+
+    return rk_nok;
+}
+
+rk_s32 kmpp_objdef_add_deinit(KmppObjDef def, KmppObjDeinit deinit)
+{
+    if (def) {
+        KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+        impl->deinit = deinit;
+        return rk_ok;
+    }
+
+    return rk_nok;
+}
+
+rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump)
+{
+    if (def) {
+        KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+        impl->dump = dump;
+        return rk_ok;
+    }
+
+    return rk_nok;
+}
+
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name)
 {
     KmppObjs *p = get_objs_f();
@@ -559,7 +745,7 @@ MppTrie kmpp_objdef_get_trie(KmppObjDef def)
 
 rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
 {
-    KmppObjs *p = get_objs(caller);
+    KmppObjs *p;
     KmppObjImpl *impl;
     KmppObjDefImpl *def_impl;
     KmppObjIocArg *ioc;
@@ -573,10 +759,43 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
 
     *obj = NULL;
 
+    def_impl = (KmppObjDefImpl *)def;
+
+    /* use buf_size to check userspace objdef or kernel objdef */
+
+    /* userspace objdef path */
+    if (def_impl->buf_size) {
+        if (def_impl->pool)
+            impl = mpp_mem_pool_get_f(caller, def_impl->pool);
+        else
+            impl = mpp_calloc_size(KmppObjImpl, def_impl->buf_size);
+
+        if (!impl) {
+            mpp_loge_f("malloc obj %s impl %d failed at %s\n",
+                       def_impl->name, def_impl->buf_size, caller);
+            return ret;
+        }
+
+        impl->name = def_impl->name;
+        impl->def = def;
+        impl->trie = def_impl->trie;
+        impl->need_free = 1;
+        impl->shm = NULL;
+        impl->entry = (void *)(impl + 1);
+
+        if (def_impl->init)
+            def_impl->init(impl->entry, impl, caller);
+
+        *obj = impl;
+
+        return rk_ok;
+    }
+
+    /* kernel objdef path */
+    p = get_objs(caller);
     if (!p)
         return ret;
 
-    def_impl = (KmppObjDefImpl *)def;
     impl = mpp_calloc(KmppObjImpl, 1);
     if (!impl) {
         mpp_loge_f("malloc obj impl %d failed at %s\n", sizeof(KmppObjImpl), caller);
@@ -714,10 +933,30 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
 rk_s32 kmpp_obj_put(KmppObj obj, const char *caller)
 {
     if (obj) {
-        KmppObjs *p = get_objs(caller);
         KmppObjImpl *impl = (KmppObjImpl *)obj;
+        KmppObjs *p;
 
-        if (impl->shm && p && p->fd >= 0) {
+        /* use shm to check userspace objdef or kernel objdef */
+        /* userspace objdef path */
+        if (!impl->shm) {
+            if (impl->def) {
+                KmppObjDefImpl *def = impl->def;
+
+                if (def->deinit)
+                    def->deinit(impl->entry, caller);
+
+                if (def->pool) {
+                    mpp_mem_pool_put_f(caller, def->pool, impl);
+                    return rk_ok;
+                }
+            }
+
+            mpp_free(impl);
+            return rk_ok;
+        }
+
+        p = get_objs(caller);
+        if (p && p->fd >= 0) {
             KmppObjIocArg *ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
             KmppObjDefImpl *def = impl->def;
             rk_s32 ret;
@@ -1136,6 +1375,9 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
     name = def->name;
 
     mpp_logi("dump obj %-12s - %p at %s:\n", name, impl, caller);
+
+    if (def->dump)
+        return def->dump(impl->entry);
 
     next = mpp_trie_get_info_first(trie);
     while (next) {

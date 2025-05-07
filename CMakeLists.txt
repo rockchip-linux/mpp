@@ -330,17 +330,17 @@ include_directories(osal/inc)
 # OSAL is needed on all platform, do not need option
 add_subdirectory(osal)
 
-# ----------------------------------------------------------------------------
-#  utils for test case
-# ----------------------------------------------------------------------------
-add_subdirectory(utils)
-
 # Media Process Platform include
 include_directories(mpp/inc)
 include_directories(mpp/base/inc)
 # Kernel Media Process Platform include
 include_directories(kmpp/inc)
 include_directories(kmpp/base/inc)
+
+# ----------------------------------------------------------------------------
+#  utils for test case
+# ----------------------------------------------------------------------------
+add_subdirectory(utils)
 
 # ----------------------------------------------------------------------------
 #  Kernel Media Process Platform library

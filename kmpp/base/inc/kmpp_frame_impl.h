@@ -6,7 +6,6 @@
 #ifndef __KMPP_FRAME_IMPL_H__
 #define __KMPP_FRAME_IMPL_H__
 
-#include "kmpp_obj.h"
 #include "kmpp_frame.h"
 
 typedef struct KmppFrameImpl_t {

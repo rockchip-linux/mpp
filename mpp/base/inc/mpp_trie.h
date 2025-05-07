@@ -8,10 +8,7 @@
 
 #include <string.h>
 
-#include "rk_type.h"
-#include "mpp_err.h"
-
-typedef void* MppTrie;
+#include "mpp_internal.h"
 
 #define MPP_TRIE_KEY_LEN                (4)
 #define MPP_TRIE_KEY_MAX                (1 << (MPP_TRIE_KEY_LEN))

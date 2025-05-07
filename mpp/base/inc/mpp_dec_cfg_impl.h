@@ -17,7 +17,6 @@
 #ifndef __MPP_DEC_CFG_IMPL_H__
 #define __MPP_DEC_CFG_IMPL_H__
 
-#include "mpp_trie.h"
 #include "mpp_dec_cfg.h"
 
 typedef struct MppDecCfgImpl_t {

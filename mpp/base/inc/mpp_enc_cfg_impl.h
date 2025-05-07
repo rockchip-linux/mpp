@@ -17,7 +17,6 @@
 #ifndef __MPP_ENC_CFG_IMPL_H__
 #define __MPP_ENC_CFG_IMPL_H__
 
-#include "mpp_trie.h"
 #include "mpp_enc_cfg.h"
 
 extern RK_U8 uuid_refresh_cfg[16];
