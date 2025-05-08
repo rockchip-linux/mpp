@@ -58,7 +58,7 @@ Userspace MPP layer shields the differences between different operating systems 
 
 -   Application layer
 
-MPP layer can adapt to various middleware by MPI, such as OpenMax, ffmpeg and gstreamer, or directly be called by the upper application of customers.
+MPP layer can adapt to various middleware by MPI, such as OpenMax and gstreamer, or directly be called by the upper application of customers.
 
 # 1.3 Supported platform
 
@@ -150,7 +150,7 @@ The procedure pseudo code is shown as follows:
 
 ![](media/Rockchip_Developer_Guide_MPP/MPP_procedure_pseudo_code_of_external_import_usage_EN.png)
 
-This procedure can enable decoder to use external buffer, adapt to middleware such as OpenMax/ffmpeg/ gstreamer, easy to adapt to user upper application. It’s also easy to implement zero-copy display.
+This procedure can enable decoder to use external buffer, adapt to middleware such as OpenMax / gstreamer, easy to adapt to user upper application. It’s also easy to implement zero-copy display.
 
 ## 2.3 Bitstream structure（MppPacket）
 

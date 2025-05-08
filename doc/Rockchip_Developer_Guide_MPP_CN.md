@@ -60,7 +60,7 @@ MPP用户态的运行平台，如Android以及Debian等Linux发行版
 
 -   应用层
 
-MPP层通过MPI对接各种中间件软件，如OpenMax、ffmpeg和gstreamer，或者直接对接客户的上层应用。
+MPP层通过MPI对接各种中间件软件，如OpenMax和gstreamer，或者直接对接客户的上层应用。
 
 ## 1.3 平台支持
 
@@ -160,7 +160,7 @@ MppBuffer主要用于描述供硬件使用的内存块（即缓存），提供�
 
 ![](media/Rockchip_Developer_Guide_MPP/MPP_procedure_pseudo_code_of_external_import_usage.png)
 
-这种方式可以使得解码器使用外部的缓存，可以对接OpenMax/ffmpeg/gstreamer这样的中间件，也方便对接用户己有的上层代码，便于实现零拷贝显示。
+这种方式可以使得解码器使用外部的缓存，可以对接OpenMax/gstreamer这样的中间件，也方便对接用户己有的上层代码，便于实现零拷贝显示。
 
 ## 2.3 码流封装MppPacket
 

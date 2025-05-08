@@ -658,7 +658,7 @@ static void fill_MPP_FMT_YUV420SP(RK_U8 *buf, RK_U32 width, RK_U32 height,
                                   RK_U32 hor_stride, RK_U32 ver_stride,
                                   RK_U32 frame_count)
 {
-    // MPP_FMT_YUV420SP = ffmpeg: nv12
+    // MPP_FMT_YUV420SP = ff: nv12
     // https://www.fourcc.org/pixel-format/yuv-nv12/
     RK_U8 *p = buf;
     RK_U32 x, y;
@@ -682,7 +682,7 @@ static void fill_MPP_FMT_YUV422SP(RK_U8 *buf, RK_U32 width, RK_U32 height,
                                   RK_U32 hor_stride, RK_U32 ver_stride,
                                   RK_U32 frame_count)
 {
-    // MPP_FMT_YUV422SP = ffmpeg: nv16
+    // MPP_FMT_YUV422SP = ff: nv16
     // not valid in www.fourcc.org
     RK_U8 *p = buf;
     RK_U32 x, y;
@@ -744,7 +744,7 @@ static void get_rgb_color(RK_U32 *R, RK_U32 *G, RK_U32 *B, RK_S32 x, RK_S32 y, R
 
 static void fill_MPP_FMT_RGB565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_RGB565 = ffmpeg: rgb565be
+    // MPP_FMT_RGB565 = ff: rgb565be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (rrrr,rggg,gggb,bbbb)
     // big    endian   |  byte 0 |  byte 1 |
@@ -763,7 +763,7 @@ static void fill_MPP_FMT_RGB565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
 
 static void fill_MPP_FMT_BGR565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_BGR565 = ffmpeg: bgr565be
+    // MPP_FMT_BGR565 = ff: bgr565be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (bbbb,bggg,gggr,rrrr)
     // big    endian   |  byte 0 |  byte 1 |
@@ -782,7 +782,7 @@ static void fill_MPP_FMT_BGR565(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
 
 static void fill_MPP_FMT_RGB555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_RGB555 = ffmpeg: rgb555be
+    // MPP_FMT_RGB555 = ff: rgb555be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (0rrr,rrgg,gggb,bbbb)
     // big    endian   |  byte 0 |  byte 1 |
@@ -801,7 +801,7 @@ static void fill_MPP_FMT_RGB555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
 
 static void fill_MPP_FMT_BGR555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_BGR555 = ffmpeg: bgr555be
+    // MPP_FMT_BGR555 = ff: bgr555be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (0bbb,bbgg,gggr,rrrr)
     // big    endian   |  byte 0 |  byte 1 |
@@ -820,7 +820,7 @@ static void fill_MPP_FMT_BGR555(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
 
 static void fill_MPP_FMT_RGB444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_RGB444 = ffmpeg: rgb444be
+    // MPP_FMT_RGB444 = ff: rgb444be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (0000,rrrr,gggg,bbbb)
     // big    endian   |  byte 0 |  byte 1 |
@@ -839,7 +839,7 @@ static void fill_MPP_FMT_RGB444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 b
 
 static void fill_MPP_FMT_BGR444(RK_U8 *p, RK_U32 R, RK_U32 G, RK_U32 B, RK_U32 be)
 {
-    // MPP_FMT_BGR444 = ffmpeg: bgr444be
+    // MPP_FMT_BGR444 = ff: bgr444be
     // 16 bit pixel     MSB  -------->  LSB
     //                 (0000,bbbb,gggg,rrrr)
     // big    endian   |  byte 0 |  byte 1 |

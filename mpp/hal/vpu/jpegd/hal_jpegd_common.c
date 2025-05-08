@@ -32,7 +32,7 @@
 #include "hal_jpegd_common.h"
 
 static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
-    //ffmpeg: rgb565be, bin(rrrr,rggg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, rrrr,rggg)
+    // ff: rgb565be, bin(rrrr,rggg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, rrrr,rggg)
     {
         .fmt = MPP_FMT_RGB565, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
@@ -40,7 +40,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 3, .b_dither = 2,
         .r_mask = 0xf800f800, .g_mask = 0x07e007e0, .b_mask = 0x001f001f
     },
-    //ffmpeg: bgr565be, bin(bbbb,bggg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, bbbb,bggg)
+    // ff: bgr565be, bin(bbbb,bggg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, bbbb,bggg)
     {
         .fmt = MPP_FMT_BGR565, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
@@ -48,7 +48,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 3, .b_dither = 2,
         .r_mask = 0x001f001f, .g_mask = 0x07e007e0, .b_mask = 0xf800f800
     },
-    //ffmpeg: rgb555be, bin(0rrr,rrgg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, 0rrr,rrgg)
+    // ff: rgb555be, bin(0rrr,rrgg, gggb,bbbb) mem MSB-->LSB(gggb,bbbb, 0rrr,rrgg)
     {
         .fmt = MPP_FMT_RGB555, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
@@ -56,7 +56,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 2, .b_dither = 2,
         .r_mask = 0x7c007c00, .g_mask = 0x03e003e0, .b_mask = 0x001f001f
     },
-    //ffmpeg: bgr555be, bin(0bbb,bbgg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, 0bbb,bbgg)
+    // ff: bgr555be, bin(0bbb,bbgg, gggr,rrrr) mem MSB-->LSB(gggr,rrrr, 0bbb,bbgg)
     {
         .fmt = MPP_FMT_BGR555, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
@@ -64,7 +64,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 2, .b_dither = 2,
         .r_mask = 0x001f001f, .g_mask = 0x03e003e0, .b_mask = 0x7c007c00
     },
-    //ffmpeg: rgb444be, bin(0000,rrrr, gggg,bbbb) mem MSB-->LSB(gggg,bbbb, 0000,rrrr)
+    // ff: rgb444be, bin(0000,rrrr, gggg,bbbb) mem MSB-->LSB(gggg,bbbb, 0000,rrrr)
     {
         .fmt = MPP_FMT_RGB444, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -72,7 +72,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 1, .g_dither = 1, .b_dither = 1,
         .r_mask = 0x000f000f, .g_mask = 0xf000f000, .b_mask = 0x0f000f00
     },
-    //ffmpeg: bgr444be, bin(0000,bbbb, gggg,rrrr) mem MSB-->LSB(gggg,rrrr, 0000,bbbb)
+    // ff: bgr444be, bin(0000,bbbb, gggg,rrrr) mem MSB-->LSB(gggg,rrrr, 0000,bbbb)
     {
         .fmt = MPP_FMT_BGR444, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -80,7 +80,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 1, .g_dither = 1, .b_dither = 1,
         .g_mask = 0xf000f000, .b_mask = 0x000f000f
     },
-    //ffmpeg: argb, bin(aaaa,aaaa, rrrr,rrrr, gggg,gggg, bbbb,bbbb)
+    // ff: argb, bin(aaaa,aaaa, rrrr,rrrr, gggg,gggg, bbbb,bbbb)
     {
         .fmt = MPP_FMT_ARGB8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
         .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
@@ -90,7 +90,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .g_mask = 0x00ff0000 | 0xff,
         .b_mask = 0xff000000 | 0xff
     },
-    //ffmepg: rgba, bin(aaaa,aaaa, bbbb,bbbb, gggg,gggg, rrrr,rrrr)
+    // ff: rgba, bin(aaaa,aaaa, bbbb,bbbb, gggg,gggg, rrrr,rrrr)
     {
         .fmt = MPP_FMT_ABGR8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
         .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
@@ -100,7 +100,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .g_mask = 0x00ff0000 | 0xff,
         .b_mask = 0x0000ff00 | 0xff
     },
-    //ffmpeg: bgra, bin(bbbb,bbbb, gggg,gggg, rrrr,rrrr, aaaa,aaaa)
+    // ff: bgra, bin(bbbb,bbbb, gggg,gggg, rrrr,rrrr, aaaa,aaaa)
     {
         .fmt = MPP_FMT_BGRA8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
         .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
@@ -110,7 +110,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
         .g_mask = 0x0000ff00 | (0xff << 24),
         .b_mask = 0x000000ff | (0xff << 24)
     },
-    //ffmpeg: rgba, bin(rrrr,rrrr, gggg,gggg, bbbb,bbbb, aaaa,aaaa)
+    // ff: rgba, bin(rrrr,rrrr, gggg,gggg, bbbb,bbbb, aaaa,aaaa)
     {
         .fmt = MPP_FMT_RGBA8888, .pp_out_fmt = PP_OUT_FORMAT_ARGB,
         .out_endian = 0, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 0,
@@ -123,7 +123,7 @@ static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
 };
 
 static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
-    //ffmpeg: rgb565le, bin(gggb,bbbb, rrrr,rggg) mem MSB-->LSB(rrrr,rggg, gggb,bbbb)
+    // ff: rgb565le, bin(gggb,bbbb, rrrr,rggg) mem MSB-->LSB(rrrr,rggg, gggb,bbbb)
     {
         .fmt = MPP_FMT_RGB565 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -131,7 +131,7 @@ static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 3, .b_dither = 2,
         .r_mask = 0xf800f800, .g_mask = 0x07e007e0, .b_mask = 0x001f001f
     },
-    //ffmpeg: bgr565le, bin(gggr,rrrr, bbbb,bggg) mem MSB-->LSB(bbbb,bggg, gggr,rrrr)
+    // ff: bgr565le, bin(gggr,rrrr, bbbb,bggg) mem MSB-->LSB(bbbb,bggg, gggr,rrrr)
     {
         .fmt = MPP_FMT_BGR565 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -139,7 +139,7 @@ static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 3, .b_dither = 2,
         .r_mask = 0x001f001f, .g_mask = 0x07e007e0, .b_mask = 0xf800f800
     },
-    //ffmpeg: rgb555le, bin(gggb,bbbb, 0rrr,rrgg) mem MSB-->LSB(0rrr,rrgg, gggb,bbbb)
+    // ff: rgb555le, bin(gggb,bbbb, 0rrr,rrgg) mem MSB-->LSB(0rrr,rrgg, gggb,bbbb)
     {
         .fmt = MPP_FMT_RGB555 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -147,7 +147,7 @@ static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 2, .b_dither = 2,
         .r_mask = 0x7c007c00, .g_mask = 0x03e003e0, .b_mask = 0x001f001f
     },
-    //ffmpeg: bgr555le, bin(gggr,rrrr, 0bbb,bbgg) mem MSB-->LSB(0bbb,bbgg, gggr,rrrr)
+    // ff: bgr555le, bin(gggr,rrrr, 0bbb,bbgg) mem MSB-->LSB(0bbb,bbgg, gggr,rrrr)
     {
         .fmt = MPP_FMT_BGR555 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 0, .swap_16 = 1, .swap_32 = 1, .rgb_in_32 = 1,
@@ -155,7 +155,7 @@ static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 2, .g_dither = 2, .b_dither = 2,
         .r_mask = 0x001f001f, .g_mask = 0x03e003e0, .b_mask = 0x7c007c00
     },
-    //ffmpeg: rgb444le, bin(gggg,bbbb, 0000,rrrr) mem MSB-->LSB(0000,rrrr, gggg,bbbb)
+    // ff: rgb444le, bin(gggg,bbbb, 0000,rrrr) mem MSB-->LSB(0000,rrrr, gggg,bbbb)
     {
         .fmt = MPP_FMT_RGB444 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,
@@ -163,7 +163,7 @@ static PpRgbCfg pp_rgb_le_cfgs[PP_RGB_CFG_LENTH] = {
         .r_dither = 1, .g_dither = 1, .b_dither = 1,
         .r_mask = 0x000f000f, .g_mask = 0xf000f000, .b_mask = 0x0f000f00
     },
-    //ffmpeg: bgr444le, bin(gggg,rrrr, 0000,bbbb) mem MSB-->LSB(0000,bbbb, gggg,rrrr)
+    // ff: bgr444le, bin(gggg,rrrr, 0000,bbbb) mem MSB-->LSB(0000,bbbb, gggg,rrrr)
     {
         .fmt = MPP_FMT_BGR444 | MPP_FRAME_FMT_LE_MASK, .pp_out_fmt = PP_OUT_FORMAT_RGB565,
         .out_endian = 1, .swap_16 = 0, .swap_32 = 1, .rgb_in_32 = 1,

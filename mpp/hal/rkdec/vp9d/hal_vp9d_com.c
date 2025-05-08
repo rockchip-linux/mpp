@@ -2001,7 +2001,8 @@ void hal_vp9d_update_counts(void *buf, void *dxva)
                 for (n = 0; n < 6; n++) {
                     for (k = 0; k < 6; k++) {
                         s->counts.eob[j][m][i][n][k][0] = eob_coef[1];
-                        s->counts.eob[j][m][i][n][k][1] = eob_coef[0] - eob_coef[1]; //ffmpeg need do  branch_ct[UNCONSTRAINED_NODES][2] =  { neob, eob_counts[i][j][k][l] - neob },
+                        // ff need do  branch_ct[UNCONSTRAINED_NODES][2] = { neob, eob_counts[i][j][k][l] - neob },
+                        s->counts.eob[j][m][i][n][k][1] = eob_coef[0] - eob_coef[1];
                         s->counts.coef[j][m][i][n][k][0] = eob_coef[2];
                         s->counts.coef[j][m][i][n][k][1] = eob_coef[3];
                         s->counts.coef[j][m][i][n][k][2] = eob_coef[4];

@@ -18,7 +18,7 @@ Linux.
 The second one is v4l2 driver which is developed for ChromeOS. It currently
 supports H.264/H.265/vp8/vp9. This driver is used on ChomeOS/Linux.
 
-Mpp plans to support serval userspace applications including OpenMax, FFmpeg,
+Mpp plans to support serval userspace applications including OpenMax,
 gstreamer, libva.
 
 
@@ -45,7 +45,7 @@ System Diagram
 
                 +---------------------------------------+
                 |                                       |
-                | ffmpeg / OpenMax / gstreamer / libva  |
+                |      OpenMax / gstreamer / libva      |
                 |                                       |
                 +---------------------------------------+
 

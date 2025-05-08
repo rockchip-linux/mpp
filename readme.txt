@@ -36,8 +36,8 @@ NOTE:
 3. Mpp support all format hardware can support except VC1.
 4. you can get demo about mpp applied to linux and android.
      Liunx : https://github.com/WainDing/mpp_linux_cpp
-             https://github.com/MUZLATAN/ffmpeg_rtsp_mpp
-             https://github.com/nyanmisaka/ffmpeg-rockchip
+             https://github.com/MUZLATAN
+             https://github.com/nyanmisaka
      Android : https://github.com/c-xh/RKMediaCodecDemo
 5. offical github: https://github.com/rockchip-linux/mpp
    develop github: https://github.com/HermanChen/mpp
@@ -190,7 +190,7 @@ Here is the mpp implement overall framework:
 
                 +---------------------------------------+
                 |                                       |
-                | ffmpeg / OpenMax / gstreamer / libva  |
+                |      OpenMax / gstreamer / libva      |
                 |                                       |
                 +---------------------------------------+
 
@@ -232,7 +232,7 @@ Here is the Media Process Interface hierarchical structure
 MpiPacket and MpiFrame is the stream I/O data structure.
 And MpiBuffer encapsulates different buffer implement like Linux's dma-buf and
 Android's ion.
-This part is learned from ffmpeg.
+This part is learned from ff.
 
                 +-------------------+
                 |                   |

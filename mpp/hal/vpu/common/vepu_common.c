@@ -60,21 +60,21 @@ static VepuFormatCfg vepu_yuv_cfg[MPP_FMT_YUV_BUTT] = {
 };
 
 static VepuFormatCfg vepu_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
-    //MPP_FMT_RGB565, ffmpeg: rgb565be, bin(rrrr,rggg,gggb,bbbb) mem MSB-->LSB(gggb,bbbb,rrrr,rggg)
+    //MPP_FMT_RGB565, ff: rgb565be, bin(rrrr,rggg,gggb,bbbb) mem MSB-->LSB(gggb,bbbb,rrrr,rggg)
     { .format = VEPU_FMT_RGB565,    .r_mask = 15, .g_mask = 10, .b_mask =  4, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR565, ffmpeg: bgr565be, bin(bbbb,bggg,gggr,rrrr) mem MSB-->LSB(gggr,rrrr,bbbb,bggg)
+    //MPP_FMT_BGR565, ff: bgr565be, bin(bbbb,bggg,gggr,rrrr) mem MSB-->LSB(gggr,rrrr,bbbb,bggg)
     { .format = VEPU_FMT_RGB565,    .r_mask =  4, .g_mask = 10, .b_mask = 15, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_RGB555, ffmpeg: rgb555be, bin(0rrr,rrgg,gggb,bbbb) mem MSB-->LSB(gggb,bbbb,0rrr,rrgg)
+    //MPP_FMT_RGB555, ff: rgb555be, bin(0rrr,rrgg,gggb,bbbb) mem MSB-->LSB(gggb,bbbb,0rrr,rrgg)
     { .format = VEPU_FMT_RGB555,    .r_mask = 14, .g_mask =  9, .b_mask =  4, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR555, ffmpeg: bgr555be, bin(0bbb,bbgg,gggr,rrrr) mem MSB-->LSB(gggr,rrrr,0bbb,bbgg)
+    //MPP_FMT_BGR555, ff: bgr555be, bin(0bbb,bbgg,gggr,rrrr) mem MSB-->LSB(gggr,rrrr,0bbb,bbgg)
     { .format = VEPU_FMT_RGB555,    .r_mask =  4, .g_mask =  9, .b_mask = 14, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_RGB444, ffmpeg: rgb444be, bin(0000,rrrr,gggg,bbbb)
+    //MPP_FMT_RGB444, ff: rgb444be, bin(0000,rrrr,gggg,bbbb)
     { .format = VEPU_FMT_RGB444,    .r_mask = 11, .g_mask =  7, .b_mask =  3, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR444, ffmpeg: bgr444be, bin(0000,bbbb,gggg,rrrr)
+    //MPP_FMT_BGR444, ff: bgr444be, bin(0000,bbbb,gggg,rrrr)
     { .format = VEPU_FMT_RGB444,    .r_mask =  3, .g_mask =  7, .b_mask = 11, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_RGB888, ffmpeg: rgb24, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    //MPP_FMT_RGB888, ff: rgb24, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb)
     { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
-    //MPP_FMT_BGR888, ffmpeg: bgr24, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    //MPP_FMT_BGR888, ff: bgr24, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr)
     { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
     //MPP_FMT_RGB101010, bin(00rr,rrrr,rrrr,gggg,gggg,ggbb,bbbb,bbbb)
     { .format = VEPU_FMT_RGB101010, .r_mask = 29, .g_mask = 19, .b_mask =  9, .swap_8_in = 1, .swap_16_in = 1, .swap_32_in = 1, },
@@ -84,29 +84,29 @@ static VepuFormatCfg vepu_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     { .format = VEPU_FMT_RGB888,    .r_mask = 15, .g_mask = 23, .b_mask = 31, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
     //MPP_FMT_ABGR8888, ffmepg: rgba, bin(aaaa,aaaa,bbbb,bbbb,gggg,gggg,rrrr,rrrr)
     { .format = VEPU_FMT_RGB888,    .r_mask = 31, .g_mask = 23, .b_mask = 15, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
-    //MPP_FMT_BGRA8888, ffmpeg: bgra, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr,aaaa,aaaa)
+    //MPP_FMT_BGRA8888, ff: bgra, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr,aaaa,aaaa)
     { .format = VEPU_FMT_RGB888,    .r_mask = 23, .g_mask = 15, .b_mask =  7, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
-    //MPP_FMT_RGBA8888, ffmpeg: rgba, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb,aaaa,aaaa)
+    //MPP_FMT_RGBA8888, ff: rgba, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb,aaaa,aaaa)
     { .format = VEPU_FMT_RGB888,    .r_mask =  7, .g_mask = 15, .b_mask = 23, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
 };
 static VepuFormatCfg vepu_rgb_le_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     //for little endian format
-    //MPP_FMT_RGB565LE, ffmpeg: rgb565le, bin(gggb,bbbb,rrrr,rggg)
+    //MPP_FMT_RGB565LE, ff: rgb565le, bin(gggb,bbbb,rrrr,rggg)
     { .format = VEPU_FMT_RGB565,    .r_mask = 15, .g_mask = 10, .b_mask =  4, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR565LE, ffmpeg: bgr565le, bin(gggr,rrrr,bbbb,bggg)
+    //MPP_FMT_BGR565LE, ff: bgr565le, bin(gggr,rrrr,bbbb,bggg)
     { .format = VEPU_FMT_RGB565,    .r_mask =  4, .g_mask = 10, .b_mask = 15, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_RGB555LE, ffmpeg: rgb555le, bin(gggb,bbbb,0rrr,rrgg)
+    //MPP_FMT_RGB555LE, ff: rgb555le, bin(gggb,bbbb,0rrr,rrgg)
     { .format = VEPU_FMT_RGB555,    .r_mask = 14, .g_mask =  9, .b_mask =  4, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR555LE, ffmpeg: bgr555le, bin(gggr,rrrr,0bbb,bbgg)
+    //MPP_FMT_BGR555LE, ff: bgr555le, bin(gggr,rrrr,0bbb,bbgg)
     { .format = VEPU_FMT_RGB555,    .r_mask =  4, .g_mask =  9, .b_mask = 14, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_RGB444LE, ffmpeg: rgb444le, bin(gggg,bbbb,0000,rrrr)
+    //MPP_FMT_RGB444LE, ff: rgb444le, bin(gggg,bbbb,0000,rrrr)
     { .format = VEPU_FMT_RGB444,    .r_mask = 11, .g_mask =  7, .b_mask =  3, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
-    //MPP_FMT_BGR444LE, ffmpeg: bgr444le, bin(gggg,rrrr,0000,bbbb)
+    //MPP_FMT_BGR444LE, ff: bgr444le, bin(gggg,rrrr,0000,bbbb)
     { .format = VEPU_FMT_RGB444,    .r_mask =  3, .g_mask =  7, .b_mask = 11, .swap_8_in = 0, .swap_16_in = 1, .swap_32_in = 1, },
 
-    //MPP_FMT_RGB888, ffmpeg: rgb24, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb)
+    //MPP_FMT_RGB888, ff: rgb24, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb)
     { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
-    //MPP_FMT_BGR888, ffmpeg: bgr24, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr)
+    //MPP_FMT_BGR888, ff: bgr24, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr)
     { .format = VEPU_FMT_BUTT,      .r_mask =  0, .g_mask =  0, .b_mask =  0, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 0, },
 
     //MPP_FMT_RGB101010, bin(00rr,rrrr,rrrr,gggg,gggg,ggbb,bbbb,bbbb)
@@ -118,9 +118,9 @@ static VepuFormatCfg vepu_rgb_le_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
     { .format = VEPU_FMT_RGB888,    .r_mask = 23, .g_mask = 15, .b_mask =  7, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
     //MPP_FMT_ABGR8888LE, ffmepg: rgba, bin(aaaa,aaaa,bbbb,bbbb,gggg,gggg,rrrr,rrrr)
     { .format = VEPU_FMT_RGB888,    .r_mask =  7, .g_mask = 15, .b_mask = 23, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
-    //MPP_FMT_BGRA8888LE, ffmpeg: bgra, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr,aaaa,aaaa)
+    //MPP_FMT_BGRA8888LE, ff: bgra, bin(bbbb,bbbb,gggg,gggg,rrrr,rrrr,aaaa,aaaa)
     { .format = VEPU_FMT_RGB888,    .r_mask = 15, .g_mask = 23, .b_mask = 31, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
-    //MPP_FMT_RGBA8888LE, ffmpeg: rgba, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb,aaaa,aaaa)
+    //MPP_FMT_RGBA8888LE, ff: rgba, bin(rrrr,rrrr,gggg,gggg,bbbb,bbbb,aaaa,aaaa)
     { .format = VEPU_FMT_RGB888,    .r_mask = 31, .g_mask = 23, .b_mask = 15, .swap_8_in = 0, .swap_16_in = 0, .swap_32_in = 1, },
 };
 
