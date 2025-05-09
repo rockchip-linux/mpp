@@ -22,7 +22,7 @@
 #include "mpp_common.h"
 
 #include "rk_vdec_cfg.h"
-#include "mpp_dec_cfg_impl.h"
+#include "mpp_dec_cfg.h"
 
 int main()
 {
@@ -43,9 +43,9 @@ int main()
 
     RK_S32 fast_out = 1;
 
-    MppDecCfgImpl *impl = (MppDecCfgImpl *)cfg;
+    MppDecCfgSet *impl = (MppDecCfgSet *)cfg;
 
-    mpp_log("before set: fast_out %d\n", impl->cfg.base.fast_out);
+    mpp_log("before set: fast_out %d\n", impl->base.fast_out);
 
     start = mpp_time();
     ret = mpp_dec_cfg_set_u32(cfg, "base:fast_out", fast_out);

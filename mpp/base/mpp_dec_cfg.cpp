@@ -28,7 +28,7 @@
 
 #include "mpp_cfg.h"
 #include "mpp_trie.h"
-#include "mpp_dec_cfg_impl.h"
+#include "mpp_dec_cfg.h"
 
 #define MPP_DEC_CFG_DBG_FUNC            (0x00000001)
 #define MPP_DEC_CFG_DBG_INFO            (0x00000002)
@@ -180,7 +180,7 @@ void mpp_dec_cfg_set_default(MppDecCfgSet *cfg)
 
 MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
 {
-    MppDecCfgImpl *p = NULL;
+    MppDecCfgSet *p = NULL;
 
     if (NULL == cfg) {
         mpp_err_f("invalid NULL input config\n");
@@ -189,15 +189,14 @@ MPP_RET mpp_dec_cfg_init(MppDecCfg *cfg)
 
     mpp_env_get_u32("mpp_dec_cfg_debug", &mpp_dec_cfg_debug, 0);
 
-    p = mpp_calloc(MppDecCfgImpl, 1);
+    p = mpp_calloc(MppDecCfgSet, 1);
     if (NULL == p) {
         mpp_err_f("create decoder config failed %p\n", p);
         *cfg = NULL;
         return MPP_ERR_NOMEM;
     }
 
-    p->size = sizeof(p->cfg);
-    mpp_dec_cfg_set_default(&p->cfg);
+    mpp_dec_cfg_set_default(p);
 
     *cfg = p;
 
@@ -223,14 +222,13 @@ MPP_RET mpp_dec_cfg_deinit(MppDecCfg cfg)
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        MppDecCfgImpl *p = (MppDecCfgImpl *)cfg; \
         MppTrieInfo *node = MppDecCfgService::get()->get_info(name); \
         MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
         mpp_dec_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_SET_##cfg_type(info, &p->cfg, val); \
+        MPP_RET ret = MPP_CFG_SET_##cfg_type(info, cfg, val); \
         return ret; \
     }
 
@@ -248,14 +246,13 @@ DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, St);
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        MppDecCfgImpl *p = (MppDecCfgImpl *)cfg; \
         MppTrieInfo *node = MppDecCfgService::get()->get_info(name); \
         MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
         mpp_dec_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_GET_##cfg_type(info, &p->cfg, val); \
+        MPP_RET ret = MPP_CFG_GET_##cfg_type(info, cfg, val); \
         return ret; \
     }
 

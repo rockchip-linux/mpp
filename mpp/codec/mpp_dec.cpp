@@ -22,7 +22,7 @@
 
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
-#include "mpp_dec_cfg_impl.h"
+#include "mpp_dec_cfg.h"
 
 #include "mpp_dec_debug.h"
 #include "mpp_dec_vproc.h"
@@ -179,10 +179,10 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
             query->dec_out_frm_cnt = dec->dec_out_frame_count;
     } break;
     case MPP_DEC_SET_CFG: {
-        MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+        if (param) {
+            MppDecCfgSet *cfg = (MppDecCfgSet *)param;
 
-        if (dec_cfg) {
-            mpp_dec_set_cfg(&dec->cfg, &dec_cfg->cfg);
+            mpp_dec_set_cfg(&dec->cfg, cfg);
             mpp_dec_update_cfg(dec);
             mpp_dec_check_fbc_cap(dec);
         }
@@ -190,10 +190,8 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
         dec_dbg_func("set dec cfg\n");
     } break;
     case MPP_DEC_GET_CFG: {
-        MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
-
-        if (dec_cfg)
-            memcpy(&dec_cfg->cfg, &dec->cfg, sizeof(dec->cfg));
+        if (param)
+            memcpy(param, &dec->cfg, sizeof(dec->cfg));
 
         dec_dbg_func("get dec cfg\n");
     } break;

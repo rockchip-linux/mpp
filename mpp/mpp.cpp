@@ -36,8 +36,6 @@
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
 
-#include "mpp_dec_cfg_impl.h"
-
 #include "kmpp.h"
 
 #define MPP_TEST_FRAME_SIZE     SZ_1M
@@ -1354,18 +1352,18 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         if (mDec)
             ret = mpp_dec_control(mDec, cmd, param);
         else if (param) {
-            MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+            MppDecCfgSet *cfg = (MppDecCfgSet *)param;
 
-            ret = mpp_dec_set_cfg(&mDecInitcfg, &dec_cfg->cfg);
+            ret = mpp_dec_set_cfg(&mDecInitcfg, cfg);
         }
     } break;
     case MPP_DEC_GET_CFG : {
         if (mDec)
             ret = mpp_dec_control(mDec, cmd, param);
         else if (param) {
-            MppDecCfgImpl *dec_cfg = (MppDecCfgImpl *)param;
+            MppDecCfgSet *cfg = (MppDecCfgSet *)param;
 
-            memcpy(&dec_cfg->cfg, &mDecInitcfg, sizeof(dec_cfg->cfg));
+            memcpy(cfg, &mDecInitcfg, sizeof(*cfg));
             ret = MPP_OK;
         }
     } break;
