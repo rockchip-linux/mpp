@@ -507,8 +507,13 @@ static Avs2dFrame_t *dpb_alloc_frame(Avs2dCtx_t *p_dec, HalDecTask *task)
             fbc_hdr_stride = MPP_ALIGN(vsh->horizontal_size, 256) | 256;
 
         mpp_frame_set_fbc_hdr_stride(mframe, fbc_hdr_stride);
-        // fbc output frame update
-        mpp_frame_set_offset_y(mframe, 8);
+
+        if (mpp_get_soc_type() < ROCKCHIP_SOC_RK3576) {
+            RK_U32 ctu_size = 1 << (p_dec->vsh.lcu_size);
+            // fbc output frame update
+            mpp_frame_set_offset_y(mframe, 8);
+            mpp_frame_set_ver_stride(mframe, MPP_ALIGN(vsh->vertical_size, ctu_size) + 16);
+        }
     } else if (MPP_FRAME_FMT_IS_TILE(p_dec->init.cfg->base.out_fmt))
         mpp_frame_set_fmt(mframe, mpp_frame_get_fmt(mframe) | (p_dec->init.cfg->base.out_fmt & (MPP_FRAME_TILE_FLAG)));
 
