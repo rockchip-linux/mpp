@@ -445,10 +445,11 @@ static void setup_vepu541_normal(Vepu541H264eRegSet *regs, RK_U32 is_vepu540)
     hal_h264e_dbg_func("leave\n");
 }
 
-static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep,
+static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *ctx,
                                   HalEncTask *task)
 {
     VepuFmtCfg cfg;
+    MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppFrameFormat fmt = prep->format;
     MPP_RET ret = vepu541_set_fmt(&cfg, fmt);
     RK_U32 hw_fmt = cfg.format;
@@ -476,6 +477,9 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, MppEncPrepCfg *prep,
     regs->reg017.rbuv_swap  = cfg.rbuv_swap;
     regs->reg017.src_range  = cfg.src_range;
     regs->reg017.out_fmt_cfg = (fmt == MPP_FMT_YUV400) ? 1 : 0;
+
+    if (!ctx->frame_cnt && (fmt == MPP_FMT_YUV420SP_VU || fmt == MPP_FMT_YUV422SP_VU))
+        mpp_logw("Warning: nv21/nv42 fmt not supported, will encode as nv12/nv24.\n");
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
@@ -1602,7 +1606,7 @@ static MPP_RET hal_h264e_vepu541_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(*regs));
 
     setup_vepu541_normal(regs, ctx->is_vepu540);
-    ret = setup_vepu541_prep(regs, &ctx->cfg->prep, task);
+    ret = setup_vepu541_prep(regs, ctx, task);
     if (ret)
         return ret;
 

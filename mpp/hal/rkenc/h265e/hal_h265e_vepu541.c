@@ -1060,11 +1060,13 @@ static MPP_RET vepu541_h265_set_rc_regs(H265eV541HalContext *ctx, H265eV541RegSe
     return MPP_OK;
 }
 
-static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt,
-                                        MppEncPrepCfg *prep_cfg,  HalEncTask *task)
+static MPP_RET vepu541_h265_set_pp_regs(VepuFmtCfg *fmt, H265eV541HalContext *ctx, HalEncTask *task)
 {
     RK_S32 stridey = 0;
     RK_S32 stridec = 0;
+    H265eV541RegSet *regs = ctx->regs;
+    MppEncPrepCfg *prep_cfg = &ctx->cfg->prep;
+    MppFrameFormat prep_fmt = prep_cfg->format;
 
     regs->dtrns_map.src_bus_edin = fmt->src_endian;
     regs->src_fmt.src_cfmt = fmt->format;
@@ -1074,7 +1076,10 @@ static MPP_RET vepu541_h265_set_pp_regs(H265eV541RegSet *regs, VepuFmtCfg *fmt,
     regs->src_proc.src_mirr = prep_cfg->mirroring > 0;
     regs->src_proc.src_rot = prep_cfg->rotation;
 
-    if (MPP_FRAME_FMT_IS_FBC(prep_cfg->format)) {
+    if (!ctx->frame_num && (prep_fmt == MPP_FMT_YUV420SP_VU || prep_fmt == MPP_FMT_YUV422SP_VU))
+        mpp_logw("Warning: nv21/nv42 fmt not supported, will encode as nv12/nv24.\n");
+
+    if (MPP_FRAME_FMT_IS_FBC(prep_fmt)) {
         stridey = mpp_frame_get_fbc_hdr_stride(task->frame);
         if (!stridey)
             stridey = MPP_ALIGN(prep_cfg->hor_stride, 16);
@@ -1621,7 +1626,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
         regs->synt_nal.nal_unit_type    = syn->sp.temporal_id ?  NAL_TSA_R : i_nal_type;
     }
     vepu54x_h265_set_hw_address(ctx, regs, task);
-    vepu541_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep, task);
+    vepu541_h265_set_pp_regs(fmt, ctx, task);
 
     vepu541_h265_set_rc_regs(ctx, regs, task);
 
