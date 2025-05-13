@@ -127,6 +127,16 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.rc_container = 0;
     p->cfg->tune.vmaf_opt = 0;
 
+    /* smart v3 parameters */
+    p->cfg->tune.bg_delta_qp_i = -10;
+    p->cfg->tune.bg_delta_qp_p = -10;
+    p->cfg->tune.fg_delta_qp_i = 3;
+    p->cfg->tune.fg_delta_qp_p = 1;
+    p->cfg->tune.bmap_qpmin_i = 30;
+    p->cfg->tune.bmap_qpmin_p = 30;
+    p->cfg->tune.bmap_qpmax_i = 45;
+    p->cfg->tune.bmap_qpmax_p = 47;
+
     /*
      * default prep:
      * 720p

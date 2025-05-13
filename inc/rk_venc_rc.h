@@ -38,6 +38,7 @@ typedef enum MppEncSeMode_e {
     MPP_ENC_SE_MODE_BAL,            // balance mode
     MPP_ENC_SE_MODE_QF,             // quality first mode
     MPP_ENC_SE_MODE_BF,             // bitrate first mode
+    MPP_ENC_SE_MODE_EXTERNAL,       // external se mode
     MPP_ENC_SE_MODE_BUTT
 } MppEncSeMode;
 

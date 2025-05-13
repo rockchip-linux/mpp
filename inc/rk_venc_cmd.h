@@ -1548,6 +1548,7 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT          = (1 << 20),
     MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT          = (1 << 21),
     MPP_ENC_TUNE_CFG_CHANGE_SPEED               = (1 << 22),
+    MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG        = (1 << 23),
     MPP_ENC_TUNE_CFG_CHANGE_ALL                 = (0xFFFFFFFF),
 } MppEncFineTuneCfgChange;
 
@@ -1579,6 +1580,17 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              skip32_wgt; /* weight for skip32, 0 or [3, 8] */
     RK_S32              qpmap_en;
     RK_S32              speed; /*enc speed [0..3], 0:full mode; 1:fast; 2:faster; 3:fastest */
+
+    /* smart v3 only */
+    RK_S32              bg_delta_qp_i; /* background delta qp for i frame */
+    RK_S32              bg_delta_qp_p; /* background delta qp for p frame */
+    RK_S32              fg_delta_qp_i; /* foreground delta qp for i frame */
+    RK_S32              fg_delta_qp_p; /* foreground delta qp for p frame */
+    RK_S32              bmap_qpmin_i; /* min qp for i frame in bmap */
+    RK_S32              bmap_qpmin_p; /* min qp for p frame in bmap */
+    RK_S32              bmap_qpmax_i; /* max qp for i frame in bmap */
+    RK_S32              bmap_qpmax_p; /* max qp for p frame in bmap */
+
     RK_S32              reserved[4];
 } MppEncFineTuneCfg;
 

@@ -201,6 +201,16 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     cfg->tune.atr_str_p = 1;
     cfg->tune.anti_flicker_str = 1;
     cfg->tune.deblur_str = 3;
+
+    /* smart v3 parameters */
+    cfg->tune.bg_delta_qp_i = -10;
+    cfg->tune.bg_delta_qp_p = -10;
+    cfg->tune.fg_delta_qp_i = 3;
+    cfg->tune.fg_delta_qp_p = 1;
+    cfg->tune.bmap_qpmin_i = 30;
+    cfg->tune.bmap_qpmin_p = 30;
+    cfg->tune.bmap_qpmax_i = 45;
+    cfg->tune.bmap_qpmax_p = 47;
 }
 
 static void h264e_add_syntax(H264eCtx *ctx, H264eSyntaxType type, void *p)

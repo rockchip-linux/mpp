@@ -973,6 +973,17 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG) {
+            dst->bg_delta_qp_i = src->bg_delta_qp_i;
+            dst->bg_delta_qp_p = src->bg_delta_qp_p;
+            dst->fg_delta_qp_i = src->fg_delta_qp_i;
+            dst->fg_delta_qp_p = src->fg_delta_qp_p;
+            dst->bmap_qpmin_i = src->bmap_qpmin_i;
+            dst->bmap_qpmin_p = src->bmap_qpmin_p;
+            dst->bmap_qpmax_i = src->bmap_qpmax_i;
+            dst->bmap_qpmax_p = src->bmap_qpmax_p;
+        }
+
         dst->change |= change;
 
         if (ret) {

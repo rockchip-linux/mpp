@@ -264,7 +264,15 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(tune, madp16_th,      S32,        MPP_ENC_TUNE_CFG_CHANGE_MADP16_TH,      tune, madp16_th) \
     ENTRY(tune, skip16_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP16_WGT,     tune, skip16_wgt) \
     ENTRY(tune, skip32_wgt,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SKIP32_WGT,     tune, skip32_wgt) \
-    ENTRY(tune, speed,          S32,        MPP_ENC_TUNE_CFG_CHANGE_SPEED,          tune, speed)
+    ENTRY(tune, speed,          S32,        MPP_ENC_TUNE_CFG_CHANGE_SPEED,          tune, speed) \
+    ENTRY(tune, bg_delta_qp_i,  S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bg_delta_qp_i) \
+    ENTRY(tune, bg_delta_qp_p,  S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bg_delta_qp_p) \
+    ENTRY(tune, fg_delta_qp_i,  S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, fg_delta_qp_i) \
+    ENTRY(tune, fg_delta_qp_p,  S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, fg_delta_qp_p) \
+    ENTRY(tune, bmap_qpmin_i,   S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bmap_qpmin_i) \
+    ENTRY(tune, bmap_qpmin_p,   S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bmap_qpmin_p) \
+    ENTRY(tune, bmap_qpmax_i,   S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bmap_qpmax_i) \
+    ENTRY(tune, bmap_qpmax_p,   S32,        MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG,   tune, bmap_qpmax_p)
 
 static void mpp_enc_cfg_srv_init()
 {
