@@ -122,6 +122,8 @@ rk_s32 kmpp_obj_get_shm_obj(KmppObj obj, const char *name, KmppObj *val);
 /* update flag check function */
 rk_s32 kmpp_obj_test(KmppObj obj, const char *name);
 rk_s32 kmpp_obj_tbl_test(KmppObj obj, KmppEntry *tbl);
+rk_s32 kmpp_obj_update(KmppObj dst, KmppObj src);
+rk_s32 kmpp_obj_update_entry(void *entry, KmppObj src);
 
 /* run a callback function */
 rk_s32 kmpp_obj_run(KmppObj obj, const char *name);
@@ -132,6 +134,8 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller);
 
 #define kmpp_obj_udump(obj) kmpp_obj_udump_f(obj, __FUNCTION__)
 #define kmpp_obj_kdump(obj) kmpp_obj_kdump_f(obj, __FUNCTION__)
+
+const char *strof_elem_type(ElemType type);
 
 #ifdef __cplusplus
 }
