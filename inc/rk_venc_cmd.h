@@ -1537,6 +1537,7 @@ typedef enum MppEncFineTuneCfgChange_e {
     MPP_ENC_TUNE_CFG_CHANGE_ATL_STR             = (1 << 9),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I           = (1 << 10),
     MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P           = (1 << 11),
+    MPP_ENC_TUNE_CFG_CHANGE_SE_MODE             = (1 << 12),
     MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER        = (1 << 13),
     MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT            = (1 << 14),
     MPP_ENC_TUNE_CFG_CHANGE_MOTION_STATIC_SWITCH_ENABLE = (1 << 15),
@@ -1554,6 +1555,7 @@ typedef struct MppEncFineTuneCfg_t {
     RK_U32              change;
 
     MppEncSceneMode     scene_mode;
+    MppEncSeMode        se_mode;
     RK_S32              deblur_en; /* qpmap_en */
     RK_S32              deblur_str; /* deblur strength */
     RK_S32              anti_flicker_str;

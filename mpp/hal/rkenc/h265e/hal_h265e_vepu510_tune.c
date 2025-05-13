@@ -22,6 +22,7 @@ typedef struct HalH265eVepu510Tune_t {
 
     RK_U8 *qm_mv_buf; /* qpmap move flag buffer */
     RK_U32 qm_mv_buf_size;
+    Vepu510NpuOut *obj_out; /* object map from npu */
 
     RK_S32 pre_madp[2];
     RK_S32 pre_madi[2];
@@ -144,17 +145,86 @@ static void vepu510_h265e_tune_aq(HalH265eVepu510Tune *tune)
     r->aq_clip.aq8_rnge = 10;
     r->aq_clip.aq16_dif0 = 12;
     r->aq_clip.aq16_dif1 = 12;
+    r->aq_clip.aq_rme_en = 1;
+    r->aq_clip.aq_cme_en = 1;
+}
+
+static MPP_RET vepu510_h265e_tune_qpmap_init(HalH265eVepu510Tune *tune)
+{
+    H265eV510HalContext *ctx = tune->ctx;
+    Vepu510H265eFrmCfg *frm = ctx->frm;
+    H265eV510RegSet *regs = frm->regs_set;
+    H265eVepu510Frame *reg_frm = &regs->reg_frm;
+    RK_S32 w32 = MPP_ALIGN(ctx->cfg->prep.width, 32);
+    RK_S32 h32 = MPP_ALIGN(ctx->cfg->prep.height, 32);
+    RK_S32 roir_buf_fd = -1;
+
+    if (frm->roi_data) {
+        //TODO: external qpmap buffer
+    } else {
+        if (NULL == frm->roir_buf) {
+            if (NULL == ctx->roi_grp)
+                mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
+
+            //TODO: bmap_mdc_dpth = 1 ???
+            frm->roir_buf_size = w32 * h32 / 256 * 4;
+            mpp_buffer_get(ctx->roi_grp, &frm->roir_buf, frm->roir_buf_size);
+        }
+
+        roir_buf_fd = mpp_buffer_get_fd(frm->roir_buf);
+    }
+
+    if (frm->roir_buf == NULL) {
+        mpp_err("failed to get roir_buf\n");
+        return MPP_ERR_MALLOC;
+    }
+    reg_frm->common.adr_roir = roir_buf_fd;
+
+    if (tune->qm_mv_buf == NULL) {
+        tune->qm_mv_buf_size = w32 * h32 / 256;
+        tune->qm_mv_buf = mpp_calloc(RK_U8, tune->qm_mv_buf_size);
+        if (NULL == tune->qm_mv_buf) {
+            mpp_err("failed to get qm_mv_buf\n");
+            return MPP_ERR_MALLOC;
+        }
+    }
+
+    hal_h265e_dbg_ctl("roir_buf_fd %d, size %d qm_mv_buf %p size %d\n",
+                      roir_buf_fd, frm->roir_buf_size, tune->qm_mv_buf,
+                      tune->qm_mv_buf_size);
+    return MPP_OK;
+}
+
+static void vepu510_h265e_tune_qpmap(void *p, HalEncTask *task)
+{
+    MPP_RET ret = MPP_OK;
+    HalH265eVepu510Tune *tune = (HalH265eVepu510Tune *)p;
+
+    (void)task;
+    hal_h265e_dbg_func("enter\n");
+
+    ret = vepu510_h265e_tune_qpmap_init(tune);
+    if (ret != MPP_OK) {
+        mpp_err("failed to init qpmap\n");
+        return;
+    }
+
+    hal_h265e_dbg_func("leave\n");
 }
 
 static void vepu510_h265e_tune_reg_patch(void *p, HalEncTask *task)
 {
     HalH265eVepu510Tune *tune = (HalH265eVepu510Tune *)p;
-    (void)task;
 
     if (NULL == tune)
         return;
+    H265eV510HalContext *ctx = tune->ctx;
 
     vepu510_h265e_tune_aq(tune);
+
+    if (ctx->qpmap_en && (task->md_info != NULL)) {
+        vepu510_h265e_tune_qpmap(tune, task);
+    }
 }
 
 static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
@@ -165,6 +235,7 @@ static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
     if (NULL == tune)
         return;
 
+    hal_h265e_dbg_func("enter\n");
     H265eV510HalContext *ctx = tune->ctx;;
     RK_S32 task_idx = task->flags.reg_idx;
     Vepu510H265eFrmCfg *frm = ctx->frms[task_idx];
@@ -172,9 +243,10 @@ static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
     H265eV510RegSet *regs_set = frm->regs_set;
     H265eV510StatusElem *elem = frm->regs_ret;
     MppEncCfgSet *cfg = ctx->cfg;
+    RK_S32 w32 = MPP_ALIGN(cfg->prep.width, 32);
+    RK_S32 h32 = MPP_ALIGN(cfg->prep.height, 32);
     RK_U32 b16_num = MPP_ALIGN(cfg->prep.width, 16) * MPP_ALIGN(cfg->prep.height, 16) / 256;
     RK_U32 madi_cnt = 0, madp_cnt = 0;
-    RK_S32 i = 0;
 
     RK_U32 madi_th_cnt0 = elem->st.st_madi_lt_num0.madi_th_lt_cnt0 +
                           elem->st.st_madi_rt_num0.madi_th_rt_cnt0 +
@@ -231,8 +303,8 @@ static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
             motion_level = 0;
         hal_rc_ret->motion_level = motion_level;
     }
-    hal_h265e_dbg_output("complex_level %d motion_level %d\n",
-                         hal_rc_ret->complex_level, hal_rc_ret->motion_level);
+    hal_h265e_dbg_st("frame %d complex_level %d motion_level %d\n",
+                     ctx->frame_num - 1, hal_rc_ret->complex_level, hal_rc_ret->motion_level);
 
     fb->st_madi = madi_th_cnt0 * regs_set->reg_rc_roi.madi_st_thd.madi_th0 +
                   madi_th_cnt1 * (regs_set->reg_rc_roi.madi_st_thd.madi_th0 +
@@ -259,51 +331,13 @@ static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
     fb->st_mb_num += elem->st.st_bnum_b16.num_b16;
     fb->frame_type = task->rc_task->frm.is_intra ? INTRA_FRAME : INTER_P_FRAME;
     hal_rc_ret->bit_real += fb->out_strm_size * 8;
-    hal_h265e_dbg_output("bit_real %d quality_real %d\n",
-                         hal_rc_ret->bit_real, hal_rc_ret->quality_real);
 
-    {
-        /* This code snippet may be unnecessary, but it is kept for rv1103b compatibility. */
-        RK_S32 bit_tgt = hal_rc_ret->bit_target;
-        RK_S32 bit_real = hal_rc_ret->bit_real;
-        RK_S32 real_lvl = 0;
+    hal_rc_ret->madi = elem->st.madi16_sum / fb->st_mb_num;
+    hal_rc_ret->madp = elem->st.madp16_sum / fb->st_mb_num;
+    hal_rc_ret->dsp_y_avg = elem->st.dsp_y_sum / (w32 / 4 * h32 / 4);
 
-        memcpy(fb->tgt_sub_real_lvl, ctx->last_frame_fb.tgt_sub_real_lvl, 6 * sizeof(RK_S8));
-        for (i = 3; i >= 0; i--)
-            fb->tgt_sub_real_lvl[i + 1] = fb->tgt_sub_real_lvl[i];
+    hal_h265e_dbg_st("frame %d bit_real %d quality_real %d dsp_y_avg %3d\n", ctx->frame_num - 1,
+                     hal_rc_ret->bit_real, hal_rc_ret->quality_real, hal_rc_ret->dsp_y_avg);
 
-        if (bit_tgt > bit_real) {
-            fb->tgt_sub_real_lvl[0] = (bit_tgt > bit_real * 6 / 4) ? 3 :
-                                      (bit_tgt > bit_real * 5 / 4) ? 2 :
-                                      (bit_tgt > bit_real * 9 / 8) ? 1 : 0;
-        } else {
-            fb->tgt_sub_real_lvl[0] = (bit_real > bit_tgt * 2) ? -5 :
-                                      (bit_real > bit_tgt * 7 / 4) ? -4 :
-                                      (bit_real > bit_tgt * 6 / 4) ? -3 :
-                                      (bit_real > bit_tgt * 5 / 4) ? -2 : -1;
-        }
-
-        for (i = 0; i < 5; i ++)
-            real_lvl += fb->tgt_sub_real_lvl[i];
-        if (task->rc_task->frm.is_intra)
-            fb->tgt_sub_real_lvl[5] = 0;
-
-        if (real_lvl < -9)
-            fb->tgt_sub_real_lvl[5] = 2;
-        else if (real_lvl < -2 && fb->tgt_sub_real_lvl[5] < 2)
-            fb->tgt_sub_real_lvl[5] = 1;
-    }
-
-    if (fb->st_mb_num)
-        fb->st_madi = fb->st_madi / fb->st_mb_num;
-    else
-        fb->st_madi = 0;
-
-    if (fb->st_ctu_num)
-        fb->st_madp = fb->st_madp / fb->st_ctu_num;
-    else
-        fb->st_madp = 0;
-
-    hal_rc_ret->madi = fb->st_madi;
-    hal_rc_ret->madp = fb->st_madp; /* unused ?? */
+    hal_h265e_dbg_func("leave\n");
 }

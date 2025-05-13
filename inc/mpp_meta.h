@@ -119,8 +119,13 @@ typedef enum MppMetaKey_e {
      */
     KEY_QPMAP0                  = FOURCC_META('e', 'q', 'm', '0'),
 
-    /* input motion list for smart p rate control */
-    KEY_MV_LIST                 = FOURCC_META('m', 'v', 'l', 't'),
+    /*
+     * object dectection flag from NPU
+     * Picture width is aligned to 16, each 16x16 block is 8bit data.
+     * H.264: 16x16 block is arranged in raster order.
+     * H.265: 16x16 block is reordered to ctu order then ctu raster order
+     */
+    KEY_NPU_OBJ_FLAG            = FOURCC_META('n', 'p', 'u', 'f'),
 
     /* frame long-term reference frame operation */
     KEY_ENC_MARK_LTR            = FOURCC_META('m', 'l', 't', 'r'),

@@ -124,8 +124,8 @@ typedef struct HalH264eVepu510Ctx_t {
     /* roi */
     void                    *roi_data;
     MppBufferGroup          roi_grp;
-    MppBuffer               roi_base_cfg_buf;
-    RK_S32                  roi_base_buf_size;
+    MppBuffer               roir_buf;
+    RK_S32                  roir_buf_size;
 
     /* two-pass deflicker */
     MppBuffer               buf_pass1;
@@ -160,6 +160,7 @@ typedef struct HalH264eVepu510Ctx_t {
     void                    *tune;
     RK_S32                  smart_en;
     RK_S32                  qpmap_en;
+    RK_S32                  sp_enc_en;
 } HalH264eVepu510Ctx;
 
 #include "hal_h264e_vepu510_tune.c"
@@ -241,10 +242,10 @@ static MPP_RET hal_h264e_vepu510_deinit(void *hal)
         p->hw_recn = NULL;
     }
 
-    if (p->roi_base_cfg_buf) {
-        mpp_buffer_put(p->roi_base_cfg_buf);
-        p->roi_base_cfg_buf = NULL;
-        p->roi_base_buf_size = 0;
+    if (p->roir_buf) {
+        mpp_buffer_put(p->roir_buf);
+        p->roir_buf = NULL;
+        p->roir_buf_size = 0;
     }
 
     if (p->roi_grp) {
@@ -555,6 +556,7 @@ static MPP_RET hal_h264e_vepu510_get_task(void *hal, HalEncTask *task)
 
     ctx->smart_en = (ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC);
     ctx->qpmap_en = ctx->cfg->tune.deblur_en;
+    ctx->sp_enc_en = ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SE;
 
     if (updated & SYN_TYPE_FLAG(H264E_SYN_CFG))
         setup_hal_bufs(ctx);
@@ -1224,7 +1226,7 @@ static void setup_vepu510_rc_base(HalVepu510RegSet *regs, HalH264eVepu510Ctx *ct
     reg_frm->common.rc_qp.rc_min_qp       = qp_min;
     reg_frm->common.rc_tgt.ctu_ebit       = mb_target_bits_mul_16;
 
-    if (rc->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+    if (rc->rc_mode == MPP_ENC_RC_MODE_SMTRC || rc->rc_mode == MPP_ENC_RC_MODE_SE) {
         reg_frm->common.rc_qp.rc_qp_range = 0;
     } else {
         reg_frm->common.rc_qp.rc_qp_range = (slice->slice_type == H264_I_SLICE) ?
@@ -1419,7 +1421,7 @@ static MPP_RET setup_vepu510_intra_refresh(HalVepu510RegSet *regs, HalH264eVepu5
     RK_U32 refresh_num = ctx->cfg->rc.refresh_num;
     RK_U32 stride_h = MPP_ALIGN(mb_w, 4);
     RK_U32 stride_v = MPP_ALIGN(mb_h, 4);
-    RK_U32 roi_base_buf_size = stride_h * stride_v * 8;
+    RK_U32 roir_buf_size = stride_h * stride_v * 8;
     RK_U32 i = 0;
 
     hal_h264e_dbg_func("enter\n");
@@ -1429,15 +1431,15 @@ static MPP_RET setup_vepu510_intra_refresh(HalVepu510RegSet *regs, HalH264eVepu5
         goto RET;
     }
 
-    if (NULL == ctx->roi_base_cfg_buf) {
+    if (NULL == ctx->roir_buf) {
         if (NULL == ctx->roi_grp)
             mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
-        mpp_buffer_get(ctx->roi_grp, &ctx->roi_base_cfg_buf, roi_base_buf_size);
-        ctx->roi_base_buf_size = roi_base_buf_size;
+        mpp_buffer_get(ctx->roi_grp, &ctx->roir_buf, roir_buf_size);
+        ctx->roir_buf_size = roir_buf_size;
     }
 
-    mpp_assert(ctx->roi_base_cfg_buf);
-    void *base_cfg_buf = mpp_buffer_get_ptr(ctx->roi_base_cfg_buf);
+    mpp_assert(ctx->roir_buf);
+    void *base_cfg_buf = mpp_buffer_get_ptr(ctx->roir_buf);
     Vepu510RoiH264BsCfg base_cfg;
     Vepu510RoiH264BsCfg *base_cfg_ptr = (Vepu510RoiH264BsCfg *)base_cfg_buf;
 
@@ -1523,7 +1525,7 @@ static void setup_vepu510_recn_refr(HalH264eVepu510Ctx *ctx, HalVepu510RegSet *r
     if (refr && refr->cnt) {
         MppBuffer buf_pixel = refr->buf[0];
         MppBuffer buf_thumb = refr->buf[1];
-        MppBuffer buf_smear = curr->buf[2];
+        MppBuffer buf_smear = refr->buf[2];
         RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
@@ -2195,7 +2197,7 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     setup_vepu510_recn_refr(ctx, regs);
 
     reg_frm->common.meiw_addr = task->md_info ? mpp_buffer_get_fd(task->md_info) : 0;
-    reg_frm->common.enc_pic.mei_stor = 0;
+    reg_frm->common.enc_pic.mei_stor = task->md_info ? 1 : 0;
 
     reg_frm->common.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
     reg_frm->common.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
@@ -2212,7 +2214,7 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
         vepu510_set_roi(&ctx->regs_set->reg_rc_roi.roi_cfg, ctx->roi_data,
                         ctx->cfg->prep.width, ctx->cfg->prep.height);
 
-    vepu510_h264e_tune_reg_patch(ctx->tune);
+    vepu510_h264e_tune_reg_patch(ctx->tune, task);
 
     /* two pass register patch */
     if (frm->save_pass1)

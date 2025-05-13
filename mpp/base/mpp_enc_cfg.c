@@ -244,6 +244,7 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(hw,   flt_str_p,      S32,        MPP_ENC_HW_CFG_CHANGE_FLT_STR_P,        hw, flt_str_p) \
     /* quality fine tuning config */ \
     ENTRY(tune, scene_mode,     S32,        MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE,     tune, scene_mode) \
+    ENTRY(tune, se_mode,        S32,        MPP_ENC_TUNE_CFG_CHANGE_SE_MODE,        tune, se_mode) \
     ENTRY(tune, deblur_en,      S32,        MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN,      tune, deblur_en) \
     ENTRY(tune, deblur_str,     S32,        MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR,     tune, deblur_str) \
     ENTRY(tune, anti_flicker_str,S32,       MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR,tune, anti_flicker_str) \

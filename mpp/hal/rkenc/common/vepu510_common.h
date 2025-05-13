@@ -2205,6 +2205,12 @@ typedef struct Vepu510H265RoiBlkCfg {
     RK_U32 mdc_adju_intra : 4;
 } Vepu510H265RoiBlkCfg;
 
+typedef struct Vepu510NpuOut_t {
+    RK_S32 found_objects;
+    /* npu object flag: one byte for each block16x16 */
+    RK_U8 *object_seg_map;
+} Vepu510NpuOut;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

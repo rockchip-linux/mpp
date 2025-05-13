@@ -154,6 +154,7 @@ typedef struct H265eV510HalContext_t {
 
     RK_S32              qpmap_en;
     RK_S32              smart_en;
+    RK_S32              sp_enc_en;
 
     /* external line buffer over 3K */
     MppBufferGroup      ext_line_buf_grp;
@@ -861,7 +862,7 @@ static void vepu510_h265_smear_cfg(H265eVepu510Sqi *reg, H265eV510HalContext *ct
     reg->smear_opt_cfg0.anti_smear_en               = 1;
     if (deblur_en == 0)
         reg->smear_opt_cfg0.anti_smear_en           = 0;
-    reg->smear_opt_cfg0.smear_strength              = smear_strength[deblur_str] + smear_flag_bndry_wgt[deblur_en];
+    reg->smear_opt_cfg0.smear_strength              = smear_strength[deblur_str] + smear_flag_bndry_wgt[flag_cover];
     reg->smear_opt_cfg0.thre_mv_inconfor_cime       = 8;
     reg->smear_opt_cfg0.thre_mv_confor_cime         = 2;
     reg->smear_opt_cfg0.thre_mv_inconfor_cime_gmv   = 8;
@@ -961,7 +962,7 @@ static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSe
     if (hw->qbias_en) {
         reg_param->qnt_bias_comb.qnt_f_bias_i = hw->qbias_i;
         reg_param->qnt_bias_comb.qnt_f_bias_p = hw->qbias_p;
-    } else if (ctx->smart_en) {
+    } else if (ctx->smart_en || ctx->sp_enc_en) {
         reg_param->qnt_bias_comb.qnt_f_bias_i = 144;
     }
 
@@ -1335,7 +1336,7 @@ static MPP_RET vepu510_h265_set_rc_regs(H265eV510HalContext *ctx, H265eV510RegSe
         reg_frm->common.rc_qp.rc_min_qp     = rc_cfg->quality_min;
         reg_frm->common.rc_tgt.ctu_ebit     = ctu_target_bits_mul_16;
 
-        if (ctx->smart_en) {
+        if (ctx->smart_en || ctx->sp_enc_en) {
             reg_frm->common.rc_qp.rc_qp_range = 0;
         } else {
             reg_frm->common.rc_qp.rc_qp_range = (ctx->frame_type == INTRA_FRAME) ?
@@ -2508,6 +2509,7 @@ MPP_RET hal_h265e_v510_get_task(void *hal, HalEncTask *task)
     ctx->dpb = (H265eDpb*)ctx->syn->dpb;
     ctx->smart_en = (ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC);
     ctx->qpmap_en = ctx->cfg->tune.deblur_en;
+    ctx->sp_enc_en = ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SE;
 
     if (vepu510_h265_setup_hal_bufs(ctx)) {
         hal_h265e_err("vepu541_h265_allocate_buffers failed, free buffers and return\n");

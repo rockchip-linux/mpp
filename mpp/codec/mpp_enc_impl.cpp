@@ -879,6 +879,9 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             ret = MPP_ERR_VALUE;
         }
 
+        if (change & MPP_ENC_TUNE_CFG_CHANGE_SE_MODE)
+            dst->se_mode = src->se_mode;
+
         if (change & MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN)
             dst->deblur_en = src->deblur_en;
 
@@ -1241,7 +1244,8 @@ static const char *name_of_rc_mode[] = {
     "cbr",
     "fixqp",
     "avbr",
-    "smtrc"
+    "smtrc",
+    "sp_enc"
 };
 
 static void update_rc_cfg_log(MppEncImpl *impl, const char* fmt, ...)
@@ -1329,6 +1333,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     } break;
     case MPP_ENC_RC_MODE_SMTRC: {
         cfg->mode = RC_SMT;
+    } break;
+    case MPP_ENC_RC_MODE_SE: {
+        cfg->mode = RC_SE;
     } break;
     default : {
         cfg->mode = RC_AVBR;

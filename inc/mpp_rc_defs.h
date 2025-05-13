@@ -197,6 +197,8 @@ typedef struct EncRcCommonInfo_t {
     RK_S32          quality_real;
     RK_S32          madi;
     RK_S32          madp;
+    /* average of down scaled pixels of luma */
+    RK_U32          dsp_y_avg;
 
     RK_U32          iblk4_prop; // scale 256
 

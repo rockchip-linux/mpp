@@ -23,13 +23,17 @@
 typedef struct HalH264eVepu510Tune_t {
     HalH264eVepu510Ctx  *ctx;
 
+    RK_U8 *qm_mv_buf; /* qpmap mv buffer */
+    RK_U32 qm_mv_buf_size;
+    Vepu510NpuOut *obj_out; /* object map from npu */
+
     RK_S32  pre_madp[2];
     RK_S32  pre_madi[2];
 } HalH264eVepu510Tune;
 
 static HalH264eVepu510Tune *vepu510_h264e_tune_init(HalH264eVepu510Ctx *ctx)
 {
-    HalH264eVepu510Tune *tune = mpp_malloc(HalH264eVepu510Tune, 1);
+    HalH264eVepu510Tune *tune = mpp_calloc(HalH264eVepu510Tune, 1);
 
     if (NULL == tune)
         return tune;
@@ -43,15 +47,84 @@ static HalH264eVepu510Tune *vepu510_h264e_tune_init(HalH264eVepu510Ctx *ctx)
 
 static void vepu510_h264e_tune_deinit(void *tune)
 {
+    HalH264eVepu510Tune * t = (HalH264eVepu510Tune *)tune;
+    MPP_FREE(t->qm_mv_buf);
     MPP_FREE(tune);
 }
 
-static void vepu510_h264e_tune_reg_patch(void *p)
+static MPP_RET vepu510_h264e_tune_qpmap_init(HalH264eVepu510Tune *tune)
+{
+    HalH264eVepu510Ctx *ctx = tune->ctx;
+    HalVepu510RegSet *regs = ctx->regs_set;
+    H264eVepu510Frame *reg_frm = &regs->reg_frm;
+    RK_S32 w64 = MPP_ALIGN(ctx->cfg->prep.width, 64);
+    RK_S32 h16 = MPP_ALIGN(ctx->cfg->prep.height, 16);
+    RK_S32 roir_buf_fd = -1;
+
+    if (ctx->roi_data) {
+        //TODO: external qpmap buffer
+    } else {
+        if (NULL == ctx->roir_buf) {
+            if (NULL == ctx->roi_grp)
+                mpp_buffer_group_get_internal(&ctx->roi_grp, MPP_BUFFER_TYPE_ION);
+
+            //TODO: bmap_mdc_dpth = 1 ???
+            ctx->roir_buf_size = w64 * h16 / 256 * 4;
+            mpp_buffer_get(ctx->roi_grp, &ctx->roir_buf, ctx->roir_buf_size);
+        }
+
+        roir_buf_fd = mpp_buffer_get_fd(ctx->roir_buf);
+    }
+
+    if (ctx->roir_buf == NULL) {
+        mpp_err("failed to get roir_buf\n");
+        return MPP_ERR_MALLOC;
+    }
+    reg_frm->common.adr_roir = roir_buf_fd;
+
+    if (tune->qm_mv_buf == NULL) {
+        tune->qm_mv_buf_size = w64 * h16 / 256;
+        tune->qm_mv_buf = mpp_calloc(RK_U8, tune->qm_mv_buf_size);
+        if (NULL == tune->qm_mv_buf) {
+            mpp_err("failed to get qm_mv_buf\n");
+            return MPP_ERR_MALLOC;
+        }
+    }
+
+    hal_h264e_dbg_detail("roir_buf_fd %d, size %d qm_mv_buf %p size %d\n",
+                         roir_buf_fd, ctx->roir_buf_size, tune->qm_mv_buf,
+                         tune->qm_mv_buf_size);
+    return MPP_OK;
+}
+
+static void vepu510_h264e_tune_qpmap(void *p, HalEncTask *task)
+{
+    HalH264eVepu510Tune *tune = (HalH264eVepu510Tune *)p;
+    MPP_RET ret = MPP_OK;
+
+    (void)task;
+    hal_h264e_dbg_func("enter\n");
+
+    ret = vepu510_h264e_tune_qpmap_init(tune);
+    if (ret != MPP_OK) {
+        mpp_err("failed to init qpmap\n");
+        return;
+    }
+
+    hal_h264e_dbg_func("leave\n");
+}
+
+static void vepu510_h264e_tune_reg_patch(void *p, HalEncTask *task)
 {
     HalH264eVepu510Tune *tune = (HalH264eVepu510Tune *)p;
 
     if (NULL == tune)
         return;
+
+    HalH264eVepu510Ctx *ctx = tune->ctx;
+
+    if (ctx->qpmap_en && (task->md_info != NULL))
+        vepu510_h264e_tune_qpmap(tune, task);
 }
 
 static void vepu510_h264e_tune_stat_update(void *p, HalEncTask *task)

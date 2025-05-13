@@ -1161,6 +1161,12 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
         }
         rc_dbg_rc("min_still_percent  %d", ctx->min_still_percent);
     } break;
+    case RC_SMT: {
+        mpp_log("rc mode is smart");
+    } break;
+    case RC_SE: {
+        mpp_log("rc mode is super-encode");
+    } break;
     default:
         mpp_log("rc mode set error");
         break;

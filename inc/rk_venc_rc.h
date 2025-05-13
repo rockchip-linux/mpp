@@ -29,8 +29,17 @@ typedef enum MppEncRcMode_e {
     MPP_ENC_RC_MODE_FIXQP,
     MPP_ENC_RC_MODE_AVBR,
     MPP_ENC_RC_MODE_SMTRC,
+    MPP_ENC_RC_MODE_SE,
     MPP_ENC_RC_MODE_BUTT
 } MppEncRcMode;
+
+typedef enum MppEncSeMode_e {
+    MPP_ENC_SE_DIABLE = 0,          // disable super encoder
+    MPP_ENC_SE_MODE_BAL,            // balance mode
+    MPP_ENC_SE_MODE_QF,             // quality first mode
+    MPP_ENC_SE_MODE_BF,             // bitrate first mode
+    MPP_ENC_SE_MODE_BUTT
+} MppEncSeMode;
 
 typedef enum MppEncRcPriority_e {
     MPP_ENC_RC_BY_BITRATE_FIRST,
