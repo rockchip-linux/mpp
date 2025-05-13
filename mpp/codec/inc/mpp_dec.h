@@ -35,7 +35,7 @@ typedef struct {
     MppCodingType       coding;
     void                *mpp;
 
-    MppDecCfgSet        *cfg;
+    MppDecCfg           cfg;
 } MppDecInitCfg;
 
 #ifdef __cplusplus
@@ -55,8 +55,7 @@ MPP_RET mpp_dec_notify(MppDec ctx, RK_U32 flag);
 MPP_RET mpp_dec_callback(MppDec ctx, MppDecEvent event, void *arg);
 
 /* update init cfg before init */
-MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfgSet *set, MpiCmd cmd, void *param);
-MPP_RET mpp_dec_set_cfg(MppDecCfgSet *dst, MppDecCfgSet *src);
+MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfg cfg, MpiCmd cmd, void *param);
 
 /*
  * return positive value for the number of decoded frame

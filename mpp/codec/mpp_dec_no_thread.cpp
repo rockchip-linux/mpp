@@ -298,7 +298,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         mpp_buf_slot_get_prop(frame_slots, task_dec->output, SLOT_FRAME_PTR, &mframe);
 
         if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) &&
-            dec->cfg.base.enable_hdr_meta) {
+            dec->cfg->base.enable_hdr_meta) {
             fill_hdr_meta_to_frame(mframe, dec->coding);
         }
     }

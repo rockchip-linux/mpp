@@ -136,7 +136,7 @@ typedef struct MppDecCfgSet_t {
 extern "C" {
 #endif
 
-void mpp_dec_cfg_set_default(MppDecCfgSet *cfg);
+rk_s32 mpp_dec_cfg_set_default(void *entry, KmppObj obj, const char *caller);
 
 #ifdef __cplusplus
 }

@@ -202,7 +202,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
         }
 
-        if (dec->cfg.base.sort_pts) {
+        if (dec->cfg->base.sort_pts) {
             // flush
             MppPktTs *ts, *pos;
 
@@ -383,7 +383,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_clock_start(dec->clocks[DEC_PRS_PREPARE]);
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
         mpp_clock_pause(dec->clocks[DEC_PRS_PREPARE]);
-        if (dec->cfg.base.sort_pts && task_dec->valid) {
+        if (dec->cfg->base.sort_pts && task_dec->valid) {
             task->ts_cur.pts = mpp_packet_get_pts(dec->mpp_pkt_in);
             task->ts_cur.dts = mpp_packet_get_dts(dec->mpp_pkt_in);
         }
@@ -628,7 +628,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &mframe);
 
         if (MPP_FRAME_FMT_IS_HDR(mpp_frame_get_fmt(mframe)) &&
-            dec->cfg.base.enable_hdr_meta) {
+            dec->cfg->base.enable_hdr_meta) {
             fill_hdr_meta_to_frame(mframe, dec->coding);
         }
     }
@@ -646,7 +646,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     if (task->wait.dec_pic_match)
         return MPP_NOK;
 
-    if (dec->cfg.base.sort_pts) {
+    if (dec->cfg->base.sort_pts) {
         MppFrame frame = NULL;
         MppPktTs *pkt_ts = (MppPktTs *)mpp_mem_pool_get(dec->ts_pool);
 
@@ -1227,7 +1227,7 @@ MPP_RET mpp_dec_control_normal(MppDecImpl *dec, MpiCmd cmd, void *param)
     dec->cmd_send++;
 
     dec_dbg_detail("detail: %p control cmd %08x param %p start disable_thread %d \n",
-                   dec, cmd, param, dec->cfg.base.disable_thread);
+                   dec, cmd, param, dec->cfg->base.disable_thread);
 
     mpp_dec_notify_normal(dec, MPP_DEC_CONTROL);
     sem_post(&dec->cmd_start);

@@ -7,7 +7,7 @@ add_library(mpp_base OBJECT
     mpp_enc_refs.cpp
     mpp_enc_ref.cpp
     mpp_enc_cfg.cpp
-    mpp_dec_cfg.cpp
+    mpp_dec_cfg.c
     mpp_sys_cfg.cpp
     mpp_sys_cfg_st.cpp
     mpp_cluster.cpp
