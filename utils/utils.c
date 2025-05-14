@@ -84,6 +84,13 @@ void dump_mpp_frame_to_file(MppFrame frame, FILE *fp)
 
     base = (RK_U8 *)mpp_buffer_get_ptr(buffer);
 
+    if (MPP_FRAME_FMT_IS_FBC(fmt) || MPP_FRAME_FMT_IS_RKFBC(fmt)) {
+        RK_S32 buf_size = mpp_buffer_get_size(buffer);
+
+        fwrite(base, 1, buf_size, fp);
+        return ;
+    }
+
     if (MPP_FRAME_FMT_IS_RGB(fmt) && MPP_FRAME_FMT_IS_LE(fmt)) {
         fmt &= MPP_FRAME_FMT_MASK;
     }
