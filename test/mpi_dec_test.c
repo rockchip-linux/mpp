@@ -146,6 +146,23 @@ static int dec_simple(MpiDecLoopData *data)
                     mpp_log_q(quiet, "%p decoder require buffer w:h [%d:%d] stride [%d:%d] buf_size %d",
                               ctx, width, height, hor_stride, ver_stride, buf_size);
 
+                    if (MPP_FRAME_FMT_IS_FBC(cmd->format)) {
+                        MppFrame frm = NULL;
+
+                        mpp_frame_init(&frm);
+                        mpp_frame_set_width(frm, width);
+                        mpp_frame_set_height(frm, height);
+                        mpp_frame_set_fmt(frm, cmd->format);
+
+                        ret = mpi->control(ctx, MPP_DEC_SET_FRAME_INFO, frm);
+                        mpp_frame_deinit(&frm);
+
+                        if (ret) {
+                            mpp_err("set fbc frame info failed\n");
+                            break;
+                        }
+                    }
+
                     grp = dec_buf_mgr_setup(data->buf_mgr, buf_size, 24, cmd->buf_mode);
                     /* Set buffer to mpp decoder */
                     ret = mpi->control(ctx, MPP_DEC_SET_EXT_BUF_GROUP, grp);
