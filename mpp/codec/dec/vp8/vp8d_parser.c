@@ -626,8 +626,6 @@ static MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
     if (p->frame_out->slot_index == 0xff) {
         mpp_frame_set_width(p->frame_out->f, p->width);
         mpp_frame_set_height(p->frame_out->f, p->height);
-        mpp_frame_set_hor_stride(p->frame_out->f, p->width);
-        mpp_frame_set_ver_stride(p->frame_out->f, p->height);
         mpp_frame_set_errinfo(p->frame_out->f, 0);
         mpp_frame_set_pts(p->frame_out->f, p->pts);
         ret = mpp_buf_slot_get_unused(p->frame_slots,
