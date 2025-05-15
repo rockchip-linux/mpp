@@ -142,10 +142,7 @@ static void fill_picture_parameters(const HEVCContext *h,
 
     pp->IdrPicFlag = (h->first_nal_type == 19 || h->first_nal_type == 20);
     pp->IrapPicFlag = (h->first_nal_type >= 16 && h->first_nal_type <= 23);
-    pp->IntraPicFlag =  (h->first_nal_type >= 16 && h->first_nal_type <= 23) ||
-                        (h->sh.slice_type == I_SLICE || (h->recovery.valid_flag &&
-                                                         h->recovery.first_frm_valid &&
-                                                         h->recovery.first_frm_id == current_picture->poc));
+    pp->IntraPicFlag =  (h->first_nal_type >= 16 && h->first_nal_type <= 23) || h->sh.slice_type == I_SLICE;
     pp->pps_cb_qp_offset            = pps->cb_qp_offset;
     pp->pps_cr_qp_offset            = pps->cr_qp_offset;
     if (pps->tiles_enabled_flag) {

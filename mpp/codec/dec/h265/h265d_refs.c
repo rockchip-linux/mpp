@@ -132,6 +132,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
             mpp_frame_set_thumbnail_en(frame->frame, 0);
 
         mpp_frame_set_errinfo(frame->frame, 0);
+        mpp_frame_set_discard(frame->frame, 0);
         mpp_frame_set_pts(frame->frame, s->pts);
         mpp_frame_set_poc(frame->frame, s->poc);
         mpp_frame_set_color_range(frame->frame, s->h265dctx->color_range);
@@ -241,6 +242,7 @@ static HEVCFrame *generate_missing_ref(HEVCContext *s, int poc)
     mpp_buf_slot_set_prop(s->slots, frame->slot_index, SLOT_FRAME, frame->frame);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_READY);
     mpp_buf_slot_set_flag(s->slots, frame->slot_index, SLOT_CODEC_USE);
+    mpp_frame_set_poc(frame->frame, poc);
     h265d_dbg(H265D_DBG_REF, "generate_missing_ref frame poc %d slot_index %d", poc, frame->slot_index);
     frame->sequence = s->seq_decode;
     frame->flags    = 0;
