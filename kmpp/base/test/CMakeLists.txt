@@ -24,3 +24,6 @@ add_kmpp_base_test(kmpp_obj)
 
 # kmpp frame unit test
 add_kmpp_base_test(kmpp_frame)
+
+# kmpp buffer unit test
+add_kmpp_base_test(kmpp_buffer)

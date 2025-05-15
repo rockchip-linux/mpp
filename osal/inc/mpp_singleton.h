@@ -24,6 +24,9 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_RUNTIME,
     /* kernel module (MUST before userspace module) */
     MPP_SGLN_KOBJ,
+    MPP_SGLN_KMPP_BUF_GRP_CFG,
+    MPP_SGLN_KMPP_BUF_GRP,
+    MPP_SGLN_KMPP_BUF_CFG,
     MPP_SGLN_KMPP_BUFFER,
     MPP_SGLN_KMPP_META,
     MPP_SGLN_KMPP_FRAME,

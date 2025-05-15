@@ -9,6 +9,7 @@
 #include "mpp_common.h"
 
 #include "kmpp_obj.h"
+#include "kmpp_buffer.h"
 
 #define TEST_DETAIL     1
 #define TEST_DEF_DUMP   2
@@ -126,9 +127,10 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     test_detail("object %s ready\n", kmpp_obj_get_name(grp));
 
     /* get KmppBufGrpCfg from KmppBufGrp to config */
-    ret = kmpp_obj_get_shm_obj(grp, "cfg", &grp_cfg);
-    if (ret) {
-        mpp_log("buf grp get cfg failed ret %d\n", ret);
+    grp_cfg = kmpp_buf_grp_to_cfg(grp);
+    if (!grp_cfg) {
+        mpp_log("buf grp to cfg failed ret %d\n", ret);
+        ret = MPP_NOK;
         goto done;
     }
 
@@ -188,7 +190,7 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     test_detail("object %s write parameters ready\n", kmpp_obj_get_name(grp_cfg));
 
     /* enable KmppBufGrpCfg by ioctl */
-    ret = kmpp_obj_ioctl_f(grp, 0, grp, NULL);
+    ret = kmpp_buf_grp_setup(grp);
 
     test_detail("object %s ioctl ret %d\n", kmpp_obj_get_name(grp), ret);
 
@@ -202,11 +204,10 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     test_detail("object %s ready\n", kmpp_obj_get_name(buf));
 
     /* get KmppBufGrpCfg to setup */
-    sptr.uaddr = 0;
-    sptr.kaddr = 0;
-    ret = kmpp_obj_get_shm_obj(buf, "cfg", &buf_cfg);
-    if (ret) {
-        mpp_log("buf get cfg failed ret %d\n", ret);
+    buf_cfg = kmpp_buffer_to_cfg(buf);
+    if (!buf_cfg) {
+        mpp_log("buf to cfg failed ret %d\n", ret);
+        ret = MPP_NOK;
         goto done;
     }
 
@@ -236,14 +237,8 @@ done:
     if (grp)
         kmpp_obj_put_f(grp);
 
-    if (grp_cfg)
-        kmpp_obj_put_impl_f(grp_cfg);
-
     if (buf)
         kmpp_obj_put_f(buf);
-
-    if (buf_cfg)
-        kmpp_obj_put_impl_f(buf_cfg);
 
     return ret;
 }
