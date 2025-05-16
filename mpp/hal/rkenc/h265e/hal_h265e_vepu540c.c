@@ -47,7 +47,7 @@
     } while (0)
 
 typedef struct vepu540c_h265_fbk_t {
-    RK_U32 hw_status; /* 0:corret, 1:error */
+    vepu540c_hw_status hw_status;
     RK_U32 qp_sum;
     RK_U32 out_strm_size;
     RK_U32 out_hw_strm_size;
@@ -1475,7 +1475,7 @@ static MPP_RET vepu540c_h265_set_feedback(H265eV540cHalContext *ctx, HalEncTask 
     RK_S32 mb8_num = (mb64_num << 6);
     RK_S32 mb4_num = (mb8_num << 2);
     H265eV540cStatusElem *elem = (H265eV540cStatusElem *)ctx->reg_out[0];
-    RK_U32 hw_status = elem->hw_status;
+    vepu540c_hw_status hw_status = elem->hw_status;
 
     hal_h265e_enter();
 
@@ -1487,33 +1487,33 @@ static MPP_RET vepu540c_h265_set_feedback(H265eV540cHalContext *ctx, HalEncTask 
                    (elem->st.st_sse_bsl.sse_l16 & 0xffff) ;
 
     fb->hw_status = hw_status;
-    hal_h265e_dbg_detail("hw_status: 0x%08x", hw_status);
-    if (hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
-        hal_h265e_err("RKV_ENC_INT_LINKTABLE_FINISH");
+    hal_h265e_dbg_detail("hw_status: 0x%08x", hw_status.val);
+    if (hw_status.int_sta.enc_done_sta)
+        hal_h265e_dbg_detail("RKV_ENC_INT_ENC_DONE");
 
-    if (hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
-        hal_h265e_dbg_detail("RKV_ENC_INT_ONE_FRAME_FINISH");
+    if (hw_status.int_sta.lkt_node_done_sta)
+        hal_h265e_dbg_detail("RKV_ENC_INT_LKT_NODE_DONE");
 
-    if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
-        hal_h265e_err("RKV_ENC_INT_ONE_SLICE_FINISH");
+    if (hw_status.int_sta.sclr_done_sta)
+        hal_h265e_dbg_detail("RKV_ENC_INT_SCLR_DONE");
 
-    if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
-        hal_h265e_err("RKV_ENC_INT_SAFE_CLEAR_FINISH");
+    if (hw_status.int_sta.vslc_done_sta)
+        hal_h265e_dbg_detail("RKV_ENC_INT_VSLC_DONE");
 
-    if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
-        hal_h265e_err("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
+    if (hw_status.int_sta.vbsf_oflw_sta)
+        hal_h265e_err("RKV_ENC_INT_VBSF_OFLOW");
 
-    if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL)
-        hal_h265e_err("RKV_ENC_INT_BUS_WRITE_FULL");
+    if (hw_status.int_sta.vbuf_lens_sta)
+        hal_h265e_err("RKV_ENC_INT_VBUF_LENS");
 
-    if (hw_status & RKV_ENC_INT_BUS_WRITE_ERROR)
-        hal_h265e_err("RKV_ENC_INT_BUS_WRITE_ERROR");
+    if (hw_status.int_sta.enc_err_sta)
+        hal_h265e_err("RKV_ENC_INT_ENC_ERR");
 
-    if (hw_status & RKV_ENC_INT_BUS_READ_ERROR)
-        hal_h265e_err("RKV_ENC_INT_BUS_READ_ERROR");
+    if (hw_status.int_sta.dvbm_fcfg_sta)
+        hal_h265e_err("RKV_ENC_INT_DVBM_FCFG");
 
-    if (hw_status & RKV_ENC_INT_TIMEOUT_ERROR)
-        hal_h265e_err("RKV_ENC_INT_TIMEOUT_ERROR");
+    if (hw_status.int_sta.wdg_sta)
+        hal_h265e_err("RKV_ENC_INT_WDG_TIMEOUT");
 
     // fb->st_madi += elem->st.madi;
     //fb->st_madp += elem->st.madp;
@@ -1640,7 +1640,7 @@ MPP_RET hal_h265e_v540c_wait(void *hal, HalEncTask *task)
     frm_num++;
 #endif
     if (ret)
-        mpp_err_f("poll cmd failed %d status %d \n", ret, elem->hw_status);
+        mpp_err_f("poll cmd failed %d status %d \n", ret, elem->hw_status.val);
 
     hal_h265e_leave();
     return ret;

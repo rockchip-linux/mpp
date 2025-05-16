@@ -1078,7 +1078,7 @@ typedef struct H265eV540cRegSet_t {
 } H265eV540cRegSet;
 
 typedef struct H265eV540cStatusElem_t {
-    RK_U32 hw_status;
+    vepu540c_hw_status hw_status;
     vepu540c_status st;
 } H265eV540cStatusElem;
 

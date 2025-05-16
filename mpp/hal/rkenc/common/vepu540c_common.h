@@ -36,6 +36,30 @@
 #define VEPU540C_MAX_ROI_NUM         8
 #define VEPU540C_SLICE_FIFO_LEN      8
 
+typedef union {
+    struct {
+        RK_U32 enc_done_sta          : 1;
+        RK_U32 lkt_node_done_sta     : 1;
+        RK_U32 sclr_done_sta         : 1;
+        RK_U32 vslc_done_sta         : 1;
+        RK_U32 vbsf_oflw_sta         : 1;
+        RK_U32 vbuf_lens_sta         : 1;
+        RK_U32 enc_err_sta           : 1;
+        RK_U32 dvbm_fcfg_sta         : 1;
+        RK_U32 wdg_sta               : 1;
+        RK_U32 lkt_err_int_sta       : 1;
+        RK_U32 lkt_err_stop_sta      : 1;
+        RK_U32 lkt_force_stop_sta    : 1;
+        RK_U32 jslc_done_sta         : 1;
+        RK_U32 jbsf_oflw_sta         : 1;
+        RK_U32 jbuf_lens_sta         : 1;
+        RK_U32 dvbm_dcnt_sta         : 1;
+        RK_U32 reserved              : 16;
+    } int_sta;
+
+    RK_U32 val;
+} vepu540c_hw_status;
+
 typedef struct Vepu540cOnline_t {
     /* 0x00000270 reg156 */
     RK_U32 reg0156_adr_vsy_t;

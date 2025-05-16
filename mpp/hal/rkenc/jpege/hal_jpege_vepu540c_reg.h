@@ -851,7 +851,7 @@ typedef struct JpegV540cRegSet_t {
 } JpegV540cRegSet;
 
 typedef struct JpegV540cStatus_t {
-    RK_U32 hw_status;
+    vepu540c_hw_status hw_status;
     vepu540c_status st;
 } JpegV540cStatus;
 

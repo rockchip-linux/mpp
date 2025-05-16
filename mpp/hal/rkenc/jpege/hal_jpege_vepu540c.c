@@ -307,35 +307,21 @@ static MPP_RET hal_jpege_vepu540c_status_check(void *hal)
     jpegeV540cHalContext *ctx = (jpegeV540cHalContext *)hal;
     JpegV540cStatus *elem = (JpegV540cStatus *)ctx->reg_out;
 
-    RK_U32 hw_status = elem->hw_status;
+    vepu540c_hw_status hw_status = elem->hw_status;
 
-    mpp_err_f("hw_status: 0x%08x", hw_status);
-    if (hw_status & RKV_ENC_INT_LINKTABLE_FINISH)
-        mpp_err_f("RKV_ENC_INT_LINKTABLE_FINISH");
+    hal_jpege_dbg_detail("hw_status: 0x%08x", hw_status.val);
+    if (hw_status.int_sta.enc_done_sta)
+        hal_jpege_dbg_detail("RKV_ENC_INT_ENC_DONE");
 
-    if (hw_status & RKV_ENC_INT_ONE_FRAME_FINISH)
-        mpp_err_f("RKV_ENC_INT_ONE_FRAME_FINISH");
+    if (hw_status.int_sta.wdg_sta)
+        mpp_err_f("RKV_ENC_INT_WDG_TIMEOUT");
 
-    if (hw_status & RKV_ENC_INT_ONE_SLICE_FINISH)
-        mpp_err_f("RKV_ENC_INT_ONE_SLICE_FINISH");
+    if (hw_status.int_sta.jslc_done_sta)
+        hal_jpege_dbg_detail("RKV_ENC_INT_JSL_DONE");
 
-    if (hw_status & RKV_ENC_INT_SAFE_CLEAR_FINISH)
-        mpp_err_f("RKV_ENC_INT_SAFE_CLEAR_FINISH");
+    if (hw_status.int_sta.jbsf_oflw_sta)
+        mpp_err_f("RKV_ENC_INT_JBSF_OFLOW");
 
-    if (hw_status & RKV_ENC_INT_BIT_STREAM_OVERFLOW)
-        mpp_err_f("RKV_ENC_INT_BIT_STREAM_OVERFLOW");
-
-    if (hw_status & RKV_ENC_INT_BUS_WRITE_FULL)
-        mpp_err_f("RKV_ENC_INT_BUS_WRITE_FULL");
-
-    if (hw_status & RKV_ENC_INT_BUS_WRITE_ERROR)
-        mpp_err_f("RKV_ENC_INT_BUS_WRITE_ERROR");
-
-    if (hw_status & RKV_ENC_INT_BUS_READ_ERROR)
-        mpp_err_f("RKV_ENC_INT_BUS_READ_ERROR");
-
-    if (hw_status & RKV_ENC_INT_TIMEOUT_ERROR)
-        mpp_err_f("RKV_ENC_INT_TIMEOUT_ERROR");
 
     return MPP_OK;
 }
