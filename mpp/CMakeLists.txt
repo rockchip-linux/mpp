@@ -75,6 +75,7 @@ target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc kmpp
 add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
     COMMAND ${CMAKE_AR} x $<TARGET_FILE:${MPP_STATIC}>
     COMMAND ${CMAKE_AR} rcs lib${MPP_SHARED}.a *.o
+    COMMAND ${CMAKE_SOURCE_DIR}/merge_static_lib.sh ${CMAKE_BINARY_DIR} ${MPP_SHARED}
     COMMAND ${CMAKE_STRIP} --strip-debug lib${MPP_SHARED}.a
     COMMAND pwd
     COMMAND rm *.o
