@@ -14,7 +14,8 @@
 
 #include "kmpp_obj.h"
 
-#define TO_STR(x)                   #x
+#define _TO_STR(x)                  #x
+#define TO_STR(x)                   _TO_STR(x)
 
 /* concat by underscore */
 #define CONCAT_US1(a)               a

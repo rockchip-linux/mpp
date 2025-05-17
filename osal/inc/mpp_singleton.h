@@ -42,23 +42,28 @@ typedef struct MppSingletonInfo_t {
     void            (*deinit)(void);
 } MppSingletonInfo;
 
+#define SNGL_TO_STR(x)  #x
+#define SNGL_TO_FUNC(x) __mpp_singleton_add_##x
+/* warning: constructor priorities from 0 to 100 are reserved for the implementation */
+#define SNGL_BASE_ID    101
 #define MPP_SINGLETON(id, name, init, deinit) \
-    __attribute__((constructor)) \
-    static void __mpp_singleton_add(void) { \
+    /* increase id from base id to avoid compiler warning */ \
+    __attribute__((constructor(SNGL_BASE_ID + id))) \
+    static void SNGL_TO_FUNC(name)(void) { \
         MppSingletonInfo info = { \
             id, \
-            name, \
+            SNGL_TO_STR(name), \
             init, \
             deinit, \
         }; \
-        mpp_singleton_add(&info); \
+        mpp_singleton_add(&info, __FUNCTION__); \
     }
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-rk_s32 mpp_singleton_add(MppSingletonInfo *info);
+rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller);
 
 #ifdef __cplusplus
 }
