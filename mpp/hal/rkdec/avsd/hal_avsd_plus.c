@@ -772,17 +772,28 @@ __SKIP_HARD:
 
         param.task = (void *)&task->dec;
         param.regs = (RK_U32 *)p_hal->p_regs;
-        param.hard_err = (!((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int);
+        param.hard_err = (!((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int) ||
+                         ((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_error_int;
 
         mpp_callback(p_hal->dec_cb, &param);
     }
+
+    AVSD_HAL_DBG(AVSD_HAL_DBG_WAIT, "first_field %d, irq 0x%08x, parse err %d, ref err %d\n",
+                 p_hal->first_field, p_hal->p_regs[1], task->dec.flags.parse_err, task->dec.flags.ref_err);
+
     update_parameters(p_hal);
-    memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
     if (!p_hal->first_field && p_hal->syn.pp.pictureStructure == FIELDPICTURE &&
         ((!task->dec.flags.parse_err && !task->dec.flags.ref_err) ||
          p_hal->dec_cfg->base.disable_error)) {
-        repeat_other_field(p_hal, task);
+        if (((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int &&
+            !((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_error_int) {
+            memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
+            repeat_other_field(p_hal, task);
+        } else {
+            AVSD_HAL_DBG(AVSD_HAL_DBG_WAIT, "last field error, skip decoding");
+        }
     }
+    memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
 
 __RETURN:
     AVSD_HAL_TRACE("Out.");
