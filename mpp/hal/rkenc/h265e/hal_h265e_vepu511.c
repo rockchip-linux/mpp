@@ -1557,7 +1557,7 @@ static void vepu511_h265_set_smear_regs(H265eV511HalContext *ctx, H265eV511RegSe
 {
     H265eVepu511Sqi *s = &regs->reg_sqi;
     RK_S32 frm_num = ctx->frame_num;
-    RK_S32 gop = (ctx->cfg->rc.gop > 0) ? ctx->cfg->rc.gop : 1; //TODO: gop = 0
+    RK_S32 gop = (ctx->cfg->rc.gop > 0) ? ctx->cfg->rc.gop : 0x7FFFFFFF;
     RK_U32 cover_num = ctx->last_frame_fb.acc_cover16_num;
     RK_U32 bndry_num = ctx->last_frame_fb.acc_bndry16_num;
     RK_U32 st_ctu_num = ctx->last_frame_fb.st_ctu_num;

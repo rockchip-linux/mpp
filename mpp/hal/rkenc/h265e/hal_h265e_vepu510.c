@@ -829,7 +829,7 @@ static void vepu510_h265_atf_cfg(H265eVepu510Sqi *reg, RK_S32 atf_str)
 static void vepu510_h265_smear_cfg(H265eVepu510Sqi *reg, H265eV510HalContext *ctx)
 {
     RK_S32 frame_num = ctx->frame_num;
-    RK_S32 frame_keyint = ctx->cfg->rc.gop;
+    RK_S32 frame_keyint = (ctx->cfg->rc.gop > 0) ? ctx->cfg->rc.gop : 0x7FFFFFFF;
     RK_U32 cover_num = ctx->feedback.acc_cover16_num;
     RK_U32 bndry_num = ctx->feedback.acc_bndry16_num;
     RK_U32 st_ctu_num = ctx->feedback.st_ctu_num;
