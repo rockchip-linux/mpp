@@ -777,7 +777,6 @@ static MppOptInfo enc_opts[] = {
     {"lmd",     "lambda idx",           "lambda_idx_p 0~8",                         mpi_enc_opt_lmd},
     {"lmdi",    "lambda i idx",         "lambda_idx_i 0~8",                         mpi_enc_opt_lmdi},
     {"speed",   "enc speed",            "speed mode",                               mpi_enc_opt_speed},
-    {"atf",     "atf",                  "anti_flicker_str, 0:off 1 2 3",            mpi_enc_opt_atf},
     {"kmpp",    "kmpp path enable",     "kmpp path enable",                         mpi_enc_opt_kmpp}
 };
 
