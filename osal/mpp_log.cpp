@@ -17,7 +17,6 @@
 #define MODULE_TAG "mpp_log"
 
 #include <stdio.h>
-#include <stdarg.h>
 #include <string.h>
 
 #include "mpp_env.h"
@@ -38,6 +37,8 @@ RK_U32 mpp_debug = 0;
 static const char *msg_log_warning = "log message is long\n";
 static const char *msg_log_nothing = "\n";
 static int mpp_log_level = MPP_LOG_INFO;
+static MppLogCb mpp_log_ext_cb = NULL;
+static void *mpp_log_ext_ctx = NULL;
 
 static void __mpp_log(os_log_callback func, const char *tag, const char *fmt,
                       const char *fname, va_list args)
@@ -114,6 +115,13 @@ void _mpp_log_l(int level, const char *tag, const char *fmt, const char *fname, 
     va_list args;
     int log_level;
 
+    if (mpp_log_ext_cb) {
+        va_start(args, fname);
+        mpp_log_ext_cb(mpp_log_ext_ctx, level, tag, fmt, fname, args);
+        va_end(args);
+        return;
+    }
+
     if (level <= MPP_LOG_UNKNOWN || level >= MPP_LOG_SILENT)
         return;
 
@@ -152,6 +160,14 @@ int mpp_get_log_level(void)
     mpp_log_level = level;
 
     return level;
+}
+
+int mpp_set_log_callback(void *ctx, MppLogCb cb)
+{
+    mpp_log_ext_cb = cb;
+    mpp_log_ext_ctx = ctx;
+
+    return 0;
 }
 
 #ifdef __cplusplus

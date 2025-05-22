@@ -17,6 +17,8 @@
 #ifndef __MPP_LOG_H__
 #define __MPP_LOG_H__
 
+#include <stdarg.h>
+
 #include "rk_type.h"
 #include "mpp_log_def.h"
 
@@ -87,6 +89,9 @@ void _mpp_log_l(int level, const char *tag, const char *fmt, const char *func, .
 
 void mpp_set_log_level(int level);
 int mpp_get_log_level(void);
+
+typedef void (*MppLogCb)(void *ctx, int level, const char *tag, const char *fmt, const char *func, va_list args);
+int mpp_set_log_callback(void *ctx, MppLogCb cb);
 
 /* deprecated function */
 void _mpp_log(const char *tag, const char *fmt, const char *func, ...);
