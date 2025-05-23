@@ -29,7 +29,7 @@ set(MPP_DRIVER
 add_library(osal OBJECT
     mpp_singleton.c
     mpp_soc.cpp
-    mpp_platform.cpp
+    mpp_platform.c
     mpp_runtime.cpp
     mpp_allocator.cpp
     mpp_mem_pool.c

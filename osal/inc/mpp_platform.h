@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef __MPP_PLATFORM__
@@ -35,6 +24,7 @@ typedef enum MppKernelVersion_e {
     KERNEL_4_4,
     KERNEL_4_19,
     KERNEL_5_10,
+    KERNEL_6_1,
     KERNEL_VERSION_BUTT,
 } MppKernelVersion;
 
@@ -44,9 +34,9 @@ extern "C" {
 
 MppIoctlVersion mpp_get_ioctl_version(void);
 MppKernelVersion mpp_get_kernel_version(void);
-RK_U32 mpp_get_2d_hw_flag(void);
-RK_U32 mpp_get_client_hw_id(RK_S32 client_type);
-RK_U32 mpp_get_vcodec_type(void);
+rk_u32 mpp_get_2d_hw_flag(void);
+rk_u32 mpp_get_client_hw_id(RK_S32 client_type);
+rk_u32 mpp_get_vcodec_type(void);
 
 #ifdef __cplusplus
 }
