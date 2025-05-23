@@ -12,8 +12,8 @@ add_library(mpp_base OBJECT
     mpp_sys_cfg_st.cpp
     mpp_cluster.cpp
     mpp_buf_slot.cpp
-    mpp_buffer_impl.cpp
-    mpp_buffer.cpp
+    mpp_buffer_impl.c
+    mpp_buffer.c
     mpp_packet.cpp
     mpp_frame.cpp
     mpp_task_impl.cpp
