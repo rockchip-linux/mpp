@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_packet"
@@ -20,14 +9,33 @@
 
 #include "mpp_debug.h"
 #include "mpp_mem_pool.h"
-#include "mpp_packet_impl.h"
+#include "mpp_singleton.h"
+
 #include "mpp_meta_impl.h"
+#include "mpp_packet_impl.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_packet_pool = mpp_mem_pool_init(module_name, sizeof(MppPacketImpl), NULL);
+static MppMemPool pool_packet = NULL;
 
-#define setup_mpp_packet_name(packet) \
-    ((MppPacketImpl*)packet)->name = module_name;
+#define setup_mpp_packet_name(packet)   ((MppPacketImpl*)packet)->name = module_name;
+
+static void mpp_packet_srv_init()
+{
+    if (pool_packet)
+        return;
+
+    pool_packet = mpp_mem_pool_init_f(module_name, sizeof(MppPacketImpl));
+}
+
+static void mpp_packet_srv_deinit()
+{
+    if (pool_packet) {
+        mpp_mem_pool_deinit_f(pool_packet);
+        pool_packet = NULL;
+    }
+}
+
+MPP_SINGLETON(MPP_SGLN_PACKET, mpp_packet, mpp_packet_srv_init, mpp_packet_srv_deinit)
 
 MPP_RET check_is_mpp_packet_f(void *packet, const char *caller)
 {
@@ -46,7 +54,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppPacketImpl *p = (MppPacketImpl*)mpp_mem_pool_get_f(mpp_packet_pool);
+    MppPacketImpl *p = (MppPacketImpl*)mpp_mem_pool_get_f(pool_packet);
     *packet = p;
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
@@ -181,7 +189,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     if (p->release)
         p->release(p->release_ctx, p->release_arg);
 
-    mpp_mem_pool_put_f(mpp_packet_pool, *packet);
+    mpp_mem_pool_put_f(pool_packet, *packet);
     *packet = NULL;
     return MPP_OK;
 }
@@ -189,7 +197,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 void mpp_packet_set_pos(MppPacket packet, void *pos)
 {
     if (check_is_mpp_packet(packet))
-        return ;
+        return;
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
     size_t offset = (RK_U8 *)pos - (RK_U8 *)p->data;
@@ -279,7 +287,7 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
 void mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer)
 {
     if (check_is_mpp_packet(packet))
-        return ;
+        return;
 
     MppPacketImpl *p = (MppPacketImpl *)packet;
     if (p->buffer != buffer) {
