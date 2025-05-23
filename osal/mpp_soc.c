@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_soc"
@@ -21,33 +10,50 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "mpp_mem.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
+#include "mpp_singleton.h"
 
 #include "mpp_soc.h"
 #include "mpp_platform.h"
 
 #define MAX_SOC_NAME_LENGTH     128
 
-#define CODING_TO_IDX(type)   \
-    ((RK_U32)(type) >= (RK_U32)MPP_VIDEO_CodingKhronosExtensions) ? \
-    ((RK_U32)(-1)) : \
-    ((RK_U32)(type) >= (RK_U32)MPP_VIDEO_CodingVC1) ? \
-    ((RK_U32)(type) - (RK_U32)MPP_VIDEO_CodingVC1 + 16) : \
-    ((RK_U32)(type) - (RK_U32)MPP_VIDEO_CodingUnused)
+#define get_srv_soc() \
+    ({ \
+        MppSocSrv *__tmp; \
+        if (!srv_soc) { \
+            mpp_soc_srv_init(); \
+        } \
+        if (srv_soc) { \
+            __tmp = srv_soc; \
+        } else { \
+            mpp_err("mpp soc srv not init at %s\n", __FUNCTION__); \
+            __tmp = NULL; \
+        } \
+        __tmp; \
+    })
 
-#define HAVE_MPEG2  ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMPEG2))))
-#define HAVE_H263   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingH263))))
-#define HAVE_MPEG4  ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMPEG4))))
-#define HAVE_AVC    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVC))))
-#define HAVE_MJPEG  ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMJPEG))))
-#define HAVE_VP8    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingVP8))))
-#define HAVE_VP9    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingVP9))))
-#define HAVE_HEVC   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingHEVC))))
-#define HAVE_AVSP   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVSPLUS))))
-#define HAVE_AVS    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS))))
-#define HAVE_AVS2   ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
-#define HAVE_AV1    ((RK_U32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAV1))))
+#define CODING_TO_IDX(type)   \
+    ((rk_u32)(type) >= (rk_u32)MPP_VIDEO_CodingKhronosExtensions) ? \
+    ((rk_u32)(-1)) : \
+    ((rk_u32)(type) >= (rk_u32)MPP_VIDEO_CodingVC1) ? \
+    ((rk_u32)(type) - (rk_u32)MPP_VIDEO_CodingVC1 + 16) : \
+    ((rk_u32)(type) - (rk_u32)MPP_VIDEO_CodingUnused)
+
+#define HAVE_MPEG2  ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMPEG2))))
+#define HAVE_H263   ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingH263))))
+#define HAVE_MPEG4  ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMPEG4))))
+#define HAVE_AVC    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVC))))
+#define HAVE_MJPEG  ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingMJPEG))))
+#define HAVE_VP8    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingVP8))))
+#define HAVE_VP9    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingVP9))))
+#define HAVE_HEVC   ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingHEVC))))
+#define HAVE_AVSP   ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVSPLUS))))
+#define HAVE_AVS    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS))))
+#define HAVE_AVS2   ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
+#define HAVE_AV1    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAV1))))
 
 #define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8|HAVE_AVS)
 #define CAP_CODING_JPEGD_PP     (HAVE_MJPEG)
@@ -1020,10 +1026,10 @@ static const MppSocInfo mpp_soc_default = {
     {   &vepu2, &vepu1, NULL, NULL, },
 };
 
-static void read_soc_name(char *name, RK_S32 size)
+static void read_soc_name(char *name, rk_s32 size)
 {
     const char *path = "/proc/device-tree/compatible";
-    RK_S32 fd = open(path, O_RDONLY);
+    rk_s32 fd = open(path, O_RDONLY);
 
     if (fd < 0) {
         mpp_err("open %s error\n", path);
@@ -1049,10 +1055,9 @@ static void read_soc_name(char *name, RK_S32 size)
     }
 }
 
-
 static const MppSocInfo *check_soc_info(const char *soc_name)
 {
-    RK_S32 i;
+    rk_s32 i;
 
     for (i = MPP_ARRAY_ELEMS(mpp_soc_infos) - 1; i >= 0; i--) {
         const char *compatible = mpp_soc_infos[i].compatible;
@@ -1066,124 +1071,124 @@ static const MppSocInfo *check_soc_info(const char *soc_name)
     return NULL;
 }
 
-class MppSocService
-{
-private:
-    // avoid any unwanted function
-    MppSocService();
-    ~MppSocService() {};
-    MppSocService(const MppSocService &);
-    MppSocService &operator=(const MppSocService &);
-
+typedef struct MppSocSrv_t {
     char                soc_name[MAX_SOC_NAME_LENGTH];
     const MppSocInfo    *soc_info;
-    RK_U32              dec_coding_cap;
-    RK_U32              enc_coding_cap;
+    rk_u32              dec_coding_cap;
+    rk_u32              enc_coding_cap;
+} MppSocSrv;
 
-public:
-    static MppSocService *get() {
-        static MppSocService instance;
-        return &instance;
-    }
+static MppSocSrv *srv_soc = NULL;
 
-    const char          *get_soc_name() { return soc_name; };
-    const MppSocInfo    *get_soc_info() { return soc_info; };
-    RK_U32              get_dec_cap() { return dec_coding_cap; };
-    RK_U32              get_enc_cap() { return enc_coding_cap; };
-};
-
-MppSocService::MppSocService()
-    : soc_info(NULL),
-      dec_coding_cap(0),
-      enc_coding_cap(0)
+static void mpp_soc_srv_init()
 {
-    RK_U32 i;
-    RK_U32 vcodec_type = 0;
+    MppSocSrv *srv = srv_soc;
+    rk_u32 vcodec_type = 0;
+    rk_u32 i;
 
-    read_soc_name(soc_name, sizeof(soc_name));
-    soc_info = check_soc_info(soc_name);
-    if (NULL == soc_info) {
-        mpp_dbg_platform("use default chip info\n");
-        soc_info = &mpp_soc_default;
+    if (srv)
+        return;
+
+    srv = mpp_calloc(MppSocSrv, 1);
+    if (!srv) {
+        mpp_err_f("failed to allocate soc service\n");
+        return;
     }
 
-    for (i = 0; i < MPP_ARRAY_ELEMS(soc_info->dec_caps); i++) {
-        const MppDecHwCap *cap = soc_info->dec_caps[i];
+    srv_soc = srv;
+
+    read_soc_name(srv->soc_name, sizeof(srv->soc_name));
+    srv->soc_info = check_soc_info(srv->soc_name);
+    if (NULL == srv->soc_info) {
+        mpp_dbg_platform("use default chip info\n");
+        srv->soc_info = &mpp_soc_default;
+    }
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(srv->soc_info->dec_caps); i++) {
+        const MppDecHwCap *cap = srv->soc_info->dec_caps[i];
 
         if (cap && cap->cap_coding) {
-            dec_coding_cap |= cap->cap_coding;
+            srv->dec_coding_cap |= cap->cap_coding;
             vcodec_type |= (1 << cap->type);
         }
     }
 
-    for (i = 0; i < MPP_ARRAY_ELEMS(soc_info->enc_caps); i++) {
-        const MppEncHwCap *cap = soc_info->enc_caps[i];
+    for (i = 0; i < MPP_ARRAY_ELEMS(srv->soc_info->enc_caps); i++) {
+        const MppEncHwCap *cap = srv->soc_info->enc_caps[i];
 
         if (cap && cap->cap_coding) {
-            enc_coding_cap |= cap->cap_coding;
+            srv->enc_coding_cap |= cap->cap_coding;
             vcodec_type |= (1 << cap->type);
         }
     }
 
     mpp_dbg_platform("coding caps: dec %08x enc %08x\n",
-                     dec_coding_cap, enc_coding_cap);
+                     srv->dec_coding_cap, srv->enc_coding_cap);
     mpp_dbg_platform("vcodec type from cap: %08x, from soc_info %08x\n",
-                     vcodec_type, soc_info->vcodec_type);
-    mpp_assert(soc_info->vcodec_type == vcodec_type);
+                     vcodec_type, srv->soc_info->vcodec_type);
+    mpp_assert(srv->soc_info->vcodec_type == vcodec_type);
+}
+
+static void mpp_soc_srv_deinit()
+{
+    MPP_FREE(srv_soc);
 }
 
 const char *mpp_get_soc_name(void)
 {
-    static const char *soc_name = NULL;
+    MppSocSrv *srv = get_srv_soc();
+    const char *name = NULL;
 
-    if (soc_name)
-        return soc_name;
+    if (srv)
+        name = srv->soc_name;
 
-    soc_name = MppSocService::get()->get_soc_name();
-    return soc_name;
+    return name;
 }
 
 const MppSocInfo *mpp_get_soc_info(void)
 {
-    static const MppSocInfo *soc_info = NULL;
+    MppSocSrv *srv = get_srv_soc();
+    const MppSocInfo *info = NULL;
 
-    if (soc_info)
-        return soc_info;
+    if (srv)
+        info = srv->soc_info;
 
-    soc_info = MppSocService::get()->get_soc_info();
-    return soc_info;
+    return info;
 }
 
 RockchipSocType mpp_get_soc_type(void)
 {
-    static RockchipSocType soc_type = ROCKCHIP_SOC_AUTO;
+    MppSocSrv *srv = get_srv_soc();
+    RockchipSocType type = ROCKCHIP_SOC_AUTO;
 
-    if (soc_type)
-        return soc_type;
+    if (srv)
+        type = srv->soc_info->soc_type;
 
-    soc_type = MppSocService::get()->get_soc_info()->soc_type;
-    return soc_type;
+    return type;
 }
 
-static RK_U32 is_valid_cap_coding(RK_U32 cap, MppCodingType coding)
+static rk_u32 is_valid_cap_coding(rk_u32 cap, MppCodingType coding)
 {
-    RK_S32 index = CODING_TO_IDX(coding);
-    if (index > 0 && index < 32 && (cap & (RK_U32)(1 << index)))
-        return true;
+    rk_s32 index = CODING_TO_IDX(coding);
+    if (index > 0 && index < 32 && (cap & (rk_u32)(1 << index)))
+        return 1;
 
-    return false;
+    return 0;
 }
 
-RK_U32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding)
+rk_u32 mpp_check_soc_cap(MppCtxType type, MppCodingType coding)
 {
-    RK_U32 cap = 0;
+    MppSocSrv *srv = get_srv_soc();
+    rk_u32 cap = 0;
 
-    if (type == MPP_CTX_DEC)
-        cap = MppSocService::get()->get_dec_cap();
-    else if (type == MPP_CTX_ENC)
-        cap = MppSocService::get()->get_enc_cap();
-    else
-        return 0;
+    if (srv) {
+        if (type == MPP_CTX_DEC)
+            cap = srv->dec_coding_cap;
+        else if (type == MPP_CTX_ENC)
+            cap = srv->enc_coding_cap;
+        else
+            return 0;
+    }
 
     if (!cap)
         return 0;
@@ -1195,7 +1200,7 @@ const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type)
 {
     const MppDecHwCap* hw_info = NULL;
     const MppSocInfo *info = mpp_get_soc_info();
-    RK_U32 i = 0;
+    rk_u32 i = 0;
 
     for (i = 0; i < MPP_ARRAY_ELEMS(info->dec_caps); i++) {
         if (info->dec_caps[i] && info->dec_caps[i]->type == client_type) {
@@ -1206,3 +1211,5 @@ const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type)
 
     return hw_info;
 }
+
+MPP_SINGLETON(MPP_SGLN_SOC, mpp_soc, mpp_soc_srv_init, mpp_soc_srv_deinit);
