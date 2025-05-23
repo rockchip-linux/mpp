@@ -69,7 +69,6 @@ struct Kmpp_t {
 
     KmppOps             *mApi;
     KmppObj             mVencInitKcfg;
-    MppMemPool          mVencPacketPool;
 };
 
 #ifdef __cplusplus

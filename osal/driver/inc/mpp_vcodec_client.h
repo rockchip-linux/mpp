@@ -49,7 +49,8 @@ enum vcodec_event_id {
     VCODEC_CHAN_OUT_STRM_Q_FULL = VCODEC_ID_BASE_OUTPUT,
     VCODEC_CHAN_OUT_STRM_BUF_RDY,
     VCODEC_CHAN_OUT_STRM_END,
-    VCODEC_CHAN_OUT_STRM_INFO,
+    /* new get packet interface */
+    VCODEC_CHAN_OUT_PKT_RDY,
 
     /* channel input side ack event from external module */
     VCODEC_CHAN_OUT_BLOCK       = VCODEC_ID_BASE_OUTPUT_ACK,

@@ -28,7 +28,7 @@
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
-
+#include "kmpp_packet.h"
 #include "mpp_vcodec_client.h"
 #include "mpp_enc_cfg_impl.h"
 
@@ -63,40 +63,16 @@ typedef struct KmppFrameInfos_t {
     };
 } KmppFrameInfos;
 
-typedef struct KmppVencPacketInfo_t {
-    RK_U32      flag;
-    RK_U32      temporal_id;
-    RK_U32      packet_offset;
-    RK_U32      packet_len;
-} KmppVencPacketInfo;
-
-typedef struct VencPacket_t {
-    RK_U64               u64priv_data;
-    RK_U64               u64packet_addr;
-    RK_U32               len;
-    RK_U32               buf_size;
-
-    RK_U64               u64pts;
-    RK_U64               u64dts;
-    RK_U32               flag;
-    RK_U32               temporal_id;
-    RK_U32               offset;
-    RK_U32               data_num;
-    KmppVencPacketInfo   packet[8];
-} VencPacket;
-
 static void kmpp_release_venc_packet(void *ctx, void *arg)
 {
-    Kmpp *p = (Kmpp *)ctx;
-    VencPacket *pkt = (VencPacket *)arg;
+    KmppPacket pkt = (KmppPacket)arg;
 
     if (!ctx || !pkt) {
         mpp_err_f("invalid input ctx %p pkt %p\n", ctx, pkt);
         return;
     }
-    mpp_vcodec_ioctl(p->mClientFd, VCODEC_CHAN_OUT_STRM_END, 0, sizeof(VencPacket), pkt);
 
-    mpp_mem_pool_put(p->mVencPacketPool, pkt);
+    kmpp_packet_put(pkt);
 }
 
 static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
@@ -144,8 +120,6 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
     if (ctx->mPacketGroup == NULL)
         mpp_buffer_group_get_internal(&ctx->mPacketGroup, MPP_BUFFER_TYPE_ION);
 
-    ctx->mVencPacketPool = mpp_mem_pool_init(sizeof(VencPacket));
-
     kmpp_obj_get_u32(ctx->mVencInitKcfg, "chan_id", &chan_id);
     mpp_log("client %d open chan_id %d ok", ctx->mClientFd, chan_id);
     ctx->mInitDone = 1;
@@ -191,11 +165,6 @@ static void clear(Kmpp *ctx)
     if (ctx->mPacketGroup) {
         mpp_buffer_group_put(ctx->mPacketGroup);
         ctx->mPacketGroup = NULL;
-    }
-
-    if (ctx->mVencPacketPool) {
-        mpp_mem_pool_deinit(ctx->mVencPacketPool);
-        ctx->mVencPacketPool = NULL;
     }
 }
 
@@ -365,41 +334,50 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
         return MPP_NOK;
 
     if (FD_ISSET(ctx->mClientFd, &read_fds)) {
-        VencPacket *venc_packet = mpp_mem_pool_get(ctx->mVencPacketPool);
+        KmppShmPtr sptr;
         MppPacket pkt = NULL;
-        void *ptr = NULL;
-        RK_U32 len;
+        KmppPacket kmpp_pkt = NULL;
+        RK_S32 len;
+        RK_U32 flag;
+        KmppShmPtr pos;
+        RK_S64 dts;
+        RK_S64 pts;
 
-        ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_BUF_RDY, 0, sizeof(VencPacket), venc_packet);
+        ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_PKT_RDY,
+                               0, sizeof(KmppShmPtr), &sptr);
         if (ret) {
-            mpp_err("chan %d VCODEC_CHAN_OUT_STRM_BUF_RDY failed\n", ctx->mChanId);
+            mpp_err("chan %d VCODEC_CHAN_OUT_PKT_RDY failed\n", ctx->mChanId);
             return MPP_NOK;
         }
 
-        ptr = (void *)(intptr_t)(venc_packet->u64priv_data);
-        len = venc_packet->len;
+        kmpp_obj_get_by_sptr_f(&kmpp_pkt, &sptr);
+        kmpp_packet_get_flag(kmpp_pkt, &flag);
+        kmpp_packet_get_length(kmpp_pkt, &len);
+        kmpp_packet_get_pos(kmpp_pkt, &pos);
+        kmpp_packet_get_dts(kmpp_pkt, &dts);
+        kmpp_packet_get_pts(kmpp_pkt, &pts);
 
         if (ctx->mPacket) {
             void *dst;
 
             pkt = ctx->mPacket;
             ctx->mPacket = NULL;
-            if (ptr) {
+            if (pos.uptr) {
                 dst = mpp_packet_get_pos(pkt);
-                memcpy(dst, ptr + venc_packet->offset, len);
+                memcpy(dst, pos.uptr, len);
             }
-            mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_END, 0, sizeof(VencPacket), venc_packet);
+
+            kmpp_packet_put(kmpp_pkt);
             mpp_packet_set_length(pkt, len);
-            mpp_mem_pool_put(ctx->mVencPacketPool, venc_packet);
         } else {
-            mpp_packet_init(&pkt, ptr + venc_packet->offset, len);
-            mpp_packet_set_release(pkt, kmpp_release_venc_packet, ctx, venc_packet);
+            mpp_packet_init(&pkt, pos.uptr, len);
+            mpp_packet_set_release(pkt, kmpp_release_venc_packet, ctx, kmpp_pkt);
         }
 
-        mpp_packet_set_dts(pkt, venc_packet->u64dts);
-        mpp_packet_set_pts(pkt, venc_packet->u64pts);
-        mpp_packet_set_flag(pkt, venc_packet->flag);
-        if (venc_packet->flag & MPP_PACKET_FLAG_INTRA) {
+        mpp_packet_set_dts(pkt, dts);
+        mpp_packet_set_pts(pkt, pts);
+        mpp_packet_set_flag(pkt, flag);
+        if (flag & MPP_PACKET_FLAG_INTRA) {
             MppMeta meta = mpp_packet_get_meta(pkt);
 
             mpp_meta_set_s32(meta, KEY_OUTPUT_INTRA, 1);
@@ -412,8 +390,7 @@ static MPP_RET get_packet(Kmpp *ctx, MppPacket *packet)
 
 static MPP_RET release_packet(Kmpp *ctx, MppPacket *packet)
 {
-    VencPacket *enc_packet  = (VencPacket *) *packet;
-    MPP_RET ret = MPP_OK;
+    KmppPacket pkt  = (KmppPacket) * packet;
 
     if (!ctx)
         return MPP_ERR_VALUE;
@@ -427,11 +404,9 @@ static MPP_RET release_packet(Kmpp *ctx, MppPacket *packet)
     if (ctx->mClientFd < 0)
         return MPP_NOK;
 
-    ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_OUT_STRM_END, 0, sizeof(*enc_packet), enc_packet);
-    if (ret)
-        mpp_err("chan %d VCODEC_CHAN_OUT_STRM_END failed\n", ctx->mChanId);
+    kmpp_packet_put(pkt);
 
-    return ret;
+    return MPP_OK;
 }
 
 static MPP_RET poll(Kmpp *ctx, MppPortType type, MppPollType timeout)
