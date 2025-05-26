@@ -112,6 +112,10 @@ typedef struct KmppObjDefImpl_t {
     rk_s32 index;
     rk_s32 ref_cnt;
     rk_s32 entry_size;
+
+    /* properties */
+    rk_s32 disable_mismatch_log;
+
     const char *name;
 } KmppObjDefImpl;
 
@@ -599,6 +603,20 @@ rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump)
     return rk_nok;
 }
 
+rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, const char *prop)
+{
+    if (def && op) {
+        KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+        if (strcmp(op, "disable_mismatch_log"))
+            impl->disable_mismatch_log = (prop && !strcmp(prop, "yes"));
+
+        return rk_ok;
+    }
+
+    return rk_nok;
+}
+
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name)
 {
     KmppObjs *p = get_objs_f();
@@ -649,7 +667,7 @@ rk_s32 kmpp_objdef_get_entry(KmppObjDef def, const char *name, KmppEntry **tbl)
         }
     }
 
-    if (ret)
+    if (ret && !impl->disable_mismatch_log)
         mpp_loge("objdef %s get entry %s failed ret %d\n",
                  impl ? impl->name : NULL, name, ret);
 

@@ -31,6 +31,8 @@ rk_s32 kmpp_objdef_add_deinit(KmppObjDef def, KmppObjDeinit deinit);
 /* userspace object dump function register */
 rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump);
 
+rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, const char *prop);
+
 /* kernel objdef query from /dev/kmpp_objs */
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
 /* kernel objdef from /dev/kmpp_objs reduce refcnt */
