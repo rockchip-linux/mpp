@@ -151,12 +151,53 @@ typedef enum ElemType_e {
     ELEM_TYPE_BUTT      = 0xf,
 } ElemType;
 
-/* element update flag type */
+#define ELEM_FLAG_OP_SHIFT  8
+#define ELEM_FLAG_IDX_MASK  ((1 << ELEM_FLAG_OP_SHIFT) - 1)
+/*
+ * element update flag bits usage:
+ * bit 0  - 7   record / replay operation index bit
+ * bit 8  - 9   record / replay operation bit
+ * bit 10 - 11  update flag update operation invalid / start / update / hold
+ */
 typedef enum ElemFlagType_e {
-    ELEM_FLAG_NONE,     /* element without update flag */
-    ELEM_FLAG_START,    /* element update flag will align to new 32bit */
-    ELEM_FLAG_UPDATE,   /* element flag increase by one */
-    ELEM_FLAG_HOLD,     /* element flag equal to previous one */
+    /* element without update flag (not available) */
+    ELEM_FLAG_NONE          = (1 << ELEM_FLAG_OP_SHIFT),
+    /* element update flag will align to new 32bit */
+    ELEM_FLAG_START         = (2 << ELEM_FLAG_OP_SHIFT),
+    /* element flag increase by one */
+    ELEM_FLAG_UPDATE        = (3 << ELEM_FLAG_OP_SHIFT),
+    /* element flag equal to previous one */
+    ELEM_FLAG_HOLD          = (4 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_OP_MASK       = (7 << ELEM_FLAG_OP_SHIFT),
+
+    /* index for record element update flag */
+    ELEM_FLAG_RECORD        = (8 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_RECORD_0      = (ELEM_FLAG_RECORD + 0),
+    ELEM_FLAG_RECORD_1      = (ELEM_FLAG_RECORD + 1),
+    ELEM_FLAG_RECORD_2      = (ELEM_FLAG_RECORD + 2),
+    ELEM_FLAG_RECORD_3      = (ELEM_FLAG_RECORD + 3),
+    ELEM_FLAG_RECORD_4      = (ELEM_FLAG_RECORD + 4),
+    ELEM_FLAG_RECORD_5      = (ELEM_FLAG_RECORD + 5),
+    ELEM_FLAG_RECORD_6      = (ELEM_FLAG_RECORD + 6),
+    ELEM_FLAG_RECORD_7      = (ELEM_FLAG_RECORD + 7),
+    ELEM_FLAG_RECORD_8      = (ELEM_FLAG_RECORD + 8),
+    ELEM_FLAG_RECORD_9      = (ELEM_FLAG_RECORD + 9),
+    ELEM_FLAG_RECORD_BUT,
+    ELEM_FLAG_RECORD_MAX    = (ELEM_FLAG_RECORD_BUT - ELEM_FLAG_RECORD),
+
+    /* index for replay element update flag */
+    ELEM_FLAG_REPLAY        = (16 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_REPLAY_0      = (ELEM_FLAG_REPLAY + 0),
+    ELEM_FLAG_REPLAY_1      = (ELEM_FLAG_REPLAY + 1),
+    ELEM_FLAG_REPLAY_2      = (ELEM_FLAG_REPLAY + 2),
+    ELEM_FLAG_REPLAY_3      = (ELEM_FLAG_REPLAY + 3),
+    ELEM_FLAG_REPLAY_4      = (ELEM_FLAG_REPLAY + 4),
+    ELEM_FLAG_REPLAY_5      = (ELEM_FLAG_REPLAY + 5),
+    ELEM_FLAG_REPLAY_6      = (ELEM_FLAG_REPLAY + 6),
+    ELEM_FLAG_REPLAY_7      = (ELEM_FLAG_REPLAY + 7),
+    ELEM_FLAG_REPLAY_8      = (ELEM_FLAG_REPLAY + 8),
+    ELEM_FLAG_REPLAY_9      = (ELEM_FLAG_REPLAY + 9),
+    ELEM_FLAG_REPLAY_BUT,
 } ElemFlagType;
 
 typedef union KmppEntry_u {

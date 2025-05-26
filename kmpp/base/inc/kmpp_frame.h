@@ -8,31 +8,29 @@
 
 #include "mpp_frame.h"
 
-#define KMPP_FRAME_ENTRY_TABLE(ENTRY, prefix) \
-    ENTRY(prefix, u32, rk_u32, width) \
-    ENTRY(prefix, u32, rk_u32, height) \
-    ENTRY(prefix, u32, rk_u32, hor_stride) \
-    ENTRY(prefix, u32, rk_u32, ver_stride) \
-    ENTRY(prefix, u32, rk_u32, hor_stride_pixel) \
-    ENTRY(prefix, u32, rk_u32, offset_x) \
-    ENTRY(prefix, u32, rk_u32, offset_y) \
-    ENTRY(prefix, u32, rk_u32, poc) \
-    ENTRY(prefix, s64, rk_s64, pts) \
-    ENTRY(prefix, s64, rk_s64, dts) \
-    ENTRY(prefix, u32, rk_u32, eos) \
-    ENTRY(prefix, u32, rk_u32, color_range) \
-    ENTRY(prefix, u32, rk_u32, color_primaries) \
-    ENTRY(prefix, u32, rk_u32, color_trc) \
-    ENTRY(prefix, u32, rk_u32, colorspace) \
-    ENTRY(prefix, u32, rk_u32, chroma_location) \
-    ENTRY(prefix, u32, rk_u32, fmt) \
-    ENTRY(prefix, u32, rk_u32, buf_size) \
-    ENTRY(prefix, u32, rk_u32, is_gray)
-
-#define KMPP_FRAME_STRUCT_TABLE(ENTRY, prefix) \
-    ENTRY(prefix, shm, KmppShmPtr, meta) \
-    ENTRY(prefix, shm, KmppShmPtr, buffer) \
-    ENTRY(prefix, st,  MppFrameRational, sar)
+#define KMPP_FRAME_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
+    ENTRY(prefix, u32, rk_u32,              width,              ELEM_FLAG_NONE, width) \
+    ENTRY(prefix, u32, rk_u32,              height,             ELEM_FLAG_NONE, height) \
+    ENTRY(prefix, u32, rk_u32,              hor_stride,         ELEM_FLAG_NONE, hor_stride) \
+    ENTRY(prefix, u32, rk_u32,              ver_stride,         ELEM_FLAG_NONE, ver_stride) \
+    ENTRY(prefix, u32, rk_u32,              hor_stride_pixel,   ELEM_FLAG_NONE, hor_stride_pixel) \
+    ENTRY(prefix, u32, rk_u32,              offset_x,           ELEM_FLAG_NONE, offset_x) \
+    ENTRY(prefix, u32, rk_u32,              offset_y,           ELEM_FLAG_NONE, offset_y) \
+    ENTRY(prefix, u32, rk_u32,              poc,                ELEM_FLAG_NONE, poc) \
+    ENTRY(prefix, s64, rk_s64,              pts,                ELEM_FLAG_NONE, pts) \
+    ENTRY(prefix, s64, rk_s64,              dts,                ELEM_FLAG_NONE, dts) \
+    ENTRY(prefix, u32, rk_u32,              eos,                ELEM_FLAG_NONE, eos) \
+    ENTRY(prefix, u32, rk_u32,              color_range,        ELEM_FLAG_NONE, color_range) \
+    ENTRY(prefix, u32, rk_u32,              color_primaries,    ELEM_FLAG_NONE, color_primaries) \
+    ENTRY(prefix, u32, rk_u32,              color_trc,          ELEM_FLAG_NONE, color_trc) \
+    ENTRY(prefix, u32, rk_u32,              colorspace,         ELEM_FLAG_NONE, colorspace) \
+    ENTRY(prefix, u32, rk_u32,              chroma_location,    ELEM_FLAG_NONE, chroma_location) \
+    ENTRY(prefix, u32, rk_u32,              fmt,                ELEM_FLAG_NONE, fmt) \
+    ENTRY(prefix, u32, rk_u32,              buf_size,           ELEM_FLAG_NONE, buf_size) \
+    ENTRY(prefix, u32, rk_u32,              is_gray,            ELEM_FLAG_NONE, is_gray) \
+    STRCT(prefix, shm, KmppShmPtr,          meta,               ELEM_FLAG_NONE, meta) \
+    STRCT(prefix, shm, KmppShmPtr,          buffer,             ELEM_FLAG_NONE, buffer) \
+    STRCT(prefix, st,  MppFrameRational,    sar,                ELEM_FLAG_NONE, sar)
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +39,6 @@ extern "C" {
 #define KMPP_OBJ_NAME           kmpp_frame
 #define KMPP_OBJ_INTF_TYPE      KmppFrame
 #define KMPP_OBJ_ENTRY_TABLE    KMPP_FRAME_ENTRY_TABLE
-#define KMPP_OBJ_STRUCT_TABLE   KMPP_FRAME_STRUCT_TABLE
 #include "kmpp_obj_func.h"
 
 #ifdef __cplusplus

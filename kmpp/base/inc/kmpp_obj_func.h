@@ -3,6 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
+#include "kmpp_obj_macro.h"
+
 #ifndef KMPP_OBJ_NAME
 #error "KMPP_OBJ_NAME must be defined on using kmpp_obj_func.h"
 #endif
@@ -11,111 +13,55 @@
 #error "KMPP_OBJ_INTF_TYPE must be defined on using kmpp_obj_func.h"
 #endif
 
-#ifndef KMPP_OBJ_CONCAT2
-#define KMPP_OBJ_CONCAT2(a, b)          a##_##b
-#endif
-#ifndef KMPP_OBJ_CONCAT3
-#define KMPP_OBJ_CONCAT3(a, b, c)       a##_##b##_##c
-#endif
-#ifndef KMPP_OBJ_CONCAT4
-#define KMPP_OBJ_CONCAT4(a, b, c, d)    a##_##b##_##c##_##d
-#endif
+#include "rk_type.h"
 
+/* always define object common function */
 #define KMPP_OBJ_FUNC_DEFINE(prefix) \
-rk_s32 KMPP_OBJ_CONCAT2(prefix, size)(void); \
-rk_s32 KMPP_OBJ_CONCAT2(prefix, get)(KMPP_OBJ_INTF_TYPE *p); \
-rk_s32 KMPP_OBJ_CONCAT2(prefix, put)(KMPP_OBJ_INTF_TYPE p); \
-rk_s32 KMPP_OBJ_CONCAT2(prefix, dump)(KMPP_OBJ_INTF_TYPE p, const char *caller);
+    rk_s32 CONCAT_US(prefix, init)(void); \
+    rk_s32 CONCAT_US(prefix, deinit)(void); \
+    rk_s32 CONCAT_US(prefix, size)(void); \
+    rk_s32 CONCAT_US(prefix, get)(KMPP_OBJ_INTF_TYPE *p); \
+    rk_s32 CONCAT_US(prefix, assign)(KMPP_OBJ_INTF_TYPE *p, void *buf, rk_s32 size); \
+    rk_s32 CONCAT_US(prefix, put)(KMPP_OBJ_INTF_TYPE p); \
+    rk_s32 CONCAT_US(prefix, dump)(KMPP_OBJ_INTF_TYPE p, const char *caller);
 
 KMPP_OBJ_FUNC_DEFINE(KMPP_OBJ_NAME)
+#undef KMPP_OBJ_FUNC_DEFINE
 
-/* simple entry access funcitons */
+/* entry and hook access funcitons */
 #ifdef KMPP_OBJ_ENTRY_TABLE
-#define ENTRY_TO_DECLARE(prefix, ftype, type, f1, ...) \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, set, f1)(KMPP_OBJ_INTF_TYPE p, type  val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, get, f1)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, test, f1)(KMPP_OBJ_INTF_TYPE p);
+/* disable all hierarchy macro in header */
+#define CFG_DEF_START(...)
+#define CFG_DEF_END(...)
+#define STRUCT_START(...)
+#define STRUCT_END(...)
 
-KMPP_OBJ_ENTRY_TABLE(ENTRY_TO_DECLARE, KMPP_OBJ_NAME)
+#define ENTRY_DECLARE(prefix, ftype, type, name, flag, ...) \
+    rk_s32 CONCAT_US(prefix, set, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p, type val); \
+    rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p, type* val); \
+    rk_s32 CONCAT_US(prefix, test, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p);
 
-#undef KMPP_OBJ_ENTRY_TABLE
-#undef ENTRY_TO_DECLARE
-#endif
+#define STRCT_DECLARE(prefix, ftype, type, name, flag, ...) \
+    rk_s32 CONCAT_US(prefix, set, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p, type* val); \
+    rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p, type* val); \
+    rk_s32 CONCAT_US(prefix, test, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE p);
 
-/* simple entry read-only access funcitons */
-#ifdef KMPP_OBJ_ENTRY_RO_TABLE
-#define ENTRY_TO_DECLARE(prefix, ftype, type, f1, ...) \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, get, f1)(KMPP_OBJ_INTF_TYPE p, type* val);
+#define ALIAS_DECLARE(prefix, ftype, type, name, flag, ...)
 
-KMPP_OBJ_ENTRY_RO_TABLE(ENTRY_TO_DECLARE, KMPP_OBJ_NAME)
+KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_DECLARE, STRCT_DECLARE,
+                     ENTRY_DECLARE, STRCT_DECLARE, ALIAS_DECLARE)
 
-#undef KMPP_OBJ_ENTRY_RO_TABLE
-#undef ENTRY_TO_DECLARE
-#endif
+#undef ENTRY_DECLARE
+#undef ENTRY_TO_ALIAS
+#undef STRCT_DECLARE
 
-/* structure entry access funcitons */
-#ifdef KMPP_OBJ_STRUCT_TABLE
-#define STRUCT_TO_DECLARE(prefix, ftype, type, f1, ...) \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, set, f1)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, get, f1)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, test, f1)(KMPP_OBJ_INTF_TYPE p);
+#undef CFG_DEF_START
+#undef CFG_DEF_END
+#undef STRUCT_START
+#undef STRUCT_END
 
-KMPP_OBJ_STRUCT_TABLE(STRUCT_TO_DECLARE, KMPP_OBJ_NAME)
-
-#undef KMPP_OBJ_STRUCT_TABLE
-#undef STRUCT_TO_DECLARE
-#endif
-
-/* simple entry hook access funcitons */
-#ifdef KMPP_OBJ_ENTRY_HOOK
-#define STRUCT_TO_DECLARE(prefix, ftype, type, f1, ...) \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, set, f1)(KMPP_OBJ_INTF_TYPE p, type val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, get, f1)(KMPP_OBJ_INTF_TYPE p, type* val);
-
-KMPP_OBJ_ENTRY_HOOK(STRUCT_TO_DECLARE, KMPP_OBJ_NAME)
-
-#undef KMPP_OBJ_ENTRY_HOOK
-#undef STRUCT_TO_DECLARE
-#endif
-
-/* structure entry hook access funcitons */
-#ifdef KMPP_OBJ_STRUCT_HOOK
-#define STRUCT_TO_DECLARE(prefix, ftype, type, f1, ...) \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, set, f1)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT3(prefix, get, f1)(KMPP_OBJ_INTF_TYPE p, type* val);
-
-KMPP_OBJ_STRUCT_HOOK(STRUCT_TO_DECLARE, KMPP_OBJ_NAME)
-
-#undef KMPP_OBJ_STRUCT_HOOK
-#undef STRUCT_TO_DECLARE
-#endif
-
-/* internal structure simple entry access funcitons */
-#ifdef KMPP_OBJ_ENTRY_TABLE2
-#define ENTRY_TO_DECLARE(prefix, ftype, type, f1, f2, ...) \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, set, f1, f2)(KMPP_OBJ_INTF_TYPE p, type  val); \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, get, f1, f2)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, test, f1, f2)(KMPP_OBJ_INTF_TYPE p);
-
-KMPP_OBJ_ENTRY_TABLE2(ENTRY_TO_DECLARE, KMPP_OBJ_NAME)
-
-#undef KMPP_OBJ_ENTRY_TABLE2
-#undef ENTRY_TO_DECLARE
-#endif
-
-/* internal structure entry access funcitons */
-#ifdef KMPP_OBJ_STRUCT_TABLE2
-#define ENTRY_TO_DECLARE(prefix, ftype, type, f1, f2, ...) \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, set, f1, f2)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, get, f1, f2)(KMPP_OBJ_INTF_TYPE p, type* val); \
-    rk_s32 KMPP_OBJ_CONCAT4(prefix, test, f1, f2)(KMPP_OBJ_INTF_TYPE p);
-
-KMPP_OBJ_STRUCT_TABLE2(ENTRY_TO_DECLARE, KMPP_OBJ_NAME)
-
-#undef KMPP_OBJ_STRUCT_TABLE2
-#undef ENTRY_TO_DECLARE
 #endif
 
 #undef KMPP_OBJ_NAME
 #undef KMPP_OBJ_INTF_TYPE
-#undef KMPP_OBJ_FUNC_DEFINE
+#undef KMPP_OBJ_ENTRY_TABLE
