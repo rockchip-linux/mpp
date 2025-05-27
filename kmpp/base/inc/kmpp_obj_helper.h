@@ -297,7 +297,7 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     (void) __flag_base;
     (void) __flag_record;
 
-    mpp_logi_f("enter\n");
+    mpp_logd_f("enter\n");
 
     kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), impl_size, KMPP_OBJ_DEF_NAME(KMPP_OBJ_INTF_TYPE));
     if (!KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
@@ -326,7 +326,7 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 #if !defined(KMPP_OBJ_SHARE_DISABLE) && defined(__KERNEL__)
     kmpp_objdef_share(KMPP_OBJ_DEF(KMPP_OBJ_NAME));
 #endif
-    mpp_logi_f("leave\n");
+    mpp_logd_f("leave\n");
 }
 
 void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
