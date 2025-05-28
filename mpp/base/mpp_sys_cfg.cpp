@@ -475,7 +475,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
          * NOTE: rk3576 use 128 odd plus 64 for all non jpeg format
          * all the other socs use 256 odd on larger than 1080p
          */
-        if ((aligned_byte > 1920 || soc_type == ROCKCHIP_SOC_RK3576 || soc_type == ROCKCHIP_SOC_RK3399)
+        if ((aligned_byte > 1920 || soc_type == ROCKCHIP_SOC_RK3576)
             && type != MPP_VIDEO_CodingMJPEG) {
             rk_s32 update = 0;
 
