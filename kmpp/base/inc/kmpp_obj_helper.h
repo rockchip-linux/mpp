@@ -266,6 +266,12 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 
     mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
 
+    kmpp_objdef_get(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), TO_STR(KMPP_OBJ_INTF_TYPE));
+    if (KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
+        KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " found at kernel\n");
+        return;
+    }
+
     KMPP_OBJ_DBG_LOG("register enter\n");
 
     kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), impl_size, TO_STR(KMPP_OBJ_INTF_TYPE));
@@ -303,7 +309,7 @@ void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
     KmppObjDef def = __sync_fetch_and_and(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL);
 
     KMPP_OBJ_DBG_LOG("unregister enter\n");
-    kmpp_objdef_unregister(def);
+    kmpp_objdef_put(def);
     KMPP_OBJ_DBG_LOG("unregister leave\n");
 }
 

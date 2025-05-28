@@ -18,8 +18,6 @@ extern "C" {
 
 /* userspace objdef register */
 rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name);
-/* userspace objdef unregister */
-rk_s32 kmpp_objdef_unregister(KmppObjDef def);
 /* userspace objdef add MppCfgObj root */
 rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root);
 /* userspace objdef add KmppEntry table */

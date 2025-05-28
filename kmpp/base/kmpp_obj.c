@@ -102,6 +102,8 @@ typedef struct KmppObjDefImpl_t {
     /* userspace objdef */
     MppCfgObj cfg;
     MppMemPool pool;
+    /* object define from kernel or userspace */
+    rk_s32 is_kobj;
     rk_s32 flag_base;
     rk_s32 flag_max_pos;
     rk_s32 buf_size;
@@ -418,15 +420,31 @@ rk_s32 kmpp_objdef_put(KmppObjDef def)
     rk_s32 ret = rk_nok;
 
     if (impl) {
-        impl->ref_cnt--;
-
-        if (!impl->ref_cnt) {
+        if (impl->is_kobj) {
+            impl->ref_cnt--;
+            if (!impl->ref_cnt) {
+                if (impl->trie) {
+                    ret = mpp_trie_deinit(impl->trie);
+                    impl->trie = NULL;
+                }
+            }
+        } else {
+            if (impl->cfg) {
+                mpp_cfg_put_all(impl->cfg);
+                impl->cfg = NULL;
+                /* When init with MppCfgObj the trie is associated to the MppCfgObj */
+                impl->trie = NULL;
+            }
             if (impl->trie) {
                 ret = mpp_trie_deinit(impl->trie);
                 impl->trie = NULL;
             }
+            if (impl->pool) {
+                mpp_mem_pool_deinit(impl->pool);
+                impl->pool = NULL;
+            }
+            mpp_free(impl);
         }
-
         ret = rk_ok;
     }
 
@@ -467,34 +485,6 @@ rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name)
     *def = impl;
 
     return rk_ok;
-}
-
-rk_s32 kmpp_objdef_unregister(KmppObjDef def)
-{
-    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
-    rk_s32 ret = rk_nok;
-
-    if (impl) {
-        if (impl->cfg) {
-            mpp_cfg_put_all(impl->cfg);
-            impl->cfg = NULL;
-            /* When init with MppCfgObj the trie is associated to the MppCfgObj */
-            impl->trie = NULL;
-        }
-        if (impl->trie) {
-            ret = mpp_trie_deinit(impl->trie);
-            impl->trie = NULL;
-        }
-        if (impl->pool) {
-            mpp_mem_pool_deinit(impl->pool);
-            impl->pool = NULL;
-        }
-
-        mpp_free(impl);
-        ret = rk_ok;
-    }
-
-    return ret;
 }
 
 rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root)
@@ -639,7 +629,7 @@ rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name)
 
     info = mpp_trie_get_info(p->trie, name);
     if (!info) {
-        mpp_loge_f("failed to get objdef %s\n", name);
+        obj_dbg_flow("failed to get kernel objdef %s\n", name);
         return rk_nok;
     }
 
@@ -647,6 +637,7 @@ rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name)
         KmppObjDefImpl *impl = &p->defs[info->index];
 
         impl->ref_cnt++;
+        impl->is_kobj = 1;
         *def = impl;
 
         return rk_ok;
