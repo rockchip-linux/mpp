@@ -33,6 +33,7 @@
 #define OBJ_DBG_ENTRY                   (0x00000004)
 #define OBJ_DBG_HOOK                    (0x00000008)
 #define OBJ_DBG_IOCTL                   (0x00000010)
+#define OBJ_DBG_UPDATE                  (0x00000020)
 #define OBJ_DBG_SET                     (0x00000040)
 #define OBJ_DBG_GET                     (0x00000080)
 
@@ -43,6 +44,7 @@
 #define obj_dbg_entry(fmt, ...)         obj_dbg(OBJ_DBG_ENTRY, fmt, ## __VA_ARGS__)
 #define obj_dbg_hook(fmt, ...)          obj_dbg(OBJ_DBG_HOOK, fmt, ## __VA_ARGS__)
 #define obj_dbg_ioctl(fmt, ...)         obj_dbg(OBJ_DBG_IOCTL, fmt, ## __VA_ARGS__)
+#define obj_dbg_update(fmt, ...)        obj_dbg(OBJ_DBG_UPDATE, fmt, ## __VA_ARGS__)
 #define obj_dbg_set(fmt, ...)           obj_dbg(OBJ_DBG_SET, fmt, ## __VA_ARGS__)
 #define obj_dbg_get(fmt, ...)           obj_dbg(OBJ_DBG_GET, fmt, ## __VA_ARGS__)
 
@@ -100,8 +102,8 @@ typedef struct KmppObjDefImpl_t {
     /* userspace objdef */
     MppCfgObj cfg;
     MppMemPool pool;
+    rk_s32 flag_base;
     rk_s32 flag_max_pos;
-    rk_s32 flag_offset;
     rk_s32 buf_size;
     KmppObjInit init;
     KmppObjDeinit deinit;
@@ -195,7 +197,7 @@ const char *strof_elem_type(ElemType type)
         } else { \
             if (old != val) { \
                 obj_dbg_set("%p + %x set " #type " update " #log_str " -> " #log_str " flag %d\n", \
-                                entry, tbl->tbl.elem_offset, old, val, tbl->tbl.flag_offset); \
+                            entry, tbl->tbl.elem_offset, old, val, tbl->tbl.flag_offset); \
                 ENTRY_SET_FLAG(tbl, entry); \
             } else { \
                 obj_dbg_set("%p + %x set " #type " keep   " #log_str "\n", entry, tbl->tbl.elem_offset, old); \
@@ -235,7 +237,7 @@ MPP_OBJ_ACCESS_IMPL(fp, void *, % p)
         /* copy with flag check and updata */ \
         if (memcmp(dst, val, tbl->tbl.elem_size)) { \
             obj_dbg_set("%p + %x set " #type " size %d update %p -> %p flag %d\n", \
-                            entry, tbl->tbl.elem_offset, tbl->tbl.elem_size, dst, val, tbl->tbl.flag_offset); \
+                        entry, tbl->tbl.elem_offset, tbl->tbl.elem_size, dst, val, tbl->tbl.flag_offset); \
             memcpy(dst, val, tbl->tbl.elem_size); \
             ENTRY_SET_FLAG(tbl, entry); \
         } else { \
@@ -460,7 +462,7 @@ rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name)
     impl->buf_size = size + sizeof(KmppObjImpl);
     impl->ref_cnt = 1;
 
-    obj_dbg_flow("kmpp_objdef_register %-16s size %d\n", name, impl, size);
+    obj_dbg_flow("kmpp_objdef_register %-16s size %4d - %p\n", name, size, impl);
 
     *def = impl;
 
@@ -542,9 +544,12 @@ rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl)
 
             /* When last entry finish update and create memory pool */
             if (impl->flag_max_pos) {
-                rk_s32 flag_size = MPP_ALIGN(impl->flag_max_pos, 8) / 8;
+                rk_s32 flag_max_pos = MPP_ALIGN(impl->flag_max_pos, 8);
+                rk_s32 flag_size = flag_max_pos / 8;
 
-                impl->flag_offset = impl->buf_size;
+                impl->flag_base = impl->entry_size;
+                impl->flag_max_pos = flag_size;
+
                 flag_size -= impl->entry_size;
                 flag_size = MPP_ALIGN(flag_size, 4);
                 impl->buf_size += flag_size;
@@ -753,6 +758,20 @@ rk_s32 kmpp_objdef_get_entry_size(KmppObjDef def)
     KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
 
     return impl ? impl->entry_size : 0;
+}
+
+rk_s32 kmpp_objdef_get_flag_base(KmppObjDef def)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+    return impl ? impl->flag_base : 0;
+}
+
+rk_s32 kmpp_objdef_get_flag_size(KmppObjDef def)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+    return (impl && impl->flag_base) ? (impl->flag_max_pos - impl->flag_base) : 0;
 }
 
 MppTrie kmpp_objdef_get_trie(KmppObjDef def)
@@ -1375,13 +1394,28 @@ rk_s32 kmpp_obj_update(KmppObj dst, KmppObj src)
             continue;
 
         e = (KmppEntry *)mpp_trie_info_ctx(info);
-        if (ENTRY_TEST_FLAG(e, src_impl->entry)) {
+        if (e->tbl.flag_offset && ENTRY_TEST_FLAG(e, src_impl->entry)) {
             rk_s32 offset = e->tbl.elem_offset;
             rk_s32 size = e->tbl.elem_size;
 
+            obj_dbg_update("obj %s %p update %s\n", src_impl->name,
+                           dst, mpp_trie_info_name(info));
             memcpy(dst_impl->entry + offset, src_impl->entry + offset, size);
         }
     } while ((info = mpp_trie_get_info_next(trie, info)));
+
+    {
+        /* copy update flag to dst */
+        rk_s32 offset = kmpp_objdef_get_flag_base(src_impl->def);
+        rk_s32 size = kmpp_objdef_get_flag_size(src_impl->def);
+        rk_s32 i;
+
+        for (i = offset; i < offset + size; i += 4)
+            obj_dbg_update("obj %s %p update flag at %04x - %04x\n", src_impl->name,
+                           dst, i, *((rk_u32 *)((rk_u8 *)src_impl->entry + i)));
+
+        memcpy(dst_impl->entry + offset, src_impl->entry + offset, size);
+    }
 
     return rk_ok;
 }
@@ -1407,13 +1441,36 @@ rk_s32 kmpp_obj_update_entry(void *entry, KmppObj src)
             continue;
 
         e = (KmppEntry *)mpp_trie_info_ctx(info);
-        if (ENTRY_TEST_FLAG(e, src_impl->entry)) {
+        if (e->tbl.flag_offset && ENTRY_TEST_FLAG(e, src_impl->entry)) {
             rk_s32 offset = e->tbl.elem_offset;
             rk_s32 size = e->tbl.elem_size;
 
+            obj_dbg_update("obj %s %p -> %p update %s\n", src_impl->name,
+                           src_impl, entry, mpp_trie_info_name(info));
             memcpy(entry + offset, src_impl->entry + offset, size);
         }
     } while ((info = mpp_trie_get_info_next(trie, info)));
+
+    return rk_ok;
+}
+
+rk_s32 kmpp_obj_copy_entry(KmppObj dst, KmppObj src)
+{
+    KmppObjImpl *dst_impl = (KmppObjImpl *)dst;
+    KmppObjImpl *src_impl = (KmppObjImpl *)src;
+
+    if (kmpp_obj_check_f(src) || kmpp_obj_check_f(dst) || src_impl->def != dst_impl->def) {
+        mpp_loge_f("obj %p copy entry to %p failed invalid param\n", src, dst);
+        return rk_nok;
+    }
+
+    memcpy(dst_impl->entry, src_impl->entry, src_impl->def->entry_size);
+    {   /* NOTE: clear dst update flags */
+        rk_s32 offset = kmpp_objdef_get_flag_base(src_impl->def);
+        rk_s32 size = kmpp_objdef_get_flag_size(src_impl->def);
+
+        memset(dst_impl->entry + offset, 0, size);
+    }
 
     return rk_ok;
 }

@@ -45,6 +45,8 @@ rk_s32 kmpp_objdef_dump(KmppObjDef def);
 /* mpp objcet internal element set / get function */
 const char *kmpp_objdef_get_name(KmppObjDef def);
 rk_s32 kmpp_objdef_get_entry_size(KmppObjDef def);
+rk_s32 kmpp_objdef_get_flag_base(KmppObjDef def);
+rk_s32 kmpp_objdef_get_flag_size(KmppObjDef def);
 MppTrie kmpp_objdef_get_trie(KmppObjDef def);
 
 /* import kernel object ref */
@@ -126,6 +128,9 @@ rk_s32 kmpp_obj_test(KmppObj obj, const char *name);
 rk_s32 kmpp_obj_tbl_test(KmppObj obj, KmppEntry *tbl);
 rk_s32 kmpp_obj_update(KmppObj dst, KmppObj src);
 rk_s32 kmpp_obj_update_entry(void *entry, KmppObj src);
+
+/* copy entry value from src to dst */
+rk_s32 kmpp_obj_copy_entry(KmppObj dst, KmppObj src);
 
 /* run a callback function */
 rk_s32 kmpp_obj_run(KmppObj obj, const char *name);

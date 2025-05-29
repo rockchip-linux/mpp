@@ -264,7 +264,7 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     (void) __flag_prev;
     (void) __flag_record;
 
-    mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 1);
+    mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
 
     KMPP_OBJ_DBG_LOG("register enter\n");
 
