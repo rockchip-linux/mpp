@@ -46,9 +46,6 @@
 
 #include <linux/stddef.h>
 
-#define KMPP_OBJ_DEF(x)         CONCAT_US(x, def)
-#define KMPP_OBJ_DEF_NAME(x)    TO_STR(x)
-
 #ifndef KMPP_OBJ_EXTRA_SIZE
 #define KMPP_OBJ_EXTRA_SIZE     0
 #endif
@@ -56,35 +53,6 @@
 #ifndef KMPP_OBJ_ENTRY_TABLE
 #define KMPP_OBJ_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS)
 #endif
-
-/*
- * macro for register structure fiedl to trie
- * type     -> struct base type
- * f1       -> struct:name1        name segment 1 the name1 part
- * f2       -> struct:name1:name2 name segment 2 the name2 part
- * ftype    -> name type as ElemType
- * flag     -> name update flag type
- */
-#define FLAG_TYPE_TO_OFFSET(flag) \
-    ({ \
-        rk_u16 __offset; \
-        rk_s32 __flag_op = flag & ELEM_FLAG_OP_MASK; \
-        switch (__flag_op) { \
-        case ELEM_FLAG_NONE :   __offset = 0; break; \
-        case ELEM_FLAG_START :  __flag_base = ((__flag_base + 31) & (~31)); __offset = __flag_base++; break; \
-        case ELEM_FLAG_UPDATE : __offset = __flag_base++; break; \
-        case ELEM_FLAG_HOLD :   __offset = __flag_base; break; \
-        default :               __offset = 0; break; \
-        }; \
-        if (flag & (ELEM_FLAG_RECORD | ELEM_FLAG_REPLAY)) { \
-            rk_s32 __flag_idx = flag & ELEM_FLAG_IDX_MASK; \
-            if (flag & ELEM_FLAG_RECORD) \
-                __flag_record[__flag_idx] = __offset; \
-            else \
-                __offset = __flag_record[__flag_idx]; \
-        } \
-        __offset; \
-    })
 
 #define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...) \
     do { \
@@ -97,8 +65,6 @@
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
         ENTRY_TO_NAME_END(name); \
     } while (0);
-
-#define ENTRY_NOTHING(prefix, ftype, type, name, flag, ...)
 
 #if !defined(KMPP_OBJ_ACCESS_DISABLE)
 #define VAL_ENTRY_TBL(prefix, ftype, type, name, flag, ...) \
@@ -406,9 +372,6 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
 #undef STRUCT_START
 #undef STRUCT_END
 
-
-#undef KMPP_OBJ_DEF
-#undef KMPP_OBJ_DEF_NAME
 #undef KMPP_OBJ_NAME
 #undef KMPP_OBJ_INTF_TYPE
 #undef KMPP_OBJ_IMPL_TYPE
@@ -424,10 +387,8 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
 #undef KMPP_OBJ_HIERARCHY_ENABLE
 
 /* undef tmp macro */
-#undef FLAG_TYPE_TO_OFFSET
 #undef ENTRY_TO_TRIE
 #undef ENTRY_TO_FUNC
-#undef ENTRY_NOTHING
 #undef STRUCT_TO_FUNC
 #undef EHOOK_TO_FUNC
 #undef SHOOK_TO_FUNC
