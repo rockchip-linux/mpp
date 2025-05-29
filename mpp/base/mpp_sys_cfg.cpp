@@ -383,6 +383,9 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_FMT_YUV444SP : {
             size_total = get_afbc_min_size(aligned_pixel, aligned_height, 24);
         } break;
+        case MPP_FMT_YUV444SP_10BIT : {
+            size_total = get_afbc_min_size(aligned_pixel, aligned_height, 30);
+        } break;
         default : {
             size_total = aligned_byte * aligned_height * 3 / 2;
             mpp_err("dec out fmt 0x%x is no support", fmt_raw & MPP_FRAME_FMT_MASK);
