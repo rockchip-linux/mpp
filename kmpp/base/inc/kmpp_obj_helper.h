@@ -60,7 +60,7 @@
             .tbl.elem_offset = ((size_t)&(((KMPP_OBJ_IMPL_TYPE *)0)->CONCAT_DOT(__VA_ARGS__))), \
             .tbl.elem_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->CONCAT_DOT(__VA_ARGS__)), \
             .tbl.elem_type = ELEM_TYPE_##ftype, \
-            .tbl.flag_offset = FLAG_TYPE_TO_OFFSET(flag), \
+            .tbl.flag_offset = FLAG_TYPE_TO_OFFSET(name, flag, #flag), \
         }; \
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
         ENTRY_TO_NAME_END(name); \
@@ -205,13 +205,10 @@
 #define ENTRY_TO_NAME_START(name, ...) TO_STR(name)
 #define ENTRY_TO_NAME_END(...)
 
-#include <string.h>
-
-#include "mpp_debug.h"
-#include "kmpp_obj.h"
-
 /* object definition common functions */
 static KmppObjDef KMPP_OBJ_DEF(KMPP_OBJ_NAME) = NULL;
+static rk_u32 KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME) = 0;
+
 /* globla variable definitions */
 KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
                      VAL_HOOK_IDX, VAL_HOOK_IDX, ENTRY_NOTHING)
@@ -259,13 +256,19 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 {
     rk_s32 impl_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
     rk_s32 __flag_base = impl_size << 3;
+    rk_s32 __flag_step = 0;
+    rk_s32 __flag_prev = 0;
     rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX];
     (void) __flag_base;
+    (void) __flag_step;
+    (void) __flag_prev;
     (void) __flag_record;
 
-    mpp_logd_f("enter\n");
+    mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 1);
 
-    kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), impl_size, KMPP_OBJ_DEF_NAME(KMPP_OBJ_INTF_TYPE));
+    KMPP_OBJ_DBG_LOG("register enter\n");
+
+    kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), impl_size, TO_STR(KMPP_OBJ_INTF_TYPE));
     if (!KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
         mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " init failed\n");
         return;
@@ -292,17 +295,17 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 #if !defined(KMPP_OBJ_SHARE_DISABLE) && defined(__KERNEL__)
     kmpp_objdef_share(KMPP_OBJ_DEF(KMPP_OBJ_NAME));
 #endif
-    mpp_logd_f("leave\n");
+    KMPP_OBJ_DBG_LOG("register leave\n");
 }
 
 void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
 {
     KmppObjDef def = __sync_fetch_and_and(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL);
 
+    KMPP_OBJ_DBG_LOG("unregister enter\n");
     kmpp_objdef_unregister(def);
+    KMPP_OBJ_DBG_LOG("unregister leave\n");
 }
-
-#include "mpp_singleton.h"
 
 MPP_SINGLETON(KMPP_OBJ_SGLN_ID, TO_STR(KMPP_OBJ_NAME), CONCAT_US(KMPP_OBJ_NAME, register), CONCAT_US(KMPP_OBJ_NAME, unregister));
 

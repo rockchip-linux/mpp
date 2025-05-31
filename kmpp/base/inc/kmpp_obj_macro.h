@@ -6,6 +6,14 @@
 #ifndef __KMPP_OBJ_MACRO_H__
 #define __KMPP_OBJ_MACRO_H__
 
+#include <string.h>
+
+#include "mpp_env.h"
+#include "mpp_debug.h"
+#include "mpp_singleton.h"
+
+#include "kmpp_obj.h"
+
 #define TO_STR(x)                   #x
 
 /* concat by underscore */
@@ -43,7 +51,8 @@
 
 /* objdef struct name */
 #define KMPP_OBJ_DEF(x)             CONCAT_US(x, def)
-#define KMPP_OBJ_DEF_NAME(x)        TO_STR(x)
+#define KMPP_OBJ_DEF_DEUBG(x)       CONCAT_US(x, debug)
+#define KMPP_OBJ_DBG_LOG(...)       mpp_logi_c(KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), __VA_ARGS__)
 
 /*
  * element update flag bits usage:
@@ -51,74 +60,98 @@
  * bit 8  - 9   record / replay operation bit
  * bit 10 - 11  update flag update operation invalid / start / update / hold
  */
+typedef union ElemFlagDef_u {
+    rk_u32 val;
+    struct {
+        rk_u32 idx      : 8;
+        rk_u32 slot     : 4;
+        rk_u32 op       : 4;
+        rk_u32 record   : 1;
+        rk_u32 replay   : 1;
+        rk_u32 reserved : 10;
+    };
+} ElemFlagDef;
+
 #define ELEM_FLAG_OP_SHIFT  8
 #define ELEM_FLAG_IDX_MASK  ((1 << ELEM_FLAG_OP_SHIFT) - 1)
 
 typedef enum ElemFlagType_e {
     /* element without update flag (not available) */
-    ELEM_FLAG_NONE          = (1 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_NONE,
     /* element update flag will align to new 32bit */
-    ELEM_FLAG_START         = (2 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_START,
     /* element flag align up to 64bit */
-    ELEM_FLAG_START64       = (3 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_START64,
     /* element flag increase by one */
-    ELEM_FLAG_UPDATE        = (4 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_OFFSET,
+    /* element flag increase by one */
+    ELEM_FLAG_INCR,
     /* element flag equal to previous one */
-    ELEM_FLAG_HOLD          = (5 << ELEM_FLAG_OP_SHIFT),
-    ELEM_FLAG_OP_MASK       = (7 << ELEM_FLAG_OP_SHIFT),
+    ELEM_FLAG_PREV,
 
-    /* index for record element update flag */
-    ELEM_FLAG_RECORD        = (8 << ELEM_FLAG_OP_SHIFT),
-    ELEM_FLAG_RECORD_0      = (ELEM_FLAG_RECORD + 0),
-    ELEM_FLAG_RECORD_1      = (ELEM_FLAG_RECORD + 1),
-    ELEM_FLAG_RECORD_2      = (ELEM_FLAG_RECORD + 2),
-    ELEM_FLAG_RECORD_3      = (ELEM_FLAG_RECORD + 3),
-    ELEM_FLAG_RECORD_4      = (ELEM_FLAG_RECORD + 4),
-    ELEM_FLAG_RECORD_5      = (ELEM_FLAG_RECORD + 5),
-    ELEM_FLAG_RECORD_6      = (ELEM_FLAG_RECORD + 6),
-    ELEM_FLAG_RECORD_7      = (ELEM_FLAG_RECORD + 7),
-    ELEM_FLAG_RECORD_8      = (ELEM_FLAG_RECORD + 8),
-    ELEM_FLAG_RECORD_9      = (ELEM_FLAG_RECORD + 9),
-    ELEM_FLAG_RECORD_BUT,
-    ELEM_FLAG_RECORD_MAX    = (ELEM_FLAG_RECORD_BUT - ELEM_FLAG_RECORD),
-
-    /* index for replay element update flag */
-    ELEM_FLAG_REPLAY        = (16 << ELEM_FLAG_OP_SHIFT),
-    ELEM_FLAG_REPLAY_0      = (ELEM_FLAG_REPLAY + 0),
-    ELEM_FLAG_REPLAY_1      = (ELEM_FLAG_REPLAY + 1),
-    ELEM_FLAG_REPLAY_2      = (ELEM_FLAG_REPLAY + 2),
-    ELEM_FLAG_REPLAY_3      = (ELEM_FLAG_REPLAY + 3),
-    ELEM_FLAG_REPLAY_4      = (ELEM_FLAG_REPLAY + 4),
-    ELEM_FLAG_REPLAY_5      = (ELEM_FLAG_REPLAY + 5),
-    ELEM_FLAG_REPLAY_6      = (ELEM_FLAG_REPLAY + 6),
-    ELEM_FLAG_REPLAY_7      = (ELEM_FLAG_REPLAY + 7),
-    ELEM_FLAG_REPLAY_8      = (ELEM_FLAG_REPLAY + 8),
-    ELEM_FLAG_REPLAY_9      = (ELEM_FLAG_REPLAY + 9),
-    ELEM_FLAG_REPLAY_BUT,
+    ELEM_FLAG_RECORD_MAX    = 16,
 } ElemFlagType;
 
+#define FLAG_NONE       ((0 & 0xff) | ((0 & 0xf) << 8) | (ELEM_FLAG_NONE   << 12) | (0 << 16) | (0 << 17))
+#define FLAG_BASE(x)    ((0 & 0xff) | ((0 & 0xf) << 8) | (ELEM_FLAG_START  << 12) | (0 << 16) | (0 << 17))
+#define FLAG_AT(x)      ((x & 0xff) | ((0 & 0xf) << 8) | (ELEM_FLAG_OFFSET << 12) | (0 << 16) | (0 << 17))
+#define FLAG_INCR       ((0 & 0xff) | ((0 & 0xf) << 8) | (ELEM_FLAG_INCR   << 12) | (0 << 16) | (0 << 17))
+#define FLAG_PREV       ((0 & 0xff) | ((0 & 0xf) << 8) | (ELEM_FLAG_PREV   << 12) | (0 << 16) | (0 << 17))
+#define FLAG_REC(s, x)  ((x & 0xff) | ((s & 0xf) << 8) | (ELEM_FLAG_OFFSET << 12) | (1 << 16) | (0 << 17))
+#define FLAG_REC_INC(s) ((0 & 0xff) | ((s & 0xf) << 8) | (ELEM_FLAG_INCR   << 12) | (1 << 16) | (0 << 17))
+#define FLAG_REPLAY(s)  ((0 & 0xff) | ((s & 0xf) << 8) | (ELEM_FLAG_OFFSET << 12) | (0 << 16) | (1 << 17))
+
 /* macro for register structure update flag type to offset */
-#define FLAG_TYPE_TO_OFFSET(flag) \
+#define FLAG_TYPE_TO_OFFSET(name, flag, flag_str) \
     ({ \
+        ElemFlagDef __flag = { .val = flag, }; \
         rk_u16 __offset; \
-        rk_u32 __flag = flag; \
-        rk_s32 __flag_op = __flag & ELEM_FLAG_OP_MASK; \
-        switch (__flag_op) { \
-        case ELEM_FLAG_NONE     :   __offset = 0; break; \
-        case ELEM_FLAG_START    :   __flag_base = ((__flag_base + 31) & (~31)); __offset = __flag_base; break; \
-        case ELEM_FLAG_START64  :   __flag_base = ((__flag_base + 63) & (~63)); __offset = __flag_base; break; \
-        case ELEM_FLAG_UPDATE   :   __offset = ++__flag_base; break; \
-        case ELEM_FLAG_HOLD     :   __offset = __flag_base; break; \
-        default                 :   __offset = 0; break; \
+        switch (__flag.op) { \
+        case ELEM_FLAG_START : { \
+            /* NOTE: increase to next 32bit */ \
+            if (__flag_prev > __flag_base) \
+                __flag_base = (__flag_prev + 31) & (~31); \
+            else if (__flag_prev == __flag_base) \
+                __flag_base = ((__flag_base + 32) & (~31)); \
+            __flag_step = 0; \
+            __offset = __flag_prev = __flag_base; \
+        } break; \
+        case ELEM_FLAG_START64 : { \
+            /* NOTE: increase to next 64bit */ \
+            if (__flag_prev > __flag_base) \
+                __flag_base = (__flag_prev + 63) & (~63); \
+            else if (__flag_prev == __flag_base) \
+                __flag_base = ((__flag_base + 64) & (~63)); \
+            __flag_step = 0; \
+            __offset = __flag_prev = __flag_base; \
+        } break; \
+        case ELEM_FLAG_OFFSET : { \
+            /* define offset to the base */ \
+            __offset = __flag_prev = __flag_base + __flag.idx; \
+            if (__flag.idx > __flag_step) \
+                __flag_step = __flag.idx; \
+        } break; \
+        case ELEM_FLAG_INCR : { \
+            /* increase from the max step */ \
+            __flag_step++; \
+            __offset = __flag_prev = __flag_base + __flag_step; \
+         } break; \
+        case ELEM_FLAG_PREV : { \
+            __offset = __flag_prev; \
+        } break; \
+        default : { \
+            __offset = 0; \
+        } break; \
         }; \
-        if (__flag & (ELEM_FLAG_RECORD | ELEM_FLAG_REPLAY)) { \
-            rk_s32 __flag_idx = __flag & ELEM_FLAG_IDX_MASK; \
-            if (__flag & ELEM_FLAG_RECORD) { \
-                __flag_record[__flag_idx] = __offset; \
-            } else { \
-                __offset = __flag_record[__flag_idx]; \
-            } \
+        if (__flag.record) { \
+            __flag_record[__flag.slot] = __offset; \
         } \
+        if (__flag.replay) { \
+            __offset = __flag_record[__flag.slot]; \
+        } \
+        KMPP_OBJ_DBG_LOG("%-20s - (%x:%x:%02x) -> %#4x (%2d) - %s\n", \
+                         TO_STR(name), __flag_base, __flag_prev, __flag_step, \
+                         __offset, __offset ? __offset - __flag_base : 0, flag_str); \
         __offset; \
     })
 
