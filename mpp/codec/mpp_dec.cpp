@@ -950,7 +950,7 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfg cfg, MpiCmd cmd, void *param)
         dec_dbg_func("fast parse mode %d\n", base->fast_parse);
     } break;
     case MPP_DEC_SET_OUTPUT_FORMAT : {
-        ret = mpp_dec_cfg_set_u32(cfg, "base:out_fmt", (param) ? (*((RK_U32 *)param)) : (MPP_FMT_YUV420SP));
+        ret = mpp_dec_cfg_set_u32(cfg, "base:out_fmt", (param) ? (*((RK_U32 *)param)) : (RK_U32)(MPP_FMT_YUV420SP));
         dec_dbg_func("fast out_fmt %d\n", base->out_fmt);
     } break;
     case MPP_DEC_SET_DISABLE_ERROR: {
