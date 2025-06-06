@@ -1,0 +1,332 @@
+cc_defaults {
+    name: "mpp_defaults",
+
+    cflags: [
+        "-DENABLE_FASTPLAY_ONCE",
+        "-DHAVE_AV1D",
+        "-DHAVE_AVS2D",
+        "-DHAVE_AVSD",
+        "-DHAVE_H263D",
+        "-DHAVE_H264D",
+        "-DHAVE_H264E",
+        "-DHAVE_H265D",
+        "-DHAVE_H265E",
+        "-DHAVE_JPEGD",
+        "-DHAVE_JPEGE",
+        "-DHAVE_MPEG2D",
+        "-DHAVE_MPEG4D",
+        "-DHAVE_VP8D",
+        "-DHAVE_VP8E",
+        "-DHAVE_VP9D",
+        "-DHAVE_VPROC",
+        "-Wno-implicit-fallthrough",
+        "-Wno-pointer-arith",
+        "-Wno-typedef-redefinition",
+        "-Wno-unused-variable",
+    ],
+
+    local_include_dirs: [
+        "mpp/base/inc",
+        "mpp/common",
+        "mpp/codec/inc",
+        "mpp/codec/dec/common",
+        "mpp/codec/enc/h264",
+        "mpp/codec/enc/h265",
+        "mpp/vproc/inc",
+        "mpp/hal/inc",
+        "mpp/hal/common",
+        "mpp/hal/common/av1",
+        "mpp/hal/common/h265",
+        "mpp/hal/common/h264",
+        "mpp/hal/common/jpeg",
+        "mpp/hal/rkenc/common",
+        "mpp/hal/rkenc/h265e",
+        "mpp/hal/rkenc/h264e",
+        "mpp/hal/rkenc/jpege",
+        "mpp/hal/rkdec/inc",
+        "mpp/hal/rkdec/av1d",
+        "mpp/hal/vpu/common",
+        "mpp/hal/vpu/jpege",
+        "mpp/hal/vpu/av1d",
+        "mpp/hal/vpu/h264e",
+        "mpp/inc",
+        "osal",
+        "osal/inc",
+        "osal/allocator",
+        "osal/driver/inc",
+        "kmpp/inc",
+        "kmpp/base/inc",
+        "inc",
+    ],
+
+    generated_headers: ["mpp_version_header"],
+}
+
+filegroup {
+    name: "mpp_base_srcs",
+    srcs: [
+        "mpp/base/*.cpp",
+        "mpp/base/*.c",
+    ],
+}
+
+filegroup {
+    name: "mpp_codec_srcs",
+    srcs: [
+        "mpp/codec/*.cpp",
+        "mpp/codec/dec/**/*.cpp",
+        "mpp/codec/dec/**/*.c",
+        "mpp/codec/enc/**/*.cpp",
+        "mpp/codec/enc/**/*.c",
+        "mpp/codec/rc/*.cpp",
+        "mpp/codec/rc/*.c",
+    ],
+}
+
+filegroup {
+    name: "mpp_hal_srcs",
+    srcs: [
+        "mpp/hal/*.cpp",
+        "mpp/hal/common/**/*.c",
+        "mpp/hal/common/**/*.cpp",
+        "mpp/hal/vpu/**/*.c",
+        "mpp/hal/vpu/**/*.cpp",
+        "mpp/hal/rkdec/**/*.c",
+        "mpp/hal/rkdec/**/*.cpp",
+        "mpp/hal/rkenc/common/*.c",
+        "mpp/hal/rkenc/h264e/hal_h264e_vepu541.c",
+        "mpp/hal/rkenc/h264e/hal_h264e_vepu580.c",
+        "mpp/hal/rkenc/h264e/hal_h264e_vepu540c.c",
+        "mpp/hal/rkenc/h264e/hal_h264e_vepu510.c",
+        "mpp/hal/rkenc/h264e/hal_h264e_vepu511.c",
+        "mpp/hal/rkenc/h265e/hal_h265e_vepu541.c",
+        "mpp/hal/rkenc/h265e/hal_h265e_vepu580.c",
+        "mpp/hal/rkenc/h265e/hal_h265e_vepu540c.c",
+        "mpp/hal/rkenc/h265e/hal_h265e_vepu510.c",
+        "mpp/hal/rkenc/h265e/hal_h265e_vepu511.c",
+        "mpp/hal/rkenc/jpege/hal_jpege_vepu540c.c",
+        "mpp/hal/rkenc/jpege/hal_jpege_vepu511.c",
+        "mpp/hal/rkenc/jpege/hal_jpege_vpu720.c",
+        "mpp/hal/dummy/*.c",
+    ],
+}
+
+filegroup {
+    name: "mpp_vproc_srcs",
+    srcs: [
+        "mpp/vproc/*.cpp",
+        "mpp/vproc/iep/*.cpp",
+        "mpp/vproc/iep2/*.c",
+        "mpp/vproc/rga/*.cpp",
+        "mpp/vproc/vdpp/*.c",
+        "mpp/vproc/vdpp/*.cpp",
+    ],
+}
+
+filegroup {
+    name: "mpp_kmpp_srcs",
+    srcs: [
+        "kmpp/base/*.c",
+        "kmpp/*.c"
+    ],
+}
+
+filegroup {
+    name: "mpp_osal_srcs",
+    srcs: [
+        "osal/*.cpp",
+        "osal/*.c",
+        "osal/allocator/*.c",
+        "osal/android/*.c",
+        "osal/driver/*.c",
+        "osal/driver/*.cpp",
+    ],
+}
+
+genrule {
+    name: "mpp_version_header",
+    srcs: ["build/cmake/version.in"],
+    out: ["version.h"],
+    cmd: "VERSION_INFO=`cd hardware/rockchip/libmpp; git log -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s\"`;" +
+    "HISTORY_0=`cd hardware/rockchip/libmpp; git log HEAD~0 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_1=`cd hardware/rockchip/libmpp; git log HEAD~1 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_2=`cd hardware/rockchip/libmpp; git log HEAD~2 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_3=`cd hardware/rockchip/libmpp; git log HEAD~3 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_4=`cd hardware/rockchip/libmpp; git log HEAD~4 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_5=`cd hardware/rockchip/libmpp; git log HEAD~5 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_6=`cd hardware/rockchip/libmpp; git log HEAD~6 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_7=`cd hardware/rockchip/libmpp; git log HEAD~7 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_8=`cd hardware/rockchip/libmpp; git log HEAD~8 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "HISTORY_9=`cd hardware/rockchip/libmpp; git log HEAD~9 -1 --oneline --date=short --pretty=format:\"%h author: %<|(30)%an %cd %s %d\"`;" +
+    "sed -e \"s|@VERSION_INFO@|\\\"$$VERSION_INFO\\\"|g\" " +
+    "    -e \"s|@VERSION_CNT@|10|g\" " +
+    "    -e \"s|@VERSION_HISTORY_0@|\\\"$$HISTORY_0\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_1@|\\\"$$HISTORY_1\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_2@|\\\"$$HISTORY_2\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_3@|\\\"$$HISTORY_3\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_4@|\\\"$$HISTORY_4\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_5@|\\\"$$HISTORY_5\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_6@|\\\"$$HISTORY_6\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_7@|\\\"$$HISTORY_7\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_8@|\\\"$$HISTORY_8\\\"|g\" " +
+    "    -e \"s|@VERSION_HISTORY_9@|\\\"$$HISTORY_9\\\"|g\" " +
+    " $(in)>$(out)",
+}
+
+cc_library_static {
+    name: "libmpputils-static",
+    srcs: [
+        "utils/*.c",
+    ],
+    export_include_dirs: [
+        "utils",
+    ],
+    defaults: [
+        "mpp_defaults",
+    ],
+}
+
+cc_library_headers {
+    name: "libmpp_headers",
+    export_include_dirs: [
+        "inc",
+        "osal/inc",
+    ],
+    vendor_available: true,
+}
+
+cc_library {
+    name: "libmpp",
+    srcs: [
+        "mpp/*.cpp",
+        ":mpp_base_srcs",
+        ":mpp_codec_srcs",
+        ":mpp_vproc_srcs",
+        ":mpp_kmpp_srcs",
+        ":mpp_hal_srcs",
+        ":mpp_osal_srcs",
+    ],
+
+    export_include_dirs: [
+        "inc",
+        "osal/inc",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    defaults: [
+        "mpp_defaults",
+    ],
+
+    vendor_available: true,
+}
+
+cc_library {
+    name: "libvpu",
+    srcs: [
+        "mpp/legacy/vpu.c",
+        "mpp/legacy/vpu_api.cpp",
+        "mpp/legacy/vpu_api_legacy.cpp",
+        "mpp/legacy/vpu_api_mlvec.cpp",
+        "mpp/legacy/vpu_mem_legacy.c",
+        "mpp/legacy/rk_list.cpp",
+        "mpp/legacy/ppOp.cpp",
+        "mpp/mpp_info.cpp",
+    ],
+
+    export_include_dirs: [
+        "inc"
+    ],
+
+    shared_libs: [
+        "libmpp",
+    ],
+
+    defaults: [
+        "mpp_defaults",
+    ],
+
+    vendor_available: true,
+}
+
+cc_test {
+    name: "mpp_info",
+    srcs: ["test/mpp_info_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_dec",
+    srcs: ["test/mpi_dec_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_dec_mt",
+    srcs: ["test/mpi_dec_mt_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_dec_nt",
+    srcs: ["test/mpi_dec_nt_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_enc",
+    srcs: ["test/mpi_enc_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_enc_mt",
+    srcs: ["test/mpi_enc_mt_test.cpp"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_rc2",
+    srcs: ["test/mpi_rc2_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_dec_multi",
+    srcs: ["test/mpi_dec_multi_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_dec_slt",
+    srcs: ["test/mpi_dec_slt_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
+
+cc_test {
+    name: "mpi_enc_slt",
+    srcs: ["test/mpi_enc_slt_test.c"],
+    shared_libs: ["libmpp"],
+    static_libs: ["libmpputils-static"],
+    defaults: ["mpp_defaults"],
+}
