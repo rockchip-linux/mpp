@@ -843,6 +843,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 
     if (dxva_cxt->pp.slice_segment_header_extension_present_flag && !reg_ctx->is_v345) {
         update_stream_buffer(streambuf, syn);
+        mpp_buffer_sync_end(streambuf);
     }
 
     hw_regs->sw_cabactbl_base   =  mpp_buffer_get_fd(reg_ctx->cabac_table_data);
