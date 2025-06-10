@@ -22,6 +22,7 @@
 #include "mpp_mem.h"
 #include "mpp_list.h"
 #include "mpp_lock.h"
+#include "mpp_debug.h"
 
 #include "mpp_meta_impl.h"
 #include "mpp_trie.h"

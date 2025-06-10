@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef __MPP_LIST_H__
@@ -23,70 +12,64 @@
 #include "mpp_thread.h"
 
 /*
- * two list structures are defined, one for C++, the other for C
+ * two list structures are defined here:
+ * 1. MppList           : list with key
+ * 2. struct list_head  : typical list head
  */
-
-#ifdef __cplusplus
-
-// desctructor of list node
-typedef void *(*node_destructor)(void *);
-
-struct mpp_list_node;
-
-class mpp_list : public MppMutexCond
-{
-public:
-    mpp_list(node_destructor func = NULL);
-    ~mpp_list();
-
-    // for FIFO or FILO implement
-    // adding functions support simple structure like C struct or C++ class pointer,
-    // do not support C++ object
-    RK_S32 add_at_head(void *data, RK_S32 size);
-    RK_S32 add_at_tail(void *data, RK_S32 size);
-    // deleting function will copy the stored data to input pointer with size as size
-    // if NULL is passed to deleting functions, the node will be delete directly
-    RK_S32 del_at_head(void *data, RK_S32 size);
-    RK_S32 del_at_tail(void *data, RK_S32 size);
-
-    // direct fifo operation
-    RK_S32 fifo_wr(void *data, RK_S32 size);
-    RK_S32 fifo_rd(void *data, RK_S32 *size);
-
-    // for status check
-    RK_S32 list_is_empty();
-    RK_S32 list_size();
-
-    // for vector implement - not implemented yet
-    // adding function will return a key
-    RK_S32 add_by_key(void *data, RK_S32 size, RK_U32 *key);
-    RK_S32 del_by_key(void *data, RK_S32 size, RK_U32 key);
-    RK_S32 show_by_key(void *data, RK_U32 key);
-
-    RK_S32 flush();
-
-    // for list wait
-    MPP_RET wait_lt(RK_S64 timeout, RK_S32 val);
-    MPP_RET wait_le(RK_S64 timeout, RK_S32 val);
-    MPP_RET wait_gt(RK_S64 timeout, RK_S32 val);
-    MPP_RET wait_ge(RK_S64 timeout, RK_S32 val);
-
-private:
-    node_destructor         destroy;
-    struct mpp_list_node    *head;
-    RK_S32                  count;
-    static RK_U32           keys;
-    static RK_U32           get_key();
-
-    mpp_list(const mpp_list &);
-    mpp_list &operator=(const mpp_list &);
-};
-#endif
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct MppListNode_t MppListNode;
+// desctructor of list node
+typedef void *(*node_destructor)(void *);
+
+struct MppListNode_t {
+    MppListNode     *prev;
+    MppListNode     *next;
+    rk_u32          key;
+    rk_s32          size;
+};
+
+typedef struct MppList_t {
+    MppListNode     *head;
+    int             count;
+    node_destructor destroy;
+    MppMutexCond    cond_lock;
+    rk_u32          keys;
+} MppList;
+
+int mpp_list_add_at_head(MppList *list, void *data, int size);
+int mpp_list_add_at_tail(MppList *list, void *data, int size);
+int mpp_list_del_at_head(MppList *list, void *data, int size);
+int mpp_list_del_at_tail(MppList *list, void *data, int size);
+
+rk_s32 mpp_list_fifo_wr(MppList *list, void *data, rk_s32 size);
+rk_s32 mpp_list_fifo_rd(MppList *list, void *data, rk_s32 *size);
+
+int mpp_list_is_empty(MppList *list);
+int mpp_list_size(MppList *list);
+
+rk_s32 mpp_list_add_by_key(MppList *list, void *data, rk_s32 size, rk_u32 *key);
+rk_s32 mpp_list_del_by_key(MppList *list, void *data, rk_s32 size, rk_u32 key);
+rk_s32 mpp_list_show_by_key(MppList *list, void *data, rk_u32 key);
+
+void mpp_list_flush(MppList *list);
+
+MPP_RET mpp_list_wait(MppList* list);
+MPP_RET mpp_list_wait_timed(MppList *list, rk_s64 timeout);
+MPP_RET mpp_list_wait_lt(MppList *list, rk_s64 timeout, rk_s32 val);
+MPP_RET mpp_list_wait_le(MppList *list, rk_s64 timeout, rk_s32 val);
+MPP_RET mpp_list_wait_gt(MppList *list, rk_s64 timeout, rk_s32 val);
+MPP_RET mpp_list_wait_ge(MppList *list, rk_s64 timeout, rk_s32 val);
+
+void mpp_list_signal(MppList *list);
+rk_u32 mpp_list_get_key(MppList *list);
+
+MppList *mpp_list_create(node_destructor func);
+void mpp_list_destroy(MppList *list);
+
 
 struct list_head {
     struct list_head *next, *prev;
@@ -203,9 +186,9 @@ static __inline int list_empty(struct list_head *head)
     return head->next == head;
 }
 
-typedef RK_S32 (*list_cmp_func_t)(void *, const struct list_head *, const struct list_head *);
+typedef rk_s32 (*ListCmpFunc)(void *, const struct list_head *, const struct list_head *);
 
-void list_sort(void *priv, struct list_head *head, list_cmp_func_t cmp);
+void list_sort(void *priv, struct list_head *head, ListCmpFunc cmp);
 
 #ifdef __cplusplus
 }

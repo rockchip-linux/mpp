@@ -185,8 +185,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
 
     switch (mType) {
     case MPP_CTX_DEC : {
-        mPktIn  = new mpp_list(list_wraper_packet);
-        mFrmOut = new mpp_list(list_wraper_frame);
+        mPktIn  = mpp_list_create(list_wraper_packet);
+        mFrmOut = mpp_list_create(list_wraper_frame);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_NON_BLOCK;
@@ -227,8 +227,8 @@ MPP_RET Mpp::init(MppCtxType type, MppCodingType coding)
         mInitDone = 1;
     } break;
     case MPP_CTX_ENC : {
-        mPktOut = new mpp_list(list_wraper_packet);
-        mFrmIn  = new mpp_list(list_wraper_frame);
+        mPktOut = mpp_list_create(list_wraper_packet);
+        mFrmIn  = mpp_list_create(list_wraper_frame);
 
         if (mInputTimeout == MPP_POLL_BUTT)
             mInputTimeout = MPP_POLL_BLOCK;
@@ -337,19 +337,19 @@ void Mpp::clear()
     }
 
     if (mPktIn) {
-        delete mPktIn;
+        mpp_list_destroy(mPktIn);
         mPktIn = NULL;
     }
     if (mPktOut) {
-        delete mPktOut;
+        mpp_list_destroy(mPktOut);
         mPktOut = NULL;
     }
     if (mFrmIn) {
-        delete mFrmIn;
+        mpp_list_destroy(mFrmIn);
         mFrmIn = NULL;
     }
     if (mFrmOut) {
-        delete mFrmOut;
+        mpp_list_destroy(mFrmOut);
         mFrmOut = NULL;
     }
 
@@ -519,33 +519,37 @@ RET:
 
 MPP_RET Mpp::get_frame(MppFrame *frame)
 {
+    MppFrame frm = NULL;
+
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    AutoMutex autoFrameLock(mFrmOut->mutex());
-    MppFrame frm = NULL;
+    mpp_mutex_cond_lock(&mFrmOut->cond_lock);
 
-    if (0 == mFrmOut->list_size()) {
+    if (0 == mpp_list_size(mFrmOut)) {
         if (mOutputTimeout) {
             if (mOutputTimeout < 0) {
                 /* block wait */
-                mFrmOut->wait();
+                mpp_list_wait(mFrmOut);
             } else {
-                RK_S32 ret = mFrmOut->wait(mOutputTimeout);
+                RK_S32 ret = mpp_list_wait_timed(mFrmOut, mOutputTimeout);
                 if (ret) {
-                    if (ret == ETIMEDOUT)
+                    if (ret == ETIMEDOUT) {
+                        mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
                         return MPP_ERR_TIMEOUT;
-                    else
+                    } else {
+                        mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
                         return MPP_NOK;
+                    }
                 }
             }
         }
     }
 
-    if (mFrmOut->list_size()) {
+    if (mpp_list_size(mFrmOut)) {
         MppBuffer buffer;
 
-        mFrmOut->del_at_head(&frm, sizeof(frame));
+        mpp_list_del_at_head(mFrmOut, &frm, sizeof(frame));
         mFrameGetCount++;
         notify(MPP_OUTPUT_DEQUEUE);
 
@@ -559,15 +563,17 @@ MPP_RET Mpp::get_frame(MppFrame *frame)
         // There is no way to wake up parser thread to continue decoding.
         // The put_packet only signal sem on may be it better to use sem on info
         // change too.
-        AutoMutex autoPacketLock(mPktIn->mutex());
-        if (mPktIn->list_size())
+        mpp_mutex_cond_lock(&mPktIn->cond_lock);
+        if (mpp_list_size(mPktIn))
             notify(MPP_INPUT_ENQUEUE);
+        mpp_mutex_cond_unlock(&mPktIn->cond_lock);
     }
 
     *frame = frm;
 
     // dump output
     mpp_ops_dec_get_frm(mDump, frm);
+    mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
 
     return MPP_OK;
 }
@@ -579,13 +585,13 @@ MPP_RET Mpp::get_frame_noblock(MppFrame *frame)
     if (!mInitDone)
         return MPP_ERR_INIT;
 
-    mFrmOut->lock();
-    if (mFrmOut->list_size()) {
-        mFrmOut->del_at_head(&first, sizeof(frame));
+    mpp_mutex_cond_lock(&mFrmOut->cond_lock);
+    if (mpp_list_size(mFrmOut)) {
+        mpp_list_del_at_head(mFrmOut, &first, sizeof(frame));
         mpp_buffer_sync_ro_begin(mpp_frame_get_buffer(first));
         mFrameGetCount++;
     }
-    mFrmOut->unlock();
+    mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
     *frame = first;
 
     return MPP_OK;
@@ -608,18 +614,19 @@ MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
      * But if the output mode is block then we need to send packet first
      */
     if (!mOutputTimeout) {
-        AutoMutex autoFrameLock(mFrmOut->mutex());
-
-        if (mFrmOut->list_size()) {
+        mpp_mutex_cond_lock(&mFrmOut->cond_lock);
+        if (mpp_list_size(mFrmOut)) {
             MppBuffer buffer;
 
-            mFrmOut->del_at_head(frame, sizeof(*frame));
+            mpp_list_del_at_head(mFrmOut, frame, sizeof(*frame));
             buffer = mpp_frame_get_buffer(*frame);
             if (buffer)
                 mpp_buffer_sync_ro_begin(buffer);
             mFrameGetCount++;
+            mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
             return MPP_OK;
         }
+        mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
     }
 
     do {
@@ -631,20 +638,18 @@ MPP_RET Mpp::decode(MppPacket packet, MppFrame *frame)
             pkt_done = 1;
 
         /* always try getting frame */
-        {
-            AutoMutex autoFrameLock(mFrmOut->mutex());
+        mpp_mutex_cond_lock(&mFrmOut->cond_lock);
+        if (mpp_list_size(mFrmOut)) {
+            MppBuffer buffer;
 
-            if (mFrmOut->list_size()) {
-                MppBuffer buffer;
-
-                mFrmOut->del_at_head(frame, sizeof(*frame));
-                buffer = mpp_frame_get_buffer(*frame);
-                if (buffer)
-                    mpp_buffer_sync_ro_begin(buffer);
-                mFrameGetCount++;
-                frm_rdy = 1;
-            }
+            mpp_list_del_at_head(mFrmOut, frame, sizeof(*frame));
+            buffer = mpp_frame_get_buffer(*frame);
+            if (buffer)
+                mpp_buffer_sync_ro_begin(buffer);
+            mFrameGetCount++;
+            frm_rdy = 1;
         }
+        mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
 
         /* return on flow error */
         if (ret < 0)
@@ -859,41 +864,44 @@ MPP_RET Mpp::put_frame_async(MppFrame frame)
     if (NULL == mFrmIn)
         return MPP_NOK;
 
-    if (mFrmIn->trylock())
+    if (mpp_mutex_cond_trylock(&mFrmIn->cond_lock))
         return MPP_NOK;
 
     /* NOTE: the max input queue length is 2 */
-    if (mFrmIn->wait_le(10, 1)) {
-        mFrmIn->unlock();
+    if (mpp_list_wait_le(mFrmIn, 10, 1)) {
+        mpp_mutex_cond_unlock(&mFrmIn->cond_lock);
         return MPP_NOK;
     }
 
-    mFrmIn->add_at_tail(&frame, sizeof(frame));
+    mpp_list_add_at_tail(mFrmIn, &frame, sizeof(frame));
     mFramePutCount++;
 
     notify(MPP_INPUT_ENQUEUE);
-    mFrmIn->unlock();
+    mpp_mutex_cond_unlock(&mFrmIn->cond_lock);
 
     return MPP_OK;
 }
 
 MPP_RET Mpp::get_packet_async(MppPacket *packet)
 {
-    AutoMutex autoPacketLock(mPktOut->mutex());
-
+    mpp_mutex_cond_lock(&mPktOut->cond_lock);
     *packet = NULL;
-    if (0 == mPktOut->list_size()) {
+    if (0 == mpp_list_size(mPktOut)) {
         if (mOutputTimeout) {
             if (mOutputTimeout < 0) {
                 /* block wait */
-                mPktOut->wait();
+                mpp_list_wait(mPktOut);
             } else {
-                RK_S32 ret = mPktOut->wait(mOutputTimeout);
+                RK_S32 ret = mpp_list_wait_timed(mPktOut, mOutputTimeout);
+
                 if (ret) {
-                    if (ret == ETIMEDOUT)
+                    if (ret == ETIMEDOUT) {
+                        mpp_mutex_cond_unlock(&mPktOut->cond_lock);
                         return MPP_ERR_TIMEOUT;
-                    else
+                    } else {
+                        mpp_mutex_cond_unlock(&mPktOut->cond_lock);
                         return MPP_NOK;
+                    }
                 }
             }
         } else {
@@ -902,12 +910,12 @@ MPP_RET Mpp::get_packet_async(MppPacket *packet)
         }
     }
 
-    if (mPktOut->list_size()) {
+    if (mpp_list_size(mPktOut)) {
         MppPacket pkt = NULL;
         MppPacketImpl *impl = NULL;
         RK_U32 offset;
 
-        mPktOut->del_at_head(&pkt, sizeof(pkt));
+        mpp_list_del_at_head(mPktOut, &pkt, sizeof(pkt));
         mPacketGetCount++;
         notify(MPP_OUTPUT_DEQUEUE);
 
@@ -917,24 +925,25 @@ MPP_RET Mpp::get_packet_async(MppPacket *packet)
         offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
         mpp_buffer_sync_ro_partial_begin(impl->buffer, offset, impl->length);
     } else {
-        AutoMutex autoFrameLock(mFrmIn->mutex());
-
-        if (mFrmIn->list_size())
+        mpp_mutex_cond_lock(&mFrmIn->cond_lock);
+        if (mpp_list_size(mFrmIn))
             notify(MPP_INPUT_ENQUEUE);
+        mpp_mutex_cond_unlock(&mFrmIn->cond_lock);
 
+        mpp_mutex_cond_unlock(&mPktOut->cond_lock);
         return MPP_NOK;
     }
-
+    mpp_mutex_cond_unlock(&mPktOut->cond_lock);
     return MPP_OK;
 }
 
 MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
 {
+    MppTaskQueue port = NULL;
+    MPP_RET ret = MPP_NOK;
+
     if (!mInitDone)
         return MPP_ERR_INIT;
-
-    MPP_RET ret = MPP_NOK;
-    MppTaskQueue port = NULL;
 
     set_io_mode(MPP_IO_MODE_TASK);
 
@@ -957,12 +966,12 @@ MPP_RET Mpp::poll(MppPortType type, MppPollType timeout)
 
 MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 {
-    if (!mInitDone)
-        return MPP_ERR_INIT;
-
-    MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
     RK_U32 notify_flag = 0;
+    MPP_RET ret = MPP_NOK;
+
+    if (!mInitDone)
+        return MPP_ERR_INIT;
 
     set_io_mode(MPP_IO_MODE_TASK);
 
@@ -990,12 +999,12 @@ MPP_RET Mpp::dequeue(MppPortType type, MppTask *task)
 
 MPP_RET Mpp::enqueue(MppPortType type, MppTask task)
 {
-    if (!mInitDone)
-        return MPP_ERR_INIT;
-
-    MPP_RET ret = MPP_NOK;
     MppTaskQueue port = NULL;
     RK_U32 notify_flag = 0;
+    MPP_RET ret = MPP_NOK;
+
+    if (!mInitDone)
+        return MPP_ERR_INIT;
 
     set_io_mode(MPP_IO_MODE_TASK);
 
@@ -1116,10 +1125,11 @@ MPP_RET Mpp::reset()
          * To avoid this case happen we need to save it on reset beginning
          * then restore it on reset end.
          */
-        mPktIn->lock();
-        while (mPktIn->list_size()) {
+        mpp_mutex_cond_lock(&mPktIn->cond_lock);
+        while (mpp_list_size(mPktIn)) {
             MppPacket pkt = NULL;
-            mPktIn->del_at_head(&pkt, sizeof(pkt));
+
+            mpp_list_del_at_head(mPktIn, &pkt, sizeof(pkt));
             mPacketGetCount++;
 
             RK_U32 flags = mpp_packet_get_flag(pkt);
@@ -1132,14 +1142,14 @@ MPP_RET Mpp::reset()
                 mpp_packet_deinit(&pkt);
             }
         }
-        mPktIn->flush();
-        mPktIn->unlock();
+        mpp_list_flush(mPktIn);
+        mpp_mutex_cond_unlock(&mPktIn->cond_lock);
 
         mpp_dec_reset(mDec);
 
-        mFrmOut->lock();
-        mFrmOut->flush();
-        mFrmOut->unlock();
+        mpp_mutex_cond_lock(&mFrmOut->cond_lock);
+        mpp_list_flush(mFrmOut);
+        mpp_mutex_cond_unlock(&mFrmOut->cond_lock);
 
         mpp_port_awake(mUsrInPort);
         mpp_port_awake(mUsrOutPort);
@@ -1341,9 +1351,10 @@ MPP_RET Mpp::control_dec(MpiCmd cmd, MppParam param)
         ret = mpp_dec_set_cfg_by_cmd(mDecCfg, cmd, param);
     } break;
     case MPP_DEC_GET_STREAM_COUNT: {
-        AutoMutex autoLock(mPktIn->mutex());
-        *((RK_S32 *)param) = mPktIn->list_size();
+        mpp_mutex_cond_lock(&mPktIn->cond_lock);
+        *((RK_S32 *)param) = mpp_list_size(mPktIn);
         ret = MPP_OK;
+        mpp_mutex_cond_unlock(&mPktIn->cond_lock);
     } break;
     case MPP_DEC_GET_VPUMEM_USED_COUNT :
     case MPP_DEC_SET_OUTPUT_FORMAT :

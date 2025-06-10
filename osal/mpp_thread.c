@@ -1,162 +1,288 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_thread"
 
 #include <string.h>
 
-#include "mpp_log.h"
 #include "mpp_mem.h"
 #include "mpp_lock.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_thread.h"
 
-#define MPP_THREAD_DBG_FUNCTION     (0x00000001)
+#define THREAD_DBG_FUNC             (0x00000001)
 
-static RK_U32 thread_debug = 0;
+static rk_u32 thread_debug = 0;
 
 #define thread_dbg(flag, fmt, ...)  _mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
 
-MppThread::MppThread(MppThreadFunc func, void *ctx, const char *name)
-    : mFunction(func),
-      mContext(ctx)
+MppThread *mpp_thread_create(MppThreadFunc func, void *ctx, const char *name)
 {
-    mStatus[THREAD_WORK]    = MPP_THREAD_UNINITED;
-    mStatus[THREAD_INPUT]   = MPP_THREAD_RUNNING;
-    mStatus[THREAD_OUTPUT]  = MPP_THREAD_RUNNING;
-    mStatus[THREAD_CONTROL] = MPP_THREAD_RUNNING;
+    MppThread *thread = mpp_malloc(MppThread, 1);
 
-    if (name)
-        strncpy(mName, name, sizeof(mName) - 1);
-    else
-        snprintf(mName, sizeof(mName) - 1, "mpp_thread");
+    if (thread) {
+        thread->func = func;
+        thread->m_ctx = ctx;
+
+        thread->thd_status[THREAD_WORK] = MPP_THREAD_UNINITED;
+        thread->thd_status[THREAD_INPUT] = MPP_THREAD_RUNNING;
+        thread->thd_status[THREAD_OUTPUT] = MPP_THREAD_RUNNING;
+        thread->thd_status[THREAD_CONTROL] = MPP_THREAD_RUNNING;
+
+        if (name) {
+            strncpy(thread->name, name, THREAD_NAME_LEN - 1);
+            thread->name[THREAD_NAME_LEN - 1] = '\0';
+        } else {
+            snprintf(thread->name, THREAD_NAME_LEN, "MppThread");
+        }
+        for (int i = 0; i < THREAD_SIGNAL_BUTT; i++) {
+            mpp_mutex_cond_init(&thread->mutex_cond[i]);
+        }
+    }
+
+    return thread;
 }
 
-MppThreadStatus MppThread::get_status(MppThreadSignal id)
+void mpp_thread_dump_status(MppThread *thread)
 {
-    return mStatus[id];
+    mpp_log("thread %s status: %d %d %d %d\n", thread->name,
+            thread->thd_status[THREAD_WORK], thread->thd_status[THREAD_INPUT],
+            thread->thd_status[THREAD_OUTPUT], thread->thd_status[THREAD_CONTROL]);
 }
 
-void MppThread::set_status(MppThreadStatus status, MppThreadSignal id)
-{
-    mStatus[id] = status;
-}
-
-void MppThread::dump_status()
-{
-    mpp_log("thread %s status: %d %d %d %d\n", mName,
-            mStatus[THREAD_WORK], mStatus[THREAD_INPUT], mStatus[THREAD_OUTPUT],
-            mStatus[THREAD_CONTROL]);
-}
-
-void MppThread::start()
+void mpp_thread_start(MppThread *thread)
 {
     pthread_attr_t attr;
+
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-    if (MPP_THREAD_UNINITED == get_status()) {
-        // NOTE: set status here first to avoid unexpected loop quit racing condition
-        set_status(MPP_THREAD_RUNNING);
-        if (0 == pthread_create(&mThread, &attr, mFunction, mContext)) {
-#ifndef ARMLINUX
-            RK_S32 ret = pthread_setname_np(mThread, mName);
-            if (ret)
-                mpp_err("thread %p setname %s failed\n", mFunction, mName);
+    if (mpp_thread_get_status(thread, THREAD_WORK) == MPP_THREAD_UNINITED) {
+        mpp_thread_set_status(thread, MPP_THREAD_RUNNING, THREAD_WORK);
+        if (0 == pthread_create(&thread->thd, &attr, thread->func, thread->m_ctx)) {
+#ifndef __linux__
+            int ret = pthread_setname_np(thread->thd, thread->name);
+            if (ret) {
+                mpp_err("thread %p setname %s failed\n", thread->func, thread->name);
+            }
 #endif
-
-            thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p create success\n",
-                       mName, mFunction, mContext);
-        } else
-            set_status(MPP_THREAD_UNINITED);
+            thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p create success\n",
+                       thread->name, thread->func, thread->m_ctx);
+        } else {
+            mpp_thread_set_status(thread, MPP_THREAD_UNINITED, THREAD_WORK);
+        }
     }
+
     pthread_attr_destroy(&attr);
 }
 
-void MppThread::stop()
+void mpp_thread_stop(MppThread *thread)
 {
-    if (MPP_THREAD_UNINITED != get_status()) {
-        lock();
-        set_status(MPP_THREAD_STOPPING);
-        thread_dbg(MPP_THREAD_DBG_FUNCTION,
-                   "MPP_THREAD_STOPPING status set mThread %p", this);
-        signal();
-        unlock();
+    if (mpp_thread_get_status(thread, THREAD_WORK) != MPP_THREAD_UNINITED) {
         void *dummy;
-        pthread_join(mThread, &dummy);
-        thread_dbg(MPP_THREAD_DBG_FUNCTION,
-                   "thread %s %p context %p destroy success\n",
-                   mName, mFunction, mContext);
 
-        set_status(MPP_THREAD_UNINITED);
+        mpp_thread_lock(thread, THREAD_WORK);
+        mpp_thread_set_status(thread, MPP_THREAD_STOPPING, THREAD_WORK);
+
+        thread_dbg(THREAD_DBG_FUNC, "MPP_THREAD_STOPPING status set thd %p\n", (void *)thread);
+        mpp_thread_signal(thread, THREAD_WORK);
+        mpp_thread_unlock(thread, THREAD_WORK);
+
+        pthread_join(thread->thd, &dummy);
+        thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p destroy success\n", thread->name, thread->func, thread->m_ctx);
+
+        mpp_thread_set_status(thread, MPP_THREAD_UNINITED, THREAD_WORK);
     }
 }
 
-#if defined(_WIN32) && !defined(__MINGW32CE__)
-//
-// Usage: SetThreadName ((DWORD)-1, "MainThread");
-//
-#include <windows.h>
-const DWORD MS_VC_EXCEPTION = 0x406D1388;
-
-#pragma pack(push,8)
-typedef struct tagTHREADNAME_INFO {
-    DWORD dwType; // Must be 0x1000.
-    LPCSTR szName; // Pointer to name (in user addr space).
-    DWORD dwThreadID; // Thread ID (-1=caller thread).
-    DWORD dwFlags; // Reserved for future use, must be zero.
-} THREADNAME_INFO;
-#pragma pack(pop)
-
-void SetThreadName(DWORD dwThreadID, const char* threadName)
+void mpp_thread_destroy(MppThread *thread)
 {
-    THREADNAME_INFO info;
-    info.dwType = 0x1000;
-    info.szName = threadName;
-    info.dwThreadID = dwThreadID;
-    info.dwFlags = 0;
-#pragma warning(push)
-#pragma warning(disable: 6320 6322)
-    __try {
-        RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    if (thread) {
+        mpp_thread_stop(thread);
+        mpp_free(thread);
     }
-#pragma warning(pop)
 }
 
-
-#ifndef ARMLINUX
-/*
- * add pthread_setname_np for windows
- */
-int pthread_setname_np(pthread_t thread, const char *name)
+void mpp_mutex_init(MppMutex *mutex)
 {
-    DWORD dwThreadID = pthread_getw32threadid_np(thread);
-    SetThreadName(dwThreadID, name);
-    return 0;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutex->m_lock, &attr);
+    pthread_mutexattr_destroy(&attr);
 }
-#endif
 
-#endif
+void mpp_mutex_destroy(MppMutex *mutex)
+{
+    pthread_mutex_destroy(&mutex->m_lock);
+}
+
+void mpp_mutex_lock(MppMutex *mutex)
+{
+    pthread_mutex_lock(&mutex->m_lock);
+}
+
+void mpp_mutex_unlock(MppMutex *mutex)
+{
+    pthread_mutex_unlock(&mutex->m_lock);
+}
+
+int mpp_mutex_trylock(MppMutex *mutex)
+{
+    return pthread_mutex_trylock(&mutex->m_lock);
+}
+
+// MppCond functions
+void mpp_cond_init(MppCond *condition)
+{
+    pthread_cond_init(&condition->m_cond, NULL);
+}
+
+void mpp_cond_destroy(MppCond *condition)
+{
+    pthread_cond_destroy(&condition->m_cond);
+}
+
+rk_s32 mpp_cond_wait(MppCond *condition, MppMutex *mutex)
+{
+    return pthread_cond_wait(&condition->m_cond, &mutex->m_lock);
+}
+
+rk_s32 mpp_cond_timedwait(MppCond *condition, MppMutex *mutex, rk_s64 timeout)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    ts.tv_sec += timeout / 1000;
+    ts.tv_nsec += (timeout % 1000) * 1000000;
+    ts.tv_sec += ts.tv_nsec / 1000000000;
+    ts.tv_nsec %= 1000000000;
+
+    return pthread_cond_timedwait(&condition->m_cond, &mutex->m_lock, &ts);
+}
+
+rk_s32 mpp_cond_signal(MppCond *condition)
+{
+    return pthread_cond_signal(&condition->m_cond);
+}
+
+rk_s32 mpp_cond_broadcast(MppCond *condition)
+{
+    return pthread_cond_broadcast(&condition->m_cond);
+}
+
+// MppMutexCond functions
+void mpp_mutex_cond_init(MppMutexCond *mutexCond)
+{
+    mpp_mutex_init(&mutexCond->m_lock);
+    mpp_cond_init(&mutexCond->m_cond);
+}
+
+void mpp_mutex_cond_destroy(MppMutexCond *mutexCond)
+{
+    mpp_mutex_destroy(&mutexCond->m_lock);
+    mpp_cond_destroy(&mutexCond->m_cond);
+}
+
+void mpp_mutex_cond_lock(MppMutexCond *mutexCond)
+{
+    mpp_mutex_lock(&mutexCond->m_lock);
+}
+
+void mpp_mutex_cond_unlock(MppMutexCond *mutexCond)
+{
+    mpp_mutex_unlock(&mutexCond->m_lock);
+}
+
+int mpp_mutex_cond_trylock(MppMutexCond *mutexCond)
+{
+    return mpp_mutex_trylock(&mutexCond->m_lock);
+}
+
+rk_s32 mpp_mutex_cond_wait(MppMutexCond *mutexCond)
+{
+    return mpp_cond_wait(&mutexCond->m_cond, &mutexCond->m_lock);
+}
+
+rk_s32 mpp_mutex_cond_timedwait(MppMutexCond *mutexCond, rk_s64 timeout)
+{
+    return mpp_cond_timedwait(&mutexCond->m_cond, &mutexCond->m_lock, timeout);
+}
+
+void mpp_mutex_cond_signal(MppMutexCond *mutexCond)
+{
+    mpp_cond_signal(&mutexCond->m_cond);
+}
+
+void mpp_mutex_cond_broadcast(MppMutexCond *mutexCond)
+{
+    mpp_cond_broadcast(&mutexCond->m_cond);
+}
+
+// MppThread functions
+void mpp_thread_init(MppThread *thread, MppThreadFunc func, void *ctx, const char *name)
+{
+    thread->func = func;
+    thread->m_ctx = ctx;
+    if (name) {
+        strncpy(thread->name, name, THREAD_NAME_LEN - 1);
+        thread->name[THREAD_NAME_LEN - 1] = '\0';
+    }
+    for (int i = 0; i < THREAD_SIGNAL_BUTT; i++) {
+        mpp_mutex_cond_init(&thread->mutex_cond[i]);
+        thread->thd_status[i] = MPP_THREAD_UNINITED;
+    }
+}
+
+void mpp_thread_set_status(MppThread *thread, MppThreadStatus status, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    thread->thd_status[id] = status;
+}
+
+MppThreadStatus mpp_thread_get_status(MppThread *thread, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    return thread->thd_status[id];
+}
+
+void mpp_thread_lock(MppThread *thread, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    mpp_mutex_cond_lock(&thread->mutex_cond[id]);
+}
+
+void mpp_thread_unlock(MppThread *thread, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    mpp_mutex_cond_unlock(&thread->mutex_cond[id]);
+}
+
+void mpp_thread_wait(MppThread *thread, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    MppThreadStatus status = thread->thd_status[id];
+    thread->thd_status[id] = MPP_THREAD_WAITING;
+    mpp_mutex_cond_wait(&thread->mutex_cond[id]);
+
+    if (thread->thd_status[id] == MPP_THREAD_WAITING)
+        thread->thd_status[id] = status;
+}
+
+void mpp_thread_signal(MppThread *thread, MppThreadSignalId id)
+{
+    assert(id < THREAD_SIGNAL_BUTT);
+    mpp_mutex_cond_signal(&thread->mutex_cond[id]);
+}
 
 typedef struct MppSThdImpl_t {
     char            *name;
     MppSThdFunc     func;
     MppSThdStatus   status;
-    RK_S32          idx;
+    rk_s32          idx;
     pthread_t       thd;
     pthread_mutex_t lock;
     pthread_cond_t  cond;
@@ -165,7 +291,7 @@ typedef struct MppSThdImpl_t {
 
 typedef struct MppSThdGrpImpl_t {
     char            name[THREAD_NAME_LEN];
-    RK_S32          count;
+    rk_s32          count;
     MppSThdStatus   status;
     pthread_mutex_t lock;
     MppSThdImpl     thds[];
@@ -185,15 +311,15 @@ static const char *state2str(MppSThdStatus state)
     return state < MPP_STHD_BUTT ? strof_sthd_status[state] : strof_sthd_status[MPP_STHD_BUTT];
 }
 
-static RK_S32 check_sthd(const char *name, MppSThdImpl *thd)
+static rk_s32 check_sthd(const char *name, MppSThdImpl *thd)
 {
     if (!thd) {
-        mpp_err("MppSThd NULL found at %s\n", name);
+        mpp_err("mpp_sthd NULL found at %s\n", name);
         return MPP_NOK;
     }
 
     if (thd->ctx.thd != thd) {
-        mpp_err("MppSThd check %p:%p mismatch at %s\n", thd->ctx.thd, thd, name);
+        mpp_err("mpp_sthd check %p:%p mismatch at %s\n", thd->ctx.thd, thd, name);
         return MPP_NOK;
     }
 
@@ -202,7 +328,7 @@ static RK_S32 check_sthd(const char *name, MppSThdImpl *thd)
 
 #define CHECK_STHD(thd) check_sthd(__FUNCTION__, (MppSThdImpl *)(thd))
 
-static void mpp_sthd_init(MppSThdImpl *thd, RK_S32 idx)
+static void mpp_sthd_init(MppSThdImpl *thd, rk_s32 idx)
 {
     pthread_mutexattr_t attr;
 
@@ -248,7 +374,7 @@ static MPP_RET mpp_sthd_create(MppSThdImpl *thd)
         if (ret)
             mpp_err("%s %p setname failed\n", thd->thd, thd->func);
 
-        thread_dbg(MPP_THREAD_DBG_FUNCTION, "thread %s %p context %p create success\n",
+        thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p create success\n",
                    thd->name, thd->func, thd->ctx.ctx);
         ret = MPP_OK;
     } else {
@@ -262,7 +388,7 @@ static MPP_RET mpp_sthd_create(MppSThdImpl *thd)
 
 MppSThd mpp_sthd_get(const char *name)
 {
-    RK_S32 size = MPP_ALIGN(sizeof(MppSThdImpl), 8) + THREAD_NAME_LEN;
+    rk_s32 size = MPP_ALIGN(sizeof(MppSThdImpl), 8) + THREAD_NAME_LEN;
     MppSThdImpl *thd = mpp_calloc_size(MppSThdImpl, size);
 
     if (!thd) {
@@ -312,7 +438,7 @@ const char* mpp_sthd_get_name(MppSThd thd)
     return impl->name;
 }
 
-RK_S32 mpp_sthd_get_idx(MppSThd thd)
+rk_s32 mpp_sthd_get_idx(MppSThd thd)
 {
     MppSThdImpl *impl = (MppSThdImpl *)thd;
 
@@ -321,7 +447,7 @@ RK_S32 mpp_sthd_get_idx(MppSThd thd)
     return impl->idx;
 }
 
-RK_S32 mpp_sthd_check(MppSThd thd)
+rk_s32 mpp_sthd_check(MppSThd thd)
 {
     return CHECK_STHD(thd);
 }
@@ -483,18 +609,18 @@ void mpp_sthd_broadcast(MppSThd thd)
     pthread_cond_broadcast(&impl->cond);
 }
 
-MppSThdGrp mpp_sthd_grp_get(const char *name, RK_S32 count)
+MppSThdGrp mpp_sthd_grp_get(const char *name, rk_s32 count)
 {
     MppSThdGrpImpl *grp = NULL;
 
     if (count > 0) {
-        RK_S32 elem_size = MPP_ALIGN(sizeof(MppSThdImpl), 8);
-        RK_S32 total_size = MPP_ALIGN(sizeof(MppSThdGrpImpl), 8) + count * elem_size;
+        rk_s32 elem_size = MPP_ALIGN(sizeof(MppSThdImpl), 8);
+        rk_s32 total_size = MPP_ALIGN(sizeof(MppSThdGrpImpl), 8) + count * elem_size;
 
         grp = mpp_calloc_size(MppSThdGrpImpl, total_size);
         if (grp) {
             pthread_mutexattr_t attr;
-            RK_S32 i;
+            rk_s32 i;
 
             if (!name)
                 name = "mpp_sthd_grp";
@@ -525,7 +651,7 @@ MppSThdGrp mpp_sthd_grp_get(const char *name, RK_S32 count)
 void mpp_sthd_grp_put(MppSThdGrp grp)
 {
     MppSThdGrpImpl *impl = (MppSThdGrpImpl *)grp;
-    RK_S32 i;
+    rk_s32 i;
 
     mpp_assert(impl);
     mpp_assert(impl->status == MPP_STHD_UNINITED || impl->status == MPP_STHD_READY);
@@ -552,7 +678,7 @@ void mpp_sthd_grp_setup(MppSThdGrp grp, MppSThdFunc func, void *ctx)
     case MPP_STHD_UNINITED :
     case MPP_STHD_READY : {
         MppSThdStatus next = func ? MPP_STHD_READY : MPP_STHD_UNINITED;
-        RK_S32 i;
+        rk_s32 i;
 
         for (i = 0; i < impl->count; i++) {
             MppSThdImpl *thd = &impl->thds[i];
@@ -582,7 +708,7 @@ void mpp_sthd_grp_start(MppSThdGrp grp)
     status = impl->status;
     switch (status) {
     case MPP_STHD_READY : {
-        RK_S32 i;
+        rk_s32 i;
 
         for (i = 0; i < impl->count; i++)
             mpp_sthd_start(&impl->thds[i]);
@@ -609,7 +735,7 @@ void mpp_sthd_grp_stop(MppSThdGrp grp)
     switch (status) {
     case MPP_STHD_RUNNING :
     case MPP_STHD_WAITING : {
-        RK_S32 i;
+        rk_s32 i;
 
         impl->status = MPP_STHD_STOPPING;
 
@@ -642,7 +768,7 @@ void mpp_sthd_grp_stop_sync(MppSThdGrp grp)
     switch (status) {
     case MPP_STHD_STOPPING : {
         void *dummy;
-        RK_S32 i;
+        rk_s32 i;
 
         status = MPP_STHD_STOPPING;
         for (i = 0; i < impl->count; i++) {
@@ -660,7 +786,7 @@ void mpp_sthd_grp_stop_sync(MppSThdGrp grp)
     pthread_mutex_unlock(&impl->lock);
 }
 
-MppSThd mpp_sthd_grp_get_each(MppSThdGrp grp, RK_S32 idx)
+MppSThd mpp_sthd_grp_get_each(MppSThdGrp grp, rk_s32 idx)
 {
     MppSThdGrpImpl *impl = (MppSThdGrpImpl *)grp;
     MppSThd ret = NULL;

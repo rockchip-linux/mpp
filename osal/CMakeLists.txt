@@ -36,14 +36,14 @@ add_library(osal OBJECT
     mpp_callback.cpp
     mpp_eventfd.cpp
     mpp_dmabuf.cpp
-    mpp_thread.cpp
+    mpp_thread.c
     mpp_compat.cpp
     mpp_common.cpp
-    mpp_queue.cpp
+    mpp_queue.c
     mpp_trace.c
     mpp_lock.cpp
-    mpp_time.cpp
-    mpp_list.cpp
+    mpp_time.c
+    mpp_list.c
     mpp_mem.c
     mpp_env.cpp
     mpp_log.cpp

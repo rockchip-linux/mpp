@@ -33,6 +33,7 @@ private:
     RcImplApiService(const RcImplApiService &);
     RcImplApiService &operator=(const RcImplApiService &);
 
+    MppMutex            lock;
     RK_U32              mApiCount;
 
     struct list_head    mApis;
@@ -40,12 +41,12 @@ private:
 public:
     static RcImplApiService *get_instance() {
         static RcImplApiService instance;
-        AutoMutex auto_lock(get_lock());
-        return &instance;
-    }
-    static Mutex *get_lock() {
-        static Mutex lock;
-        return &lock;
+        RcImplApiService * ret;
+
+        mpp_mutex_lock(&instance.lock);
+        ret = &instance;
+        mpp_mutex_unlock(&instance.lock);
+        return ret;
     }
 
     MPP_RET     api_add(const RcImplApi *api);
@@ -54,6 +55,7 @@ public:
     MPP_RET     api_get_all(RcApiBrief *brief, RK_S32 *count, RK_S32 max_count);
     MPP_RET     api_get_by_type(RcApiBrief *brief, RK_S32 *count,
                                 RK_S32 max_count, MppCodingType type);
+    MppMutex    *get_lock() {return &lock; };
 };
 
 #endif

@@ -31,6 +31,7 @@
 #include "mpp_device_debug.h"
 #include "mpp_service_impl.h"
 #include "mpp_server.h"
+#include "mpp_thread.h"
 
 #define MAX_BATCH_TASK      8
 #define MAX_SESSION_TASK    4
@@ -88,7 +89,7 @@ struct MppDevTask_t {
 };
 
 struct MppDevBatTask_t {
-    MppMutexCond        *cond;
+    MppMutexCond        cond;
 
     /* link to server */
     struct list_head    link_server;
@@ -113,7 +114,7 @@ struct MppDevBatTask_t {
 };
 
 struct MppDevSession_t {
-    MppMutexCond        *cond;
+    MppMutexCond        cond_lock;
 
     /* hash table to server */
     struct list_head    list_server;
@@ -134,7 +135,7 @@ struct MppDevSession_t {
 };
 
 struct MppDevBatServ_t {
-    Mutex               *lock;
+    MppMutex            lock;
 
     RK_S32              server_fd;
     RK_U32              batch_id;
@@ -239,7 +240,7 @@ void batch_send(MppDevBatServ *server, MppDevBatTask *batch)
 void process_task(void *p)
 {
     MppDevBatServ *server = (MppDevBatServ *)p;
-    Mutex *lock = server->lock;
+    MppMutex *lock = &server->lock;
     RK_S32 ret = MPP_OK;
     MppDevTask *task;
     MppDevBatTask *batch;
@@ -284,10 +285,10 @@ void process_task(void *p)
 
                     mpp_serv_dbg_flow("batch %d:%d session %d ready and remove\n",
                                       batch->batch_id, task->batch_slot_id, session->client);
-                    session->cond->lock();
+                    mpp_mutex_cond_lock(&session->cond_lock);
                     session->task_done++;
-                    session->cond->signal();
-                    session->cond->unlock();
+                    mpp_mutex_cond_signal(&session->cond_lock);
+                    mpp_mutex_cond_unlock(&session->cond_lock);
                     if (session->ctx && session->ctx->dev_cb)
                         mpp_callback(session->ctx->dev_cb, NULL);
 
@@ -320,13 +321,13 @@ void process_task(void *p)
     } while (1);
 
     /* 2. get prending task to fill */
-    lock->lock();
+    mpp_mutex_lock(lock);
     pending = server->pending_count;
     if (!pending && !server->batch_run && !server->session_count) {
         mpp_timer_set_enable(server->timer, 0);
         mpp_serv_dbg_flow("stop timer\n");
     }
-    lock->unlock();
+    mpp_mutex_unlock(lock);
 
     mpp_serv_dbg_flow("pending %d running %d free %d max %d process start\n",
                       pending, server->batch_run, server->batch_free, server->batch_max_count);
@@ -379,11 +380,11 @@ try_proc_pending_task:
     mpp_assert(pending);
 
     task = NULL;
-    lock->lock();
+    mpp_mutex_lock(lock);
     task = list_first_entry_or_null(&server->pending_task, MppDevTask, link_server);
     list_del_init(&task->link_server);
     server->pending_count--;
-    lock->unlock();
+    mpp_mutex_unlock(lock);
     pending--;
 
     /* first task and setup new batch id */
@@ -473,7 +474,7 @@ MPP_RET send_task(MppDevMppService *ctx)
     MppDevBatServ *server = session->server;
 
     /* get free task from session and add to run list */
-    session->cond->lock();
+    mpp_mutex_cond_lock(&session->cond_lock);
     /* get a free task and setup */
     task = list_first_entry_or_null(&session->list_done, MppDevTask, link_session);
     mpp_assert(task);
@@ -485,9 +486,9 @@ MPP_RET send_task(MppDevMppService *ctx)
     list_add_tail(&task->link_session, &session->list_wait);
 
     session->task_wait++;
-    session->cond->unlock();
+    mpp_mutex_cond_unlock(&session->cond_lock);
 
-    server->lock->lock();
+    mpp_mutex_lock(&server->lock);
     task->task_id = server->task_id++;
     list_del_init(&task->link_server);
     list_add_tail(&task->link_server, &server->pending_task);
@@ -496,7 +497,7 @@ MPP_RET send_task(MppDevMppService *ctx)
                       session->client, task->slot_idx, server->pending_count);
 
     mpp_timer_set_enable(server->timer, 1);
-    server->lock->unlock();
+    mpp_mutex_unlock(&server->lock);
 
     return MPP_OK;
 }
@@ -516,15 +517,15 @@ MPP_RET wait_task(MppDevMppService *ctx, RK_S64 timeout)
     task = list_first_entry_or_null(&session->list_wait, MppDevTask, link_session);
     mpp_assert(task);
 
-    session->cond->lock();
+    mpp_mutex_cond_lock(&session->cond_lock);
     if (session->task_wait != session->task_done) {
         mpp_serv_dbg_flow("session %d wait %d start %d:%d\n", session->client,
                           task->task_id, session->task_wait, session->task_done);
-        session->cond->wait();
+        mpp_mutex_cond_wait(&session->cond_lock);
     }
     mpp_serv_dbg_flow("session %d wait %d done %d:%d\n", session->client,
                       task->task_id, session->task_wait, session->task_done);
-    session->cond->unlock();
+    mpp_mutex_cond_unlock(&session->cond_lock);
 
     list_del_init(&task->link_session);
     list_add_tail(&task->link_session, &session->list_done);
@@ -534,7 +535,7 @@ MPP_RET wait_task(MppDevMppService *ctx, RK_S64 timeout)
     return (MPP_RET)ret;
 }
 
-class MppDevServer : Mutex
+class MppDevServer
 {
 private:
     // avoid any unwanted function
@@ -565,6 +566,7 @@ public:
         return &inst;
     }
 
+    MppMutex        lock;
     MppDevBatServ  *bat_server_get(MppClientType client_type);
     MPP_RET         bat_server_put(MppClientType client_type);
 
@@ -628,6 +630,7 @@ MppDevServer::MppDevServer() :
         clear();
         return;
     }
+    mpp_mutex_init(&lock);
 
     memset(mBatServer, 0, sizeof(mBatServer));
 }
@@ -638,6 +641,8 @@ MppDevServer::~MppDevServer()
 
     for (i = 0; i < VPU_CLIENT_BUTT; i++)
         bat_server_put((MppClientType)i);
+
+    mpp_mutex_destroy(&lock);
 
     clear();
 }
@@ -661,15 +666,18 @@ MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
 {
     MppDevBatServ *server = NULL;
 
-    AutoMutex auto_lock(this);
+    mpp_mutex_lock(&lock);
 
     server = mBatServer[client_type];
-    if (server)
+    if (server) {
+        mpp_mutex_unlock(&lock);
         return server;
+    }
 
     server = mpp_calloc(MppDevBatServ, 1);
     if (NULL == server) {
         mpp_err("mpp server failed to get bat server\n");
+        mpp_mutex_unlock(&lock);
         return NULL;
     }
 
@@ -690,11 +698,7 @@ MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
         goto failed;
     }
 
-    server->lock = new Mutex();
-    if (NULL == server->lock) {
-        mpp_err("mpp server get bat server failed to create mutex\n");
-        goto failed;
-    }
+    mpp_mutex_init(&server->lock);
 
     mpp_timer_set_callback(server->timer, mpp_server_thread, server);
     /* 10ms */
@@ -709,6 +713,7 @@ MppDevBatServ *MppDevServer::bat_server_get(MppClientType client_type)
     server->max_task_in_batch = mMaxTaskInBatch;
 
     mBatServer[client_type] = server;
+    mpp_mutex_unlock(&lock);
     return server;
 
 failed:
@@ -722,12 +727,10 @@ failed:
             close(server->server_fd);
             server->server_fd = -1;
         }
-        if (server->lock) {
-            delete server->lock;
-            server->lock = NULL;
-        }
+        mpp_mutex_destroy(&server->lock);
     }
     MPP_FREE(server);
+    mpp_mutex_unlock(&lock);
     return server;
 }
 
@@ -735,10 +738,13 @@ MPP_RET MppDevServer::bat_server_put(MppClientType client_type)
 {
     MppDevBatTask *batch, *n;
     MppDevBatServ *server = NULL;
-    AutoMutex auto_lock(this);
 
-    if (NULL == mBatServer[client_type])
+    mpp_mutex_lock(&lock);
+
+    if (NULL == mBatServer[client_type]) {
+        mpp_mutex_unlock(&lock);
         return MPP_OK;
+    }
 
     server = mBatServer[client_type];
     mBatServer[client_type] = NULL;
@@ -765,11 +771,10 @@ MPP_RET MppDevServer::bat_server_put(MppClientType client_type)
         close(server->server_fd);
         server->server_fd = -1;
     }
-    if (server->lock) {
-        delete server->lock;
-        server->lock = NULL;
-    }
+    mpp_mutex_destroy(&server->lock);
     MPP_FREE(server);
+    mpp_mutex_unlock(&lock);
+
     return MPP_OK;
 }
 
@@ -796,9 +801,11 @@ MPP_RET MppDevServer::attach(MppDevMppService *ctx)
         return MPP_NOK;
     }
 
-    AutoMutex auto_lock(server->lock);
-    if (ctx->serv_ctx)
+    mpp_mutex_lock(&lock);
+    if (ctx->serv_ctx) {
+        mpp_mutex_unlock(&lock);
         return MPP_OK;
+    }
 
     MppDevSession *session = (MppDevSession *)mpp_mem_pool_get(mSessionPool);
     INIT_LIST_HEAD(&session->list_server);
@@ -808,7 +815,7 @@ MPP_RET MppDevServer::attach(MppDevMppService *ctx)
     session->ctx = ctx;
     session->server = server;
     session->client = ctx->client;
-    session->cond = new MppMutexCond();
+    mpp_mutex_cond_init(&session->cond_lock);
     session->task_wait = 0;
     session->task_done = 0;
 
@@ -839,6 +846,7 @@ MPP_RET MppDevServer::attach(MppDevMppService *ctx)
 
     server->batch_max_count++;
     server->session_count++;
+    mpp_mutex_unlock(&lock);
 
     return MPP_OK;
 }
@@ -857,9 +865,11 @@ MPP_RET MppDevServer::detach(MppDevMppService *ctx)
 
     mpp_assert(server);
 
-    AutoMutex auto_lock(server->lock);
-    if (NULL == ctx->serv_ctx)
+    mpp_mutex_lock(&lock);
+    if (NULL == ctx->serv_ctx) {
+        mpp_mutex_unlock(&lock);
         return MPP_OK;
+    }
 
     ctx->server = ctx->client;
     ctx->serv_ctx = NULL;
@@ -873,15 +883,13 @@ MPP_RET MppDevServer::detach(MppDevMppService *ctx)
 
     list_del_init(&session->list_server);
 
-    if (session->cond) {
-        delete session->cond;
-        session->cond = NULL;
-    }
+    mpp_mutex_cond_destroy(&session->cond_lock);
 
     mpp_mem_pool_put(mSessionPool, session);
     server->batch_max_count++;
     server->session_count++;
 
+    mpp_mutex_unlock(&lock);
     return MPP_OK;
 }
 

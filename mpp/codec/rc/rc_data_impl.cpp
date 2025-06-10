@@ -81,12 +81,11 @@ static void rc_data_node_init(DataGroupImpl *p, RcDataNode *node, RK_S32 slot_id
 
 MPP_RET rc_data_group_init(DataGroupImpl *p, RK_S32 base_cnt, RK_S32 extra_cnt)
 {
-    p->lock = new Mutex();
+    mpp_mutex_init(&p->lock);
 
     node_group_init(&p->node, sizeof(RcDataNode), base_cnt);
     node_group_init(&p->extra, sizeof(RcDataExtra), extra_cnt);
 
-    mpp_assert(p->lock);
     mpp_assert(p->node);
     mpp_assert(p->extra);
 
@@ -100,14 +99,13 @@ MPP_RET rc_data_group_init(DataGroupImpl *p, RK_S32 base_cnt, RK_S32 extra_cnt)
 
 MPP_RET rc_data_group_deinit(DataGroupImpl *p)
 {
-    mpp_assert(p->lock);
     mpp_assert(p->node);
     mpp_assert(p->extra);
 
     node_group_deinit(p->node);
     node_group_deinit(p->extra);
 
-    delete p->lock;
+    mpp_mutex_destroy(&p->lock);
 
     return MPP_OK;
 }
@@ -184,10 +182,13 @@ RcDataNode *rc_data_group_get_node_by_status(DataGroupImpl *p, RcDataStatus stat
 void rc_data_group_put_node(DataGroupImpl *p, RcDataNode *node)
 {
     RcDataIndexes *indexes = &p->indexes;
-    RcDataHead *head = &node->head;
+    RcDataHead *head;
+    RcDataStatus data_status;
 
-    AutoMutex auto_lock(p->lock);
-    RcDataStatus data_status = head->data_status;
+    mpp_mutex_lock(&p->lock);
+
+    head = &node->head;
+    data_status = head->data_status;
 
     list_del_init(&head->status);
     indexes->status_cnt[data_status]--;
@@ -259,6 +260,7 @@ void rc_data_group_put_node(DataGroupImpl *p, RcDataNode *node)
     list_add_tail(&head->status, &indexes->status[data_status]);
     indexes->status_cnt[data_status]++;
     head->data_status = data_status;
+    mpp_mutex_unlock(&p->lock);
 }
 
 RcData rc_data_get_next(DataGroup grp)

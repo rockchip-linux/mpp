@@ -113,7 +113,7 @@ typedef struct MppDecVprocCtxImpl_t {
 
 static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts, RK_U32 err)
 {
-    mpp_list *list = mpp->mFrmOut;
+    MppList *list = mpp->mFrmOut;
     MppFrame out = NULL;
     MppFrameImpl *impl = NULL;
 
@@ -127,16 +127,16 @@ static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 
 
     impl->errinfo |= err;
 
-    list->lock();
-    list->add_at_tail(&out, sizeof(out));
+    mpp_mutex_cond_lock(&list->cond_lock);
+    mpp_list_add_at_tail(list, &out, sizeof(out));
 
     mpp->mFramePutCount++;
     vproc_dbg_out("Output frame[%d]:poc %d, pts %lld, err 0x%x, dis %x, buf ptr %p\n",
                   mpp->mFramePutCount, mpp_frame_get_poc(out), mpp_frame_get_pts(out),
                   mpp_frame_get_errinfo(frame), mpp_frame_get_discard(frame),
                   mpp_buffer_get_ptr(impl->buffer));
-    list->signal();
-    list->unlock();
+    mpp_mutex_cond_signal(&list->cond_lock);
+    mpp_mutex_cond_unlock(&list->cond_lock);
 
     if (mpp->mDec)
         mpp_dec_callback(mpp->mDec, MPP_DEC_EVENT_ON_FRM_READY, out);
@@ -844,17 +844,17 @@ static void *dec_vproc_thread(void *data)
     while (1) {
         MPP_RET ret = MPP_OK;
 
-        {
-            AutoMutex autolock(thd->mutex());
-
-            if (MPP_THREAD_RUNNING != thd->get_status())
-                break;
-
-            if (ctx->task_wait.val && !ctx->reset) {
-                vproc_dbg_status("vproc thread wait %d", ctx->task_wait.val);
-                thd->wait();
-            }
+        mpp_thread_lock(thd, THREAD_WORK);
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(thd, THREAD_WORK)) {
+            mpp_thread_unlock(thd, THREAD_WORK);
+            break;
         }
+
+        if (ctx->task_wait.val && !ctx->reset) {
+            vproc_dbg_status("vproc thread wait %d", ctx->task_wait.val);
+            mpp_thread_wait(thd, THREAD_WORK);
+        }
+        mpp_thread_unlock(thd, THREAD_WORK);
 
         if (!ctx->task_status.task_rdy) {
             if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
@@ -864,9 +864,9 @@ static void *dec_vproc_thread(void *data)
 
                     dec_vproc_clr_prev(ctx);
 
-                    thd->lock(THREAD_CONTROL);
+                    mpp_thread_lock(thd, THREAD_CONTROL);
                     ctx->reset = 0;
-                    thd->unlock(THREAD_CONTROL);
+                    mpp_thread_unlock(thd, THREAD_CONTROL);
                     sem_post(&ctx->reset_sem);
                     ctx->task_wait.val = 0;
 
@@ -991,12 +991,12 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     p->pre_ff_mode = IEP2_FF_MODE_UND;
     p->mpp = (Mpp *)cfg->mpp;
     p->slots = ((MppDecImpl *)p->mpp->mDec)->frame_slots;
-    p->thd = new MppThread(dec_vproc_thread, p, "mpp_dec_vproc");
+    p->thd = mpp_thread_create(dec_vproc_thread, p, "mpp_dec_vproc");
     sem_init(&p->reset_sem, 0, 0);
     ret = hal_task_group_init(&p->task_group, TASK_BUTT, 4, sizeof(HalDecVprocTask));
     if (ret) {
         mpp_err_f("create task group failed\n");
-        delete p->thd;
+        mpp_thread_destroy(p->thd);
         MPP_FREE(p);
         return MPP_ERR_MALLOC;
     }
@@ -1005,7 +1005,7 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     p->com_ctx = get_iep_ctx();
     if (!p->com_ctx) {
         mpp_err("failed to require context\n");
-        delete p->thd;
+        mpp_thread_destroy(p->thd);
 
         if (p->task_group) {
             hal_task_group_deinit(p->task_group);
@@ -1032,7 +1032,7 @@ MPP_RET dec_vproc_init(MppDecVprocCtx *ctx, MppDecVprocCfg *cfg)
     if (!p->thd || ret) {
         mpp_err("failed to create context\n");
         if (p->thd) {
-            delete p->thd;
+            mpp_thread_destroy(p->thd);
             p->thd = NULL;
         }
 
@@ -1106,8 +1106,7 @@ MPP_RET dec_vproc_deinit(MppDecVprocCtx ctx)
 
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
     if (p->thd) {
-        p->thd->stop();
-        delete p->thd;
+        mpp_thread_destroy(p->thd);
         p->thd = NULL;
     }
 
@@ -1142,7 +1141,7 @@ MPP_RET dec_vproc_start(MppDecVprocCtx ctx)
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
 
     if (p->thd)
-        p->thd->start();
+        mpp_thread_start(p->thd);
     else
         mpp_err("failed to start dec vproc thread\n");
 
@@ -1161,7 +1160,7 @@ MPP_RET dec_vproc_stop(MppDecVprocCtx ctx)
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
 
     if (p->thd)
-        p->thd->stop();
+        mpp_thread_stop(p->thd);
     else
         mpp_err("failed to stop dec vproc thread\n");
 
@@ -1179,9 +1178,9 @@ MPP_RET dec_vproc_signal(MppDecVprocCtx ctx)
 
     MppDecVprocCtxImpl *p = (MppDecVprocCtxImpl *)ctx;
     if (p->thd) {
-        p->thd->lock();
-        p->thd->signal();
-        p->thd->unlock();
+        mpp_thread_lock(p->thd, THREAD_WORK);
+        mpp_thread_signal(p->thd, THREAD_WORK);
+        mpp_thread_unlock(p->thd, THREAD_WORK);
     }
 
     vproc_dbg_func("out\n");
@@ -1202,12 +1201,12 @@ MPP_RET dec_vproc_reset(MppDecVprocCtx ctx)
 
         vproc_dbg_reset("reset contorl start\n");
         // wait reset finished
-        thd->lock();
-        thd->lock(THREAD_CONTROL);
+        mpp_thread_lock(thd, THREAD_WORK);
+        mpp_thread_lock(thd, THREAD_CONTROL);
         p->reset = 1;
-        thd->signal();
-        thd->unlock(THREAD_CONTROL);
-        thd->unlock();
+        mpp_thread_signal(thd, THREAD_WORK);
+        mpp_thread_unlock(thd, THREAD_CONTROL);
+        mpp_thread_unlock(thd, THREAD_WORK);
 
         vproc_dbg_reset("reset contorl wait\n");
         sem_wait(&p->reset_sem);

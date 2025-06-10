@@ -135,10 +135,10 @@ public:
     MPP_RET notify(RK_U32 flag);
     MPP_RET notify(MppBufferGroup group);
 
-    mpp_list        *mPktIn;
-    mpp_list        *mPktOut;
-    mpp_list        *mFrmIn;
-    mpp_list        *mFrmOut;
+    MppList        *mPktIn;
+    MppList        *mPktOut;
+    MppList        *mFrmIn;
+    MppList        *mFrmOut;
     /* counters for debug */
     RK_U32          mPacketPutCount;
     RK_U32          mPacketGetCount;

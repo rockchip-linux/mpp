@@ -22,6 +22,7 @@
 #include "mpp_hash.h"
 #include "mpp_lock.h"
 #include "mpp_debug.h"
+#include "mpp_thread.h"
 #include "mpp_mem_pool.h"
 
 #include "mpp_buffer_impl.h"
@@ -58,6 +59,7 @@ private:
     RK_U32              total_size;
     RK_U32              total_max;
 
+    MppMutex            mLock;
     // misc group for internal / externl buffer with different type
     RK_U32              misc[MPP_BUFFER_MODE_BUTT][MPP_BUFFER_TYPE_BUTT][MPP_ALLOCATOR_WITH_FLAG_NUM];
     RK_U32              misc_count;
@@ -76,10 +78,6 @@ public:
         static MppBufferService instance;
         return &instance;
     }
-    static Mutex *get_lock() {
-        static Mutex lock;
-        return &lock;
-    }
 
     MppBufferGroupImpl  *get_group(const char *tag, const char *caller,
                                    MppBufferMode mode, MppBufferType type,
@@ -93,6 +91,7 @@ public:
     void                dec_total(RK_U32 size);
     RK_U32              get_total_now() { return total_size; };
     RK_U32              get_total_max() { return total_max; };
+    MppMutex            *get_lock() {return &mLock; };
 };
 
 static const char *mode2str[MPP_BUFFER_MODE_BUTT] = {
@@ -349,8 +348,11 @@ static MPP_RET inc_buffer_ref(MppBufferImpl *buffer, const char *caller)
         MppBufferGroupImpl *group = NULL;
 
         {
-            AutoMutex auto_lock(MppBufferService::get_lock());
+            MppMutex *lock = MppBufferService::get_instance()->get_lock();
+
+            mpp_mutex_lock(lock);
             group = SEARCH_GROUP_BY_ID(buffer->group_id);
+            mpp_mutex_unlock(lock);
         }
         // NOTE: when increasing ref_count the unused buffer must be under certain group
         mpp_assert(group);
@@ -533,8 +535,11 @@ MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller)
         MppBufferGroupImpl *group = NULL;
 
         {
-            AutoMutex auto_lock(MppBufferService::get_lock());
+            MppMutex *lock = MppBufferService::get_instance()->get_lock();
+
+            mpp_mutex_lock(lock);
             group = SEARCH_GROUP_BY_ID(buffer->group_id);
+            mpp_mutex_unlock(lock);
         }
 
         mpp_assert(group);
@@ -819,9 +824,11 @@ MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
 
 void mpp_buffer_service_dump(const char *info)
 {
-    AutoMutex auto_lock(MppBufferService::get_lock());
+    MppMutex *lock = MppBufferService::get_instance()->get_lock();
 
+    mpp_mutex_lock(lock);
     MppBufferService::get_instance()->dump(info);
+    mpp_mutex_unlock(lock);
 }
 
 void MppBufferService::inc_total(RK_U32 size)
@@ -857,6 +864,7 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
     MppBufferGroupImpl *misc;
     RK_U32 id;
     MppBufferType buf_type;
+    MppMutex* lock = MppBufferService::get_instance()->get_lock();
 
     buf_type = (MppBufferType)(type & MPP_BUFFER_TYPE_MASK);
     if (buf_type == MPP_BUFFER_TYPE_NORMAL)
@@ -865,7 +873,7 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
     mpp_assert(mode < MPP_BUFFER_MODE_BUTT);
     mpp_assert(buf_type < MPP_BUFFER_TYPE_BUTT);
 
-    AutoMutex auto_lock(MppBufferService::get_lock());
+    mpp_mutex_lock(lock);
 
     id = MppBufferService::get_instance()->get_misc(mode, type);
     if (!id) {
@@ -882,6 +890,8 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
         misc = MppBufferService::get_instance()->get_group(tag, __FUNCTION__, mode, type, 1);
     } else
         misc = MppBufferService::get_instance()->get_group_by_id(id);
+
+    mpp_mutex_unlock(lock);
 
     return misc;
 }
@@ -910,6 +920,8 @@ MppBufferService::MppBufferService()
 
     for (i = 0; i < (RK_S32)HASH_SIZE(mHashGroup); i++)
         INIT_HLIST_HEAD(&mHashGroup[i]);
+
+    mpp_mutex_init(&mLock);
 }
 
 #include "mpp_time.h"
@@ -919,6 +931,7 @@ MppBufferService::~MppBufferService()
     RK_S32 i, j, k;
 
     finalizing = 1;
+
 
     // first remove legacy group which is the normal case
     if (misc_count) {
@@ -966,6 +979,8 @@ MppBufferService::~MppBufferService()
                 mpp_allocator_put(&(mAllocator[i][j]));
         }
     }
+
+    mpp_mutex_destroy(&mLock);
 }
 
 RK_U32 MppBufferService::get_group_id()
@@ -1039,9 +1054,11 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     p->flags = (MppAllocFlagType)flag;
 
     {
-        AutoMutex auto_lock(get_lock());
+        MppMutex* lock = MppBufferService::get_instance()->get_lock();
         MppAllocator allocator = NULL;
         MppAllocatorApi *alloc_api = NULL;
+
+        mpp_mutex_lock(lock);
 
         allocator = mAllocator[buffer_type][flag];
         alloc_api = mAllocatorApi[buffer_type];
@@ -1056,6 +1073,8 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
         p->allocator = allocator;
         p->alloc_api = alloc_api;
         p->flags = mpp_allocator_get_flags(allocator);
+
+        mpp_mutex_unlock(lock);
     }
 
     if (!p->allocator || !p->alloc_api) {
@@ -1088,9 +1107,9 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     if (p->log_history_en)
         p->logs = buf_logs_init(BUFFER_OPS_MAX_COUNT);
 
-    AutoMutex auto_lock(get_lock());
-    RK_U32 id = get_group_id();
+    mpp_mutex_lock(&mLock);
 
+    RK_U32 id = get_group_id();
     if (tag) {
         snprintf(p->tag, sizeof(p->tag) - 1, "%s_%d", tag, id);
     } else {
@@ -1108,6 +1127,8 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
         p->is_misc = 1;
         misc_count++;
     }
+
+    mpp_mutex_unlock(&mLock);
 
     return p;
 }
@@ -1132,10 +1153,8 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
     if (finished)
         return ;
 
-    Mutex *lock = get_lock();
-
     if (!finalizing)
-        lock->lock();
+        mpp_mutex_lock(&mLock);
 
     buf_grp_add_log(p, GRP_RELEASE, caller);
 
@@ -1184,7 +1203,7 @@ void MppBufferService::put_group(const char *caller, MppBufferGroupImpl *p)
     }
 
     if (!finalizing)
-        lock->unlock();
+        mpp_mutex_unlock(&mLock);
 }
 
 void MppBufferService::destroy_group(MppBufferGroupImpl *group)

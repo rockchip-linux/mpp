@@ -367,10 +367,10 @@ MPP_RET cluster_worker_init(ClusterWorker *p, MppCluster *cluster)
     p->cluster = cluster;
     p->state = WORKER_IDLE;
     snprintf(p->name, sizeof(p->name) - 1, "%d:W%d", cluster->pid, p->worker_id);
-    thd = new MppThread(cluster->worker_func, p, p->name);
+    thd = mpp_thread_create(cluster->worker_func, p, p->name);
     if (thd) {
         p->thd = thd;
-        thd->start();
+        mpp_thread_start(thd);
         ret = MPP_OK;
     }
 
@@ -380,8 +380,8 @@ MPP_RET cluster_worker_init(ClusterWorker *p, MppCluster *cluster)
 MPP_RET cluster_worker_deinit(ClusterWorker *p)
 {
     if (p->thd) {
-        p->thd->stop();
-        delete p->thd;
+        mpp_thread_stop(p->thd);
+        mpp_thread_destroy(p->thd);
         p->thd = NULL;
     }
 
@@ -546,18 +546,21 @@ static void *cluster_worker(void *data)
             RK_S32 task_count = 0;
 
             cluster_dbg_lock("%s lock start\n", p->name);
-            AutoMutex autolock(thd->mutex());
+            mpp_thread_lock(thd, THREAD_WORK);
             cluster_dbg_lock("%s lock done\n", p->name);
 
-            if (MPP_THREAD_RUNNING != thd->get_status())
+            if (MPP_THREAD_RUNNING != mpp_thread_get_status(thd, THREAD_WORK)) {
+                mpp_thread_unlock(thd, THREAD_WORK);
                 break;
+            }
 
             task_count = cluster_worker_get_task(p);
             if (!task_count) {
                 p->state = WORKER_IDLE;
-                thd->wait();
+                mpp_thread_wait(thd, THREAD_WORK);
                 p->state = WORKER_RUNNING;
             }
+            mpp_thread_unlock(thd, THREAD_WORK);
         }
 
         cluster_worker_run_task(p);
@@ -575,13 +578,17 @@ void cluster_signal_f(const char *caller, MppCluster *p)
     for (i = 0; i < p->worker_count; i++) {
         ClusterWorker *worker = &p->worker[i];
         MppThread *thd = worker->thd;
-        AutoMutex auto_lock(thd->mutex());
+
+        mpp_thread_lock(thd, THREAD_WORK);
 
         if (worker->state == WORKER_IDLE) {
-            thd->signal();
+            mpp_thread_signal(thd, THREAD_WORK);
             cluster_dbg_flow("%s signal\n", p->name);
+            mpp_thread_unlock(thd, THREAD_WORK);
             break;
         }
+
+        mpp_thread_unlock(thd, THREAD_WORK);
     }
 }
 
@@ -589,7 +596,7 @@ class MppClusterServer;
 
 MppClusterServer *cluster_server = NULL;
 
-class MppClusterServer : Mutex
+class MppClusterServer
 {
 private:
     // avoid any unwanted function
@@ -598,6 +605,7 @@ private:
     MppClusterServer(const MppClusterServer &);
     MppClusterServer &operator=(const MppClusterServer &);
 
+    MppMutex    mutex;
     MppCluster  *mClusters[VPU_CLIENT_BUTT];
 
 public:
@@ -617,6 +625,8 @@ MppClusterServer::MppClusterServer()
 
     mpp_env_get_u32("mpp_cluster_debug", &mpp_cluster_debug, 0);
     mpp_env_get_u32("mpp_cluster_thd_cnt", &mpp_cluster_thd_cnt, 1);
+
+    mpp_mutex_init(&mutex);
 }
 
 MppClusterServer::~MppClusterServer()
@@ -625,6 +635,8 @@ MppClusterServer::~MppClusterServer()
 
     for (i = 0; i < VPU_CLIENT_BUTT; i++)
         put((MppClientType)i);
+
+    mpp_mutex_destroy(&mutex);
 }
 
 MppCluster *MppClusterServer::get(MppClientType client_type)
@@ -636,11 +648,13 @@ MppCluster *MppClusterServer::get(MppClientType client_type)
         goto done;
 
     {
-        AutoMutex auto_lock(this);
+        mpp_mutex_lock(&mutex);
 
         p = mClusters[client_type];
-        if (p)
+        if (p) {
+            mpp_mutex_unlock(&mutex);
             goto done;
+        }
 
         p = mpp_malloc(MppCluster, 1);
         if (p) {
@@ -665,6 +679,8 @@ MppCluster *MppClusterServer::get(MppClientType client_type)
             mClusters[client_type] = p;
             cluster_dbg_flow("%s created\n", p->name);
         }
+
+        mpp_mutex_unlock(&mutex);
     }
 
 done:
@@ -678,16 +694,19 @@ done:
 
 MPP_RET MppClusterServer::put(MppClientType client_type)
 {
+    MppCluster *p;
     RK_S32 i;
 
     if (client_type >= VPU_CLIENT_BUTT)
         return MPP_NOK;
 
-    AutoMutex auto_lock(this);
-    MppCluster *p = mClusters[client_type];
+    mpp_mutex_lock(&mutex);
 
-    if (!p)
+    p = mClusters[client_type];
+    if (!p) {
+        mpp_mutex_unlock(&mutex);
         return MPP_NOK;
+    }
 
     for (i = 0; i < p->worker_count; i++)
         cluster_worker_deinit(&p->worker[i]);
@@ -695,6 +714,8 @@ MPP_RET MppClusterServer::put(MppClientType client_type)
     cluster_dbg_flow("put %s\n", p->name);
 
     mpp_free(p);
+
+    mpp_mutex_unlock(&mutex);
 
     return MPP_OK;
 }

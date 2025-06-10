@@ -69,8 +69,8 @@ typedef struct {
     MppEncROICfg    roi_cfg;
 
     // input / output
-    mpp_list        *list_buf;
-    MppBufferGroup buf_grp;
+    MppList         *list_buf;
+    MppBufferGroup  buf_grp;
     MppBuffer frm_buf[BUF_COUNT];
     MppBuffer pkt_buf[BUF_COUNT];
     RK_S32 buf_idx;
@@ -531,7 +531,7 @@ MPP_RET mt_test_res_init(MpiEncMtCtxInfo *info)
 
     mpp_log_q(quiet, "%s start\n", info->name);
 
-    p->list_buf = new mpp_list(NULL);
+    p->list_buf = mpp_list_create(NULL);
     if (NULL == p->list_buf) {
         mpp_err_f("failed to get mpp buffer list\n");
         return MPP_ERR_MALLOC;
@@ -556,7 +556,7 @@ MPP_RET mt_test_res_init(MpiEncMtCtxInfo *info)
             return ret;
         }
 
-        p->list_buf->add_at_tail(&p->frm_buf[i], sizeof(p->frm_buf[i]));
+        mpp_list_add_at_tail(p->list_buf, &p->frm_buf[i], sizeof(p->frm_buf[i]));
     }
 
     // encoder demo
@@ -654,7 +654,7 @@ MPP_RET mt_test_res_deinit(MpiEncMtCtxInfo *info)
     }
 
     if (p->list_buf) {
-        delete p->list_buf;
+        mpp_list_destroy(p->list_buf);
         p->list_buf = NULL;
     }
 
@@ -674,7 +674,7 @@ void *enc_test_input(void *arg)
     RK_S32 chn = info->chn;
     MppApi *mpi = p->mpi;
     MppCtx ctx = p->ctx;
-    mpp_list *list_buf = p->list_buf;
+    MppList *list_buf = p->list_buf;
     RK_U32 cap_num = 0;
     RK_U32 quiet = cmd->quiet;
     MPP_RET ret = MPP_OK;
@@ -689,18 +689,19 @@ void *enc_test_input(void *arg)
         RK_S32 cam_frm_idx = -1;
         MppBuffer cam_buf = NULL;
 
-        {
-            AutoMutex autolock(list_buf->mutex());
-            if (!list_buf->list_size())
-                list_buf->wait();
+        mpp_mutex_cond_lock(&list_buf->cond_lock);
+        if (!mpp_list_size(list_buf))
+            mpp_list_wait(list_buf);
 
-            buffer = NULL;
-            list_buf->del_at_head(&buffer, sizeof(buffer));
-            if (NULL == buffer)
-                continue;
-
-            buf = mpp_buffer_get_ptr(buffer);
+        buffer = NULL;
+        mpp_list_del_at_head(list_buf, &buffer, sizeof(buffer));
+        if (NULL == buffer) {
+            mpp_mutex_cond_unlock(&list_buf->cond_lock);
+            continue;
         }
+
+        buf = mpp_buffer_get_ptr(buffer);
+        mpp_mutex_cond_unlock(&list_buf->cond_lock);
 
         if (p->fp_input) {
             ret = read_image((RK_U8 *)buf, p->fp_input, p->width, p->height,
@@ -714,8 +715,9 @@ void *enc_test_input(void *arg)
                     p->frm_eos = 0;
                     mpp_log_q(quiet, "chn %d loop times %d\n", chn, ++p->loop_times);
                     if (buffer) {
-                        AutoMutex autolock(list_buf->mutex());
-                        list_buf->add_at_tail(&buffer, sizeof(buffer));
+                        mpp_mutex_cond_lock(&list_buf->cond_lock);
+                        mpp_list_add_at_tail(list_buf, &buffer, sizeof(buffer));
+                        mpp_mutex_cond_unlock(&list_buf->cond_lock);
                     }
                     continue;
                 }
@@ -889,7 +891,7 @@ void *enc_test_output(void *arg)
     MpiEncTestArgs *cmd = info->cmd;
     MpiEncMtTestData *p = &info->ctx;
     MpiEncMtCtxRet *enc_ret = &info->ret;
-    mpp_list *list_buf = p->list_buf;
+    MppList *list_buf = p->list_buf;
     RK_S32 chn = info->chn;
     MppApi *mpi = p->mpi;
     MppCtx ctx = p->ctx;
@@ -968,9 +970,10 @@ void *enc_test_output(void *arg)
                 frm_buf = mpp_frame_get_buffer(frm);
 
                 if (frm_buf) {
-                    AutoMutex autolock(list_buf->mutex());
-                    list_buf->add_at_tail(&frm_buf, sizeof(frm_buf));
-                    list_buf->signal();
+                    mpp_mutex_cond_lock(&list_buf->cond_lock);
+                    mpp_list_add_at_tail(list_buf, &frm_buf, sizeof(frm_buf));
+                    mpp_list_signal(list_buf);
+                    mpp_mutex_cond_unlock(&list_buf->cond_lock);
                 }
 
                 mpp_frame_deinit(&frm);

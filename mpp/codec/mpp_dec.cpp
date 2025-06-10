@@ -369,7 +369,7 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         dec_vproc_signal(dec->vproc);
     } else {
         // direct output -> copy a new MppFrame and output
-        mpp_list *list = mpp->mFrmOut;
+        MppList *list = mpp->mFrmOut;
         MppFrame out = NULL;
 
         mpp_frame_init(&out);
@@ -377,11 +377,11 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
 
         mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(out));
 
-        list->lock();
-        list->add_at_tail(&out, sizeof(out));
+        mpp_mutex_cond_lock(&list->cond_lock);
+        mpp_list_add_at_tail(list, &out, sizeof(out));
         mpp->mFramePutCount++;
-        list->signal();
-        list->unlock();
+        mpp_list_signal(list);
+        mpp_mutex_cond_unlock(&list->cond_lock);
 
         if (fake_frame)
             mpp_frame_deinit(&frame);
@@ -411,7 +411,7 @@ RK_S32 mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
     tmp.info_change = 0;
 
     if (dec->thread_hal)
-        dec->thread_hal->lock(THREAD_OUTPUT);
+        mpp_thread_lock(dec->thread_hal, THREAD_OUTPUT);
 
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         /* deal with current frame */
@@ -424,7 +424,7 @@ RK_S32 mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags)
     }
 
     if (dec->thread_hal)
-        dec->thread_hal->unlock(THREAD_OUTPUT);
+        mpp_thread_unlock(dec->thread_hal, THREAD_OUTPUT);
 
     return ret;
 }
@@ -655,7 +655,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_clock_enable(p->clocks[i], p->statistics_en);
         }
 
-        p->cmd_lock = new MppMutexCond();
+        mpp_mutex_cond_init(&p->cmd_lock);
         sem_init(&p->parser_reset, 0, 0);
         sem_init(&p->hal_reset, 0, 0);
         sem_init(&p->cmd_start, 0, 0);
@@ -762,10 +762,7 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
         dec->packet_slots = NULL;
     }
 
-    if (dec->cmd_lock) {
-        delete dec->cmd_lock;
-        dec->cmd_lock = NULL;
-    }
+    mpp_mutex_cond_destroy(&dec->cmd_lock);
 
     sem_destroy(&dec->parser_reset);
     sem_destroy(&dec->hal_reset);
@@ -811,18 +808,18 @@ MPP_RET mpp_dec_stop(MppDec ctx)
     dec_dbg_func("%p in\n", dec);
 
     if (dec->thread_parser)
-        dec->thread_parser->stop();
+        mpp_thread_stop(dec->thread_parser);
 
     if (dec->thread_hal)
-        dec->thread_hal->stop();
+        mpp_thread_stop(dec->thread_hal);
 
     if (dec->thread_parser) {
-        delete dec->thread_parser;
+        mpp_thread_destroy(dec->thread_parser);
         dec->thread_parser = NULL;
     }
 
     if (dec->thread_hal) {
-        delete dec->thread_hal;
+        mpp_thread_destroy(dec->thread_hal);
         dec->thread_hal = NULL;
     }
 

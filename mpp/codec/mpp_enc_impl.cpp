@@ -536,13 +536,13 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
             mpp_assert(enc->task_out);
         } else {
             if (mpp->mPktOut) {
-                mpp_list *pkt_out = mpp->mPktOut;
+                MppList *pkt_out = mpp->mPktOut;
 
-                AutoMutex autoLock(pkt_out->mutex());
-
-                pkt_out->add_at_tail(&impl, sizeof(impl));
+                mpp_mutex_cond_lock(&pkt_out->cond_lock);
+                mpp_list_add_at_tail(pkt_out, &impl, sizeof(impl));
                 mpp->mPacketPutCount++;
-                pkt_out->signal();
+                mpp_list_signal(pkt_out);
+                mpp_mutex_cond_unlock(&pkt_out->cond_lock);
             }
         }
     } break;
@@ -2633,14 +2633,17 @@ void *mpp_enc_thread(void *data)
     enc->time_base = mpp_time();
 
     while (1) {
-        {
-            AutoMutex autolock(thd_enc->mutex());
-            if (MPP_THREAD_RUNNING != thd_enc->get_status())
-                break;
+        mpp_thread_lock(thd_enc, THREAD_WORK);
 
-            if (check_enc_task_wait(enc, &wait))
-                thd_enc->wait();
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(thd_enc, THREAD_WORK)) {
+            mpp_thread_unlock(thd_enc, THREAD_WORK);
+            break;
         }
+
+        if (check_enc_task_wait(enc, &wait))
+            mpp_thread_wait(thd_enc, THREAD_WORK);
+
+        mpp_thread_unlock(thd_enc, THREAD_WORK);
 
         // When encoder is not on encoding process external config and reset
         if (!status->enc_start) {
@@ -2672,19 +2675,20 @@ void *mpp_enc_thread(void *data)
             // 2. process reset
             if (enc->reset_flag) {
                 enc_dbg_detail("thread reset start\n");
-                {
-                    AutoMutex autolock(thd_enc->mutex());
-                    enc->status_flag = 0;
-                }
+
+                mpp_thread_lock(thd_enc, THREAD_WORK);
+                enc->status_flag = 0;
+                mpp_thread_unlock(thd_enc, THREAD_WORK);
 
                 enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
                 enc->frm_cfg.force_idr++;
 
-                AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
+                mpp_thread_lock(thd_enc, THREAD_CONTROL);
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
                 enc_dbg_detail("thread reset done\n");
                 wait.val = 0;
+                mpp_thread_unlock(thd_enc, THREAD_CONTROL);
                 continue;
             }
 
@@ -2746,7 +2750,7 @@ static void async_task_terminate(MppEncImpl *enc, EncAsyncTaskInfo *async)
         enc_dbg_detail("task %d enqueue packet pts %lld\n", frm->seq_idx, enc->task_pts);
 
         if (mpp->mPktOut) {
-            mpp_list *pkt_out = mpp->mPktOut;
+            MppList *pkt_out = mpp->mPktOut;
 
             if (enc->frame) {
                 MppMeta meta = mpp_packet_get_meta(pkt);
@@ -2758,13 +2762,14 @@ static void async_task_terminate(MppEncImpl *enc, EncAsyncTaskInfo *async)
                 enc->frame = NULL;
             }
 
-            AutoMutex autolock(pkt_out->mutex());
+            mpp_mutex_cond_lock(&pkt_out->cond_lock);
 
-            pkt_out->add_at_tail(&pkt, sizeof(pkt));
+            mpp_list_add_at_tail(pkt_out, &pkt, sizeof(pkt));
             mpp->mPacketPutCount++;
-            pkt_out->signal();
+            mpp_list_signal(pkt_out);
             mpp_assert(pkt);
 
+            mpp_mutex_cond_unlock(&pkt_out->cond_lock);
             enc_dbg_detail("packet out ready\n");
         }
     }
@@ -2780,7 +2785,7 @@ static void async_task_skip(MppEncImpl *enc)
     MppFrame frm = NULL;
     MppPacket pkt = NULL;
 
-    mpp->mFrmIn->del_at_head(&frm, sizeof(frm));
+    mpp_list_del_at_head(mpp->mFrmIn, &frm, sizeof(frm));
     mpp->mFrameGetCount++;
 
     mpp_assert(frm);
@@ -2816,14 +2821,14 @@ static void async_task_skip(MppEncImpl *enc)
     mpp_meta_set_frame(meta, KEY_INPUT_FRAME, frm);
 
     if (mpp->mPktOut) {
-        mpp_list *pkt_out = mpp->mPktOut;
+        MppList *pkt_out = mpp->mPktOut;
 
-        pkt_out->lock();
+        mpp_mutex_cond_lock(&pkt_out->cond_lock);
         mpp_stopwatch_record(stopwatch, "skip task output");
-        pkt_out->add_at_tail(&pkt, sizeof(pkt));
+        mpp_list_add_at_tail(pkt_out, &pkt, sizeof(pkt));
         mpp->mPacketPutCount++;
-        pkt_out->signal();
-        pkt_out->unlock();
+        mpp_list_signal(pkt_out);
+        mpp_mutex_cond_unlock(&pkt_out->cond_lock);
     }
 
     enc_dbg_detail("packet skip ready\n");
@@ -2943,12 +2948,14 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncWait *wait)
 
     if (NULL == frame) {
         if (mpp->mFrmIn) {
-            mpp_list *frm_in = mpp->mFrmIn;
-            AutoMutex autolock(frm_in->mutex());
+            MppList *frm_in = mpp->mFrmIn;
 
-            if (frm_in->list_size()) {
-                frm_in->del_at_head(&frame, sizeof(frame));
-                frm_in->signal();
+            mpp_mutex_cond_lock(&frm_in->cond_lock);
+
+            if (mpp_list_size(frm_in)) {
+                mpp_list_del_at_head(frm_in, &frame, sizeof(frame));
+                mpp_list_signal(frm_in);
+
                 mpp->mFrameGetCount++;
 
                 mpp_assert(frame);
@@ -2963,6 +2970,8 @@ static MPP_RET try_get_async_task(MppEncImpl *enc, EncAsyncWait *wait)
 
                 hal_task->frame = frame;
             }
+
+            mpp_mutex_cond_unlock(&frm_in->cond_lock);
         }
 
         if (NULL == frame) {
@@ -3330,13 +3339,15 @@ TASK_DONE:
         set_enc_info_to_packet(enc, hal_task);
 
     if (mpp->mPktOut) {
-        mpp_list *pkt_out = mpp->mPktOut;
+        MppList *pkt_out = mpp->mPktOut;
 
-        AutoMutex autoLock(pkt_out->mutex());
+        mpp_mutex_cond_lock(&pkt_out->cond_lock);
 
-        pkt_out->add_at_tail(&pkt, sizeof(pkt));
+        mpp_list_add_at_tail(pkt_out, &pkt, sizeof(pkt));
         mpp->mPacketPutCount++;
-        pkt_out->signal();
+        mpp_list_signal(pkt_out);
+
+        mpp_mutex_cond_unlock(&pkt_out->cond_lock);
     }
 
     return ret;
@@ -3355,25 +3366,26 @@ void *mpp_enc_async_thread(void *data)
     wait.val = 0;
 
     while (1) {
-        {
-            AutoMutex autolock(thd_enc->mutex());
-            if (MPP_THREAD_RUNNING != thd_enc->get_status())
-                break;
-
-            if (check_enc_async_wait(enc, &wait)) {
-                enc_dbg_detail("wait start\n");
-                thd_enc->wait();
-                enc_dbg_detail("wait done\n");
-            }
+        mpp_thread_lock(thd_enc, THREAD_WORK);
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(thd_enc, THREAD_WORK)) {
+            mpp_thread_unlock(thd_enc, THREAD_WORK);
+            break;
         }
+
+        if (check_enc_async_wait(enc, &wait)) {
+            enc_dbg_detail("wait start\n");
+            mpp_thread_wait(thd_enc, THREAD_WORK);
+            enc_dbg_detail("wait done\n");
+        }
+        mpp_thread_unlock(thd_enc, THREAD_WORK);
 
         // When encoder is not on encoding process external config and reset
         // 1. process user control and reset flag
         if (enc->cmd_send != enc->cmd_recv || enc->reset_flag) {
-            mpp_list *frm_in = mpp->mFrmIn;
+            MppList *frm_in = mpp->mFrmIn;
 
             /* when process cmd or reset hold frame input */
-            frm_in->lock();
+            mpp_mutex_cond_lock(&frm_in->cond_lock);
 
             enc_dbg_detail("ctrl proc %d cmd %08x\n", enc->cmd_recv, enc->cmd);
 
@@ -3406,24 +3418,26 @@ void *mpp_enc_async_thread(void *data)
                 enc_dbg_detail("thread reset start\n");
 
                 /* skip the frames in input queue */
-                while (frm_in->list_size())
+                while (mpp_list_size(frm_in))
                     async_task_skip(enc);
 
                 {
-                    AutoMutex autolock(thd_enc->mutex());
+                    mpp_thread_lock(thd_enc, THREAD_WORK);
                     enc->status_flag = 0;
+                    mpp_thread_unlock(thd_enc, THREAD_WORK);
                 }
 
                 enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
                 enc->frm_cfg.force_idr++;
 
-                AutoMutex autolock(thd_enc->mutex(THREAD_CONTROL));
+                mpp_thread_lock(thd_enc, THREAD_CONTROL);
                 enc->reset_flag = 0;
                 sem_post(&enc->enc_reset);
                 enc_dbg_detail("thread reset done\n");
+                mpp_thread_unlock(thd_enc, THREAD_CONTROL);
             }
         SYNC_DONE:
-            frm_in->unlock();
+            mpp_mutex_cond_unlock(&frm_in->cond_lock);
             wait.val = 0;
             continue;
         }

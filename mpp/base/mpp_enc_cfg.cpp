@@ -54,16 +54,20 @@ private:
     MppEncCfgService &operator=(const MppEncCfgService &);
 
     MppCfgInfoHead mHead;
+    MppMutex mLock;
     MppTrie mTrie;
     RK_S32 mCfgSize;
 
 public:
     static MppEncCfgService *get() {
-        static Mutex lock;
         static MppEncCfgService instance;
+        MppEncCfgService *ret;
 
-        AutoMutex auto_lock(&lock);
-        return &instance;
+        mpp_mutex_lock(&instance.mLock);
+        ret = &instance;
+        mpp_mutex_unlock(&instance.mLock);
+
+        return ret;
     }
 
     MppTrieInfo *get_info(const char *name);
@@ -306,6 +310,7 @@ MppEncCfgService::MppEncCfgService() :
     mHead.node_count = mpp_trie_get_node_count(mTrie);
     mHead.info_count = mpp_trie_get_info_count(mTrie);
     mHead.info_size = mpp_trie_get_buf_size(mTrie);
+    mpp_mutex_init(&mLock);
 
     mpp_enc_cfg_dbg_func("node cnt: %d\n", mHead.node_count);
 }
@@ -316,6 +321,7 @@ MppEncCfgService::~MppEncCfgService()
         mpp_trie_deinit(mTrie);
         mTrie = NULL;
     }
+    mpp_mutex_destroy(&mLock);
 }
 
 MppTrieInfo *MppEncCfgService::get_info(const char *name)

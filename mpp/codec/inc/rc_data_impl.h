@@ -124,7 +124,7 @@ typedef struct RcDataNode_t {
 } RcDataNode;
 
 typedef struct DataGroupImpl_t {
-    Mutex               *lock;
+    MppMutex            lock;
 
     RK_S32              base_cnt;
     RK_S32              extra_cnt;

@@ -94,7 +94,7 @@ struct MppDecImpl_t {
     MppDecCfgSet        *cfg;
 
     /* control process */
-    MppMutexCond        *cmd_lock;
+    MppMutexCond        cmd_lock;
     RK_U32              cmd_send;
     RK_U32              cmd_recv;
     MpiCmd              cmd;

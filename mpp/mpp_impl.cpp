@@ -47,7 +47,7 @@ typedef enum MppOpsType_e {
 
 /* dump data */
 typedef struct MppDumpImpl_t {
-    Mutex                   *lock;
+    MppMutex                lock;
     RK_U32                  log_version;
     RK_U32                  debug;
     pid_t                   tid;
@@ -303,7 +303,7 @@ MPP_RET mpp_dump_init(MppDump *info)
     mpp_env_get_u32("mpp_dump_height", &p->dump_height, 0);
     p->dump_size = p->dump_width * p->dump_height * 3 / 2;
 
-    p->lock = new Mutex();
+    mpp_mutex_init(&p->lock);
     p->debug = mpp_debug;
     p->tid = syscall(SYS_gettid);
     p->log_version = 0;
@@ -324,10 +324,7 @@ MPP_RET mpp_dump_deinit(MppDump *info)
         MPP_FCLOSE(p->fp_ops);
         MPP_FREE(p->fp_buf);
 
-        if (p->lock) {
-            delete p->lock;
-            p->lock = NULL;
-        }
+        mpp_mutex_destroy(&p->lock);
     }
 
     return MPP_OK;
@@ -335,11 +332,12 @@ MPP_RET mpp_dump_deinit(MppDump *info)
 
 MPP_RET mpp_ops_init(MppDump info, MppCtxType type, MppCodingType coding)
 {
+    MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == info)
         return MPP_OK;
 
-    MppDumpImpl *p = (MppDumpImpl *)info;
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     p->type = type;
     p->coding = coding;
@@ -373,6 +371,8 @@ MPP_RET mpp_ops_init(MppDump info, MppCtxType type, MppCodingType coding)
     if (p->fp_ops)
         ops_log(p->fp_ops, "%d,%s,%d,%d\n", p->idx++, "init", type, coding);
 
+    mpp_mutex_unlock(&p->lock);
+
     return MPP_OK;
 }
 
@@ -383,7 +383,8 @@ MPP_RET mpp_ops_dec_put_pkt(MppDump info, MppPacket pkt)
         return MPP_OK;
 
     RK_U32 length = mpp_packet_get_length(pkt);
-    AutoMutex auto_lock(p->lock);
+
+    mpp_mutex_lock(&p->lock);
 
     if (p->fp_in) {
         fwrite(mpp_packet_get_data(pkt), 1, length, p->fp_in);
@@ -396,16 +397,19 @@ MPP_RET mpp_ops_dec_put_pkt(MppDump info, MppPacket pkt)
         p->pkt_offset += length;
     }
 
+    mpp_mutex_unlock(&p->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == p || NULL == frame || NULL == p->fp_out)
         return MPP_OK;
 
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     MppBuffer buf = mpp_frame_get_buffer(frame);
     RK_S32 fd = (buf) ? mpp_buffer_get_fd(buf) : (-1);
@@ -420,6 +424,7 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 
     if (NULL == buf || fd < 0) {
         mpp_err("failed to dump frame\n");
+        mpp_mutex_unlock(&p->lock);
         return MPP_NOK;
     }
 
@@ -432,6 +437,7 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 
         mpp_log("yuv_info: [%d:%d] pts %lld", width, height, pts);
     }
+    mpp_mutex_unlock(&p->lock);
 
     return MPP_OK;
 }
@@ -439,10 +445,11 @@ MPP_RET mpp_ops_dec_get_frm(MppDump info, MppFrame frame)
 MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == p || NULL == frame || NULL == p->fp_in)
         return MPP_OK;
 
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     dump_frame(p->fp_in, frame, p->fp_buf, p->dump_width, p->dump_height);
 
@@ -454,22 +461,27 @@ MPP_RET mpp_ops_enc_put_frm(MppDump info, MppFrame frame)
         mpp_log("yuv_info: [%d:%d] pts %lld", width, height, pts);
     }
 
+    mpp_mutex_unlock(&p->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_ops_enc_get_pkt(MppDump info, MppPacket pkt)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == p || NULL == pkt)
         return MPP_OK;
 
     RK_U32 length = mpp_packet_get_length(pkt);
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     if (p->fp_out) {
         fwrite(mpp_packet_get_data(pkt), 1, length, p->fp_out);
         fflush(p->fp_out);
     }
+
+    mpp_mutex_unlock(&p->lock);
 
     return MPP_OK;
 }
@@ -477,13 +489,15 @@ MPP_RET mpp_ops_enc_get_pkt(MppDump info, MppPacket pkt)
 MPP_RET mpp_ops_ctrl(MppDump info, MpiCmd cmd)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == p)
         return MPP_OK;
 
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     if (p->fp_ops)
         ops_log(p->fp_ops, "%d,%s,%d\n", p->idx, "ctrl", cmd);
+    mpp_mutex_unlock(&p->lock);
 
     return MPP_OK;
 }
@@ -491,13 +505,15 @@ MPP_RET mpp_ops_ctrl(MppDump info, MpiCmd cmd)
 MPP_RET mpp_ops_reset(MppDump info)
 {
     MppDumpImpl *p = (MppDumpImpl *)info;
+
     if (NULL == p)
         return MPP_OK;
 
-    AutoMutex auto_lock(p->lock);
+    mpp_mutex_lock(&p->lock);
 
     if (p->fp_ops)
         ops_log(p->fp_ops, "%d,%s\n", p->idx, "rst");
+    mpp_mutex_unlock(&p->lock);
 
     return MPP_OK;
 }

@@ -100,7 +100,7 @@ typedef struct MppEncImpl_t {
     MppBuffer           md_info;
 
     // internal status and protection
-    Mutex               lock;
+    MppMutex            lock;
     RK_U32              reset_flag;
     sem_t               enc_reset;
 

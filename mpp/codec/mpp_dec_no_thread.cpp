@@ -34,12 +34,12 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     MppBufSlots frame_slots = dec->frame_slots;
     MppBufSlots packet_slots = dec->packet_slots;
     HalDecTask  *task_dec = &task->info.dec;
-    MppMutexCond *cmd_lock = dec->cmd_lock;
+    MppMutexCond *cmd_lock = &dec->cmd_lock;
     MppPacket input = dec->mpp_pkt_in;
     size_t stream_size = 0;
     RK_S32 output = 0;
 
-    AutoMutex auto_lock(cmd_lock->mutex());
+    mpp_mutex_cond_lock(cmd_lock);
 
     /*
      * 1. task no ready and last packet is done try process new input packet
@@ -47,8 +47,10 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     if (input == NULL && !status->curr_task_rdy) {
         input = packet;
 
-        if (input == NULL)
+        if (input == NULL) {
+            mpp_mutex_cond_unlock(cmd_lock);
             return MPP_OK;
+        }
     }
 
     if (input)
@@ -93,6 +95,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
             mpp_dec_put_frame(mpp, -1, task_dec->flags);
             output++;
         }
+        mpp_mutex_cond_unlock(cmd_lock);
         return (MPP_RET)output;
     }
 
@@ -209,6 +212,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         task->hal_pkt_buf_in  = NULL;
 
         dec_dbg_detail("detail: %p parse return no task with output %d\n", dec, output);
+        mpp_mutex_cond_unlock(cmd_lock);
         return (MPP_RET)output;
     }
     dec_dbg_detail("detail: %p check output index pass\n", dec);
@@ -232,6 +236,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
             status->info_task_gen_rdy = 1;
             dec_dbg_detail("detail: %p info change found return frame %d\n",
                            dec, output);
+            mpp_mutex_cond_unlock(cmd_lock);
             return (MPP_RET)output;
         }
         dec->info_updated = 0;
@@ -239,6 +244,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
 
     task->wait.info_change = mpp_buf_slot_is_changed(frame_slots);
     if (task->wait.info_change) {
+        mpp_mutex_cond_unlock(cmd_lock);
         return MPP_OK;
     } else {
         status->info_task_gen_rdy = 0;
@@ -258,8 +264,9 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
         // NOTE: When dec post-process is enabled reserve 2 buffer for it.
         task->wait.dec_pic_unusd = (dec->vproc) ? (unused < 3) : (unused < 1);
         if (task->wait.dec_pic_unusd) {
-            cmd_lock->wait();
+            mpp_mutex_cond_wait(cmd_lock);
             /* return here and process all the flow again */
+            mpp_mutex_cond_unlock(cmd_lock);
             return MPP_OK;
         }
     }
@@ -304,8 +311,10 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     }
 
     task->wait.dec_pic_match = (NULL == task->hal_frm_buf_out);
-    if (task->wait.dec_pic_match)
+    if (task->wait.dec_pic_match) {
+        mpp_mutex_cond_unlock(cmd_lock);
         return MPP_NOK;
+    }
 
     mpp_hal_reg_gen(dec->hal, &task->info);
     mpp_hal_hw_start(dec->hal, &task->info);
@@ -341,6 +350,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     dec_task_info_init(&task->info);
     task->hal_pkt_buf_in  = NULL;
     task->hal_frm_buf_out = NULL;
+    mpp_mutex_cond_unlock(cmd_lock);
 
     return (MPP_RET)output;
 }
@@ -349,11 +359,11 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
 {
     DecTask *task = (DecTask *)dec->task_single;
     MppBufSlots frame_slots  = dec->frame_slots;
-    MppMutexCond *cmd_lock = dec->cmd_lock;
+    MppMutexCond *cmd_lock = &dec->cmd_lock;
     HalDecTask *task_dec = &task->info.dec;
     RK_S32 index;
 
-    AutoMutex auto_lock(cmd_lock->mutex());
+    mpp_mutex_cond_lock(cmd_lock);
 
     task->status.curr_task_rdy = 0;
     task->status.prev_task_rdy = 1;
@@ -414,7 +424,8 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
     dec->dec_out_frame_count = 0;
     dec->info_updated = 0;
 
-    cmd_lock->signal();
+    mpp_mutex_cond_signal(cmd_lock);
+    mpp_mutex_cond_unlock(cmd_lock);
 
     return MPP_OK;
 }
@@ -423,9 +434,7 @@ MPP_RET mpp_dec_notify_no_thread(MppDecImpl *dec, RK_U32 flag)
 {
     // Only notify buffer group control
     if (flag == (MPP_DEC_NOTIFY_BUFFER_VALID | MPP_DEC_NOTIFY_BUFFER_MATCH)) {
-        MppMutexCond *cmd_lock = dec->cmd_lock;
-
-        cmd_lock->signal();
+        mpp_mutex_cond_signal(&dec->cmd_lock);
         return MPP_OK;
     }
 
@@ -435,10 +444,14 @@ MPP_RET mpp_dec_notify_no_thread(MppDecImpl *dec, RK_U32 flag)
 MPP_RET mpp_dec_control_no_thread(MppDecImpl *dec, MpiCmd cmd, void *param)
 {
     // cmd_lock is used to sync all async operations
-    AutoMutex auto_lock(dec->cmd_lock->mutex());
+    MPP_RET ret = MPP_NOK;
 
+    mpp_mutex_cond_lock(&dec->cmd_lock);
     dec->cmd_send++;
-    return mpp_dec_proc_cfg(dec, cmd, param);
+    ret = mpp_dec_proc_cfg(dec, cmd, param);
+    mpp_mutex_cond_unlock(&dec->cmd_lock);
+
+    return ret;
 }
 
 MppDecModeApi dec_api_no_thread = {

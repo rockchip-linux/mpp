@@ -147,10 +147,10 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
 
     mpp_assert(hal);
 
-    hal->lock();
+    mpp_thread_lock(hal, THREAD_WORK);
     dec->hal_reset_post++;
-    hal->signal();
-    hal->unlock();
+    mpp_thread_signal(hal, THREAD_WORK);
+    mpp_thread_unlock(hal, THREAD_WORK);
 
     sem_wait(&dec->hal_reset);
 
@@ -242,11 +242,11 @@ static void mpp_dec_put_task(Mpp *mpp, DecTask *task)
     MppDecImpl *dec = (MppDecImpl *)mpp->mDec;
 
     hal_task_hnd_set_info(task->hnd, &task->info);
-    dec->thread_hal->lock();
+    mpp_thread_lock(dec->thread_hal, THREAD_WORK);
     hal_task_hnd_set_status(task->hnd, TASK_PROCESSING);
     mpp->mTaskPutCount++;
-    dec->thread_hal->signal();
-    dec->thread_hal->unlock();
+    mpp_thread_signal(dec->thread_hal, THREAD_WORK);
+    mpp_thread_unlock(dec->thread_hal, THREAD_WORK);
     task->hnd = NULL;
 }
 
@@ -263,7 +263,7 @@ static void reset_hal_thread(Mpp *mpp)
     flag.val = 0;
     mpp_dec_flush(dec);
 
-    dec->thread_hal->lock(THREAD_OUTPUT);
+    mpp_thread_lock(dec->thread_hal, THREAD_OUTPUT);
     while (MPP_OK == mpp_buf_slot_dequeue(frame_slots, &index, QUEUE_DISPLAY)) {
         mpp_dec_put_frame(mpp, index, flag);
         mpp_buf_slot_clr_flag(frame_slots, index, SLOT_QUEUE_USE);
@@ -277,7 +277,7 @@ static void reset_hal_thread(Mpp *mpp)
         }
     }
 
-    dec->thread_hal->unlock(THREAD_OUTPUT);
+    mpp_thread_unlock(dec->thread_hal, THREAD_OUTPUT);
 }
 
 static MPP_RET try_get_input_packet(Mpp *mpp, DecTask *task)
@@ -482,7 +482,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
     /* too many frame delay in dispaly queue */
     if (mpp->mFrmOut) {
-        task->wait.dis_que_full = (mpp->mFrmOut->list_size() > 4) ? 1 : 0;
+        task->wait.dis_que_full = (mpp_list_size(mpp->mFrmOut) > 4) ? 1 : 0;
         if (task->wait.dis_que_full)
             return MPP_ERR_DISPLAY_FULL;
     }
@@ -708,24 +708,25 @@ void *mpp_dec_parser_thread(void *data)
     mpp_clock_start(dec->clocks[DEC_PRS_TOTAL]);
 
     while (1) {
-        {
-            AutoMutex autolock(parser->mutex());
-            if (MPP_THREAD_RUNNING != parser->get_status())
-                break;
-
-            /*
-             * parser thread need to wait at cases below:
-             * 1. no task slot for output
-             * 2. no packet for parsing
-             * 3. info change on progress
-             * 3. no buffer on analyzing output task
-             */
-            if (check_task_wait(dec, &task)) {
-                mpp_clock_start(dec->clocks[DEC_PRS_WAIT]);
-                parser->wait();
-                mpp_clock_pause(dec->clocks[DEC_PRS_WAIT]);
-            }
+        mpp_thread_lock(parser, THREAD_WORK);
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(parser, THREAD_WORK)) {
+            mpp_thread_unlock(parser, THREAD_WORK);
+            break;
         }
+
+        /*
+         * parser thread need to wait at cases below:
+         * 1. no task slot for output
+         * 2. no packet for parsing
+         * 3. info change on progress
+         * 3. no buffer on analyzing output task
+         */
+        if (check_task_wait(dec, &task)) {
+            mpp_clock_start(dec->clocks[DEC_PRS_WAIT]);
+            mpp_thread_wait(parser, THREAD_WORK);
+            mpp_clock_pause(dec->clocks[DEC_PRS_WAIT]);
+        }
+        mpp_thread_unlock(parser, THREAD_WORK);
 
         // process user control
         if (dec->cmd_send != dec->cmd_recv) {
@@ -746,9 +747,10 @@ void *mpp_dec_parser_thread(void *data)
         if (dec->reset_flag) {
             reset_parser_thread(mpp, &task);
 
-            AutoMutex autolock(parser->mutex(THREAD_CONTROL));
+            mpp_thread_lock(parser, THREAD_CONTROL);
             dec->reset_flag = 0;
             sem_post(&dec->parser_reset);
+            mpp_thread_unlock(parser, THREAD_CONTROL);
             continue;
         }
 
@@ -790,29 +792,32 @@ void *mpp_dec_hal_thread(void *data)
 
     while (1) {
         /* hal thread wait for dxva interface intput first */
-        {
-            AutoMutex work_lock(hal->mutex());
-            if (MPP_THREAD_RUNNING != hal->get_status())
-                break;
+        mpp_thread_lock(hal, THREAD_WORK);
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(hal, THREAD_WORK)) {
+            mpp_thread_unlock(hal, THREAD_WORK);
+            break;
+        }
 
-            if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
-                // process all task then do reset process
-                if (dec->hal_reset_post != dec->hal_reset_done) {
-                    dec_dbg_reset("reset: hal reset start\n");
-                    reset_hal_thread(mpp);
-                    dec_dbg_reset("reset: hal reset done\n");
-                    dec->hal_reset_done++;
-                    sem_post(&dec->hal_reset);
-                    continue;
-                }
-
-                mpp_dec_notify(dec, MPP_DEC_NOTIFY_TASK_ALL_DONE);
-                mpp_clock_start(dec->clocks[DEC_HAL_WAIT]);
-                hal->wait();
-                mpp_clock_pause(dec->clocks[DEC_HAL_WAIT]);
+        if (hal_task_get_hnd(tasks, TASK_PROCESSING, &task)) {
+            // process all task then do reset process
+            if (dec->hal_reset_post != dec->hal_reset_done) {
+                dec_dbg_reset("reset: hal reset start\n");
+                reset_hal_thread(mpp);
+                dec_dbg_reset("reset: hal reset done\n");
+                dec->hal_reset_done++;
+                sem_post(&dec->hal_reset);
+                mpp_thread_unlock(hal, THREAD_WORK);
                 continue;
             }
+
+            mpp_dec_notify(dec, MPP_DEC_NOTIFY_TASK_ALL_DONE);
+            mpp_clock_start(dec->clocks[DEC_HAL_WAIT]);
+            mpp_thread_wait(hal, THREAD_WORK);
+            mpp_clock_pause(dec->clocks[DEC_HAL_WAIT]);
+            mpp_thread_unlock(hal, THREAD_WORK);
+            continue;
         }
+        mpp_thread_unlock(hal, THREAD_WORK);
 
         if (task) {
             RK_U32 notify_flag = MPP_DEC_NOTIFY_TASK_HND_VALID;
@@ -930,14 +935,15 @@ void *mpp_dec_advanced_thread(void *data)
     MppPacket packet = NULL;
 
     while (1) {
-        {
-            AutoMutex autolock(thd_dec->mutex());
-            if (MPP_THREAD_RUNNING != thd_dec->get_status())
-                break;
-
-            if (check_task_wait(dec, &task))
-                thd_dec->wait();
+        mpp_thread_lock(thd_dec, THREAD_WORK);
+        if (MPP_THREAD_RUNNING != mpp_thread_get_status(thd_dec, THREAD_WORK)) {
+            mpp_thread_unlock(thd_dec, THREAD_WORK);
+            break;
         }
+
+        if (check_task_wait(dec, &task))
+            mpp_thread_wait(thd_dec, THREAD_WORK);
+        mpp_thread_unlock(thd_dec, THREAD_WORK);
 
         // process user control
         if (dec->cmd_send != dec->cmd_recv) {
@@ -1094,7 +1100,7 @@ void *mpp_dec_advanced_thread(void *data)
          */
     DEC_OUT:
         if (task.status.mpp_in_frm_at_pkt) {
-            mpp_list *list = mpp->mFrmOut;
+            MppList *list = mpp->mFrmOut;
             MppMeta meta = mpp_frame_get_meta(frame);
 
             if (meta)
@@ -1102,11 +1108,11 @@ void *mpp_dec_advanced_thread(void *data)
 
             mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(frame));
 
-            list->lock();
-            list->add_at_tail(&frame, sizeof(frame));
+            mpp_mutex_cond_lock(&list->cond_lock);
+            mpp_list_add_at_tail(list, &frame, sizeof(frame));
             mpp->mFramePutCount++;
-            list->signal();
-            list->unlock();
+            mpp_list_signal(list);
+            mpp_mutex_cond_unlock(&list->cond_lock);
 
             mpp_port_enqueue(input, mpp_task);
             mpp_task = NULL;
@@ -1147,17 +1153,17 @@ void *mpp_dec_advanced_thread(void *data)
 MPP_RET mpp_dec_start_normal(MppDecImpl *dec)
 {
     if (dec->coding != MPP_VIDEO_CodingMJPEG) {
-        dec->thread_parser = new MppThread(mpp_dec_parser_thread,
-                                           dec->mpp, "mpp_dec_parser");
-        dec->thread_parser->start();
-        dec->thread_hal = new MppThread(mpp_dec_hal_thread,
-                                        dec->mpp, "mpp_dec_hal");
+        dec->thread_parser = mpp_thread_create(mpp_dec_parser_thread,
+                                               dec->mpp, "mpp_dec_parser");
+        mpp_thread_start(dec->thread_parser);
+        dec->thread_hal = mpp_thread_create(mpp_dec_hal_thread,
+                                            dec->mpp, "mpp_dec_hal");
 
-        dec->thread_hal->start();
+        mpp_thread_start(dec->thread_hal);
     } else {
-        dec->thread_parser = new MppThread(mpp_dec_advanced_thread,
-                                           dec->mpp, "mpp_dec_parser");
-        dec->thread_parser->start();
+        dec->thread_parser = mpp_thread_create(mpp_dec_advanced_thread,
+                                               dec->mpp, "mpp_dec_parser");
+        mpp_thread_start(dec->thread_parser);
     }
 
     return MPP_OK;
@@ -1169,11 +1175,11 @@ MPP_RET mpp_dec_reset_normal(MppDecImpl *dec)
 
     if (dec->coding != MPP_VIDEO_CodingMJPEG) {
         // set reset flag
-        parser->lock(THREAD_CONTROL);
+        mpp_thread_lock(parser, THREAD_CONTROL);
         dec->reset_flag = 1;
         // signal parser thread to reset
         mpp_dec_notify(dec, MPP_DEC_RESET);
-        parser->unlock(THREAD_CONTROL);
+        mpp_thread_unlock(parser, THREAD_CONTROL);
         sem_wait(&dec->parser_reset);
     }
 
@@ -1193,7 +1199,7 @@ MPP_RET mpp_dec_notify_normal(MppDecImpl *dec, RK_U32 flag)
     if (!thd_dec)
         return MPP_NOK;
 
-    thd_dec->lock();
+    mpp_thread_lock(thd_dec, THREAD_WORK);
     if (flag == MPP_DEC_CONTROL) {
         dec->parser_notify_flag |= flag;
         notify = 1;
@@ -1209,9 +1215,9 @@ MPP_RET mpp_dec_notify_normal(MppDecImpl *dec, RK_U32 flag)
     if (notify) {
         dec_dbg_notify("%p status %08x notify control signal\n", dec,
                        dec->parser_wait_flag, dec->parser_notify_flag);
-        thd_dec->signal();
+        mpp_thread_signal(thd_dec, THREAD_WORK);
     }
-    thd_dec->unlock();
+    mpp_thread_unlock(thd_dec, THREAD_WORK);
 
     return MPP_OK;
 }
@@ -1219,7 +1225,7 @@ MPP_RET mpp_dec_notify_normal(MppDecImpl *dec, RK_U32 flag)
 MPP_RET mpp_dec_control_normal(MppDecImpl *dec, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
-    AutoMutex auto_lock(dec->cmd_lock->mutex());
+    mpp_mutex_cond_lock(&dec->cmd_lock);
 
     dec->cmd = cmd;
     dec->param = param;
@@ -1232,6 +1238,7 @@ MPP_RET mpp_dec_control_normal(MppDecImpl *dec, MpiCmd cmd, void *param)
     mpp_dec_notify_normal(dec, MPP_DEC_CONTROL);
     sem_post(&dec->cmd_start);
     sem_wait(&dec->cmd_done);
+    mpp_mutex_cond_unlock(&dec->cmd_lock);
 
     return ret;
 }

@@ -201,7 +201,7 @@ struct MppBufSlotEntry_t {
 };
 
 struct MppBufSlotsImpl_t {
-    Mutex               *lock;
+    MppMutex            lock;
     RK_U32              slots_idx;
 
     // status tracing
@@ -385,8 +385,6 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
     info_set->v_stride = hal_ver_stride;
     info_set->h_stride_by_pixel = hor_stride_pixel;
     info_set->size_total = size;
-
-    return;
 }
 
 static void prepare_info_set_by_sys_cfg(MppBufSlotsImpl *impl, MppFrame frame,
@@ -589,8 +587,8 @@ static void buf_slot_logs_dump(MppBufSlotLogs *logs)
 
 static void _dump_slots(const char *caller, MppBufSlotsImpl *impl)
 {
-    RK_S32 i;
     MppBufSlotEntry *slot = impl->slots;
+    RK_S32 i;
 
     mpp_log("\ncaller %s is dumping slots\n", caller, impl->slots_idx);
     mpp_log("slots %d %p buffer count %d buffer size %d\n", impl->slots_idx,
@@ -728,7 +726,9 @@ static void slot_ops_with_log(MppBufSlotsImpl *impl, MppBufSlotEntry *slot, MppB
 static void init_slot_entry(MppBufSlotsImpl *impl, RK_S32 pos, RK_S32 count)
 {
     MppBufSlotEntry *slot = impl->slots;
-    for (RK_S32 i = 0; i < count; i++, slot++) {
+    RK_S32 i;
+
+    for (i = 0; i < count; i++, slot++) {
         slot->slots = impl;
         INIT_LIST_HEAD(&slot->list);
         slot->index = pos + i;
@@ -807,8 +807,7 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
         impl->logs = NULL;
     }
 
-    if (impl->lock)
-        delete impl->lock;
+    mpp_mutex_destroy(&impl->lock);
 
     mpp_free(impl->slots);
     mpp_free(impl);
@@ -816,12 +815,15 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
 
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl;
+
+    if (!slots) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
-    MppBufSlotsImpl *impl = mpp_calloc(MppBufSlotsImpl, 1);
-    if (NULL == impl) {
+
+    impl = mpp_calloc(MppBufSlotsImpl, 1);
+    if (!impl) {
         *slots = NULL;
         return MPP_NOK;
     }
@@ -836,9 +838,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
             break;
         }
 
-        impl->lock = new Mutex();
-        if (NULL == impl->lock)
-            break;
+        mpp_mutex_init(&impl->lock);
 
         for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
             INIT_LIST_HEAD(&impl->queue[i]);
@@ -846,7 +846,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 
         if (buf_slot_debug & BUF_SLOT_DBG_OPS_HISTORY) {
             impl->logs = buf_slot_logs_init(SLOT_OPS_MAX_COUNT);
-            if (NULL == impl->logs)
+            if (!impl->logs)
                 break;
         }
 
@@ -879,7 +879,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 
 MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    if (!slots) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
@@ -890,17 +890,18 @@ MPP_RET mpp_buf_slot_deinit(MppBufSlots slots)
 
 MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p setup: count %d\n", slots, count);
+    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p setup: count %d\n", impl, count);
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
 
-    if (NULL == impl->slots) {
+    if (!impl->slots) {
         // first slot setup
         impl->buf_count = impl->new_count = count;
         impl->slots = mpp_calloc(MppBufSlotEntry, count);
@@ -916,32 +917,41 @@ MPP_RET mpp_buf_slot_setup(MppBufSlots slots, RK_S32 count)
         impl->new_count = count;
     }
 
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 RK_U32 mpp_buf_slot_is_changed(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    RK_U32 info_changed = 0;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return 0;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    return impl->info_changed;
+    mpp_mutex_lock(&impl->lock);
+    info_changed = impl->info_changed;
+    mpp_mutex_unlock(&impl->lock);
+
+    return info_changed;
 }
 
 MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p is ready now\n", slots);
+    buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p is ready now\n", impl);
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, impl->slots);
     if (!impl->info_changed)
         mpp_log("found info change ready set without internal info change\n");
@@ -961,64 +971,84 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
 
     impl->info_changed = 0;
     impl->info_change_slot_idx = -1;
+
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 size_t mpp_buf_slot_get_size(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    size_t size = 0;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return 0;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    return impl->buf_size;
+    mpp_mutex_lock(&impl->lock);
+    size = impl->buf_size;
+    mpp_mutex_unlock(&impl->lock);
+
+    return size;
 }
 
 RK_S32 mpp_buf_slot_get_count(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    size_t count = 0;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return -1;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    return impl->buf_count;
+    mpp_mutex_lock(&impl->lock);
+    count = impl->buf_count;
+    mpp_mutex_unlock(&impl->lock);
+
+    return count;
 }
 
 MPP_RET mpp_buf_slot_set_callback(MppBufSlots slots, MppCbCtx *cb_ctx)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_NOK;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-
+    mpp_mutex_lock(&impl->lock);
     impl->callback = *cb_ctx;
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
 {
-    if (NULL == slots || NULL == index) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+    RK_S32 i;
+
+    if (!impl || !index) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    RK_S32 i;
-    MppBufSlotEntry *slot = impl->slots;
+    slot = impl->slots;
+
+    mpp_mutex_lock(&impl->lock);
+
     for (i = 0; i < impl->buf_count; i++, slot++) {
         if (!slot->status.on_used) {
             *index = i;
             slot_ops_with_log(impl, slot, SLOT_SET_ON_USE, NULL);
             slot_ops_with_log(impl, slot, SLOT_SET_NOT_READY, NULL);
             impl->used_count++;
+            mpp_mutex_unlock(&impl->lock);
             return MPP_OK;
         }
     }
@@ -1027,43 +1057,54 @@ MPP_RET mpp_buf_slot_get_unused(MppBufSlots slots, RK_S32 *index)
     mpp_err_f("failed to get a unused slot\n");
     dump_slots(impl);
     slot_assert(impl, 0);
+
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_NOK;
 }
 
 MPP_RET mpp_buf_slot_set_flag(MppBufSlots slots, RK_S32 index, SlotUsageType type)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     slot_ops_with_log(impl, &impl->slots[index], set_flag_op[type], NULL);
+
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType type)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+    RK_S32 unused = 0;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    RK_S32 unused = 0;
-    {
-        AutoMutex auto_lock(impl->lock);
-        slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-        MppBufSlotEntry *slot = &impl->slots[index];
-        slot_ops_with_log(impl, slot, clr_flag_op[type], NULL);
+    mpp_mutex_lock(&impl->lock);
 
-        if (type == SLOT_HAL_OUTPUT)
-            impl->decode_count++;
+    slot_assert(impl, (index >= 0) && (index < impl->buf_count));
+    slot = &impl->slots[index];
+    slot_ops_with_log(impl, slot, clr_flag_op[type], NULL);
 
-        unused = check_entry_unused(impl, slot);
-    }
+    if (type == SLOT_HAL_OUTPUT)
+        impl->decode_count++;
+
+    unused = check_entry_unused(impl, slot);
+
+    mpp_mutex_unlock(&impl->lock);
 
     if (unused)
         mpp_callback(&impl->callback, impl);
@@ -1072,38 +1113,51 @@ MPP_RET mpp_buf_slot_clr_flag(MppBufSlots slots, RK_S32 index, SlotUsageType typ
 
 MPP_RET mpp_buf_slot_enqueue(MppBufSlots slots, RK_S32 index, SlotQueueType type)
 {
-    if (NULL == slots) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+
+    if (!impl) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    MppBufSlotEntry *slot = &impl->slots[index];
+    slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, (MppBufSlotOps)(SLOT_ENQUEUE + type), NULL);
 
     // add slot to display list
     list_del_init(&slot->list);
     list_add_tail(&slot->list, &impl->queue[type]);
+
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType type)
 {
-    if (NULL == slots || NULL == index) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+
+    if (!impl || !index) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    if (list_empty(&impl->queue[type]))
-        return MPP_NOK;
+    mpp_mutex_lock(&impl->lock);
 
-    MppBufSlotEntry *slot = list_entry(impl->queue[type].next, MppBufSlotEntry, list);
-    if (slot->status.not_ready)
+    if (list_empty(&impl->queue[type])) {
+        mpp_mutex_unlock(&impl->lock);
         return MPP_NOK;
+    }
+
+    slot = list_entry(impl->queue[type].next, MppBufSlotEntry, list);
+    if (slot->status.not_ready) {
+        mpp_mutex_unlock(&impl->lock);
+        return MPP_NOK;
+    }
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
@@ -1112,31 +1166,39 @@ MPP_RET mpp_buf_slot_dequeue(MppBufSlots slots, RK_S32 *index, SlotQueueType typ
     impl->display_count++;
     *index = slot->index;
 
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val)
 {
-    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+
+    if (!impl || !val || type >= SLOT_PROP_BUTT) {
         mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
         return MPP_ERR_UNKNOW;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    MppBufSlotEntry *slot = &impl->slots[index];
+    slot = &impl->slots[index];
     slot_ops_with_log(impl, slot, set_val_op[type], val);
 
     switch (type) {
     case SLOT_EOS: {
         RK_U32 eos = *(RK_U32*)val;
+
         slot->eos = eos;
         if (slot->frame)
             mpp_frame_set_eos(slot->frame, eos);
     } break;
     case SLOT_FRAME: {
         MppFrame frame = val;
+        MppFrameImpl *src;
+        MppFrameImpl *dst;
 
         slot_assert(impl, slot->status.not_ready);
         /*
@@ -1150,11 +1212,11 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
          */
         generate_info_set(impl, frame, 0);
 
-        if (NULL == slot->frame)
+        if (!slot->frame)
             mpp_frame_init(&slot->frame);
 
-        MppFrameImpl *src = (MppFrameImpl *)frame;
-        MppFrameImpl *dst = (MppFrameImpl *)slot->frame;
+        src = (MppFrameImpl *)frame;
+        dst = (MppFrameImpl *)slot->frame;
         mpp_frame_copy(dst, src);
         // NOTE: stride from codec need to be change to hal stride
         //       hor_stride and ver_stride can not be zero
@@ -1188,9 +1250,10 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_BUFFER: {
         MppBuffer buffer = val;
+
         if (slot->buffer) {
             // NOTE: reset buffer only on stream buffer slot
-            slot_assert(impl, NULL == slot->frame);
+            slot_assert(impl, !slot->frame);
             mpp_buffer_put(slot->buffer);
         }
         mpp_buffer_inc_ref(buffer);
@@ -1203,20 +1266,25 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     }
 
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type, void *val)
 {
-    if (NULL == slots || NULL == val || type >= SLOT_PROP_BUTT) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+
+    if (!impl || !val || type >= SLOT_PROP_BUTT) {
         mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
         return MPP_ERR_UNKNOW;
     }
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    MppBufSlotEntry *slot = &impl->slots[index];
+    slot = &impl->slots[index];
 
     switch (type) {
     case SLOT_EOS: {
@@ -1228,7 +1296,7 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
 
         mpp_assert(slot->status.has_frame);
         if (slot->status.has_frame) {
-            if (NULL == *frame )
+            if (!*frame )
                 mpp_frame_init(frame);
             if (*frame)
                 mpp_frame_copy(*frame, slot->frame);
@@ -1237,59 +1305,69 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
     } break;
     case SLOT_FRAME_PTR: {
         MppFrame *frame = (MppFrame *)val;
+
         mpp_assert(slot->status.has_frame);
         *frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
     } break;
     case SLOT_BUFFER: {
         MppBuffer *buffer = (MppBuffer *)val;
+
         *buffer = (slot->status.has_buffer) ? (slot->buffer) : (NULL);
     } break;
     default : {
     } break;
     }
 
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_reset(MppBufSlots slots, RK_S32 index)
 {
-    if (NULL == slots || index < 0) {
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+    MppBufSlotEntry *slot;
+
+    if (!impl || index < 0) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     buf_slot_dbg(BUF_SLOT_DBG_SETUP, "slot %p reset index %d\n", slots, index);
 
-    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
+
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
-    MppBufSlotEntry *slot = &impl->slots[index];
+    slot = &impl->slots[index];
 
     // make sure that this slot is just the next display slot
     list_del_init(&slot->list);
     slot_ops_with_log(impl, slot, SLOT_CLR_QUEUE_USE, NULL);
     slot_ops_with_log(impl, slot, SLOT_DEQUEUE, NULL);
     slot_ops_with_log(impl, slot, SLOT_CLR_ON_USE, NULL);
+
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 MPP_RET mpp_buf_slot_default_info(MppBufSlots slots, RK_S32 index, void *val)
 {
-    if (NULL == slots || index < 0) {
+    if (!slots || index < 0) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
     slot_assert(impl, (index >= 0) && (index < impl->buf_count));
     MppBufSlotEntry *slot = &impl->slots[index];
 
     slot_assert(impl, slot->status.not_ready);
-    slot_assert(impl, NULL == slot->frame);
+    slot_assert(impl, !slot->frame);
     slot_assert(impl, impl->info_set);
 
-    if (NULL == slot->frame) {
+    if (!slot->frame) {
         mpp_frame_init(&slot->frame);
         mpp_frame_copy(slot->frame, impl->info_set);
     }
@@ -1299,54 +1377,68 @@ MPP_RET mpp_buf_slot_default_info(MppBufSlots slots, RK_S32 index, void *val)
 
     slot_ops_with_log(impl, slot, SLOT_CLR_NOT_READY, NULL);
     slot_ops_with_log(impl, slot, SLOT_SET_FRAME, slot->frame);
+    mpp_mutex_unlock(&impl->lock);
+
     return MPP_OK;
 }
 
 RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type)
 {
-    if (NULL == slots) {
+    RK_U32 is_empty = 0;
+    if (!slots) {
         mpp_err_f("found NULL input\n");
         return 0;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    return list_empty(&impl->queue[type]) ? 1 : 0;
+    mpp_mutex_lock(&impl->lock);
+    is_empty = list_empty(&impl->queue[type]) ? 1 : 0;
+    mpp_mutex_unlock(&impl->lock);
+
+    return is_empty;
 }
 
 RK_S32 mpp_slots_get_used_count(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    RK_S32 used_count = 0;
+    if (!slots) {
         mpp_err_f("found NULL input\n");
         return 0;
     }
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
-    return impl->used_count;
+    mpp_mutex_lock(&impl->lock);
+    used_count = impl->used_count;
+    mpp_mutex_unlock(&impl->lock);
+
+    return used_count;
 }
 
 RK_S32 mpp_slots_get_unused_count(MppBufSlots slots)
 {
-    if (NULL == slots) {
+    RK_S32 unused_count = 0;
+    if (!slots) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
     slot_assert(impl, (impl->used_count >= 0) && (impl->used_count <= impl->buf_count));
-    return impl->buf_count - impl->used_count;
+    unused_count = impl->buf_count - impl->used_count;
+    mpp_mutex_unlock(&impl->lock);
+
+    return unused_count;
 }
 
 MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
 {
-    if (NULL == slots || NULL == val || type >= SLOTS_PROP_BUTT) {
+    if (!slots || !val || type >= SLOTS_PROP_BUTT) {
         mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
         return MPP_ERR_UNKNOW;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
     RK_U32 value = *((RK_U32*)val);
     switch (type) {
     case SLOTS_EOS: {
@@ -1414,19 +1506,20 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
     default : {
     } break;
     }
+    mpp_mutex_unlock(&impl->lock);
 
     return MPP_OK;
 }
 
 MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
 {
-    if (NULL == slots || NULL == val || type >= SLOTS_PROP_BUTT) {
+    if (!slots || !val || type >= SLOTS_PROP_BUTT) {
         mpp_err_f("found invalid input slots %p type %d val %p\n", slots, type, val);
         return MPP_NOK;
     }
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
-    AutoMutex auto_lock(impl->lock);
+    mpp_mutex_lock(&impl->lock);
     MPP_RET ret = MPP_OK;
 
     switch (type) {
@@ -1449,6 +1542,7 @@ MPP_RET mpp_slots_get_prop(MppBufSlots slots, SlotsPropType type, void *val)
         ret = MPP_NOK;
     } break;
     }
+    mpp_mutex_unlock(&impl->lock);
 
     return ret;
 }

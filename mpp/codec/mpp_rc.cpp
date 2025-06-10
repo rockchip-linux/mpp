@@ -21,6 +21,7 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_rc.h"
 
