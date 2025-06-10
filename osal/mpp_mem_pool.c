@@ -1,28 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2021 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_mem_pool"
 
 #include <string.h>
 
-#include "mpp_err.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_list.h"
 #include "mpp_debug.h"
+#include "mpp_singleton.h"
 
 #include "mpp_mem_pool.h"
 
@@ -33,7 +22,22 @@
 
 #define mem_pool_dbg_flow(fmt, ...)     mem_pool_dbg(MPP_MEM_POOL_DBG_FLOW, fmt, ## __VA_ARGS__)
 
-RK_U32 mpp_mem_pool_debug = 0;
+#define get_srv_mem_pool(caller) \
+    ({ \
+        MppMemPoolSrv *__tmp; \
+        if (!srv_mem_pool) { \
+            mem_pool_srv_init(); \
+        } \
+        if (srv_mem_pool) { \
+            __tmp = srv_mem_pool; \
+        } else { \
+            mpp_err("mpp mem pool srv not init at %s : %s\n", __FUNCTION__, caller); \
+            __tmp = NULL; \
+        } \
+        __tmp; \
+    })
+
+rk_u32 mpp_mem_pool_debug = 0;
 
 typedef struct MppMemPoolNode_t {
     void                *check;
@@ -51,82 +55,50 @@ typedef struct MppMemPoolImpl_t {
 
     struct list_head    used;
     struct list_head    unused;
-    RK_S32              used_count;
-    RK_S32              unused_count;
+    rk_s32              used_count;
+    rk_s32              unused_count;
 
     /* extra flag for C++ static destruction order error */
-    RK_S32              finalized;
+    rk_s32              finalized;
 } MppMemPoolImpl;
 
-class MppMemPoolService
+typedef struct  MppMemPoolService_t {
+    struct list_head    list;
+    pthread_mutex_t     lock;
+} MppMemPoolSrv;
+
+static MppMemPoolSrv *srv_mem_pool = NULL;
+
+static void mem_pool_srv_init()
 {
-public:
-    static MppMemPoolService* getInstance() {
-        AutoMutex auto_lock(get_lock());
-        static MppMemPoolService pool_service;
-        return &pool_service;
-    }
-    static Mutex *get_lock() {
-        static Mutex lock;
-        return &lock;
-    }
-
-    MppMemPoolImpl *get_pool(const char *caller, size_t size);
-    void put_pool(MppMemPoolImpl *impl);
-
-private:
-    MppMemPoolService();
-    ~MppMemPoolService();
-    struct list_head    mLink;
-};
-
-MppMemPoolService::MppMemPoolService()
-{
-    INIT_LIST_HEAD(&mLink);
+    MppMemPoolSrv *srv = srv_mem_pool;
 
     mpp_env_get_u32("mpp_mem_pool_debug", &mpp_mem_pool_debug, 0);
-}
 
-MppMemPoolService::~MppMemPoolService()
-{
-    if (!list_empty(&mLink)) {
-        MppMemPoolImpl *pos, *n;
+    if (srv)
+        return;
 
-        list_for_each_entry_safe(pos, n, &mLink, MppMemPoolImpl, service_link) {
-            put_pool(pos);
-        }
+    srv = mpp_malloc(MppMemPoolSrv, 1);
+    if (!srv) {
+        mpp_err_f("failed to allocate pool service\n");
+        return;
     }
+
+    srv_mem_pool = srv;
+
+    {
+        pthread_mutexattr_t attr;
+
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&srv->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    INIT_LIST_HEAD(&srv->list);
 }
 
-MppMemPoolImpl *MppMemPoolService::get_pool(const char *caller, size_t size)
-{
-    MppMemPoolImpl *pool = mpp_malloc(MppMemPoolImpl, 1);
-    if (NULL == pool)
-        return NULL;
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&pool->lock, &attr);
-    pthread_mutexattr_destroy(&attr);
-
-    pool->check = pool;
-    pool->caller = caller;
-    pool->size = size;
-    pool->used_count = 0;
-    pool->unused_count = 0;
-    pool->finalized = 0;
-
-    INIT_LIST_HEAD(&pool->used);
-    INIT_LIST_HEAD(&pool->unused);
-    INIT_LIST_HEAD(&pool->service_link);
-    AutoMutex auto_lock(get_lock());
-    list_add_tail(&pool->service_link, &mLink);
-
-    return pool;
-}
-
-void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
+static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
 {
     MppMemPoolNode *node, *m;
 
@@ -163,29 +135,86 @@ void MppMemPoolService::put_pool(MppMemPoolImpl *impl)
 
     pthread_mutex_unlock(&impl->lock);
 
-    {
-        AutoMutex auto_lock(get_lock());
+    if (srv) {
+        pthread_mutex_lock(&srv->lock);
         list_del_init(&impl->service_link);
+        pthread_mutex_unlock(&srv->lock);
     }
 
     impl->finalized = 1;
     mpp_free(impl);
 }
 
+static void mem_pool_srv_deinit()
+{
+    MppMemPoolSrv *srv = srv_mem_pool;
+
+    if (!srv)
+        return;
+
+    if (!list_empty(&srv->list)) {
+        MppMemPoolImpl *pos, *n;
+
+        list_for_each_entry_safe(pos, n, &srv->list, MppMemPoolImpl, service_link) {
+            put_pool(srv, pos);
+        }
+    }
+
+    pthread_mutex_destroy(&srv->lock);
+
+    mpp_free(srv);
+    srv_mem_pool = NULL;
+}
+
 MppMemPool mpp_mem_pool_init_f(const char *caller, size_t size)
 {
-    mem_pool_dbg_flow("pool %d init from %s", size, caller);
+    MppMemPoolSrv *srv = get_srv_mem_pool(caller);
+    MppMemPoolImpl *pool;
 
-    return (MppMemPool)MppMemPoolService::getInstance()->get_pool(caller, size);
+    if (!srv)
+        return NULL;
+
+    pool = mpp_calloc(MppMemPoolImpl, 1);
+    if (!pool)
+        return NULL;
+
+    {
+        pthread_mutexattr_t attr;
+
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&pool->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    pool->check = pool;
+    pool->caller = caller;
+    pool->size = size;
+    pool->used_count = 0;
+    pool->unused_count = 0;
+    pool->finalized = 0;
+
+    INIT_LIST_HEAD(&pool->used);
+    INIT_LIST_HEAD(&pool->unused);
+    INIT_LIST_HEAD(&pool->service_link);
+
+    pthread_mutex_lock(&srv->lock);
+    list_add_tail(&pool->service_link, &srv->list);
+    pthread_mutex_unlock(&srv->lock);
+
+    mem_pool_dbg_flow("pool %d init from %s\n", size, caller);
+
+    return pool;
 }
 
 void mpp_mem_pool_deinit_f(const char *caller, MppMemPool pool)
 {
+    MppMemPoolSrv *srv = get_srv_mem_pool(caller);
     MppMemPoolImpl *impl = (MppMemPoolImpl *)pool;
 
-    mem_pool_dbg_flow("pool %d deinit from %s", impl->size, caller);
+    mem_pool_dbg_flow("pool %d deinit from %s\n", impl->size, caller);
 
-    MppMemPoolService::getInstance()->put_pool(impl);
+    put_pool(srv, impl);
 }
 
 void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
@@ -196,7 +225,7 @@ void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
 
     pthread_mutex_lock(&impl->lock);
 
-    mem_pool_dbg_flow("pool %d get used:unused [%d:%d] from %s", impl->size,
+    mem_pool_dbg_flow("pool %d get used:unused [%d:%d] from %s\n", impl->size,
                       impl->used_count, impl->unused_count, caller);
 
     if (!list_empty(&impl->unused)) {
@@ -213,7 +242,7 @@ void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
     }
 
     node = mpp_malloc_size(MppMemPoolNode, sizeof(MppMemPoolNode) + impl->size);
-    if (NULL == node) {
+    if (!node) {
         mpp_err_f("failed to create node from size %d pool\n", impl->size);
         goto DONE;
     }
@@ -236,7 +265,7 @@ DONE:
 void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
 {
     MppMemPoolImpl *impl = (MppMemPoolImpl *)pool;
-    MppMemPoolNode *node = (MppMemPoolNode *)((RK_U8 *)p - sizeof(MppMemPoolNode));
+    MppMemPoolNode *node = (MppMemPoolNode *)((rk_u8 *)p - sizeof(MppMemPoolNode));
 
     if (impl != impl->check) {
         mpp_err_f("invalid mem pool %p check %p\n", impl, impl->check);
@@ -251,7 +280,7 @@ void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
 
     pthread_mutex_lock(&impl->lock);
 
-    mem_pool_dbg_flow("pool %d put used:unused [%d:%d] from %s", impl->size,
+    mem_pool_dbg_flow("pool %d put used:unused [%d:%d] from %s\n", impl->size,
                       impl->used_count, impl->unused_count, caller);
 
     list_del_init(&node->list);
@@ -262,3 +291,5 @@ void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
 
     pthread_mutex_unlock(&impl->lock);
 }
+
+MPP_SINGLETON(MPP_SGLN_MEM_POOL, mpp_mem_pool, mem_pool_srv_init, mem_pool_srv_deinit)

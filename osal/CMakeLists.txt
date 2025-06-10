@@ -32,7 +32,7 @@ add_library(osal OBJECT
     mpp_platform.cpp
     mpp_runtime.cpp
     mpp_allocator.cpp
-    mpp_mem_pool.cpp
+    mpp_mem_pool.c
     mpp_callback.cpp
     mpp_eventfd.cpp
     mpp_dmabuf.cpp
