@@ -105,6 +105,16 @@ MPP_RET mpp_buffer_inc_ref_with_caller(MppBuffer buffer, const char *caller)
     return mpp_buffer_ref_inc((MppBufferImpl*)buffer, caller);
 }
 
+MPP_RET mpp_buffer_discard_with_caller(MppBuffer buffer, const char *caller)
+{
+    if (NULL == buffer) {
+        mpp_err("mpp_buffer_discard invalid input: buffer NULL from %s\n", caller);
+        return MPP_ERR_UNKNOW;
+    }
+
+    return mpp_buffer_discard((MppBufferImpl*)buffer, caller);
+}
+
 MPP_RET mpp_buffer_read_with_caller(MppBuffer buffer, size_t offset, void *data, size_t size, const char *caller)
 {
     if (NULL == buffer || NULL == data) {

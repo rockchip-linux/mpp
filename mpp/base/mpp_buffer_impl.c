@@ -614,6 +614,32 @@ done:
     return ret;
 }
 
+MPP_RET mpp_buffer_discard(MppBufferImpl *buffer, const char* caller)
+{
+    MppBufferService *srv = get_srv_buffer();
+    MppBufferGroupImpl *group = NULL;
+
+    MPP_BUF_FUNCTION_ENTER();
+
+    if (srv) {
+        mpp_mutex_lock(&srv->lock);
+        group = SEARCH_GROUP_BY_ID(srv, buffer->group_id);
+        mpp_mutex_unlock(&srv->lock);
+    }
+
+    mpp_assert(group);
+    if (group) {
+        pthread_mutex_lock(&group->buf_lock);
+        buffer->discard = 1;
+        buf_add_log(buffer, BUF_DISCARD, caller);
+        pthread_mutex_unlock(&group->buf_lock);
+    }
+
+    MPP_BUF_FUNCTION_LEAVE();
+
+    return MPP_OK;
+}
+
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size, const char* caller)
 {
     MppBufferImpl *buffer = NULL;

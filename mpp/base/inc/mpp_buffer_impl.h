@@ -194,6 +194,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller, MppBufferGroupImp
 MPP_RET mpp_buffer_mmap(MppBufferImpl *buffer, const char* caller);
 MPP_RET mpp_buffer_ref_inc(MppBufferImpl *buffer, const char* caller);
 MPP_RET mpp_buffer_ref_dec(MppBufferImpl *buffer, const char* caller);
+MPP_RET mpp_buffer_discard(MppBufferImpl *buffer, const char* caller);
 MppBufferImpl *mpp_buffer_get_unused(MppBufferGroupImpl *p, size_t size, const char* caller);
 RK_U32  mpp_buffer_to_addr(MppBuffer buffer, size_t offset);
 MPP_RET mpp_buffer_attach_dev_f(const char *caller, MppBuffer buffer, MppDev dev);
