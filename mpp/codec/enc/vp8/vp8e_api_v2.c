@@ -26,7 +26,6 @@
 #include "mpp_enc_cfg_impl.h"
 
 #include "vp8e_api_v2.h"
-#include "vp8e_rc.h"
 #include "vp8e_syntax.h"
 
 #define VP8E_DBG_FUNCTION            (0x00000001)

@@ -5,11 +5,9 @@ set(VP8E_API
 set(VP8E_COMMON
     )
 set(VP8E_HDR
-    vp8e_debug.h
-    vp8e_rc.h)
+    vp8e_debug.h)
 set(VP8E_SRC
-    vp8e_api_v2.c
-    vp8e_rc.c)
+    vp8e_api_v2.c)
 
 add_library(codec_vp8e STATIC
             ${VP8E_API}
