@@ -23,7 +23,7 @@
 #include "h264_syntax.h"
 
 typedef struct H264eVui_t {
-    RK_U32      vui_present;
+    RK_U32      vui_en;
 
     RK_S32      aspect_ratio_info_present;
     RK_S32      aspect_ratio_idc;

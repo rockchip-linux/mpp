@@ -171,6 +171,7 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(h264, prefix_mode,    S32,        MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX,     codec.h264, prefix_mode) \
     ENTRY(h264, base_layer_pid, S32,        MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID, codec.h264, base_layer_pid) \
     ENTRY(h264, constraint_set, U32,        MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET, codec.h264, constraint_set) \
+    ENTRY(h264, vui_en,         U32,        MPP_ENC_H264_CFG_CHANGE_VUI,            codec.h264, vui.vui_en) \
     /* h265 config*/ \
     ENTRY(h265, profile,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, profile) \
     ENTRY(h265, tier   ,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, tier) \
@@ -200,6 +201,7 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(h265, base_layer_pid, S32,        MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID, codec.h265, base_layer_pid) \
     ENTRY(h265, const_intra,    S32,        MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    codec.h265, const_intra_pred) \
     ENTRY(h265, lcu_size,       S32,        MPP_ENC_H265_CFG_CHANGE_LCU_SIZE,       codec.h265, max_cu_size) \
+    ENTRY(h265, vui_en,         U32,        MPP_ENC_H265_CFG_CHANGE_VUI,            codec.h265, vui.vui_en) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \

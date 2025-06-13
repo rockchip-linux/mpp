@@ -112,6 +112,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     h265->merge_cfg.merge_left_flag = 1;
     h265->merge_cfg.merge_up_flag = 1;
     h265->trans_cfg.diff_cu_qp_delta_depth = 0;
+    h265->vui.vui_en = 1;
     p->cfg->tune.scene_mode = MPP_ENC_SCENE_MODE_DEFAULT;
     p->cfg->tune.lambda_idx_i = 2;
     p->cfg->tune.lambda_idx_p = 4;

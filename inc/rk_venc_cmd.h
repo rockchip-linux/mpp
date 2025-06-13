@@ -676,6 +676,14 @@ typedef enum MppEncSeiMode_e {
  * Mpp codec parameter
  * parameter is defined from here
  */
+typedef struct MppEncVuiCfg_t {
+    RK_U32              change;
+    RK_S32              vui_en;
+    RK_S32              vui_aspect_ratio;
+    RK_S32              vui_sar_size;
+    RK_S32              full_range;
+    RK_S32              time_scale;
+} MppEncVuiCfg;
 
 /*
  * H.264 configurable parameter
@@ -753,6 +761,9 @@ typedef struct MppEncH264HwCfg_t {
     RK_U32 hw_split_out;
 } MppEncH264HwCfg;
 
+/*
+ * H.264 configurable parameter
+ */
 typedef struct MppEncH264Cfg_t {
     RK_U32              change;
 
@@ -905,6 +916,9 @@ typedef struct MppEncH264Cfg_t {
      * Otherwise, constraint_setx_flag will use default value.
      */
     RK_U32              constraint_set;
+
+    /* extra info */
+    MppEncVuiCfg        vui;
 } MppEncH264Cfg;
 
 #define H265E_MAX_ROI_NUMBER  64
@@ -981,15 +995,6 @@ typedef enum {
 /*
  * H.265 configurable parameter
  */
-typedef struct MppEncH265VuiCfg_t {
-    RK_U32              change;
-    RK_S32              vui_present;
-    RK_S32              vui_aspect_ratio;
-    RK_S32              vui_sar_size;
-    RK_S32              full_range;
-    RK_S32              time_scale;
-} MppEncH265VuiCfg;
-
 typedef enum MppEncH265CfgChange_e {
     /* change on stream type */
     MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE = (1 << 0),
@@ -1151,7 +1156,7 @@ typedef struct MppEncH265Cfg_t {
     RK_U32               lpf_acs_tile_disable;
 
     /* extra info */
-    MppEncH265VuiCfg    vui;
+    MppEncVuiCfg        vui;
 
     MppEncH265CtuCfg    ctu;
     MppEncH265RoiCfg    roi;

@@ -102,6 +102,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
     memset(h264, 0, sizeof(*h264));
     h264->profile = H264_PROFILE_BASELINE;
     h264->level = H264_LEVEL_3_1;
+    h264->vui.vui_en = 1;
     cfg->tune.scene_mode = MPP_ENC_SCENE_MODE_DEFAULT;
     cfg->tune.deblur_en = 0;
     cfg->tune.vmaf_opt = 0;
@@ -514,6 +515,11 @@ static MPP_RET h264e_proc_h264_cfg(MppEncH264Cfg *dst, MppEncH264Cfg *src)
             (dst->constraint_set != src->constraint_set)) {
             dst->constraint_set = src->constraint_set;
             dst->change |= MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET;
+        }
+
+        if (change & MPP_ENC_H264_CFG_CHANGE_VUI) {
+            dst->vui = src->vui;
+            dst->change |= MPP_ENC_H264_CFG_CHANGE_VUI;
         }
 
         // check user h.264 config. If valid, set to HAL.
