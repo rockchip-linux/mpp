@@ -20,6 +20,10 @@
 #define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP PTHREAD_RECURSIVE_MUTEX_INITIALIZER
 #endif
 
+#if defined(__USE_XOPEN2K) || (defined(__ANDROID__) && __ANDROID_API__ >= 21)
+#define COND_USE_CLOCK_MONOTONIC
+#endif
+
 #define THREAD_NAME_LEN 16
 
 #ifdef __cplusplus
@@ -37,16 +41,17 @@ typedef enum MppThreadStatus_e {
 } MppThreadStatus;
 
 typedef struct MppMutex_t {
-    pthread_mutex_t m_lock;
+    pthread_mutex_t     lock;
 } MppMutex;
 
 typedef struct MppCond_t {
-    pthread_cond_t  m_cond;
+    pthread_cond_t      cond;
+    clockid_t           clock_id;
 } MppCond;
 
 typedef struct MppMutexCond_t {
-    MppMutex    m_lock;
-    MppCond     m_cond;
+    MppMutex            lock;
+    MppCond             cond;
 } MppMutexCond;
 
 typedef enum MppThreadSignalId_e {
@@ -63,7 +68,7 @@ typedef struct MppThread_t {
     MppThreadStatus     thd_status[THREAD_SIGNAL_BUTT];
     MppThreadFunc       func;
     char                name[THREAD_NAME_LEN];
-    void                *m_ctx;
+    void                *ctx;
 } MppThread;
 
 // Mutex functions

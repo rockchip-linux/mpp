@@ -25,7 +25,7 @@ MppThread *mpp_thread_create(MppThreadFunc func, void *ctx, const char *name)
 
     if (thread) {
         thread->func = func;
-        thread->m_ctx = ctx;
+        thread->ctx = ctx;
 
         thread->thd_status[THREAD_WORK] = MPP_THREAD_UNINITED;
         thread->thd_status[THREAD_INPUT] = MPP_THREAD_RUNNING;
@@ -62,7 +62,7 @@ void mpp_thread_start(MppThread *thread)
 
     if (mpp_thread_get_status(thread, THREAD_WORK) == MPP_THREAD_UNINITED) {
         mpp_thread_set_status(thread, MPP_THREAD_RUNNING, THREAD_WORK);
-        if (0 == pthread_create(&thread->thd, &attr, thread->func, thread->m_ctx)) {
+        if (0 == pthread_create(&thread->thd, &attr, thread->func, thread->ctx)) {
 #ifndef __linux__
             int ret = pthread_setname_np(thread->thd, thread->name);
             if (ret) {
@@ -70,7 +70,7 @@ void mpp_thread_start(MppThread *thread)
             }
 #endif
             thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p create success\n",
-                       thread->name, thread->func, thread->m_ctx);
+                       thread->name, thread->func, thread->ctx);
         } else {
             mpp_thread_set_status(thread, MPP_THREAD_UNINITED, THREAD_WORK);
         }
@@ -92,7 +92,7 @@ void mpp_thread_stop(MppThread *thread)
         mpp_thread_unlock(thread, THREAD_WORK);
 
         pthread_join(thread->thd, &dummy);
-        thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p destroy success\n", thread->name, thread->func, thread->m_ctx);
+        thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p destroy success\n", thread->name, thread->func, thread->ctx);
 
         mpp_thread_set_status(thread, MPP_THREAD_UNINITED, THREAD_WORK);
     }
@@ -111,122 +111,140 @@ void mpp_mutex_init(MppMutex *mutex)
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&mutex->m_lock, &attr);
+    pthread_mutex_init(&mutex->lock, &attr);
     pthread_mutexattr_destroy(&attr);
 }
 
 void mpp_mutex_destroy(MppMutex *mutex)
 {
-    pthread_mutex_destroy(&mutex->m_lock);
+    pthread_mutex_destroy(&mutex->lock);
 }
 
 void mpp_mutex_lock(MppMutex *mutex)
 {
-    pthread_mutex_lock(&mutex->m_lock);
+    pthread_mutex_lock(&mutex->lock);
 }
 
 void mpp_mutex_unlock(MppMutex *mutex)
 {
-    pthread_mutex_unlock(&mutex->m_lock);
+    pthread_mutex_unlock(&mutex->lock);
 }
 
 int mpp_mutex_trylock(MppMutex *mutex)
 {
-    return pthread_mutex_trylock(&mutex->m_lock);
+    return pthread_mutex_trylock(&mutex->lock);
 }
 
 // MppCond functions
 void mpp_cond_init(MppCond *condition)
 {
-    pthread_cond_init(&condition->m_cond, NULL);
+#ifdef COND_USE_CLOCK_MONOTONIC
+    pthread_condattr_t attr;
+
+    pthread_condattr_init(&attr);;
+
+    if (pthread_condattr_setclock(&attr, CLOCK_MONOTONIC)) {
+        pthread_cond_init(&condition->cond, NULL);
+        condition->clock_id = CLOCK_REALTIME;
+    } else {
+        pthread_cond_init(&condition->cond, &attr);
+        condition->clock_id = CLOCK_MONOTONIC;
+    }
+
+    pthread_condattr_destroy(&attr);
+#else
+    pthread_cond_init(&condition->cond, NULL);
+    condition->clock_id = CLOCK_REALTIME;
+#endif // COND_USE_CLOCK_MONOTONIC
 }
 
 void mpp_cond_destroy(MppCond *condition)
 {
-    pthread_cond_destroy(&condition->m_cond);
+    pthread_cond_destroy(&condition->cond);
 }
 
 rk_s32 mpp_cond_wait(MppCond *condition, MppMutex *mutex)
 {
-    return pthread_cond_wait(&condition->m_cond, &mutex->m_lock);
+    return pthread_cond_wait(&condition->cond, &mutex->lock);
 }
 
 rk_s32 mpp_cond_timedwait(MppCond *condition, MppMutex *mutex, rk_s64 timeout)
 {
     struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
+
+    clock_gettime(condition->clock_id, &ts);
 
     ts.tv_sec += timeout / 1000;
     ts.tv_nsec += (timeout % 1000) * 1000000;
     ts.tv_sec += ts.tv_nsec / 1000000000;
     ts.tv_nsec %= 1000000000;
 
-    return pthread_cond_timedwait(&condition->m_cond, &mutex->m_lock, &ts);
+    return pthread_cond_timedwait(&condition->cond, &mutex->lock, &ts);
 }
 
 rk_s32 mpp_cond_signal(MppCond *condition)
 {
-    return pthread_cond_signal(&condition->m_cond);
+    return pthread_cond_signal(&condition->cond);
 }
 
 rk_s32 mpp_cond_broadcast(MppCond *condition)
 {
-    return pthread_cond_broadcast(&condition->m_cond);
+    return pthread_cond_broadcast(&condition->cond);
 }
 
 // MppMutexCond functions
 void mpp_mutex_cond_init(MppMutexCond *mutexCond)
 {
-    mpp_mutex_init(&mutexCond->m_lock);
-    mpp_cond_init(&mutexCond->m_cond);
+    mpp_mutex_init(&mutexCond->lock);
+    mpp_cond_init(&mutexCond->cond);
 }
 
 void mpp_mutex_cond_destroy(MppMutexCond *mutexCond)
 {
-    mpp_mutex_destroy(&mutexCond->m_lock);
-    mpp_cond_destroy(&mutexCond->m_cond);
+    mpp_mutex_destroy(&mutexCond->lock);
+    mpp_cond_destroy(&mutexCond->cond);
 }
 
 void mpp_mutex_cond_lock(MppMutexCond *mutexCond)
 {
-    mpp_mutex_lock(&mutexCond->m_lock);
+    mpp_mutex_lock(&mutexCond->lock);
 }
 
 void mpp_mutex_cond_unlock(MppMutexCond *mutexCond)
 {
-    mpp_mutex_unlock(&mutexCond->m_lock);
+    mpp_mutex_unlock(&mutexCond->lock);
 }
 
 int mpp_mutex_cond_trylock(MppMutexCond *mutexCond)
 {
-    return mpp_mutex_trylock(&mutexCond->m_lock);
+    return mpp_mutex_trylock(&mutexCond->lock);
 }
 
 rk_s32 mpp_mutex_cond_wait(MppMutexCond *mutexCond)
 {
-    return mpp_cond_wait(&mutexCond->m_cond, &mutexCond->m_lock);
+    return mpp_cond_wait(&mutexCond->cond, &mutexCond->lock);
 }
 
 rk_s32 mpp_mutex_cond_timedwait(MppMutexCond *mutexCond, rk_s64 timeout)
 {
-    return mpp_cond_timedwait(&mutexCond->m_cond, &mutexCond->m_lock, timeout);
+    return mpp_cond_timedwait(&mutexCond->cond, &mutexCond->lock, timeout);
 }
 
 void mpp_mutex_cond_signal(MppMutexCond *mutexCond)
 {
-    mpp_cond_signal(&mutexCond->m_cond);
+    mpp_cond_signal(&mutexCond->cond);
 }
 
 void mpp_mutex_cond_broadcast(MppMutexCond *mutexCond)
 {
-    mpp_cond_broadcast(&mutexCond->m_cond);
+    mpp_cond_broadcast(&mutexCond->cond);
 }
 
 // MppThread functions
 void mpp_thread_init(MppThread *thread, MppThreadFunc func, void *ctx, const char *name)
 {
     thread->func = func;
-    thread->m_ctx = ctx;
+    thread->ctx = ctx;
     if (name) {
         strncpy(thread->name, name, THREAD_NAME_LEN - 1);
         thread->name[THREAD_NAME_LEN - 1] = '\0';
