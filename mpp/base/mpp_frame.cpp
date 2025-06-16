@@ -26,7 +26,7 @@
 #include "mpp_mem_pool.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_frame_pool = mpp_mem_pool_init_f(module_name, sizeof(MppFrameImpl));
+static MppMemPool mpp_frame_pool = mpp_mem_pool_init(module_name, sizeof(MppFrameImpl), NULL);
 
 static void setup_mpp_frame_name(MppFrameImpl *frame)
 {
@@ -60,7 +60,7 @@ MPP_RET mpp_frame_init(MppFrame *frame)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get(mpp_frame_pool);
+    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get_f(mpp_frame_pool);
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
@@ -90,7 +90,7 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     if (p->stopwatch)
         mpp_stopwatch_put(p->stopwatch);
 
-    mpp_mem_pool_put(mpp_frame_pool, *frame);
+    mpp_mem_pool_put_f(mpp_frame_pool, *frame);
     *frame = NULL;
     return MPP_OK;
 }

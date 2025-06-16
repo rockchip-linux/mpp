@@ -24,7 +24,7 @@
 #include "mpp_meta_impl.h"
 
 static const char *module_name = MODULE_TAG;
-static MppMemPool mpp_packet_pool = mpp_mem_pool_init_f(module_name, sizeof(MppPacketImpl));
+static MppMemPool mpp_packet_pool = mpp_mem_pool_init(module_name, sizeof(MppPacketImpl), NULL);
 
 #define setup_mpp_packet_name(packet) \
     ((MppPacketImpl*)packet)->name = module_name;
@@ -46,7 +46,7 @@ MPP_RET mpp_packet_new(MppPacket *packet)
         return MPP_ERR_NULL_PTR;
     }
 
-    MppPacketImpl *p = (MppPacketImpl*)mpp_mem_pool_get(mpp_packet_pool);
+    MppPacketImpl *p = (MppPacketImpl*)mpp_mem_pool_get_f(mpp_packet_pool);
     *packet = p;
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
@@ -181,7 +181,7 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
     if (p->release)
         p->release(p->release_ctx, p->release_arg);
 
-    mpp_mem_pool_put(mpp_packet_pool, *packet);
+    mpp_mem_pool_put_f(mpp_packet_pool, *packet);
     *packet = NULL;
     return MPP_OK;
 }

@@ -201,7 +201,7 @@ static void batch_reset(MppDevBatTask *batch)
 
 MppDevBatTask *batch_add(MppDevBatServ *server)
 {
-    MppDevBatTask *batch = (MppDevBatTask *)mpp_mem_pool_get(server->batch_pool);
+    MppDevBatTask *batch = (MppDevBatTask *)mpp_mem_pool_get_f(server->batch_pool);
 
     mpp_assert(batch);
     if (!batch)
@@ -232,7 +232,7 @@ void batch_del(MppDevBatServ *server, MppDevBatTask *batch)
 
     list_del_init(&batch->link_server);
 
-    mpp_mem_pool_put(server->batch_pool, batch);
+    mpp_mem_pool_put_f(server->batch_pool, batch);
     server->batch_free--;
     mpp_serv_dbg_flow("batch del free count %d:%d\n", server->batch_run, server->batch_free);
 }
@@ -697,7 +697,7 @@ static rk_s32 server_attach(MppDevServer *srv, MppDevMppService *ctx)
         return rk_ok;
     }
 
-    session = (MppDevSession *)mpp_mem_pool_get(srv->session_pool);
+    session = (MppDevSession *)mpp_mem_pool_get_f(srv->session_pool);
 
     INIT_LIST_HEAD(&session->list_server);
     INIT_LIST_HEAD(&session->list_wait);
@@ -770,7 +770,7 @@ static rk_s32 server_detach(MppDevServer *srv, MppDevMppService *ctx)
 
     mpp_mutex_cond_destroy(&session->cond_lock);
 
-    mpp_mem_pool_put(srv->session_pool, session);
+    mpp_mem_pool_put_f(srv->session_pool, session);
     server->batch_max_count++;
     server->session_count++;
 
@@ -783,12 +783,12 @@ static void server_clear(MppDevServer *srv)
 {
     if (srv) {
         if (srv->session_pool) {
-            mpp_mem_pool_deinit(srv->session_pool);
+            mpp_mem_pool_deinit_f(srv->session_pool);
             srv->session_pool = NULL;
         }
 
         if (srv->batch_pool) {
-            mpp_mem_pool_deinit(srv->batch_pool);
+            mpp_mem_pool_deinit_f(srv->batch_pool);
             srv->batch_pool = NULL;
         }
 
@@ -850,13 +850,13 @@ static void mpp_server_init()
             break;
         }
 
-        srv->session_pool = mpp_mem_pool_init(sizeof(MppDevSession));
+        srv->session_pool = mpp_mem_pool_init_f("server_session", sizeof(MppDevSession));
         if (!srv->session_pool) {
             srv->server_error = "create session pool failed";
             break;
         }
 
-        srv->batch_pool = mpp_mem_pool_init(batch_task_size);
+        srv->batch_pool = mpp_mem_pool_init_f("server_batch", batch_task_size);
         if (!srv->batch_pool) {
             srv->server_error = "create batch tack pool failed";
             break;

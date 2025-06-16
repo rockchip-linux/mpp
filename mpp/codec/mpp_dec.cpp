@@ -308,7 +308,7 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
             if (pkt_ts) {
                 mpp_frame_set_dts(frame, pkt_ts->dts);
                 mpp_frame_set_pts(frame, pkt_ts->pts);
-                mpp_mem_pool_put(dec->ts_pool, pkt_ts);
+                mpp_mem_pool_put_f(dec->ts_pool, pkt_ts);
             }
         }
     }
@@ -677,7 +677,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         // init timestamp for record and sort pts
         mpp_spinlock_init(&p->ts_lock);
         INIT_LIST_HEAD(&p->ts_link);
-        p->ts_pool = mpp_mem_pool_init(sizeof(MppPktTs));
+        p->ts_pool = mpp_mem_pool_init_f("ts_pool", sizeof(MppPktTs));
         if (!p->ts_pool) {
             mpp_err_f("malloc ts pool failed!\n");
             break;
@@ -770,7 +770,7 @@ MPP_RET mpp_dec_deinit(MppDec ctx)
     sem_destroy(&dec->cmd_done);
 
     if (dec->ts_pool) {
-        mpp_mem_pool_deinit(dec->ts_pool);
+        mpp_mem_pool_deinit_f(dec->ts_pool);
         dec->ts_pool = NULL;
     }
 

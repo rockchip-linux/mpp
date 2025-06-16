@@ -159,7 +159,7 @@ static MPP_RET free_vid_ctx(H264dVideoCtx_t *p_Vid)
     free_storable_picture(p_Vid->p_Dec, p_Vid->dec_pic);
 
     if (p_Vid->pic_st) {
-        mpp_mem_pool_deinit(p_Vid->pic_st);
+        mpp_mem_pool_deinit_f(p_Vid->pic_st);
         p_Vid->pic_st = NULL;
     }
 
@@ -187,7 +187,7 @@ static MPP_RET init_vid_ctx(H264dVideoCtx_t *p_Vid)
     p_Vid->active_subsps    = NULL;
     p_Vid->active_sps_id[0] = -1;
     p_Vid->active_sps_id[1] = -1;
-    p_Vid->pic_st = mpp_mem_pool_init(sizeof(H264_StorePic_t));
+    p_Vid->pic_st = mpp_mem_pool_init_f("h264d_pic_st", sizeof(H264_StorePic_t));
 __RETURN:
     return ret = MPP_OK;
 __FAILED:

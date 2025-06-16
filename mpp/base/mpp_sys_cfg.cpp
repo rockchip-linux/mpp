@@ -41,7 +41,7 @@
 #define SYS_CFG_CNT 3
 
 RK_U32 mpp_sys_cfg_debug = 0;
-static MppMemPool mpp_sys_cfg_pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppSysCfgSet));
+static MppMemPool mpp_sys_cfg_pool = mpp_mem_pool_init(MODULE_TAG, sizeof(MppSysCfgSet), NULL);
 
 class MppSysCfgService
 {
@@ -145,7 +145,7 @@ MppSysCfgSet *MppSysCfgService::get_cfg()
 {
     MppSysCfgSet *node;
 
-    node = (MppSysCfgSet*)mpp_mem_pool_get(mpp_sys_cfg_pool);
+    node = (MppSysCfgSet*)mpp_mem_pool_get_f(mpp_sys_cfg_pool);
     node->dec_buf_chk.type = MPP_VIDEO_CodingUnused;
 
     return node;
@@ -153,7 +153,7 @@ MppSysCfgSet *MppSysCfgService::get_cfg()
 
 MPP_RET MppSysCfgService::put_cfg(MppSysCfgSet *node)
 {
-    mpp_mem_pool_put(mpp_sys_cfg_pool, node);
+    mpp_mem_pool_put_f(mpp_sys_cfg_pool, node);
 
     return MPP_OK;
 }

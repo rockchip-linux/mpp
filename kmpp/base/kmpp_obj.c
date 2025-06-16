@@ -440,7 +440,7 @@ rk_s32 kmpp_objdef_put(KmppObjDef def)
                 impl->trie = NULL;
             }
             if (impl->pool) {
-                mpp_mem_pool_deinit(impl->pool);
+                mpp_mem_pool_deinit_f(impl->pool);
                 impl->pool = NULL;
             }
             mpp_free(impl);
@@ -548,7 +548,7 @@ rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl)
             obj_dbg_entry("objdef %-16s entry size %4d buf size %4d -> %4d\n", impl->name,
                           impl->entry_size, old_size, impl->buf_size);
 
-            impl->pool = mpp_mem_pool_init(impl->buf_size);
+            impl->pool = mpp_mem_pool_init_f(impl->name, impl->buf_size);
             if (!impl->pool) {
                 mpp_loge_f("get mem pool size %d failed\n", impl->buf_size);
                 ret = rk_nok;
@@ -795,7 +795,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
     /* userspace objdef path */
     if (def_impl->buf_size) {
         if (def_impl->pool)
-            impl = mpp_mem_pool_get_f(caller, def_impl->pool);
+            impl = mpp_mem_pool_get(def_impl->pool, caller);
         else
             impl = mpp_calloc_size(KmppObjImpl, def_impl->buf_size);
 
@@ -975,7 +975,7 @@ rk_s32 kmpp_obj_put(KmppObj obj, const char *caller)
                     def->deinit(impl->entry, caller);
 
                 if (def->pool) {
-                    mpp_mem_pool_put_f(caller, def->pool, impl);
+                    mpp_mem_pool_put(def->pool, impl, caller);
                     return rk_ok;
                 }
             }

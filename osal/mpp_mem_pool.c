@@ -15,12 +15,14 @@
 
 #include "mpp_mem_pool.h"
 
-#define MPP_MEM_POOL_DBG_FLOW           (0x00000001)
+#define MEM_POOL_DBG_FLOW               (0x00000001)
+#define MEM_POOL_DBG_EXIT               (0x00000002)
 
 #define mem_pool_dbg(flag, fmt, ...)    _mpp_dbg(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
 #define mem_pool_dbg_f(flag, fmt, ...)  _mpp_dbg_f(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
 
-#define mem_pool_dbg_flow(fmt, ...)     mem_pool_dbg(MPP_MEM_POOL_DBG_FLOW, fmt, ## __VA_ARGS__)
+#define mem_pool_dbg_flow(fmt, ...)     mem_pool_dbg(MEM_POOL_DBG_FLOW, fmt, ## __VA_ARGS__)
+#define mem_pool_dbg_exit(fmt, ...)     mem_pool_dbg(MEM_POOL_DBG_EXIT, fmt, ## __VA_ARGS__)
 
 #define get_srv_mem_pool(caller) \
     ({ \
@@ -37,7 +39,7 @@
         __tmp; \
     })
 
-rk_u32 mpp_mem_pool_debug = 0;
+static rk_u32 mpp_mem_pool_debug = 0;
 
 typedef struct MppMemPoolNode_t {
     void                *check;
@@ -48,7 +50,7 @@ typedef struct MppMemPoolNode_t {
 
 typedef struct MppMemPoolImpl_t {
     void                *check;
-    const char          *caller;
+    const char          *name;
     size_t              size;
     pthread_mutex_t     lock;
     struct list_head    service_link;
@@ -120,8 +122,8 @@ static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
     }
 
     if (!list_empty(&impl->used)) {
-        mpp_err_f("pool %s found %d used buffer size %d\n",
-                  impl->caller, impl->used_count, impl->size);
+        mpp_err_f("pool %-16s found %d used buffer size %4d\n",
+                  impl->name, impl->used_count, impl->size);
 
         list_for_each_entry_safe(node, m, &impl->used, MppMemPoolNode, list) {
             MPP_FREE(node);
@@ -130,8 +132,8 @@ static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
     }
 
     if (impl->used_count || impl->unused_count)
-        mpp_err_f("pool %s size %d found leaked buffer used:unused [%d:%d]\n",
-                  impl->caller, impl->size, impl->used_count, impl->unused_count);
+        mpp_err_f("pool %-16s size %4d found leaked buffer used:unused [%d:%d]\n",
+                  impl->name, impl->size, impl->used_count, impl->unused_count);
 
     pthread_mutex_unlock(&impl->lock);
 
@@ -156,6 +158,7 @@ static void mem_pool_srv_deinit()
         MppMemPoolImpl *pos, *n;
 
         list_for_each_entry_safe(pos, n, &srv->list, MppMemPoolImpl, service_link) {
+            mem_pool_dbg_exit("pool %-16s size %4d leaked\n", pos->name, pos->size);
             put_pool(srv, pos);
         }
     }
@@ -166,7 +169,7 @@ static void mem_pool_srv_deinit()
     srv_mem_pool = NULL;
 }
 
-MppMemPool mpp_mem_pool_init_f(const char *caller, size_t size)
+MppMemPool mpp_mem_pool_init(const char *name, size_t size, const char *caller)
 {
     MppMemPoolSrv *srv = get_srv_mem_pool(caller);
     MppMemPoolImpl *pool;
@@ -188,7 +191,7 @@ MppMemPool mpp_mem_pool_init_f(const char *caller, size_t size)
     }
 
     pool->check = pool;
-    pool->caller = caller;
+    pool->name = name;
     pool->size = size;
     pool->used_count = 0;
     pool->unused_count = 0;
@@ -202,22 +205,23 @@ MppMemPool mpp_mem_pool_init_f(const char *caller, size_t size)
     list_add_tail(&pool->service_link, &srv->list);
     pthread_mutex_unlock(&srv->lock);
 
-    mem_pool_dbg_flow("pool %d init from %s\n", size, caller);
+    mem_pool_dbg_flow("pool %-16s size %4d init at %s\n", pool->name, size, caller);
 
     return pool;
 }
 
-void mpp_mem_pool_deinit_f(const char *caller, MppMemPool pool)
+void mpp_mem_pool_deinit(MppMemPool pool, const char *caller)
 {
     MppMemPoolSrv *srv = get_srv_mem_pool(caller);
     MppMemPoolImpl *impl = (MppMemPoolImpl *)pool;
 
-    mem_pool_dbg_flow("pool %d deinit from %s\n", impl->size, caller);
+    mem_pool_dbg_flow("pool %-16s size %4d deinit at %s\n",
+                      impl->name, impl->size, caller);
 
     put_pool(srv, impl);
 }
 
-void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
+void *mpp_mem_pool_get(MppMemPool pool, const char *caller)
 {
     MppMemPoolImpl *impl = (MppMemPoolImpl *)pool;
     MppMemPoolNode *node = NULL;
@@ -225,8 +229,8 @@ void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
 
     pthread_mutex_lock(&impl->lock);
 
-    mem_pool_dbg_flow("pool %d get used:unused [%d:%d] from %s\n", impl->size,
-                      impl->used_count, impl->unused_count, caller);
+    mem_pool_dbg_flow("pool %-16s size %4d get used:unused [%d:%d] at %s\n",
+                      impl->name, impl->size, impl->used_count, impl->unused_count, caller);
 
     if (!list_empty(&impl->unused)) {
         node = list_first_entry(&impl->unused, MppMemPoolNode, list);
@@ -243,7 +247,7 @@ void *mpp_mem_pool_get_f(const char *caller, MppMemPool pool)
 
     node = mpp_malloc_size(MppMemPoolNode, sizeof(MppMemPoolNode) + impl->size);
     if (!node) {
-        mpp_err_f("failed to create node from size %d pool\n", impl->size);
+        mpp_err_f("failed to create node from size %4d pool\n", impl->size);
         goto DONE;
     }
 
@@ -262,7 +266,7 @@ DONE:
     return ptr;
 }
 
-void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
+void mpp_mem_pool_put(MppMemPool pool, void *p, const char *caller)
 {
     MppMemPoolImpl *impl = (MppMemPoolImpl *)pool;
     MppMemPoolNode *node = (MppMemPoolNode *)((rk_u8 *)p - sizeof(MppMemPoolNode));
@@ -280,8 +284,8 @@ void mpp_mem_pool_put_f(const char *caller, MppMemPool pool, void *p)
 
     pthread_mutex_lock(&impl->lock);
 
-    mem_pool_dbg_flow("pool %d put used:unused [%d:%d] from %s\n", impl->size,
-                      impl->used_count, impl->unused_count, caller);
+    mem_pool_dbg_flow("pool %-16s size %4d put used:unused [%d:%d] at %s\n",
+                      impl->name, impl->size, impl->used_count, impl->unused_count, caller);
 
     list_del_init(&node->list);
     list_add(&node->list, &impl->unused);

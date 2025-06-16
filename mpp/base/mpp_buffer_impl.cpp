@@ -121,9 +121,9 @@ static const char *ops2str[BUF_OPS_BUTT] = {
     "buf destroy",
 };
 
-static MppMemPool mpp_buffer_pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppBufferImpl));
-static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init_f("mpp_buf_grp", sizeof(MppBufferGroupImpl));
-static MppMemPool mpp_buf_map_node_pool = mpp_mem_pool_init_f("mpp_buf_map_node", sizeof(MppDevBufMapNode));
+static MppMemPool mpp_buffer_pool = mpp_mem_pool_init(MODULE_TAG, sizeof(MppBufferImpl), NULL);
+static MppMemPool mpp_buf_grp_pool = mpp_mem_pool_init("mpp_buf_grp", sizeof(MppBufferGroupImpl), NULL);
+static MppMemPool mpp_buf_map_node_pool = mpp_mem_pool_init("mpp_buf_map_node", sizeof(MppDevBufMapNode), NULL);
 
 RK_U32 mpp_buffer_debug = 0;
 
@@ -322,7 +322,7 @@ static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
         /* remove buffer from group */
         mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
         mpp_dev_ioctl(dev, MPP_DEV_UNLOCK_MAP, NULL);
-        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
+        mpp_mem_pool_put(mpp_buf_map_node_pool, pos, caller);
     }
 
     /* release buffer here */
@@ -332,7 +332,7 @@ static MPP_RET put_buffer(MppBufferGroupImpl *group, MppBufferImpl *buffer,
 
     func(buffer->allocator, &info);
 
-    mpp_mem_pool_put_f(caller, mpp_buffer_pool, buffer);
+    mpp_mem_pool_put(mpp_buffer_pool, buffer, caller);
 
     return MPP_OK;
 }
@@ -409,7 +409,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
         goto RET;
     }
 
-    p = (MppBufferImpl *)mpp_mem_pool_get_f(caller, mpp_buffer_pool);
+    p = (MppBufferImpl *)mpp_mem_pool_get(mpp_buffer_pool, caller);
     if (NULL == p) {
         mpp_err_f("failed to allocate context\n");
         ret = MPP_ERR_MALLOC;
@@ -421,7 +421,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     ret = func(group->allocator, info);
     if (ret) {
         mpp_err_f("failed to create buffer with size %d\n", info->size);
-        mpp_mem_pool_put_f(caller, mpp_buffer_pool, p);
+        mpp_mem_pool_put(mpp_buffer_pool, p, caller);
         ret = MPP_ERR_MALLOC;
         goto RET;
     }
@@ -674,7 +674,7 @@ static MppDevBufMapNode *mpp_buffer_attach_dev_lock(const char *caller, MppBuffe
         }
     }
 
-    node = (MppDevBufMapNode *)mpp_mem_pool_get_f(caller, mpp_buf_map_node_pool);
+    node = (MppDevBufMapNode *)mpp_mem_pool_get(mpp_buf_map_node_pool, caller);
     if (!node) {
         mpp_err("mpp_buffer_attach_dev failed to allocate map node\n");
         ret = MPP_NOK;
@@ -691,7 +691,7 @@ static MppDevBufMapNode *mpp_buffer_attach_dev_lock(const char *caller, MppBuffe
 
     ret = mpp_dev_ioctl(dev, MPP_DEV_ATTACH_FD, node);
     if (ret) {
-        mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, node);
+        mpp_mem_pool_put(mpp_buf_map_node_pool, node, caller);
         node = NULL;
         goto DONE;
     }
@@ -725,7 +725,7 @@ MPP_RET mpp_buffer_detach_dev_f(const char *caller, MppBuffer buffer, MppDev dev
         if (pos->dev == dev) {
             list_del_init(&pos->list_buf);
             ret = mpp_dev_ioctl(dev, MPP_DEV_DETACH_FD, pos);
-            mpp_mem_pool_put_f(caller, mpp_buf_map_node_pool, pos);
+            mpp_mem_pool_put(mpp_buf_map_node_pool, pos, caller);
             break;
         }
     }
@@ -1043,7 +1043,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
         return NULL;
     }
 
-    p = (MppBufferGroupImpl *)mpp_mem_pool_get_f(caller, mpp_buf_grp_pool);
+    p = (MppBufferGroupImpl *)mpp_mem_pool_get(mpp_buf_grp_pool, caller);
     if (!p) {
         mpp_err("MppBufferService failed to allocate group context\n");
         return NULL;
@@ -1078,7 +1078,7 @@ MppBufferGroupImpl *MppBufferService::get_group(const char *tag, const char *cal
     }
 
     if (!p->allocator || !p->alloc_api) {
-        mpp_mem_pool_put_f(caller, mpp_buf_grp_pool, p);
+        mpp_mem_pool_put(mpp_buf_grp_pool, p, caller);
         mpp_err("MppBufferService get_group failed to get allocater with mode %d type %x\n", mode, type);
         return NULL;
     }
@@ -1231,7 +1231,7 @@ void MppBufferService::destroy_group(MppBufferGroupImpl *group)
         buf_logs_deinit(group->logs);
         group->logs = NULL;
     }
-    mpp_mem_pool_put(mpp_buf_grp_pool, group);
+    mpp_mem_pool_put_f(mpp_buf_grp_pool, group);
     group_count--;
 
     if (id == misc[mode][type][flag]) {

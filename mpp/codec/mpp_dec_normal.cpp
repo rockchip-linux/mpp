@@ -209,7 +209,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             mpp_spinlock_lock(&dec->ts_lock);
             list_for_each_entry_safe(ts, pos, &dec->ts_link, MppPktTs, link) {
                 list_del_init(&ts->link);
-                mpp_mem_pool_put(dec->ts_pool, ts);
+                mpp_mem_pool_put_f(dec->ts_pool, ts);
             }
             mpp_spinlock_unlock(&dec->ts_lock);
         }
@@ -648,7 +648,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
 
     if (dec->cfg->base.sort_pts) {
         MppFrame frame = NULL;
-        MppPktTs *pkt_ts = (MppPktTs *)mpp_mem_pool_get(dec->ts_pool);
+        MppPktTs *pkt_ts = (MppPktTs *)mpp_mem_pool_get_f(dec->ts_pool);
 
         mpp_assert(pkt_ts);
         mpp_buf_slot_get_prop(frame_slots, output, SLOT_FRAME_PTR, &frame);

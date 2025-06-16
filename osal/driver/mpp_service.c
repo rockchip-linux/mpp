@@ -399,7 +399,7 @@ MPP_RET mpp_service_deinit(void *ctx)
         pos->lock_buf = NULL;
         pos->lock_dev = NULL;
         mpp_service_ioc_detach_fd(pos);
-        mpp_mem_pool_put_f(__FUNCTION__, pos->pool, pos);
+        mpp_mem_pool_put_f(pos->pool, pos);
 
         pthread_mutex_unlock(lock_buf);
     }

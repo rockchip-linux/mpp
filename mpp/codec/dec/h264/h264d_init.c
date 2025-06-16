@@ -736,7 +736,7 @@ static MPP_RET alloc_decpic(H264_SLICE_t *currSlice)
 
     return ret = MPP_OK;
 __FAILED:
-    mpp_mem_pool_put(p_Vid->pic_st, dec_pic);
+    mpp_mem_pool_put_f(p_Vid->pic_st, dec_pic);
     p_Vid->dec_pic = NULL;
 
     return ret;
