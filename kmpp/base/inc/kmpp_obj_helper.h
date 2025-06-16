@@ -27,6 +27,7 @@
 #warning "KMPP_OBJ_FUNC_INIT            - add object init function"
 #warning "KMPP_OBJ_FUNC_DEINIT          - add object deinit function"
 #warning "KMPP_OBJ_FUNC_DUMP            - add object dump function"
+#warning "KMPP_OBJ_SGLN_ID              - add object singleton id for singleton macro"
 #warning "KMPP_OBJ_FUNC_EXPORT_DISABLE  - disable function exprot by EXPORT_SYMBOL"
 #warning "KMPP_OBJ_ACCESS_DISABLE       - disable access function creation"
 #warning "KMPP_OBJ_SHARE_DISABLE        - disable object sharing by /dev/kmpp_objs to userspace"
@@ -390,6 +391,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
 #undef KMPP_OBJ_FUNC_DEINIT
 #undef KMPP_OBJ_FUNC_IOCTL
 #undef KMPP_OBJ_FUNC_DUMP
+#undef KMPP_OBJ_SGLN_ID
 #undef KMPP_OBJ_FUNC_EXPORT_DISABLE
 #undef KMPP_OBJ_ACCESS_DISABLE
 #undef KMPP_OBJ_SHARE_DISABLE
