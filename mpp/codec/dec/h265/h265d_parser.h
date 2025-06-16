@@ -641,6 +641,7 @@ typedef struct HEVCContext {
     void *hal_pic_private;
 
     RK_S64 pts;
+    RK_S64 dts;
     RK_U8  has_get_eos;
     RK_U8  miss_ref_flag;
     RK_U8  pre_pps_id;

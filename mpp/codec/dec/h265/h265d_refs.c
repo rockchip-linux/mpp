@@ -134,6 +134,7 @@ static HEVCFrame *alloc_frame(HEVCContext *s)
         mpp_frame_set_errinfo(frame->frame, 0);
         mpp_frame_set_discard(frame->frame, 0);
         mpp_frame_set_pts(frame->frame, s->pts);
+        mpp_frame_set_dts(frame->frame, s->dts);
         mpp_frame_set_poc(frame->frame, s->poc);
         mpp_frame_set_color_range(frame->frame, s->h265dctx->color_range);
         mpp_frame_set_color_primaries(frame->frame, s->sps->vui.colour_primaries);
