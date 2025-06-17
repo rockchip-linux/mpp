@@ -1018,8 +1018,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
-        MppEncCfgSet *src = &impl->cfg;
+        MppEncCfgSet *src = (MppEncCfgSet *)param;
         RK_U32 change = src->base.change;
         MPP_RET ret_tmp = MPP_OK;
 

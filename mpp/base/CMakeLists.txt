@@ -6,7 +6,7 @@
 add_library(mpp_base OBJECT
     mpp_enc_refs.cpp
     mpp_enc_ref.cpp
-    mpp_enc_cfg.cpp
+    mpp_enc_cfg.c
     mpp_dec_cfg.c
     mpp_sys_cfg.cpp
     mpp_sys_cfg_st.cpp
@@ -24,7 +24,7 @@ add_library(mpp_base OBJECT
     mpp_bitread.c
     mpp_bitput.c
     mpp_cfg_io.c
-    mpp_cfg.cpp
+    mpp_cfg.c
     mpp_2str.c
     mpp_dec_hdr_meta.c
     )

@@ -607,8 +607,7 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
-        MppEncCfgSet *src = &impl->cfg;
+        MppEncCfgSet *src = (MppEncCfgSet *)param;
 
         if (src->prep.change)
             ret |= h264e_proc_prep_cfg(&cfg->prep, &src->prep);

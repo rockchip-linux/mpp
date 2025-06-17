@@ -294,8 +294,7 @@ static MPP_RET vp8e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
     MPP_RET ret = MPP_OK;
     Vp8eCtx *p = (Vp8eCtx *)ctx;
     MppEncCfgSet *cfg = p->cfg;
-    MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
-    MppEncCfgSet *src = &impl->cfg;
+    MppEncCfgSet *src = (MppEncCfgSet *)param;
 
     vp8e_dbg_fun("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
     switch (cmd) {

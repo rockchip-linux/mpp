@@ -457,7 +457,7 @@ static MPP_RET control(Kmpp *ctx, MpiCmd cmd, MppParam param)
     switch (cmd) {
     case MPP_ENC_SET_CFG :
     case MPP_ENC_GET_CFG : {
-        size = sizeof(MppEncCfgImpl);
+        size = sizeof(MppEncCfgSet);
     } break;
     case MPP_ENC_SET_HEADER_MODE :
     case MPP_ENC_SET_SEI_CFG : {

@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_enc_cfg_test"
@@ -57,10 +46,10 @@ int main()
         -1, -1, -1, -1,
     };
 
-    MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg;
+    MppEncCfgSet *impl = (MppEncCfgSet *)cfg;
 
     mpp_log("before set: rc mode %d bps_target %d\n",
-            impl->cfg.rc.rc_mode, impl->cfg.rc.bps_target);
+            impl->rc.rc_mode, impl->rc.bps_target);
 
     start = mpp_time();
     ret = mpp_enc_cfg_set_u32(cfg, "rc:mode", rc_mode);
@@ -71,7 +60,7 @@ int main()
     mpp_log("set s32 time %lld us\n", end - start);
 
     mpp_log("after  set: rc mode %d bps_target %d\n",
-            impl->cfg.rc.rc_mode, impl->cfg.rc.bps_target);
+            impl->rc.rc_mode, impl->rc.bps_target);
 
     rc_mode = 0;
     bps_target = 0;

@@ -345,8 +345,7 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_GET_CFG : {
-        MppEncCfgImpl *p = (MppEncCfgImpl *)param;
-        MppEncCfgSet *cfg = &p->cfg;
+        MppEncCfgSet *cfg = (MppEncCfgSet *)param;
 
         enc_dbg_ctrl("get all config\n");
         memcpy(cfg, &enc->cfg, sizeof(enc->cfg));
