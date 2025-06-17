@@ -16,6 +16,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_mem_pool.h"
+#include "mpp_singleton.h"
 
 #include "mpp_trie.h"
 #include "mpp_cfg_io.h"
@@ -261,8 +262,7 @@ MPP_OBJ_ACCESS_IMPL(fp, void *, % p)
 MPP_OBJ_STRUCT_ACCESS_IMPL(st, void, % p)
 MPP_OBJ_STRUCT_ACCESS_IMPL(shm, KmppShmPtr, % p)
 
-__attribute__ ((destructor))
-void kmpp_objs_deinit(void)
+static void kmpp_objs_deinit(void)
 {
     KmppObjs *p = MPP_FETCH_AND(&objs, NULL);
 
@@ -294,8 +294,7 @@ void kmpp_objs_deinit(void)
     }
 }
 
-__attribute__ ((constructor))
-void kmpp_objs_init(void)
+static void kmpp_objs_init(void)
 {
     static const char *dev = "/dev/kmpp_objs";
     KmppObjs *p = objs;
@@ -413,6 +412,8 @@ __failed:
         trie = NULL;
     }
 }
+
+MPP_SINGLETON(MPP_SGLN_KOBJ, kmpp_obj, kmpp_objs_init, kmpp_objs_deinit);
 
 rk_s32 kmpp_objdef_put(KmppObjDef def)
 {
