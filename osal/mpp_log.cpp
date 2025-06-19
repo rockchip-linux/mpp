@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_log"
@@ -39,6 +28,17 @@ static const char *msg_log_nothing = "\n";
 static int mpp_log_level = MPP_LOG_INFO;
 static MppLogCb mpp_log_ext_cb = NULL;
 static void *mpp_log_ext_ctx = NULL;
+
+static os_log_callback log_func[] = {
+    NULL,           /* MPP_LOG_DEFAULT */
+    os_log_fatal,   /* MPP_LOG_FATAL   */
+    os_log_error,   /* MPP_LOG_ERROR   */
+    os_log_warn,    /* MPP_LOG_WARN   */
+    os_log_info,    /* MPP_LOG_INFO    */
+    os_log_debug,   /* MPP_LOG_DEBUG   */
+    os_log_trace,   /* MPP_LOG_VERBOSE */
+    os_log_info,    /* MPP_LOG_DEFAULT */
+};
 
 static void __mpp_log(os_log_callback func, const char *tag, const char *fmt,
                       const char *fname, va_list args)
@@ -101,17 +101,6 @@ void _mpp_err(const char *tag, const char *fmt, const char *fname, ...)
 
 void _mpp_log_l(int level, const char *tag, const char *fmt, const char *fname, ...)
 {
-    static os_log_callback log_func[] = {
-        NULL,           /* MPP_LOG_DEFAULT */
-        os_log_fatal,   /* MPP_LOG_FATAL   */
-        os_log_error,   /* MPP_LOG_ERROR   */
-        os_log_warn,    /* MPP_LOG_WARN   */
-        os_log_info,    /* MPP_LOG_INFO    */
-        os_log_debug,   /* MPP_LOG_DEBUG   */
-        os_log_trace,   /* MPP_LOG_VERBOSE */
-        os_log_info,    /* MPP_LOG_DEFAULT */
-    };
-
     va_list args;
     int log_level;
 
@@ -135,6 +124,73 @@ void _mpp_log_l(int level, const char *tag, const char *fmt, const char *fname, 
     va_start(args, fname);
     __mpp_log(log_func[level], tag, fmt, fname, args);
     va_end(args);
+}
+
+void mpp_llog(int level, const char *tag, const char *fmt, const char *fname, ...)
+{
+    va_list args;
+    char *log_buf = NULL;
+    int log_size = SZ_1K;
+    int log_base = 0;
+    int log_len = 0;
+    int log_level;
+    int i;
+
+    if (mpp_log_ext_cb) {
+        va_start(args, fname);
+        mpp_log_ext_cb(mpp_log_ext_ctx, level, tag, fmt, fname, args);
+        va_end(args);
+        return;
+    }
+
+    if (level <= MPP_LOG_UNKNOWN || level >= MPP_LOG_SILENT)
+        return;
+
+    log_level = mpp_log_level;
+    if (log_level >= MPP_LOG_SILENT)
+        return;
+
+    if (level > log_level)
+        return;
+
+    if (NULL == tag)
+        tag = MODULE_TAG;
+
+
+    va_start(args, fname);
+
+    /* get log len and create buffer */
+    do {
+        log_buf = (char *)malloc(log_size);
+        if (!log_buf)
+            break;
+
+        log_len = vsnprintf(log_buf, log_size - 1, fmt, args);
+        if (log_len < log_size - 1)
+            break;
+
+        free(log_buf);
+        log_size <<= 1;
+    } while (1);
+
+    va_end(args);
+
+    for (i = 0; i < log_len; i++) {
+        if (log_buf[i] == '\n') {
+            /* skip empty line */
+            if (log_base < i) {
+                log_buf[i] = '\0';
+                log_func[level](tag, log_buf + log_base, args);
+                /* restore \n */
+                log_buf[i] = '\n';
+            }
+
+            log_base = i + 1;
+        }
+    }
+
+    if (log_buf)
+        free(log_buf);
 }
 
 void mpp_set_log_level(int level)
