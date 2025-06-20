@@ -44,6 +44,14 @@
 #define cfg_io_dbg_show(fmt, ...)       cfg_io_dbg_f(CFG_IO_DBG_SHOW, fmt, ## __VA_ARGS__)
 #define cfg_io_dbg_info(fmt, ...)       cfg_io_dbg(CFG_IO_DBG_INFO, fmt, ## __VA_ARGS__)
 
+typedef enum MppCfgParserType_e {
+    MPP_CFG_PARSER_TYPE_KEY = 0,
+    MPP_CFG_PARSER_TYPE_VALUE,
+    MPP_CFG_PARSER_TYPE_TABLE,
+    MPP_CFG_PARSER_TYPE_ARRAY,
+    MPP_CFG_PARSER_TYPE_BUTT,
+} MppCfgParserType;
+
 typedef struct MppCfgIoImpl_t MppCfgIoImpl;
 typedef void (*MppCfgIoFunc)(MppCfgIoImpl *obj, void *data);
 
@@ -52,7 +60,10 @@ struct MppCfgIoImpl_t {
     struct list_head        list;
     /* list for children */
     struct list_head        child;
+    /* parent of current object */
     MppCfgIoImpl            *parent;
+    /* valid condition callback for the current object */
+    MppCfgObjCond           cond;
 
     MppCfgType              type;
     MppCfgVal               val;
@@ -468,6 +479,53 @@ rk_s32 mpp_cfg_del(MppCfgObj obj)
     return rk_ok;
 }
 
+rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type)
+{
+    MppCfgIoImpl *impl = (MppCfgIoImpl *)root;
+    rk_s32 str_start = 0;
+    rk_s32 str_len = 0;
+    rk_s32 i;
+    char delimiter;
+
+    if (!obj || !root || !name) {
+        mpp_loge_f("invalid param obj %p root %p name %s\n", obj, root, name);
+        return rk_nok;
+    }
+
+    delimiter = (type == MPP_CFG_STR_FMT_TOML) ? '.' : ':';
+    str_len = strlen(name);
+
+    for (i = 0; i <= str_len; i++) {
+        if (name[i] == delimiter || name[i] == '\0') {
+            MppCfgIoImpl *pos, *n;
+            char bak = name[i];
+            rk_s32 found = 0;
+
+            name[i] = '\0';
+            mpp_logi("try match %s\n", name + str_start);
+            list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+                if (pos->name && !strcmp(pos->name, name + str_start)) {
+                    impl = pos;
+                    found = 1;
+                    break;
+                }
+            }
+
+            name[i] = bak;
+
+            if (!found) {
+                *obj = NULL;
+                return rk_nok;
+            }
+
+            str_start = i + 1;
+        }
+    }
+
+    *obj = impl;
+    return rk_ok;
+}
+
 rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info)
 {
     MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
@@ -506,6 +564,15 @@ rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info)
     return rk_nok;
 }
 
+rk_s32 mpp_cfg_set_cond(MppCfgObj obj, MppCfgObjCond cond)
+{
+    MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
+
+    if (impl)
+        impl->cond = cond;
+
+    return rk_ok;
+}
 typedef struct MppCfgFullNameCtx_t {
     MppTrie trie;
     char *buf;
@@ -566,6 +633,7 @@ MppTrie mpp_cfg_to_trie(MppCfgObj obj)
     return p;
 }
 
+/* read byte functions */
 /* check valid len, get offset position */
 #define test_byte_f(str, len)           test_byte(str, len, __FUNCTION__)
 /* check valid pos, get offset + pos position */
@@ -574,8 +642,11 @@ MppTrie mpp_cfg_to_trie(MppCfgObj obj)
 #define skip_byte_f(str, len)           skip_byte(str, len, __FUNCTION__)
 #define skip_ws_f(str)                  skip_ws(str, __FUNCTION__)
 
-#define write_byte_f(str, buf, size)    write_byte(str, buf, size, __FUNCTION__)
+/* write byte functions */
+#define write_byte_f(str, buf, size)    write_byte(str, (void *)buf, size, __FUNCTION__)
 #define write_indent_f(str)             write_indent(str, __FUNCTION__)
+/* revert comma for json */
+#define revert_comma_f(str)             revert_comma(str, __FUNCTION__)
 
 static char *test_byte(MppCfgStrBuf *str, rk_s32 len, const char *caller)
 {
@@ -681,6 +752,7 @@ static rk_s32 write_byte(MppCfgStrBuf *str, void *buf, rk_s32 *size, const char 
 
     memcpy(str->buf + str->offset, buf, len);
     str->offset += len;
+    str->buf[str->offset] = '\0';
     size[0] = 0;
 
     return rk_ok;
@@ -701,6 +773,26 @@ static rk_s32 write_indent(MppCfgStrBuf *str, const char *caller)
             if (write_byte_f(str, space, &indent_width))
                 return rk_nok;
         }
+    }
+
+    return rk_ok;
+}
+
+static rk_s32 revert_comma(MppCfgStrBuf *str, const char *caller)
+{
+    cfg_io_dbg_byte("str %p-[%p:%d] revert_comma %d at %s\n",
+                    str, str->buf, str->buf_size, str->depth, caller);
+
+    if (str->offset <= 1) {
+        cfg_io_dbg_byte("str %p offset %d skip revert_comma at %s\n",
+                        str, str->offset, caller);
+        return rk_ok;
+    }
+
+    if (str->buf[str->offset - 2] == ',') {
+        str->buf[str->offset - 2] = str->buf[str->offset - 1];
+        str->buf[str->offset - 1] = str->buf[str->offset];
+        str->offset--;
     }
 
     return rk_ok;
@@ -750,7 +842,7 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         } break;
         case MPP_CFG_TYPE_STRING :
         case MPP_CFG_TYPE_RAW : {
-            len += snprintf(buf + len, total - len, "“%s”\n", (char *)impl->val.str);
+            len += snprintf(buf + len, total - len, "\"%s\"\n", (char *)impl->val.str);
         } break;
         default : {
             mpp_loge("invalid type %d\n", impl->type);
@@ -799,9 +891,99 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 
 static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 {
-    (void)impl;
-    (void)str;
-    return 0;
+    MppCfgIoImpl *pos, *n;
+    char buf[256];
+    rk_s32 len = 0;
+    rk_s32 total = sizeof(buf) - 1;
+    rk_s32 ret = rk_ok;
+
+    write_indent_f(str);
+
+    /* leaf node write once and finish */
+    if (impl->type < MPP_CFG_TYPE_OBJECT) {
+        cfg_io_dbg_to("depth %d leaf write name %s type %d\n", str->depth, impl->name, impl->type);
+
+        if (impl->name)
+            len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
+
+        switch (impl->type) {
+        case MPP_CFG_TYPE_NULL : {
+            len += snprintf(buf + len, total - len, "null,\n");
+        } break;
+        case MPP_CFG_TYPE_BOOL : {
+            len += snprintf(buf + len, total - len, "%s,\n", impl->val.b1 ? "true" : "false");
+        } break;
+        case MPP_CFG_TYPE_S32 : {
+            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s32);
+        } break;
+        case MPP_CFG_TYPE_U32 : {
+            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u32);
+        } break;
+        case MPP_CFG_TYPE_S64 : {
+            len += snprintf(buf + len, total - len, "%lld,\n", impl->val.s64);
+        } break;
+        case MPP_CFG_TYPE_U64 : {
+            len += snprintf(buf + len, total - len, "%llu,\n", impl->val.u64);
+        } break;
+        case MPP_CFG_TYPE_F32 : {
+            len += snprintf(buf + len, total - len, "%f,\n", impl->val.f32);
+        } break;
+        case MPP_CFG_TYPE_F64 : {
+            len += snprintf(buf + len, total - len, "%lf,\n", impl->val.f64);
+        } break;
+        case MPP_CFG_TYPE_STRING :
+        case MPP_CFG_TYPE_RAW : {
+            len += snprintf(buf + len, total - len, "\"%s\",\n", (char *)impl->val.str);
+        } break;
+        default : {
+            mpp_loge("invalid type %d\n", impl->type);
+        } break;
+        }
+
+        return write_byte_f(str, buf, &len);
+    }
+
+    cfg_io_dbg_to("depth %d branch write name %s type %d\n", str->depth, impl->name, impl->type);
+
+    if (impl->name)
+        len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
+
+    if (list_empty(&impl->child)) {
+        len += snprintf(buf + len, total - len, "%s,\n",
+                        impl->type == MPP_CFG_TYPE_OBJECT ? "{}" : "[]");
+        return write_byte_f(str, buf, &len);
+    }
+
+    len += snprintf(buf + len, total - len, "%c\n",
+                    impl->type == MPP_CFG_TYPE_OBJECT ? '{' : '[');
+
+    ret = write_byte_f(str, buf, &len);
+    if (ret)
+        return ret;
+
+    str->depth++;
+
+    list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+        cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+        ret = mpp_cfg_to_json(pos, str);
+        if (ret)
+            break;
+    }
+
+    revert_comma_f(str);
+
+    str->depth--;
+
+    write_indent_f(str);
+
+    if (str->depth)
+        len += snprintf(buf + len, total - len, "%c,\n",
+                        impl->type == MPP_CFG_TYPE_OBJECT ? '}' : ']');
+    else
+        len += snprintf(buf + len, total - len, "%c\n",
+                        impl->type == MPP_CFG_TYPE_OBJECT ? '}' : ']');
+
+    return write_byte_f(str, buf, &len);
 }
 
 static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str)
@@ -811,42 +993,41 @@ static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     return 0;
 }
 
-static rk_s32 mpp_cfg_from_log(MppCfgObj obj, MppCfgStrBuf *str)
-{
-    (void)obj;
-    (void)str;
-    return 0;
-}
-
-static rk_s32 parse_json_string(MppCfgStrBuf *str, char **name, rk_s32 *len)
+static rk_s32 parse_log_string(MppCfgStrBuf *str, char **name, rk_s32 *len, rk_u32 type)
 {
     char *buf = NULL;
     char *start = NULL;
     rk_s32 name_len = 0;
+    char terminator = type ? '\"' : ' ';
 
     *name = NULL;
     *len = 0;
 
     /* skip whitespace and find first double quotes */
     buf = skip_ws_f(str);
-    if (!buf || buf[0] != '\"')
+    if (!buf)
         return -101;
 
-    buf = skip_byte_f(str, 1);
-    if (!buf)
-        return -102;
+    if (type) {
+        if (buf[0] != '\"')
+            return -101;
+
+        buf = skip_byte_f(str, 1);
+        if (!buf)
+            return -102;
+    }
 
     start = buf;
 
-    /* find the last double quotes */
-    while ((buf = show_byte_f(str, name_len)) && buf[0] != '\"') {
+    /* find the terminator */
+    while ((buf = show_byte_f(str, name_len)) && buf[0] != terminator) {
         name_len++;
     }
 
-    if (!buf || buf[0] != '\"')
+    if (!buf || buf[0] != terminator)
         return -103;
 
-    /* find complete string skip the string and double quotes */
+    /* find complete string skip the string and terminator */
     buf = skip_byte_f(str, name_len + 1);
     if (!buf)
         return -104;
@@ -927,7 +1108,438 @@ done:
     return rk_ok;
 }
 
+static rk_s32 parse_log_value(MppCfgIoImpl *parent, const char *name, MppCfgStrBuf *str);
+
+static rk_s32 parse_log_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
+{
+    MppCfgIoImpl *parent = obj;
+    char *buf = NULL;
+    rk_s32 old = str->offset;
+    rk_s32 ret = rk_nok;
+
+    if (str->depth >= MAX_CFG_DEPTH) {
+        mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
+        return rk_nok;
+    }
+
+    str->depth++;
+
+    cfg_io_dbg_from("depth %d offset %d array parse start\n", str->depth, str->offset);
+
+    buf = test_byte_f(str, 0);
+    if (!buf || buf[0] != '[') {
+        ret = -2;
+        goto failed;
+    }
+
+    buf = skip_byte_f(str, 1);
+    if (!buf) {
+        ret = -3;
+        goto failed;
+    }
+
+    /* skip whitespace and check the end of buffer */
+    buf = skip_ws_f(str);
+    if (!buf) {
+        ret = -4;
+        goto failed;
+    }
+
+    /* check empty object */
+    if (buf[0] == ']') {
+        skip_byte_f(str, 1);
+        cfg_io_dbg_from("depth %d found empty array\n", str->depth);
+        str->depth--;
+        return rk_ok;
+    }
+
+    do {
+        /* find colon for separater */
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -5;
+            goto failed;
+        }
+
+        /* parse value */
+        ret = parse_log_value(parent, NULL, str);
+        if (ret) {
+            ret = -6;
+            goto failed;
+        }
+
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -7;
+            goto failed;
+        }
+
+        if (buf[0] == ']')
+            break;
+    } while (1);
+
+    if (!buf || buf[0] != ']') {
+        ret = -9;
+        goto failed;
+    }
+
+    skip_byte_f(str, 1);
+
+    cfg_io_dbg_from("depth %d offset %d -> %d array parse success\n",
+                    str->depth, old, str->offset);
+
+    str->depth--;
+    ret = rk_ok;
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("depth %d offset %d -> %d array parse failed ret %d\n",
+                        str->depth, old, str->offset, ret);
+
+    return ret;
+}
+
+static rk_s32 parse_log_object(MppCfgIoImpl *obj, MppCfgStrBuf *str);
+
+static rk_s32 parse_log_value(MppCfgIoImpl *parent, const char *name, MppCfgStrBuf *str)
+{
+    MppCfgObj obj = NULL;
+    char *buf = NULL;
+
+    cfg_io_dbg_from("depth %d offset %d: parse value\n", str->depth, str->offset);
+
+    buf = test_byte_f(str, 4);
+    if (buf && !strncmp(buf, "null", 4)) {
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_NULL, NULL);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value null\n", str->depth, str->offset);
+        skip_byte_f(str, 4);
+        return rk_ok;
+    }
+
+    if (buf && !strncmp(buf, "true", 4)) {
+        MppCfgVal val;
+
+        val.b1 = 1;
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_BOOL, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value true\n", str->depth, str->offset);
+        skip_byte_f(str, 4);
+        return rk_ok;
+    }
+
+    buf = test_byte_f(str, 5);
+    if (buf && !strncmp(buf, "false", 5)) {
+        MppCfgVal val;
+
+        val.b1 = 0;
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_BOOL, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value false\n", str->depth, str->offset);
+        skip_byte_f(str, 5);
+        return rk_ok;
+    }
+
+    buf = test_byte_f(str, 0);
+    if (buf && buf[0] == '\"') {
+        MppCfgVal val;
+        char *string = NULL;
+        rk_s32 len = 0;
+
+        cfg_io_dbg_from("depth %d offset %d: get value string start\n", str->depth, str->offset);
+
+        parse_log_string(str, &string, &len, MPP_CFG_PARSER_TYPE_VALUE);
+        if (!string)
+            return rk_nok;
+
+        val.str = dup_str(string, len);
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_STRING, &val);
+        mpp_cfg_add(parent, obj);
+        MPP_FREE(val.str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value string success\n", str->depth, str->offset);
+        return rk_ok;
+    }
+
+    if (buf && (buf[0] == '-' || (buf[0] >= '0' && buf[0] <= '9'))) {
+        MppCfgType type;
+        MppCfgVal val;
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value number start\n",
+                        str->depth, str->offset);
+
+        ret = parse_json_number(str, &type, &val);
+        if (ret)
+            return ret;
+
+        mpp_cfg_get_object(&obj, name, type, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value number success\n",
+                        str->depth, str->offset);
+        return ret;
+    }
+
+    if (buf && buf[0] == '{') {
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value object start\n",
+                        str->depth, str->offset);
+
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_OBJECT, NULL);
+        mpp_cfg_add(parent, obj);
+
+        ret = parse_log_object(obj, str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value object ret %d\n",
+                        str->depth, str->offset, ret);
+        return ret;
+    }
+
+    if (buf && buf[0] == '[') {
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value array start\n",
+                        str->depth, str->offset);
+
+        mpp_cfg_get_array(&obj, name, 0);
+        mpp_cfg_add(parent, obj);
+
+        ret = parse_log_array(obj, str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value array ret %d\n",
+                        str->depth, str->offset, ret);
+        return ret;
+    }
+
+    return rk_nok;
+}
+
+static rk_s32 parse_log_object(MppCfgIoImpl *obj, MppCfgStrBuf *str)
+{
+    MppCfgIoImpl *parent = obj;
+    char *buf = NULL;
+    rk_s32 old = str->offset;
+    rk_s32 ret = rk_nok;
+
+    if (str->depth >= MAX_CFG_DEPTH) {
+        mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
+        return rk_nok;
+    }
+
+    str->depth++;
+
+    cfg_io_dbg_from("depth %d offset %d object parse start\n", str->depth, str->offset);
+
+    buf = test_byte_f(str, 0);
+    if (!buf || buf[0] != '{') {
+        ret = -2;
+        goto failed;
+    }
+
+    buf = skip_byte_f(str, 1);
+    if (!buf) {
+        ret = -3;
+        goto failed;
+    }
+
+    /* skip whitespace and check the end of buffer */
+    buf = skip_ws_f(str);
+    if (!buf) {
+        ret = -4;
+        goto failed;
+    }
+
+    /* check empty object */
+    if (buf[0] == '}') {
+        skip_byte_f(str, 1);
+        cfg_io_dbg_from("depth %d found empty object\n", str->depth);
+        str->depth--;
+        return rk_ok;
+    }
+
+    do {
+        rk_s32 name_len = 0;
+        char *name = NULL;
+        char *tmp = NULL;
+
+        /* support array without name */
+        if (buf[0] == '[') {
+            MppCfgObj object = NULL;
+
+            cfg_io_dbg_from("depth %d offset %d: get value array start\n",
+                            str->depth, str->offset);
+
+            mpp_cfg_get_array(&object, NULL, 0);
+            mpp_cfg_add(parent, object);
+
+            ret = parse_log_array(object, str);
+
+            cfg_io_dbg_from("depth %d offset %d: get value array ret %d\n",
+                            str->depth, str->offset, ret);
+
+            if (ret) {
+                mpp_cfg_put_all_child(object);
+                goto failed;
+            }
+
+            goto __next;
+        }
+
+        ret = parse_log_string(str, &name, &name_len, MPP_CFG_PARSER_TYPE_KEY);
+        if (ret) {
+            goto failed;
+        }
+
+        tmp = dup_str(name, name_len);
+        cfg_io_dbg_from("depth %d offset %d found object key %s len %d\n",
+                        str->depth, str->offset, tmp, name_len);
+        MPP_FREE(tmp);
+
+        /* find colon for separater */
+        buf = skip_ws_f(str);
+        if (!buf || buf[0] != ':') {
+            ret = -5;
+            goto failed;
+        }
+
+        /* skip colon */
+        buf = skip_byte_f(str, 1);
+        if (!buf) {
+            ret = -6;
+            goto failed;
+        }
+
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -7;
+            goto failed;
+        }
+
+        tmp = dup_str(name, name_len);
+        if (!tmp) {
+            mpp_loge_f("failed to dup name\n");
+            ret = -8;
+            goto failed;
+        }
+
+        /* parse value */
+        ret = parse_log_value(parent, tmp, str);
+        MPP_FREE(tmp);
+        if (ret) {
+            ret = -9;
+            goto failed;
+        }
+    __next:
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -10;
+            goto failed;
+        }
+
+        if (buf[0] == '}')
+            break;
+
+        cfg_io_dbg_from("depth %d offset %d: get next object\n", str->depth, str->offset);
+    } while (1);
+
+    skip_byte_f(str, 1);
+
+    cfg_io_dbg_from("depth %d offset %d -> %d object parse success\n",
+                    str->depth, old, str->offset);
+
+    str->depth--;
+    ret = rk_ok;
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("depth %d offset %d -> %d object parse failed ret %d\n",
+                        str->depth, old, str->offset, ret);
+
+    return ret;
+}
+
+static rk_s32 mpp_cfg_from_log(MppCfgObj *obj, MppCfgStrBuf *str)
+{
+    MppCfgObj object = NULL;
+    char *buf = NULL;
+    rk_s32 ret = rk_ok;
+
+    /* skip white space and check the end of buffer */
+    buf = skip_ws_f(str);
+    if (!buf)
+        return rk_nok;
+
+    if (buf[0] == '{') {
+        ret = mpp_cfg_get_object(&object, NULL, MPP_CFG_TYPE_OBJECT, NULL);
+        if (ret || !object) {
+            mpp_loge_f("failed to create top object\n");
+            return rk_nok;
+        }
+
+        ret = parse_log_object(object, str);
+    } else if (buf[0] == '[') {
+        ret = mpp_cfg_get_array(&object, NULL, 0);
+        if (ret || !object) {
+            mpp_loge_f("failed to create top object\n");
+            return rk_nok;
+        }
+
+        ret = parse_log_array(object, str);
+    } else {
+        mpp_loge_f("invalid top element '%c' on offset %d\n", buf[0], str->offset);
+    }
+
+    *obj = object;
+
+    return ret;
+}
+
+static rk_s32 parse_json_string(MppCfgStrBuf *str, char **name, rk_s32 *len)
+{
+    char *buf = NULL;
+    char *start = NULL;
+    rk_s32 name_len = 0;
+
+    *name = NULL;
+    *len = 0;
+
+    /* skip whitespace and find first double quotes */
+    buf = skip_ws_f(str);
+    if (!buf || buf[0] != '\"')
+        return -101;
+
+    buf = skip_byte_f(str, 1);
+    if (!buf)
+        return -102;
+
+    start = buf;
+
+    /* find the last double quotes */
+    while ((buf = show_byte_f(str, name_len)) && buf[0] != '\"') {
+        name_len++;
+    }
+
+    if (!buf || buf[0] != '\"')
+        return -103;
+
+    /* find complete string skip the string and double quotes */
+    buf = skip_byte_f(str, name_len + 1);
+    if (!buf)
+        return -104;
+
+    *name = start;
+    *len = name_len;
+
+    return rk_ok;
+}
+
 static rk_s32 parse_json_value(MppCfgIoImpl *parent, const char *name, MppCfgStrBuf *str);
+static rk_s32 parse_json_array(MppCfgIoImpl *obj, MppCfgStrBuf *str);
 
 static rk_s32 parse_json_object(MppCfgIoImpl *obj, MppCfgStrBuf *str)
 {
@@ -975,6 +1587,29 @@ static rk_s32 parse_json_object(MppCfgIoImpl *obj, MppCfgStrBuf *str)
     do {
         rk_s32 name_len = 0;
         char *name = NULL;
+        char *tmp = NULL;
+
+        if (buf[0] == '[') {
+            MppCfgObj object = NULL;
+
+            cfg_io_dbg_from("depth %d offset %d: get value array start\n",
+                            str->depth, str->offset);
+
+            mpp_cfg_get_array(&object, NULL, 0);
+            mpp_cfg_add(parent, object);
+
+            ret = parse_json_array(object, str);
+
+            cfg_io_dbg_from("depth %d offset %d: get value array ret %d\n",
+                            str->depth, str->offset, ret);
+
+            if (ret) {
+                mpp_cfg_put_all_child(object);
+                goto failed;
+            }
+
+            goto __next;
+        }
 
         ret = parse_json_string(str, &name, &name_len);
         if (ret) {
@@ -1001,21 +1636,21 @@ static rk_s32 parse_json_object(MppCfgIoImpl *obj, MppCfgStrBuf *str)
             goto failed;
         }
 
-        name = dup_str(name, name_len);
-        if (!name) {
+        tmp = dup_str(name, name_len);
+        if (!tmp) {
             mpp_loge_f("failed to dup name\n");
             ret = -8;
             goto failed;
         }
 
         /* parse value */
-        ret = parse_json_value(parent, name, str);
-        MPP_FREE(name);
+        ret = parse_json_value(parent, tmp, str);
+        MPP_FREE(tmp);
         if (ret) {
             ret = -9;
             goto failed;
         }
-
+    __next:
         buf = skip_ws_f(str);
         if (!buf) {
             ret = -10;
@@ -1222,6 +1857,7 @@ static rk_s32 parse_json_value(MppCfgIoImpl *parent, const char *name, MppCfgStr
         val.str = dup_str(string, len);
         mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_STRING, &val);
         mpp_cfg_add(parent, obj);
+        MPP_FREE(val.str);
 
         cfg_io_dbg_from("depth %d offset %d: get value string success\n", str->depth, str->offset);
         return rk_ok;
@@ -1334,37 +1970,25 @@ void mpp_cfg_dump(MppCfgObj obj, const char *func)
 {
     MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
     MppCfgStrBuf str;
+    rk_s32 ret;
 
     if (!obj) {
         mpp_loge_f("invalid param obj %p at %s\n", obj, func);
         return;
     }
 
-    mpp_logi_f("obj %s - %p at %s\n", impl->name, impl, func);
+    mpp_logi_f("obj %s - %p at %s\n", impl->name ? impl->name : "n/a", impl, func);
 
     str.buf_size = 4096;
     str.buf = mpp_malloc_size(void, str.buf_size);
     str.offset = 0;
     str.depth = 0;
 
-    if (mpp_cfg_to_log(impl, &str))
+    ret = mpp_cfg_to_log(impl, &str);
+    if (ret)
         mpp_loge_f("failed to get log buffer\n");
-
-    /* it may be a very long string, split by \n to different line and print */
-    if (str.offset >= 256) {
-        RK_S32 start = 0;
-        RK_S32 pos = 0;
-
-        for (pos = 0; pos < str.offset; pos++) {
-            if (str.buf[pos] == '\n') {
-                str.buf[pos] = '\0';
-                mpp_logi("%s\n", &str.buf[start]);
-                start = pos + 1;
-            }
-        }
-    } else {
-        mpp_logi("%s", str.buf);
-    }
+    else
+        mpp_cfg_print_string(str.buf);
 
     MPP_FREE(str.buf);
 }
@@ -1628,4 +2252,23 @@ rk_s32 mpp_cfg_from_struct(MppCfgObj *obj, MppCfgObj type, void *st)
     *obj = read_struct(orig, NULL, st + orig->info.data_offset);
 
     return *obj ? rk_ok : rk_nok;
+}
+
+rk_s32 mpp_cfg_print_string(char *buf)
+{
+    rk_s32 start = 0;
+    rk_s32 pos = 0;
+    rk_s32 len = strlen(buf);
+
+    /* it may be a very long string, split by \n to different line and print */
+    for (pos = 0; pos < len; pos++) {
+        if (buf[pos] == '\n') {
+            buf[pos] = '\0';
+            mpp_logi("%s\n", &buf[start]);
+            buf[pos] = '\n';
+            start = pos + 1;
+        }
+    }
+
+    return rk_ok;
 }

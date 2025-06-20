@@ -9,6 +9,13 @@
 #include "rk_type.h"
 #include "mpp_err.h"
 
+typedef enum MppCfgStrFmt_e {
+    MPP_CFG_STR_FMT_LOG,
+    MPP_CFG_STR_FMT_JSON,
+    MPP_CFG_STR_FMT_TOML,
+    MPP_CFG_STR_FMT_BUTT,
+} MppCfgStrFmt;
+
 typedef void* MppSysCfg;
 
 #ifdef __cplusplus

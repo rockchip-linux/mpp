@@ -6,6 +6,8 @@
 #ifndef __MPP_CFG_IO__
 #define __MPP_CFG_IO__
 
+#include "rk_mpp_cfg.h"
+
 #include "mpp_internal.h"
 
 typedef enum MppCfgType_e {
@@ -32,13 +34,6 @@ typedef enum MppCfgType_e {
     MPP_CFG_TYPE_BUTT,
 } MppCfgType;
 
-typedef enum MppCfgStrFmt_e {
-    MPP_CFG_STR_FMT_LOG,
-    MPP_CFG_STR_FMT_JSON,
-    MPP_CFG_STR_FMT_TOML,
-    MPP_CFG_STR_FMT_BUTT,
-} MppCfgStrFmt;
-
 typedef union MppCfgVal_u {
     rk_bool     b1;
     rk_s32      s32;
@@ -52,6 +47,7 @@ typedef union MppCfgVal_u {
 } MppCfgVal;
 
 typedef void* MppCfgObj;
+typedef rk_s32 (*MppCfgObjCond)(MppCfgObj obj);
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,9 +62,15 @@ rk_s32 mpp_cfg_put_all(MppCfgObj obj);
 rk_s32 mpp_cfg_add(MppCfgObj root, MppCfgObj leaf);
 /* object tree release */
 rk_s32 mpp_cfg_del(MppCfgObj obj);
+/* find by name string */
+rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type);
 
 /* attach MppCfgInfo for access location */
 rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info);
+/* attach KmppEntry for access location */
+rk_s32 mpp_cfg_set_entry(MppCfgObj obj, KmppEntry *entry);
+/* add cfg obj condition for input / output option */
+rk_s32 mpp_cfg_set_cond(MppCfgObj obj, MppCfgObjCond cond);
 
 void mpp_cfg_dump(MppCfgObj obj, const char *func);
 #define mpp_cfg_dump_f(obj) mpp_cfg_dump(obj, __FUNCTION__)
@@ -92,6 +94,8 @@ rk_s32 mpp_cfg_to_struct(MppCfgObj obj, MppCfgObj type, void *st);
  * st   - struct body to write obj values
  */
 rk_s32 mpp_cfg_from_struct(MppCfgObj *obj, MppCfgObj type, void *st);
+
+rk_s32 mpp_cfg_print_string(char *buf);
 
 #ifdef __cplusplus
 }
