@@ -92,7 +92,6 @@ MPP_RET av1d_deinit(void *ctx)
 
     if (av1_ctx) {
         av1d_parser_deinit(av1_ctx);
-        av1d_split_deinit(av1_ctx);
         if (av1_ctx->pkt) {
             buf = mpp_packet_get_data(av1_ctx->pkt);
             MPP_FREE(buf);

@@ -173,8 +173,6 @@ RK_S32 av1d_split_frame(Av1CodecContext *ctx,
 
 MPP_RET av1d_get_frame_stream(Av1CodecContext *ctx, RK_U8 *buf, RK_S32 length);
 
-MPP_RET av1d_split_deinit(Av1CodecContext *ctx);
-
 MPP_RET av1d_split_init(Av1CodecContext *ctx);
 
 RK_S32 av1d_parser2_syntax(Av1CodecContext *ctx);

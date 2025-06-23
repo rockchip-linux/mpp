@@ -924,6 +924,8 @@ MPP_RET av1d_parser_deinit(Av1CodecContext *ctx)
     mpp_frame_deinit(&s->cur_frame.f);
 
     mpp_av1_fragment_reset(&s->current_obu);
+    MPP_FREE(s->current_obu.units);
+    MPP_FREE(s->frame_header);
     MPP_FREE(s->seq_ref);
     MPP_FREE((s->hdr_dynamic_meta));
     MPP_FREE(ctx->priv_data);
@@ -1357,18 +1359,6 @@ MPP_RET av1d_get_frame_stream(Av1CodecContext *ctx, RK_U8 *buf, RK_S32 length)
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
 
-}
-
-MPP_RET av1d_split_deinit(Av1CodecContext *ctx)
-{
-    MPP_RET ret = MPP_OK;
-    (void)ctx;
-
-    av1d_dbg_func("enter ctx %p\n", ctx);
-
-    av1d_dbg_func("leave ctx %p\n", ctx);
-
-    return ret;
 }
 
 MPP_RET av1d_split_init(Av1CodecContext *ctx)
