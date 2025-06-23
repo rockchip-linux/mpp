@@ -1,3 +1,105 @@
+## 1.0.10 (2025-06-23)
+### Feature
+- [mpp_log]: Add long log (llog) function
+- [mpp_buffer]: Add mpp_buffer discard function
+- [build]: add Android.bp support
+- [kmpp_packet]: Add kmpp_packet interface
+- [mpp_log]: Add external callback support
+- [kmpp_obj]: Refactor kmpp_obj helper
+- [kmpp_obj]: Add more kmpp_obj property
+- [kmpp_obj]: Add object update function
+- [kmpp_obj]: Add userspace objdef functions
+- [osal]: Add mpp_singleton module
+- [mpp_cfg_io]: Add mpp cfg io module
+- [kmpp]: Add kmpp_frame_test
+
+### Fix
+- [h265d]: Fix yuv400 decode error
+- [h265d]: Fix GDR stream decoding
+- [kmpp_obj]: Undef KMPP_OBJ_SGLN_ID macro
+- [osal]: Fix timeout expire too soon issue
+- [cmake]: Fix static build issue
+- [vp8e]: Remove unused vp8e_rc file
+- [h265d_rkv]: Fix dec err after cut streams
+- [mpp_singleton]: fix init order issue
+- [mpp_dec]: Fix compile warning
+- [h265d_parser]: Fix slice header parse
+- [mpp_sys_cfg]: afbc calc support yuv444sp_10bit
+- [kmpp_obj]: Update helper macro
+- [h263d]: Fix missing initializer for field problem
+- [enc_utils]: Remove duplicate option
+- [kmpp_obj]: Remove extra print in helper
+- [avsd_plus]: Fix page fault when filtering field data
+- [h265d_vdpu384a]: Fix CABAC error detection issue.
+- [mpp_sys_cfg]: Fix stride issue on resolution change
+- [vepu_540c]: Reduce print hw_status when irq ret
+- [mpp_sys_cfg]: Fix ver_stride calc issue
+- [sys_cfg]: Fix ver stride calculation issue.
+- [vepu541]: Add warning for unsupport nv21/nv42
+- [avs2d]: fix vertical stride config
+- Revert "fix[mpp_enc_impl]: fix rc cfg for jpeg enc"
+- [h265d_ps]: Suppress YUV444 unsupported warning logs
+- [mpp_cfg]: Fix function define on C++ field
+- [h264e_dpb]: fix walk_len when refs_dryrun
+- [av1d_vdpu383]: fix segid page fault issue
+- [allocator]: Fix misc buffer group flag issue
+- [h265d_parser]: fix startcode finder for 00 00 00 xx case
+- [kmpp]: Fix eos frame with NULL buffer issue
+- [utils]: Remove duplicate assignments
+- [mpi_enc_test]: Sync mdc config of RV1126B
+- [sys_cfg]: Avoid frequent environment variable access.
+- [mpp_enc]: Add avc rc parameter set
+- [h265d_vdpu383]: Fix CABAC error detection issue.
+- [mpi]: Fix typo
+- [h264_vdpu384a]: Fix error proc issue
+- [h265e]: Correct tile syntax elements at PPS
+- [mpp]: Add atf set, atf value 0~3
+- [mpp_enc_cfg]: Add lambda_idx_i and lambda_idx_p
+- [mpp_enc]: Add encoder speed mode setup
+- [test]: Add qbias_arr and aq_rnge_arr init
+- [packet]: fix packet partition and eoi logic
+- [mpp]: add qpmap_en and enc_spd
+- [cmake]: Fix double object include issue
+- [sys_cfg]: Align to CTU64 to avoid info change.
+- [mpp]: Fix compile warning with ipc sdk toolchain
+
+### Docs
+- Update 1.0.10 CHANGELOG.md
+
+### Refactor
+- [base]: Refactor C++ mpp_enc_cfg to C
+- [base]: Refactor C++ mpp_meta to C
+- [base]: Refactor C++ mpp_packet to C
+- [base]: Refactor C++ mpp_frame to C
+- [base]: Refactor C++ mpp_buffer to C
+- [mpp_mem_pool]: Add exit leak pool print
+- [osal]: Refactor C++ mpp_server to C
+- [osal]: Refactor more module from C++ to C
+- [mpp_trace]: Refactor C++ mpp_trace to C
+- [mpp_runtime]: Refactor C++ mpp_runtime to C
+- [mpp_soc]: Refactor C++ mpp_soc to C
+- [mpp_platform]: Refactor C++ mpp_platform to C
+- [mem_pool]: Refactor C++ mem_pool to C
+- [mpp_mem]: Refactor C++ mpp_mem to C
+- [kmpp]: Replace venc_packet with KmppPacket
+- [osal/linux/os_log]: Use C constructor.
+- [base]: Remove MppDecCfgImpl
+- [base]: Refactor mpp_trie from C++ to C
+- [mpp_cfg_io]: Change cfg to trie interface
+
+### Test
+- [osal]: Add libc and OS compatibility checking
+- [resolution]: Add resolution test tool
+
+### Chore
+- [kmpp]: Modify kmpp_objs init / deinit order
+- [kmpp_obj]: Add from objs device macro
+- [kmpp_obj]: Add more obj function
+- [kmpp_obj]: Update flag calculation macro
+- [utils]: Add fbc frame data dump
+- A fix for company release requirement
+- [kmpp]: Remove get packet failed log
+
 ## 1.0.9 (2025-04-03)
 ### Feature
 - [kmpp_frame]: Add KmppFrame module
