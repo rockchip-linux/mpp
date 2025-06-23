@@ -584,6 +584,7 @@ static MPP_RET hal_h264e_vepu510_get_task(void *hal, HalEncTask *task)
 
     /* if not VEPU1/2, update log2_max_frame_num_minus4 in hw_cfg */
     hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
+    hw_cfg->hw_poc_type = ctx->sps->pic_order_cnt_type;
 
     if (ctx->task_cnt > 1 && (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)) {
         H264ePrefixNal *prefix = &ctx->prefix_sets[ctx->task_idx];
@@ -924,6 +925,7 @@ static void setup_vepu510_codec(HalVepu510RegSet *regs, H264eSps *sps,
     reg_frm->synt_sps.max_fnum       = sps->log2_max_frame_num_minus4;
     reg_frm->synt_sps.drct_8x8       = sps->direct8x8_inference;
     reg_frm->synt_sps.mpoc_lm4       = sps->log2_max_poc_lsb_minus4;
+    reg_frm->synt_sps.poc_type       = sps->pic_order_cnt_type;
 
     reg_frm->synt_pps.etpy_mode      = pps->entropy_coding_mode;
     reg_frm->synt_pps.trns_8x8       = pps->transform_8x8_mode;
