@@ -127,6 +127,12 @@ typedef enum MppMetaKey_e {
      */
     KEY_NPU_OBJ_FLAG            = FOURCC_META('n', 'p', 'u', 'f'),
 
+    /*
+     * smart v4 encoder input key
+     */
+    KEY_BUFFER_UPSCALE          = FOURCC_META('u', 'b', 'u', 'f'),
+    KEY_BUFFER_DOWNSCALE        = FOURCC_META('d', 'b', 'u', 'f'),
+
     /* frame long-term reference frame operation */
     KEY_ENC_MARK_LTR            = FOURCC_META('m', 'l', 't', 'r'),
     KEY_ENC_USE_LTR             = FOURCC_META('u', 'l', 't', 'r'),
