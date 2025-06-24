@@ -62,13 +62,18 @@ MPP_RET _check_is_mpp_frame(const char *func, void *frame)
 
 MPP_RET mpp_frame_init(MppFrame *frame)
 {
-    if (NULL == frame) {
+    MppFrameImpl *p;
+
+    if (!frame) {
         mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppFrameImpl *p = (MppFrameImpl*)mpp_mem_pool_get_f(pool_frame);
-    if (NULL == p) {
+    if (!pool_frame)
+        mpp_frame_srv_init();
+
+    p = (MppFrameImpl*)mpp_mem_pool_get_f(pool_frame);
+    if (!p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
     }
@@ -82,12 +87,14 @@ MPP_RET mpp_frame_init(MppFrame *frame)
 
 MPP_RET mpp_frame_deinit(MppFrame *frame)
 {
-    if (NULL == frame || check_is_mpp_frame(*frame)) {
+    MppFrameImpl *p;
+
+    if (!frame || check_is_mpp_frame(*frame)) {
         mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppFrameImpl *p = (MppFrameImpl *)*frame;
+    p = (MppFrameImpl *)*frame;
     if (p->buffer)
         mpp_buffer_put(p->buffer);
 
@@ -104,19 +111,21 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
 
 MppBuffer mpp_frame_get_buffer(MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return NULL;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
     return (MppFrame)p->buffer;
 }
 
 void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
     if (p->buffer != buffer) {
         if (buffer)
             mpp_buffer_inc_ref(buffer);
@@ -130,21 +139,22 @@ void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
 
 RK_S32 mpp_frame_has_meta(const MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
-        return 0;
-
     MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
+        return 0;
 
     return (NULL != p->meta);
 }
 
 MppMeta mpp_frame_get_meta(MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return NULL;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
-    if (NULL == p->meta)
+    if (!p->meta)
         mpp_meta_get(&p->meta);
 
     return p->meta;
@@ -152,10 +162,11 @@ MppMeta mpp_frame_get_meta(MppFrame frame)
 
 void mpp_frame_set_meta(MppFrame frame, MppMeta meta)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
     if (p->meta) {
         mpp_meta_put(p->meta);
         p->meta = NULL;
@@ -173,11 +184,12 @@ MppFrameStatus *mpp_frame_get_status(MppFrame frame)
 
 void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
-    if (enable && NULL == p->stopwatch) {
+    if (enable && !p->stopwatch) {
         char name[32];
 
         snprintf(name, sizeof(name) - 1, "frm %8llx", p->pts);
@@ -192,21 +204,23 @@ void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable)
 
 MppStopwatch mpp_frame_get_stopwatch(const MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return NULL;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
     return p->stopwatch;
 }
 
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 {
-    if (NULL == dst || check_is_mpp_frame(src)) {
+    MppFrameImpl *p = (MppFrameImpl *)dst;
+
+    if (!dst || check_is_mpp_frame(src)) {
         mpp_err_f("invalid input dst %p src %p\n", dst, src);
         return MPP_ERR_UNKNOW;
     }
 
-    MppFrameImpl *p = (MppFrameImpl *)dst;
     if (p->meta)
         mpp_meta_put(p->meta);
 
@@ -220,13 +234,13 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
 {
-    if (check_is_mpp_frame(frame0) || check_is_mpp_frame(frame0)) {
+    MppFrameImpl *f0 = (MppFrameImpl *)frame0;
+    MppFrameImpl *f1 = (MppFrameImpl *)frame1;
+
+    if (check_is_mpp_frame(f0) || check_is_mpp_frame(f1)) {
         mpp_err_f("invalid NULL pointer input\n");
         return MPP_ERR_NULL_PTR;
     }
-
-    MppFrameImpl *f0 = (MppFrameImpl *)frame0;
-    MppFrameImpl *f1 = (MppFrameImpl *)frame1;
 
     if ((f0->width              == f1->width)  &&
         (f0->height             == f1->height) &&
@@ -241,10 +255,10 @@ MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1)
 
 RK_U32 mpp_frame_get_fbc_offset(MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
-        return 0;
-
     MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
+        return 0;
 
     if (MPP_FRAME_FMT_IS_FBC(p->fmt)) {
         RK_U32 fbc_version = p->fmt & MPP_FRAME_FBC_MASK;
@@ -265,10 +279,11 @@ RK_U32 mpp_frame_get_fbc_offset(MppFrame frame)
 
 RK_U32 mpp_frame_get_fbc_stride(MppFrame frame)
 {
-    if (check_is_mpp_frame(frame))
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
         return 0;
 
-    MppFrameImpl *p = (MppFrameImpl *)frame;
     return MPP_ALIGN(p->width, 16);
 }
 

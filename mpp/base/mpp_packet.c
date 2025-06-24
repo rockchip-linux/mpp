@@ -49,14 +49,19 @@ MPP_RET check_is_mpp_packet_f(void *packet, const char *caller)
 
 MPP_RET mpp_packet_new(MppPacket *packet)
 {
-    if (NULL == packet) {
+    MppPacketImpl *p;
+
+    if (!packet) {
         mpp_err_f("invalid NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppPacketImpl *p = (MppPacketImpl*)mpp_mem_pool_get_f(pool_packet);
+    if (!pool_packet)
+        mpp_packet_srv_init();
+
+    p = (MppPacketImpl*)mpp_mem_pool_get_f(pool_packet);
     *packet = p;
-    if (NULL == p) {
+    if (!p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_NULL_PTR;
     }
@@ -68,17 +73,21 @@ MPP_RET mpp_packet_new(MppPacket *packet)
 
 MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 {
-    if (NULL == packet) {
+    MppPacketImpl *p;
+    MPP_RET ret;
+
+    if (!packet) {
         mpp_err_f("invalid NULL input packet\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_RET ret = mpp_packet_new(packet);
+    ret = mpp_packet_new(packet);
     if (ret) {
         mpp_err_f("new packet failed\n");
         return ret;
     }
-    MppPacketImpl *p = (MppPacketImpl *)*packet;
+
+    p = (MppPacketImpl *)*packet;
     p->data = p->pos    = data;
     p->size = p->length = size;
 
@@ -87,17 +96,21 @@ MPP_RET mpp_packet_init(MppPacket *packet, void *data, size_t size)
 
 MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer)
 {
-    if (NULL == packet || NULL == buffer) {
+    MppPacketImpl *p;
+    MPP_RET ret;
+
+    if (!packet || !buffer) {
         mpp_err_f("invalid input packet %p buffer %p\n", packet, buffer);
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_RET ret = mpp_packet_new(packet);
+    ret = mpp_packet_new(packet);
     if (ret) {
         mpp_err_f("new packet failed\n");
         return ret;
     }
-    MppPacketImpl *p = (MppPacketImpl *)*packet;
+
+    p = (MppPacketImpl *)*packet;
     p->data = p->pos    = mpp_buffer_get_ptr(buffer);
     p->size = p->length = mpp_buffer_get_size(buffer);
     p->buffer = buffer;
@@ -108,16 +121,19 @@ MPP_RET mpp_packet_init_with_buffer(MppPacket *packet, MppBuffer buffer)
 
 MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
 {
-    if (NULL == packet || check_is_mpp_packet(src)) {
+    MppPacketImpl *src_impl;
+    MppPacket pkt;
+    MPP_RET ret;
+
+    if (!packet || check_is_mpp_packet(src)) {
         mpp_err_f("found invalid input %p %p\n", packet, src);
         return MPP_ERR_UNKNOW;
     }
 
     *packet = NULL;
 
-    MppPacketImpl *src_impl = (MppPacketImpl *)src;
-    MppPacket pkt;
-    MPP_RET ret = mpp_packet_new(&pkt);
+    src_impl = (MppPacketImpl *)src;
+    ret = mpp_packet_new(&pkt);
     if (ret)
         return ret;
 
@@ -132,6 +148,7 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
         /* if source packet has buffer just create a new reference to buffer */
         mpp_buffer_inc_ref(src_impl->buffer);
     } else {
+        MppPacketImpl *p;
         /*
          * NOTE: only copy valid data
          */
@@ -141,13 +158,14 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
          * then real size to avoid read carsh
          */
         void *pos = mpp_malloc_size(void, length + 256);
-        if (NULL == pos) {
+
+        if (!pos) {
             mpp_err_f("malloc failed, size %d\n", length);
             mpp_packet_deinit(&pkt);
             return MPP_ERR_MALLOC;
         }
 
-        MppPacketImpl *p = (MppPacketImpl *)pkt;
+        p = (MppPacketImpl *)pkt;
         p->data = p->pos = pos;
         p->size = p->length = length;
         p->flag |= MPP_PACKET_FLAG_INTERNAL;
@@ -167,12 +185,14 @@ MPP_RET mpp_packet_copy_init(MppPacket *packet, const MppPacket src)
 
 MPP_RET mpp_packet_deinit(MppPacket *packet)
 {
-    if (NULL == packet || check_is_mpp_packet(*packet)) {
+    MppPacketImpl *p;
+
+    if (!packet || check_is_mpp_packet(*packet)) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppPacketImpl *p = (MppPacketImpl *)(*packet);
+    p = (MppPacketImpl *)(*packet);
 
     /* release buffer reference */
     if (p->buffer)
@@ -196,12 +216,15 @@ MPP_RET mpp_packet_deinit(MppPacket *packet)
 
 void mpp_packet_set_pos(MppPacket packet, void *pos)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+    size_t offset;
+    size_t diff;
+
+    if (check_is_mpp_packet(p))
         return;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
-    size_t offset = (RK_U8 *)pos - (RK_U8 *)p->data;
-    size_t diff = (RK_U8 *)pos - (RK_U8 *)p->pos;
+    offset = (RK_U8 *)pos - (RK_U8 *)p->data;
+    diff = (RK_U8 *)pos - (RK_U8 *)p->pos;
 
     /*
      * If set pos is a simple update on original buffer update the length
@@ -220,59 +243,67 @@ void mpp_packet_set_pos(MppPacket packet, void *pos)
 
 void *mpp_packet_get_pos(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return NULL;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     return p->pos;
 }
 
 MPP_RET mpp_packet_set_eos(MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return MPP_ERR_UNKNOW;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag |= MPP_PACKET_FLAG_EOS;
     return MPP_OK;
 }
 
 MPP_RET mpp_packet_clr_eos(MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return MPP_ERR_UNKNOW;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag &= ~MPP_PACKET_FLAG_EOS;
     return MPP_OK;
 }
 
 RK_U32 mpp_packet_get_eos(MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return 0;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     return (p->flag & MPP_PACKET_FLAG_EOS) ? (1) : (0);
 }
 
 MPP_RET mpp_packet_set_extra_data(MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return MPP_ERR_UNKNOW;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     p->flag |= MPP_PACKET_FLAG_EXTRA_DATA;
     return MPP_OK;
 }
 
 MPP_RET mpp_packet_reset(MppPacketImpl *packet)
 {
+    void *data;
+    size_t size;
+
     if (check_is_mpp_packet(packet))
         return MPP_ERR_UNKNOW;
 
-    void *data = packet->data;
-    size_t size = packet->size;
+    data = packet->data;
+    size = packet->size;
 
     memset(packet, 0, sizeof(*packet));
 
@@ -286,10 +317,11 @@ MPP_RET mpp_packet_reset(MppPacketImpl *packet)
 
 void mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     if (p->buffer != buffer) {
         if (buffer)
             mpp_buffer_inc_ref(buffer);
@@ -303,30 +335,32 @@ void mpp_packet_set_buffer(MppPacket packet, MppBuffer buffer)
 
 MppBuffer mpp_packet_get_buffer(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return NULL;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
     return p->buffer;
 }
 
 RK_S32 mpp_packet_has_meta(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
-        return 0;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return 0;
 
     return (NULL != p->meta);
 }
 
 MppMeta mpp_packet_get_meta(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
         return NULL;
 
-    MppPacketImpl *p = (MppPacketImpl *)packet;
-    if (NULL == p->meta)
+    if (!p->meta)
         mpp_meta_get(&p->meta);
 
     return p->meta;
@@ -334,10 +368,10 @@ MppMeta mpp_packet_get_meta(const MppPacket packet)
 
 MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status)
 {
-    if (check_is_mpp_packet(packet))
-        return MPP_ERR_UNKNOW;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return MPP_ERR_UNKNOW;
 
     p->status.val = status.val;
     return MPP_OK;
@@ -345,12 +379,12 @@ MPP_RET mpp_packet_set_status(MppPacket packet, MppPacketStatus status)
 
 MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status)
 {
-    if (check_is_mpp_packet(packet)) {
+    MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p)) {
         status->val = 0;
         return MPP_ERR_UNKNOW;
     }
-
-    MppPacketImpl *p = (MppPacketImpl *)packet;
 
     status->val = p->status.val;
     return MPP_OK;
@@ -358,37 +392,39 @@ MPP_RET mpp_packet_get_status(MppPacket packet, MppPacketStatus *status)
 
 RK_U32 mpp_packet_is_partition(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
-        return 0;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return 0;
 
     return (p->status.partition) || (p->flag & MPP_PACKET_FLAG_PARTITION);
 }
 
 RK_U32 mpp_packet_is_soi(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
-        return 0;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return 0;
 
     return p->status.soi;
 }
 
 RK_U32 mpp_packet_is_eoi(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
-        return 0;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return 0;
 
     return (p->status.eoi) || (p->flag & MPP_PACKET_FLAG_EOI);
 }
 
 MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size)
 {
-    if (check_is_mpp_packet(packet) || NULL == data) {
+    void *src;
+
+    if (check_is_mpp_packet(packet) || !data) {
         mpp_err_f("invalid input: packet %p data %p\n", packet, data);
         return MPP_ERR_UNKNOW;
     }
@@ -396,7 +432,7 @@ MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size
     if (0 == size)
         return MPP_OK;
 
-    void *src = mpp_packet_get_data(packet);
+    src = mpp_packet_get_data(packet);
     mpp_assert(src != NULL);
     memcpy(data, (char*)src + offset, size);
     return MPP_OK;
@@ -404,7 +440,9 @@ MPP_RET mpp_packet_read(MppPacket packet, size_t offset, void *data, size_t size
 
 MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t size)
 {
-    if (check_is_mpp_packet(packet) || NULL == data) {
+    void *dst;
+
+    if (check_is_mpp_packet(packet) || !data) {
         mpp_err_f("invalid input: packet %p data %p\n", packet, data);
         return MPP_ERR_UNKNOW;
     }
@@ -412,7 +450,7 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
     if (0 == size)
         return MPP_OK;
 
-    void *dst = mpp_packet_get_data(packet);
+    dst = mpp_packet_get_data(packet);
     mpp_assert(dst != NULL);
     memcpy((char*)dst + offset, data, size);
     return MPP_OK;
@@ -420,13 +458,13 @@ MPP_RET mpp_packet_write(MppPacket packet, size_t offset, void *data, size_t siz
 
 MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
 {
+    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
+
     if (check_is_mpp_packet(dst) || check_is_mpp_packet(src)) {
         mpp_err_f("invalid input: dst %p src %p\n", dst, src);
         return MPP_ERR_UNKNOW;
     }
-
-    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
-    MppPacketImpl *src_impl = (MppPacketImpl *)src;
 
     memcpy(dst_impl->pos, src_impl->pos, src_impl->length);
     dst_impl->length = src_impl->length;
@@ -439,13 +477,13 @@ MPP_RET mpp_packet_copy(MppPacket dst, MppPacket src)
 
 MPP_RET mpp_packet_append(MppPacket dst, MppPacket src)
 {
+    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
+    MppPacketImpl *src_impl = (MppPacketImpl *)src;
+
     if (check_is_mpp_packet(dst) || check_is_mpp_packet(src)) {
         mpp_err_f("invalid input: dst %p src %p\n", dst, src);
         return MPP_ERR_UNKNOW;
     }
-
-    MppPacketImpl *dst_impl = (MppPacketImpl *)dst;
-    MppPacketImpl *src_impl = (MppPacketImpl *)src;
 
     memcpy((RK_U8 *)dst_impl->pos + dst_impl->length, src_impl->pos,
            src_impl->length);
@@ -524,7 +562,7 @@ MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset
         /* realloc segment info buffer. default 8 segments */
         old_buf_cnt *= 2;
 
-        if (NULL == p->segments_ext) {
+        if (!p->segments_ext) {
             seg_buf = mpp_calloc(MppPktSeg, old_buf_cnt);
             if (seg_buf)
                 memcpy(seg_buf, p->segments_def, sizeof(p->segments_def));
@@ -532,7 +570,7 @@ MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset
             seg_buf = mpp_realloc(p->segments_ext, MppPktSeg, old_buf_cnt);
         }
 
-        if (NULL == seg_buf)
+        if (!seg_buf)
             return MPP_NOK;
 
         for (i = 0; i < segment_nb - 1; i++)
@@ -542,7 +580,7 @@ MPP_RET mpp_packet_add_segment_info(MppPacket packet, RK_S32 type, RK_S32 offset
         p->segments = seg_buf;
         p->segment_buf_cnt = old_buf_cnt;
     } else {
-        if (NULL == seg_buf) {
+        if (!seg_buf) {
             seg_buf = p->segments_def;
             p->segments = seg_buf;
         }
@@ -602,10 +640,10 @@ void mpp_packet_copy_segment_info(MppPacket dst, MppPacket src)
 
 const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
 {
-    if (check_is_mpp_packet(packet))
-        return NULL;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return NULL;
 
     if (!p->segment_nb)
         return NULL;
@@ -615,10 +653,10 @@ const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet)
 
 void mpp_packet_set_release(MppPacket packet, ReleaseCb release, void *ctx, void *arg)
 {
-    if (check_is_mpp_packet(packet))
-        return;
-
     MppPacketImpl *p = (MppPacketImpl *)packet;
+
+    if (check_is_mpp_packet(p))
+        return;
 
     p->release = release;
     p->release_ctx = ctx;
