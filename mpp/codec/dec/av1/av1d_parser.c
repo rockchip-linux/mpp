@@ -1078,6 +1078,8 @@ MPP_RET av1d_parser_frame(Av1CodecContext *ctx, HalDecTask *task)
         }
 
         if (raw_tile_group && (s->tile_num == raw_tile_group->tg_end + 1)) {
+            RK_U32 j;
+
             av1d_parser2_syntax(ctx);
             task->syntax.data = (void*)&ctx->pic_params;
             task->syntax.number = 1;
@@ -1085,17 +1087,17 @@ MPP_RET av1d_parser_frame(Av1CodecContext *ctx, HalDecTask *task)
             task->output = s->cur_frame.slot_index;
             task->input_packet = ctx->pkt;
 
-            for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
-                int8_t ref_idx = s->raw_frame_header->ref_frame_idx[i];
+            for (j = 0; j < AV1_REFS_PER_FRAME; j++) {
+                int8_t ref_idx = s->raw_frame_header->ref_frame_idx[j];
                 if (s->ref[ref_idx].slot_index < 0x7f) {
                     mpp_buf_slot_set_flag(s->slots, s->ref[ref_idx].slot_index, SLOT_HAL_INPUT);
                     MppFrame mframe = NULL;
-                    task->refer[i] = s->ref[ref_idx].slot_index;
-                    mpp_buf_slot_get_prop(s->slots, task->refer[i], SLOT_FRAME_PTR, &mframe);
+                    task->refer[j] = s->ref[ref_idx].slot_index;
+                    mpp_buf_slot_get_prop(s->slots, task->refer[j], SLOT_FRAME_PTR, &mframe);
                     if (mframe)
                         task->flags.ref_err |= mpp_frame_get_errinfo(mframe);
                 } else {
-                    task->refer[i] = -1;
+                    task->refer[j] = -1;
                 }
             }
             ret = update_reference_list(ctx);
