@@ -371,7 +371,7 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     }
 
     /* NOTE: compatible to old struct size */
-    p->size = sizeof(*p) - sizeof(p->size);
+    p->size = sizeof(*p);
     mpp_enc_cfg_set_default(p);
 
     *cfg = p;
