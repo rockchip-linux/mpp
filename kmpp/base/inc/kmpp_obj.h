@@ -9,7 +9,7 @@
 #include "mpp_internal.h"
 
 typedef rk_s32 (*KmppObjInit)(void *entry, KmppObj obj, const char *caller);
-typedef rk_s32 (*KmppObjDeinit)(void *entry, const char *caller);
+typedef rk_s32 (*KmppObjDeinit)(void *entry, KmppObj obj, const char *caller);
 typedef rk_s32 (*KmppObjDump)(void *entry);
 
 #ifdef __cplusplus
@@ -29,7 +29,7 @@ rk_s32 kmpp_objdef_add_deinit(KmppObjDef def, KmppObjDeinit deinit);
 /* userspace object dump function register */
 rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump);
 
-rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, const char *prop);
+rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, rk_s32 value);
 
 /* kernel objdef query from /dev/kmpp_objs */
 rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
@@ -71,6 +71,11 @@ KmppShmPtr *kmpp_obj_to_shm(KmppObj obj);
 /* KmppShmPtr size defined the copy size for kernel ioctl */
 rk_s32 kmpp_obj_to_shm_size(KmppObj obj);
 const char *kmpp_obj_get_name(KmppObj obj);
+/*
+ * priv is the private data in userspace KmppObjImpl struct for kobject transaction
+ * priv = KmppObjImpl->priv
+ */
+void *kmpp_obj_to_priv(KmppObj obj);
 /*
  * entry is the userspace address for kernel share object body
  * entry = KmppShmPtr->uaddr + entry_offset

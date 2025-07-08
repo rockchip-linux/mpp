@@ -120,6 +120,7 @@ typedef struct KmppObjDefImpl_t {
 
     /* properties */
     rk_s32 disable_mismatch_log;
+    rk_s32 priv_size;
 
     const char *name;
 } KmppObjDefImpl;
@@ -130,6 +131,7 @@ typedef struct KmppObjImpl_t {
     KmppObjDefImpl *def;
     /* trie for fast access */
     MppTrie trie;
+    void *priv;
     KmppShmPtr *shm;
     void *entry;
 } KmppObjImpl;
@@ -405,6 +407,9 @@ static void kmpp_objs_init(void)
         info = mpp_trie_get_info_next(trie, info);
         obj_dbg_share("%2d:%2d - %s offset %d entry_size %d\n",
                       count, i, name, offset, impl->entry_size);
+
+        obj_dbg_flow("objdef %-16s in kernel  size %4d\n",
+                     name, impl->entry_size);
     }
 
     objs = p;
@@ -496,7 +501,7 @@ rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name)
     impl->buf_size = size + sizeof(KmppObjImpl);
     impl->ref_cnt = 1;
 
-    obj_dbg_flow("objdef %-16s registered size %4d - %p\n", name, size, impl);
+    obj_dbg_flow("objdef %-16s registered size %4d\n", name, size, impl);
 
     *def = impl;
 
@@ -615,13 +620,33 @@ rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump)
     return rk_nok;
 }
 
-rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, const char *prop)
+rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, rk_s32 value)
 {
     if (def && op) {
         KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
 
-        if (strcmp(op, "disable_mismatch_log"))
-            impl->disable_mismatch_log = (prop && !strcmp(prop, "yes"));
+        if (!strcmp(op, "disable_mismatch_log"))
+            impl->disable_mismatch_log = value ? 1 : 0;
+        else if (!strcmp(op, "priv_size")) {
+            rk_s32 priv_size = MPP_ALIGN(value, sizeof(void *));
+
+            /* recreate mem pool when private size is changed */
+            if (impl->priv_size != priv_size) {
+                rk_s32 buf_size = sizeof(KmppObjImpl) + priv_size + impl->buf_size;
+
+                if (impl->pool)
+                    mpp_mem_pool_deinit_f(impl->pool);
+
+                impl->pool = mpp_mem_pool_init_f(impl->name, buf_size);
+
+                obj_dbg_flow("objdef %-16s priv size %d -> %d \n",
+                             impl->name, impl->priv_size, priv_size);
+                impl->priv_size = priv_size;
+            }
+        } else {
+            mpp_loge_f("unknown property %s value %d\n", op, value);
+            return rk_nok;
+        }
 
         return rk_ok;
     }
@@ -788,6 +813,36 @@ MppTrie kmpp_objdef_get_trie(KmppObjDef def)
     return impl ? impl->trie : NULL;
 }
 
+static void setup_obj(KmppObjImpl *impl, KmppObjs *p, KmppObjDefImpl *def, rk_u8 *shm, const char *caller)
+{
+    rk_u8 *base = (rk_u8 *)(impl + 1);
+
+    impl->name = def->name;
+    impl->def = def;
+    impl->trie = def->trie;
+
+    if (def->priv_size) {
+        impl->priv = base;
+        base += def->priv_size;
+    } else {
+        impl->priv = NULL;
+    }
+
+    if (shm && p) {
+        impl->shm = (KmppShmPtr *)shm;
+        impl->entry = (void *)(shm + p->entry_offset);
+
+        /* write userspace object address to share memory userspace private value */
+        *(RK_U64 *)(shm + p->priv_offset) = (RK_U64)(intptr_t)impl;
+    } else {
+        impl->shm = NULL;
+        impl->entry = base;
+    }
+
+    if (def->init)
+        def->init(impl->entry, impl, caller);
+}
+
 rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
 {
     KmppObjs *p;
@@ -810,7 +865,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
     mpp_assert(def_impl->pool);
 
     /* userspace objdef path */
-    if (def_impl->buf_size) {
+    if (!def_impl->is_kobj) {
         impl = mpp_mem_pool_get(def_impl->pool, caller);
         if (!impl) {
             mpp_loge_f("get obj %s impl %d failed at %s\n",
@@ -818,14 +873,7 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
             return ret;
         }
 
-        impl->name = def_impl->name;
-        impl->def = def;
-        impl->trie = def_impl->trie;
-        impl->shm = NULL;
-        impl->entry = (void *)(impl + 1);
-
-        if (def_impl->init)
-            def_impl->init(impl->entry, impl, caller);
+        setup_obj(impl, NULL, def_impl, NULL, caller);
 
         *obj = impl;
 
@@ -858,17 +906,11 @@ rk_s32 kmpp_obj_get(KmppObj *obj, KmppObjDef def, const char *caller)
     }
 
     uaddr = ioc->obj_sptr[0].uaddr;
-    impl->name = def_impl->name;
-    impl->def = def;
-    impl->trie = def_impl->trie;
-    impl->shm = U64_TO_PTR(uaddr);
-    impl->entry = U64_TO_PTR(uaddr + p->entry_offset);
 
     obj_dbg_flow("get obj %-16s - %p entry [u:k] %llx:%llx at %s\n", def_impl->name,
                  impl, uaddr, ioc->obj_sptr[0].kaddr, caller);
 
-    /* write userspace object address to share memory userspace private value */
-    *(RK_U64 *)U64_TO_PTR(uaddr + p->priv_offset) = (RK_U64)(intptr_t)impl;
+    setup_obj(impl, p, def_impl, (rk_u8 *)U64_TO_PTR(uaddr), caller);
 
     *obj = impl;
 
@@ -953,17 +995,10 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
         return ret;
     }
 
-    impl->name = def->name;
-    impl->def = def;
-    impl->trie = def->trie;
-    impl->shm = (KmppShmPtr *)uptr;
-    impl->entry = uptr + p->entry_offset;
-
     obj_dbg_flow("get obj %-16s - %p by sptr [u:k] %llx:%llx at %s\n", def->name,
                  impl, sptr->uaddr, sptr->kaddr, caller);
 
-    /* write userspace object address to share memory userspace private value */
-    *(RK_U64 *)U64_TO_PTR(sptr->uaddr + p->priv_offset) = (RK_U64)(intptr_t)impl;
+    setup_obj(impl, p, def, uptr, caller);
 
     *obj = impl;
 
@@ -977,44 +1012,34 @@ rk_s32 kmpp_obj_put(KmppObj obj, const char *caller)
         KmppObjDefImpl *def = impl->def;
         KmppObjs *p;
 
+        mpp_assert(def && def->pool);
+
+        if (def && def->deinit)
+            def->deinit(impl->entry, impl, caller);
+
         /* use shm to check userspace objdef or kernel objdef */
         /* userspace objdef path */
-        if (!impl->shm) {
-            mpp_assert(def);
+        if (impl->shm) {
+            p = get_objs(caller);
+            if (p && p->fd >= 0) {
+                KmppObjIocArg *ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
+                rk_s32 ret;
 
-            if (def) {
-                if (def->deinit)
-                    def->deinit(impl->entry, caller);
+                ioc->count = 1;
+                ioc->flag = 0;
+                ioc->obj_sptr[0].uaddr = impl->shm->uaddr;
+                ioc->obj_sptr[0].kaddr = impl->shm->kaddr;
 
-                mpp_assert(def->pool);
-                mpp_mem_pool_put(def->pool, impl, caller);
-                return rk_ok;
+                obj_dbg_flow("put obj %-16s - %p entry [u:k] %llx:%llx at %s\n", def ? def->name : NULL,
+                             impl, impl->shm->uaddr, impl->shm->kaddr, caller);
+
+                ret = ioctl(p->fd, KMPP_SHM_IOC_PUT_SHM, ioc);
+                if (ret)
+                    mpp_err("ioctl KMPP_SHM_IOC_PUT_SHM failed ret %d at %s\n", ret, caller);
             }
-
-            mpp_free(impl);
-            return rk_ok;
+            impl->shm = NULL;
         }
 
-        p = get_objs(caller);
-        if (p && p->fd >= 0) {
-            KmppObjIocArg *ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
-            rk_s32 ret;
-
-            ioc->count = 1;
-            ioc->flag = 0;
-            ioc->obj_sptr[0].uaddr = impl->shm->uaddr;
-            ioc->obj_sptr[0].kaddr = impl->shm->kaddr;
-
-            obj_dbg_flow("put obj %-16s - %p entry [u:k] %llx:%llx at %s\n", def ? def->name : NULL,
-                         impl, impl->shm->uaddr, impl->shm->kaddr, caller);
-
-            ret = ioctl(p->fd, KMPP_SHM_IOC_PUT_SHM, ioc);
-            if (ret)
-                mpp_err("ioctl KMPP_SHM_IOC_PUT_SHM failed ret %d at %s\n", ret, caller);
-        }
-        impl->shm = NULL;
-
-        mpp_assert(def->pool);
         mpp_mem_pool_put(def->pool, impl, caller);
 
         return rk_ok;
@@ -1033,7 +1058,7 @@ rk_s32 kmpp_obj_put_impl(KmppObj obj, const char *caller)
 
         if (def) {
             if (def->deinit)
-                def->deinit(impl->entry, caller);
+                def->deinit(impl->entry, impl, caller);
 
             mpp_assert(def->pool);
             mpp_mem_pool_put(def->pool, impl, caller);
@@ -1155,6 +1180,13 @@ const char *kmpp_obj_get_name(KmppObj obj)
         return impl->def->name;
 
     return NULL;
+}
+
+void *kmpp_obj_to_priv(KmppObj obj)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+
+    return impl ? impl->priv : NULL;
 }
 
 void *kmpp_obj_to_entry(KmppObj obj)

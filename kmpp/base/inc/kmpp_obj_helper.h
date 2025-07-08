@@ -288,6 +288,10 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
                              HOOK_QUERY, HOOK_QUERY, ENTRY_NOTHING);
     }
 
+#if defined(KMPP_OBJ_PRIV_SIZE)
+    if (KMPP_OBJ_PRIV_SIZE)
+        kmpp_objdef_set_prop(KMPP_OBJ_DEF(KMPP_OBJ_NAME), "priv_size", KMPP_OBJ_PRIV_SIZE);
+#endif
 #if defined(KMPP_OBJ_FUNC_INIT)
     kmpp_objdef_add_init(KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_FUNC_INIT);
 #endif
@@ -388,6 +392,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
 #undef KMPP_OBJ_IMPL_TYPE
 #undef KMPP_OBJ_EXTRA_SIZE
 #undef KMPP_OBJ_ENTRY_TABLE
+#undef KMPP_OBJ_PRIV_SIZE
 #undef KMPP_OBJ_FUNC_INIT
 #undef KMPP_OBJ_FUNC_DEINIT
 #undef KMPP_OBJ_FUNC_IOCTL
