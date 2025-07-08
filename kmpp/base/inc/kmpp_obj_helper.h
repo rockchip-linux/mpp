@@ -255,37 +255,38 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
 
 void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 {
-    rk_s32 impl_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
-    rk_s32 __flag_base = impl_size << 3;
-    rk_s32 __flag_step = 0;
-    rk_s32 __flag_prev = 0;
-    rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX];
-    (void) __flag_base;
-    (void) __flag_step;
-    (void) __flag_prev;
-    (void) __flag_record;
-
     mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
+
+    KMPP_OBJ_DBG_LOG("register enter\n");
 
     kmpp_objdef_get(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), TO_STR(KMPP_OBJ_INTF_TYPE));
     if (KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
         KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " found at kernel\n");
-        return;
+    } else {
+        rk_s32 __entry_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
+        rk_s32 __flag_base = __entry_size << 3;
+        rk_s32 __flag_step = 0;
+        rk_s32 __flag_prev = 0;
+        rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX];
+        (void) __flag_base;
+        (void) __flag_step;
+        (void) __flag_prev;
+        (void) __flag_record;
+
+        kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), __entry_size, TO_STR(KMPP_OBJ_INTF_TYPE));
+        if (!KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
+            mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " init failed\n");
+            return;
+        }
+
+        KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " registered at userspace\n");
+
+        KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_TO_TRIE, ENTRY_TO_TRIE,
+                             ENTRY_TO_TRIE, ENTRY_TO_TRIE, ENTRY_TO_TRIE)
+        kmpp_objdef_add_entry(KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL, NULL);
+        KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_QUERY, ENTRY_QUERY,
+                             HOOK_QUERY, HOOK_QUERY, ENTRY_NOTHING);
     }
-
-    KMPP_OBJ_DBG_LOG("register enter\n");
-
-    kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), impl_size, TO_STR(KMPP_OBJ_INTF_TYPE));
-    if (!KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
-        mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " init failed\n");
-        return;
-    }
-
-    KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_TO_TRIE, ENTRY_TO_TRIE,
-                         ENTRY_TO_TRIE, ENTRY_TO_TRIE, ENTRY_TO_TRIE)
-    kmpp_objdef_add_entry(KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL, NULL);
-    KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_QUERY, ENTRY_QUERY,
-                         HOOK_QUERY, HOOK_QUERY, ENTRY_NOTHING);
 
 #if defined(KMPP_OBJ_FUNC_INIT)
     kmpp_objdef_add_init(KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_FUNC_INIT);

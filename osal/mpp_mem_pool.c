@@ -100,12 +100,12 @@ static void mem_pool_srv_init()
     INIT_LIST_HEAD(&srv->list);
 }
 
-static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
+static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl, const char *caller)
 {
     MppMemPoolNode *node, *m;
 
     if (impl != impl->check) {
-        mpp_err_f("invalid mem impl %p check %p\n", impl, impl->check);
+        mpp_err_f("invalid mem impl %p check %p at %s\n", impl, impl->check, caller);
         return;
     }
 
@@ -122,8 +122,8 @@ static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
     }
 
     if (!list_empty(&impl->used)) {
-        mpp_err_f("pool %-16s found %d used buffer size %4d\n",
-                  impl->name, impl->used_count, impl->size);
+        mpp_err_f("pool %-16s found %d used buffer size %4d at %s\n",
+                  impl->name, impl->used_count, impl->size, caller);
 
         list_for_each_entry_safe(node, m, &impl->used, MppMemPoolNode, list) {
             MPP_FREE(node);
@@ -132,8 +132,8 @@ static void put_pool(MppMemPoolSrv *srv, MppMemPoolImpl *impl)
     }
 
     if (impl->used_count || impl->unused_count)
-        mpp_err_f("pool %-16s size %4d found leaked buffer used:unused [%d:%d]\n",
-                  impl->name, impl->size, impl->used_count, impl->unused_count);
+        mpp_err_f("pool %-16s size %4d found leaked buffer used:unused [%d:%d] at %s\n",
+                  impl->name, impl->size, impl->used_count, impl->unused_count, caller);
 
     pthread_mutex_unlock(&impl->lock);
 
@@ -159,7 +159,7 @@ static void mem_pool_srv_deinit()
 
         list_for_each_entry_safe(pos, n, &srv->list, MppMemPoolImpl, service_link) {
             mem_pool_dbg_exit("pool %-16s size %4d leaked\n", pos->name, pos->size);
-            put_pool(srv, pos);
+            put_pool(srv, pos, __FUNCTION__);
         }
     }
 
@@ -218,7 +218,7 @@ void mpp_mem_pool_deinit(MppMemPool pool, const char *caller)
     mem_pool_dbg_flow("pool %-16s size %4d deinit at %s\n",
                       impl->name, impl->size, caller);
 
-    put_pool(srv, impl);
+    put_pool(srv, impl, caller);
 }
 
 void *mpp_mem_pool_get(MppMemPool pool, const char *caller)

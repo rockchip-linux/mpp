@@ -236,8 +236,14 @@ done:
     if (grp)
         kmpp_obj_put_f(grp);
 
+    if (grp_cfg)
+        kmpp_obj_put_impl_f(grp_cfg);
+
     if (buf)
         kmpp_obj_put_f(buf);
+
+    if (buf_cfg)
+        kmpp_obj_put_impl_f(buf_cfg);
 
     return ret;
 }
