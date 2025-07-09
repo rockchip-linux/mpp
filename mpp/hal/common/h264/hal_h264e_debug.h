@@ -29,6 +29,7 @@
 #define HAL_H264E_DBG_AMEND             (0x00000040)
 
 #define HAL_H264E_DBG_RC                (0x00000100)
+#define HAL_H264E_DBG_SMART_V3          (0x00000200)
 
 #define hal_h264e_dbg(flag, fmt, ...)   _mpp_dbg(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
 #define hal_h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
@@ -42,6 +43,7 @@
 #define hal_h264e_dbg_amend(fmt, ...)   hal_h264e_dbg_f(HAL_H264E_DBG_AMEND, fmt, ## __VA_ARGS__)
 
 #define hal_h264e_dbg_rc(fmt, ...)      hal_h264e_dbg_f(HAL_H264E_DBG_RC, fmt, ## __VA_ARGS__)
+#define hal_h264e_dbg_smartv3(fmt, ...) hal_h264e_dbg_f(HAL_H264E_DBG_SMART_V3, fmt, ## __VA_ARGS__)
 
 #define hal_h264e_enter()               hal_h264e_dbg_func("enter\n");
 #define hal_h264e_leave()               hal_h264e_dbg_func("leave\n");

@@ -1590,8 +1590,10 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              bmap_qpmin_p; /* min qp for p frame in bmap */
     RK_S32              bmap_qpmax_i; /* max qp for i frame in bmap */
     RK_S32              bmap_qpmax_p; /* max qp for p frame in bmap */
-
-    RK_S32              reserved[4];
+    RK_S32              min_bg_fqp; /* min frame qp for background region */
+    RK_S32              max_bg_fqp; /* max frame qp for background region */
+    RK_S32              min_fg_fqp; /* min frame qp for foreground region */
+    RK_S32              max_fg_fqp; /* max frame qp for foreground region */
 } MppEncFineTuneCfg;
 
 #endif /*__RK_VENC_CMD_H__*/

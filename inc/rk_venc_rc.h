@@ -34,7 +34,7 @@ typedef enum MppEncRcMode_e {
 } MppEncRcMode;
 
 typedef enum MppEncSeMode_e {
-    MPP_ENC_SE_DIABLE = 0,          // disable super encoder
+    MPP_ENC_SE_DISABLE = 0,         // disable super encoder
     MPP_ENC_SE_MODE_BAL,            // balance mode
     MPP_ENC_SE_MODE_QF,             // quality first mode
     MPP_ENC_SE_MODE_BF,             // bitrate first mode

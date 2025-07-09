@@ -30,6 +30,7 @@
 #define HAL_H265E_DBG_WGT_REGS          (0x00000080)
 #define HAL_H265E_DBG_RDO_REGS          (0x000000C0)
 #define HAL_H265E_DBG_ST_REGS           (0x00000100) /* status registers */
+#define HAL_H265E_DBG_SMART_V3          (0x00000200)
 
 #define HAL_H265E_DBG_INPUT             (0x00020000)
 #define HAL_H265E_DBG_OUTPUT            (0x00040000)
@@ -50,6 +51,7 @@
 #define hal_h265e_dbg_wgt(fmt, ...)     hal_h265e_dbg(HAL_H265E_DBG_WGT_REGS, fmt, ## __VA_ARGS__)
 #define hal_h265e_dbg_rdo(fmt, ...)     hal_h265e_dbg(HAL_H265E_DBG_RDO_REGS, fmt, ## __VA_ARGS__)
 #define hal_h265e_dbg_st(fmt, ...)      hal_h265e_dbg(HAL_H265E_DBG_ST_REGS, fmt, ## __VA_ARGS__)
+#define hal_h265e_dbg_smartv3(fmt, ...) hal_h265e_dbg(HAL_H265E_DBG_SMART_V3, fmt, ## __VA_ARGS__)
 
 #define hal_h265e_dbg_input(fmt, ...)   hal_h265e_dbg(HAL_H265E_DBG_INPUT, fmt, ## __VA_ARGS__)
 #define hal_h265e_dbg_output(fmt, ...)  hal_h265e_dbg(HAL_H265E_DBG_OUTPUT, fmt, ## __VA_ARGS__)

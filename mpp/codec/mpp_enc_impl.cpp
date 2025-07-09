@@ -982,6 +982,10 @@ MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
             dst->bmap_qpmin_p = src->bmap_qpmin_p;
             dst->bmap_qpmax_i = src->bmap_qpmax_i;
             dst->bmap_qpmax_p = src->bmap_qpmax_p;
+            dst->min_bg_fqp = src->min_bg_fqp;
+            dst->max_bg_fqp = src->max_bg_fqp;
+            dst->min_fg_fqp = src->min_fg_fqp;
+            dst->max_fg_fqp = src->max_fg_fqp;
         }
 
         dst->change |= change;

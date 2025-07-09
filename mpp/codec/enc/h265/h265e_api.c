@@ -136,6 +136,10 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     p->cfg->tune.bmap_qpmin_p = 30;
     p->cfg->tune.bmap_qpmax_i = 45;
     p->cfg->tune.bmap_qpmax_p = 47;
+    p->cfg->tune.min_bg_fqp = 30;
+    p->cfg->tune.max_bg_fqp = 45;
+    p->cfg->tune.min_fg_fqp = 25;
+    p->cfg->tune.max_fg_fqp = 35;
 
     /*
      * default prep:
