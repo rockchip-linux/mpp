@@ -129,6 +129,11 @@ int main(int argc, char *argv[])
         if (ret)
             goto FILE_DONE;
 
+        ret = test_to_from(root, MPP_CFG_STR_FMT_TOML);
+        mpp_logi("test to / from toml string %s\n", ret ? "failed" : "success");
+        if (ret)
+            goto FILE_DONE;
+
     FILE_DONE:
         if (buf) {
             munmap(buf, size);

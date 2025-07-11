@@ -48,7 +48,7 @@ typedef enum MppCfgParserType_e {
     MPP_CFG_PARSER_TYPE_KEY = 0,
     MPP_CFG_PARSER_TYPE_VALUE,
     MPP_CFG_PARSER_TYPE_TABLE,
-    MPP_CFG_PARSER_TYPE_ARRAY,
+    MPP_CFG_PARSER_TYPE_ARRAY_TABLE,
     MPP_CFG_PARSER_TYPE_BUTT,
 } MppCfgParserType;
 
@@ -100,6 +100,7 @@ typedef struct MppCfgStrBuf_t {
     rk_s32 buf_size;
     rk_s32 offset;
     rk_s32 depth;
+    MppCfgStrFmt type;
 } MppCfgStrBuf;
 
 static rk_u32 mpp_cfg_io_debug = 0;
@@ -498,6 +499,7 @@ rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type)
     for (i = 0; i <= str_len; i++) {
         if (name[i] == delimiter || name[i] == '\0') {
             MppCfgIoImpl *pos, *n;
+            MppCfgIoImpl *last_array = NULL;
             char bak = name[i];
             rk_s32 found = 0;
 
@@ -508,6 +510,22 @@ rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type)
                     impl = pos;
                     found = 1;
                     break;
+                }
+
+                /* if impl is array, find impl->chil is object and has no name, to match its child */
+                if (impl->type == MPP_CFG_TYPE_ARRAY && pos->type == MPP_CFG_TYPE_OBJECT && !pos->name)
+                    last_array = pos;
+            }
+
+            if (last_array) {
+                MppCfgIoImpl *array_pos, *array_n;
+
+                list_for_each_entry_safe(array_pos, array_n, &last_array->child, MppCfgIoImpl, list) {
+                    if (array_pos->name && !strcmp(array_pos->name, name + str_start)) {
+                        impl = array_pos;
+                        found = 1;
+                        break;
+                    }
                 }
             }
 
@@ -731,6 +749,9 @@ static rk_s32 write_byte(MppCfgStrBuf *str, void *buf, rk_s32 *size, const char 
 {
     rk_s32 len = size[0];
 
+    if (!len)
+        return rk_ok;
+
     if (str->offset + len >= str->buf_size) {
         void *ptr = mpp_realloc_size(str->buf, void, str->buf_size * 2);
 
@@ -760,14 +781,22 @@ static rk_s32 write_byte(MppCfgStrBuf *str, void *buf, rk_s32 *size, const char 
 
 static rk_s32 write_indent(MppCfgStrBuf *str, const char *caller)
 {
+    rk_s32 depth;
+
     cfg_io_dbg_byte("str %p-[%p:%d] write indent %d at %s\n",
                     str, str->buf, str->buf_size, str->depth, caller);
 
-    if (str->depth) {
+    depth = str->depth;
+    if (str->type == MPP_CFG_STR_FMT_TOML) {
+        depth = depth - 1;
+        depth = depth >= 0 ? depth : 0;
+    }
+
+    if (depth) {
         char space[17] = "                ";
         rk_s32 i;
 
-        for (i = 0; i < str->depth; i++) {
+        for (i = 0; i < depth; i++) {
             rk_s32 indent_width = 4;
 
             if (write_byte_f(str, space, &indent_width))
@@ -986,59 +1015,151 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     return write_byte_f(str, buf, &len);
 }
 
-static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str)
+static rk_s32 mpp_toml_parent_is_array_table(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 {
-    (void)impl;
-    (void)str;
-    return 0;
+    return str->depth == 1 && impl->type == MPP_CFG_TYPE_OBJECT &&
+           !impl->name && impl->parent->type == MPP_CFG_TYPE_ARRAY;
 }
 
-static rk_s32 parse_log_string(MppCfgStrBuf *str, char **name, rk_s32 *len, rk_u32 type)
+static rk_s32 mpp_toml_top(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 {
-    char *buf = NULL;
-    char *start = NULL;
-    rk_s32 name_len = 0;
-    char terminator = type ? '\"' : ' ';
+    char buf[256];
+    rk_s32 len = 0;
+    rk_s32 total = sizeof(buf) - 1;
 
-    *name = NULL;
-    *len = 0;
+    if (impl->name && impl->type == MPP_CFG_TYPE_OBJECT)
+        len += snprintf(buf + len, total - len, "\n[%s]\n", impl->name);
 
-    /* skip whitespace and find first double quotes */
-    buf = skip_ws_f(str);
-    if (!buf)
-        return -101;
-
-    if (type) {
-        if (buf[0] != '\"')
-            return -101;
-
-        buf = skip_byte_f(str, 1);
-        if (!buf)
-            return -102;
-    }
-
-    start = buf;
-
-    /* find the terminator */
-    while ((buf = show_byte_f(str, name_len)) && buf[0] != terminator) {
-        name_len++;
-    }
-
-    if (!buf || buf[0] != terminator)
-        return -103;
-
-    /* find complete string skip the string and terminator */
-    buf = skip_byte_f(str, name_len + 1);
-    if (!buf)
-        return -104;
-
-    *name = start;
-    *len = name_len;
-
-    return rk_ok;
+    return write_byte_f(str, buf, &len);
 }
 
-static rk_s32 parse_json_number(MppCfgStrBuf *str, MppCfgType *type, MppCfgVal *val)
+static rk_s32 mpp_toml_non_top(MppCfgIoImpl *impl, MppCfgStrBuf *str)
+{
+    char buf[256];
+    rk_s32 len = 0;
+    rk_s32 total = sizeof(buf) - 1;
+
+    if (impl->name)
+        len += snprintf(buf + len, total - len, "%s = ", impl->name);
+
+    if (list_empty(&impl->child)) {
+        len += snprintf(buf + len, total - len, "%s\n",
+                        impl->type == MPP_CFG_TYPE_OBJECT ? "{}" : "[]");
+        return write_byte_f(str, buf, &len);
+    }
+
+    if (mpp_toml_parent_is_array_table(impl, str))
+        len += snprintf(buf + len, total - len, "\n[[%s]]\n", impl->parent->name);
+    else
+        len += snprintf(buf + len, total - len, "%c\n",
+                        impl->type == MPP_CFG_TYPE_OBJECT ? '{' : '[');
+
+    return write_byte_f(str, buf, &len);
+}
+
+static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str, rk_s32 first_time)
+{
+    MppCfgIoImpl *pos, *n;
+    char buf[256];
+    rk_s32 len = 0;
+    rk_s32 total = sizeof(buf) - 1;
+    rk_s32 ret = rk_ok;
+
+    write_indent_f(str);
+
+    /* leaf node write once and finish */
+    if (impl->type < MPP_CFG_TYPE_OBJECT) {
+        cfg_io_dbg_to("depth %d leaf write name %s type %d\n", str->depth, impl->name, impl->type);
+
+        if (impl->name)
+            len += snprintf(buf + len, total - len, "%s = ", impl->name);
+
+        switch (impl->type) {
+        case MPP_CFG_TYPE_NULL : {
+            len += snprintf(buf + len, total - len, "null");
+        } break;
+        case MPP_CFG_TYPE_BOOL : {
+            len += snprintf(buf + len, total - len, "%s", impl->val.b1 ? "true" : "false");
+        } break;
+        case MPP_CFG_TYPE_S32 : {
+            len += snprintf(buf + len, total - len, "%d", impl->val.s32);
+        } break;
+        case MPP_CFG_TYPE_U32 : {
+            len += snprintf(buf + len, total - len, "%u", impl->val.u32);
+        } break;
+        case MPP_CFG_TYPE_S64 : {
+            len += snprintf(buf + len, total - len, "%lld", impl->val.s64);
+        } break;
+        case MPP_CFG_TYPE_U64 : {
+            len += snprintf(buf + len, total - len, "%llu", impl->val.u64);
+        } break;
+        case MPP_CFG_TYPE_F32 : {
+            len += snprintf(buf + len, total - len, "%f", impl->val.f32);
+        } break;
+        case MPP_CFG_TYPE_F64 : {
+            len += snprintf(buf + len, total - len, "%lf", impl->val.f64);
+        } break;
+        case MPP_CFG_TYPE_STRING :
+        case MPP_CFG_TYPE_RAW : {
+            len += snprintf(buf + len, total - len, "\"%s\"", (char *)impl->val.str);
+        } break;
+        default : {
+            mpp_loge("invalid type %d\n", impl->type);
+        } break;
+        }
+
+        if (str->depth > 1)
+            len += snprintf(buf + len, total - len, ",\n");
+        else
+            len += snprintf(buf + len, total - len, "\n");
+
+        return write_byte_f(str, buf, &len);
+    }
+
+    cfg_io_dbg_to("depth %d branch write name %s type %d\n", str->depth, impl->name, impl->type);
+
+    if (str->depth == 0) {
+        ret = mpp_toml_top(impl, str);
+    } else {
+        ret = mpp_toml_non_top(impl, str);
+    }
+    if (ret)
+        return ret;
+
+    if (list_empty(&impl->child))
+        return rk_ok;
+
+    if (!mpp_toml_parent_is_array_table(impl, str) && !first_time)
+        str->depth++;
+
+    list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+        cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+        ret = mpp_cfg_to_toml(pos, str, 0);
+        if (ret)
+            break;
+    }
+
+    if (str->depth > 1)
+        revert_comma_f(str);
+
+    if (!mpp_toml_parent_is_array_table(impl, str) && !first_time)
+        str->depth--;
+
+    write_indent_f(str);
+
+    if (str->depth > 0 && !mpp_toml_parent_is_array_table(impl, str)) {
+        if (str->depth == 1)
+            len += snprintf(buf + len, total - len, "%c\n",
+                            impl->type == MPP_CFG_TYPE_OBJECT ? '}' : ']');
+        else
+            len += snprintf(buf + len, total - len, "%c,\n",
+                            impl->type == MPP_CFG_TYPE_OBJECT ? '}' : ']');
+    }
+
+    return write_byte_f(str, buf, &len);
+}
+
+static rk_s32 parse_number(MppCfgStrBuf *str, MppCfgType *type, MppCfgVal *val)
 {
     char *buf = NULL;
     char tmp[64];
@@ -1104,6 +1225,51 @@ done:
             return rk_nok;
         }
     }
+
+    return rk_ok;
+}
+
+static rk_s32 parse_log_string(MppCfgStrBuf *str, char **name, rk_s32 *len, rk_u32 type)
+{
+    char *buf = NULL;
+    char *start = NULL;
+    rk_s32 name_len = 0;
+    char terminator = type ? '\"' : ' ';
+
+    *name = NULL;
+    *len = 0;
+
+    /* skip whitespace and find first double quotes */
+    buf = skip_ws_f(str);
+    if (!buf)
+        return -101;
+
+    if (type) {
+        if (buf[0] != '\"')
+            return -101;
+
+        buf = skip_byte_f(str, 1);
+        if (!buf)
+            return -102;
+    }
+
+    start = buf;
+
+    /* find the terminator */
+    while ((buf = show_byte_f(str, name_len)) && buf[0] != terminator) {
+        name_len++;
+    }
+
+    if (!buf || buf[0] != terminator)
+        return -103;
+
+    /* find complete string skip the string and terminator */
+    buf = skip_byte_f(str, name_len + 1);
+    if (!buf)
+        return -104;
+
+    *name = start;
+    *len = name_len;
 
     return rk_ok;
 }
@@ -1272,7 +1438,7 @@ static rk_s32 parse_log_value(MppCfgIoImpl *parent, const char *name, MppCfgStrB
         cfg_io_dbg_from("depth %d offset %d: get value number start\n",
                         str->depth, str->offset);
 
-        ret = parse_json_number(str, &type, &val);
+        ret = parse_number(str, &type, &val);
         if (ret)
             return ret;
 
@@ -1871,7 +2037,7 @@ static rk_s32 parse_json_value(MppCfgIoImpl *parent, const char *name, MppCfgStr
         cfg_io_dbg_from("depth %d offset %d: get value number start\n",
                         str->depth, str->offset);
 
-        ret = parse_json_number(str, &type, &val);
+        ret = parse_number(str, &type, &val);
         if (ret)
             return ret;
 
@@ -1959,11 +2125,811 @@ static rk_s32 mpp_cfg_from_json(MppCfgObj *obj, MppCfgStrBuf *str)
     return ret;
 }
 
+static rk_s32 parse_toml_nested_table(MppCfgIoImpl *root, MppCfgObj *object, char *name,
+                                      rk_s32 name_len)
+{
+    MppCfgObj obj = NULL;
+    MppCfgIoImpl *parent = root;
+    rk_s32 i = 0;
+    char sub_name_offset = 0;
+    char sub_name_len = 0;
+    char sub_name[256] = {0};
+    rk_s32 ret = rk_ok;
+
+    for (i = 0; i <= name_len; i++) {
+        if (name[i] == '.' || name[i] == '\0') {
+            sub_name_len = i;
+            memcpy(sub_name, name, sub_name_len);
+            sub_name[i] = '\0';
+            obj = NULL;
+            mpp_cfg_find(&obj, root, sub_name, MPP_CFG_STR_FMT_TOML);
+            if (!obj) {
+                memcpy(sub_name, name + sub_name_offset, sub_name_len - sub_name_offset);
+                sub_name[sub_name_len - sub_name_offset] = '\0';
+                ret = mpp_cfg_get_object(&obj, sub_name, MPP_CFG_TYPE_OBJECT, NULL);
+                if (ret || !obj) {
+                    mpp_loge_f("failed to create object %s\n", name);
+                    ret = -101;
+                    return ret;
+                }
+                mpp_cfg_add(parent, obj);
+            }
+
+            parent = obj;
+            sub_name_offset = i + 1;
+        }
+    }
+
+    *object = obj;
+
+    return ret;
+}
+
+static rk_s32 parse_toml_nested_array_table(MppCfgIoImpl *root, MppCfgObj *object, char *name,
+                                            rk_s32 name_len)
+{
+    MppCfgObj obj = NULL;
+    MppCfgIoImpl *parent = root;
+    rk_s32 i = 0;
+    char sub_name_offset = 0;
+    char sub_name_len = 0;
+    char sub_name[256] = {0};
+    rk_s32 ret = rk_ok;
+
+    for (i = 0; i <= name_len; i++) {
+        if (name[i] == '.' || name[i] == '\0') {
+            sub_name_len = i;
+            memcpy(sub_name, name, sub_name_len);
+            sub_name[i] = '\0';
+            obj = NULL;
+            mpp_cfg_find(&obj, root, sub_name, MPP_CFG_STR_FMT_TOML);
+            if (!obj) {
+                memcpy(sub_name, name + sub_name_offset, sub_name_len - sub_name_offset);
+                sub_name[sub_name_len - sub_name_offset] = '\0';
+
+                /* if parent type is array, need get its last child as new parent */
+                if (parent->type == MPP_CFG_TYPE_ARRAY) {
+                    MppCfgIoImpl *child_pos, *child_n;
+                    MppCfgIoImpl *last_child = NULL;
+                    list_for_each_entry_safe(child_pos, child_n, &parent->child, MppCfgIoImpl, list) {
+                        if (!child_pos->name && child_pos->type == MPP_CFG_TYPE_OBJECT) {
+                            last_child = child_pos;
+                        }
+                    }
+                    if (!last_child) {
+                        mpp_loge_f("failed to find last child\n");
+                        ret = -111;
+                        return ret;
+                    }
+                    parent = last_child;
+                }
+                if (name[i] == '\0') {
+                    ret = mpp_cfg_get_array(&obj, sub_name, 0);
+                    if (ret || !obj) {
+                        mpp_loge_f("failed to create object %s\n", name);
+                        ret = -112;
+                        return ret;
+                    }
+                    mpp_cfg_add(parent, obj);
+                } else {
+                    ret = mpp_cfg_get_object(&obj, sub_name, MPP_CFG_TYPE_OBJECT, NULL);
+                    if (ret || !obj) {
+                        mpp_loge_f("failed to create nested object %s\n", name);
+                        ret = -113;
+                        return ret;
+                    }
+                    mpp_cfg_add(parent, obj);
+                }
+            }
+
+            parent = obj;
+            sub_name_offset = i + 1;
+        }
+    }
+
+    *object = obj;
+
+    return ret;
+}
+
+static rk_s32 parse_toml_string(MppCfgStrBuf *str, char **name, rk_s32 *len, rk_u32 type)
+{
+    char *buf = NULL;
+    char *start = NULL;
+    rk_s32 name_len = 0;
+    char terminator;
+
+    *name = NULL;
+    *len = 0;
+
+    /* skip whitespace and find first double quotes */
+    buf = skip_ws_f(str);
+    if (!buf)
+        return -201;
+
+    if (type == MPP_CFG_PARSER_TYPE_VALUE) {
+        terminator = '\"';
+        if (buf[0] != '\"')
+            return -202;
+
+        buf = skip_byte_f(str, 1);
+        if (!buf)
+            return -203;
+    } else if (type == MPP_CFG_PARSER_TYPE_KEY) {
+        terminator = ' ';
+    } else if (type == MPP_CFG_PARSER_TYPE_TABLE || type == MPP_CFG_PARSER_TYPE_ARRAY_TABLE) {
+        terminator = ']';
+    } else {
+        return -204;
+    }
+
+    start = buf;
+
+    /* find the terminator */
+    while ((buf = show_byte_f(str, name_len)) && buf[0] != terminator) {
+        name_len++;
+    }
+
+    if (!buf || buf[0] != terminator)
+        return -205;
+
+    /* find complete string skip the string */
+    if (type == MPP_CFG_PARSER_TYPE_VALUE)
+        buf = skip_byte_f(str, name_len + 1);
+    else
+        buf = skip_byte_f(str, name_len);
+    if (!buf)
+        return -206;
+
+    *name = start;
+    *len = name_len;
+
+    return rk_ok;
+}
+
+static rk_s32 parse_toml_value(MppCfgIoImpl *parent, const char *name, MppCfgStrBuf *str);
+static rk_s32 parse_toml_object(MppCfgIoImpl *parent, MppCfgStrBuf *str, rk_s32 is_brace);
+
+static rk_s32 parse_toml_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
+{
+    MppCfgIoImpl *parent = obj;
+    char *buf = NULL;
+    rk_s32 old = str->offset;
+    rk_s32 ret = rk_nok;
+
+    if (str->depth >= MAX_CFG_DEPTH) {
+        mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
+        return rk_nok;
+    }
+
+    str->depth++;
+
+    cfg_io_dbg_from("depth %d offset %d array parse start\n", str->depth, str->offset);
+
+    buf = test_byte_f(str, 0);
+    if (!buf || buf[0] != '[') {
+        ret = -61;
+        goto failed;
+    }
+
+    buf = skip_byte_f(str, 1);
+    if (!buf) {
+        ret = -62;
+        goto failed;
+    }
+
+    /* skip whitespace and check the end of buffer */
+    buf = skip_ws_f(str);
+    if (!buf) {
+        ret = -63;
+        goto failed;
+    }
+
+    /* check empty object */
+    if (buf[0] == ']') {
+        skip_byte_f(str, 1);
+        cfg_io_dbg_from("depth %d found empty array\n", str->depth);
+        str->depth--;
+        return rk_ok;
+    }
+
+    do {
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -64;
+            goto failed;
+        }
+
+        /* parse value */
+        ret = parse_toml_value(parent, NULL, str);
+        if (ret) {
+            ret = -65;
+            goto failed;
+        }
+
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -66;
+            goto failed;
+        }
+
+        if (buf[0] == ',') {
+            buf = skip_byte_f(str, 1);
+            if (!buf) {
+                ret = -67;
+                goto failed;
+            }
+
+            buf = skip_ws_f(str);
+            if (buf[0] == '}')
+                break;
+
+            cfg_io_dbg_from("depth %d offset %d: get next array\n", str->depth, str->offset);
+            continue;
+        }
+        break;
+    } while (1);
+
+    if (!buf || buf[0] != ']') {
+        ret = -68;
+        goto failed;
+    }
+
+    skip_byte_f(str, 1);
+
+    cfg_io_dbg_from("depth %d offset %d -> %d array parse success\n",
+                    str->depth, old, str->offset);
+
+    str->depth--;
+    ret = rk_ok;
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("depth %d offset %d -> %d array parse failed ret %d\n",
+                        str->depth, old, str->offset, ret);
+
+    return ret;
+}
+
+static rk_s32 parse_toml_value(MppCfgIoImpl *parent, const char *name, MppCfgStrBuf *str)
+{
+    MppCfgObj obj = NULL;
+    char *buf = NULL;
+
+    cfg_io_dbg_from("depth %d offset %d: parse value\n", str->depth, str->offset);
+
+    buf = test_byte_f(str, 4);
+    if (buf && !strncmp(buf, "null", 4)) {
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_NULL, NULL);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value null\n", str->depth, str->offset);
+        skip_byte_f(str, 4);
+        return rk_ok;
+    }
+
+    if (buf && !strncmp(buf, "true", 4)) {
+        MppCfgVal val;
+
+        val.b1 = 1;
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_BOOL, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value true\n", str->depth, str->offset);
+        skip_byte_f(str, 4);
+        return rk_ok;
+    }
+
+    buf = test_byte_f(str, 5);
+    if (buf && !strncmp(buf, "false", 5)) {
+        MppCfgVal val;
+
+        val.b1 = 0;
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_BOOL, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value false\n", str->depth, str->offset);
+        skip_byte_f(str, 5);
+        return rk_ok;
+    }
+
+    buf = test_byte_f(str, 3);
+    if (buf && !strncmp(buf, "\"\"\"", 3)) {
+        MppCfgVal val;
+        char *string = NULL;
+        rk_s32 len = 0;
+
+        skip_byte_f(str, 2);
+        cfg_io_dbg_from("depth %d offset %d: get value multi line string start\n", str->depth, str->offset);
+
+        parse_toml_string(str, &string, &len, MPP_CFG_PARSER_TYPE_VALUE);
+        if (!string)
+            return rk_nok;
+        buf = test_byte_f(str, 1);
+        if (!buf || strncmp(buf, "\"\"", 2)) {
+            return rk_nok;
+        }
+        skip_byte_f(str, 2);
+
+        val.str = dup_str(string, len);
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_STRING, &val);
+        mpp_cfg_add(parent, obj);
+        MPP_FREE(val.str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value multi line string success\n", str->depth, str->offset);
+        return rk_ok;
+    }
+
+    buf = test_byte_f(str, 0);
+    if (buf && buf[0] == '\"') {
+        MppCfgVal val;
+        char *string = NULL;
+        rk_s32 len = 0;
+
+        cfg_io_dbg_from("depth %d offset %d: get value string start\n", str->depth, str->offset);
+
+        parse_toml_string(str, &string, &len, MPP_CFG_PARSER_TYPE_VALUE);
+        if (!string)
+            return rk_nok;
+
+        val.str = dup_str(string, len);
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_STRING, &val);
+        mpp_cfg_add(parent, obj);
+        MPP_FREE(val.str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value string success\n", str->depth, str->offset);
+        return rk_ok;
+    }
+
+    if (buf && (buf[0] == '-' || (buf[0] >= '0' && buf[0] <= '9'))) {
+        MppCfgType type;
+        MppCfgVal val;
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value number start\n",
+                        str->depth, str->offset);
+
+        ret = parse_number(str, &type, &val);
+        if (ret)
+            return ret;
+
+        mpp_cfg_get_object(&obj, name, type, &val);
+        mpp_cfg_add(parent, obj);
+
+        cfg_io_dbg_from("depth %d offset %d: get value number success\n",
+                        str->depth, str->offset);
+        return ret;
+    }
+
+    if (buf && buf[0] == '{') {
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value object start\n",
+                        str->depth, str->offset);
+
+        mpp_cfg_get_object(&obj, name, MPP_CFG_TYPE_OBJECT, NULL);
+        mpp_cfg_add(parent, obj);
+
+        ret = parse_toml_object(obj, str, 1);
+
+        cfg_io_dbg_from("depth %d offset %d: get value object ret %d\n",
+                        str->depth, str->offset, ret);
+        return ret;
+    }
+
+    if (buf && buf[0] == '[') {
+        rk_s32 ret;
+
+        cfg_io_dbg_from("depth %d offset %d: get value array start\n",
+                        str->depth, str->offset);
+
+        mpp_cfg_get_array(&obj, name, 0);
+        mpp_cfg_add(parent, obj);
+
+        ret = parse_toml_array(obj, str);
+
+        cfg_io_dbg_from("depth %d offset %d: get value array ret %d\n",
+                        str->depth, str->offset, ret);
+        return ret;
+    }
+
+    return rk_nok;
+}
+
+static rk_s32 parse_toml_object(MppCfgIoImpl *parent, MppCfgStrBuf *str, rk_s32 is_brace)
+{
+    char *buf = NULL;
+    rk_s32 ret = rk_nok;
+    rk_s32 old = str->offset;
+
+    if (str->depth >= MAX_CFG_DEPTH) {
+        mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
+        return rk_nok;
+    }
+
+    str->depth++;
+    /* skip whitespace and check the end of buffer */
+    if (is_brace) {
+        buf = test_byte_f(str, 0);
+        if (!buf || buf[0] != '{') {
+            ret = -31;
+            goto failed;
+        }
+
+        buf = skip_byte_f(str, 1);
+        if (!buf) {
+            ret = -32;
+            goto failed;
+        }
+
+        /* skip whitespace and check the end of buffer */
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -33;
+            goto failed;
+        }
+
+        /* check empty object */
+        if (buf[0] == '}') {
+            skip_byte_f(str, 1);
+            cfg_io_dbg_from("depth %d found empty object\n", str->depth);
+            str->depth--;
+            return rk_ok;
+        }
+    } else {
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -34;
+            goto failed;
+        }
+    }
+
+    do {
+        rk_s32 name_len = 0;
+        char *name = NULL;
+        char *tmp = NULL;
+
+        if (buf[0] == '[') {
+            MppCfgObj object = NULL;
+
+            cfg_io_dbg_from("depth %d offset %d: get value array start\n",
+                            str->depth, str->offset);
+
+            mpp_cfg_get_array(&object, NULL, 0);
+            mpp_cfg_add(parent, object);
+
+            ret = parse_toml_array(object, str);
+
+            cfg_io_dbg_from("depth %d offset %d: get value array ret %d\n",
+                            str->depth, str->offset, ret);
+
+            if (ret) {
+                mpp_cfg_put_all_child(object);
+                goto failed;
+            }
+
+            goto __next;
+        }
+
+        ret = parse_toml_string(str, &name, &name_len, MPP_CFG_PARSER_TYPE_KEY);
+        if (ret) {
+            ret = -35;
+            goto failed;
+        }
+
+        /* find equal for separater */
+        buf = skip_ws_f(str);
+        if (!buf || buf[0] != '=') {
+            ret = -36;
+            goto failed;
+        }
+
+        /* skip equal */
+        buf = skip_byte_f(str, 1);
+        if (!buf) {
+            ret = -37;
+            goto failed;
+        }
+
+        buf = skip_ws_f(str);
+        if (!buf) {
+            ret = -38;
+            goto failed;
+        }
+
+        tmp = dup_str(name, name_len);
+        if (!tmp) {
+            mpp_loge_f("failed to dup name\n");
+            ret = -39;
+            goto failed;
+        }
+
+        /* parse value */
+        ret = parse_toml_value(parent, tmp, str);
+        MPP_FREE(tmp);
+        if (ret) {
+            ret = -40;
+            goto failed;
+        }
+    __next:
+        buf = skip_ws_f(str);
+        if (!buf || buf[0] == '[' || buf[0] == '}')
+            break;
+
+        if (buf[0] == ',') {
+            buf = skip_byte_f(str, 1);
+            if (!buf) {
+                ret = -41;
+                goto failed;
+            }
+
+            buf = skip_ws_f(str);
+            if (buf[0] == '[' || buf[0] == '}')
+                break;
+
+            cfg_io_dbg_from("depth %d offset %d: get next object\n", str->depth, str->offset);
+        }
+    } while (1);
+
+    if (is_brace) {
+        if (buf && buf[0] == '}')
+            skip_byte_f(str, 1);
+        else {
+            ret = -42;
+            goto failed;
+        }
+    }
+
+    cfg_io_dbg_from("depth %d offset %d -> %d object parse success\n",
+                    str->depth, old, str->offset);
+
+    str->depth--;
+    ret = rk_ok;
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("depth %d offset %d -> %d object parse failed ret %d\n",
+                        str->depth, old, str->offset, ret);
+
+    return ret;
+}
+
+static rk_s32 parse_toml_table(MppCfgIoImpl *parent, MppCfgStrBuf *str)
+{
+    MppCfgObj obj = NULL;
+    char *buf = NULL;
+    rk_s32 ret = rk_nok;
+    rk_s32 name_len = 0;
+    char *name = NULL;
+    char *tmp = NULL;
+
+    ret = parse_toml_string(str, &name, &name_len, MPP_CFG_PARSER_TYPE_TABLE);
+    if (ret) {
+        ret = -11;
+        goto failed;
+    }
+
+    tmp = dup_str(name, name_len);
+    if (!tmp) {
+        mpp_loge_f("failed to dup tmp\n");
+        ret = -12;
+        goto failed;
+    }
+
+    if (strchr(tmp, '.')) {
+        ret = parse_toml_nested_table(parent, &obj, tmp, name_len);
+        MPP_FREE(tmp);
+        if (ret || !obj) {
+            return ret;
+        }
+    } else {
+        ret = mpp_cfg_get_object(&obj, tmp, MPP_CFG_TYPE_OBJECT, NULL);
+        MPP_FREE(tmp);
+        if (ret || !obj) {
+            mpp_loge_f("failed to create object %s\n", tmp);
+            ret = -13;
+            goto failed;
+        }
+        mpp_cfg_add(parent, obj);
+    }
+
+    buf = test_byte_f(str, 0);
+    if (!buf || buf[0] != ']') {
+        ret = -14;
+        goto failed;
+    }
+
+    buf = skip_byte_f(str, 1);
+    if (!buf) {
+        ret = -15;
+        goto failed;
+    }
+
+    buf = skip_ws_f(str);
+    if (!buf)
+        return rk_nok;
+
+    if (buf[0] == '[')
+        ret = rk_ok;
+    else
+        ret = parse_toml_object(obj, str, 0);
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("table parse failed ret %d\n", ret);
+
+    return ret;
+}
+
+static rk_s32 parse_toml_array_table(MppCfgIoImpl *parent, MppCfgStrBuf *str)
+{
+    MppCfgObj obj = NULL;
+    char *buf = NULL;
+    rk_s32 ret = rk_nok;
+    rk_s32 name_len = 0;
+    char *name = NULL;
+    char *tmp = NULL;
+
+    ret = parse_toml_string(str, &name, &name_len, MPP_CFG_PARSER_TYPE_ARRAY_TABLE);
+    if (ret) {
+        ret = -22;
+        goto failed;
+    }
+
+    tmp = dup_str(name, name_len);
+    if (!tmp) {
+        mpp_loge_f("failed to dup tmp\n");
+        ret = -23;
+        goto failed;
+    }
+
+    if (strchr(tmp, '.')) {
+        ret = parse_toml_nested_array_table(parent, &obj, tmp, name_len);
+        MPP_FREE(tmp);
+        if (ret || !obj) {
+            return ret;
+        }
+    } else {
+        mpp_cfg_find(&obj, parent, tmp, MPP_CFG_STR_FMT_TOML);
+        if (!obj) {
+            ret = mpp_cfg_get_array(&obj, tmp, 0);
+            MPP_FREE(tmp);
+            if (ret || !obj) {
+                mpp_loge_f("failed to create object %s\n", tmp);
+                ret = -24;
+                goto failed;
+            }
+            mpp_cfg_add(parent, obj);
+        } else {
+            MPP_FREE(tmp);
+        }
+    }
+
+    /* array object need create object as child */
+    parent = obj;
+    obj = NULL;
+    mpp_cfg_get_object(&obj, NULL, MPP_CFG_TYPE_OBJECT, NULL);
+    mpp_cfg_add(parent, obj);
+
+    buf = test_byte_f(str, 1);
+    if (!buf || strncmp(buf, "]]", 2)) {
+        ret = -25;
+        goto failed;
+    }
+
+    buf = skip_byte_f(str, 2);
+    if (!buf) {
+        ret = -26;
+        goto failed;
+    }
+
+    buf = skip_ws_f(str);
+    if (!buf)
+        return rk_nok;
+
+    if (buf[0] == '[')
+        ret = rk_ok;
+    else
+        ret = parse_toml_object(obj, str, 0);
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("array table parse failed ret %d\n", ret);
+    return ret;
+}
+
+static rk_s32 parse_toml_section(MppCfgIoImpl *parent, MppCfgStrBuf *str)
+{
+    char *buf = NULL;
+    rk_s32 ret = rk_nok;
+    rk_s32 old = str->offset;
+
+    if (str->depth >= MAX_CFG_DEPTH) {
+        mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
+        return rk_nok;
+    }
+
+    buf = test_byte_f(str, 0);
+    if (!buf) {
+        ret = -2;
+        goto failed;
+    }
+
+    if (buf[0] == '[') {
+        str->depth++;
+
+        buf = skip_byte_f(str, 1);
+        if (!buf) {
+            ret = -3;
+            goto failed;
+        }
+        if (buf[0] != '[') {
+            ret = parse_toml_table(parent, str);
+            if (ret)
+                goto failed;
+        } else {
+            buf = skip_byte_f(str, 1);
+            if (!buf) {
+                ret = -4;
+                goto failed;
+            }
+
+            ret = parse_toml_array_table(parent, str);
+            if (ret)
+                goto failed;
+        }
+        str->depth--;
+    } else {
+        ret = parse_toml_object(parent, str, 0);
+        if (ret)
+            goto failed;
+    }
+    cfg_io_dbg_from("depth %d offset %d -> %d section parse success\n",
+                    str->depth, old, str->offset);
+
+    ret = rk_ok;
+
+failed:
+    if (ret)
+        cfg_io_dbg_from("depth %d offset %d -> %d section parse failed ret %d\n",
+                        str->depth, old, str->offset, ret);
+
+    return ret;
+}
+
 static rk_s32 mpp_cfg_from_toml(MppCfgObj *obj, MppCfgStrBuf *str)
 {
-    (void)obj;
-    (void)str;
-    return 0;
+    MppCfgObj object = NULL;
+    char *buf = NULL;
+    rk_s32 ret = rk_ok;
+
+    /* skip white space and check the end of buffer */
+    buf = skip_ws_f(str);
+    if (!buf)
+        return rk_nok;
+
+    ret = mpp_cfg_get_object(&object, NULL, MPP_CFG_TYPE_OBJECT, NULL);
+    if (ret || !object) {
+        mpp_loge_f("failed to create top object\n");
+        return rk_nok;
+    }
+
+    do {
+        /* parse section */
+        ret = parse_toml_section(object, str);
+        if (ret) {
+            mpp_loge_f("failed to parse section, ret : %d.\n", ret);
+            return rk_nok;
+        }
+
+        buf = skip_ws_f(str);
+        if (!buf)
+            break;
+    } while (1);
+
+    *obj = object;
+
+    return ret;
 }
 
 void mpp_cfg_dump(MppCfgObj obj, const char *func)
@@ -1983,6 +2949,7 @@ void mpp_cfg_dump(MppCfgObj obj, const char *func)
     str.buf = mpp_malloc_size(void, str.buf_size);
     str.offset = 0;
     str.depth = 0;
+    str.type = MPP_CFG_STR_FMT_LOG;
 
     ret = mpp_cfg_to_log(impl, &str);
     if (ret)
@@ -2010,6 +2977,7 @@ rk_s32 mpp_cfg_to_string(MppCfgObj obj, MppCfgStrFmt fmt, char **buf)
     str.buf = mpp_malloc_size(void, str.buf_size);
     str.offset = 0;
     str.depth = 0;
+    str.type = fmt;
 
     switch (fmt) {
     case MPP_CFG_STR_FMT_LOG : {
@@ -2019,7 +2987,7 @@ rk_s32 mpp_cfg_to_string(MppCfgObj obj, MppCfgStrFmt fmt, char **buf)
         ret = mpp_cfg_to_json(impl, &str);
     } break;
     case MPP_CFG_STR_FMT_TOML : {
-        ret = mpp_cfg_to_toml(impl, &str);
+        ret = mpp_cfg_to_toml(impl, &str, 1);
     } break;
     default : {
         mpp_loge_f("invalid formoffset %d\n", fmt);
@@ -2058,6 +3026,7 @@ rk_s32 mpp_cfg_from_string(MppCfgObj *obj, MppCfgStrFmt fmt, const char *buf)
         str.buf_size = size;
         str.offset = 0;
         str.depth = 0;
+        str.type = fmt;
 
         cfg_io_dbg_from("buf %p size %d\n", buf, size);
         cfg_io_dbg_from("%s", buf);
