@@ -2445,6 +2445,101 @@ static MPP_RET hal_h264e_vepu511_wait(void *hal, HalEncTask *task)
     return ret;
 }
 
+static void vepu511_h264e_update_tune_stat(HalH264eVepu511Ctx *ctx, HalEncTask *task)
+{
+    HalVepu511RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
+    Vepu511Status *reg_st = &regs->reg_st;
+    EncRcTaskInfo *rc_info = &task->rc_task->info;
+    RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
+    RK_U32 mb_h = ctx->sps->pic_height_in_mbs;
+    RK_U32 mbs = mb_w * mb_h;
+    RK_U32 madi_th_cnt[4], madp_th_cnt[4];
+    RK_U32 madi_cnt = 0, madp_cnt = 0;
+    RK_U32 md_cnt;
+
+    madi_th_cnt[0] = reg_st->st_madi_lt_num0.madi_th_lt_cnt0 +
+                     reg_st->st_madi_rt_num0.madi_th_rt_cnt0 +
+                     reg_st->st_madi_lb_num0.madi_th_lb_cnt0 +
+                     reg_st->st_madi_rb_num0.madi_th_rb_cnt0;
+    madi_th_cnt[1] = reg_st->st_madi_lt_num0.madi_th_lt_cnt1 +
+                     reg_st->st_madi_rt_num0.madi_th_rt_cnt1 +
+                     reg_st->st_madi_lb_num0.madi_th_lb_cnt1 +
+                     reg_st->st_madi_rb_num0.madi_th_rb_cnt1;
+    madi_th_cnt[2] = reg_st->st_madi_lt_num1.madi_th_lt_cnt2 +
+                     reg_st->st_madi_rt_num1.madi_th_rt_cnt2 +
+                     reg_st->st_madi_lb_num1.madi_th_lb_cnt2 +
+                     reg_st->st_madi_rb_num1.madi_th_rb_cnt2;
+    madi_th_cnt[3] = reg_st->st_madi_lt_num1.madi_th_lt_cnt3 +
+                     reg_st->st_madi_rt_num1.madi_th_rt_cnt3 +
+                     reg_st->st_madi_lb_num1.madi_th_lb_cnt3 +
+                     reg_st->st_madi_rb_num1.madi_th_rb_cnt3;
+    madp_th_cnt[0] = reg_st->st_madp_lt_num0.madp_th_lt_cnt0 +
+                     reg_st->st_madp_rt_num0.madp_th_rt_cnt0 +
+                     reg_st->st_madp_lb_num0.madp_th_lb_cnt0 +
+                     reg_st->st_madp_rb_num0.madp_th_rb_cnt0;
+    madp_th_cnt[1] = reg_st->st_madp_lt_num0.madp_th_lt_cnt1 +
+                     reg_st->st_madp_rt_num0.madp_th_rt_cnt1 +
+                     reg_st->st_madp_lb_num0.madp_th_lb_cnt1 +
+                     reg_st->st_madp_rb_num0.madp_th_rb_cnt1;
+    madp_th_cnt[2] = reg_st->st_madp_lt_num1.madp_th_lt_cnt2 +
+                     reg_st->st_madp_rt_num1.madp_th_rt_cnt2 +
+                     reg_st->st_madp_lb_num1.madp_th_lb_cnt2 +
+                     reg_st->st_madp_rb_num1.madp_th_rb_cnt2;
+    madp_th_cnt[3] = reg_st->st_madp_lt_num1.madp_th_lt_cnt3 +
+                     reg_st->st_madp_rt_num1.madp_th_rt_cnt3 +
+                     reg_st->st_madp_lb_num1.madp_th_lb_cnt3 +
+                     reg_st->st_madp_rb_num1.madp_th_rb_cnt3;
+
+    if (ctx->smart_en)
+        md_cnt = (12 * madp_th_cnt[3] + 11 * madp_th_cnt[2] + 8 * madp_th_cnt[1]) >> 2;
+    else
+        md_cnt = (24 * madp_th_cnt[3] + 22 * madp_th_cnt[2] + 17 * madp_th_cnt[1]) >> 2;
+    madi_cnt = (6 * madi_th_cnt[3] + 5 * madi_th_cnt[2] + 4 * madi_th_cnt[1]) >> 2;
+
+    /* fill rc info */
+    if (md_cnt * 100 > 15 * mbs)
+        rc_info->motion_level = 200;
+    else if (md_cnt * 100 > 5 * mbs)
+        rc_info->motion_level = 100;
+    else if (md_cnt * 100 > (mbs >> 2))
+        rc_info->motion_level = 1;
+    else
+        rc_info->motion_level = 0;
+
+    if (madi_cnt * 100 > 30 * mbs)
+        rc_info->complex_level = 2;
+    else if (madi_cnt * 100 > 13 * mbs)
+        rc_info->complex_level = 1;
+    else
+        rc_info->complex_level = 0;
+
+    rc_info->madi = madi_th_cnt[0] * regs->reg_rc_roi.madi_st_thd.madi_th0 +
+                    madi_th_cnt[1] * (regs->reg_rc_roi.madi_st_thd.madi_th0 +
+                                      regs->reg_rc_roi.madi_st_thd.madi_th1) / 2 +
+                    madi_th_cnt[2] * (regs->reg_rc_roi.madi_st_thd.madi_th1 +
+                                      regs->reg_rc_roi.madi_st_thd.madi_th2) / 2 +
+                    madi_th_cnt[3] * regs->reg_rc_roi.madi_st_thd.madi_th2;
+
+    madi_cnt = madi_th_cnt[0] + madi_th_cnt[1] + madi_th_cnt[2] + madi_th_cnt[3];
+    if (madi_cnt)
+        rc_info->madi = rc_info->madi / madi_cnt;
+
+    rc_info->madp = madp_th_cnt[0] * regs->reg_rc_roi.madp_st_thd0.madp_th0 +
+                    madp_th_cnt[1] * (regs->reg_rc_roi.madp_st_thd0.madp_th0 +
+                                      regs->reg_rc_roi.madp_st_thd0.madp_th1) / 2 +
+                    madp_th_cnt[2] * (regs->reg_rc_roi.madp_st_thd0.madp_th1 +
+                                      regs->reg_rc_roi.madp_st_thd1.madp_th2) / 2 +
+                    madp_th_cnt[3] * regs->reg_rc_roi.madp_st_thd1.madp_th2;
+
+    madp_cnt = madp_th_cnt[0] + madp_th_cnt[1] + madp_th_cnt[2] + madp_th_cnt[3];
+
+    if (madp_cnt)
+        rc_info->madp = rc_info->madp / madp_cnt;
+
+    hal_h264e_dbg_rc("complex_level %d motion_level %d\n",
+                     rc_info->complex_level, rc_info->motion_level);
+}
+
 static MPP_RET hal_h264e_vepu511_ret_task(void * hal, HalEncTask * task)
 {
     HalH264eVepu511Ctx *ctx = (HalH264eVepu511Ctx *)hal;
@@ -2499,7 +2594,7 @@ static MPP_RET hal_h264e_vepu511_ret_task(void * hal, HalEncTask * task)
         h264e_dpb_hal_end(ctx->dpb, task->flags.refr_idx);
     }
 
-    // vepu511_h264e_tune_stat_update(ctx->tune, task);
+    vepu511_h264e_update_tune_stat(ctx, task);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
