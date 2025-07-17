@@ -1182,6 +1182,16 @@ const char *kmpp_obj_get_name(KmppObj obj)
     return NULL;
 }
 
+rk_s32 kmpp_obj_is_kobj(KmppObj obj)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+
+    if (impl && impl->def)
+        return impl->def->is_kobj;
+
+    return 0;
+}
+
 void *kmpp_obj_to_priv(KmppObj obj)
 {
     KmppObjImpl *impl = (KmppObjImpl *)obj;

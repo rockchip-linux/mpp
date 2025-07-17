@@ -66,6 +66,8 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 #define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
 #define kmpp_obj_ioctl_f(obj, cmd, in, out)     kmpp_obj_ioctl(obj, cmd, in, out, __FUNCTION__)
 
+/* check a object is kobject or not */
+rk_s32 kmpp_obj_is_kobj(KmppObj obj);
 /* KmppShmPtr is the kernel share object userspace base address for kernel ioctl */
 KmppShmPtr *kmpp_obj_to_shm(KmppObj obj);
 /* KmppShmPtr size defined the copy size for kernel ioctl */
