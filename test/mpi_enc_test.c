@@ -1140,9 +1140,9 @@ void *enc_test(void *arg)
         goto MPP_TEST_OUT;
     }
 
-    ret = mpp_enc_cfg_init(&p->cfg);
+    ret = mpp_enc_cfg_get(&p->cfg, cmd->kmpp_en ? "KmppVencStCfg" : "MppEncCfg", NULL);
     if (ret) {
-        mpp_err_f("mpp_enc_cfg_init failed ret %d\n", ret);
+        mpp_err_f("mpp_enc_cfg_get failed ret %d\n", ret);
         goto MPP_TEST_OUT;
     }
 

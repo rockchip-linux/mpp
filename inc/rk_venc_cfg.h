@@ -15,8 +15,13 @@ typedef void* MppEncCfg;
 extern "C" {
 #endif
 
+/* legacy interface */
 MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg);
 MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg);
+
+/* new interface */
+RK_S32 mpp_enc_cfg_get(MppEncCfg *cfg, const char *name, void *val);
+RK_S32 mpp_enc_cfg_put(MppEncCfg cfg);
 
 MPP_RET mpp_enc_cfg_set_s32(MppEncCfg cfg, const char *name, RK_S32 val);
 MPP_RET mpp_enc_cfg_set_u32(MppEncCfg cfg, const char *name, RK_U32 val);

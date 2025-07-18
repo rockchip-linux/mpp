@@ -49,4 +49,14 @@ typedef struct MppEncCfgSet_t {
     MppEncFineTuneCfg   tune;
 } MppEncCfgSet;
 
+#include "kmpp_obj.h"
+
+typedef struct MppEncCfgImpl_t {
+    RK_U32              is_kobj;
+    union {
+        MppEncCfgSet    *cfg;
+        KmppObj         obj;
+    };
+} MppEncCfgImpl;
+
 #endif /*__MPP_ENC_CFG_H__*/

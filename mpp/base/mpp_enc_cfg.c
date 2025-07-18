@@ -358,7 +358,8 @@ static void mpp_enc_cfg_set_default(MppEncCfgSet *cfg)
 
 MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
 {
-    MppEncCfgSet *p = NULL;
+    MppEncCfgImpl *impl = NULL;
+    MPP_RET ret = MPP_OK;
 
     if (!cfg) {
         mpp_err_f("invalid NULL input config\n");
@@ -367,52 +368,138 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
 
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
-    p = mpp_calloc(MppEncCfgSet, 1);
-    if (!p) {
-        mpp_err_f("create encoder config failed %p\n", p);
-        *cfg = NULL;
-        return MPP_ERR_NOMEM;
+    *cfg = NULL;
+
+    do {
+        impl = mpp_calloc(MppEncCfgImpl, 1);
+        if (!impl) {
+            mpp_err_f("create MppEncCfgImpl failed\n");
+            ret = MPP_ERR_NOMEM;
+            break;
+        }
+
+        impl->cfg = mpp_calloc(MppEncCfgSet, 1);
+        if (!impl->cfg) {
+            mpp_err_f("create MppEncCfgSet failed\n");
+            ret = MPP_ERR_NOMEM;
+            break;
+        }
+
+        /* NOTE: compatible to old struct size */
+        impl->cfg->size = sizeof(*impl->cfg);
+        mpp_enc_cfg_set_default(impl->cfg);
+
+        *cfg = impl;
+    } while (0);
+
+    if (ret) {
+        if (impl) {
+            MPP_FREE(impl->cfg);
+            MPP_FREE(impl);
+        }
     }
 
-    /* NOTE: compatible to old struct size */
-    p->size = sizeof(*p);
-    mpp_enc_cfg_set_default(p);
-
-    *cfg = p;
-
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
 {
+    return mpp_enc_cfg_put(cfg);
+}
+
+RK_S32 mpp_enc_cfg_get(MppEncCfg *cfg, const char *name, void *val)
+{
+    static const char *kcfg_name = "KmppVencStCfg";
+    (void)val;
+
     if (!cfg) {
         mpp_err_f("invalid NULL input config\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MPP_FREE(cfg);
+    mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
+
+    *cfg = NULL;
+
+    if (!name || !strcmp(name, "MppEncCfg")) {
+        return mpp_enc_cfg_init(cfg);
+    } else if (!strcmp(name, kcfg_name)) {
+        MppEncCfgImpl *impl = NULL;
+
+        impl = mpp_calloc(MppEncCfgImpl, 1);
+        if (!impl) {
+            mpp_err_f("create MppEncCfgImpl failed\n");
+            return MPP_ERR_NOMEM;
+        }
+        impl->is_kobj = 1;
+        kmpp_obj_get_by_name_f(&impl->obj, kcfg_name);
+        if (!impl->obj) {
+            mpp_err_f("failed to get obj by name %s\n", kcfg_name);
+            MPP_FREE(impl);
+            return MPP_ERR_NOMEM;
+        }
+        *cfg = impl;
+        return MPP_OK;
+    }
+
+    mpp_loge_f("invalid cfg %s\n", name);
+
+    return MPP_NOK;
+}
+
+RK_S32 mpp_enc_cfg_put(MppEncCfg cfg)
+{
+    MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg;
+
+    if (!impl) {
+        mpp_err_f("invalid NULL input config\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (!impl->is_kobj) {
+        MPP_FREE(impl->cfg);
+    } else {
+        kmpp_obj_put_f(impl->obj);
+    }
+
+    MPP_FREE(impl);
 
     return MPP_OK;
 }
 
+#define kmpp_obj_set_S32(obj, name, val) \
+    kmpp_obj_set_s32(obj, name, val)
+#define kmpp_obj_set_U32(obj, name, val) \
+    kmpp_obj_set_u32(obj, name, val)
+#define kmpp_obj_set_S64(obj, name, val) \
+    kmpp_obj_set_s64(obj, name, val)
+#define kmpp_obj_set_U64(obj, name, val) \
+    kmpp_obj_set_u64(obj, name, val)
+#define kmpp_obj_set_Ptr(obj, name, val) \
+    kmpp_obj_set_ptr(obj, name, val)
+#define kmpp_obj_set_St(obj, name, val) \
+    kmpp_obj_set_st(obj, name, val)
+
 #define ENC_CFG_SET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppEncCfg cfg, const char *name, in_type val) \
     { \
-        MppEncCfgSet *p = (MppEncCfgSet *)cfg; \
-        MppTrieInfo *node; \
-        MppCfgInfo *info; \
-        if (!p || !name) { \
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg; \
+        if (!impl || !impl->cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        node = service_get_info(name); \
-        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
+        if (impl->is_kobj) { \
+            return kmpp_obj_set_##cfg_type(impl->obj, name, val); \
+        } else { \
+            MppEncCfgSet *p = impl->cfg; \
+            MppTrieInfo *node = service_get_info(name); \
+            MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
+            if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
+                return MPP_NOK; \
+            } \
+            enc_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
+            return MPP_CFG_SET_##cfg_type(info, p, val); \
         } \
-        enc_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_SET_##cfg_type(info, p, val); \
-        return ret; \
     }
 
 ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_s32, RK_S32, S32);
@@ -422,24 +509,39 @@ ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_u64, RK_U64, U64);
 ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_ptr, void *, Ptr);
 ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_st,  void *, St);
 
+#define kmpp_obj_get_S32(obj, name, val) \
+    kmpp_obj_get_s32(obj, name, val)
+#define kmpp_obj_get_U32(obj, name, val) \
+    kmpp_obj_get_u32(obj, name, val)
+#define kmpp_obj_get_S64(obj, name, val) \
+    kmpp_obj_get_s64(obj, name, val)
+#define kmpp_obj_get_U64(obj, name, val) \
+    kmpp_obj_get_u64(obj, name, val)
+#define kmpp_obj_get_Ptr(obj, name, val) \
+    kmpp_obj_get_ptr(obj, name, val)
+#define kmpp_obj_get_St(obj, name, val) \
+    kmpp_obj_get_st(obj, name, val)
+
 #define ENC_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppEncCfg cfg, const char *name, in_type *val) \
     { \
-        MppEncCfgSet *p = (MppEncCfgSet *)cfg; \
-        MppTrieInfo *node; \
-        MppCfgInfo *info; \
-        if (!p || !name) { \
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg; \
+        if (!impl || !impl->cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        node = service_get_info(name); \
-        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
+        if (impl->is_kobj) { \
+            return kmpp_obj_get_##cfg_type(impl->obj, name, val); \
+        } else { \
+            MppEncCfgSet *p = impl->cfg; \
+            MppTrieInfo *node = service_get_info(name); \
+            MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
+            if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
+                return MPP_NOK; \
+            } \
+            enc_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
+            return MPP_CFG_GET_##cfg_type(info, p, val); \
         } \
-        enc_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_GET_##cfg_type(info, p, val); \
-        return ret; \
     }
 
 ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_s32, RK_S32, S32);

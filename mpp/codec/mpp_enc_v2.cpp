@@ -345,7 +345,16 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_GET_CFG : {
-        MppEncCfgSet *cfg = (MppEncCfgSet *)param;
+        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        MppEncCfgSet *cfg;
+
+        if (impl->is_kobj) {
+            mpp_loge("can not MPP_ENC_GET_CFG by kobj %p\n", impl);
+            ret = MPP_NOK;
+            break;
+        }
+
+        cfg = impl->cfg;
 
         enc_dbg_ctrl("get all config\n");
         memcpy(cfg, &enc->cfg, sizeof(enc->cfg));
@@ -361,17 +370,24 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
         cfg->split.change = 0;
         cfg->tune.change = 0;
     } break;
-    case MPP_ENC_GET_PREP_CFG : {
-        enc_dbg_ctrl("get prep config\n");
-        memcpy(param, &enc->cfg.prep, sizeof(enc->cfg.prep));
-    } break;
-    case MPP_ENC_GET_RC_CFG : {
-        enc_dbg_ctrl("get rc config\n");
-        memcpy(param, &enc->cfg.rc, sizeof(enc->cfg.rc));
-    } break;
-    case MPP_ENC_GET_CODEC_CFG : {
-        enc_dbg_ctrl("get codec config\n");
-        memcpy(param, &enc->cfg.codec, sizeof(enc->cfg.codec));
+    case MPP_ENC_SET_PREP_CFG :
+    case MPP_ENC_GET_PREP_CFG :
+    case MPP_ENC_SET_RC_CFG :
+    case MPP_ENC_GET_RC_CFG :
+    case MPP_ENC_SET_CODEC_CFG :
+    case MPP_ENC_GET_CODEC_CFG :
+    case MPP_ENC_SET_SPLIT :
+    case MPP_ENC_GET_SPLIT : {
+        mpp_loge("deprecated %s control use MPP_ENC_GET_CFG / MPP_ENC_SET_CFG instead\n",
+                 cmd == MPP_ENC_SET_PREP_CFG ? "MPP_ENC_SET_PREP_CFG" :
+                 cmd == MPP_ENC_GET_PREP_CFG ? "MPP_ENC_GET_PREP_CFG" :
+                 cmd == MPP_ENC_SET_RC_CFG ? "MPP_ENC_SET_RC_CFG" :
+                 cmd == MPP_ENC_GET_RC_CFG ? "MPP_ENC_GET_RC_CFG" :
+                 cmd == MPP_ENC_SET_CODEC_CFG ? "MPP_ENC_SET_CODEC_CFG" :
+                 cmd == MPP_ENC_GET_CODEC_CFG ? "MPP_ENC_GET_CODEC_CFG" :
+                 cmd == MPP_ENC_SET_SPLIT ? "MPP_ENC_SET_SPLIT" :
+                 cmd == MPP_ENC_GET_SPLIT ? "MPP_ENC_GET_SPLIT" : "unknown");
+        ret = MPP_NOK;
     } break;
     case MPP_ENC_GET_HEADER_MODE : {
         enc_dbg_ctrl("get header mode\n");
@@ -383,6 +399,17 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     } break;
     default : {
         // Cmd which is not get configure will handle by enc_impl
+        if (cmd == MPP_ENC_SET_CFG) {
+            MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+
+            if (impl->is_kobj) {
+                mpp_loge("can not MPP_ENC_SET_CFG by kobj %p\n", impl);
+                ret = MPP_NOK;
+                break;
+            }
+            param = impl->cfg;
+        }
+
         enc->cmd = cmd;
         enc->param = param;
         enc->cmd_ret = &ret;
