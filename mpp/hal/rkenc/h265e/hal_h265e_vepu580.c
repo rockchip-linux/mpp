@@ -2778,21 +2778,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
 
     reg_base->reg0232_rdo_cfg.ccwa_e = 1;
     reg_base->reg0232_rdo_cfg.scl_lst_sel = syn->pp.scaling_list_enabled_flag;
-    {
-        RK_U32 i_nal_type = 0;
-
-        /* TODO: extend syn->frame_coding_type definition */
-        if (ctx->frame_type == INTRA_FRAME) {
-            /* reset ref pictures */
-            i_nal_type    = NAL_IDR_W_RADL;
-        } else if (ctx->frame_type == INTER_P_FRAME ) {
-            i_nal_type    = NAL_TRAIL_R;
-        } else {
-            i_nal_type    = NAL_TRAIL_R;
-        }
-
-        reg_base->reg0236_synt_nal.nal_unit_type    = syn->sp.temporal_id ? NAL_TSA_R : i_nal_type;
-    }
+    reg_base->reg0236_synt_nal.nal_unit_type = h265e_get_nal_type(&syn->sp, ctx->frame_type);
 
     vepu580_h265_set_hw_address(ctx, task);
     vepu580_h265_set_pp_regs(regs, fmt, &ctx->cfg->prep, task);

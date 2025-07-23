@@ -22,6 +22,21 @@
 #include "h265e_codec.h"
 #include "h265e_syntax_new.h"
 
+RK_S32 h265e_get_nal_type(H265eSlicParams* sp, RK_S32 frame_type)
+{
+    RK_U32 nal_type = 0;
+
+    if (sp->temporal_id > 0) {
+        nal_type = sp->non_reference_flag ? NAL_TSA_N : NAL_TSA_R;
+    } else if (frame_type == INTRA_FRAME) {
+        nal_type = NAL_IDR_W_RADL;
+    } else {
+        nal_type = sp->non_reference_flag ? NAL_TRAIL_N : NAL_TRAIL_R;
+    }
+
+    return nal_type;
+}
+
 static void fill_picture_parameters(const H265eCtx *h,
                                     H265ePicParams *pp)
 {

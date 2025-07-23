@@ -1611,20 +1611,8 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
 
     regs->rdo_cfg.chrm_klut_en = 1;
     regs->rdo_cfg.seq_scaling_matrix_present_flg = syn->pp.scaling_list_enabled_flag;
-    {
-        RK_U32 i_nal_type = 0;
+    regs->synt_nal.nal_unit_type = h265e_get_nal_type(&syn->sp, ctx->frame_type);
 
-        /* TODO: extend syn->frame_coding_type definition */
-        if (ctx->frame_type == INTRA_FRAME) {
-            /* reset ref pictures */
-            i_nal_type    = NAL_IDR_W_RADL;
-        } else if (ctx->frame_type == INTER_P_FRAME && !syn->sp.non_reference_flag) {
-            i_nal_type    = NAL_TRAIL_R;
-        } else {
-            i_nal_type    = NAL_TRAIL_N;
-        }
-        regs->synt_nal.nal_unit_type    = syn->sp.temporal_id ?  NAL_TSA_R : i_nal_type;
-    }
     vepu54x_h265_set_hw_address(ctx, regs, task);
     vepu541_h265_set_pp_regs(fmt, ctx, task);
 

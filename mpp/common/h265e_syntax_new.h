@@ -220,6 +220,7 @@ extern "C" {
 #endif
 
 RK_S32 h265e_syntax_fill(void *ctx);
+RK_S32 h265e_get_nal_type(H265eSlicParams* sp, RK_S32 frame_type);
 
 #ifdef __cplusplus
 }
