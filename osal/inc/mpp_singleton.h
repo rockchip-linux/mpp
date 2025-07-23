@@ -40,7 +40,7 @@ typedef enum MppSingletonId_e {
     /* userspace system module */
     MPP_SGLN_ENC_CFG,
     MPP_SGLN_DEC_CFG,
-    MPP_SGLN_DEC_RC_API,
+    MPP_SGLN_ENC_RC_API,
 
     /* max count for start init process */
     MPP_SGLN_MAX_CNT,

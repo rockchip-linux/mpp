@@ -15,7 +15,7 @@ add_library(enc_rc STATIC
     rc_data_base.cpp
     rc_data_impl.cpp
     rc_data.cpp
-    rc_impl.cpp
+    rc_api.c
     rc.cpp
     rc_base.cpp
     )

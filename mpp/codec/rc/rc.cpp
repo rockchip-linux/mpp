@@ -26,7 +26,7 @@
 
 #include "rc_debug.h"
 #include "rc.h"
-#include "rc_impl.h"
+#include "rc_api.h"
 #include "rc_base.h"
 
 typedef struct MppRcImpl_t {
@@ -60,7 +60,7 @@ MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name)
 
     rc_dbg_func("enter type %x name %s\n", type, name);
 
-    RcImplApi *api = RcImplApiService::get_instance()->api_get(type, name);
+    RcImplApi *api = rc_api_get(type, name);
 
     mpp_assert(api);
 
