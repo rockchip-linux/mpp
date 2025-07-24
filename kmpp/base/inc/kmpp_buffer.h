@@ -72,6 +72,8 @@ rk_s32 kmpp_buf_grp_setup(KmppBufGrp grp);
 
 KmppBufCfg kmpp_buffer_to_cfg(KmppBuffer buf);
 rk_s32 kmpp_buffer_setup(KmppBuffer buffer);
+rk_s32 kmpp_buffer_inc_ref(KmppBuffer buffer);
+rk_s32 kmpp_buffer_flush(KmppBuffer buffer);
 
 #define KMPP_BUF_CFG_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
     ENTRY(prefix, u32,  rk_u32,         size,       FLAG_NONE,  size) \

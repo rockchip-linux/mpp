@@ -128,6 +128,30 @@ rk_s32 kmpp_buffer_setup(KmppBuffer buffer)
     return kmpp_obj_ioctl_f(buffer, 0, buffer, NULL);
 }
 
+rk_s32 kmpp_buffer_inc_ref(KmppBuffer buffer)
+{
+    KmppBufferImpl *impl = (KmppBufferImpl *)kmpp_obj_to_entry(buffer);
+
+    if (!impl) {
+        mpp_loge_f("invalid NULL buffer\n");
+        return rk_nok;
+    }
+
+    return kmpp_obj_ioctl_f(buffer, 1, buffer, NULL);
+}
+
+rk_s32 kmpp_buffer_flush(KmppBuffer buffer)
+{
+    KmppBufferImpl *impl = (KmppBufferImpl *)kmpp_obj_to_entry(buffer);
+
+    if (!impl) {
+        mpp_loge_f("invalid NULL buffer\n");
+        return rk_nok;
+    }
+
+    return kmpp_obj_ioctl_f(buffer, 2, buffer, NULL);
+}
+
 rk_s32 kmpp_buffer_impl_init(void *entry, KmppObj obj, const char *caller)
 {
     KmppBufPriv *priv = (KmppBufPriv *)kmpp_obj_to_priv(obj);

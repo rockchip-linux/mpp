@@ -29,8 +29,6 @@ typedef struct __attribute__((packed)) KmppMetaShmVal_t {
 extern "C" {
 #endif
 
-MPP_RET kmpp_meta_inc_ref(KmppMeta meta);
-
 #ifdef __cplusplus
 }
 #endif
