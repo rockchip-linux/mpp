@@ -197,6 +197,7 @@ typedef struct MppEncQueryCfg_t {
  */
 typedef enum MppEncBaseCfgChange_e {
     MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY   = (1 << 0),
+    MPP_ENC_BASE_CFG_CHANGE_SMART_EN    = (1 << 1),
     MPP_ENC_BASE_CFG_CHANGE_ALL         = (0xFFFFFFFF),
 } MppEncBaseCfgChange;
 
@@ -204,6 +205,7 @@ typedef struct MppEncBaseCfg_t {
     RK_U32  change;
 
     RK_S32  low_delay;
+    RK_S32  smart_en;
 } MppEncBaseCfg;
 
 /*

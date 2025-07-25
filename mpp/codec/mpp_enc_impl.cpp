@@ -1047,6 +1047,9 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
             if (change & MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY)
                 dst->base.low_delay = src->base.low_delay;
 
+            if (change & MPP_ENC_BASE_CFG_CHANGE_SMART_EN)
+                dst->base.smart_en = src->base.smart_en;
+
             src->base.change = 0;
         }
 

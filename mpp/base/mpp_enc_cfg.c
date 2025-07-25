@@ -68,6 +68,7 @@ static RK_U32 mpp_enc_cfg_debug = 0;
 #define ENTRY_TABLE(ENTRY)  \
     /* base config */ \
     ENTRY(base, low_delay,      S32,        MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY,      base, low_delay) \
+    ENTRY(base, smart_en,       S32,        MPP_ENC_BASE_CFG_CHANGE_SMART_EN,       base, smart_en) \
     /* rc config */ \
     ENTRY(rc,   mode,           S32,        MPP_ENC_RC_CFG_CHANGE_RC_MODE,          rc, rc_mode) \
     ENTRY(rc,   bps_target,     S32,        MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_target) \
