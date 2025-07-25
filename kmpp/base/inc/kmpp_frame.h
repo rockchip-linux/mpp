@@ -28,7 +28,6 @@
     ENTRY(prefix, u32, rk_u32,              fmt,                FLAG_NONE,  fmt) \
     ENTRY(prefix, u32, rk_u32,              buf_size,           FLAG_NONE,  buf_size) \
     ENTRY(prefix, u32, rk_u32,              is_gray,            FLAG_NONE,  is_gray) \
-    STRCT(prefix, shm, KmppShmPtr,          meta,               FLAG_NONE,  meta) \
     STRCT(prefix, shm, KmppShmPtr,          buffer,             FLAG_NONE,  buffer) \
     STRCT(prefix, st,  MppFrameRational,    sar,                FLAG_NONE,  sar)
 
@@ -40,6 +39,8 @@ extern "C" {
 #define KMPP_OBJ_INTF_TYPE      KmppFrame
 #define KMPP_OBJ_ENTRY_TABLE    KMPP_FRAME_ENTRY_TABLE
 #include "kmpp_obj_func.h"
+
+rk_s32 kmpp_frame_get_meta(KmppFrame frame, KmppMeta *meta);
 
 #ifdef __cplusplus
 }

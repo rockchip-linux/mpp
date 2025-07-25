@@ -80,6 +80,7 @@ typedef struct KmppFrameImpl_t {
     rk_u32 is_gray;
 
     KmppShmPtr meta;
+    KmppMeta self_meta;
 } KmppFrameImpl;
 
 #endif /* __KMPP_FRAME_IMPL_H__ */
