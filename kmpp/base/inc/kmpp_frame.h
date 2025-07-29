@@ -27,6 +27,7 @@
     ENTRY(prefix, u32, rk_u32,              chroma_location,    FLAG_NONE,  chroma_location) \
     ENTRY(prefix, u32, rk_u32,              fmt,                FLAG_NONE,  fmt) \
     ENTRY(prefix, u32, rk_u32,              buf_size,           FLAG_NONE,  buf_size) \
+    ENTRY(prefix, u32, rk_u32,              buf_fd,             FLAG_NONE,  buf_fd) \
     ENTRY(prefix, u32, rk_u32,              is_gray,            FLAG_NONE,  is_gray) \
     STRCT(prefix, shm, KmppShmPtr,          buffer,             FLAG_NONE,  buffer) \
     STRCT(prefix, st,  MppFrameRational,    sar,                FLAG_NONE,  sar)

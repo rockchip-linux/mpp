@@ -25,6 +25,7 @@
 #include "kmpp.h"
 #include "kmpp_obj.h"
 #include "mpp_soc.h"
+#include "kmpp_frame.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet_impl.h"
@@ -166,6 +167,11 @@ static void clear(Kmpp *ctx)
         mpp_buffer_group_put(ctx->mPacketGroup);
         ctx->mPacketGroup = NULL;
     }
+
+    if (ctx->mKframe) {
+        kmpp_frame_put(ctx->mKframe);
+        ctx->mKframe = NULL;
+    }
 }
 
 static MPP_RET start(Kmpp *ctx)
@@ -258,9 +264,9 @@ static MPP_RET get_frame(Kmpp *ctx, MppFrame *frame)
 
 static MPP_RET put_frame(Kmpp *ctx, MppFrame frame)
 {
-    KmppFrameInfos frame_info;
-    MppBuffer buf = NULL;
     MPP_RET ret = MPP_OK;
+    KmppShmPtr *ptr = NULL;
+    rk_s32 size;
 
     if (!ctx)
         return MPP_ERR_VALUE;
@@ -268,44 +274,61 @@ static MPP_RET put_frame(Kmpp *ctx, MppFrame frame)
     if (!ctx->mInitDone)
         return MPP_ERR_INIT;
 
-    buf = mpp_frame_get_buffer(frame);
-    memset(&frame_info, 0, sizeof(frame_info));
-    frame_info.width = mpp_frame_get_width(frame);
-    frame_info.height = mpp_frame_get_height(frame);
-    frame_info.hor_stride = mpp_frame_get_hor_stride(frame);
-    frame_info.ver_stride = mpp_frame_get_ver_stride(frame);
-    frame_info.hor_stride_pixel = mpp_frame_get_hor_stride_pixel(frame);
-    frame_info.offset_x = mpp_frame_get_offset_x(frame);
-    frame_info.offset_y = mpp_frame_get_offset_y(frame);
-    frame_info.fmt = mpp_frame_get_fmt(frame);
-    frame_info.eos = mpp_frame_get_eos(frame);
-    frame_info.pts = mpp_frame_get_pts(frame);
-    frame_info.dts = mpp_frame_get_dts(frame);
-    if (buf)
-        frame_info.fd = mpp_buffer_get_fd(buf);
-    if (mpp_frame_has_meta(frame)) {
-        MppMeta meta = mpp_frame_get_meta(frame);
-        MppPacket packet = NULL;
+    if (!__check_is_mpp_frame(frame)) {
+        MppFrameImpl *impl = (MppFrameImpl *)frame;
 
-        mpp_meta_get_packet(meta, KEY_OUTPUT_PACKET, &packet);
-        ctx->mPacket = packet;
+        if (ctx->mKframe == NULL)
+            kmpp_frame_get(&ctx->mKframe);
 
-        /* set roi */
-        {
-            MppEncROICfg *roi_data = NULL;
-            MppEncROICfgLegacy roi_data0;
+        kmpp_frame_set_width(ctx->mKframe, impl->width);
+        kmpp_frame_set_height(ctx->mKframe, impl->height);
+        kmpp_frame_set_hor_stride(ctx->mKframe, impl->hor_stride);
+        kmpp_frame_set_ver_stride(ctx->mKframe, impl->ver_stride);
+        kmpp_frame_set_fmt(ctx->mKframe, impl->fmt);
+        kmpp_frame_set_eos(ctx->mKframe, impl->eos);
+        kmpp_frame_set_pts(ctx->mKframe, impl->pts);
+        kmpp_frame_set_dts(ctx->mKframe, impl->dts);
+        kmpp_frame_set_offset_x(ctx->mKframe, impl->offset_x);
+        kmpp_frame_set_offset_y(ctx->mKframe, impl->offset_y);
+        kmpp_frame_set_hor_stride_pixel(ctx->mKframe, impl->hor_stride_pixel);
 
-            mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void**)&roi_data);
-            if (roi_data) {
-                roi_data0.change = 1;
-                roi_data0.number = roi_data->number;
-                memcpy(roi_data0.regions, roi_data->regions, roi_data->number * sizeof(MppEncROIRegion));
-                ctx->mApi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_data0);
+        if (impl->buffer) {
+            kmpp_frame_set_buf_fd(ctx->mKframe, mpp_buffer_get_fd(impl->buffer));
+        } else {
+            mpp_loge_f("kmpp put_frame buf is NULL\n");
+            return MPP_NOK;
+        }
+
+        if (mpp_frame_has_meta(frame)) {
+            MppMeta meta = mpp_frame_get_meta(frame);
+            MppPacket packet = NULL;
+
+            mpp_meta_get_packet(meta, KEY_OUTPUT_PACKET, &packet);
+            ctx->mPacket = packet;
+
+            /* set roi */
+            {
+                MppEncROICfg *roi_data = NULL;
+                MppEncROICfgLegacy roi_data0;
+
+                mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void**)&roi_data);
+                if (roi_data) {
+                    roi_data0.change = 1;
+                    roi_data0.number = roi_data->number;
+                    memcpy(roi_data0.regions, roi_data->regions, roi_data->number * sizeof(MppEncROIRegion));
+                    ctx->mApi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_data0);
+                }
             }
         }
+
+        ptr = kmpp_obj_to_shm(ctx->mKframe);
+        size = kmpp_obj_to_shm_size(ctx->mKframe);
+    } else {
+        ptr = kmpp_obj_to_shm(frame);
+        size = kmpp_obj_to_shm_size(frame);
     }
 
-    ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_IN_FRM_RDY, 0, sizeof(frame_info), &frame_info);
+    ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_IN_FRM_RDY, 0, size, ptr);
     if (ret)
         mpp_err("chan %d VCODEC_CHAN_IN_FRM_RDY failed\n", ctx->mChanId);
 

@@ -63,6 +63,7 @@ typedef struct KmppFrameImpl_t {
      */
     KmppShmPtr buffer;
     size_t buf_size;
+    RK_U32 buf_fd;
     /*
      * frame buffer compression (FBC) information
      *

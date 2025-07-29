@@ -52,11 +52,19 @@ MPP_SINGLETON(MPP_SGLN_FRAME, mpp_frame, mpp_frame_srv_init, mpp_frame_srv_deini
 
 MPP_RET _check_is_mpp_frame(const char *func, void *frame)
 {
-    if (frame && ((MppFrameImpl*)frame)->name == module_name)
+    if (!__check_is_mpp_frame(frame))
         return MPP_OK;
 
     mpp_err("pointer %p failed on %s check mpp_frame\n", frame, func);
     mpp_abort();
+    return MPP_NOK;
+}
+
+MPP_RET __check_is_mpp_frame(void *frame)
+{
+    if (frame && ((MppFrameImpl*)frame)->name == module_name)
+        return MPP_OK;
+
     return MPP_NOK;
 }
 

@@ -214,7 +214,7 @@ MppFrameStatus *mpp_frame_get_status(MppFrame frame);
 void mpp_frame_set_stopwatch_enable(MppFrame frame, RK_S32 enable);
 MppStopwatch mpp_frame_get_stopwatch(const MppFrame frame);
 
-MPP_RET check_is_mpp_frame(void *pointer);
+MPP_RET __check_is_mpp_frame(void *frame);
 
 #ifdef __cplusplus
 }
