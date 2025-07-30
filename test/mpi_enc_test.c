@@ -254,6 +254,10 @@ static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
     mpp_venc_kcfg_set_u32(init_kcfg, "chan_dup", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "tmvp_enable", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "only_smartp", 0);
+    /* set notify mode to zero to disable rockit ko call back */
+    mpp_venc_kcfg_set_u32(init_kcfg, "ntfy_mode", 0);
+    /* set input timeout to block mode to insure put_frame ioctl return while encoding finished */
+    mpp_venc_kcfg_set_s32(init_kcfg, "input_timeout", MPP_POLL_BLOCK);
 
     ret = p->mpi->control(p->ctx, MPP_SET_VENC_INIT_KCFG, init_kcfg);
     if (ret)
