@@ -164,7 +164,7 @@ static void kmpp_meta_init(void)
     INIT_LIST_HEAD(&srv->list);
     kmpp_objdef_get(&srv->def, "KmppMeta");
     if (!srv->def) {
-        mpp_loge_f("kmpp meta get objdef failed\n");
+        kmeta_dbg_func("kmpp meta get objdef failed\n");
         MPP_FREE(srv);
         return;
     }
