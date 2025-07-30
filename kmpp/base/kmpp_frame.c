@@ -11,12 +11,11 @@
 static rk_s32 kmpp_frame_impl_deinit(void *entry, KmppObj obj, const char *caller)
 {
     KmppFrameImpl *impl = (KmppFrameImpl *)entry;
+    (void)obj;
 
     if (impl->self_meta) {
         kmpp_obj_put_impl(impl->self_meta, caller);
         impl->self_meta = NULL;
-    } else {
-        mpp_logw_f("self_meta is NULL, obj %p at %s\n", obj, caller);
     }
 
     return rk_ok;
