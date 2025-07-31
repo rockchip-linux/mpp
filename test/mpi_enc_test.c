@@ -97,6 +97,7 @@ typedef struct {
     MppEncOSDData   osd_data;
     RoiRegionCfg    roi_region;
     MppEncROICfg    roi_cfg;
+    MppJpegROICfg   roi_jpeg_cfg;
 
     // input / output
     MppBufferGroup buf_grp;
@@ -134,6 +135,7 @@ typedef struct {
 
     RK_U32 user_data_enable;
     RK_U32 roi_enable;
+    RK_U32 roi_jpeg_enable;
 
     // rate control runtime parameter
     RK_S32 fps_in_flex;
@@ -722,6 +724,7 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     /* setup test mode by env */
     mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
+    mpp_env_get_u32("roi_jpeg_enable", &p->roi_jpeg_enable, 0);
     mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
     mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
     mpp_env_get_u32("user_data_enable", &p->user_data_enable, 0);
@@ -861,7 +864,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
         mpp_meta_set_packet(meta, KEY_OUTPUT_PACKET, packet);
         mpp_meta_set_buffer(meta, KEY_MOTION_INFO, p->md_info);
 
-        if (p->osd_enable || p->user_data_enable || p->roi_enable) {
+        if (p->osd_enable || p->user_data_enable || p->roi_enable || p->roi_jpeg_enable) {
             if (p->user_data_enable) {
                 MppEncUserData user_data;
                 char *str = "this is user data\n";
@@ -940,6 +943,37 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
 
                 /* send roi info by metadata */
                 mpp_enc_roi_setup_meta(p->roi_ctx, meta);
+            }
+
+            if (p->roi_jpeg_enable) {
+                RK_U32 index;
+                RK_U32 width = 128;
+                RK_U32 height = 128;
+                RK_U32 start_x = 0;
+                RK_U32 start_y = 0;
+
+                p->roi_jpeg_cfg.change = 1;
+                p->roi_jpeg_cfg.non_roi_en = 1;
+                p->roi_jpeg_cfg.non_roi_level = 0;
+
+                for (index = 0; index < 16; index++) {
+                    if ((start_x + width) > p->width || (start_y + height) > p->height)
+                        break;
+                    p->roi_jpeg_cfg.regions[index].roi_en = 1;
+                    p->roi_jpeg_cfg.regions[index].x = start_x;
+                    p->roi_jpeg_cfg.regions[index].y = start_y;
+                    p->roi_jpeg_cfg.regions[index].w = width;
+                    p->roi_jpeg_cfg.regions[index].h = height;
+                    p->roi_jpeg_cfg.regions[index].level = 63;
+
+                    start_x += width;
+                    start_y += height;
+                }
+
+                if (p->init_kcfg)
+                    ret = mpi->control(ctx, MPP_ENC_SET_JPEG_ROI_CFG, &p->roi_jpeg_cfg);
+                else
+                    mpp_meta_set_ptr(meta, KEY_JPEG_ROI_DATA, (void*)&p->roi_jpeg_cfg);
             }
         }
 
