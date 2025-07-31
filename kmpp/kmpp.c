@@ -103,6 +103,7 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
     hnd = kmpp_obj_to_shm(ctx->mVencInitKcfg);
     size = kmpp_obj_to_shm_size(ctx->mVencInitKcfg);
     kmpp_obj_get_u32(ctx->mVencInitKcfg, "chan_dup", &ctx->mChanDup);
+    kmpp_obj_set_s32(ctx->mVencInitKcfg, "chan_fd", ctx->mClientFd);
 
     ret = mpp_vcodec_ioctl(ctx->mClientFd, VCODEC_CHAN_CREATE, 0, size, hnd);
     if (ret) {
