@@ -299,71 +299,55 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     return MPP_OK;
 }
 
-static MPP_RET hal_jpege_vepu510_set_roi(void *roi_reg_base, MppEncROICfg * roi,
-                                         RK_S32 w, RK_S32 h)
+static void hal_jpege_vepu511_set_roi(JpegeV511HalContext *ctx)
 {
-    MppEncROIRegion *region = roi->regions;
-    Vepu511JpegReg *roi_reg = (Vepu511JpegReg *)roi_reg_base;
-    Vepu511JpegRoiRegion *reg_regions = &roi_reg->roi_regions[0];
+    MppJpegROICfg *roi_cfg = (MppJpegROICfg *)ctx->roi_data;
+    JpegV511RegSet *regs = ctx->regs;
+    Vepu511JpegRoiRegion *reg_regions = &regs->reg_base.jpegReg.roi_regions[0];
+    MppJpegROIRegion *region;
+    RK_U32 frame_width = ctx->cfg->prep.width;
+    RK_U32 frame_height = ctx->cfg->prep.height;
     RK_S32 i;
-    MPP_RET ret = MPP_NOK;
 
-    if (NULL == reg_regions) {
-        mpp_err_f("invalid reg_regions %p\n", reg_regions);
-        goto DONE;
-    }
+    if (roi_cfg == NULL)
+        return;
 
-    memset(reg_regions, 0, sizeof(Vepu511RoiRegion) * 8);
-
-    if (NULL == roi) {
-        mpp_err_f("invalid buf %p roi %p\n", roi);
-        goto DONE;
-    }
-
-    if (roi->number > MPP_MAX_JPEG_ROI_NUM) {
-        mpp_err_f("invalid region number %d\n", roi->number);
-        goto DONE;
-    }
-    mpp_log_f("set roi vepu511: roi->number %d\n", roi->number);
-
-    /* check region config */
-    ret = MPP_OK;
-    for (i = 0; i < (RK_S32) roi->number; i++, region++) {
-        if (region->x + region->w > w || region->y + region->h > h)
-            ret = MPP_NOK;
-
-        if (region->intra > 1
-            || region->qp_area_idx >= MPP_MAX_JPEG_ROI_NUM
-            || region->area_map_en > 1 || region->abs_qp_en > 1)
-            ret = MPP_NOK;
-
-        if ((region->abs_qp_en && region->quality > 51) ||
-            (!region->abs_qp_en
-             && (region->quality > 51 || region->quality < -51)))
-            ret = MPP_NOK;
-
-        if (ret) {
-            mpp_err_f("region %d invalid param:\n", i);
-            mpp_err_f("position [%d:%d:%d:%d] vs [%d:%d]\n",
-                      region->x, region->y, region->w, region->h, w,
-                      h);
-            mpp_err_f("force intra %d qp area index %d\n",
-                      region->intra, region->qp_area_idx);
-            mpp_err_f("abs qp mode %d value %d\n",
-                      region->abs_qp_en, region->quality);
-            goto DONE;
+    if (roi_cfg->non_roi_en) {
+        if (roi_cfg->non_roi_level <= MPP_MAX_JPEG_ROI_LEVEL) {
+            reg_regions->roi_cfg1.frm_rdoq_en = 1;
+            reg_regions->roi_cfg1.frm_rdoq_level = roi_cfg->non_roi_level;
+        } else {
+            mpp_err_f("none roi level[%d] is invalid\n", roi_cfg->non_roi_level);
         }
+    }
+
+    for (i = 0; i < MPP_MAX_JPEG_ROI_NUM; i++) {
+        region = &roi_cfg->regions[i];
+        if (!region->roi_en)
+            continue;
+
+        if (region->w == 0 || region->h == 0 ||
+            region->x + region->w > frame_width ||
+            region->y + region->h > frame_height) {
+            mpp_err_f("region[%d]: x[%d] y[%d] w[%d] h[%d] is invalid, frame width[%d] height[%d]\n",
+                      i, region->x, region->y, region->w,
+                      region->h, frame_width, frame_height);
+            continue;
+        }
+
+        if (region->level > MPP_MAX_JPEG_ROI_LEVEL) {
+            mpp_err_f("region[%d]: roi level[%d] is invalid\n", i, region->level);
+            continue;
+        }
+
         reg_regions->roi_cfg0.roi0_rdoq_en = 1;
-        reg_regions->roi_cfg0.roi0_rdoq_level = region->quality;
         reg_regions->roi_cfg0.roi0_rdoq_start_x = MPP_ALIGN(region->x, 16) >> 3;
         reg_regions->roi_cfg0.roi0_rdoq_start_y = MPP_ALIGN(region->y, 16) >> 3;
+        reg_regions->roi_cfg0.roi0_rdoq_level = region->level;
         reg_regions->roi_cfg1.roi0_rdoq_width_m1 = (MPP_ALIGN(region->w, 16) >> 3) - 1;
         reg_regions->roi_cfg1.roi0_rdoq_height_m1 = (MPP_ALIGN(region->h, 16) >> 3) - 1;
-
         reg_regions++;
     }
-DONE:
-    return ret;
 }
 
 MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
@@ -439,12 +423,7 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
     reg_base->common.enc_pic.jpeg_slen_fifo = 0;
 
     vepu511_set_jpeg_reg(&cfg);
-
-    if (ctx->roi_data) {
-        mpp_log_f("set roi data2\n");
-        hal_jpege_vepu510_set_roi(&regs->reg_base.jpegReg, ctx->roi_data,
-                                  ctx->cfg->prep.width, ctx->cfg->prep.height);
-    }
+    hal_jpege_vepu511_set_roi(ctx);
 
     if (ctx->osd_cfg.osd_data3 || ctx->osd_cfg.osd_data)
         vepu511_set_osd(&ctx->osd_cfg, &regs->reg_osd.osd_jpeg_cfg);
@@ -637,7 +616,7 @@ MPP_RET hal_jpege_vepu511_get_task(void *hal, HalEncTask *task)
     if (!frm_status->reencode && mpp_frame_has_meta(task->frame)) {
         MppMeta meta = mpp_frame_get_meta(frame);
 
-        mpp_meta_get_ptr(meta, KEY_ROI_DATA, (void **)&ctx->roi_data);
+        mpp_meta_get_ptr(meta, KEY_JPEG_ROI_DATA, (void **)&ctx->roi_data);
         mpp_meta_get_ptr(meta, KEY_OSD_DATA3, (void **)&ctx->osd_cfg.osd_data3);
 
     }

@@ -56,6 +56,7 @@ typedef enum MppMetaKey_e {
     KEY_ENC_START_QP            = FOURCC_META('s', 't', 'r', 'q'),
     KEY_ENC_BPS_RT              = FOURCC_META('r', 't', 'b', 'r'),   /* realtime bps */
     KEY_ROI_DATA                = FOURCC_META('r', 'o', 'i', ' '),
+    KEY_JPEG_ROI_DATA           = FOURCC_META('j', 'r', 'o', 'i'),
     KEY_OSD_DATA                = FOURCC_META('o', 's', 'd', ' '),
     KEY_OSD_DATA2               = FOURCC_META('o', 's', 'd', '2'),
     KEY_OSD_DATA3               = FOURCC_META('o', 's', 'd', '3'),

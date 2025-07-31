@@ -120,6 +120,7 @@ static inline RK_U64 META_KEY_TO_U64(RK_U32 key, RK_U32 type)
     \
     ENTRY(KEY_ROI_DATA,             TYPE_UPTR) \
     ENTRY(KEY_ROI_DATA2,            TYPE_UPTR) \
+    ENTRY(KEY_JPEG_ROI_DATA,        TYPE_UPTR) \
     ENTRY(KEY_OSD_DATA,             TYPE_UPTR) \
     ENTRY(KEY_OSD_DATA2,            TYPE_UPTR) \
     ENTRY(KEY_OSD_DATA3,            TYPE_UPTR) \
