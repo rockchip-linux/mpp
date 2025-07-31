@@ -148,6 +148,8 @@ typedef enum {
     MPP_ENC_SET_ROI_CFG,                /* set MppEncROICfg structure */
     MPP_ENC_SET_CTU_QP,                 /* for H265 Encoder,set CTU's size and QP */
     MPP_ENC_GET_ROI_CFG,                /* get MppEncROICfg structure */
+    MPP_ENC_SET_JPEG_ROI_CFG,           /* set MppJpegROICfg structure */
+    MPP_ENC_GET_JPEG_ROI_CFG,           /* get MppJpegROICfg structure */
 
     MPP_ENC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_QUERY,
     /* query encoder runtime information for encode stage */

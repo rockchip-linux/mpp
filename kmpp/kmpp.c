@@ -506,9 +506,10 @@ static MPP_RET control(Kmpp *ctx, MpiCmd cmd, MppParam param)
     case MPP_ENC_SET_ROI_CFG: {
         size = sizeof(MppEncROICfgLegacy);
     } break;
-    // case MPP_ENC_SET_JPEG_ROI_CFG : {
-    //     size = sizeof(MppJpegROICfg);
-    // } break;
+    case MPP_ENC_SET_JPEG_ROI_CFG :
+    case MPP_ENC_GET_JPEG_ROI_CFG : {
+        size = sizeof(MppJpegROICfg);
+    } break;
     case MPP_ENC_SET_OSD_DATA_CFG: {
         size = sizeof(MppEncOSDData3);
     } break;

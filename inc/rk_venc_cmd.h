@@ -1345,6 +1345,22 @@ typedef struct MppEncROICfg2_t {
     RK_U32             reserve[3];
 } MppEncROICfg2;
 
+typedef struct MppJpegROIRegion_t {
+    RK_U16              x;              /* horizontal position of top left corner */
+    RK_U16              y;              /* vertical position of top left corner */
+    RK_U16              w;              /* width of ROI rectangle */
+    RK_U16              h;              /* height of ROI rectangle */
+    RK_U8               level;          /* the strength of erasing residuals for roi */
+    RK_U8               roi_en;         /* enable roi */
+} MppJpegROIRegion;
+
+typedef struct MppJpegROICfg_t {
+    RK_U32              change;
+    RK_U16              non_roi_level;  /* the strength of erasing residuals for non-roi */
+    RK_U16              non_roi_en;     /* enable non-roi */
+    MppJpegROIRegion    regions[16];
+} MppJpegROICfg;
+
 /*
  * Mpp OSD parameter
  *
