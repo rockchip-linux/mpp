@@ -56,4 +56,8 @@ typedef struct KmppPacketImpl_t {
     RingBuf buf;
 } KmppPacketImpl;
 
+typedef struct KmppPacketPriv_t {
+    KmppMeta    meta;
+} KmppPacketPriv;
+
 #endif /* __KMPP_PACKET_IMPL_H__ */

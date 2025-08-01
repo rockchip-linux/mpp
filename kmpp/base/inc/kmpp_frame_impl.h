@@ -84,4 +84,8 @@ typedef struct KmppFrameImpl_t {
     KmppMeta self_meta;
 } KmppFrameImpl;
 
+typedef struct KmppFramePriv_t {
+    KmppMeta    meta;
+} KmppFramePriv;
+
 #endif /* __KMPP_FRAME_IMPL_H__ */

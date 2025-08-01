@@ -29,6 +29,8 @@ extern "C" {
 #define KMPP_OBJ_ENTRY_TABLE    KMPP_PACKET_ENTRY_TABLE
 #include "kmpp_obj_func.h"
 
+rk_s32 kmpp_packet_get_meta(KmppPacket packet, KmppMeta *meta);
+
 #ifdef __cplusplus
 }
 #endif
