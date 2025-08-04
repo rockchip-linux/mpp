@@ -1048,7 +1048,7 @@ rk_s32 kmpp_obj_put(KmppObj obj, const char *caller)
     return rk_nok;
 }
 
-rk_s32 kmpp_obj_put_impl(KmppObj obj, const char *caller)
+rk_s32 kmpp_obj_impl_put(KmppObj obj, const char *caller)
 {
     if (obj) {
         KmppObjImpl *impl = (KmppObjImpl *)obj;

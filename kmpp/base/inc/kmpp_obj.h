@@ -54,7 +54,7 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller);
 /* release object and impl head */
 rk_s32 kmpp_obj_put(KmppObj obj, const char *caller);
 /* release impl head only */
-rk_s32 kmpp_obj_put_impl(KmppObj obj, const char *caller);
+rk_s32 kmpp_obj_impl_put(KmppObj obj, const char *caller);
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
 rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
 
@@ -62,7 +62,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 #define kmpp_obj_get_by_name_f(obj, name)       kmpp_obj_get_by_name(obj, name, __FUNCTION__)
 #define kmpp_obj_get_by_sptr_f(obj, sptr)       kmpp_obj_get_by_sptr(obj, sptr, __FUNCTION__)
 #define kmpp_obj_put_f(obj)                     kmpp_obj_put(obj, __FUNCTION__)
-#define kmpp_obj_put_impl_f(obj)                kmpp_obj_put_impl(obj, __FUNCTION__)
+#define kmpp_obj_impl_put_f(obj)                kmpp_obj_impl_put(obj, __FUNCTION__)
 #define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
 #define kmpp_obj_ioctl_f(obj, cmd, in, out)     kmpp_obj_ioctl(obj, cmd, in, out, __FUNCTION__)
 

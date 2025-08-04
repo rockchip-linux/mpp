@@ -81,7 +81,7 @@ rk_s32 kmpp_buf_grp_impl_deinit(void *entry, KmppObj obj, const char *caller)
     }
 
     if (priv->obj) {
-        kmpp_obj_put_impl(priv->obj, caller);
+        kmpp_obj_impl_put(priv->obj, caller);
         priv->obj = NULL;
     }
 
@@ -189,7 +189,7 @@ rk_s32 kmpp_buffer_impl_deinit(void *entry,  KmppObj obj, const char *caller)
     }
 
     if (priv->obj) {
-        kmpp_obj_put_impl(priv->obj, caller);
+        kmpp_obj_impl_put(priv->obj, caller);
         priv->obj = NULL;
     }
 
