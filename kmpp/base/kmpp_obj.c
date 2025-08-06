@@ -971,6 +971,12 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
     if (!p)
         return ret;
 
+    impl = *(rk_u64 *)(uptr + p->priv_offset);
+    if (impl) {
+        if (!kmpp_obj_check_f((KmppObj)impl))
+            goto done;
+    }
+
     {
         rk_u32 val = *((rk_u32 *)(uptr + p->name_offset));
         char *str;
@@ -999,7 +1005,7 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
                  impl, sptr->uaddr, sptr->kaddr, caller);
 
     setup_obj(impl, p, def, uptr, caller);
-
+done:
     *obj = impl;
 
     return rk_ok;
