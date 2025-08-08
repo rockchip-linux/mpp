@@ -171,6 +171,7 @@ typedef struct VP8DParserContext {
 
     RK_U32          frame_cnt;
     RK_U64          pts;
+    RK_U64          dts;
 
     RK_U32          needKeyFrame;
     MppPacket       input_packet;

@@ -195,6 +195,7 @@ typedef struct {
     RK_S64          last_pts;
     RK_S64          pts_inc;
     RK_S64          pts;
+    RK_S64          dts;
     RK_U32          frame_num;
     MppDecCfgSet    *dec_cfg;
 
@@ -1361,6 +1362,7 @@ MPP_RET mpp_mpg4_parser_decode(Mpg4dParser ctx, MppPacket pkt)
     }
 
     p->pts  = mpp_packet_get_pts(pkt);
+    p->dts  = mpp_packet_get_dts(pkt);
 
     ret = (p->found_vol && p->found_vop) ? (MPP_OK) : (MPP_NOK);
 
@@ -1435,6 +1437,7 @@ MPP_RET mpp_mpg4_parser_setup_hal_output(Mpg4dParser ctx, RK_S32 *output)
         mpp_buf_slot_get_unused(slots, &index);
         mpp_buf_slot_set_flag(slots, index, SLOT_HAL_OUTPUT);
         mpp_frame_set_pts(frame, p->pts);
+        mpp_frame_set_dts(frame, p->dts);
 
         if (hdr_curr->vol.interlacing) {
             frame_mode = MPP_FRAME_FLAG_PAIRED_FIELD;

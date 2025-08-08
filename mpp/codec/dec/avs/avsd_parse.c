@@ -671,6 +671,7 @@ MPP_RET avsd_parser_split(AvsdCtx_t *p, MppPacket *dst, MppPacket *src)
     RK_U32 src_len = (RK_U32)mpp_packet_get_length(src);
     RK_U32 src_eos = mpp_packet_get_eos(src);
     RK_S64 src_pts = mpp_packet_get_pts(src);
+    RK_S64 src_dts = mpp_packet_get_dts(src);
     RK_U8 *dst_buf = (RK_U8 *)mpp_packet_get_data(dst);
     RK_U32 dst_len = (RK_U32)mpp_packet_get_length(dst);
     RK_U32 src_pos = 0;
@@ -692,6 +693,7 @@ MPP_RET avsd_parser_split(AvsdCtx_t *p, MppPacket *dst, MppPacket *src)
                 p->state == PB_PICUTRE_START_CODE) {
                 p->vop_header_found = 1;
                 mpp_packet_set_pts(dst, src_pts);
+                mpp_packet_set_dts(dst, src_dts);
                 break;
             }
         }

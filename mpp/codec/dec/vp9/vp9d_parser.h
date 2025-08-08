@@ -260,6 +260,7 @@ typedef struct VP9Context {
     HalDecTask *task;
     RK_S32 eos;       ///< current packet contains an EOS/EOB NAL
     RK_S64 pts;
+    RK_S64 dts;
     RK_S32 upprobe_num;
     RK_S32 outframe_num;
     RK_U32 cur_poc;

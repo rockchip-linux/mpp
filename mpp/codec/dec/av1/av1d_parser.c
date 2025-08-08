@@ -620,6 +620,7 @@ static MPP_RET set_output_frame(Av1CodecContext *ctx)
             fill_hdr_meta_to_frame(frame, MPP_VIDEO_CodingAV1);
     }
     mpp_frame_set_pts(frame, s->pts);
+    mpp_frame_set_dts(frame, s->dts);
     mpp_buf_slot_set_flag(s->slots, s->cur_frame.slot_index, SLOT_QUEUE_USE);
     mpp_buf_slot_enqueue(s->slots, s->cur_frame.slot_index, QUEUE_DISPLAY);
     s->cur_frame.ref->is_output = 1;
@@ -772,6 +773,7 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     mpp_frame_set_errinfo(frame->f, 0);
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
+    mpp_frame_set_dts(frame->f, s->dts);
 
     mpp_frame_set_color_trc(frame->f, ctx->color_trc);
     mpp_frame_set_color_primaries(frame->f, ctx->color_primaries);
@@ -952,6 +954,7 @@ MPP_RET av1d_parser_frame(Av1CodecContext *ctx, HalDecTask *task)
     size = (RK_S32)mpp_packet_get_length(ctx->pkt);
 
     s->pts = mpp_packet_get_pts(ctx->pkt);
+    s->dts = mpp_packet_get_dts(ctx->pkt);
 
     s->current_obu.data = data;
     s->current_obu.data_size = size;

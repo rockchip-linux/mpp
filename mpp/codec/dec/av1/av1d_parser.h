@@ -150,6 +150,7 @@ typedef struct AV1Context_t {
     HalDecTask *task;
     RK_S32 eos;       ///< current packet contains an EOS/EOB NAL
     RK_S64 pts;
+    RK_S64 dts;
     const MppDecHwCap *hw_info;
 } AV1Context;
 

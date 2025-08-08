@@ -270,6 +270,7 @@ static MPP_RET avsd_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_data(p_dec->task_pkt, p_dec->streambuf);
         mpp_packet_set_length(p_dec->task_pkt, length);
         mpp_packet_set_pts(p_dec->task_pkt, mpp_packet_get_pts(pkt));
+        mpp_packet_set_dts(p_dec->task_pkt, mpp_packet_get_dts(pkt));
         // set input packet length to 0 here
         mpp_packet_set_length(pkt, 0);
         /* this step will enable the task and goto parse stage */

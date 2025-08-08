@@ -430,6 +430,7 @@ MPP_RET mpp_m2vd_parser_split(M2VDParserContext *ctx, MppPacket dst, MppPacket s
              */
             if (p->state == SEQUENCE_HEADER_CODE || p->state == PICTURE_START_CODE) {
                 p->pts = mpp_packet_get_pts(src);
+                p->dts = mpp_packet_get_dts(src);
                 p->vop_header_found = 1;
                 break;
             }
@@ -530,6 +531,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
             mpp_packet_set_eos(p->input_packet);
 
         p->pts = mpp_packet_get_pts(pkt);
+        p->dts = mpp_packet_get_dts(pkt);
         task->valid = 1;
         mpp_packet_set_length(pkt, 0);
     } else {
@@ -548,6 +550,7 @@ MPP_RET m2vd_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     p->eos = mpp_packet_get_eos(p->input_packet);
     mpp_packet_set_pts(p->input_packet, p->pts);
+    mpp_packet_set_dts(p->input_packet, p->dts);
     task->input_packet = p->input_packet;
     task->flags.eos = p->eos;
 
@@ -1287,6 +1290,7 @@ static MPP_RET m2vd_alloc_frame(M2VDParserContext *ctx)
         mpp_frame_set_ver_stride(ctx->frame_cur->f, 0);
         mpp_frame_set_errinfo(ctx->frame_cur->f, 0);
         mpp_frame_set_pts(ctx->frame_cur->f, frm_pts);
+        mpp_frame_set_dts(ctx->frame_cur->f, ctx->dts);
         ctx->frame_cur->flags = M2V_OUT_FLAG;
 
         if (ctx->seq_ext_head.progressive_sequence) {

@@ -90,6 +90,7 @@ typedef struct {
     // dpb/output information
     RK_S32          output;
     RK_S64          pts;
+    RK_S64          dts;
 
     // syntax for hal
     h263d_dxva2_picture_context_t *syntax;
@@ -435,6 +436,7 @@ MPP_RET mpp_h263_parser_decode(H263dParser ctx, MppPacket pkt)
     p->width  = p->hdr_curr.width;
     p->height = p->hdr_curr.height;
     p->pts  = mpp_packet_get_pts(pkt);
+    p->dts  = mpp_packet_get_dts(pkt);
 __BITREAD_ERR:
     h263d_dbg_status("found i_frame %d frame_type %d ret %d\n",
                      p->found_i_vop, p->hdr_curr.pict_type, ret);
@@ -499,6 +501,7 @@ MPP_RET mpp_h263_parser_setup_hal_output(H263dParser ctx, RK_S32 *output)
         mpp_buf_slot_get_unused(slots, &index);
         mpp_buf_slot_set_flag(slots, index, SLOT_HAL_OUTPUT);
         mpp_frame_set_pts(frame, p->pts);
+        mpp_frame_set_dts(frame, p->dts);
         mpp_frame_set_mode(frame, MPP_FRAME_FLAG_FRAME);
 
         mpp_buf_slot_set_prop(slots, index, SLOT_FRAME, frame);

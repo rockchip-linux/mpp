@@ -439,6 +439,7 @@ MPP_RET vp8d_parser_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     buf = pos = mpp_packet_get_pos(pkt);
     p->pts = mpp_packet_get_pts(pkt);
+    p->dts = mpp_packet_get_dts(pkt);
 
     len_in = (RK_U32)mpp_packet_get_length(pkt),
     p->eos = mpp_packet_get_eos(pkt);
@@ -630,6 +631,7 @@ static MPP_RET vp8d_alloc_frame(VP8DParserContext_t *p)
         mpp_frame_set_ver_stride(p->frame_out->f, 0);
         mpp_frame_set_errinfo(p->frame_out->f, 0);
         mpp_frame_set_pts(p->frame_out->f, p->pts);
+        mpp_frame_set_dts(p->frame_out->f, p->dts);
         ret = mpp_buf_slot_get_unused(p->frame_slots,
                                       &p->frame_out->slot_index);
         if (MPP_OK != ret) {

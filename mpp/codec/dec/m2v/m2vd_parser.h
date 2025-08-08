@@ -292,6 +292,7 @@ typedef struct M2VDParserContext_t {
     MppDecCfgSet    *dec_cfg;
 
     RK_U64 pts;
+    RK_U64 dts;
 
     FILE *fp_dbg_file[M2VD_DBG_FILE_NUM];
     FILE *fp_dbg_yuv;

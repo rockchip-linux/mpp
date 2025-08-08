@@ -38,6 +38,7 @@ typedef struct {
     size_t          stream_size;
     MppPacket       task_pkt;
     RK_S64          task_pts;
+    RK_S64          task_dts;
     RK_U32          task_eos;
 
     // runtime parameter
@@ -222,6 +223,7 @@ MPP_RET h263d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
         mpp_packet_set_pos(pkt, pos + length);
         // always use latest pts for current packet
         p->task_pts = mpp_packet_get_pts(pkt);
+        p->task_dts = mpp_packet_get_dts(pkt);
         p->task_eos = mpp_packet_get_eos(pkt);
         /* this step will enable the task and goto parse stage */
         task->valid = 1;
@@ -259,10 +261,12 @@ MPP_RET h263d_prepare(void *dec, MppPacket pkt, HalDecTask *task)
             task->valid = 1;
         }
         p->task_pts = mpp_packet_get_pts(p->task_pkt);
+        p->task_dts = mpp_packet_get_dts(p->task_pkt);
         p->task_eos = mpp_packet_get_eos(p->task_pkt);
     }
 
     mpp_packet_set_pts(p->task_pkt, p->task_pts);
+    mpp_packet_set_dts(p->task_pkt, p->task_dts);
     task->input_packet = p->task_pkt;
     task->flags.eos    = p->task_eos;
 
