@@ -24,7 +24,6 @@
 
 #include "vepu5xx.h"
 #include "vepu5xx_common.h"
-#include "vepu541_common.h"
 #include "vepu510_common.h"
 
 #define DUMP_REG                0
@@ -702,7 +701,7 @@ static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep)
     H264eVepu510Frame *reg_frm = &regs->reg_frm;
     VepuFmtCfg cfg;
     MppFrameFormat fmt = prep->format;
-    MPP_RET ret = vepu541_set_fmt(&cfg, fmt);
+    MPP_RET ret = vepu5xx_set_fmt(&cfg, fmt);
     RK_U32 hw_fmt = cfg.format;
     RK_S32 y_stride;
     RK_S32 c_stride;
@@ -756,25 +755,25 @@ static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep)
             y_stride = prep->hor_stride;
         }
     } else {
-        if (hw_fmt == VEPU541_FMT_BGRA8888 )
+        if (hw_fmt == VEPU5xx_FMT_BGRA8888 )
             y_stride = prep->width * 4;
-        else if (hw_fmt == VEPU541_FMT_BGR888 )
+        else if (hw_fmt == VEPU5xx_FMT_BGR888 )
             y_stride = prep->width * 3;
-        else if (hw_fmt == VEPU541_FMT_BGR565 ||
-                 hw_fmt == VEPU541_FMT_YUYV422 ||
-                 hw_fmt == VEPU541_FMT_UYVY422)
+        else if (hw_fmt == VEPU5xx_FMT_BGR565 ||
+                 hw_fmt == VEPU5xx_FMT_YUYV422 ||
+                 hw_fmt == VEPU5xx_FMT_UYVY422)
             y_stride = prep->width * 2;
         else
             y_stride = prep->width;
     }
 
     switch (hw_fmt) {
-    case VEPU580_FMT_YUV444SP : {
+    case VEPU5xx_FMT_YUV444SP : {
         c_stride = y_stride * 2;
     } break;
-    case VEPU541_FMT_YUV422SP :
-    case VEPU541_FMT_YUV420SP :
-    case VEPU580_FMT_YUV444P : {
+    case VEPU5xx_FMT_YUV422SP :
+    case VEPU5xx_FMT_YUV420SP :
+    case VEPU5xx_FMT_YUV444P : {
         c_stride = y_stride;
     } break;
     default : {
@@ -782,7 +781,7 @@ static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep)
     } break;
     }
 
-    if (hw_fmt < VEPU541_FMT_NONE) {
+    if (hw_fmt < VEPU5xx_FMT_ARGB1555) {
         const VepuRgb2YuvCfg *cfg_coeffs = get_rgb2yuv_cfg(prep->range, prep->color);
 
         hal_h264e_dbg_flow("input color range %d colorspace %d", prep->range, prep->color);
@@ -882,7 +881,7 @@ static MPP_RET vepu510_h264e_use_pass1_patch(HalVepu510RegSet *regs, HalH264eVep
 
     hal_h264e_dbg_func("enter\n");
 
-    reg_frm->common.src_fmt.src_cfmt   = VEPU541_FMT_YUV420SP;
+    reg_frm->common.src_fmt.src_cfmt   = VEPU5xx_FMT_YUV420SP;
     reg_frm->common.src_fmt.alpha_swap = 0;
     reg_frm->common.src_fmt.rbuv_swap  = 0;
     reg_frm->common.src_fmt.out_fmt    = 1;
@@ -1310,42 +1309,41 @@ static void setup_vepu510_io_buf(HalVepu510RegSet *regs, MppDevRegOffCfgs *offse
     if (MPP_FRAME_FMT_IS_YUV(fmt)) {
         VepuFmtCfg cfg;
 
-        vepu541_set_fmt(&cfg, fmt);
+        vepu5xx_set_fmt(&cfg, fmt);
         switch (cfg.format) {
-        case VEPU541_FMT_BGRA8888 :
-        case VEPU541_FMT_BGR888 :
-        case VEPU541_FMT_BGR565 : {
+        case VEPU5xx_FMT_BGRA8888 :
+        case VEPU5xx_FMT_BGR888 :
+        case VEPU5xx_FMT_BGR565 : {
             off_in[0] = 0;
             off_in[1] = 0;
         } break;
-        case VEPU541_FMT_YUV420SP :
-        case VEPU541_FMT_YUV422SP : {
+        case VEPU5xx_FMT_YUV420SP :
+        case VEPU5xx_FMT_YUV422SP : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride;
         } break;
-        case VEPU541_FMT_YUV422P : {
+        case VEPU5xx_FMT_YUV422P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 3 / 2;
         } break;
-        case VEPU541_FMT_YUV420P : {
+        case VEPU5xx_FMT_YUV420P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 5 / 4;
         } break;
-        case VEPU540_FMT_YUV400 :
-        case VEPU541_FMT_YUYV422 :
-        case VEPU541_FMT_UYVY422 : {
+        case VEPU5xx_FMT_YUV400 :
+        case VEPU5xx_FMT_YUYV422 :
+        case VEPU5xx_FMT_UYVY422 : {
             off_in[0] = 0;
             off_in[1] = 0;
         } break;
-        case VEPU580_FMT_YUV444SP : {
+        case VEPU5xx_FMT_YUV444SP : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride;
         } break;
-        case VEPU580_FMT_YUV444P : {
+        case VEPU5xx_FMT_YUV444P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 2;
         } break;
-        case VEPU541_FMT_NONE :
         default : {
             off_in[0] = 0;
             off_in[1] = 0;

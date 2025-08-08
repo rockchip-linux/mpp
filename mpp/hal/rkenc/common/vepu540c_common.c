@@ -23,7 +23,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "jpege_syntax.h"
-#include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "vepu540c_common.h"
 #include "hal_enc_task.h"
 #include "mpp_frame_impl.h"
@@ -55,7 +55,7 @@ MPP_RET vepu540c_set_roi(void *roi_reg_base, MppEncROICfg * roi,
             ret = MPP_NOK;
 
         if (region->intra > 1
-            || region->qp_area_idx >= VEPU541_MAX_ROI_NUM
+            || region->qp_area_idx >= VEPU540C_MAX_ROI_NUM
             || region->area_map_en > 1 || region->abs_qp_en > 1)
             ret = MPP_NOK;
 
@@ -95,7 +95,7 @@ DONE:
 }
 
 static MPP_RET vepu540c_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
-                                            Vepu541Fmt input_fmt,
+                                            VepuFmt input_fmt,
                                             HalEncTask *task)
 {
     RK_U32 hor_stride = syn->hor_stride;
@@ -110,27 +110,27 @@ static MPP_RET vepu540c_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
         mpp_log("fbc case u_offset = %d", u_offset);
     } else {
         switch (input_fmt) {
-        case VEPU541_FMT_YUV420P: {
+        case VEPU5xx_FMT_YUV420P: {
             u_offset = frame_size;
             v_offset = frame_size * 5 / 4;
         } break;
-        case VEPU541_FMT_YUV420SP:
-        case VEPU541_FMT_YUV422SP: {
+        case VEPU5xx_FMT_YUV420SP:
+        case VEPU5xx_FMT_YUV422SP: {
             u_offset = frame_size;
             v_offset = frame_size;
         } break;
-        case VEPU541_FMT_YUV422P: {
+        case VEPU5xx_FMT_YUV422P: {
             u_offset = frame_size;
             v_offset = frame_size * 3 / 2;
         } break;
-        case VEPU541_FMT_YUYV422:
-        case VEPU541_FMT_UYVY422: {
+        case VEPU5xx_FMT_YUYV422:
+        case VEPU5xx_FMT_UYVY422: {
             u_offset = 0;
             v_offset = 0;
         } break;
-        case VEPU541_FMT_BGR565:
-        case VEPU541_FMT_BGR888:
-        case VEPU541_FMT_BGRA8888: {
+        case VEPU5xx_FMT_BGR565:
+        case VEPU5xx_FMT_BGR888:
+        case VEPU5xx_FMT_BGRA8888: {
             u_offset = 0;
             v_offset = 0;
         } break;
@@ -171,7 +171,7 @@ MPP_RET vepu540c_set_jpeg_reg(Vepu540cJpegCfg *cfg)
     regs->reg0265_adr_src1 = regs->reg0264_adr_src0;
     regs->reg0266_adr_src2 = regs->reg0264_adr_src0;
 
-    vepu540c_jpeg_set_patch_info(cfg->dev, syn, (Vepu541Fmt) fmt->format, task);
+    vepu540c_jpeg_set_patch_info(cfg->dev, syn, (VepuFmt)fmt->format, task);
 
     regs->reg0256_adr_bsbt = mpp_buffer_get_fd(task->output);
     regs->reg0257_adr_bsbb = regs->reg0256_adr_bsbt;
@@ -202,21 +202,21 @@ MPP_RET vepu540c_set_jpeg_reg(Vepu540cJpegCfg *cfg)
     if (syn->hor_stride) {
         stridey = syn->hor_stride;
     } else {
-        if (regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
+        if (regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_BGRA8888)
             stridey = syn->width * 4;
-        else if (regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_BGR888 )
+        else if (regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_BGR888)
             stridey = syn->width * 3;
-        else if (regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
-                 regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
-                 regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
+        else if (regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_BGR565 ||
+                 regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_YUYV422 ||
+                 regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_UYVY422)
             stridey = syn->width * 2;
     }
 
-    stridec = (regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_YUV422SP ||
-               regs->reg0274_src_fmt.src_cfmt == VEPU541_FMT_YUV420SP) ?
+    stridec = (regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_YUV422SP ||
+               regs->reg0274_src_fmt.src_cfmt == VEPU5xx_FMT_YUV420SP) ?
               stridey : stridey / 2;
 
-    if (regs->reg0274_src_fmt.src_cfmt < VEPU541_FMT_NONE) {
+    if (regs->reg0274_src_fmt.src_cfmt < VEPU5xx_FMT_ARGB1555) {
         regs->reg0275_src_udfy.csc_wgt_r2y = 66;
         regs->reg0275_src_udfy.csc_wgt_g2y = 129;
         regs->reg0275_src_udfy.csc_wgt_b2y = 25;

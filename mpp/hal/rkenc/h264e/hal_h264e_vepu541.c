@@ -79,7 +79,7 @@ typedef struct HalH264eVepu541Ctx_t {
     MppBuffer               qpmap;
 
     /* osd */
-    Vepu541OsdCfg           osd_cfg;
+    Vepu5xxOsdCfg           osd_cfg;
 
     /* register */
     Vepu541H264eRegSet      regs_set;
@@ -451,7 +451,7 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *
     VepuFmtCfg cfg;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppFrameFormat fmt = prep->format;
-    MPP_RET ret = vepu541_set_fmt(&cfg, fmt);
+    MPP_RET ret = vepu5xx_set_fmt(&cfg, fmt);
     RK_U32 hw_fmt = cfg.format;
     RK_S32 y_stride;
     RK_S32 c_stride;
@@ -489,10 +489,10 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *
         y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
 
 
-    c_stride = (hw_fmt == VEPU541_FMT_YUV422SP || hw_fmt == VEPU541_FMT_YUV420SP) ?
+    c_stride = (hw_fmt == VEPU5xx_FMT_YUV422SP || hw_fmt == VEPU5xx_FMT_YUV420SP) ?
                y_stride : y_stride / 2;
 
-    if (hw_fmt < VEPU541_FMT_NONE) {
+    if (hw_fmt < VEPU5xx_FMT_ARGB1555) {
         const VepuRgb2YuvCfg *cfg_coeffs = get_rgb2yuv_cfg(prep->range, prep->color);
 
         hal_h264e_dbg_flow("input color range %d colorspace %d", prep->range, prep->color);
@@ -933,34 +933,33 @@ static void setup_vepu541_io_buf(Vepu541H264eRegSet *regs, MppDev dev,
     } else if (MPP_FRAME_FMT_IS_YUV(fmt)) {
         VepuFmtCfg cfg;
 
-        vepu541_set_fmt(&cfg, fmt);
+        vepu5xx_set_fmt(&cfg, fmt);
         switch (cfg.format) {
-        case VEPU541_FMT_BGRA8888 :
-        case VEPU541_FMT_BGR888 :
-        case VEPU541_FMT_BGR565 : {
+        case VEPU5xx_FMT_BGRA8888 :
+        case VEPU5xx_FMT_BGR888 :
+        case VEPU5xx_FMT_BGR565 : {
             off_in[0] = 0;
             off_in[1] = 0;
         } break;
-        case VEPU541_FMT_YUV420SP :
-        case VEPU541_FMT_YUV422SP : {
+        case VEPU5xx_FMT_YUV420SP :
+        case VEPU5xx_FMT_YUV422SP : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride;
         } break;
-        case VEPU541_FMT_YUV422P : {
+        case VEPU5xx_FMT_YUV422P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 3 / 2;
         } break;
-        case VEPU541_FMT_YUV420P : {
+        case VEPU5xx_FMT_YUV420P : {
             off_in[0] = hor_stride * ver_stride;
             off_in[1] = hor_stride * ver_stride * 5 / 4;
         } break;
-        case VEPU540_FMT_YUV400 :
-        case VEPU541_FMT_YUYV422 :
-        case VEPU541_FMT_UYVY422 : {
+        case VEPU5xx_FMT_YUV400 :
+        case VEPU5xx_FMT_YUYV422 :
+        case VEPU5xx_FMT_UYVY422 : {
             off_in[0] = 0;
             off_in[1] = 0;
         } break;
-        case VEPU541_FMT_NONE :
         default : {
             off_in[0] = 0;
             off_in[1] = 0;

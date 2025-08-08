@@ -10,7 +10,7 @@
 #include "mpp_common.h"
 #include "vepu511_common.h"
 #include "jpege_syntax.h"
-#include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "hal_enc_task.h"
 #include "mpp_frame_impl.h"
 #include "mpp_packet.h"
@@ -42,7 +42,7 @@ MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg, Vepu511Osd *osd_reg)
         VepuFmtCfg fmt_cfg;
         MppFrameFormat fmt = region->fmt;
 
-        vepu541_set_fmt(&fmt_cfg, fmt);
+        vepu5xx_set_fmt(&fmt_cfg, fmt);
         reg->cfg0.osd_en = region->enable;
         reg->cfg0.osd_range_trns_en = region->range_trns_en;
         reg->cfg0.osd_range_trns_sel = region->range_trns_sel;

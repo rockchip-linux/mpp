@@ -32,7 +32,7 @@
 #include "jpege_syntax.h"
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
-#include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "vepu540c_common.h"
 #include "hal_jpege_vepu540c.h"
 #include "hal_jpege_vepu540c_reg.h"
@@ -127,7 +127,7 @@ static MPP_RET hal_jpege_vepu540c_prepare(void *hal)
 
     hal_jpege_dbg_func("enter %p\n", hal);
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
-    vepu541_set_fmt(fmt, ctx->cfg->prep.format);
+    vepu5xx_set_fmt(fmt, ctx->cfg->prep.format);
 
     hal_jpege_dbg_func("leave %p\n", hal);
 

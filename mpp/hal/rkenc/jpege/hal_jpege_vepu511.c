@@ -21,7 +21,7 @@
 #include "jpege_syntax.h"
 #include "hal_bufs.h"
 #include "rkv_enc_def.h"
-#include "vepu541_common.h"
+#include "vepu5xx_common.h"
 #include "vepu511_common.h"
 #include "hal_jpege_vepu511.h"
 #include "hal_jpege_vepu511_reg.h"
@@ -114,7 +114,7 @@ static MPP_RET hal_jpege_vepu511_prepare(void *hal)
 
     hal_jpege_dbg_func("enter %p\n", hal);
     VepuFmtCfg *fmt = (VepuFmtCfg *)ctx->input_fmt;
-    vepu541_set_fmt(fmt, ctx->cfg->prep.format);
+    vepu5xx_set_fmt(fmt, ctx->cfg->prep.format);
 
     hal_jpege_dbg_func("leave %p\n", hal);
 
@@ -122,7 +122,7 @@ static MPP_RET hal_jpege_vepu511_prepare(void *hal)
 }
 
 static MPP_RET vepu511_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
-                                           Vepu541Fmt input_fmt,
+                                           VepuFmt input_fmt,
                                            HalEncTask *task)
 {
     RK_U32 hor_stride = syn->hor_stride;
@@ -136,36 +136,36 @@ static MPP_RET vepu511_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
         v_offset = u_offset;
     } else {
         switch (input_fmt) {
-        case VEPU541_FMT_YUV420P: {
+        case VEPU5xx_FMT_YUV420P: {
             u_offset = frame_size;
             v_offset = frame_size * 5 / 4;
         } break;
-        case VEPU541_FMT_YUV420SP:
-        case VEPU541_FMT_YUV422SP: {
+        case VEPU5xx_FMT_YUV420SP:
+        case VEPU5xx_FMT_YUV422SP: {
             u_offset = frame_size;
             v_offset = frame_size;
         } break;
-        case VEPU541_FMT_YUV422P: {
+        case VEPU5xx_FMT_YUV422P: {
             u_offset = frame_size;
             v_offset = frame_size * 3 / 2;
         } break;
-        case VEPU540_FMT_YUV400 :
-        case VEPU541_FMT_YUYV422:
-        case VEPU541_FMT_UYVY422: {
+        case VEPU5xx_FMT_YUV400 :
+        case VEPU5xx_FMT_YUYV422:
+        case VEPU5xx_FMT_UYVY422: {
             u_offset = 0;
             v_offset = 0;
         } break;
-        case VEPU580_FMT_YUV444SP : {
+        case VEPU5xx_FMT_YUV444SP : {
             u_offset = frame_size;
             v_offset = frame_size;
         } break;
-        case VEPU580_FMT_YUV444P : {
+        case VEPU5xx_FMT_YUV444P : {
             u_offset = frame_size;
             v_offset = frame_size * 2;
         } break;
-        case VEPU541_FMT_BGR565:
-        case VEPU541_FMT_BGR888:
-        case VEPU541_FMT_BGRA8888: {
+        case VEPU5xx_FMT_BGR565:
+        case VEPU5xx_FMT_BGR888:
+        case VEPU5xx_FMT_BGRA8888: {
             u_offset = 0;
             v_offset = 0;
         } break;
@@ -205,7 +205,7 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     regs->adr_src1 = regs->adr_src0;
     regs->adr_src2 = regs->adr_src0;
 
-    vepu511_jpeg_set_patch_info(cfg->dev, syn, (Vepu541Fmt) fmt->format, task);
+    vepu511_jpeg_set_patch_info(cfg->dev, syn, (VepuFmt)fmt->format, task);
 
     regs->adr_bsbt = mpp_buffer_get_fd(task->output);
     regs->adr_bsbb = regs->adr_bsbt;
@@ -240,27 +240,27 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     } else if (syn->hor_stride) {
         stridey = syn->hor_stride;
     } else {
-        if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGRA8888 )
+        if (regs->src_fmt.src_cfmt == VEPU5xx_FMT_BGRA8888)
             stridey = syn->width * 4;
-        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR888 ||
-                 regs->src_fmt.src_cfmt == VEPU580_FMT_YUV444P ||
-                 regs->src_fmt.src_cfmt == VEPU580_FMT_YUV444SP)
+        else if (regs->src_fmt.src_cfmt == VEPU5xx_FMT_BGR888 ||
+                 regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV444P ||
+                 regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV444SP)
             stridey = syn->width * 3;
-        else if (regs->src_fmt.src_cfmt == VEPU541_FMT_BGR565 ||
-                 regs->src_fmt.src_cfmt == VEPU541_FMT_YUYV422 ||
-                 regs->src_fmt.src_cfmt == VEPU541_FMT_UYVY422)
+        else if (regs->src_fmt.src_cfmt == VEPU5xx_FMT_BGR565 ||
+                 regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUYV422 ||
+                 regs->src_fmt.src_cfmt == VEPU5xx_FMT_UYVY422)
             stridey = syn->width * 2;
     }
 
-    stridec = (regs->src_fmt.src_cfmt == VEPU541_FMT_YUV422SP ||
-               regs->src_fmt.src_cfmt == VEPU541_FMT_YUV420SP ||
-               regs->src_fmt.src_cfmt == VEPU580_FMT_YUV444P) ?
+    stridec = (regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV422SP ||
+               regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV420SP ||
+               regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV444P) ?
               stridey : stridey / 2;
 
-    if (regs->src_fmt.src_cfmt == VEPU580_FMT_YUV444SP)
+    if (regs->src_fmt.src_cfmt == VEPU5xx_FMT_YUV444SP)
         stridec = stridey * 2;
 
-    if (regs->src_fmt.src_cfmt < VEPU541_FMT_NONE) {
+    if (regs->src_fmt.src_cfmt < VEPU5xx_FMT_ARGB1555) {
         regs->src_udfy.csc_wgt_r2y = 66;
         regs->src_udfy.csc_wgt_g2y = 129;
         regs->src_udfy.csc_wgt_b2y = 25;
