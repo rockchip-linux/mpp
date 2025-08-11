@@ -320,6 +320,17 @@ static MPP_RET put_frame(Kmpp *ctx, MppFrame frame)
                     ctx->mApi->control(ctx, MPP_ENC_SET_ROI_CFG, &roi_data0);
                 }
             }
+
+            /* set osd */
+            {
+                MppEncOSDData3 *osd_data3 = NULL;
+
+                mpp_meta_get_ptr(meta, KEY_OSD_DATA3, (void**)&osd_data3);
+                if (osd_data3) {
+                    osd_data3->change = 1;
+                    ctx->mApi->control(ctx, MPP_ENC_SET_OSD_DATA_CFG, osd_data3);
+                }
+            }
         }
 
         ptr = kmpp_obj_to_shm(ctx->mKframe);

@@ -6,6 +6,10 @@
 #define MODULE_TAG  "vepu511_common"
 
 #include <string.h>
+
+#include "kmpp_obj.h"
+#include "kmpp_buffer.h"
+
 #include "mpp_log.h"
 #include "mpp_common.h"
 #include "vepu511_common.h"
@@ -41,6 +45,8 @@ MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg, Vepu511Osd *osd_reg)
         Vepu511OsdRegion *reg = &osd_reg->osd_regions[i];
         VepuFmtCfg fmt_cfg;
         MppFrameFormat fmt = region->fmt;
+        KmppBuffer buffer = NULL;
+        KmppBufCfg buf_cfg = NULL;
 
         vepu5xx_set_fmt(&fmt_cfg, fmt);
         reg->cfg0.osd_en = region->enable;
@@ -66,8 +72,12 @@ MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg, Vepu511Osd *osd_reg)
         reg->cfg8.osd_qp_min = region->qp_cfg.qp_min;
         reg->cfg8.osd_qp_prj = region->qp_cfg.qp_prj;
 
-        if (region->osd_buf.buf)
-            reg->osd_st_addr = mpp_buffer_get_fd(region->osd_buf.buf);
+        kmpp_obj_get_by_sptr_f(&buffer, &region->osd_buf);
+        if (buffer) {
+            buf_cfg = kmpp_buffer_to_cfg(buffer);
+            kmpp_buf_cfg_get_fd(buf_cfg, (RK_S32 *)&reg->osd_st_addr);
+        }
+        memcpy(reg->lut, region->lut, sizeof(region->lut));
     }
 
     regs->osd_whi_cfg0.osd_csc_yr = 77;

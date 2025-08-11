@@ -1460,11 +1460,6 @@ typedef struct MppEncOSDData2_t {
 } MppEncOSDData2;
 
 /* kmpp osd configure */
-typedef struct MppOsdBuf_t {
-    RK_S32              fd;
-    void                *buf;
-} MppOsdBuf;
-
 typedef struct EncOSDInvCfg_t {
     RK_U32              yg_inv_en;
     RK_U32              uvrb_inv_en;
@@ -1473,7 +1468,7 @@ typedef struct EncOSDInvCfg_t {
     RK_U32              uv_sw_inv_en;
     RK_U32              inv_size;
     RK_U32              inv_stride;
-    MppOsdBuf           inv_buf;
+    KmppShmPtr          inv_buf;
 } EncOSDInvCfg;
 
 typedef struct EncOSDAlphaCfg_t {
@@ -1508,7 +1503,7 @@ typedef struct MppEncOSDRegion3_t {
     EncOSDInvCfg        inv_cfg;
     EncOSDAlphaCfg      alpha_cfg;
     EncOSDQpCfg         qp_cfg;
-    MppOsdBuf           osd_buf;
+    KmppShmPtr          osd_buf;
     RK_U8               lut[8];  //vuy vuy alpha
 } MppEncOSDRegion3;
 
