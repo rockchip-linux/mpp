@@ -342,7 +342,7 @@ void mpp_h264d_fill_dynamic_meta(H264dCurCtx_t *p_Cur, const RK_U8 *data, RK_U32
 {
     MppFrameHdrDynamicMeta *hdr_dynamic_meta = p_Cur->hdr_dynamic_meta;
 
-    if (hdr_fmt == DOLBY)
+    if (hdr_fmt == DLBY)
         size += 4;
 
     if (hdr_dynamic_meta && (hdr_dynamic_meta->size < size)) {
@@ -359,7 +359,7 @@ void mpp_h264d_fill_dynamic_meta(H264dCurCtx_t *p_Cur, const RK_U8 *data, RK_U32
         }
     }
     if (size && data) {
-        if (hdr_fmt == DOLBY) {
+        if (hdr_fmt == DLBY) {
             RK_U8 start_code[4] = {0, 0, 0, 1};
 
             memcpy((RK_U8*)hdr_dynamic_meta->data, start_code, 4);
@@ -443,9 +443,9 @@ static MPP_RET store_cur_nalu(H264dCurCtx_t *p_Cur, H264dCurStream_t *p_strm, H2
         dxva_ctx->strm_offset += add_size;
     }
 
-    /* Dolby Vision RPUs masquerade as unregistered NALs of type 28. */
+    /* Dlby Vision RPUs masquerade as unregistered NALs of type 28. */
     if (p_Cur->p_Dec->cfg->base.enable_hdr_meta && p_strm->nalu_type == H264_NALU_TYPE_UNSPECIFIED28)
-        mpp_h264d_fill_dynamic_meta(p_Cur, p_strm->nalu_buf + 2, p_strm->nalu_len - 2, DOLBY);
+        mpp_h264d_fill_dynamic_meta(p_Cur, p_strm->nalu_buf + 2, p_strm->nalu_len - 2, DLBY);
 
     if (h264d_debug & H264D_DBG_WRITE_ES_EN) {
         H264dInputCtx_t *p_Inp = p_Cur->p_Inp;
