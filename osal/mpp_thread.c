@@ -63,12 +63,10 @@ void mpp_thread_start(MppThread *thread)
     if (mpp_thread_get_status(thread, THREAD_WORK) == MPP_THREAD_UNINITED) {
         mpp_thread_set_status(thread, MPP_THREAD_RUNNING, THREAD_WORK);
         if (0 == pthread_create(&thread->thd, &attr, thread->func, thread->ctx)) {
-#ifndef __linux__
             int ret = pthread_setname_np(thread->thd, thread->name);
             if (ret) {
                 mpp_err("thread %p setname %s failed\n", thread->func, thread->name);
             }
-#endif
             thread_dbg(THREAD_DBG_FUNC, "thread %s %p context %p create success\n",
                        thread->name, thread->func, thread->ctx);
         } else {
