@@ -192,7 +192,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
         pp->deblocking_filter_control_present_flag = p_Vid->active_pps->deblocking_filter_control_present_flag;
         pp->redundant_pic_cnt_present_flag         = p_Vid->active_pps->redundant_pic_cnt_present_flag;
         pp->Reserved8BitsB                         = 0;
-        /* FMO is not implemented and is not implemented by FFmpeg neither */
+        /* FMO is not implemented and is not implemented by FF neither */
         pp->slice_group_change_rate_minus1         = 0;
     }
 
