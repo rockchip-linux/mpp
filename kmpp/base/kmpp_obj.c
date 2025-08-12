@@ -971,7 +971,7 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
     if (!p)
         return ret;
 
-    impl = *(rk_u64 *)(uptr + p->priv_offset);
+    impl = (KmppObjImpl *)(intptr_t) * (rk_u64 *)(uptr + p->priv_offset);
     if (impl) {
         if (!kmpp_obj_check_f((KmppObj)impl))
             goto done;
