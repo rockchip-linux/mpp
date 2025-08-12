@@ -188,6 +188,11 @@ rk_s32 kmpp_buffer_impl_deinit(void *entry,  KmppObj obj, const char *caller)
         return rk_nok;
     }
 
+    if (priv->impl->fd > 0) {
+        close(priv->impl->fd);
+        priv->impl->fd = -1;
+    }
+
     if (priv->obj) {
         kmpp_obj_impl_put(priv->obj, caller);
         priv->obj = NULL;
