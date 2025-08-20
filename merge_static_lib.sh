@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cd $1
 rm -rf mpp/lib'$2$'.a
