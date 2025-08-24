@@ -7,6 +7,7 @@
 
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
