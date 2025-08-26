@@ -841,9 +841,12 @@ MPP_RET Mpp::get_packet(MppPacket *packet)
     } else {
         MppPacketImpl *impl = (MppPacketImpl *)pkt;
         MppBuffer buf = impl->buffer;
-        RK_U32 offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
 
-        mpp_buffer_sync_ro_partial_begin(buf, offset, impl->length);
+        if (buf) {
+            RK_U32 offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
+
+            mpp_buffer_sync_ro_partial_begin(buf, offset, impl->length);
+        }
 
         mpp_dbg_pts("%p output packet pts %lld\n", this, impl->pts);
     }
@@ -922,8 +925,10 @@ MPP_RET Mpp::get_packet_async(MppPacket *packet)
         *packet = pkt;
 
         impl = (MppPacketImpl *)pkt;
-        offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
-        mpp_buffer_sync_ro_partial_begin(impl->buffer, offset, impl->length);
+        if (impl->buffer) {
+            offset = (RK_U32)((char *)impl->pos - (char *)impl->data);
+            mpp_buffer_sync_ro_partial_begin(impl->buffer, offset, impl->length);
+        }
     } else {
         mpp_mutex_cond_lock(&mFrmIn->cond_lock);
         if (mpp_list_size(mFrmIn))
