@@ -83,6 +83,14 @@ typedef struct MppTrieImpl_t {
     rk_s32          info_buf_pos;
 } MppTrieImpl;
 
+/* work structure for trie traversal */
+typedef struct MppTrieWalk_t {
+    MppTrieNode     *root;
+    rk_u64          tag;
+    rk_u32          len;
+    rk_s32          match;
+} MppTrieWalk;
+
 rk_u32 mpp_trie_debug = 0;
 
 static rk_s32 trie_get_node(MppTrieImpl *trie, rk_s32 prev, rk_u64 key)
@@ -348,50 +356,85 @@ rk_s32 mpp_trie_deinit(MppTrie trie)
     return rk_nok;
 }
 
-static rk_s32 mpp_trie_walk(MppTrieNode *node, rk_u64 *tag_val, rk_s32 *tag_len, rk_u32 key)
+static rk_s32 mpp_trie_walk(MppTrieWalk *p, rk_s32 idx, rk_u32 key, rk_u32 keyx, rk_u32 end)
 {
-    rk_u64 val = *tag_val;
-    rk_s32 len = *tag_len;
+    MppTrieNode *node = &p->root[idx];
+    char log_buf[128];
+    rk_u32 log_size = sizeof(log_buf) - 1;
+    rk_u32 log_len = 0;
+    rk_u32 log_en = (mpp_trie_debug & MPP_TRIE_DBG_WALK) ? 1 : 0;
+    rk_s32 next = -1;
 
-    if (node->tag_len > len) {
-        *tag_val = (val << 4) | key;
-        *tag_len = len + 1;
+    if (log_en)
+        log_len += snprintf(log_buf + log_len, log_size - log_len,
+                            "node %d:%d key %02x:%x -> ",
+                            node->idx, node->id, key, keyx);
 
-        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> key %x -> tag fill\n",
-                      node->idx, node->id, node->tag_len, *tag_len, node->tag_val, *tag_val, key);
+    /* check high 4 bits */
+    if (!node->tag_len || p->match == node->idx) {
+        /* not tag or tag has be matched -> normal next switch node */
+        next = node->next[keyx];
+        if (log_en)
+            log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                "tag %s -> ",
+                                !node->tag_len ? "n/a" : "match");
+        p->tag = 0;
+        p->len = 0;
+        p->match = -1;
+    } else {
+        /* with tag check len to fill or to stop */
+        rk_u64 val_new = (p->tag << 4) | keyx;
+        rk_s32 len_new = p->len + 1;
 
-        return node->idx;
+        if (log_en)
+            log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                "tag %0*llx:%d - st %0*llx:%d -> ",
+                                node->tag_len, node->tag_val, node->tag_len,
+                                node->tag_len, val_new, len_new);
+
+        /* clear old matched node */
+        p->match = -1;
+        if (node->tag_len > len_new && !end) {
+            /* more tag to fill keep current node */
+            p->tag = val_new;
+            p->len = len_new;
+            next = node->idx;
+            if (log_en)
+                log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                    "fill -> ");
+        } else {
+            /* check tag match with new value */
+            p->tag = 0;
+            p->len = 0;
+
+            if (node->tag_val != val_new) {
+                if (log_en)
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        "mismatch -> ");
+                next = INVALID_NODE_ID;
+            } else {
+                if (log_en)
+                    log_len += snprintf(log_buf + log_len, log_size - log_len,
+                                        "match -> ");
+                next = node->idx;
+                p->match = node->idx;
+            }
+        }
     }
 
-    /* normal next switch node */
-    if (!node->tag_len) {
-        trie_dbg_walk("node %d:%d -> key %x -> next %d\n",
-                      node->idx, node->id, key, node->next[key]);
-
-        return node->next[key];
+    if (log_en) {
+        snprintf(log_buf + log_len, log_size - log_len, "%d", next);
+        mpp_logi_f("%s\n", log_buf);
     }
 
-    *tag_val = 0;
-    *tag_len = 0;
-
-    if (node->tag_val != val) {
-        trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag mismatch\n",
-                      node->idx, node->id, node->tag_len, len, node->tag_val, val);
-        return INVALID_NODE_ID;
-    }
-
-    trie_dbg_walk("node %d:%d tag len %d - %d val %016llx - %016llx -> tag match -> key %d next %d\n",
-                  node->idx, node->id, node->tag_len, len, node->tag_val, val, key, node->next[key]);
-
-    return node->next[key];
+    return next;
 }
 
 static MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name)
 {
     MppTrieNode *ret = NULL;
     const char *s = name;
-    rk_u64 tag_val = 0;
-    rk_s32 tag_len = 0;
+    MppTrieWalk walk;
     rk_s32 idx = 0;
 
     if (!root || !name) {
@@ -401,24 +444,29 @@ static MppTrieNode *mpp_trie_get_node(MppTrieNode *root, const char *name)
 
     trie_dbg_get("root %p search %s start\n", root, name);
 
+    walk.root = root;
+    walk.tag = 0;
+    walk.len = 0;
+    walk.match = 0;
+
     do {
         char key = *s++;
         rk_u32 key0 = (key >> 4) & 0xf;
         rk_u32 key1 = key & 0xf;
-        rk_s32 end = (s[0] == '\0');
+        rk_u32 end = s[0] == '\0';
 
-        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key0);
+        idx = mpp_trie_walk(&walk, idx, key, key0, 0);
         if (idx < 0)
             break;
 
-        idx = mpp_trie_walk(&root[idx], &tag_val, &tag_len, key1);
+        idx = mpp_trie_walk(&walk, idx, key, key1, end);
         if (idx < 0 || end)
             break;
     } while (1);
 
     ret = (idx >= 0) ? &root[idx] : NULL;
 
-    trie_dbg_get("get node %d:%d\n", idx, ret ? ret->id : INVALID_NODE_ID);
+    trie_dbg_get("get %s ret node %d:%d\n", name, idx, ret ? ret->id : INVALID_NODE_ID);
 
     return ret;
 }
@@ -785,6 +833,8 @@ MppTrieInfo *mpp_trie_get_info_from_root(void *root, const char *name)
         mpp_loge_f("invalid root %p name %p\n", root, name);
         return NULL;
     }
+
+    mpp_env_get_u32("mpp_trie_debug", &mpp_trie_debug, 0);
 
     node = mpp_trie_get_node((MppTrieNode *)root, name);
     if (!node || node->id < 0)
