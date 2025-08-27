@@ -169,8 +169,12 @@ static MppMemPool pool_meta = NULL;
 static RK_U32 srv_finalized = 0;
 static RK_U32 meta_key_count = 0;
 static RK_U32 mpp_meta_debug = 0;
+static RK_S32 user_data_index = -1;
+static RK_S32 user_datas_index = -1;
 
 static void put_meta(MppMetaSrv *srv, MppMetaImpl *meta);
+static inline RK_S32 get_index_of_key(MppMetaKey key, MppMetaType type, const char *caller);
+#define get_index_of_key_f(key, type) get_index_of_key(key, type, __FUNCTION__);
 
 static void mpp_meta_srv_init()
 {
@@ -197,6 +201,8 @@ static void mpp_meta_srv_init()
         meta_key_count = 0;
         META_ENTRY_TABLE(EXPAND_AS_TRIE)
         mpp_trie_add_info(srv->trie, NULL, NULL, 0);
+        user_data_index = get_index_of_key_f(KEY_USER_DATA, TYPE_UPTR);
+        user_datas_index = get_index_of_key_f(KEY_USER_DATAS, TYPE_UPTR);
     }
 
     pool_meta = mpp_mem_pool_init_f("MppMeta", sizeof(MppMetaImpl) +
@@ -262,8 +268,6 @@ static inline RK_S32 get_index_of_key(MppMetaKey key, MppMetaType type, const ch
     return info ? info->index : -1;
 }
 
-#define get_index_of_key_f(key, type) get_index_of_key(key, type, __FUNCTION__)
-
 static MppMetaImpl *get_meta(MppMetaSrv *srv, const char *tag, const char *caller)
 {
     MppMetaImpl *impl = (MppMetaImpl *)mpp_mem_pool_get(pool_meta, caller);
@@ -293,6 +297,19 @@ static MppMetaImpl *get_meta(MppMetaSrv *srv, const char *tag, const char *calle
     return impl;
 }
 
+static void clean_user_data(MppMetaImpl *impl)
+{
+    MPP_FREE(impl->user_data.pdata);
+    impl->user_data.len = 0;
+}
+
+static void clean_user_datas(MppMetaImpl *impl)
+{
+    MPP_FREE(impl->user_data_set.datas);
+    impl->user_data_set.count = 0;
+    impl->datas_buf_size = 0;
+}
+
 static void put_meta(MppMetaSrv *srv, MppMetaImpl *meta)
 {
     RK_S32 ref_count;
@@ -310,6 +327,8 @@ static void put_meta(MppMetaSrv *srv, MppMetaImpl *meta)
     }
 
     mpp_spinlock_lock(&srv->lock);
+    clean_user_data(meta);
+    clean_user_datas(meta);
     list_del_init(&meta->list_meta);
     mpp_spinlock_unlock(&srv->lock);
     MPP_FETCH_SUB(&srv->meta_count, 1);
@@ -432,6 +451,131 @@ MPP_RET mpp_meta_dump(MppMeta meta)
     return MPP_OK;
 }
 
+static MPP_RET set_user_data(MppMetaImpl *impl, void *user_data)
+{
+    MppEncUserData *src = (MppEncUserData *)user_data;
+
+    if (!src) {
+        clean_user_data(impl);
+        return MPP_OK;
+    }
+
+    if (!src->pdata || !src->len) {
+        mpp_err_f("invalid user data %p pdata %p len %d\n", user_data, src->pdata, src->len);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    if (impl->user_data.len < src->len) {
+        void *buf_ptr = mpp_realloc(impl->user_data.pdata, RK_U8, src->len);
+
+        if (!buf_ptr) {
+            mpp_err_f("failed to realloc user data buf size %d\n", src->len);
+            impl->user_data.len = 0;
+            return MPP_ERR_MALLOC;
+        }
+        impl->user_data.pdata = buf_ptr;
+    }
+
+    memcpy(impl->user_data.pdata, src->pdata, src->len);
+    impl->user_data.len = src->len;
+
+    return MPP_OK;
+}
+
+static MPP_RET set_user_datas(MppMetaImpl *impl, void *user_data)
+{
+    MppEncUserDataSet *src_set = (MppEncUserDataSet *)user_data;
+    MppEncUserDataFull *dst_set = NULL;
+    void *buf_ptr = NULL;
+    RK_U32 data_size = 0;
+    RK_U32 struct_size = 0;
+    RK_U32 buf_size = 0;
+    RK_U32 i = 0;
+
+    if (!src_set) {
+        clean_user_datas(impl);
+        return MPP_OK;
+    }
+
+    if (!src_set->datas || !src_set->count) {
+        mpp_err_f("invalid user data %p datas %p count %d\n", src_set, src_set->datas, src_set->count);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    struct_size = sizeof(MppEncUserDataFull) * src_set->count;
+    for (i = 0; i < src_set->count; i++) {
+        MppEncUserDataFull *src = &src_set->datas[i];
+
+        if (src->uuid)
+            data_size += strlen((const char *)src->uuid) + 1;
+        data_size += src->len;
+    }
+    buf_size = struct_size + data_size;
+
+    if (impl->datas_buf_size < buf_size) {
+        buf_ptr = mpp_realloc(impl->user_data_set.datas, RK_U8, buf_size);
+        if (!buf_ptr) {
+            mpp_err_f("failed to realloc user data buf size %d\n", buf_size);
+            impl->user_data_set.count = 0;
+            impl->datas_buf_size = 0;
+            return MPP_ERR_MALLOC;
+        }
+        impl->user_data_set.datas = (MppEncUserDataFull *)buf_ptr;
+    }
+
+    impl->datas_buf_size = buf_size;
+    dst_set = impl->user_data_set.datas;
+    buf_ptr = (void *)dst_set + struct_size;
+
+    for (i = 0; i < src_set->count; i++) {
+        MppEncUserDataFull *src = &src_set->datas[i];
+        MppEncUserDataFull *dst = &dst_set[i];
+
+        dst->len = src->len;
+        if (src->uuid) {
+            size_t uuid_len = strlen((const char *)src->uuid) + 1;
+
+            dst->uuid = (RK_U8 *)buf_ptr;
+            memcpy(buf_ptr, src->uuid, uuid_len);
+            buf_ptr += uuid_len;
+        } else {
+            dst->uuid = NULL;
+        }
+        if (src->pdata) {
+            dst->pdata = buf_ptr;
+            memcpy(buf_ptr, src->pdata, src->len);
+            buf_ptr += src->len;
+        } else {
+            dst->pdata = NULL;
+        }
+    }
+    impl->user_data_set.count = src_set->count;
+
+    return MPP_OK;
+}
+
+static MPP_RET get_user_data(MppMetaImpl *impl, void **val)
+{
+    if (impl->user_data.pdata) {
+        *val = &impl->user_data;
+        return MPP_OK;
+    }
+
+    *val = NULL;
+    return MPP_NOK;
+}
+
+static MPP_RET get_user_datas(MppMetaImpl *impl, void **val)
+{
+    if (impl->user_data_set.datas) {
+        *val = &impl->user_data_set;
+        return MPP_OK;
+    }
+
+    *val = NULL;
+    return MPP_NOK;
+}
+
 #define MPP_META_ACCESSOR(func_type, arg_type, key_type, key_field)  \
     MPP_RET mpp_meta_set_##func_type(MppMeta meta, MppMetaKey key, arg_type val) \
     { \
@@ -448,7 +592,13 @@ MPP_RET mpp_meta_dump(MppMeta meta)
         meta_val = &impl->vals[index]; \
         if (MPP_BOOL_CAS(&meta_val->state, META_VAL_INVALID, META_VAL_VALID)) \
             MPP_FETCH_ADD(&impl->node_count, 1); \
-        meta_val->key_field = val; \
+        if (index == user_data_index) { \
+            set_user_data(impl, (void *)(intptr_t)val); \
+        } else if (index == user_datas_index) { \
+            set_user_datas(impl, (void *)(intptr_t)val); \
+        } else { \
+            meta_val->key_field = val; \
+        } \
         MPP_FETCH_OR(&meta_val->state, META_VAL_READY); \
         return MPP_OK; \
     } \
@@ -467,7 +617,12 @@ MPP_RET mpp_meta_dump(MppMeta meta)
             return MPP_NOK; \
         meta_val = &impl->vals[index]; \
         if (MPP_BOOL_CAS(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
-            *val = meta_val->key_field; \
+            if (index == user_data_index) \
+                get_user_data(impl, (void**)val); \
+            else if (index == user_datas_index) \
+                get_user_datas(impl, (void**)val); \
+            else \
+                *val = meta_val->key_field; \
             MPP_FETCH_SUB(&impl->node_count, 1); \
             ret = MPP_OK; \
         } \
@@ -488,7 +643,12 @@ MPP_RET mpp_meta_dump(MppMeta meta)
             return MPP_NOK; \
         meta_val = &impl->vals[index]; \
         if (MPP_BOOL_CAS(&meta_val->state, META_VAL_VALID | META_VAL_READY, META_VAL_INVALID)) { \
-            *val = meta_val->key_field; \
+            if (index == user_data_index) \
+                get_user_data(impl, (void**)val); \
+            else if (index == user_datas_index) \
+                get_user_datas(impl, (void**)val); \
+            else \
+                *val = meta_val->key_field; \
             MPP_FETCH_SUB(&impl->node_count, 1); \
             ret = MPP_OK; \
         } else { \
