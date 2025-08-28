@@ -121,12 +121,14 @@ typedef enum MppMetaKey_e {
     KEY_QPMAP0                  = FOURCC_META('e', 'q', 'm', '0'),
 
     /*
-     * object dectection flag from NPU
+     * shared memory buffer for object dectection flag from NPU, for rv1126b
      * Picture width is aligned to 16, each 16x16 block is 8bit data.
      * H.264: 16x16 block is arranged in raster order.
      * H.265: 16x16 block is reordered to ctu order then ctu raster order
      */
-    KEY_NPU_OBJ_FLAG            = FOURCC_META('n', 'p', 'u', 'f'),
+    KEY_NPU_SOBJ_FLAG           = FOURCC_META('n', 'p', 'u', 's'),
+    /* userspace object dectection flag from NPU, for rk3588 and rk3576 */
+    KEY_NPU_UOBJ_FLAG           = FOURCC_META('n', 'p', 'u', 'u'),
 
     /*
      * smart v4 encoder input key

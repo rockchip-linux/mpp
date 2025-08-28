@@ -42,7 +42,7 @@ static MPP_RET meta_set(MppMeta meta)
     ret |= mpp_meta_set_ptr(meta, KEY_USER_DATAS, NULL);
 
     ret |= mpp_meta_set_buffer(meta, KEY_QPMAP0, NULL);
-    ret |= mpp_meta_set_ptr(meta, KEY_NPU_OBJ_FLAG, NULL);
+    ret |= mpp_meta_set_ptr(meta, KEY_NPU_UOBJ_FLAG, NULL);
 
     ret |= mpp_meta_set_s32(meta, KEY_ENC_MARK_LTR, 0);
     ret |= mpp_meta_set_s32(meta, KEY_ENC_USE_LTR, 0);
@@ -85,7 +85,7 @@ static MPP_RET meta_get(MppMeta meta)
     ret |= mpp_meta_get_ptr(meta, KEY_USER_DATAS, &ptr);
 
     ret |= mpp_meta_get_buffer(meta, KEY_QPMAP0, &buffer);
-    ret |= mpp_meta_get_ptr(meta, KEY_NPU_OBJ_FLAG, &ptr);
+    ret |= mpp_meta_get_ptr(meta, KEY_NPU_UOBJ_FLAG, &ptr);
 
     ret |= mpp_meta_get_s32(meta, KEY_ENC_MARK_LTR, &val);
     ret |= mpp_meta_get_s32(meta, KEY_ENC_USE_LTR, &val);

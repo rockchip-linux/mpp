@@ -128,7 +128,8 @@ static inline RK_U64 META_KEY_TO_U64(RK_U32 key, RK_U32 type)
     ENTRY(KEY_USER_DATAS,           TYPE_UPTR) \
     ENTRY(KEY_QPMAP0,               TYPE_SPTR) \
     /* buffer for super encode v3 */ \
-    ENTRY(KEY_NPU_OBJ_FLAG,         TYPE_SPTR) \
+    ENTRY(KEY_NPU_SOBJ_FLAG,        TYPE_SPTR) \
+    ENTRY(KEY_NPU_UOBJ_FLAG,        TYPE_UPTR) \
     ENTRY(KEY_BUFFER_UPSCALE,       TYPE_SPTR) \
     ENTRY(KEY_BUFFER_DOWNSCALE,     TYPE_SPTR) \
     \

@@ -330,7 +330,7 @@ rk_s32 kmpp_meta_dump_all(const char *caller)
 
 KMPP_META_ACCESSOR(s32, rk_s32, TYPE_VAL_32, val_s32)
 KMPP_META_ACCESSOR(s64, rk_s64, TYPE_VAL_64, val_s64)
-KMPP_META_ACCESSOR(ptr, void *, TYPE_KPTR, val_ptr)
+KMPP_META_ACCESSOR(ptr, void *, TYPE_UPTR, val_ptr)
 
 rk_s32 kmpp_meta_set_obj(KmppMeta meta, KmppMetaKey key, KmppObj val)
 {

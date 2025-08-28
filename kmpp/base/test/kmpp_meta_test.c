@@ -25,6 +25,7 @@ void *meta_test(void *param)
     KmppShmPtr packet;
     KmppShmPtr buffer;
     KmppShmPtr sptr;
+    void *ptr;
     RK_S32 val;
     RK_S32 i;
 
@@ -63,13 +64,15 @@ void *meta_test(void *param)
         ret |= kmpp_meta_set_s32(meta[i], KEY_LONG_REF_IDX, 0);
         ret |= kmpp_meta_set_s32(meta[i], KEY_ENC_AVERAGE_QP, 0);
 
-        ret |= kmpp_meta_set_shm(meta[i], KEY_ROI_DATA, NULL);
+        //ret |= kmpp_meta_set_shm(meta[i], KEY_ROI_DATA, NULL);
         ret |= kmpp_meta_set_shm(meta[i], KEY_OSD_DATA, NULL);
         ret |= kmpp_meta_set_shm(meta[i], KEY_OSD_DATA2, NULL);
         ret |= kmpp_meta_set_shm(meta[i], KEY_USER_DATA, NULL);
         ret |= kmpp_meta_set_shm(meta[i], KEY_USER_DATAS, NULL);
 
         ret |= kmpp_meta_set_shm(meta[i], KEY_QPMAP0, NULL);
+        ret |= kmpp_meta_set_shm(meta[i], KEY_NPU_SOBJ_FLAG, NULL);
+        ret |= kmpp_meta_set_ptr(meta[i], KEY_NPU_UOBJ_FLAG, NULL);
 
         ret |= kmpp_meta_set_s32(meta[i], KEY_ENC_MARK_LTR, 0);
         ret |= kmpp_meta_set_s32(meta[i], KEY_ENC_USE_LTR, 0);
@@ -94,13 +97,15 @@ void *meta_test(void *param)
         ret |= kmpp_meta_get_s32(meta[i], KEY_LONG_REF_IDX, &val);
         ret |= kmpp_meta_get_s32(meta[i], KEY_ENC_AVERAGE_QP, &val);
 
-        ret |= kmpp_meta_get_shm(meta[i], KEY_ROI_DATA, &sptr);
+        //ret |= kmpp_meta_get_shm(meta[i], KEY_ROI_DATA, &sptr);
         ret |= kmpp_meta_get_shm(meta[i], KEY_OSD_DATA, &sptr);
         ret |= kmpp_meta_get_shm(meta[i], KEY_OSD_DATA2, &sptr);
         ret |= kmpp_meta_get_shm(meta[i], KEY_USER_DATA, &sptr);
         ret |= kmpp_meta_get_shm(meta[i], KEY_USER_DATAS, &sptr);
 
         ret |= kmpp_meta_get_shm(meta[i], KEY_QPMAP0, &buffer);
+        ret |= kmpp_meta_get_shm(meta[i], KEY_NPU_SOBJ_FLAG, &sptr);
+        ret |= kmpp_meta_get_ptr(meta[i], KEY_NPU_UOBJ_FLAG, &ptr);
 
         ret |= kmpp_meta_get_s32(meta[i], KEY_ENC_MARK_LTR, &val);
         ret |= kmpp_meta_get_s32(meta[i], KEY_ENC_USE_LTR, &val);
