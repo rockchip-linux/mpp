@@ -1133,7 +1133,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 
     kmpp_obj_set_u32(ioc, "def", impl->def->index);
     kmpp_obj_set_u32(ioc, "cmd", cmd);
-    kmpp_obj_set_u32(ioc, "flag", 0);
+    kmpp_obj_set_u32(ioc, "flags", 0);
     kmpp_obj_set_u32(ioc, "id", 0);
 
     if (in) {
