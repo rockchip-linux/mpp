@@ -30,11 +30,11 @@
 #include "mpp_device.h"
 #include "hal_bufs.h"
 
+#include "hal_av1d_vdpu.h"
 #include "hal_av1d_vdpu_reg.h"
 #include "hal_av1d_common.h"
 #include "av1d_syntax.h"
 #include "film_grain_noise_table.h"
-#include "av1d_common.h"
 
 #define VDPU_FAST_REG_SET_CNT    3
 #define AV1_MAX_TILES 128
@@ -92,7 +92,7 @@ typedef struct VdpuAv1dRegCtx_t {
     RK_U32          luma_size ;
     RK_U32          chroma_size;
 
-    FilmGrainMemory fgsmem;
+    AV1FilmGrainMemory fgsmem;
 
     RK_S8           prev_out_buffer_i;
     RK_U8           fbc_en;
@@ -287,7 +287,7 @@ __FAILED:
     return ret;
 }
 
-static void set_ref_width(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
+static void set_ref_width(VdpuAv1dRegSet *regs, RK_U32 i, RK_U32 val)
 {
     if (i == 0) {
         regs->swreg33.sw_ref0_width = val;
@@ -308,7 +308,7 @@ static void set_ref_width(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
     }
 }
 
-static void set_ref_height(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
+static void set_ref_height(VdpuAv1dRegSet *regs, RK_U32 i, RK_U32 val)
 {
     if (i == 0) {
         regs->swreg33.sw_ref0_height = val;
@@ -329,7 +329,7 @@ static void set_ref_height(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
     }
 }
 
-static void set_ref_hor_scale(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
+static void set_ref_hor_scale(VdpuAv1dRegSet *regs, RK_U32 i, RK_U32 val)
 {
     if (i == 0) {
         regs->swreg36.sw_ref0_hor_scale = val;
@@ -350,7 +350,7 @@ static void set_ref_hor_scale(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
     }
 }
 
-static void set_ref_ver_scale(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
+static void set_ref_ver_scale(VdpuAv1dRegSet *regs, RK_U32 i, RK_U32 val)
 {
     if (i == 0) {
         regs->swreg36.sw_ref0_ver_scale = val;
@@ -760,7 +760,7 @@ static void vdpu_av1d_set_prob(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
     const int mv_cdf_offset = offsetof(AV1CDFs, mv_cdf);
-    void* prob_base = mpp_buffer_get_ptr(reg_ctx->prob_tbl_base);
+    RK_U8* prob_base = mpp_buffer_get_ptr(reg_ctx->prob_tbl_base);
     VdpuAv1dRegSet *regs = reg_ctx->regs;
 
     memcpy(prob_base, dxva->cdfs, sizeof(AV1CDFs));
@@ -1806,7 +1806,7 @@ static void vdpu_av1d_set_fgs(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
         }
     }
 
-    memcpy(ptr, &ctx->fgsmem, sizeof(FilmGrainMemory));
+    memcpy(ptr, &ctx->fgsmem, sizeof(AV1FilmGrainMemory));
     mpp_buffer_sync_end(ctx->film_grain_mem);
 
     regs->addr_cfg.swreg94.sw_filmgrain_base_msb = 0;

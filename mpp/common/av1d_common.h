@@ -18,8 +18,6 @@
 #define __AV1D_COMMON_H__
 
 #include "mpp_common.h"
-#include "hal_av1d_common.h"
-#define AV1_REF_SCALE_SHIFT 14
 
 #define NUM_REF_FRAMES 8
 #define NUM_REF_FRAMES_LG2 3
@@ -48,8 +46,8 @@
 #define MAX_TILE_WIDTH_SBS (MAX_TILE_WIDTH >> 6)
 #define FRAME_OFFSET_BITS 5
 #define MAX_TILE_AREA (4096 * 2304)
-#define AV1_MAX_TILE_COLS 64
-#define AV1_MAX_TILE_ROWS 64
+// #define AV1_MAX_TILE_COLS 64
+// #define AV1_MAX_TILE_ROWS 64
 
 #define ALLOWED_REFS_PER_FRAME 3
 
@@ -204,17 +202,17 @@ typedef RK_U8 av1_coeff_probs[REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
 
 /* Shift down with rounding for use when n >= 0, value >= 0 for (64 bit) */
 #define ROUND_POWER_OF_TWO_64(value, n) \
-    (((value) + ((((int64)1 << (n)) >> 1))) >> (n))
+  (((value) + ((((int64)1 << (n)) >> 1))) >> (n))
 
 /* Shift down with rounding for signed integers, for use when n >= 0 (64 bit) */
-#define ROUND_POWER_OF_TWO_SIGNED_64(value, n) \
-    (((value) < 0) ? -ROUND_POWER_OF_TWO_64(-(value), (n)) \
-                   : ROUND_POWER_OF_TWO_64((value), (n)))
+#define ROUND_POWER_OF_TWO_SIGNED_64(value, n)           \
+  (((value) < 0) ? -ROUND_POWER_OF_TWO_64(-(value), (n)) \
+                 : ROUND_POWER_OF_TWO_64((value), (n)))
 
 /* Shift down with rounding for signed integers, for use when n >= 0 */
-#define ROUND_POWER_OF_TWO_SIGNED(value, n) \
-    (((value) < 0) ? -ROUND_POWER_OF_TWO(-(value), (n)) \
-                   : ROUND_POWER_OF_TWO((value), (n)))
+#define ROUND_POWER_OF_TWO_SIGNED(value, n)           \
+  (((value) < 0) ? -ROUND_POWER_OF_TWO(-(value), (n)) \
+                 : ROUND_POWER_OF_TWO((value), (n)))
 
 typedef RK_U16 av1_cdf;
 
@@ -224,6 +222,50 @@ enum {
     AV1_RESTORE_WIENER     = 1,
     AV1_RESTORE_SGRPROJ    = 2,
     AV1_RESTORE_SWITCHABLE = 3,
+};
+
+// Frame types (section 6.8.2).
+enum {
+    AV1_FRAME_KEY        = 0,
+    AV1_FRAME_INTER      = 1,
+    AV1_FRAME_INTRA_ONLY = 2,
+    AV1_FRAME_SWITCH     = 3,
+};
+
+enum Av1SegLevelFeatures {
+    SEG_AV1_LVL_ALT_Q,       // Use alternate Quantizer ....
+    SEG_AV1_LVL_ALT_LF_Y_V,  // Use alternate loop filter value on y plane
+    // vertical
+    SEG_AV1_LVL_ALT_LF_Y_H,  // Use alternate loop filter value on y plane
+    // horizontal
+    SEG_AV1_LVL_ALT_LF_U,    // Use alternate loop filter value on u plane
+    SEG_AV1_LVL_ALT_LF_V,    // Use alternate loop filter value on v plane
+    SEG_AV1_LVL_REF_FRAME,   // Optional Segment reference frame
+    SEG_AV1_LVL_SKIP,        // Optional Segment (0,0) + skip mode
+    SEG_AV1_LVL_GLOBALMV,
+    SEG_AV1_LVL_MAX
+};
+
+#define AV1_ACTIVE_REFS 3
+#define AV1_ACTIVE_REFS_EX 7
+#define AV1_REF_LIST_SIZE 8
+#define AV1_REF_SCALE_SHIFT 14
+
+enum MvReferenceFrame {
+    NONE              = -1,
+    INTRA_FRAME       = 0,
+    LAST_FRAME        = 1,
+    LAST2_FRAME_EX    = 2,
+    LAST3_FRAME_EX    = 3,
+    GOLDEN_FRAME_EX   = 4,
+    BWDREF_FRAME_EX   = 5,
+    ALTREF2_FRAME_EX  = 6,
+    ALTREF_FRAME_EX   = 7,
+    MAX_REF_FRAMES_EX = 8,
+    GOLDEN_FRAME      = 2,
+    ALTREF_FRAME      = 3,
+
+    MAX_REF_FRAMES    = 4
 };
 
 enum BlockSizeType {
@@ -251,6 +293,7 @@ enum BlockSizeType {
     BLOCK_SIZE_SB64X16,
     BLOCK_SIZE_TYPES,
     BLOCK_SIZES_ALL = BLOCK_SIZE_TYPES
+
 };
 
 enum PartitionType {
@@ -368,10 +411,9 @@ enum InterpolationFilterType {
     MULTITAP_SHARP = EIGHTTAP_SHARP
 };
 
-static const int av1_literal_to_filter[4] = {
-    EIGHTTAP_SMOOTH, EIGHTTAP,
-    EIGHTTAP_SHARP, BILINEAR
-};
+static const int av1_literal_to_filter[4] = {EIGHTTAP_SMOOTH, EIGHTTAP,
+                                             EIGHTTAP_SHARP, BILINEAR
+                                            };
 
 extern const enum InterpolationFilterType
 av1hwd_switchable_interp[AV1_SWITCHABLE_FILTERS];
@@ -400,20 +442,15 @@ enum SegLevelFeatures {
 
 enum { AV1_SEG_FEATURE_DELTA, AV1_SEG_FEATURE_ABS };
 
-static const int av1_seg_feature_data_signed[SEG_AV1_LVL_MAX] = {
-    1, 1, 1, 1,
-    1, 0, 0
-};
-
-static const int av1_seg_feature_data_max[SEG_AV1_LVL_MAX] = {
-    255, 63, 63, 63,
-    63,  7,  0
-};
-
-static const int av1_seg_feature_data_bits[SEG_AV1_LVL_MAX] = {
-    8, 6, 6, 6,
-    6, 3, 0
-};
+static const int av1_seg_feature_data_signed[SEG_AV1_LVL_MAX] = {1, 1, 1, 1,
+                                                                 1, 0, 0
+                                                                };
+static const int av1_seg_feature_data_max[SEG_AV1_LVL_MAX] = {255, 63, 63, 63,
+                                                              63,  7,  0
+                                                             };
+static const int av1_seg_feature_data_bits[SEG_AV1_LVL_MAX] = {8, 6, 6, 6,
+                                                               6, 3, 0
+                                                              };
 
 enum TxSize {
     TX_4X4 = 0,
@@ -454,20 +491,6 @@ enum MvJointType {
     MV_JOINT_HNZVNZ = 3, /* Both components nonzero */
 };
 
-/* Symbols for coding magnitude class of nonzero components */
-enum MvClassType {
-    MV_CLASS_0 = 0,   /* (0, 2]     integer pel */
-    MV_CLASS_1 = 1,   /* (2, 4]     integer pel */
-    MV_CLASS_2 = 2,   /* (4, 8]     integer pel */
-    MV_CLASS_3 = 3,   /* (8, 16]    integer pel */
-    MV_CLASS_4 = 4,   /* (16, 32]   integer pel */
-    MV_CLASS_5 = 5,   /* (32, 64]   integer pel */
-    MV_CLASS_6 = 6,   /* (64, 128]  integer pel */
-    MV_CLASS_7 = 7,   /* (128, 256] integer pel */
-    MV_CLASS_8 = 8,   /* (256, 512] integer pel */
-    MV_CLASS_9 = 9,   /* (512, 1024] integer pel */
-    MV_CLASS_10 = 10, /* (1024,2048] integer pel */
-};
 
 enum RefreshFrameContextModeAv1 {
     /**
@@ -512,8 +535,6 @@ struct NmvContextCounts {
     RK_U32 hp[2][2];
 };
 
-typedef RK_U8 av1_prob;
-
 #define ICDF(x) (32768U - (x))
 #define CDF_SIZE(x) ((x)-1)
 
@@ -523,7 +544,6 @@ struct NmvJointSign {
     RK_U8 joints[MV_JOINTS - 1];  // 3B
     RK_U8 sign[2];                // 2B
 };
-
 struct NmvMagnitude {
     RK_U8 class0[2][CLASS0_SIZE - 1];
     RK_U8 fp[2][MV_FP_SIZE - 1];
@@ -669,10 +689,14 @@ struct Av1EntropyCounts {
 
     struct NmvContextCounts nmvcount;
 
-    RK_U32 count_coeffs[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS][UNCONSTRAINED_NODES + 1];
-    RK_U32 count_coeffs8x8[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS][UNCONSTRAINED_NODES + 1];
-    RK_U32 count_coeffs16x16[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS][UNCONSTRAINED_NODES + 1];
-    RK_U32 count_coeffs32x32[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS][UNCONSTRAINED_NODES + 1];
+    RK_U32 count_coeffs[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
+    [UNCONSTRAINED_NODES + 1];
+    RK_U32 count_coeffs8x8[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
+    [UNCONSTRAINED_NODES + 1];
+    RK_U32 count_coeffs16x16[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
+    [UNCONSTRAINED_NODES + 1];
+    RK_U32 count_coeffs32x32[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
+    [UNCONSTRAINED_NODES + 1];
 
     RK_U32 count_eobs[TX_SIZE_MAX_SB][BLOCK_TYPES][REF_TYPES][COEF_BANDS]
     [PREV_COEF_CONTEXTS];

@@ -182,7 +182,7 @@ static void kmpp_meta_init(void)
     srv_meta = srv;
 }
 
-MPP_SINGLETON(MPP_SGLN_KMPP_META, kmpp_meta, kmpp_meta_init, kmpp_meta_deinit);
+MPP_SINGLETON(MPP_SGLN_KMPP_META, kmpp_meta, kmpp_meta_init, kmpp_meta_deinit)
 
 static void *meta_key_to_addr(KmppObj meta, KmppMetaKey key, KmppMetaType type)
 {

@@ -96,7 +96,7 @@ typedef struct HalH265dCtx_t {
     const MppDecHwCap   *hw_info;
 } HalH265dCtx;
 
-typedef struct ScalingList {
+typedef struct ScalingList_t {
     /* This is a little wasteful, since sizeID 0 only needs 8 coeffs,
      * and size ID 3 only has 2 arrays, not 6. */
     RK_U8 sl[4][6][64];

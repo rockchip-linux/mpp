@@ -85,7 +85,7 @@ struct VP9mvrefPair {
     RK_S8 ref[2];
 };
 
-typedef struct RefInfo {
+typedef struct VP9RefInfo {
     RK_S32 ref_count;
     RK_U32 invisible;
     RK_U32 segMapIndex;

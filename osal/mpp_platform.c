@@ -242,4 +242,4 @@ rk_u32 mpp_get_vcodec_type(void)
     return vcodec_type;
 }
 
-MPP_SINGLETON(MPP_SGLN_PLATFORM, mpp_platform, mpp_plat_srv_init, mpp_plat_srv_deinit);
+MPP_SINGLETON(MPP_SGLN_PLATFORM, mpp_platform, mpp_plat_srv_init, mpp_plat_srv_deinit)

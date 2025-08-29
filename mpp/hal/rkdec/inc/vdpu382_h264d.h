@@ -21,7 +21,7 @@
 
 /* base: OFFSET_CODEC_PARAMS_REGS */
 typedef struct Vdpu382RegH264dParam_t {
-    struct SWREG64_H26X_SET {
+    struct {
         RK_U32      h26x_frame_orslice      : 1;
         RK_U32      h26x_rps_mode           : 1;
         RK_U32      h26x_stream_mode        : 1;
@@ -30,17 +30,17 @@ typedef struct Vdpu382RegH264dParam_t {
         RK_U32      reserve                 : 27;
     } reg64;
 
-    struct SWREG65_CUR_POC {
+    struct {
         RK_U32      cur_top_poc : 32;
     } reg65;
 
-    struct SWREG66_H264_CUR_POC1 {
+    struct {
         RK_U32      cur_bot_poc : 32;
     } reg66;
 
     RK_U32  reg67_98_ref_poc[32];
 
-    struct SWREG99_H264_REG0_3_INFO {
+    struct {
 
         RK_U32      ref0_field              : 1;
         RK_U32      ref0_topfield_used      : 1;
@@ -67,7 +67,7 @@ typedef struct Vdpu382RegH264dParam_t {
         RK_U32      ref3_reserve            : 4;
     } reg99;
 
-    struct SWREG100_H264_REG4_7_INFO {
+    struct {
 
         RK_U32      ref4_field              : 1;
         RK_U32      ref4_topfield_used      : 1;
@@ -94,7 +94,7 @@ typedef struct Vdpu382RegH264dParam_t {
         RK_U32      ref7_reserve            : 4;
     } reg100;
 
-    struct SWREG101_H264_REG8_11_INFO {
+    struct {
 
         RK_U32      ref8_field              : 1;
         RK_U32      ref8_topfield_used      : 1;
@@ -121,7 +121,7 @@ typedef struct Vdpu382RegH264dParam_t {
         RK_U32      ref11_reserve           : 4;
     } reg101;
 
-    struct SWREG102_H264_REG12_15_INFO {
+    struct {
 
         RK_U32      ref12_field             : 1;
         RK_U32      ref12_topfield_used     : 1;
@@ -148,11 +148,11 @@ typedef struct Vdpu382RegH264dParam_t {
         RK_U32      ref15_reserve           : 4;
     } reg102;
 
-    struct SWREG103_111_NO_USE_REGS {
+    struct {
         RK_U32  reserve;
     } no_use_regs[9];
 
-    struct SWREG112_ERROR_REF_INFO {
+    struct {
         RK_U32      avs2_ref_error_field        : 1;
         RK_U32      avs2_ref_error_topfield     : 1;
         RK_U32      ref_error_topfield_used     : 1;
@@ -197,7 +197,7 @@ typedef struct Vdpu382RegH264dAddr_t {
 
 typedef struct Vdpu382H264dHighPoc_t {
     /* SWREG200 */
-    struct SWREG200_REF0_7_POC_HIGHBIT {
+    struct {
         RK_U32      ref0_poc_highbit        : 4;
         RK_U32      ref1_poc_highbit        : 4;
         RK_U32      ref2_poc_highbit        : 4;
@@ -207,7 +207,7 @@ typedef struct Vdpu382H264dHighPoc_t {
         RK_U32      ref6_poc_highbit        : 4;
         RK_U32      ref7_poc_highbit        : 4;
     } reg200;
-    struct SWREG201_REF8_15_POC_HIGHBIT {
+    struct {
         RK_U32      ref8_poc_highbit        : 4;
         RK_U32      ref9_poc_highbit        : 4;
         RK_U32      ref10_poc_highbit       : 4;
@@ -217,7 +217,7 @@ typedef struct Vdpu382H264dHighPoc_t {
         RK_U32      ref14_poc_highbit       : 4;
         RK_U32      ref15_poc_highbit       : 4;
     } reg201;
-    struct SWREG200_REF16_23_POC_HIGHBIT {
+    struct {
         RK_U32      ref16_poc_highbit       : 4;
         RK_U32      ref17_poc_highbit       : 4;
         RK_U32      ref18_poc_highbit       : 4;
@@ -227,7 +227,7 @@ typedef struct Vdpu382H264dHighPoc_t {
         RK_U32      ref22_poc_highbit       : 4;
         RK_U32      ref23_poc_highbit       : 4;
     } reg202;
-    struct SWREG200_REF24_31_POC_HIGHBIT {
+    struct {
         RK_U32      ref24_poc_highbit       : 4;
         RK_U32      ref25_poc_highbit       : 4;
         RK_U32      ref26_poc_highbit       : 4;
@@ -237,12 +237,12 @@ typedef struct Vdpu382H264dHighPoc_t {
         RK_U32      ref30_poc_highbit       : 4;
         RK_U32      ref31_poc_highbit       : 4;
     } reg203;
-    struct SWREG200_CUR_POC_HIGHBIT {
+    struct {
         RK_U32      cur_poc_highbit         : 4;
         RK_U32      reserver                : 28;
     } reg204;
 
-    struct SWREG205_DEBUG_INFO {
+    struct {
         RK_U32      force_softreset_valid   : 1;
         RK_U32      force_mmureset_valid    : 1;
         RK_U32      reserve0                : 2;

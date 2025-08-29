@@ -19,7 +19,7 @@
 
 #include "av1d_syntax.h"
 #include "film_grain_noise_table.h"
-#include "av1d_common.h"
+#include "av1d_syntax.h"
 
 #define VDPU383_UNCMPS_HEADER_SIZE            (MPP_ALIGN(5159, 128) / 8) // byte, 5159 bit
 
@@ -132,7 +132,7 @@ typedef struct av1d_rkv_buf_t {
     Vdpu383Av1dRegSet  *regs;
 } av1dVdpu383Buf;
 
-typedef struct vcpu383_ref_info_t {
+typedef struct vdpu383_ref_info_t {
     RK_U32 dpb_idx;
     RK_U32 seg_idx;
     RK_U32 colmv_exist_flag;
@@ -145,7 +145,7 @@ typedef struct vcpu383_ref_info_t {
     RK_U32 cdf_update_flag;
 } vdpu383RefInfo;
 
-typedef struct VdpuAv1dRegCtx_t {
+typedef struct Vdpu383Av1dRegCtx_t {
     Vdpu383Av1dRegSet  *regs;
     RK_U32             offset_uncomps;
 
@@ -193,7 +193,7 @@ typedef struct VdpuAv1dRegCtx_t {
     RK_U32          luma_size ;
     RK_U32          chroma_size;
 
-    FilmGrainMemory fgsmem;
+    AV1FilmGrainMemory fgsmem;
 
     RK_S8           prev_out_buffer_i;
     RK_U8           fbc_en;

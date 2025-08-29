@@ -106,12 +106,12 @@ MPP_RET mpp_dec_cfg_deinit(MppDecCfg cfg)
         return kmpp_obj_set_##cfg_type(cfg, name, val); \
     }
 
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s32, RK_S32, s32);
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u32, RK_U32, u32);
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s64, RK_S64, s64);
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u64, RK_U64, u64);
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_ptr, void *, ptr);
-DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, st);
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s32, RK_S32, s32)
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u32, RK_U32, u32)
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_s64, RK_S64, s64)
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_u64, RK_U64, u64)
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_ptr, void *, ptr)
+DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, st)
 
 #define DEC_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppDecCfg cfg, const char *name, in_type *val) \
@@ -123,12 +123,12 @@ DEC_CFG_SET_ACCESS(mpp_dec_cfg_set_st,  void *, st);
         return kmpp_obj_get_##cfg_type(cfg, name, val); \
     }
 
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s32, RK_S32, s32);
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u32, RK_U32, u32);
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s64, RK_S64, s64);
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u64, RK_U64, u64);
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_ptr, void *, ptr);
-DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_st,  void  , st);
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s32, RK_S32, s32)
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u32, RK_U32, u32)
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_s64, RK_S64, s64)
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_u64, RK_U64, u64)
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_ptr, void *, ptr)
+DEC_CFG_GET_ACCESS(mpp_dec_cfg_get_st,  void  , st)
 
 void mpp_dec_cfg_show(void)
 {

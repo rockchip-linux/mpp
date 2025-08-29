@@ -198,4 +198,4 @@ rk_u32 mpp_rt_allcator_is_valid(MppBufferType type)
     return valid;
 }
 
-MPP_SINGLETON(MPP_SGLN_RUNTIME, mpp_runtime, mpp_rt_srv_init, mpp_rt_srv_deinit);
+MPP_SINGLETON(MPP_SGLN_RUNTIME, mpp_runtime, mpp_rt_srv_init, mpp_rt_srv_deinit)

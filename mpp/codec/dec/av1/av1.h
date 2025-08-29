@@ -41,14 +41,6 @@ enum {
     AV1_METADATA_TYPE_TIMECODE    = 5,
 };
 
-// Frame types (section 6.8.2).
-enum {
-    AV1_FRAME_KEY        = 0,
-    AV1_FRAME_INTER      = 1,
-    AV1_FRAME_INTRA_ONLY = 2,
-    AV1_FRAME_SWITCH     = 3,
-};
-
 // Reference frames (section 6.10.24).
 enum {
     AV1_REF_FRAME_INTRA   = 0,
@@ -158,14 +150,6 @@ enum {
     AV1_SCALABILITY_L3T3_KEY_SHIFT = 26,
     AV1_SCALABILITY_L4T5_KEY_SHIFT = 27,
     AV1_SCALABILITY_L4T7_KEY_SHIFT = 28,
-};
-
-// Frame Restoration types (section 6.10.15)
-enum {
-    AV1_RESTORE_NONE       = 0,
-    AV1_RESTORE_WIENER     = 1,
-    AV1_RESTORE_SGRPROJ    = 2,
-    AV1_RESTORE_SWITCHABLE = 3,
 };
 
 #define PROFILE_AV1_MAIN                         0

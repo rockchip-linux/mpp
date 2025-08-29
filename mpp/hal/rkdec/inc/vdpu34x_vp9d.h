@@ -22,18 +22,18 @@
 
 
 typedef struct Vdpu34xRegVp9dParam_t {
-    struct SWREG64_VP9_SET {
+    struct {
         RK_U32      cprheader_offset    : 16;
         RK_U32      reserve             : 16;
     } reg64;
 
-    struct SWREG65_CUR_POC {
+    struct {
         RK_U32      cur_poc : 32;
     } reg65;
 
     RK_U32 reg66;
 
-    struct SWREG67_74_VP9_SEGID_GRP {
+    struct {
         RK_U32      segid_abs_delta                 : 1;
         RK_U32      segid_frame_qp_delta_en         : 1;
         RK_U32      segid_frame_qp_delta            : 9;
@@ -45,7 +45,7 @@ typedef struct Vdpu34xRegVp9dParam_t {
         RK_U32      reserve                         : 9;
     } reg67_74[8];
 
-    struct SWREG75_VP9_INFO_LASTFRAME {
+    struct {
         RK_U32      mode_deltas_lastframe           : 14;
         RK_U32      vp9_segment_id_clear            : 1;
         RK_U32      vp9_segment_id_update           : 1;
@@ -57,129 +57,129 @@ typedef struct Vdpu34xRegVp9dParam_t {
         RK_U32      reserve1                        : 9;
     } reg75;
 
-    struct SWREG76_VP9_CPRHEADER_CONFIG {
+    struct {
         RK_U32      tx_mode                     : 3;
         RK_U32      frame_reference_mode        : 2;
         RK_U32      reserve                     : 27;
     } reg76;
 
-    struct SWREG77_VP9_INTERCMD_NUM {
+    struct {
         RK_U32      intercmd_num        : 24;
         RK_U32      reserve             : 8;
     } reg77;
 
-    struct SWREG78_VP9_LASTTILE_SIZE {
+    struct {
         RK_U32      lasttile_size       : 24;
         RK_U32      reserve             : 8;
     } reg78;
 
-    struct SWREG79_VP9_LASTF_Y_HOR_VIRSTRIDE {
+    struct {
         RK_U32      lastfy_hor_virstride        : 16;
         RK_U32      reserve                     : 16;
     } reg79;
 
-    struct SWREG80_VP9_LASTF_UV_HOR_VIRSTRIDE {
+    struct {
         RK_U32      lastfuv_hor_virstride       : 16;
         RK_U32      reserve                     : 16;
     } reg80;
 
-    struct SWREG81_VP9_GOLDENF_Y_HOR_VIRSTRIDE {
+    struct {
         RK_U32      goldenfy_hor_virstride      : 16;
         RK_U32      reserve                     : 16;
     } reg81;
 
-    struct SWREG82_VP9_GOLDENF_UV_HOR_VIRSTRIDE {
+    struct {
         RK_U32      goldenfuv_hor_virstride     : 16;
         RK_U32      reserve                     : 16;
     } reg82;
 
-    struct SWREG83_VP9_ALTREFF_Y_HOR_VIRSTRIDE {
+    struct {
         RK_U32      altreffy_hor_virstride     : 16;
         RK_U32      reserve                     : 16;
     } reg83;
 
-    struct SWREG84_VP9_ALTREFF_UV_HOR_VIRSTRIDE {
+    struct {
         RK_U32      altreffuv_hor_virstride     : 16;
         RK_U32      reserve                     : 16;
     } reg84;
 
-    struct SWREG85_VP9_LASTF_Y_VIRSTRIDE {
+    struct {
         RK_U32      lastfy_virstride         : 28;
         RK_U32      reserve                  : 4;
     } reg85;
 
-    struct SWREG86_VP9_GOLDEN_Y_VIRSTRIDE {
+    struct {
         RK_U32      goldeny_virstride       : 28;
         RK_U32      reserve                 : 4;
     } reg86;
 
-    struct SWREG87_VP9_ALTREF_Y_VIRSTRIDE {
+    struct {
         RK_U32      altrefy_virstride       : 28;
         RK_U32      reserve                 : 4;
     } reg87;
 
-    struct SWREG88_VP9_LREF_HOR_SCALE {
+    struct {
         RK_U32      lref_hor_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg88;
 
-    struct SWREG89_VP9_LREF_VER_SCALE {
+    struct {
         RK_U32      lref_ver_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg89;
 
-    struct SWREG90_VP9_GREF_HOR_SCALE {
+    struct {
         RK_U32      gref_hor_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg90;
 
-    struct SWREG91_VP9_GREF_VER_SCALE {
+    struct {
         RK_U32      gref_ver_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg91;
 
-    struct SWREG92_VP9_AREF_HOR_SCALE {
+    struct {
         RK_U32      aref_hor_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg92;
 
-    struct SWREG93_VP9_AREF_VER_SCALE {
+    struct {
         RK_U32      aref_ver_scale          : 16;
         RK_U32      reserve                 : 16;
     } reg93;
 
-    struct SWREG94_VP9_REF_DELTAS_LASTFRAME {
+    struct {
         RK_U32      ref_deltas_lastframe    : 28;
         RK_U32      reserve                 : 4;
     } reg94;
 
-    struct SWREG95_LAST_POC {
+    struct {
         RK_U32      last_poc : 32;
     } reg95;
 
-    struct SWREG96_GOLDEN_POC {
+    struct {
         RK_U32      golden_poc : 32;
     } reg96;
 
-    struct SWREG97_ALTREF_POC {
+    struct {
         RK_U32      altref_poc : 32;
     } reg97;
 
-    struct SWREG98_COF_REF_POC {
+    struct {
         RK_U32      col_ref_poc : 32;
     } reg98;
 
-    struct SWREG99_PROB_REF_POC {
+    struct {
         RK_U32      prob_ref_poc : 32;
     } reg99;
 
-    struct SWREG100_SEGID_REF_POC {
+    struct {
         RK_U32      segid_ref_poc : 32;
     } reg100;
 
     RK_U32  reg101_102_no_use[2];
 
-    struct SWREG103_VP9_PROB_EN {
+    struct {
         RK_U32      reserve                 : 20;
         RK_U32      prob_update_en          : 1;
         RK_U32      refresh_en              : 1;
@@ -199,43 +199,43 @@ typedef struct Vdpu34xRegVp9dParam_t {
 
     RK_U32  reg104_no_use;
 
-    struct SWREG105_VP9CNT_UPD_EN_AVS2_HEADLEN {
+    struct {
         RK_U32      avs2_head_len       : 4;
         RK_U32      count_update_en     : 1;
         RK_U32      reserve             : 27;
     } reg105;
 
-    struct SWREG106_VP9_FRAME_WIDTH_LAST {
+    struct {
         RK_U32      framewidth_last     : 16;
         RK_U32      reserve             : 16;
     } reg106;
 
-    struct SWREG107_VP9_FRAME_HEIGHT_LAST {
+    struct {
         RK_U32      frameheight_last    : 16;
         RK_U32      reserve             : 16;
     } reg107;
 
-    struct SWREG108_VP9_FRAME_WIDTH_GOLDEN {
+    struct {
         RK_U32      framewidth_golden   : 16;
         RK_U32      reserve             : 16;
     } reg108;
 
-    struct SWREG109_VP9_FRAME_HEIGHT_GOLDEN {
+    struct {
         RK_U32      frameheight_golden  : 16;
         RK_U32      reserve             : 16;
     } reg109;
 
-    struct SWREG110_VP9_FRAME_WIDTH_ALTREF {
+    struct {
         RK_U32      framewidth_alfter   : 16;
         RK_U32      reserve             : 16;
     } reg110;
 
-    struct SWREG111_VP9_FRAME_HEIGHT_ALTREF {
+    struct {
         RK_U32      frameheight_alfter  : 16;
         RK_U32      reserve             : 16;
     } reg111;
 
-    struct SWREG112_ERROR_REF_INFO {
+    struct {
         RK_U32      ref_error_field         : 1;
         RK_U32      ref_error_topfield      : 1;
         RK_U32      ref_error_topfield_used : 1;

@@ -1216,4 +1216,4 @@ const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type)
     return hw_info;
 }
 
-MPP_SINGLETON(MPP_SGLN_SOC, mpp_soc, mpp_soc_srv_init, mpp_soc_srv_deinit);
+MPP_SINGLETON(MPP_SGLN_SOC, mpp_soc, mpp_soc_srv_init, mpp_soc_srv_deinit)

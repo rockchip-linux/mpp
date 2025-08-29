@@ -71,13 +71,13 @@
     AOM_ICDF(a5), AOM_ICDF(a6), AOM_ICDF(a7), AOM_ICDF(a8), AOM_ICDF(a9), \
     AOM_ICDF(a10), AOM_ICDF(a11), AOM_ICDF(a12), AOM_ICDF(a13), AOM_ICDF(a14)
 
-typedef av1_prob Av1ProbMatrix1d[AV1_INTRA_MODES - 1];
+typedef rk_u8 Av1ProbMatrix1d[AV1_INTRA_MODES - 1];
 typedef Av1ProbMatrix1d Av1ProbMatrix2d[AV1_INTRA_MODES];
 typedef Av1ProbMatrix2d Av1ProbMatrix3d[AV1_INTRA_MODES];
 
-typedef av1_prob Av1BlockModeProbmatrix2d[BLOCK_SIZE_GROUPS][AV1_INTRA_MODES - 1];
+typedef rk_u8 Av1BlockModeProbmatrix2d[BLOCK_SIZE_GROUPS][AV1_INTRA_MODES - 1];
 
-const av1_prob
+const rk_u8
 av1_partition_probs[NUM_FRAME_TYPES][NUM_PARTITION_CONTEXTS][PARTITION_TYPES] = {
     /* 1 byte padding */
     {
@@ -167,24 +167,24 @@ const RK_S8 av1_segment_tree[2 * MAX_MB_SEGMENTS - 2] = {
 
 // NOT USED IN AV1
 #if 0
-static const av1_prob default_intra_inter_p[INTRA_INTER_CONTEXTS] = {9,   102,
-                                                                     187, 225
-                                                                    };
+static const rk_u8 default_intra_inter_p[INTRA_INTER_CONTEXTS] = {9,   102,
+                                                                  187, 225
+                                                                 };
 
-static const av1_prob default_comp_inter_p[COMP_INTER_CONTEXTS] = {
+static const rk_u8 default_comp_inter_p[COMP_INTER_CONTEXTS] = {
     239, 183, 119, 96, 41
 };
 
-static const av1_prob default_comp_ref_p[REF_CONTEXTS] = {50,  126, 123,
-                                                          221, 226
-                                                         };
+static const rk_u8 default_comp_ref_p[REF_CONTEXTS] = {50,  126, 123,
+                                                       221, 226
+                                                      };
 
-static const av1_prob default_single_ref_p[REF_CONTEXTS][2] = {
+static const rk_u8 default_single_ref_p[REF_CONTEXTS][2] = {
     {33, 16}, {77, 74}, {142, 142}, {172, 170}, {238, 247}
 };
 #endif
 
-const av1_prob av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS]
+const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS]
 [TX_SIZE_MAX_SB - 1] = {
     {
         3,
@@ -197,7 +197,7 @@ const av1_prob av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS]
         13,
     },
 };
-const av1_prob av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS]
+const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS]
 [TX_SIZE_MAX_SB - 2] = {
     {
         20,
@@ -208,7 +208,7 @@ const av1_prob av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS]
         101,
     },
 };
-const av1_prob av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 3] = {
+const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 3] = {
     {
         100,
     },
@@ -217,22 +217,22 @@ const av1_prob av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 3] =
     },
 };
 
-const av1_prob av1_default_mbskip_probs[MBSKIP_CONTEXTS] = {192, 128, 64};
+const rk_u8 av1_default_mbskip_probs[MBSKIP_CONTEXTS] = {192, 128, 64};
 
-const av1_prob
+const rk_u8
 av1_default_intra_ext_tx_prob[EXT_TX_SIZES][TX_TYPES][TX_TYPES - 1] = {
     {{240, 85, 128}, {4, 1, 248}, {4, 1, 8}, {4, 248, 128}},
     {{244, 85, 128}, {8, 2, 248}, {8, 2, 8}, {8, 248, 128}},
     {{248, 85, 128}, {16, 4, 248}, {16, 4, 8}, {16, 248, 128}},
 };
 
-const av1_prob av1_default_inter_ext_tx_prob[EXT_TX_SIZES][TX_TYPES - 1] = {
+const rk_u8 av1_default_inter_ext_tx_prob[EXT_TX_SIZES][TX_TYPES - 1] = {
     {160, 85, 128},
     {176, 85, 128},
     {192, 85, 128},
 };
 
-const av1_prob av1_default_motion_mode_prob[MOTION_MODE_CONTEXTS][MOTION_MODE_COUNT - 1] = {
+const rk_u8 av1_default_motion_mode_prob[MOTION_MODE_CONTEXTS][MOTION_MODE_COUNT - 1] = {
     {151}, {153}, {144}, {178},
     {165}, {160}, {207}, {195},
     {168}, {244}

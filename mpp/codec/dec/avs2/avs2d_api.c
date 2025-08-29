@@ -209,7 +209,6 @@ MPP_RET avs2d_prepare(void *decoder, MppPacket pkt, HalDecTask *task)
         //!< bit stream
         RK_U32 align_len = MPP_ALIGN(p_dec->p_stream->len + 32, 16);
 
-        mpp_assert(p_dec->p_stream->size > align_len);
         memset(p_dec->p_stream->pbuf + p_dec->p_stream->len,
                0, align_len - p_dec->p_stream->len);
 

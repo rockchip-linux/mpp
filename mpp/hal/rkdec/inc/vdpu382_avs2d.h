@@ -20,7 +20,7 @@
 #include "vdpu382_com.h"
 
 typedef struct Vdpu382RegAvs2dParam_t {
-    struct SWREG64_H26X_SET {
+    struct {
         RK_U32      h26x_frame_orslice      : 1;
         RK_U32      h26x_rps_mode           : 1;
         RK_U32      h26x_stream_mode        : 1;
@@ -34,7 +34,7 @@ typedef struct Vdpu382RegAvs2dParam_t {
 
     RK_U32 reg67_098_ref_poc[32];
 
-    struct SWREG99_AVS2_REF0_3_INFO {
+    struct {
         RK_U32 ref0_field                   : 1;
         RK_U32                              : 1;
         RK_U32 ref0_botfield_used           : 1;
@@ -57,7 +57,7 @@ typedef struct Vdpu382RegAvs2dParam_t {
         RK_U32                              : 4;
     } reg99;
 
-    struct SWREG100_AVS2_REF4_7_INFO {
+    struct {
         RK_U32 ref4_field                   : 1;
         RK_U32                              : 1;
         RK_U32 ref4_botfield_used           : 1;
@@ -82,21 +82,21 @@ typedef struct Vdpu382RegAvs2dParam_t {
 
     RK_U32 reg101_102[2];
 
-    struct SW103_CTRL_EXTRA {
+    struct {
         // 0 : use default 255, 1 : use fixed 256
         RK_U32 slice_hor_pos_ctrl           : 1;
         RK_U32                              : 31;
     } reg103;
 
     RK_U32 reg104;
-    struct SW105_HEAD_LEN {
+    struct {
         RK_U32 head_len                     : 4;
         RK_U32 count_update_en              : 1;
         RK_U32                              : 27;
     } reg105;
 
     RK_U32 reg106_111[6];
-    struct SW112_ERROR_REF_INFO {
+    struct {
         // 0 : Frame, 1 : field
         RK_U32 ref_error_field              : 1;
         /**

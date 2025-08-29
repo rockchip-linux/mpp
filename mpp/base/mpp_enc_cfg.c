@@ -398,12 +398,12 @@ RK_S32 mpp_enc_cfg_deinit(MppEncCfg cfg)
         return kmpp_obj_set_##cfg_type((KmppObj)cfg, name, val); \
     }
 
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_s32, RK_S32, S32);
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_u32, RK_U32, U32);
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_s64, RK_S64, S64);
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_u64, RK_U64, U64);
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_ptr, void *, Ptr);
-ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_st,  void *, St);
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_s32, RK_S32, S32)
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_u32, RK_U32, U32)
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_s64, RK_S64, S64)
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_u64, RK_U64, U64)
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_ptr, void *, Ptr)
+ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_st,  void *, St)
 
 #define kmpp_obj_get_S32(obj, name, val) \
     kmpp_obj_get_s32(obj, name, val)
@@ -424,12 +424,12 @@ ENC_CFG_SET_ACCESS(mpp_enc_cfg_set_st,  void *, St);
         return kmpp_obj_get_##cfg_type((KmppObj)cfg, name, val); \
     }
 
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_s32, RK_S32, S32);
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_u32, RK_U32, U32);
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_s64, RK_S64, S64);
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_u64, RK_U64, U64);
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_ptr, void *, Ptr);
-ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_st,  void  , St);
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_s32, RK_S32, S32)
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_u32, RK_U32, U32)
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_s64, RK_S64, S64)
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_u64, RK_U64, U64)
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_ptr, void *, Ptr)
+ENC_CFG_GET_ACCESS(mpp_enc_cfg_get_st,  void  , St)
 
 void mpp_enc_cfg_show(void)
 {

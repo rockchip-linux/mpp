@@ -25,11 +25,9 @@
 #define AV1_UPD_INTERINTRA_PROB 192
 #define SEPARATE_INTERINTRA_UV 0
 
-typedef RK_U8 av1_prob;
-
 extern const RK_S8 av1hwd_intra_mode_tree[];
 
-extern const av1_prob av1_kf_default_bmode_probs[AV1_INTRA_MODES]
+extern const rk_u8 av1_kf_default_bmode_probs[AV1_INTRA_MODES]
 [AV1_INTRA_MODES]
 [AV1_INTRA_MODES - 1];
 
@@ -40,7 +38,7 @@ extern const RK_S8 av1_sb_mv_ref_tree[];
 /* probability models for partition information */
 extern const RK_S8 av1hwd_partition_tree[];
 // extern struct av1_token av1_partition_encodings[PARTITION_TYPES];
-// extern const av1_prob av1_partition_probs[NUM_FRAME_TYPES]
+// extern const rk_u8 av1_partition_probs[NUM_FRAME_TYPES]
 //                                          [NUM_PARTITION_CONTEXTS]
 //                                          [PARTITION_TYPES];
 
@@ -61,14 +59,14 @@ extern const RK_S8 av1hwd_switchable_interp_tree[2 * (AV1_SWITCHABLE_FILTERS - 1
 
 // extern struct av1_token av1hwd_switchable_interp_encodings[AV1_SWITCHABLE_FILTERS];
 
-extern const av1_prob av1hwd_switchable_interp_prob[AV1_SWITCHABLE_FILTERS + 1][AV1_SWITCHABLE_FILTERS - 1];
+extern const rk_u8 av1hwd_switchable_interp_prob[AV1_SWITCHABLE_FILTERS + 1][AV1_SWITCHABLE_FILTERS - 1];
 
-extern const av1_prob av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 1];
-extern const av1_prob av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 2];
-extern const av1_prob av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 3];
+extern const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 1];
+extern const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 2];
+extern const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 3];
 
-extern const av1_prob av1_default_intra_ext_tx_prob[EXT_TX_SIZES][TX_TYPES] [TX_TYPES - 1];
-extern const av1_prob av1_default_inter_ext_tx_prob[EXT_TX_SIZES][TX_TYPES - 1];
+extern const rk_u8 av1_default_intra_ext_tx_prob[EXT_TX_SIZES][TX_TYPES] [TX_TYPES - 1];
+extern const rk_u8 av1_default_inter_ext_tx_prob[EXT_TX_SIZES][TX_TYPES - 1];
 
 extern const RK_S8 av1_segment_tree[];
 

@@ -17,6 +17,8 @@
 #ifndef _AV1D_SYNTAX_H_
 #define _AV1D_SYNTAX_H_
 
+#include "av1d_common.h"
+
 typedef unsigned long       DWORD;
 typedef unsigned char       BYTE;
 typedef unsigned short      WORD;

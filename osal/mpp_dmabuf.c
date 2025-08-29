@@ -30,7 +30,7 @@ static void mpp_dmabuf_init(void)
     mpp_env_get_u32("mpp_dmabuf_has_partial_ops", &has_partial_ops, has_partial_ops);
 }
 
-MPP_SINGLETON(MPP_SGLN_DMABUF, mpp_dmabuf, mpp_dmabuf_init, NULL);
+MPP_SINGLETON(MPP_SGLN_DMABUF, mpp_dmabuf, mpp_dmabuf_init, NULL)
 
 MPP_RET mpp_dmabuf_sync_begin(RK_S32 fd, RK_S32 ro, const char *caller)
 {

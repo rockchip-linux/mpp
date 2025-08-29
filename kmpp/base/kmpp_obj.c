@@ -500,7 +500,7 @@ __failed:
     kmpp_ktrie_put(&ioc);
 }
 
-MPP_SINGLETON(MPP_SGLN_KOBJ, kmpp_obj, kmpp_objs_init, kmpp_objs_deinit);
+MPP_SINGLETON(MPP_SGLN_KOBJ, kmpp_obj, kmpp_objs_init, kmpp_objs_deinit)
 
 rk_s32 kmpp_objdef_put(KmppObjDef def)
 {

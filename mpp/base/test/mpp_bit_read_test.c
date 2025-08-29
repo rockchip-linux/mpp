@@ -25,7 +25,7 @@
 
 #define BIT_READ_BUFFER_SIZE        (1024)
 
-typedef enum BitOpsType_e {
+typedef enum BitReadOpsType_e {
     BIT_GET,
     BIT_GET_UE,
     BIT_GET_SE,
