@@ -32,6 +32,7 @@
 #include "hal_av1d_vdpu_reg.h"
 #include "hal_av1d_vdpu.h"
 #include "hal_av1d_vdpu383.h"
+#include "hal_av1d_vdpu384b.h"
 #include "hal_av1d_common.h"
 
 RK_U32 hal_av1d_debug = 0;
@@ -55,11 +56,19 @@ MPP_RET hal_av1d_init(void *hal, MppHalCfg *cfg)
     }
 
     hw_id = mpp_get_client_hw_id(type);
-    if (hw_id == HWID_VDPU383) {
+
+    switch (hw_id) {
+    case HWID_VDPU383 : {
         p_hal->api = &hal_av1d_vdpu383;
-    } else {
+    } break;
+    case HWID_VDPU384B_RK3538 :
+    case HWID_VDPU384B_RK3572 : {
+        p_hal->api = &hal_av1d_vdpu384b;
+    } break;
+    default : {
         p_hal->api = &hal_av1d_vdpu;
         type  = VPU_CLIENT_AV1DEC;
+    } break;
     }
 
     //!< callback function to parser module

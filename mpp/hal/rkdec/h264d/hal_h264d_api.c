@@ -41,6 +41,7 @@
 #include "hal_h264d_vdpu382.h"
 #include "hal_h264d_vdpu383.h"
 #include "hal_h264d_vdpu384a.h"
+#include "hal_h264d_vdpu384b.h"
 #include "hal_h264d_vdpu2.h"
 #include "hal_h264d_vdpu1.h"
 
@@ -300,6 +301,10 @@ MPP_RET hal_h264d_init(void *hal, MppHalCfg *cfg)
         } break;
         case HWID_VDPU384A : {
             p_hal->hal_api = &hal_h264d_vdpu384a;
+        } break;
+        case HWID_VDPU384B_RK3538 :
+        case HWID_VDPU384B_RK3572 : {
+            p_hal->hal_api = &hal_h264d_vdpu384b;
         } break;
         case HWID_VDPU382_RK3528 :
         case HWID_VDPU382_RK3562 : {

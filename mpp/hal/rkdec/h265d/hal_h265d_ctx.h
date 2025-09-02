@@ -69,8 +69,6 @@ typedef struct HalH265dCtx_t {
         RK_U32           is_v341   : 1;
         RK_U32           is_v345   : 1;
         RK_U32           is_v34x   : 1;
-        RK_U32           is_v383   : 1;
-        RK_U32           is_v384a  : 1;
     };
     /* rcb info */
     RK_U32          chroma_fmt_idc;

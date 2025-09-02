@@ -1043,8 +1043,8 @@ static const MppSocInfo mpp_soc_infos[] = {
          */
         "rk3538",
         ROCKCHIP_SOC_RK3538,
-        HAVE_RKVDEC | HAVE_JPEG_DEC,
-        {   &vdpu384b, &rkjpegd, NULL, NULL, NULL, NULL},
+        HAVE_RKVDEC | HAVE_JPEG_DEC | HAVE_VDPU2,
+        {   &vdpu384b, &rkjpegd, &vdpu2, NULL, NULL, NULL},
         {   NULL, NULL, NULL, NULL},
     },
     {   /*
