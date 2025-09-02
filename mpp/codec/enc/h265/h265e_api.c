@@ -23,6 +23,7 @@
 #include "mpp_mem.h"
 
 #include "rc.h"
+#include "mpp_soc.h"
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_packet_impl.h"
 

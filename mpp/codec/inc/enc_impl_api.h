@@ -22,6 +22,7 @@
 #include "hal_enc_task.h"
 #include "mpp_enc_cfg.h"
 #include "mpp_enc_refs.h"
+#include "mpp_dev_defs.h"
 
 /*
  * the reset wait for extension

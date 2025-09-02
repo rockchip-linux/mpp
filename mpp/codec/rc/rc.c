@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2016 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2016 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "rc"
@@ -43,12 +32,13 @@ typedef struct MppRcImpl_t {
 
 RK_U32 rc_debug = 0;
 
-const static char default_rc_api[] = "default";
+static const char default_rc_api[] = "default";
 
 MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name)
 {
     MPP_RET ret = MPP_NOK;
     MppRcImpl *p = NULL;
+    RcImplApi *api = NULL;
     const char *name = NULL;
 
     mpp_env_get_u32("rc_debug", &rc_debug, 0);
@@ -60,14 +50,14 @@ MPP_RET rc_init(RcCtx *ctx, MppCodingType type, const char **request_name)
 
     rc_dbg_func("enter type %x name %s\n", type, name);
 
-    RcImplApi *api = rc_api_get(type, name);
+    api = rc_api_get(type, name);
 
     mpp_assert(api);
 
     if (api) {
         void *rc_ctx = mpp_calloc_size(void, api->ctx_size);
-        p = mpp_calloc(MppRcImpl, 1);
 
+        p = mpp_calloc(MppRcImpl, 1);
         if (NULL == p || NULL == rc_ctx) {
             mpp_err_f("failed to create context size %d\n", api->ctx_size);
             MPP_FREE(p);
@@ -173,57 +163,18 @@ MPP_RET rc_frm_check_drop(RcCtx ctx, EncRcTask *task)
     return ret;
 }
 
-MPP_RET rc_frm_check_reenc(RcCtx ctx, EncRcTask *task)
-{
-    MppRcImpl *p = (MppRcImpl *)ctx;
-    const RcImplApi *api = p->api;
+#define MPP_ENC_RC_FUNC(flow, func) \
+    MPP_RET rc_##flow##_##func(RcCtx ctx, EncRcTask *task)      \
+    {                                                           \
+        MppRcImpl *p = (MppRcImpl *)ctx;                        \
+        const RcImplApi *api = p->api;                          \
+        if (!api || !api->flow##_##func || !p->ctx || !task)    \
+            return MPP_OK;                                      \
+        return api->flow##_##func(p->ctx, task);                \
+    }
 
-    if (!api || !api->check_reenc || !p->ctx || !task)
-        return MPP_OK;
-
-    return api->check_reenc(p->ctx, task);
-}
-
-MPP_RET rc_frm_start(RcCtx ctx, EncRcTask *task)
-{
-    MppRcImpl *p = (MppRcImpl *)ctx;
-    const RcImplApi *api = p->api;
-
-    if (!api || !api->frm_start || !p->ctx || !task)
-        return MPP_OK;
-
-    return api->frm_start(p->ctx, task);
-}
-
-MPP_RET rc_frm_end(RcCtx ctx, EncRcTask *task)
-{
-    MppRcImpl *p = (MppRcImpl *)ctx;
-    const RcImplApi *api = p->api;
-
-    if (!api || !api->frm_end || !p->ctx || !task)
-        return MPP_OK;
-
-    return api->frm_end(p->ctx, task);
-}
-
-MPP_RET rc_hal_start(RcCtx ctx, EncRcTask *task)
-{
-    MppRcImpl *p = (MppRcImpl *)ctx;
-    const RcImplApi *api = p->api;
-
-    if (!api || !api->hal_start || !p->ctx || !task)
-        return MPP_OK;
-
-    return api->hal_start(p->ctx, task);
-}
-
-MPP_RET rc_hal_end(RcCtx ctx, EncRcTask *task)
-{
-    MppRcImpl *p = (MppRcImpl *)ctx;
-    const RcImplApi *api = p->api;
-
-    if (!api || !api->hal_end || !p->ctx || !task)
-        return MPP_OK;
-
-    return api->hal_end(p->ctx, task);
-}
+MPP_ENC_RC_FUNC(check, reenc)
+MPP_ENC_RC_FUNC(frm, start)
+MPP_ENC_RC_FUNC(frm, end)
+MPP_ENC_RC_FUNC(hal, start)
+MPP_ENC_RC_FUNC(hal, end)

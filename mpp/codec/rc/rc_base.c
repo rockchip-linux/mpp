@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2016 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2016 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "rc_base"
@@ -47,14 +36,16 @@
 
 MPP_RET mpp_data_init_v2(MppDataV2 **data, RK_S32 size, RK_S32 value)
 {
-    if (NULL == data || size <= 0) {
+    MppDataV2 *p;
+
+    if (!data || size <= 0) {
         mpp_err_f("invalid data %p size %d\n", data, size);
         return MPP_ERR_NULL_PTR;
     }
 
     *data = NULL;
-    MppDataV2 *p = mpp_malloc_size(MppDataV2, sizeof(MppDataV2) + sizeof(RK_S32) * size);
-    if (NULL == p) {
+    p = mpp_malloc_size(MppDataV2, sizeof(MppDataV2) + sizeof(RK_S32) * size);
+    if (!p) {
         mpp_err_f("malloc size %d failed\n", size);
         return MPP_ERR_MALLOC;
     }
@@ -77,8 +68,8 @@ void mpp_data_deinit_v2(MppDataV2 *p)
 
 void mpp_data_reset_v2(MppDataV2 *p, RK_S32 val)
 {
-    RK_S32 i;
     RK_S32 *data = p->val;
+    RK_S32 i;
 
     p->pos_pw = 0;
     p->pos_w = 0;
@@ -137,17 +128,19 @@ void mpp_data_update_v2(MppDataV2 *p, RK_S32 val)
 
 RK_S32 mpp_data_get_pre_val_v2(MppDataV2 *p, RK_S32 idx)
 {
+    RK_S32 pos = 0;
+
     if (idx < 0) {
         idx = p->size + idx;
     }
     mpp_assert(p->pos_w < p->size);
     mpp_assert(idx < p->size);
-    RK_S32 pos = 0;
 
     pos = p->pos_w - 1;
     if (pos - idx < 0) {
-        mpp_assert(p->pos_r == p->size);
         RK_S32 pos1 = idx - pos;
+
+        mpp_assert(p->pos_r == p->size);
         pos = p->size - pos1;
     } else {
         pos = pos - idx;
@@ -163,13 +156,12 @@ RK_S32 mpp_data_sum_v2(MppDataV2 *p)
 RK_S32 mpp_data_mean_v2(MppDataV2 *p)
 {
     RK_S32 mean = (RK_S32)p->sum / p->size;
+
     return mean;
 }
 
 RK_S32 mpp_data_sum_with_ratio_v2(MppDataV2 *p, RK_S32 len, RK_S32 num, RK_S32 denom)
 {
-    mpp_assert(p);
-
     RK_S32 i;
     RK_S64 sum = 0;
     RK_S32 *data = p->val;
