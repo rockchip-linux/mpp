@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_allocator"
@@ -56,15 +45,15 @@ static MPP_RET mpp_allocator_api_wrapper(MppAllocator allocator,
                                          MppBufferInfo *info,
                                          OsAllocatorApiId id)
 {
-    if (NULL == allocator || NULL == info || id >= ALLOC_API_BUTT) {
+    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
+    OsAllocatorFunc func;
+    MPP_RET ret = MPP_NOK;
+
+    if (!p || !info || id >= ALLOC_API_BUTT) {
         mpp_err_f("invalid input: allocator %p info %p id %d\n",
                   allocator, info, id);
         return MPP_ERR_UNKNOW;
     }
-
-    MPP_RET ret = MPP_NOK;
-    MppAllocatorImpl *p = (MppAllocatorImpl *)allocator;
-    OsAllocatorFunc func;
 
     MPP_ALLOCATOR_LOCK(p);
     switch (id) {
@@ -139,7 +128,7 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api,
     MppAllocatorImpl *p = NULL;
 
     do {
-        if (NULL == allocator || NULL == api || buffer_type >= MPP_BUFFER_TYPE_BUTT) {
+        if (!allocator || !api || buffer_type >= MPP_BUFFER_TYPE_BUTT) {
             mpp_err_f("invalid input: allocator %p api %p type %d\n",
                       allocator, api, buffer_type);
             break;
@@ -215,12 +204,12 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api,
 
 MPP_RET mpp_allocator_put(MppAllocator *allocator)
 {
-    if (NULL == allocator) {
+    MppAllocatorImpl *p = (MppAllocatorImpl *)*allocator;
+
+    if (!p) {
         mpp_err_f("invalid input: allocator %p\n", allocator);
         return MPP_ERR_NULL_PTR;
     }
-
-    MppAllocatorImpl *p = (MppAllocatorImpl *)*allocator;
 
     if (!p)
         return MPP_OK;

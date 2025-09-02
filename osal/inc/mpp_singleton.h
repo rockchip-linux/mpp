@@ -14,6 +14,7 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_OS_LOG         = MPP_SGLN_BASE,
     MPP_SGLN_OS_MEM,
     MPP_SGLN_TRACE,
+    MPP_SGLN_DMABUF,
     MPP_SGLN_OS_ALLOCATOR,
     MPP_SGLN_MEM_POOL,
     /* hardware platform */

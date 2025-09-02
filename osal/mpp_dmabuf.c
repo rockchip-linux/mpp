@@ -11,6 +11,7 @@
 #include "mpp_log.h"
 #include "mpp_common.h"
 #include "mpp_dmabuf.h"
+#include "mpp_singleton.h"
 #include "linux/dma-buf.h"
 
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
@@ -18,8 +19,7 @@
 
 static RK_U32 has_partial_ops = 0;
 
-__attribute__ ((constructor))
-void mpp_dmabuf_init(void)
+static void mpp_dmabuf_init(void)
 {
     /*
      * update has_partial_ops by env
@@ -29,6 +29,8 @@ void mpp_dmabuf_init(void)
      */
     mpp_env_get_u32("mpp_dmabuf_has_partial_ops", &has_partial_ops, has_partial_ops);
 }
+
+MPP_SINGLETON(MPP_SGLN_DMABUF, mpp_dmabuf, mpp_dmabuf_init, NULL);
 
 MPP_RET mpp_dmabuf_sync_begin(RK_S32 fd, RK_S32 ro, const char *caller)
 {
