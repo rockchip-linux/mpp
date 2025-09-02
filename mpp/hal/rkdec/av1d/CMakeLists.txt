@@ -10,6 +10,7 @@ set(HAL_AV1D_HDR
 set(HAL_AV1D_SRC
     hal_av1d_com.c
     hal_av1d_vdpu383.c
+    hal_av1d_vdpu384b.c
     )
 
 add_library(hal_av1d_rkv OBJECT

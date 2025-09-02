@@ -16,6 +16,7 @@ set(HAL_AVS2D_SRC
     hal_avs2d_rkv.c
     hal_avs2d_vdpu382.c
     hal_avs2d_vdpu383.c
+    hal_avs2d_vdpu384b.c
     hal_avs2d_api.c
     )
 

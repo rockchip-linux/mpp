@@ -31,6 +31,7 @@
 #define AV1D_DBG_LOG               (0x00000008)
 
 #define AV1D_DBG_HARD_MODE         (0x00000010)
+#define AV1D_DBG_REG               (0x00000020)
 
 extern RK_U32 hal_av1d_debug;
 

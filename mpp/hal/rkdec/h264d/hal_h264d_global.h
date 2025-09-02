@@ -20,6 +20,7 @@
 #define H264D_DBG_LOG               (0x00000008)
 
 #define H264D_DBG_HARD_MODE         (0x00000010)
+#define H264D_DBG_REG               (0x00000020)
 
 extern RK_U32 hal_h264d_debug;
 

@@ -8,6 +8,7 @@ set(HAL_VP9D_SRC
     hal_vp9d_vdpu34x.c
     hal_vp9d_vdpu382.c
     hal_vp9d_vdpu383.c
+    hal_vp9d_vdpu384b.c
     )
 
 add_library(${HAL_VP9D} OBJECT ${HAL_VP9D_SRC})
