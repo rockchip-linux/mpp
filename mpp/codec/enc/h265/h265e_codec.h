@@ -73,8 +73,6 @@ typedef struct H265eCtx_t {
     RK_U32              plt_flag;
 
     void                *extra_info;
-    void                *param_buf;
-    MppPacket           packeted_param;
     H265eSyntax_new     syntax;
     H265eFeedback       feedback;
     struct list_head    rc_list;
