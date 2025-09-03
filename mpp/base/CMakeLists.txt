@@ -8,8 +8,8 @@ add_library(mpp_base OBJECT
     mpp_enc_ref.cpp
     mpp_enc_cfg.c
     mpp_dec_cfg.c
-    mpp_sys_cfg.cpp
-    mpp_sys_cfg_st.cpp
+    mpp_sys_cfg.c
+    mpp_sys_cfg_st.c
     mpp_cluster.cpp
     mpp_buf_slot.cpp
     mpp_buffer_impl.c

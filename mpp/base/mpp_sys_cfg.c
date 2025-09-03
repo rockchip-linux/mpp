@@ -11,16 +11,17 @@
 
 #include "mpp_env.h"
 #include "mpp_mem.h"
+#include "mpp_list.h"
 #include "mpp_time.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_thread.h"
-#include "mpp_list.h"
+#include "mpp_singleton.h"
 
 #include "mpp_cfg.h"
+#include "mpp_soc.h"
 #include "mpp_trie.h"
 #include "mpp_sys_cfg.h"
-#include "mpp_soc.h"
 #include "mpp_mem_pool.h"
 #include "mpp_compat_impl.h"
 
@@ -38,40 +39,27 @@
 #define sys_cfg_dbg_get(fmt, ...)       sys_cfg_dbg(SYS_CFG_DBG_GET, fmt, ## __VA_ARGS__)
 #define sys_cfg_dbg_dec_buf(fmt, ...)   sys_cfg_dbg(SYS_CFG_DBG_DEC_BUF, fmt, ## __VA_ARGS__)
 
-#define SYS_CFG_CNT 3
+#define get_srv_sys_cfg_f() \
+    ({ \
+        MppSysCfgSrv *__tmp; \
+        if (srv_sys_cfg) { \
+            __tmp = srv_sys_cfg; \
+        } else { \
+            mpp_sys_cfg_srv_init(); \
+            __tmp = srv_sys_cfg; \
+            if (!__tmp) \
+                mpp_err("mpp sys cfg srv not init at %s\n", __FUNCTION__); \
+        } \
+        __tmp; \
+    })
 
-RK_U32 mpp_sys_cfg_debug = 0;
-static MppMemPool mpp_sys_cfg_pool = mpp_mem_pool_init(MODULE_TAG, sizeof(MppSysCfgSet), NULL);
+typedef struct MppSysCfgSrv_t {
+    MppTrie trie;
+    MppMemPool pool;
+} MppSysCfgSrv;
 
-class MppSysCfgService
-{
-private:
-    MppSysCfgService();
-    ~MppSysCfgService();
-    MppSysCfgService(const MppSysCfgService &);
-    MppSysCfgService &operator=(const MppSysCfgService &);
-
-    MppCfgInfoHead mHead;
-    MppTrie mTrie;
-
-public:
-    static MppSysCfgService *get_ins() {
-        static MppSysCfgService instance;
-
-        return &instance;
-    }
-
-    MppSysCfgSet *get_cfg();
-    MPP_RET put_cfg(MppSysCfgSet *);
-
-    MppTrieInfo *get_info(const char *name);
-    MppTrieInfo *get_info_first();
-    MppTrieInfo *get_info_next(MppTrieInfo *info);
-
-    RK_S32 get_node_count() { return mHead.node_count; };
-    RK_S32 get_info_count() { return mHead.info_count; };
-    RK_S32 get_info_size() { return mHead.info_size; };
-};
+static MppSysCfgSrv *srv_sys_cfg = NULL;
+static RK_U32 mpp_sys_cfg_debug = 0;
 
 #define EXPAND_AS_TRIE(base, name, cfg_type, in_type, flag, field_change, field_data) \
     do { \
@@ -82,7 +70,7 @@ public:
             (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.field_data)), \
             sizeof((((MppSysCfgSet *)0)->field_change.field_data)), \
         }; \
-        mpp_trie_add_info(mTrie, #base":"#name, &tmp, sizeof(tmp)); \
+        mpp_trie_add_info(srv->trie, #base":"#name, &tmp, sizeof(tmp)); \
     } while (0);
 
 #define ENTRY_TABLE(ENTRY)  \
@@ -113,83 +101,114 @@ public:
     ENTRY(dec_buf_chk, size_metadata,   U32, RK_U32,        0,                                              dec_buf_chk, size_metadata) \
     ENTRY(dec_buf_chk, size_thumbnail,  U32, RK_U32,        0,                                              dec_buf_chk, size_thumbnail)
 
-MppSysCfgService::MppSysCfgService() :
-    mTrie(NULL)
+static void mpp_sys_cfg_srv_init()
 {
-    rk_s32 ret = mpp_trie_init(&mTrie, "MppSysCfg");
-    if (ret) {
-        mpp_err_f("failed to init dec cfg set trie\n");
+    MppSysCfgSrv *srv = srv_sys_cfg;
+
+    mpp_env_get_u32("mpp_sys_cfg_debug", &mpp_sys_cfg_debug, mpp_sys_cfg_debug);
+
+    if (srv)
+        return ;
+
+    srv = mpp_calloc(MppSysCfgSrv, 1);
+    if (!srv) {
+        mpp_err_f("failed to allocate sys cfg set service\n");
         return ;
     }
 
-    ENTRY_TABLE(EXPAND_AS_TRIE)
-
-    mpp_trie_add_info(mTrie, NULL, NULL, 0);
-
-    mHead.node_count = mpp_trie_get_node_count(mTrie);
-    mHead.info_count = mpp_trie_get_info_count(mTrie);
-    mHead.info_size = mpp_trie_get_buf_size(mTrie);
-
-    sys_cfg_dbg_func("node cnt: %d\n", mHead.node_count);
-}
-
-MppSysCfgService::~MppSysCfgService()
-{
-    if (mTrie) {
-        mpp_trie_deinit(mTrie);
-        mTrie = NULL;
+    mpp_trie_init(&srv->trie, "MppSysCfg");
+    srv->pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppSysCfgSet));
+    if (!srv->trie || !srv->pool) {
+        mpp_err_f("failed to init sys cfg set service\n");
+        if (srv->trie) {
+            mpp_trie_deinit(srv->trie);
+            srv->trie = NULL;
+        }
+        if (srv->pool) {
+            mpp_mem_pool_deinit_f(srv->pool);
+            srv->pool = NULL;
+        }
+        MPP_FREE(srv);
+        return ;
     }
+
+    srv_sys_cfg = srv;
+
+    ENTRY_TABLE(EXPAND_AS_TRIE)
+    mpp_trie_add_info(srv->trie, NULL, NULL, 0);
+
+    sys_cfg_dbg_func("info cnt %d node cnt %d size %d\n",
+                     mpp_trie_get_info_count(srv->trie),
+                     mpp_trie_get_node_count(srv->trie),
+                     mpp_trie_get_buf_size(srv->trie));
 }
 
-MppSysCfgSet *MppSysCfgService::get_cfg()
+static void mpp_sys_cfg_srv_deinit()
 {
-    MppSysCfgSet *node;
+    MppSysCfgSrv *srv = srv_sys_cfg;
 
-    node = (MppSysCfgSet*)mpp_mem_pool_get_f(mpp_sys_cfg_pool);
+    if (!srv)
+        return ;
+
+    if (srv->trie) {
+        mpp_trie_deinit(srv->trie);
+        srv->trie = NULL;
+    }
+    if (srv->pool) {
+        mpp_mem_pool_deinit_f(srv->pool);
+        srv->pool = NULL;
+    }
+
+    MPP_FREE(srv_sys_cfg);
+}
+
+MPP_SINGLETON(MPP_SGLN_SYS_CFG, mpp_sys_cfg, mpp_sys_cfg_srv_init, mpp_sys_cfg_srv_deinit)
+
+static MppSysCfgSet *srv_get_cfg(MppSysCfgSrv *srv)
+{
+    MppSysCfgSet *node = (MppSysCfgSet*)mpp_mem_pool_get_f(srv->pool);
+
     node->dec_buf_chk.type = MPP_VIDEO_CodingUnused;
 
     return node;
 }
 
-MPP_RET MppSysCfgService::put_cfg(MppSysCfgSet *node)
+static MPP_RET srv_put_cfg(MppSysCfgSrv *srv, MppSysCfgSet *node)
 {
-    mpp_mem_pool_put_f(mpp_sys_cfg_pool, node);
+    mpp_mem_pool_put_f(srv->pool, node);
 
     return MPP_OK;
 }
 
-MppTrieInfo *MppSysCfgService::get_info(const char *name)
-{
-    return mpp_trie_get_info(mTrie, name);
-}
-
-MppTrieInfo *MppSysCfgService::get_info_first()
-{
-    return mpp_trie_get_info_first(mTrie);
-}
-
-MppTrieInfo *MppSysCfgService::get_info_next(MppTrieInfo *info)
-{
-    return mpp_trie_get_info_next(mTrie, info);
-}
-
 MPP_RET mpp_sys_cfg_get(MppSysCfg *cfg)
 {
-    if (NULL == cfg) {
+    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
+
+    if (!cfg) {
         mpp_err_f("invalid NULL input config\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    mpp_env_get_u32("mpp_sys_cfg_debug", &mpp_sys_cfg_debug, 0);
+    *cfg = NULL;
 
-    *cfg = MppSysCfgService::get_ins()->get_cfg();
+    if (!srv)
+        return MPP_NOK;
+
+    mpp_env_get_u32("mpp_sys_cfg_debug", &mpp_sys_cfg_debug, mpp_sys_cfg_debug);
+
+    *cfg = srv_get_cfg(srv);
 
     return *cfg ? MPP_OK : MPP_NOK;
 }
 
 MPP_RET mpp_sys_cfg_put(MppSysCfg cfg)
 {
-    return MppSysCfgService::get_ins()->put_cfg((MppSysCfgSet *)cfg);
+    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
+
+    if (!srv)
+        return MPP_NOK;
+
+    return srv_put_cfg(srv, (MppSysCfgSet *)cfg);
 }
 
 typedef enum SysCfgAlignType_e {
@@ -612,13 +631,19 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
 #define MPP_CFG_SET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppSysCfg cfg, const char *name, in_type val) \
     { \
-        if (NULL == cfg || NULL == name) { \
+        MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
+        MppSysCfgSet *p; \
+        MppTrieInfo *node; \
+        MppCfgInfo *info; \
+        if (!srv) \
+            return MPP_NOK; \
+        if (!cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        MppSysCfgSet *p = (MppSysCfgSet *)cfg; \
-        MppTrieInfo *node = MppSysCfgService::get_ins()->get_info(name); \
-        MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
+        p = (MppSysCfgSet *)cfg; \
+        node = mpp_trie_get_info(srv->trie, name); \
+        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
@@ -627,7 +652,7 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
             return MPP_NOK; \
         } \
         sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
-                            strof_cfg_type(info->data_type)); \
+                        strof_cfg_type(info->data_type)); \
         MPP_RET ret = MPP_CFG_SET_##cfg_type(info, p, val); \
         return ret; \
     }
@@ -642,13 +667,19 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, St);
 #define MPP_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppSysCfg cfg, const char *name, in_type *val) \
     { \
-        if (NULL == cfg || NULL == name) { \
+        MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
+        MppSysCfgSet *p; \
+        MppTrieInfo *node; \
+        MppCfgInfo *info; \
+        if (!srv) \
+            return MPP_NOK; \
+        if (!cfg || !name) { \
             mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
             return MPP_ERR_NULL_PTR; \
         } \
-        MppSysCfgSet *p = (MppSysCfgSet *)cfg; \
-        MppTrieInfo *node = MppSysCfgService::get_ins()->get_info(name); \
-        MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
+        p = (MppSysCfgSet *)cfg; \
+        node = mpp_trie_get_info(srv->trie, name); \
+        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
@@ -667,8 +698,15 @@ MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_st,  void  , St);
 
 void mpp_sys_cfg_show(void)
 {
-    MppSysCfgService *srv = MppSysCfgService::get_ins();
-    MppTrieInfo *root = srv->get_info_first();
+    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
+    MppTrieInfo *root;
+    MppTrie trie;
+
+    if (!srv)
+        return ;
+
+    trie = srv->trie;
+    root = mpp_trie_get_info_first(trie);
 
     mpp_log("dumping valid configure string start\n");
 
@@ -681,7 +719,7 @@ void mpp_sys_cfg_show(void)
             mpp_log("%-25s type %s\n", mpp_trie_info_name(node),
                     strof_cfg_type(info->data_type));
 
-            node = srv->get_info_next(node);
+            node = mpp_trie_get_info_next(trie, node);
             if (!node)
                 break;
         } while (1);
@@ -689,5 +727,7 @@ void mpp_sys_cfg_show(void)
     mpp_log("dumping valid configure string done\n");
 
     mpp_log("total cfg count %d with %d node size %d\n",
-            srv->get_info_count(), srv->get_node_count(), srv->get_info_size());
+            mpp_trie_get_info_count(trie),
+            mpp_trie_get_node_count(trie),
+            mpp_trie_get_buf_size(trie));
 }
