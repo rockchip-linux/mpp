@@ -37,7 +37,7 @@ add_mpp_test(mpi_dec_nt c)
 add_mpp_test(mpi_enc c)
 
 # mpi encoder multi-thread input / output unit test
-add_mpp_test(mpi_enc_mt cpp)
+add_mpp_test(mpi_enc_mt c)
 
 # new mpi rc unit test
 add_mpp_test(mpi_rc2 c)
