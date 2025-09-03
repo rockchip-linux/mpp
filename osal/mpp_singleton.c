@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "mpp_env.h"
 #include "mpp_singleton.h"
@@ -18,6 +19,7 @@
     } while (0)
 
 static MppSingletonInfo sgln_info[MPP_SGLN_MAX_CNT] = {0};
+static rk_u32 sgln_max_name_len = 12;
 static rk_u64 sgln_mask = 0;
 static rk_u32 sgln_debug = 0;
 
@@ -43,7 +45,15 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
     sgln_info[info->id] = *info;
     sgln_mask |= (1 << info->id);
 
-    sgln_dbg("info %2d %-12s registered at %s\n", info->id, info->name, caller);
+    {
+        rk_u32 name_len = strlen(info->name);
+
+        if (name_len > sgln_max_name_len)
+            sgln_max_name_len = name_len;
+    }
+
+    sgln_dbg("info %2d %-*s registered at %s\n", info->id,
+             sgln_max_name_len, info->name, caller);
 
     return rk_ok;
 }
@@ -60,9 +70,13 @@ static void mpp_singleton_deinit(void)
             MppSingletonInfo *info = &sgln_info[i];
 
             if (info->deinit) {
-                sgln_dbg("info %2d %-12s deinit start\n", info->id, info->name);
+                sgln_dbg("info %2d %-*s deinit start\n", info->id,
+                         sgln_max_name_len, info->name);
+
                 info->deinit();
-                sgln_dbg("info %2d %-12s deinit finish\n", info->id, info->name);
+
+                sgln_dbg("info %2d %-*s deinit finish\n", info->id,
+                         sgln_max_name_len, info->name);
             }
         }
     }
@@ -84,9 +98,13 @@ __attribute__((constructor(65535))) static void mpp_singleton_init(void)
             MppSingletonInfo *info = &sgln_info[i];
 
             if (info->init) {
-                sgln_dbg("info %2d %-12s init start\n", info->id, info->name);
+                sgln_dbg("info %2d %-*s init start\n", info->id,
+                         sgln_max_name_len, info->name);
+
                 info->init();
-                sgln_dbg("info %2d %-12s init finish\n", info->id, info->name);
+
+                sgln_dbg("info %2d %-*s init finish\n", info->id,
+                         sgln_max_name_len, info->name);
             }
         }
     }
