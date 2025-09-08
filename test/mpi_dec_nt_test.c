@@ -288,7 +288,6 @@ void *thread_decode(void *arg)
 
     t_e = mpp_time();
     data->elapsed_time = t_e - t_s;
-    data->frame_count = data->frame_count;
     data->frame_rate = (float)data->frame_count * 1000000 / data->elapsed_time;
     data->delay = data->first_frm - data->first_pkt;
 
