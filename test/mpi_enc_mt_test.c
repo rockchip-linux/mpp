@@ -50,7 +50,6 @@ typedef struct {
     MppEncCfg       cfg;
     MppEncPrepCfg   prep_cfg;
     MppEncRcCfg     rc_cfg;
-    MppEncCodecCfg  codec_cfg;
     MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
     MppEncOSDData   osd_data;
@@ -308,6 +307,8 @@ MPP_RET test_mt_cfg_setup(MpiEncMtCtxInfo *info)
 
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
+
+    mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
 
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
     mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);

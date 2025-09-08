@@ -198,6 +198,7 @@ typedef struct MppEncQueryCfg_t {
 typedef enum MppEncBaseCfgChange_e {
     MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY   = (1 << 0),
     MPP_ENC_BASE_CFG_CHANGE_SMART_EN    = (1 << 1),
+    MPP_ENC_BASE_CFG_CHANGE_CODING      = (1 << 2),
     MPP_ENC_BASE_CFG_CHANGE_ALL         = (0xFFFFFFFF),
 } MppEncBaseCfgChange;
 
@@ -206,6 +207,7 @@ typedef struct MppEncBaseCfg_t {
 
     RK_S32  low_delay;
     RK_S32  smart_en;
+    MppCodingType coding;
 } MppEncBaseCfg;
 
 /*
@@ -1217,28 +1219,6 @@ typedef struct MppEncVp8Cfg_t {
     RK_S32              qp_max_step;
     RK_S32              disable_ivf;
 } MppEncVp8Cfg;
-
-/**
- * @ingroup rk_mpi
- * @brief MPP encoder codec configuration parameters
- * @details The encoder codec configuration parameters are different for each
- *          compression codings. For example, H.264 encoder can configure
- *          profile, level, qp, etc. while jpeg encoder can configure qp
- *          only. The detailed parameters can refer the corresponding data
- *          structure such as MppEncH264Cfg and MppEncJpegCfg. This data
- *          structure is associated with MPP_ENC_SET_CODEC_CFG command.
- */
-typedef struct MppEncCodecCfg_t {
-    MppCodingType       coding;
-
-    union {
-        RK_U32          change;
-        MppEncH264Cfg   h264;
-        MppEncH265Cfg   h265;
-        MppEncJpegCfg   jpeg;
-        MppEncVp8Cfg    vp8;
-    };
-} MppEncCodecCfg;
 
 typedef enum MppEncSliceSplit_e {
     /* change on quant parameter */

@@ -42,7 +42,7 @@ void h264e_slice_init(H264eSlice *slice, H264eReorderInfo *reorder,
 RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
                           H264eSps *sps, H264ePps *pps, H264eDpbFrm *frm)
 {
-    MppEncH264Cfg *h264 = &cfg->codec.h264;
+    MppEncH264Cfg *h264 = &cfg->h264;
     RK_S32 is_idr = frm->status.is_idr;
 
     slice->mb_w = sps->pic_width_in_mbs;

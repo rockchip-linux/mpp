@@ -114,7 +114,7 @@ void init_raster2pelxy(RK_U32 maxCUSize, RK_U32 maxDepth, RK_U32 *raster2pelx, R
 MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
 {
     RK_S32 i;
-    MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
+    MppEncH265Cfg *codec = &ctx->cfg->h265;
     ProfileTierLevel *profileTierLevel = &vps->m_ptl.m_generalPTL;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
@@ -180,7 +180,7 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
 MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 {
     RK_U32 i, c;
-    MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
+    MppEncH265Cfg *codec = &ctx->cfg->h265;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
     MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
@@ -401,7 +401,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 
 MPP_RET h265e_set_pps(H265eCtx  *ctx, H265ePps *pps, H265eSps *sps)
 {
-    MppEncH265Cfg *codec = &ctx->cfg->codec.h265;
+    MppEncH265Cfg *codec = &ctx->cfg->h265;
 
     pps->m_bConstrainedIntraPred = codec->const_intra_pred;
     pps->m_PPSId = 0;

@@ -146,7 +146,7 @@ static void fill_picture_parameters(const H265eCtx *h,
 static void fill_slice_parameters( const H265eCtx *h,
                                    H265eSlicParams *sp)
 {
-    MppEncH265Cfg *codec = &h->cfg->codec.h265;
+    MppEncH265Cfg *codec = &h->cfg->h265;
     H265eSlice  *slice = h->slice;
     memset(sp, 0, sizeof(H265eSlicParams));
     if (codec->slice_cfg.split_enable) {

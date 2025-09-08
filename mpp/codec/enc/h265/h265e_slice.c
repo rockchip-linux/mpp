@@ -210,7 +210,7 @@ void h265e_slice_init(void *ctx, EncFrmStatus curr)
     H265eSps *sps = &p->sps;
     H265ePps *pps = &p->pps;
     MppEncCfgSet *cfg = p->cfg;
-    MppEncH265Cfg *codec = &cfg->codec.h265;
+    MppEncH265Cfg *codec = &cfg->h265;
     MppEncPrepCfg *prep_cfg = &cfg->prep;
     H265eSlice *slice = p->dpb->curr->slice;
     p->slice = p->dpb->curr->slice;

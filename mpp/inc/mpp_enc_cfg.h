@@ -10,6 +10,8 @@
 #include "rk_venc_ref.h"
 #include "mpp_rc_defs.h"
 
+#include "kmpp_obj.h"
+
 /*
  * MppEncCfgSet shows the relationship between different configuration
  * Due to the huge amount of configurable parameters we need to setup
@@ -29,7 +31,10 @@ typedef struct MppEncCfgSet_t {
     MppEncHwCfg         hw;
 
     // codec detail config
-    MppEncCodecCfg      codec;
+    MppEncH264Cfg       h264;
+    MppEncH265Cfg       h265;
+    MppEncJpegCfg       jpeg;
+    MppEncVp8Cfg        vp8;
 
     MppEncSliceSplit    split;
     MppEncRefCfg        ref_cfg;
@@ -48,8 +53,6 @@ typedef struct MppEncCfgSet_t {
     // quality fine tuning config
     MppEncFineTuneCfg   tune;
 } MppEncCfgSet;
-
-#include "kmpp_obj.h"
 
 typedef struct MppEncCfgImpl_t {
     RK_U32              is_kobj;

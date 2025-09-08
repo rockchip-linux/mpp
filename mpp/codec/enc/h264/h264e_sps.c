@@ -63,7 +63,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     H264eVui *vui = &sps->vui;
     MppEncPrepCfg *prep = &cfg->prep;
     MppEncRcCfg *rc = &cfg->rc;
-    MppEncH264Cfg *h264 = &cfg->codec.h264;
+    MppEncH264Cfg *h264 = &cfg->h264;
     MppEncRefCfg ref = cfg->ref_cfg;
     MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref);
     MppFrameFormat fmt = prep->format;
@@ -315,11 +315,11 @@ MPP_RET h264e_sps_to_packet(H264eSps *sps, MppPacket packet, RK_S32 *offset,
     /* log2_max_frame_num_minus4 */
     mpp_writer_put_ue(bit, sps->log2_max_frame_num_minus4);
     /* pic_order_cnt_type */
-    /* accodring usr cfg cfg->codec.h264.poc_type, hw may no support
+    /* accodring usr cfg cfg->h264.poc_type, hw may no support
        will convert after get stream
     */
-    mpp_writer_put_ue(bit, cfg->codec.h264.poc_type);
-    if (cfg->codec.h264.poc_type == 0) {
+    mpp_writer_put_ue(bit, cfg->h264.poc_type);
+    if (cfg->h264.poc_type == 0) {
         /* log2_max_pic_order_cnt_lsb_minus4 */
         mpp_writer_put_ue(bit, sps->log2_max_poc_lsb_minus4);
     }

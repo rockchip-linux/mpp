@@ -1896,8 +1896,7 @@ static MPP_RET vepu580_h265_set_rc_regs(H265eV580HalContext *ctx, H265eV580RegSe
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncHwCfg *hw = &cfg->hw;
-    MppEncCodecCfg *codec = &cfg->codec;
-    MppEncH265Cfg *h265 = &codec->h265;
+    MppEncH265Cfg *h265 = &cfg->h265;
     RK_S32 mb_wd64, mb_h64;
     mb_wd64 = (syn->pp.pic_width + 63) / 64;
     mb_h64 = (syn->pp.pic_height + 63) / 64;

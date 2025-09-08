@@ -1263,8 +1263,7 @@ static void vepu511_h265_set_rc_regs(H265eV511HalContext *ctx, H265eV511RegSet *
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncRcCfg *rc = &cfg->rc;
     MppEncHwCfg *hw = &cfg->hw;
-    MppEncCodecCfg *codec = &cfg->codec;
-    MppEncH265Cfg *h265 = &codec->h265;
+    MppEncH265Cfg *h265 = &cfg->h265;
     RK_S32 mb_wd32 = (syn->pp.pic_width + 31) / 32;
     RK_S32 mb_h32 = (syn->pp.pic_height + 31) / 32;
 
@@ -2132,7 +2131,7 @@ static void vepu511_h265_global_cfg_set(H265eV511HalContext *ctx, H265eV511RegSe
     H265eVepu511Param *reg_param = &regs->reg_param;
     RK_S32 lambda_idx_p = ctx->cfg->tune.lambda_idx_i;
 
-    reg_frm->sao_cfg.sao_lambda_multi = ctx->cfg->codec.h265.sao_cfg.sao_bit_ratio;
+    reg_frm->sao_cfg.sao_lambda_multi = ctx->cfg->h265.sao_cfg.sao_bit_ratio;
 
     if (ctx->frame_type == INTRA_FRAME) {
         memcpy(&reg_param->pprd_lamb_satd_0_51[0], lambda_tbl_pre_intra, sizeof(lambda_tbl_pre_intra));

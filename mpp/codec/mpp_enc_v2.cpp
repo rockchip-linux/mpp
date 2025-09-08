@@ -133,7 +133,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     }
 
     /* NOTE: setup configure coding for check */
-    p->cfg.codec.coding = coding;
+    p->cfg.base.coding = coding;
     p->cfg.plt_cfg.plt = &p->cfg.plt_data;
     mpp_enc_ref_cfg_init(&p->cfg.ref_cfg);
     ret = mpp_enc_ref_cfg_copy(p->cfg.ref_cfg, mpp_enc_ref_default());
@@ -363,10 +363,10 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
             MPP_SWAP(RK_S32, cfg->prep.width, cfg->prep.height);
         }
         /* cleanup output change flag to avoid extra change flag bit when user resend the cfg */
+        cfg->base.change = 0;
         cfg->rc.change = 0;
         cfg->prep.change = 0;
         cfg->hw.change = 0;
-        cfg->codec.change = 0;
         cfg->split.change = 0;
         cfg->tune.change = 0;
     } break;

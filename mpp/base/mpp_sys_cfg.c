@@ -712,22 +712,25 @@ void mpp_sys_cfg_show(void)
 
     if (root) {
         MppTrieInfo *node = root;
+        rk_s32 len = mpp_trie_get_name_max(trie);
 
         do {
-            MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
+            if (mpp_trie_info_is_self(node))
+                continue;
 
-            mpp_log("%-25s type %s\n", mpp_trie_info_name(node),
-                    strof_cfg_type(info->data_type));
+            if (node->ctx_len == sizeof(MppCfgInfo)) {
+                MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
-            node = mpp_trie_get_info_next(trie, node);
-            if (!node)
-                break;
-        } while (1);
+                mpp_log("%-*s type %s - %d:%d\n", len, mpp_trie_info_name(node),
+                        strof_cfg_type(info->data_type), info->data_offset, info->data_size);
+            } else {
+                mpp_log("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
+            }
+        } while ((node = mpp_trie_get_info_next(trie, node)));
     }
     mpp_log("dumping valid configure string done\n");
 
-    mpp_log("total cfg count %d with %d node size %d\n",
-            mpp_trie_get_info_count(trie),
-            mpp_trie_get_node_count(trie),
-            mpp_trie_get_buf_size(trie));
+    mpp_log("sys cfg size %d count %d with trie node %d size %d\n",
+            sizeof(MppSysCfgSet), mpp_trie_get_info_count(trie),
+            mpp_trie_get_node_count(trie), mpp_trie_get_buf_size(trie));
 }

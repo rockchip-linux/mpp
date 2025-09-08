@@ -79,7 +79,7 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
     {
         /* init default rc config */
         MppEncRcCfg *rc = &p->cfg->rc;
-        MppEncJpegCfg *jpeg_cfg = &p->cfg->codec.jpeg;
+        MppEncJpegCfg *jpeg_cfg = &p->cfg->jpeg;
 
         rc->fps_in_flex = 0;
         rc->fps_in_num = 30;
@@ -99,7 +99,7 @@ static MPP_RET jpege_init_v2(void *ctx, EncImplCfg *cfg)
 static MPP_RET jpege_deinit_v2(void *ctx)
 {
     JpegeCtx *p = (JpegeCtx *)ctx;
-    MppEncJpegCfg *jpeg_cfg = &p->cfg->codec.jpeg;
+    MppEncJpegCfg *jpeg_cfg = &p->cfg->jpeg;
 
     jpege_dbg_func("enter ctx %p\n", ctx);
 
@@ -390,9 +390,9 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= jpege_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
         }
-        if (src->codec.jpeg.change) {
-            ret |= jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &src->codec.jpeg, &cfg->rc);
-            src->codec.jpeg.change = 0;
+        if (src->jpeg.change) {
+            ret |= jpege_proc_jpeg_cfg(&cfg->jpeg, &src->jpeg, &cfg->rc);
+            src->jpeg.change = 0;
         }
         if (src->split.change) {
             ret |= jpege_proc_split_cfg(&cfg->split, &src->split);
@@ -403,8 +403,9 @@ static MPP_RET jpege_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         ret = jpege_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
-        MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-        ret = jpege_proc_jpeg_cfg(&cfg->codec.jpeg, &codec->jpeg, &cfg->rc);
+        MppEncJpegCfg *jpeg = (MppEncJpegCfg *)param;
+
+        ret = jpege_proc_jpeg_cfg(&cfg->jpeg, jpeg, &cfg->rc);
     } break;
     case MPP_ENC_SET_IDR_FRAME :
     case MPP_ENC_SET_OSD_PLT_CFG :
@@ -539,7 +540,7 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     JpegeSyntax *syntax = &p->syntax;
     MppEncCfgSet *cfg = p->cfg;
     MppEncPrepCfg *prep = &cfg->prep;
-    MppEncCodecCfg *codec = &cfg->codec;
+    MppEncJpegCfg *jpeg = &cfg->jpeg;
     MppEncSliceSplit *split = &cfg->split;
 
     jpege_dbg_func("enter ctx %p\n", ctx);
@@ -555,12 +556,12 @@ static MPP_RET jpege_proc_hal(void *ctx, HalEncTask *task)
     syntax->mirroring   = prep->mirroring;
     syntax->offset_x    = mpp_frame_get_offset_x(frame);
     syntax->offset_y    = mpp_frame_get_offset_y(frame);
-    syntax->quality     = codec->jpeg.quant;
-    syntax->q_factor    = codec->jpeg.q_factor;
-    syntax->qf_min      = codec->jpeg.qf_min;
-    syntax->qf_max      = codec->jpeg.qf_max;
-    syntax->qtable_y    = codec->jpeg.qtable_y;
-    syntax->qtable_c    = codec->jpeg.qtable_u;
+    syntax->quality     = jpeg->quant;
+    syntax->q_factor    = jpeg->q_factor;
+    syntax->qf_min      = jpeg->qf_min;
+    syntax->qf_max      = jpeg->qf_max;
+    syntax->qtable_y    = jpeg->qtable_y;
+    syntax->qtable_c    = jpeg->qtable_u;
     syntax->part_rows   = 0;
     syntax->restart_ri  = 0;
     syntax->low_delay   = 0;

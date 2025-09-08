@@ -1061,7 +1061,7 @@ MPP_RET hal_jpege_vepu2_ret_task(void *hal, HalEncTask *task)
         else
             rc_info->quality_real = ctx->hal_rc.q_factor;
     } else {
-        rc_info->quality_real = ctx->cfg->codec.jpeg.q_factor;
+        rc_info->quality_real = ctx->cfg->jpeg.q_factor;
     }
 
     return MPP_OK;

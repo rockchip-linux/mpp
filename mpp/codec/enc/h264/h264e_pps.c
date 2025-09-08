@@ -53,7 +53,7 @@ static const uint8_t inter_scl[64] = {
 
 MPP_RET h264e_pps_update(H264ePps *pps, MppEncCfgSet *cfg)
 {
-    MppEncH264Cfg *codec = &cfg->codec.h264;
+    MppEncH264Cfg *codec = &cfg->h264;
 
     pps->pps_id = 0;
     pps->sps_id = 0;

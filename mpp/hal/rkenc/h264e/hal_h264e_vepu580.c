@@ -568,7 +568,7 @@ static MPP_RET hal_h264e_vepu580_get_task(void *hal, HalEncTask *task)
     HalH264eVepu580Ctx *ctx = (HalH264eVepu580Ctx *)hal;
     MppEncCfgSet *cfg_set = ctx->cfg;
     MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
-    MppEncH264HwCfg *hw_cfg = &cfg_set->codec.h264.hw_cfg;
+    MppEncH264HwCfg *hw_cfg = &cfg_set->h264.hw_cfg;
     RK_U32 updated = update_vepu580_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
     H264eFrmInfo *frms = ctx->frms;
@@ -2369,7 +2369,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
     H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
-    MppEncH264HwCfg *hw_cfg = &ctx->cfg->codec.h264.hw_cfg;
+    MppEncH264HwCfg *hw_cfg = &ctx->cfg->h264.hw_cfg;
     RK_S32 i;
 
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -2441,7 +2441,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
         if (amend->enable) {
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
-            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->h264.hw_cfg);
             task->hw_length = amend->new_length;
         } else if (amend->prefix) {
             /* check prefix value */

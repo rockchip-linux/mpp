@@ -250,7 +250,6 @@ MPP_RET hal_info_from_enc_cfg(HalInfo ctx, MppEncCfgSet *cfg)
 {
     MppEncRcCfg *rc = &cfg->rc;
     MppEncPrepCfg *prep = &cfg->prep;
-    MppEncCodecCfg *codec = &cfg->codec;
     HalInfoImpl *info = (HalInfoImpl *)ctx;
     RK_U32 profile = 0;
     RK_U64 val = 0;
@@ -274,10 +273,10 @@ MPP_RET hal_info_from_enc_cfg(HalInfo ctx, MppEncCfgSet *cfg)
 
     switch (info->coding) {
     case MPP_VIDEO_CodingAVC : {
-        profile = codec->h264.profile;
+        profile = cfg->h264.profile;
     } break;
     case MPP_VIDEO_CodingHEVC : {
-        profile = codec->h265.profile;
+        profile = cfg->h265.profile;
     } break;
     case MPP_VIDEO_CodingMJPEG :
     case MPP_VIDEO_CodingVP8 :

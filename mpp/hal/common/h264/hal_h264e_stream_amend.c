@@ -101,7 +101,7 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
                                        H264eSlice *slice, H264ePrefixNal *prefix)
 {
     MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg->ref_cfg;
-    MppEncH264Cfg    *h264 = &cfg->codec.h264;
+    MppEncH264Cfg    *h264 = &cfg->h264;
     MppEncH264HwCfg  *hw_cfg = &h264->hw_cfg;
 
     if (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1 ||
@@ -120,7 +120,7 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
         h264e_vepu_stream_amend_init(ctx);
     }
 
-    slice->pic_order_cnt_type = cfg->codec.h264.poc_type;
+    slice->pic_order_cnt_type = cfg->h264.poc_type;
 
     ctx->slice = slice;
     if (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)

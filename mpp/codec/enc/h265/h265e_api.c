@@ -40,7 +40,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 {
     H265eCtx *p = (H265eCtx *)ctx;
     MPP_RET ret = MPP_OK;
-    MppEncCodecCfg *codec = NULL;
     MppEncRcCfg *rc_cfg = &ctrlCfg->cfg->rc;
     MppEncPrepCfg *prep = &ctrlCfg->cfg->prep;
     MppEncH265Cfg *h265 = NULL;
@@ -63,8 +62,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
 
     h265e_init_extra_info(p->extra_info);
     /* set defualt value of codec */
-    codec = &p->cfg->codec;
-    h265 = &codec->h265;
+    h265 = &p->cfg->h265;
     h265->intra_qp = 26;
     h265->max_qp = 51;
     h265->min_qp = 10;
@@ -238,7 +236,7 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
      * After gen_hdr, the change of codec/prep must be cleared to 0,
      * otherwise the change will affect the next idr frame
      */
-    p->cfg->codec.h265.change = 0;
+    p->cfg->h265.change = 0;
     p->cfg->prep.change = 0;
 
     h265e_dbg_func("leave ctx %p\n", ctx);
@@ -292,7 +290,7 @@ static MPP_RET h265e_start(void *ctx, HalEncTask *task)
 
         if (base_layer_pid >= 0) {
             H265eCtx *p = (H265eCtx *)ctx;
-            MppEncH265Cfg *h265 = &p->cfg->codec.h265;
+            MppEncH265Cfg *h265 = &p->cfg->h265;
 
             h265->base_layer_pid = base_layer_pid;
         }
@@ -338,7 +336,7 @@ static MPP_RET h265e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h265e_proc_hal(void *ctx, HalEncTask *task)
 {
     H265eCtx *p = (H265eCtx *)ctx;
-    MppEncH265Cfg *h265 = &p->cfg->codec.h265;
+    MppEncH265Cfg *h265 = &p->cfg->h265;
 
     if (ctx == NULL) {
         mpp_err_f("invalid NULL ctx\n");
@@ -723,9 +721,9 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
                 cfg->rc.refresh_length = cfg->rc.gop;
         }
 
-        if (src->codec.h265.change) {
-            ret |= h265e_proc_h265_cfg(&cfg->codec.h265, &src->codec.h265);
-            src->codec.h265.change = 0;
+        if (src->h265.change) {
+            ret |= h265e_proc_h265_cfg(&cfg->h265, &src->h265);
+            src->h265.change = 0;
         }
         if (src->split.change) {
             ret |= h265e_proc_split_cfg(&cfg->split, &src->split);
@@ -741,15 +739,16 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         ret = h265e_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG: {
-        MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-        ret = h265e_proc_h265_cfg(&cfg->codec.h265, &codec->h265);
+        MppEncH265Cfg *h265 = (MppEncH265Cfg *)param;
+
+        ret = h265e_proc_h265_cfg(&cfg->h265, h265);
     } break;
 
     case MPP_ENC_SET_SEI_CFG: {
     } break;
     case MPP_ENC_SET_SPLIT : {
         MppEncSliceSplit *src = (MppEncSliceSplit *)param;
-        MppEncH265SliceCfg *slice_cfg = &cfg->codec.h265.slice_cfg;
+        MppEncH265SliceCfg *slice_cfg = &cfg->h265.slice_cfg;
 
         if (src->split_mode > MPP_ENC_SPLIT_NONE) {
             slice_cfg->split_enable = 1;

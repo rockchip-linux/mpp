@@ -680,7 +680,7 @@ static MPP_RET hal_h264e_vepu1_wait_v2(void *hal, HalEncTask *task)
 
         if (amend->enable) {
             amend->old_length = hw_mbrc->out_strm_size;
-            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->h264.hw_cfg);
             ctx->hw_mbrc.out_strm_size = amend->new_length;
         } else if (amend->prefix) {
             /* check prefix value */

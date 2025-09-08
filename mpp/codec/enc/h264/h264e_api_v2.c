@@ -92,7 +92,7 @@ static void init_h264e_cfg_set(MppEncCfgSet *cfg, MppClientType type)
 {
     MppEncRcCfg *rc_cfg = &cfg->rc;
     MppEncPrepCfg *prep = &cfg->prep;
-    MppEncH264Cfg *h264 = &cfg->codec.h264;
+    MppEncH264Cfg *h264 = &cfg->h264;
 
     /*
      * default codec:
@@ -607,7 +607,7 @@ static MPP_RET h264e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src
 static void h264e_check_cfg(MppEncCfgSet *cfg)
 {
     MppEncRcCfg *rc = &cfg->rc;
-    MppEncH264Cfg *h264 = &cfg->codec.h264;
+    MppEncH264Cfg *h264 = &cfg->h264;
 
     if (rc->drop_mode == MPP_ENC_RC_DROP_FRM_PSKIP &&
         rc->drop_gap == 0 &&
@@ -647,8 +647,8 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
                 cfg->rc.refresh_length = cfg->rc.gop;
         }
 
-        if (src->codec.h264.change)
-            ret |= h264e_proc_h264_cfg(&cfg->codec.h264, &src->codec.h264);
+        if (src->h264.change)
+            ret |= h264e_proc_h264_cfg(&cfg->h264, &src->h264);
 
         if (src->split.change)
             ret |= h264e_proc_split_cfg(&cfg->split, &src->split);
@@ -657,8 +657,9 @@ static MPP_RET h264e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
         ret = h264e_proc_prep_cfg(&cfg->prep, param);
     } break;
     case MPP_ENC_SET_CODEC_CFG : {
-        MppEncCodecCfg *codec = (MppEncCodecCfg *)param;
-        ret = h264e_proc_h264_cfg(&cfg->codec.h264, &codec->h264);
+        MppEncH264Cfg *h264 = (MppEncH264Cfg *)param;
+
+        ret = h264e_proc_h264_cfg(&cfg->h264, h264);
     } break;
     case MPP_ENC_SET_SEI_CFG : {
     } break;
@@ -713,7 +714,7 @@ static MPP_RET h264e_gen_hdr(void *ctx, MppPacket pkt)
      * After gen_hdr, the change of codec/prep must be cleared to 0,
      * otherwise the change will affect the next idr frame
      */
-    p->cfg->codec.h264.change = 0;
+    p->cfg->h264.change = 0;
     p->cfg->prep.change = 0;
 
     h264e_dbg_func("leave\n");
@@ -766,7 +767,7 @@ static MPP_RET h264e_start(void *ctx, HalEncTask *task)
 
         if (base_layer_pid >= 0) {
             H264eCtx *p = (H264eCtx *)ctx;
-            MppEncH264Cfg *h264 = &p->cfg->codec.h264;
+            MppEncH264Cfg *h264 = &p->cfg->h264;
 
             h264->base_layer_pid = base_layer_pid;
         }
@@ -866,7 +867,7 @@ static MPP_RET h264e_proc_dpb(void *ctx, HalEncTask *task)
 static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
-    MppEncH264Cfg *h264 = &p->cfg->codec.h264;
+    MppEncH264Cfg *h264 = &p->cfg->h264;
 
     h264e_dbg_func("enter\n");
 
@@ -930,7 +931,7 @@ static MPP_RET h264e_proc_hal(void *ctx, HalEncTask *task)
 static MPP_RET h264e_sw_enc(void *ctx, HalEncTask *task)
 {
     H264eCtx *p = (H264eCtx *)ctx;
-    MppEncH264Cfg *h264 = &p->cfg->codec.h264;
+    MppEncH264Cfg *h264 = &p->cfg->h264;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     MppPacket packet = task->packet;
     void *pos = mpp_packet_get_pos(packet);

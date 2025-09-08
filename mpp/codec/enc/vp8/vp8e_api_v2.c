@@ -303,9 +303,9 @@ static MPP_RET vp8e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
             ret |= vp8e_proc_prep_cfg(&cfg->prep, &src->prep);
             src->prep.change = 0;
         }
-        if (src->codec.vp8.change) {
-            ret |= vp8e_proc_vp8_cfg(&cfg->codec.vp8, &src->codec.vp8);
-            src->codec.vp8.change = 0;
+        if (src->vp8.change) {
+            ret |= vp8e_proc_vp8_cfg(&cfg->vp8, &src->vp8);
+            src->vp8.change = 0;
         }
         if (src->split.change) {
             ret |= vp8e_proc_split_cfg(&cfg->split, &src->split);

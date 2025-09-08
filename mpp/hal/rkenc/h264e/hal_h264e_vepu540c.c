@@ -349,7 +349,7 @@ static RK_U32 update_vepu540c_syntax(HalH264eVepu540cCtx *ctx, MppSyntax *syntax
 static MPP_RET hal_h264e_vepu540c_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu540cCtx *ctx = (HalH264eVepu540cCtx *)hal;
-    MppEncH264HwCfg *hw_cfg = &ctx->cfg->codec.h264.hw_cfg;
+    MppEncH264HwCfg *hw_cfg = &ctx->cfg->h264.hw_cfg;
     RK_U32 updated = update_vepu540c_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
     hal_h264e_dbg_func("enter %p\n", hal);
@@ -1671,7 +1671,7 @@ static MPP_RET hal_h264e_vepu540c_wait(void *hal, HalEncTask *task)
         if (amend->enable) {
             amend->old_length = task->hw_length;
             amend->slice->is_multi_slice = (ctx->cfg->split.split_mode > 0);
-            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->codec.h264.hw_cfg);
+            h264e_vepu_stream_amend_proc(amend, &ctx->cfg->h264.hw_cfg);
             task->hw_length = amend->new_length;
         } else if (amend->prefix) {
             /* check prefix value */

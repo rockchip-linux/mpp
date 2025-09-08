@@ -79,7 +79,6 @@ typedef struct {
     MppEncCfg       cfg;
     MppEncPrepCfg   prep_cfg;
     MppEncRcCfg     rc_cfg;
-    MppEncCodecCfg  codec_cfg;
     MppEncSliceSplit split_cfg;
     MppEncOSDPltCfg osd_plt_cfg;
     MppEncOSDPlt    osd_plt;
@@ -433,6 +432,8 @@ MPP_RET test_mpp_enc_cfg_setup(MpiEncMultiCtxInfo *info)
 
     if (!p->bps)
         p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
+
+    mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
 
     /* setup preprocess parameters */
     mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);

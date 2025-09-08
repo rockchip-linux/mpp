@@ -1574,7 +1574,7 @@ MPP_RET hal_vp8e_update_buffers(void *hal, HalEncTask *task)
     {
         HalEncTask *enc_task = task;
         RK_U8 *p_out = mpp_buffer_get_ptr(enc_task->output);
-        RK_S32 disable_ivf = ctx->cfg->codec.vp8.disable_ivf;
+        RK_S32 disable_ivf = ctx->cfg->vp8.disable_ivf;
 
         mpp_buffer_sync_begin(buffers->hw_size_table_buf);
 

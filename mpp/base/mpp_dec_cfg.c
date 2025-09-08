@@ -143,8 +143,9 @@ void mpp_dec_cfg_show(void)
 
     if (root) {
         MppTrieInfo *node = root;
+        rk_s32 len = mpp_trie_get_name_max(trie);
 
-        mpp_log("%-32s %-6s | %6s | %4s | %4s\n", "name", "type", "offset", "size", "flag (hex)");
+        mpp_log("%-*s %-6s | %6s | %4s | %4s\n", len, "name", "type", "offset", "size", "flag (hex)");
 
         do {
             if (mpp_trie_info_is_self(node))
@@ -153,17 +154,18 @@ void mpp_dec_cfg_show(void)
             if (node->ctx_len == sizeof(KmppEntry)) {
                 KmppEntry *entry = (KmppEntry *)mpp_trie_info_ctx(node);
 
-                mpp_log("%-32s %-6s | %-6d | %-4d | %-4x\n", mpp_trie_info_name(node),
+                mpp_log("%-*s %-6s | %-6d | %-4d | %-4x\n", len, mpp_trie_info_name(node),
                         strof_elem_type(entry->tbl.elem_type), entry->tbl.elem_offset,
                         entry->tbl.elem_size, entry->tbl.flag_offset);
             } else {
-                mpp_log("%-30s size - %d\n", mpp_trie_info_name(node), node->ctx_len);
+                mpp_log("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
             }
         } while ((node = mpp_trie_get_info_next(trie, node)));
     }
 
     mpp_log("dumping valid configure string done\n");
 
-    mpp_log("total cfg count %d with %d node size %d\n", mpp_trie_get_info_count(trie),
+    mpp_log("dec cfg size %d count %d with trie node %d size %d\n",
+            sizeof(MppDecCfgSet), mpp_trie_get_info_count(trie),
             mpp_trie_get_node_count(trie), mpp_trie_get_buf_size(trie));
 }

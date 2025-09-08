@@ -69,6 +69,8 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     /* base config */ \
     ENTRY(base, low_delay,      S32,        MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY,      base, low_delay) \
     ENTRY(base, smart_en,       S32,        MPP_ENC_BASE_CFG_CHANGE_SMART_EN,       base, smart_en) \
+    /* codec coding config */ \
+    ENTRY(codec, type,          S32,        MPP_ENC_BASE_CFG_CHANGE_CODING,         base, coding) \
     /* rc config */ \
     ENTRY(rc,   mode,           S32,        MPP_ENC_RC_CFG_CHANGE_RC_MODE,          rc, rc_mode) \
     ENTRY(rc,   bps_target,     S32,        MPP_ENC_RC_CFG_CHANGE_BPS,              rc, bps_target) \
@@ -140,26 +142,24 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(prep, rotation,       S32,        MPP_ENC_PREP_CFG_CHANGE_ROTATION,       prep, rotation_ext) \
     ENTRY(prep, mirroring,      S32,        MPP_ENC_PREP_CFG_CHANGE_MIRRORING,      prep, mirroring_ext) \
     ENTRY(prep, flip,           S32,        MPP_ENC_PREP_CFG_CHANGE_FLIP,           prep, flip) \
-    /* codec coding config */ \
-    ENTRY(codec, type,          S32,        0,                                      codec, coding) \
     /* h264 config */ \
-    ENTRY(h264, stream_type,    S32,        MPP_ENC_H264_CFG_STREAM_TYPE,           codec.h264, stream_type) \
-    ENTRY(h264, profile,        S32,        MPP_ENC_H264_CFG_CHANGE_PROFILE,        codec.h264, profile) \
-    ENTRY(h264, level,          S32,        MPP_ENC_H264_CFG_CHANGE_PROFILE,        codec.h264, level) \
-    ENTRY(h264, poc_type,       U32,        MPP_ENC_H264_CFG_CHANGE_POC_TYPE,       codec.h264, poc_type) \
-    ENTRY(h264, log2_max_poc_lsb,   U32,    MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB,    codec.h264, log2_max_poc_lsb) \
-    ENTRY(h264, log2_max_frm_num,   U32,    MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM,    codec.h264, log2_max_frame_num) \
-    ENTRY(h264, gaps_not_allowed,   U32,    MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM, codec.h264, gaps_not_allowed) \
-    ENTRY(h264, cabac_en,       S32,        MPP_ENC_H264_CFG_CHANGE_ENTROPY,        codec.h264, entropy_coding_mode_ex) \
-    ENTRY(h264, cabac_idc,      S32,        MPP_ENC_H264_CFG_CHANGE_ENTROPY,        codec.h264, cabac_init_idc_ex) \
-    ENTRY(h264, trans8x8,       S32,        MPP_ENC_H264_CFG_CHANGE_TRANS_8x8,      codec.h264, transform8x8_mode_ex) \
-    ENTRY(h264, const_intra,    S32,        MPP_ENC_H264_CFG_CHANGE_CONST_INTRA,    codec.h264, constrained_intra_pred_mode) \
-    ENTRY(h264, scaling_list,   S32,        MPP_ENC_H264_CFG_CHANGE_SCALING_LIST,   codec.h264, scaling_list_mode) \
-    ENTRY(h264, cb_qp_offset,   S32,        MPP_ENC_H264_CFG_CHANGE_CHROMA_QP,      codec.h264, chroma_cb_qp_offset) \
-    ENTRY(h264, cr_qp_offset,   S32,        MPP_ENC_H264_CFG_CHANGE_CHROMA_QP,      codec.h264, chroma_cr_qp_offset) \
-    ENTRY(h264, dblk_disable,   S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     codec.h264, deblock_disable) \
-    ENTRY(h264, dblk_alpha,     S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     codec.h264, deblock_offset_alpha) \
-    ENTRY(h264, dblk_beta,      S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     codec.h264, deblock_offset_beta) \
+    ENTRY(h264, stream_type,    S32,        MPP_ENC_H264_CFG_STREAM_TYPE,           h264, stream_type) \
+    ENTRY(h264, profile,        S32,        MPP_ENC_H264_CFG_CHANGE_PROFILE,        h264, profile) \
+    ENTRY(h264, level,          S32,        MPP_ENC_H264_CFG_CHANGE_PROFILE,        h264, level) \
+    ENTRY(h264, poc_type,       U32,        MPP_ENC_H264_CFG_CHANGE_POC_TYPE,       h264, poc_type) \
+    ENTRY(h264, log2_max_poc_lsb,   U32,    MPP_ENC_H264_CFG_CHANGE_MAX_POC_LSB,    h264, log2_max_poc_lsb) \
+    ENTRY(h264, log2_max_frm_num,   U32,    MPP_ENC_H264_CFG_CHANGE_MAX_FRM_NUM,    h264, log2_max_frame_num) \
+    ENTRY(h264, gaps_not_allowed,   U32,    MPP_ENC_H264_CFG_CHANGE_GAPS_IN_FRM_NUM, h264, gaps_not_allowed) \
+    ENTRY(h264, cabac_en,       S32,        MPP_ENC_H264_CFG_CHANGE_ENTROPY,        h264, entropy_coding_mode_ex) \
+    ENTRY(h264, cabac_idc,      S32,        MPP_ENC_H264_CFG_CHANGE_ENTROPY,        h264, cabac_init_idc_ex) \
+    ENTRY(h264, trans8x8,       S32,        MPP_ENC_H264_CFG_CHANGE_TRANS_8x8,      h264, transform8x8_mode_ex) \
+    ENTRY(h264, const_intra,    S32,        MPP_ENC_H264_CFG_CHANGE_CONST_INTRA,    h264, constrained_intra_pred_mode) \
+    ENTRY(h264, scaling_list,   S32,        MPP_ENC_H264_CFG_CHANGE_SCALING_LIST,   h264, scaling_list_mode) \
+    ENTRY(h264, cb_qp_offset,   S32,        MPP_ENC_H264_CFG_CHANGE_CHROMA_QP,      h264, chroma_cb_qp_offset) \
+    ENTRY(h264, cr_qp_offset,   S32,        MPP_ENC_H264_CFG_CHANGE_CHROMA_QP,      h264, chroma_cr_qp_offset) \
+    ENTRY(h264, dblk_disable,   S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     h264, deblock_disable) \
+    ENTRY(h264, dblk_alpha,     S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     h264, deblock_offset_alpha) \
+    ENTRY(h264, dblk_beta,      S32,        MPP_ENC_H264_CFG_CHANGE_DEBLOCKING,     h264, deblock_offset_beta) \
     ENTRY(h264, qp_init,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(h264, qp_min,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
     ENTRY(h264, qp_max,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_max) \
@@ -167,23 +167,23 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(h264, qp_max_i,       S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_max_i) \
     ENTRY(h264, qp_step,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
     ENTRY(h264, qp_delta_ip,    S32,        MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
-    ENTRY(h264, max_tid,        S32,        MPP_ENC_H264_CFG_CHANGE_MAX_TID,        codec.h264, max_tid) \
-    ENTRY(h264, max_ltr,        S32,        MPP_ENC_H264_CFG_CHANGE_MAX_LTR,        codec.h264, max_ltr_frames) \
-    ENTRY(h264, prefix_mode,    S32,        MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX,     codec.h264, prefix_mode) \
-    ENTRY(h264, base_layer_pid, S32,        MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID, codec.h264, base_layer_pid) \
-    ENTRY(h264, constraint_set, U32,        MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET, codec.h264, constraint_set) \
-    ENTRY(h264, vui_en,         U32,        MPP_ENC_H264_CFG_CHANGE_VUI,            codec.h264, vui.vui_en) \
+    ENTRY(h264, max_tid,        S32,        MPP_ENC_H264_CFG_CHANGE_MAX_TID,        h264, max_tid) \
+    ENTRY(h264, max_ltr,        S32,        MPP_ENC_H264_CFG_CHANGE_MAX_LTR,        h264, max_ltr_frames) \
+    ENTRY(h264, prefix_mode,    S32,        MPP_ENC_H264_CFG_CHANGE_ADD_PREFIX,     h264, prefix_mode) \
+    ENTRY(h264, base_layer_pid, S32,        MPP_ENC_H264_CFG_CHANGE_BASE_LAYER_PID, h264, base_layer_pid) \
+    ENTRY(h264, constraint_set, U32,        MPP_ENC_H264_CFG_CHANGE_CONSTRAINT_SET, h264, constraint_set) \
+    ENTRY(h264, vui_en,         U32,        MPP_ENC_H264_CFG_CHANGE_VUI,            h264, vui.vui_en) \
     /* h265 config*/ \
-    ENTRY(h265, profile,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, profile) \
-    ENTRY(h265, tier   ,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, tier) \
-    ENTRY(h265, level,          S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    codec.h265, level) \
-    ENTRY(h265, scaling_list,   U32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.defalut_ScalingList_enable) \
-    ENTRY(h265, cb_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.cb_qp_offset) \
-    ENTRY(h265, cr_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  codec.h265, trans_cfg.cr_qp_offset) \
-    ENTRY(h265, diff_cu_qp_delta_depth, S32, MPP_ENC_H265_CFG_TRANS_CHANGE,                 codec.h265, trans_cfg.diff_cu_qp_delta_depth) \
-    ENTRY(h265, dblk_disable,   U32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_deblocking_filter_disabled_flag) \
-    ENTRY(h265, dblk_alpha,     S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_beta_offset_div2) \
-    ENTRY(h265, dblk_beta,      S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   codec.h265, dblk_cfg.slice_tc_offset_div2) \
+    ENTRY(h265, profile,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    h265, profile) \
+    ENTRY(h265, tier   ,        S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    h265, tier) \
+    ENTRY(h265, level,          S32,        MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE,    h265, level) \
+    ENTRY(h265, scaling_list,   U32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  h265, trans_cfg.defalut_ScalingList_enable) \
+    ENTRY(h265, cb_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  h265, trans_cfg.cb_qp_offset) \
+    ENTRY(h265, cr_qp_offset,   S32,        MPP_ENC_H265_CFG_TRANS_CHANGE,                  h265, trans_cfg.cr_qp_offset) \
+    ENTRY(h265, diff_cu_qp_delta_depth, S32, MPP_ENC_H265_CFG_TRANS_CHANGE,                 h265, trans_cfg.diff_cu_qp_delta_depth) \
+    ENTRY(h265, dblk_disable,   U32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   h265, dblk_cfg.slice_deblocking_filter_disabled_flag) \
+    ENTRY(h265, dblk_alpha,     S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   h265, dblk_cfg.slice_beta_offset_div2) \
+    ENTRY(h265, dblk_beta,      S32,        MPP_ENC_H265_CFG_DBLK_CHANGE,                   h265, dblk_cfg.slice_tc_offset_div2) \
     ENTRY(h265, qp_init,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(h265, qp_min,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
     ENTRY(h265, qp_max,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_max) \
@@ -191,18 +191,18 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(h265, qp_max_i,       S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_max_i) \
     ENTRY(h265, qp_step,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
     ENTRY(h265, qp_delta_ip,    S32,        MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
-    ENTRY(h265, sao_luma_disable,   S32,    MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_luma_disable) \
-    ENTRY(h265, sao_chroma_disable, S32,    MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.slice_sao_chroma_disable) \
-    ENTRY(h265, sao_bit_ratio,  S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            codec.h265, sao_cfg.sao_bit_ratio) \
-    ENTRY(h265, lpf_acs_sli_en, U32,        MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   codec.h265, lpf_acs_sli_en) \
-    ENTRY(h265, lpf_acs_tile_disable, U32,  MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    codec.h265, lpf_acs_tile_disable) \
-    ENTRY(h265, auto_tile,      S32,        MPP_ENC_H265_CFG_TILE_CHANGE,           codec.h265, auto_tile) \
-    ENTRY(h265, max_tid,        S32,        MPP_ENC_H265_CFG_CHANGE_MAX_TID,        codec.h265, max_tid) \
-    ENTRY(h265, max_ltr,        S32,        MPP_ENC_H265_CFG_CHANGE_MAX_LTR,        codec.h265, max_ltr_frames) \
-    ENTRY(h265, base_layer_pid, S32,        MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID, codec.h265, base_layer_pid) \
-    ENTRY(h265, const_intra,    S32,        MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    codec.h265, const_intra_pred) \
-    ENTRY(h265, lcu_size,       S32,        MPP_ENC_H265_CFG_CHANGE_LCU_SIZE,       codec.h265, max_cu_size) \
-    ENTRY(h265, vui_en,         U32,        MPP_ENC_H265_CFG_CHANGE_VUI,            codec.h265, vui.vui_en) \
+    ENTRY(h265, sao_luma_disable,   S32,    MPP_ENC_H265_CFG_SAO_CHANGE,            h265, sao_cfg.slice_sao_luma_disable) \
+    ENTRY(h265, sao_chroma_disable, S32,    MPP_ENC_H265_CFG_SAO_CHANGE,            h265, sao_cfg.slice_sao_chroma_disable) \
+    ENTRY(h265, sao_bit_ratio,  S32,        MPP_ENC_H265_CFG_SAO_CHANGE,            h265, sao_cfg.sao_bit_ratio) \
+    ENTRY(h265, lpf_acs_sli_en, U32,        MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE,   h265, lpf_acs_sli_en) \
+    ENTRY(h265, lpf_acs_tile_disable, U32,  MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE,    h265, lpf_acs_tile_disable) \
+    ENTRY(h265, auto_tile,      S32,        MPP_ENC_H265_CFG_TILE_CHANGE,           h265, auto_tile) \
+    ENTRY(h265, max_tid,        S32,        MPP_ENC_H265_CFG_CHANGE_MAX_TID,        h265, max_tid) \
+    ENTRY(h265, max_ltr,        S32,        MPP_ENC_H265_CFG_CHANGE_MAX_LTR,        h265, max_ltr_frames) \
+    ENTRY(h265, base_layer_pid, S32,        MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID, h265, base_layer_pid) \
+    ENTRY(h265, const_intra,    S32,        MPP_ENC_H265_CFG_CHANGE_CONST_INTRA,    h265, const_intra_pred) \
+    ENTRY(h265, lcu_size,       S32,        MPP_ENC_H265_CFG_CHANGE_LCU_SIZE,       h265, max_cu_size) \
+    ENTRY(h265, vui_en,         U32,        MPP_ENC_H265_CFG_CHANGE_VUI,            h265, vui.vui_en) \
     /* vp8 config */ \
     ENTRY(vp8,  qp_init,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_INIT,          rc, qp_init) \
     ENTRY(vp8,  qp_min,         S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE,         rc, qp_min) \
@@ -211,15 +211,15 @@ static RK_U32 mpp_enc_cfg_debug = 0;
     ENTRY(vp8,  qp_max_i,       S32,        MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I,       rc, qp_max_i) \
     ENTRY(vp8,  qp_step,        S32,        MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP,      rc, qp_max_step) \
     ENTRY(vp8,  qp_delta_ip,    S32,        MPP_ENC_RC_CFG_CHANGE_QP_IP,            rc, qp_delta_ip) \
-    ENTRY(vp8,  disable_ivf,    S32,        MPP_ENC_VP8_CFG_CHANGE_DIS_IVF,         codec.vp8, disable_ivf) \
+    ENTRY(vp8,  disable_ivf,    S32,        MPP_ENC_VP8_CFG_CHANGE_DIS_IVF,         vp8, disable_ivf) \
     /* jpeg config */ \
-    ENTRY(jpeg, quant,          S32,        MPP_ENC_JPEG_CFG_CHANGE_QP,             codec.jpeg, quant) \
-    ENTRY(jpeg, qtable_y,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_y) \
-    ENTRY(jpeg, qtable_u,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_u) \
-    ENTRY(jpeg, qtable_v,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         codec.jpeg, qtable_v) \
-    ENTRY(jpeg, q_factor,       S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, q_factor) \
-    ENTRY(jpeg, qf_max,         S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, qf_max) \
-    ENTRY(jpeg, qf_min,         S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        codec.jpeg, qf_min) \
+    ENTRY(jpeg, quant,          S32,        MPP_ENC_JPEG_CFG_CHANGE_QP,             jpeg, quant) \
+    ENTRY(jpeg, qtable_y,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         jpeg, qtable_y) \
+    ENTRY(jpeg, qtable_u,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         jpeg, qtable_u) \
+    ENTRY(jpeg, qtable_v,       Ptr,        MPP_ENC_JPEG_CFG_CHANGE_QTABLE,         jpeg, qtable_v) \
+    ENTRY(jpeg, q_factor,       S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        jpeg, q_factor) \
+    ENTRY(jpeg, qf_max,         S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        jpeg, qf_max) \
+    ENTRY(jpeg, qf_min,         S32,        MPP_ENC_JPEG_CFG_CHANGE_QFACTOR,        jpeg, qf_min) \
     /* split config */ \
     ENTRY(split, mode,          U32,        MPP_ENC_SPLIT_CFG_CHANGE_MODE,          split, split_mode) \
     ENTRY(split, arg,           U32,        MPP_ENC_SPLIT_CFG_CHANGE_ARG,           split, split_arg) \
@@ -543,15 +543,18 @@ void mpp_enc_cfg_show(void)
 {
     MppEncCfgSrv *srv = get_srv_enc_cfg_f();
     MppTrieInfo *root;
+    MppTrie trie;
 
     if (!srv)
         return;
 
     mpp_log("dumping valid configure string start\n");
 
-    root = mpp_trie_get_info_first(srv->trie);
+    trie = srv->trie;
+    root = mpp_trie_get_info_first(trie);
     if (root) {
         MppTrieInfo *node = root;
+        rk_s32 len = mpp_trie_get_name_max(trie);
 
         do {
             if (mpp_trie_info_is_self(node))
@@ -560,16 +563,16 @@ void mpp_enc_cfg_show(void)
             if (node->ctx_len == sizeof(MppCfgInfo)) {
                 MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
 
-                mpp_log("%-25s type %s - %d:%d\n", mpp_trie_info_name(node),
+                mpp_log("%-*s type %s - %d:%d\n", len, mpp_trie_info_name(node),
                         strof_cfg_type(info->data_type), info->data_offset, info->data_size);
             } else {
-                mpp_log("%-25s size - %d\n", mpp_trie_info_name(node), node->ctx_len);
+                mpp_log("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
             }
-        } while ((node = mpp_trie_get_info_next(srv->trie, node)));
+        } while ((node = mpp_trie_get_info_next(trie, node)));
     }
     mpp_log("dumping valid configure string done\n");
 
-    mpp_log("total cfg count %d with %d node size %d\n",
-            mpp_trie_get_info_count(srv->trie), mpp_trie_get_node_count(srv->trie),
-            mpp_trie_get_buf_size(srv->trie));
+    mpp_log("enc cfg size %d count %d with trie node %d size %d\n",
+            sizeof(MppEncCfgSet), mpp_trie_get_info_count(trie),
+            mpp_trie_get_node_count(trie), mpp_trie_get_buf_size(trie));
 }

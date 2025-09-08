@@ -235,15 +235,15 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncAsyncWait *wait)
     return ret;
 }
 
-static RK_S32 check_codec_to_resend_hdr(MppEncCodecCfg *codec)
+static RK_S32 check_codec_to_resend_hdr(MppEncCfgSet *cfg)
 {
-    switch (codec->coding) {
+    switch (cfg->base.coding) {
     case MPP_VIDEO_CodingAVC : {
-        if (codec->h264.change)
+        if (cfg->h264.change)
             return 1;
     } break;
     case MPP_VIDEO_CodingHEVC : {
-        if (codec->h265.change)
+        if (cfg->h265.change)
             return 1;
     } break;
     case MPP_VIDEO_CodingVP8 :
@@ -268,7 +268,7 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg, RK_BO
 
     *encode_idr = RK_TRUE;
 
-    if (cfg->codec.coding == MPP_VIDEO_CodingMJPEG) {
+    if (cfg->base.coding == MPP_VIDEO_CodingMJPEG) {
         *encode_idr = RK_FALSE;
         return 0;
     }
@@ -327,7 +327,7 @@ static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg, RK_BO
 
                 break;
             }
-            if (check_codec_to_resend_hdr(&cfg->codec)) {
+            if (check_codec_to_resend_hdr(cfg)) {
                 resend = 5;
                 break;
             }
@@ -1050,6 +1050,9 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
             if (change & MPP_ENC_BASE_CFG_CHANGE_SMART_EN)
                 dst->base.smart_en = src->base.smart_en;
 
+            if (change & MPP_ENC_BASE_CFG_CHANGE_CODING)
+                dst->base.coding = src->base.coding;
+
             src->base.change = 0;
         }
 
@@ -1329,9 +1332,9 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
 {
     MppEncRcCfg *rc = &cfg_set->rc;
     MppEncPrepCfg *prep = &cfg_set->prep;
-    MppEncCodecCfg *codec = &cfg_set->codec;
     MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
     MppEncCpbInfo *info = &ref->cpb_info;
+    MppCodingType coding = cfg_set->base.coding;
 
     cfg->width = prep->width;
     cfg->height = prep->height;
@@ -1386,7 +1389,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     cfg->stats_time = mpp_clip(cfg->stats_time, 1, 60);
 
     /* quality configure */
-    switch (codec->coding) {
+    switch (coding) {
     case MPP_VIDEO_CodingAVC :
     case MPP_VIDEO_CodingHEVC :
     case MPP_VIDEO_CodingVP8 : {
@@ -1403,7 +1406,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->fqp_max_i = rc->fqp_max_i == INT_MAX ? cfg->max_i_quality : rc->fqp_max_i;
     } break;
     case MPP_VIDEO_CodingMJPEG : {
-        MppEncJpegCfg *jpeg = &codec->jpeg;
+        MppEncJpegCfg *jpeg = &cfg_set->jpeg;
 
         cfg->init_quality = jpeg->q_factor;
         cfg->max_quality = jpeg->qf_max;
@@ -1416,7 +1419,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         cfg->fqp_max_p = 100 - jpeg->qf_min;
     } break;
     default : {
-        mpp_err_f("unsupport coding type %d\n", codec->coding);
+        mpp_err_f("unsupport coding type %d\n", coding);
     } break;
     }
 
@@ -1450,8 +1453,7 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
         }
     }
 
-    if (codec->coding == MPP_VIDEO_CodingAVC ||
-        codec->coding == MPP_VIDEO_CodingHEVC) {
+    if (coding == MPP_VIDEO_CodingAVC || coding == MPP_VIDEO_CodingHEVC) {
         mpp_log("mode %s bps [%d:%d:%d] fps %s [%d/%d] -> %s [%d/%d] gop i [%d] v [%d]\n",
                 name_of_rc_mode[cfg->mode],
                 rc->bps_min, rc->bps_target, rc->bps_max,
