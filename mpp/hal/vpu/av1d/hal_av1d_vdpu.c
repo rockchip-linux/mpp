@@ -2058,7 +2058,8 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg7.sw_delta_q_res_log     = dxva->quantization.delta_q_res;
     regs->swreg7.sw_delta_q_present     = dxva->quantization.delta_q_present;
 
-    regs->swreg8.sw_idr_pic_e           = !dxva->format.frame_type;
+    regs->swreg8.sw_idr_pic_e           = dxva->format.frame_type == AV1_FRAME_KEY ||
+                                          dxva->format.frame_type == AV1_FRAME_INTRA_ONLY;
     regs->swreg8.sw_quant_base_qindex   = dxva->quantization.base_qindex;
     regs->swreg8.sw_bit_depth_y_minus8  = dxva->bitdepth - 8;
     regs->swreg8.sw_bit_depth_c_minus8  = dxva->bitdepth - 8;
