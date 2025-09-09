@@ -19,7 +19,7 @@
 
 #include "mpp_cfg.h"
 #include "mpp_trie.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 
 #define ENC_CFG_DBG_FUNC            (0x00000001)
 #define ENC_CFG_DBG_INFO            (0x00000002)

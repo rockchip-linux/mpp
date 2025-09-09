@@ -39,7 +39,8 @@
 #include "mpp_soc.h"
 
 #include "enc_impl_api.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
+#include "mpp_enc_impl.h"
 
 RK_U32 h264e_debug = 0;
 

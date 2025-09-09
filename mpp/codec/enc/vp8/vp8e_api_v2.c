@@ -23,7 +23,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_rc.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 
 #include "vp8e_api_v2.h"
 #include "vp8e_syntax.h"

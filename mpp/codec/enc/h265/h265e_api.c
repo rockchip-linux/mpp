@@ -24,8 +24,9 @@
 
 #include "rc.h"
 #include "mpp_soc.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 #include "mpp_packet_impl.h"
+#include "mpp_enc_impl.h"
 
 #include "h265e_api.h"
 #include "h265e_slice.h"

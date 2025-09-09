@@ -31,7 +31,7 @@
 #include "mpp_packet_impl.h"
 #include "kmpp_packet.h"
 #include "mpp_vcodec_client.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 
 typedef struct KmppFrameInfos_t {
     RK_U32  width;

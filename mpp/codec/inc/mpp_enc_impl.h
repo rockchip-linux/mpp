@@ -22,6 +22,7 @@
 #include "mpp_enc_ref.h"
 #include "mpp_enc_refs.h"
 #include "mpp_device.h"
+#include "mpp_task_impl.h"
 
 #include "rc.h"
 #include "hal_info.h"
@@ -150,6 +151,8 @@ typedef struct MppEncImpl_t {
     MppEncCfg           cfg_obj;
     MppEncCfgSet        *cfg;
 } MppEncImpl;
+
+extern RK_U8 uuid_refresh_cfg[16];
 
 #ifdef __cplusplus
 extern "C" {

@@ -11,7 +11,7 @@
 #include "mpp_common.h"
 
 #include "rk_venc_cfg.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 
 int main()
 {

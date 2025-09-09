@@ -23,7 +23,7 @@
 #include "mpp_mem.h"
 #include "mpp_common.h"
 #include "mpp_2str.h"
-#include "mpp_enc_cfg_impl.h"
+#include "mpp_enc_cfg.h"
 #include "mpp_bitwrite.h"
 #include "mpp_soc.h"
 
