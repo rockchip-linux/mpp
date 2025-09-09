@@ -81,6 +81,7 @@ typedef struct MppTrieImpl_t {
     rk_s32          info_count;
     rk_s32          info_buf_size;
     rk_s32          info_buf_pos;
+    rk_s32          info_name_max;
 } MppTrieImpl;
 
 /* work structure for trie traversal */
@@ -734,6 +735,8 @@ rk_s32 mpp_trie_add_info(MppTrie trie, const char *name, void *ctx, rk_u32 ctx_l
     }
 
     p->nodes[idx].id = p->info_buf_pos;
+    if (p->info_name_max < str_real - 1)
+        p->info_name_max = str_real - 1;
 
     {
         MppTrieInfo *info = (MppTrieInfo *)(p->info_buf + p->info_buf_pos);
@@ -782,6 +785,13 @@ rk_s32 mpp_trie_get_buf_size(MppTrie trie)
     MppTrieImpl *p = (MppTrieImpl *)trie;
 
     return (p) ? p->buf_size : 0;
+}
+
+rk_s32 mpp_trie_get_name_max(MppTrie trie)
+{
+    MppTrieImpl *p = (MppTrieImpl *)trie;
+
+    return (p) ? p->info_name_max : 0;
 }
 
 void *mpp_trie_get_node_root(MppTrie trie)
