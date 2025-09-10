@@ -403,15 +403,10 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     return ret;
 }
 
-MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
-{
-    return mpp_enc_cfg_put(cfg);
-}
-
-RK_S32 mpp_enc_cfg_get(MppEncCfg *cfg, const char *name, void *val)
+RK_S32 mpp_enc_cfg_init_k(MppEncCfg *cfg)
 {
     static const char *kcfg_name = "KmppVencStCfg";
-    (void)val;
+    MppEncCfgImpl *impl = NULL;
 
     if (!cfg) {
         mpp_err_f("invalid NULL input config\n");
@@ -421,34 +416,26 @@ RK_S32 mpp_enc_cfg_get(MppEncCfg *cfg, const char *name, void *val)
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
     *cfg = NULL;
-
-    if (!name || !strcmp(name, "MppEncCfg")) {
-        return mpp_enc_cfg_init(cfg);
-    } else if (!strcmp(name, kcfg_name)) {
-        MppEncCfgImpl *impl = NULL;
-
-        impl = mpp_calloc(MppEncCfgImpl, 1);
-        if (!impl) {
-            mpp_err_f("create MppEncCfgImpl failed\n");
-            return MPP_ERR_NOMEM;
-        }
-        impl->is_kobj = 1;
-        kmpp_obj_get_by_name_f(&impl->obj, kcfg_name);
-        if (!impl->obj) {
-            mpp_err_f("failed to get obj by name %s\n", kcfg_name);
-            MPP_FREE(impl);
-            return MPP_ERR_NOMEM;
-        }
-        *cfg = impl;
-        return MPP_OK;
+    impl = mpp_calloc(MppEncCfgImpl, 1);
+    if (!impl) {
+        mpp_err_f("create MppEncCfgImpl failed\n");
+        return MPP_ERR_NOMEM;
     }
 
-    mpp_loge_f("invalid cfg %s\n", name);
+    impl->is_kobj = 1;
+    kmpp_obj_get_by_name_f(&impl->obj, kcfg_name);
+    if (!impl->obj) {
+        mpp_err_f("failed to get obj by name %s\n", kcfg_name);
+        MPP_FREE(impl);
+        return MPP_ERR_NOMEM;
+    }
 
-    return MPP_NOK;
+    *cfg = impl;
+
+    return MPP_OK;
 }
 
-RK_S32 mpp_enc_cfg_put(MppEncCfg cfg)
+RK_S32 mpp_enc_cfg_deinit(MppEncCfg cfg)
 {
     MppEncCfgImpl *impl = (MppEncCfgImpl *)cfg;
 
