@@ -696,7 +696,6 @@ MPP_RET h264e_vepu_slice_split_cfg(H264eSlice *slice, HalH264eVepuMbRc *mbrc,
     }
 
     slice->is_multi_slice = (mbrc->slice_size_mb_rows > 0);
-    split->change = 0;
 
     hal_h264e_dbg_func("leave\n");
     return MPP_OK;

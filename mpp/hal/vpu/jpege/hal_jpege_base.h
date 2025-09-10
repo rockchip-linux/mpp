@@ -25,16 +25,6 @@
 #include "jpege_syntax.h"
 #include "hal_jpege_hdr.h"
 
-#define QUANTIZE_TABLE_SIZE 64
-
-typedef struct HalJpegeRc_t {
-    /* For quantization table */
-    RK_S32              q_factor;
-    RK_U8               *qtable_y;
-    RK_U8               *qtable_c;
-    RK_S32              last_quality;
-} HalJpegeRc;
-
 typedef struct hal_jpege_ctx_s {
     MppDev              dev;
     MppClientType       type;
@@ -70,18 +60,13 @@ typedef struct hal_jpege_ctx_s {
 } HalJpegeCtx;
 
 extern const RK_U32 qp_reorder_table[QUANTIZE_TABLE_SIZE];
-extern const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE];
-extern const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE];
 extern const RK_U16 jpege_restart_marker[8];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET hal_jpege_vepu_rc(HalJpegeCtx *ctx, HalEncTask *task);
 void get_msb_lsb_at_pos(RK_U32 *msb, RK_U32 *lsb, RK_U8 *buf, RK_U32 bytepos);
-MPP_RET hal_jpege_vepu_init_rc(HalJpegeRc *hal_rc);
-MPP_RET hal_jpege_vepu_deinit_rc(HalJpegeRc *hal_rc);
 
 #ifdef __cplusplus
 }

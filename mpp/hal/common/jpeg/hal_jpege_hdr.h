@@ -25,6 +25,17 @@ typedef void *JpegeBits;
 extern "C" {
 #endif
 
+#define QUANTIZE_TABLE_SIZE 64
+typedef struct HalJpegeRc_t {
+    RK_S32              q_mode;
+    RK_S32              quant;
+    RK_S32              q_factor;
+    RK_U8               qtable_y[QUANTIZE_TABLE_SIZE];
+    RK_U8               qtable_u[QUANTIZE_TABLE_SIZE];
+    RK_U8               qtable_v[QUANTIZE_TABLE_SIZE];
+    const RK_U8         *qtables[3];
+} HalJpegeRc;
+
 void jpege_bits_init(JpegeBits *ctx);
 void jpege_bits_deinit(JpegeBits ctx);
 
@@ -36,8 +47,10 @@ RK_U8 *jpege_bits_get_buf(JpegeBits ctx);
 RK_S32 jpege_bits_get_bitpos(JpegeBits ctx);
 RK_S32 jpege_bits_get_bytepos(JpegeBits ctx);
 
-MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax,
-                          const RK_U8 *qtable[2]);
+MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, HalJpegeRc *rc);
+
+void hal_jpege_rc_init(HalJpegeRc *hal_rc);
+void hal_jpege_rc_update(HalJpegeRc *hal_rc, JpegeSyntax *syntax);
 
 #ifdef __cplusplus
 }

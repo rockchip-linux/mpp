@@ -64,21 +64,7 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     /* set defualt value of codec */
     h265 = &p->cfg->h265;
     h265->intra_qp = 26;
-    h265->max_qp = 51;
-    h265->min_qp = 10;
-    h265->max_i_qp = 51;
-    h265->min_i_qp = 10;
     h265->qpmap_mode = 1;
-    h265->ip_qp_delta = 5;
-    h265->raw_dealt_qp = 4;
-    h265->max_delta_qp = 10;
-    h265->gop_delta_qp = 0;
-    h265->intra_refresh_mode = 0;
-    h265->intra_refresh_arg = 0;
-    h265->independ_slice_mode = 0;
-    h265->independ_slice_arg = 0;
-    h265->depend_slice_mode = 0;
-    h265->depend_slice_arg = 0;
 
     h265->profile = MPP_PROFILE_HEVC_MAIN;
     h265->level = 120;
@@ -142,7 +128,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
      * 720p
      * YUV420SP
      */
-    prep->change = 0;
     prep->width = 1280;
     prep->height = 720;
     prep->hor_stride = 1280;
@@ -166,7 +151,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
      * 30fps
      * gop 60
      */
-    rc_cfg->change = 0;
     rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
     rc_cfg->bps_target = 2000 * 1000;
     rc_cfg->bps_max = rc_cfg->bps_target * 5 / 4;
@@ -231,13 +215,6 @@ static MPP_RET h265e_gen_hdr(void *ctx, MppPacket pkt)
 
     if (NULL == p->dpb)
         h265e_dpb_init(&p->dpb);
-
-    /*
-     * After gen_hdr, the change of codec/prep must be cleared to 0,
-     * otherwise the change will affect the next idr frame
-     */
-    p->cfg->h265.change = 0;
-    p->cfg->prep.change = 0;
 
     h265e_dbg_func("leave ctx %p\n", ctx);
 
@@ -425,272 +402,6 @@ static MPP_RET h265e_add_sei(MppPacket pkt, RK_S32 *length, RK_U8 uuid[16],
     return MPP_OK;
 }
 
-static MPP_RET h265e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-    RK_S32 mirroring;
-    RK_S32 rotation;
-
-    mpp_assert(change);
-
-    MppEncPrepCfg bak = *dst;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT)
-        dst->format = src->format;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE)
-        dst->range = src->range;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE)
-        dst->color = src->color;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME)
-        dst->colorprim = src->colorprim;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC)
-        dst->colortrc = src->colortrc;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-        dst->rotation_ext = src->rotation_ext;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
-        dst->mirroring_ext = src->mirroring_ext;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_FLIP)
-        dst->flip = src->flip;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_DENOISE)
-        dst->denoise = src->denoise;
-
-    if (change & MPP_ENC_PREP_CFG_CHANGE_SHARPEN)
-        dst->sharpen = src->sharpen;
-
-    // parameter checking
-    if (dst->rotation_ext >= MPP_ENC_ROT_BUTT || dst->rotation_ext < 0 ||
-        dst->mirroring_ext < 0 || dst->flip < 0) {
-        mpp_err("invalid trans: rotation %d, mirroring %d\n", dst->rotation_ext, dst->mirroring_ext);
-        ret = MPP_ERR_VALUE;
-    }
-
-    /* For unifying the encoder's params used by CFG_SET and CFG_GET command,
-     * there is distinction between user's set and set in hal.
-     * User can externally set rotation_ext, mirroring_ext and flip,
-     * which should be transformed to mirroring and rotation in hal.
-     */
-    mirroring = dst->mirroring_ext;
-    rotation = dst->rotation_ext;
-
-    if (dst->flip) {
-        mirroring = !mirroring;
-        rotation += MPP_ENC_ROT_180;
-        rotation &= MPP_ENC_ROT_270;
-    }
-
-    dst->mirroring = mirroring;
-    dst->rotation = rotation;
-
-    if ((change & MPP_ENC_PREP_CFG_CHANGE_INPUT) ||
-        (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
-        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-            dst->width = src->height;
-            dst->height = src->width;
-        } else {
-            dst->width = src->width;
-            dst->height = src->height;
-        }
-        dst->hor_stride = src->hor_stride;
-        dst->ver_stride = src->ver_stride;
-    }
-
-    dst->change |= change;
-
-    // parameter checking
-    if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-        if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
-            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-            ret = MPP_ERR_VALUE;
-        }
-    } else {
-        if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-            mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                    dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-            ret = MPP_ERR_VALUE;
-        }
-    }
-
-    if (MPP_FRAME_FMT_IS_FBC(dst->format) && (dst->mirroring || dst->rotation || dst->flip)) {
-        // rk3588 rkvenc support fbc with rotation
-        if (mpp_get_soc_type() != ROCKCHIP_SOC_RK3588) {
-            mpp_err("invalid cfg fbc data no support mirror %d, rotation %d, or flip %d",
-                    dst->mirroring, dst->rotation, dst->flip);
-            ret = MPP_ERR_VALUE;
-        }
-    }
-
-    if (dst->range >= MPP_FRAME_RANGE_NB ||
-        dst->color >= MPP_FRAME_SPC_NB ||
-        dst->colorprim >= MPP_FRAME_PRI_NB ||
-        dst->colortrc >= MPP_FRAME_TRC_NB) {
-        mpp_err("invalid color range %d colorspace %d primaries %d transfer characteristic %d\n",
-                dst->range, dst->color, dst->colorprim, dst->colortrc);
-        ret = MPP_ERR_VALUE;
-    }
-
-    if (ret) {
-        mpp_err_f("failed to accept new prep config\n");
-        *dst = bak;
-    } else {
-        mpp_log_f("MPP_ENC_SET_PREP_CFG w:h [%d:%d] stride [%d:%d]\n",
-                  dst->width, dst->height,
-                  dst->hor_stride, dst->ver_stride);
-    }
-
-    return ret;
-}
-
-
-static MPP_RET h265e_proc_h265_cfg(MppEncH265Cfg *dst, MppEncH265Cfg *src)
-{
-    RK_U32 change = src->change;
-
-    // TODO: do codec check first
-    if (change & MPP_ENC_H265_CFG_PROFILE_LEVEL_TILER_CHANGE) {
-        RK_S32 profile = src->profile;
-
-        if (MPP_PROFILE_HEVC_MAIN == profile ||
-            MPP_PROFILE_HEVC_MAIN_STILL_PICTURE == profile) {
-            dst->profile = profile;
-            // TODO: proc main still profile
-        } else {
-            mpp_err("invalid profile_idc %d, keep %d", profile, dst->profile);
-        }
-
-        dst->level = src->level;
-        dst->tier = (src->level >= 120) ? src->tier : 0;
-    }
-
-    if (change & MPP_ENC_H265_CFG_CU_CHANGE) {
-        memcpy(&dst->cu_cfg, &src->cu_cfg, sizeof(src->cu_cfg));
-    }
-    if (change & MPP_ENC_H265_CFG_DBLK_CHANGE) {
-        memcpy(&dst->dblk_cfg, &src->dblk_cfg, sizeof(src->dblk_cfg));
-    }
-    if (change & MPP_ENC_H265_CFG_SAO_CHANGE) {
-        memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
-    }
-    if (change & MPP_ENC_H265_CFG_TRANS_CHANGE) {
-        if (src->trans_cfg.cb_qp_offset != src->trans_cfg.cr_qp_offset) {
-            mpp_log("cr_qp_offset %d MUST equal to cb_qp_offset %d. FORCE to same value\n",
-                    src->trans_cfg.cb_qp_offset, src->trans_cfg.cr_qp_offset);
-            src->trans_cfg.cr_qp_offset = src->trans_cfg.cb_qp_offset;
-        }
-        if (src->trans_cfg.diff_cu_qp_delta_depth > 2 || src->trans_cfg.diff_cu_qp_delta_depth < 0) {
-            mpp_log("diff_cu_qp_delta_depth must be in [0, 2]\n");
-            src->trans_cfg.diff_cu_qp_delta_depth = 0;
-        }
-        memcpy(&dst->trans_cfg, &src->trans_cfg, sizeof(src->trans_cfg));
-    }
-
-    if (change & MPP_ENC_H265_CFG_SLICE_CHANGE) {
-        memcpy(&dst->slice_cfg, &src->slice_cfg, sizeof(src->slice_cfg));
-    }
-
-    if (change & MPP_ENC_H265_CFG_ENTROPY_CHANGE) {
-        memcpy(&dst->entropy_cfg, &src->entropy_cfg, sizeof(src->entropy_cfg));
-    }
-
-    if (change & MPP_ENC_H265_CFG_MERGE_CHANGE) {
-        memcpy(&dst->merge_cfg, &src->merge_cfg, sizeof(src->merge_cfg));
-    }
-
-    if (change & MPP_ENC_H265_CFG_CHANGE_VUI) {
-        memcpy(&dst->vui, &src->vui, sizeof(src->vui));
-    }
-
-    if (change & MPP_ENC_H265_CFG_SAO_CHANGE) {
-        memcpy(&dst->sao_cfg, &src->sao_cfg, sizeof(src->sao_cfg));
-    }
-
-    if (change & MPP_ENC_H265_CFG_TILE_CHANGE)
-        dst->auto_tile = src->auto_tile;
-
-    if (change & MPP_ENC_H265_CFG_SLICE_LPFACS_CHANGE)
-        dst->lpf_acs_sli_en = src->lpf_acs_sli_en;
-
-    if (change & MPP_ENC_H265_CFG_TILE_LPFACS_CHANGE)
-        dst->lpf_acs_tile_disable = src->lpf_acs_tile_disable;
-
-    if ((change & MPP_ENC_H265_CFG_CHANGE_CONST_INTRA) &&
-        (dst->const_intra_pred != src->const_intra_pred)) {
-        RockchipSocType soc_type = mpp_get_soc_type();
-
-        if (soc_type != ROCKCHIP_SOC_RK3576 && src->const_intra_pred == 1) {
-            dst->const_intra_pred = 0;
-
-            mpp_log("warning: Only rk3576's HEVC encoder support constraint intra prediction flag = 1.");
-        } else
-            dst->const_intra_pred = src->const_intra_pred;
-
-        dst->change |= MPP_ENC_H265_CFG_CHANGE_CONST_INTRA;
-    }
-
-    if ((change & MPP_ENC_H265_CFG_CHANGE_MAX_LTR) &&
-        (dst->max_ltr_frames != src->max_ltr_frames)) {
-        dst->max_ltr_frames = src->max_ltr_frames;
-        dst->change |= MPP_ENC_H265_CFG_CHANGE_MAX_LTR;
-    }
-
-    if ((change & MPP_ENC_H265_CFG_CHANGE_MAX_TID) &&
-        (dst->max_tid != src->max_tid)) {
-        dst->max_tid = src->max_tid;
-        dst->change |= MPP_ENC_H265_CFG_CHANGE_MAX_TID;
-    }
-
-    if ((change & MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID) &&
-        (dst->base_layer_pid != src->base_layer_pid)) {
-        dst->base_layer_pid = src->base_layer_pid;
-        dst->change |= MPP_ENC_H265_CFG_CHANGE_BASE_LAYER_PID;
-    }
-
-    /*
-     * NOTE: use OR here for avoiding overwrite on multiple config
-     * When next encoding is trigger the change flag will be clear
-     */
-    dst->change |= change;
-
-    return MPP_OK;
-}
-
-static MPP_RET h265e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
-        dst->split_mode = src->split_mode;
-        dst->split_arg = src->split_arg;
-    }
-
-    if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
-        dst->split_arg = src->split_arg;
-
-    if (change & MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT)
-        dst->split_out = src->split_out;
-
-    /* cleanup arg and out when split mode is disabled */
-    if (!dst->split_mode) {
-        dst->split_arg = 0;
-        dst->split_out = 0;
-    }
-
-    dst->change |= change;
-    src->change = 0;
-
-    return ret;
-}
-
 static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 {
     H265eCtx *p = (H265eCtx *)ctx;
@@ -701,49 +412,12 @@ static MPP_RET h265e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        MppEncCfgSet *src = (MppEncCfgSet *)param;
-
-        if (src->prep.change) {
-            ret |= h265e_proc_prep_cfg(&cfg->prep, &src->prep);
-            src->prep.change = 0;
-        }
-
-        if (cfg->rc.refresh_en) {
-            RK_U32 mb_rows;
-
-            if (MPP_ENC_RC_INTRA_REFRESH_ROW == cfg->rc.refresh_mode)
-                mb_rows = MPP_ALIGN(cfg->prep.height, 64) / 64;
-            else
-                mb_rows = MPP_ALIGN(cfg->prep.width, 64) / 64;
-
-            cfg->rc.refresh_length = (mb_rows + cfg->rc.refresh_num - 1) / cfg->rc.refresh_num;
-            if (cfg->rc.gop < cfg->rc.refresh_length)
-                cfg->rc.refresh_length = cfg->rc.gop;
-        }
-
-        if (src->h265.change) {
-            ret |= h265e_proc_h265_cfg(&cfg->h265, &src->h265);
-            src->h265.change = 0;
-        }
-        if (src->split.change) {
-            ret |= h265e_proc_split_cfg(&cfg->split, &src->split);
-            src->split.change = 0;
-        }
     } break;
     case MPP_ENC_GET_EXTRA_INFO: {
         MppPacket pkt_out = (MppPacket )param;
         h265e_set_extra_info(p);
         h265e_get_extra_info(p, pkt_out);
     } break;
-    case MPP_ENC_SET_PREP_CFG : {
-        ret = h265e_proc_prep_cfg(&cfg->prep, param);
-    } break;
-    case MPP_ENC_SET_CODEC_CFG: {
-        MppEncH265Cfg *h265 = (MppEncH265Cfg *)param;
-
-        ret = h265e_proc_h265_cfg(&cfg->h265, h265);
-    } break;
-
     case MPP_ENC_SET_SEI_CFG: {
     } break;
     case MPP_ENC_SET_SPLIT : {

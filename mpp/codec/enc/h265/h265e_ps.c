@@ -310,7 +310,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     sps->m_pcmBitDepthChroma = 8;
 
     sps->m_bPCMFilterDisableFlag = 0;
-    sps->m_scalingListEnabledFlag = codec->trans_cfg.defalut_ScalingList_enable == 0 ? 0 : 1;
+    sps->m_scalingListEnabledFlag = codec->trans_cfg.scaling_list_mode == 0 ? 0 : 1;
 
     sps->m_bitsForPOC = 16;
     sps->m_numLongTermRefPicSPS = 0;

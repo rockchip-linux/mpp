@@ -21,6 +21,7 @@
 
 #define MPP_ENC_DBG_FUNCTION            (0x00000001)
 #define MPP_ENC_DBG_CONTROL             (0x00000002)
+#define MPP_ENC_DBG_CFG                 (0x00000004)
 #define MPP_ENC_DBG_STATUS              (0x00000010)
 #define MPP_ENC_DBG_DETAIL              (0x00000020)
 #define MPP_ENC_DBG_RESET               (0x00000040)
@@ -35,6 +36,7 @@
 
 #define enc_dbg_func(fmt, ...)          mpp_enc_dbg_f(MPP_ENC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define enc_dbg_ctrl(fmt, ...)          mpp_enc_dbg_f(MPP_ENC_DBG_CONTROL, fmt, ## __VA_ARGS__)
+#define enc_dbg_cfg(fmt, ...)           mpp_enc_dbg(MPP_ENC_DBG_CFG, fmt, ## __VA_ARGS__)
 #define enc_dbg_status(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_STATUS, fmt, ## __VA_ARGS__)
 #define enc_dbg_detail(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_DETAIL, fmt, ## __VA_ARGS__)
 #define enc_dbg_notify(fmt, ...)        mpp_enc_dbg_f(MPP_ENC_DBG_NOTIFY, fmt, ## __VA_ARGS__)

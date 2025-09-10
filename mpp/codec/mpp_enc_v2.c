@@ -19,7 +19,26 @@
 #include "mpp_enc_impl.h"
 #include "mpp_enc_cb_param.h"
 
+#include "kmpp_obj.h"
+
 RK_U32 mpp_enc_debug = 0;
+
+static void copy_enc_cfg(KmppObj dst, KmppObj src)
+{
+    MppEncCfgSet *_dst = (MppEncCfgSet *)kmpp_obj_to_entry(dst);
+    MppEncCfgSet *_src = (MppEncCfgSet *)kmpp_obj_to_entry(src);
+
+    memcpy(_dst, _src, sizeof(*_dst));
+
+    /* cleanup output change flag to avoid extra change flag bit when user resend the cfg */
+    {
+        void *p = kmpp_obj_to_flags(dst);
+        rk_s32 size = kmpp_obj_to_flags_size(dst);
+
+        if (p && size)
+            memset(p, 0, size);
+    }
+}
 
 MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
 {
@@ -46,6 +65,17 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
+    mpp_enc_cfg_get(&p->set_obj);
+    mpp_enc_cfg_get(&p->cfg_obj);
+    if (!p->set_obj || !p->cfg_obj) {
+        mpp_err_f("failed to get cfg set\n");
+        ret = MPP_ERR_MALLOC;
+        goto ERR_RET;
+    }
+
+    p->set = (MppEncCfgSet *)kmpp_obj_to_entry(p->set_obj);
+    p->cfg = (MppEncCfgSet *)kmpp_obj_to_entry(p->cfg_obj);
+
     ret = mpp_enc_refs_init(&p->refs);
     if (ret) {
         mpp_err_f("could not init enc refs\n");
@@ -59,7 +89,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     // H.264 encoder use mpp_enc_hal path
     // create hal first
     enc_hal_cfg.coding = coding;
-    enc_hal_cfg.cfg = &p->cfg;
+    enc_hal_cfg.cfg = p->cfg;
     enc_hal_cfg.output_cb = &p->output_cb;
     enc_hal_cfg.task_cnt = cfg->task_cnt;
     enc_hal_cfg.type = VPU_CLIENT_BUTT;
@@ -68,7 +98,7 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
 
     ctrl_cfg.coding = coding;
     ctrl_cfg.type = VPU_CLIENT_BUTT;
-    ctrl_cfg.cfg = &p->cfg;
+    ctrl_cfg.cfg = p->cfg;
     ctrl_cfg.refs = p->refs;
 
     ret = mpp_enc_hal_init(&enc_hal, &enc_hal_cfg);
@@ -122,12 +152,17 @@ MPP_RET mpp_enc_init_v2(MppEnc *enc, MppEncInitCfg *cfg)
     }
 
     /* NOTE: setup configure coding for check */
-    p->cfg.base.coding = coding;
-    p->cfg.plt_cfg.plt = &p->cfg.plt_data;
-    mpp_enc_ref_cfg_init(&p->cfg.ref_cfg);
-    ret = mpp_enc_ref_cfg_copy(p->cfg.ref_cfg, mpp_enc_ref_default());
+    p->cfg->base.coding = coding;
+    p->cfg->plt_cfg.plt = &p->cfg->plt_data;
+    copy_enc_cfg(p->set_obj, p->cfg_obj);
+
+    mpp_enc_ref_cfg_init(&p->cfg->ref_cfg);
+    mpp_enc_ref_cfg_init(&p->set->ref_cfg);
+    ret = mpp_enc_ref_cfg_copy(p->cfg->ref_cfg, mpp_enc_ref_default());
+    ret = mpp_enc_ref_cfg_copy(p->set->ref_cfg, mpp_enc_ref_default());
+
     ret = mpp_enc_refs_set_cfg(p->refs, mpp_enc_ref_default());
-    mpp_enc_refs_set_rc_igop(p->refs, p->cfg.rc.gop);
+    mpp_enc_refs_set_rc_igop(p->refs, p->cfg->rc.gop);
 
     sem_init(&p->enc_reset, 0, 0);
     sem_init(&p->cmd_start, 0, 0);
@@ -172,14 +207,29 @@ MPP_RET mpp_enc_deinit_v2(MppEnc ctx)
 
     MPP_FREE(enc->hdr_buf);
 
-    if (enc->cfg.ref_cfg) {
-        mpp_enc_ref_cfg_deinit(&enc->cfg.ref_cfg);
-        enc->cfg.ref_cfg = NULL;
+    if (enc->set->ref_cfg) {
+        mpp_enc_ref_cfg_deinit(&enc->set->ref_cfg);
+        enc->set->ref_cfg = NULL;
+    }
+
+    if (enc->cfg->ref_cfg) {
+        mpp_enc_ref_cfg_deinit(&enc->cfg->ref_cfg);
+        enc->cfg->ref_cfg = NULL;
     }
 
     if (enc->refs) {
         mpp_enc_refs_deinit(&enc->refs);
         enc->refs = NULL;
+    }
+
+    if (enc->set_obj) {
+        kmpp_obj_put_f(enc->set_obj);
+        enc->set_obj = NULL;
+    }
+
+    if (enc->cfg_obj) {
+        kmpp_obj_put_f(enc->cfg_obj);
+        enc->cfg_obj = NULL;
     }
 
     if (enc->rc_ctx) {
@@ -334,30 +384,9 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 
     switch (cmd) {
     case MPP_ENC_GET_CFG : {
-        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
-        MppEncCfgSet *cfg;
-
-        if (impl->is_kobj) {
-            mpp_loge("can not MPP_ENC_GET_CFG by kobj %p\n", impl);
-            ret = MPP_NOK;
-            break;
-        }
-
-        cfg = impl->cfg;
-
-        enc_dbg_ctrl("get all config\n");
-        memcpy(cfg, &enc->cfg, sizeof(enc->cfg));
-        if (cfg->prep.rotation == MPP_ENC_ROT_90 ||
-            cfg->prep.rotation == MPP_ENC_ROT_270) {
-            MPP_SWAP(RK_S32, cfg->prep.width, cfg->prep.height);
-        }
-        /* cleanup output change flag to avoid extra change flag bit when user resend the cfg */
-        cfg->base.change = 0;
-        cfg->rc.change = 0;
-        cfg->prep.change = 0;
-        cfg->hw.change = 0;
-        cfg->split.change = 0;
-        cfg->tune.change = 0;
+        enc_dbg_ctrl("get enc config start\n");
+        copy_enc_cfg(param, enc->cfg_obj);
+        enc_dbg_ctrl("get enc config done\n");
     } break;
     case MPP_ENC_SET_PREP_CFG :
     case MPP_ENC_GET_PREP_CFG :
@@ -384,19 +413,18 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_GET_OSD_PLT_CFG : {
         enc_dbg_ctrl("get osd plt cfg\n");
-        memcpy(param, &enc->cfg.plt_cfg, sizeof(enc->cfg.plt_cfg));
+        memcpy(param, &enc->cfg->plt_cfg, sizeof(enc->cfg->plt_cfg));
     } break;
     default : {
         // Cmd which is not get configure will handle by enc_impl
         if (cmd == MPP_ENC_SET_CFG) {
-            MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+            KmppObj obj = (KmppObj)param;
 
-            if (impl->is_kobj) {
-                mpp_loge("can not MPP_ENC_SET_CFG by kobj %p\n", impl);
+            if (kmpp_obj_is_kobj(obj)) {
+                mpp_loge("can not MPP_ENC_SET_CFG by kobj %p\n", obj);
                 ret = MPP_NOK;
                 break;
             }
-            param = impl->cfg;
         }
 
         enc->cmd = cmd;

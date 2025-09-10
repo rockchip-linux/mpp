@@ -58,6 +58,7 @@ typedef struct JpegeV511HalContext_t {
 
     JpegeBits           bits;
     JpegeSyntax         syntax;
+    HalJpegeRc          hal_rc;
 } JpegeV511HalContext;
 
 MPP_RET hal_jpege_vepu511_init(void *hal, MppEncHalCfg *cfg)
@@ -84,6 +85,7 @@ MPP_RET hal_jpege_vepu511_init(void *hal, MppEncHalCfg *cfg)
     ctx->dev = cfg->dev;
     jpege_bits_init(&ctx->bits);
     mpp_assert(ctx->bits);
+    hal_jpege_rc_init(&ctx->hal_rc);
 
     hal_jpege_leave();
     return ret;
@@ -357,7 +359,6 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
     Vepu511ControlCfg *reg_ctl = &regs->reg_ctl;
     JpegVepu511Base *reg_base = &regs->reg_base;
     JpegeBits bits = ctx->bits;
-    const RK_U8 *qtable[2] = {NULL};
     size_t length = mpp_packet_get_length(task->packet);
     RK_U8  *buf = mpp_buffer_get_ptr(task->output);
     size_t size = mpp_buffer_get_size(task->output);
@@ -374,12 +375,17 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
 
     memset(regs, 0, sizeof(JpegV511RegSet));
 
+    if (syntax->q_mode == JPEG_QFACTOR) {
+        syntax->q_factor = 100 - task->rc_task->info.quality_target;
+        hal_jpege_rc_update(&ctx->hal_rc, syntax);
+    }
+
     /* write header to output buffer */
     jpege_bits_setup(bits, buf, (RK_U32)size);
     /* seek length bytes data */
     jpege_seek_bits(bits, length << 3);
     /* NOTE: write header will update qtable */
-    write_jpeg_header(bits, syntax, qtable);
+    write_jpeg_header(bits, syntax, &ctx->hal_rc);
 
     bitpos = jpege_bits_get_bitpos(bits);
     task->length = (bitpos + 7) >> 3;
@@ -434,19 +440,19 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
 
         for ( i = 0; i < 8; i++) {
             for ( j = 0; j < 8; j++) {
-                tbl[i * 8 + j] = 0x8000 / qtable[0][j * 8 + i];
+                tbl[i * 8 + j] = 0x8000 / ctx->hal_rc.qtables[0][j * 8 + i];
             }
         }
         tbl += 64;
         for ( i = 0; i < 8; i++) {
             for ( j = 0; j < 8; j++) {
-                tbl[i * 8 + j] = 0x8000 / qtable[1][j * 8 + i];
+                tbl[i * 8 + j] = 0x8000 / ctx->hal_rc.qtables[1][j * 8 + i];
             }
         }
         tbl += 64;
         for ( i = 0; i < 8; i++) {
             for ( j = 0; j < 8; j++) {
-                tbl[i * 8 + j] = 0x8000 / qtable[1][j * 8 + i];
+                tbl[i * 8 + j] = 0x8000 / ctx->hal_rc.qtables[1][j * 8 + i];
             }
         }
     }
@@ -620,6 +626,13 @@ MPP_RET hal_jpege_vepu511_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr(meta, KEY_OSD_DATA3, (void **)&ctx->osd_cfg.osd_data3);
 
     }
+
+    if (ctx->cfg->jpeg.update) {
+        hal_jpege_rc_update(&ctx->hal_rc, syntax);
+        ctx->cfg->jpeg.update = 0;
+    }
+
+    task->rc_task->frm.is_intra = 1;
 
     hal_jpege_leave();
     return MPP_OK;

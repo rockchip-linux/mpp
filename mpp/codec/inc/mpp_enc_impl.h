@@ -143,8 +143,12 @@ typedef struct MppEncImpl_t {
     RK_U32              support_hw_deflicker;
     EncRcTaskInfo       rc_info_prev;
 
-    /* Encoder configure set */
-    MppEncCfgSet        cfg;
+    /* encoder config object for external setup */
+    MppEncCfg           set_obj;
+    MppEncCfgSet        *set;
+    /* encoder config object for internal usage */
+    MppEncCfg           cfg_obj;
+    MppEncCfgSet        *cfg;
 } MppEncImpl;
 
 #ifdef __cplusplus

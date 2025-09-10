@@ -57,12 +57,14 @@ typedef struct JpegeSyntax_t {
     RK_U32              offset_y;
 
     /* For quantization table */
-    RK_U32              quality;
+    RK_S32              q_mode;
+    RK_S32              quant;
     RK_S32              q_factor;
     RK_S32              qf_min;
     RK_S32              qf_max;
     RK_U8               *qtable_y;
-    RK_U8               *qtable_c;
+    RK_U8               *qtable_u;
+    RK_U8               *qtable_v;
 
     /*
      * For color conversion

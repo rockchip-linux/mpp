@@ -46,7 +46,7 @@ int main()
         -1, -1, -1, -1,
     };
 
-    MppEncCfgSet *impl = (MppEncCfgSet *)cfg;
+    MppEncCfgSet *impl = (MppEncCfgSet *)kmpp_obj_to_entry(cfg);
 
     mpp_log("before set: rc mode %d bps_target %d\n",
             impl->rc.rc_mode, impl->rc.bps_target);

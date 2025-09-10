@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <limits.h>
 
+#include "mpp_2str.h"
 #include "mpp_time.h"
 #include "mpp_mem.h"
 #include "mpp_common.h"
@@ -19,10 +20,13 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp.h"
+#include "mpp_soc.h"
 #include "mpp_enc_debug.h"
 #include "mpp_enc_cfg_impl.h"
 #include "mpp_enc_impl.h"
 #include "mpp_enc_cb_param.h"
+
+#include "h264_syntax.h"
 
 typedef union EncAsyncWait_u {
     RK_U32          val;
@@ -108,7 +112,7 @@ static void update_enc_hal_info(MppEncImpl *enc)
     if (NULL == enc->hal_info || NULL == enc->dev)
         return ;
 
-    hal_info_from_enc_cfg(enc->hal_info, &enc->cfg);
+    hal_info_from_enc_cfg(enc->hal_info, enc->cfg);
     hal_info_get(enc->hal_info, data, &size);
 
     if (size) {
@@ -224,155 +228,9 @@ static MPP_RET check_enc_task_wait(MppEncImpl *enc, EncAsyncWait *wait)
     return ret;
 }
 
-static RK_S32 check_codec_to_resend_hdr(MppEncCfgSet *cfg)
-{
-    switch (cfg->base.coding) {
-    case MPP_VIDEO_CodingAVC : {
-        if (cfg->h264.change)
-            return 1;
-    } break;
-    case MPP_VIDEO_CodingHEVC : {
-        if (cfg->h265.change)
-            return 1;
-    } break;
-    case MPP_VIDEO_CodingVP8 :
-    case MPP_VIDEO_CodingMJPEG :
-    default : {
-    } break;
-    }
-    return 0;
-}
-
-static RK_S32 check_resend_hdr(MpiCmd cmd, void *param, MppEncCfgSet *cfg, RK_BOOL *encode_idr)
-{
-    RK_S32 resend = 0;
-    static const char *resend_reason[] = {
-        "unchanged",
-        "codec/prep cfg change",
-        "rc cfg change rc_mode/fps/gop",
-        "set cfg change input/format/color",
-        "set cfg change rc_mode/fps/gop",
-        "set cfg change codec",
-    };
-
-    *encode_idr = RK_TRUE;
-
-    if (cfg->base.coding == MPP_VIDEO_CodingMJPEG) {
-        *encode_idr = RK_FALSE;
-        return 0;
-    }
-
-    do {
-        if (cmd == MPP_ENC_SET_IDR_FRAME)
-            return 1;
-
-        if (cmd == MPP_ENC_SET_CODEC_CFG ||
-            cmd == MPP_ENC_SET_PREP_CFG) {
-            resend = 1;
-            break;
-        }
-
-        if (cmd == MPP_ENC_SET_RC_CFG) {
-            RK_U32 change = *(RK_U32 *)param;
-            RK_U32 check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                                MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
-                                MPP_ENC_RC_CFG_CHANGE_GOP;
-
-            if (change & check_flag) {
-                resend = 2;
-
-                if (cfg->rc.fps_chg_no_idr && (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT))
-                    *encode_idr = RK_FALSE;
-
-                break;
-            }
-        }
-
-        if (cmd == MPP_ENC_SET_CFG) {
-            RK_U32 change = cfg->prep.change;
-            RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                                MPP_ENC_PREP_CFG_CHANGE_FORMAT |
-                                MPP_ENC_PREP_CFG_CHANGE_ROTATION |
-                                MPP_ENC_PREP_CFG_CHANGE_COLOR_RANGE |
-                                MPP_ENC_PREP_CFG_CHANGE_COLOR_SPACE |
-                                MPP_ENC_PREP_CFG_CHANGE_COLOR_PRIME |
-                                MPP_ENC_PREP_CFG_CHANGE_COLOR_TRC;
-
-            if (change & check_flag) {
-                resend = 3;
-                break;
-            }
-
-            change = cfg->rc.change;
-            check_flag = MPP_ENC_RC_CFG_CHANGE_RC_MODE |
-                         MPP_ENC_RC_CFG_CHANGE_FPS_OUT |
-                         MPP_ENC_RC_CFG_CHANGE_GOP;
-
-            if (change & check_flag) {
-                resend = 4;
-
-                if (cfg->rc.fps_chg_no_idr && (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT))
-                    *encode_idr = RK_FALSE;
-
-                break;
-            }
-            if (check_codec_to_resend_hdr(cfg)) {
-                resend = 5;
-                break;
-            }
-        }
-    } while (0);
-
-    if (resend)
-        enc_dbg_detail("send header for %s\n", resend_reason[resend]);
-    else
-        *encode_idr = RK_FALSE;
-
-    return resend;
-}
-
-static RK_S32 check_rc_cfg_update(MpiCmd cmd, MppEncCfgSet *cfg)
-{
-    if (cmd == MPP_ENC_SET_RC_CFG ||
-        cmd == MPP_ENC_SET_PREP_CFG ||
-        cmd == MPP_ENC_SET_REF_CFG) {
-        return 1;
-    }
-
-    if (cmd == MPP_ENC_SET_CFG) {
-        RK_U32 change = cfg->prep.change;
-        RK_U32 check_flag = MPP_ENC_PREP_CFG_CHANGE_INPUT |
-                            MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-
-        if (change & check_flag)
-            return 1;
-
-        change = cfg->rc.change;
-        check_flag = MPP_ENC_RC_CFG_CHANGE_ALL &
-                     (~MPP_ENC_RC_CFG_CHANGE_QUALITY);
-
-        if (change & check_flag)
-            return 1;
-    }
-
-    return 0;
-}
-
-static RK_S32 check_rc_gop_update(MpiCmd cmd, MppEncCfgSet *cfg)
-{
-    if (((cmd == MPP_ENC_SET_RC_CFG) || (cmd == MPP_ENC_SET_CFG)) &&
-        (cfg->rc.change & MPP_ENC_RC_CFG_CHANGE_GOP))
-        return 1;
-
-    return 0;
-}
-
 static RK_S32 check_hal_info_update(MpiCmd cmd)
 {
     if (cmd == MPP_ENC_SET_CFG ||
-        cmd == MPP_ENC_SET_RC_CFG ||
-        cmd == MPP_ENC_SET_CODEC_CFG ||
-        cmd == MPP_ENC_SET_PREP_CFG ||
         cmd == MPP_ENC_SET_REF_CFG) {
         return 1;
     }
@@ -382,7 +240,7 @@ static RK_S32 check_hal_info_update(MpiCmd cmd)
 
 static void check_low_delay_part_mode(MppEncImpl *enc)
 {
-    MppEncCfgSet *cfg = &enc->cfg;
+    MppEncCfgSet *cfg = enc->cfg;
 
     enc->low_delay_part_mode = 0;
 
@@ -400,7 +258,7 @@ static void check_low_delay_part_mode(MppEncImpl *enc)
 
 static void check_low_delay_output(MppEncImpl *enc)
 {
-    MppEncCfgSet *cfg = &enc->cfg;
+    MppEncCfgSet *cfg = enc->cfg;
 
     enc->low_delay_output = 0;
 
@@ -542,464 +400,836 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
     return ret;
 }
 
-MPP_RET mpp_enc_proc_rc_cfg(MppCodingType coding, MppEncRcCfg *dst, MppEncRcCfg *src)
+static void enc_set_rc_updated(MppEncImpl *enc, const char *log_str)
 {
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
+    if (!enc->rc_status.rc_api_user_cfg) {
+        enc->rc_status.rc_api_user_cfg = 1;
+        if (log_str)
+            enc_dbg_cfg("rc cfg updated for %s\n", log_str);
+    }
+}
 
-    if (change) {
-        MppEncRcCfg bak = *dst;
+static void enc_set_resend_hdr(MppEncImpl *enc, const char *log_str)
+{
+    if (enc->coding != MPP_VIDEO_CodingAVC && enc->coding != MPP_VIDEO_CodingHEVC)
+        return;
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_RC_MODE)
-            dst->rc_mode = src->rc_mode;
+    if (!(enc->frm_cfg.force_flag & ENC_FORCE_IDR)) {
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
+        if (log_str)
+            enc_dbg_cfg("resend header and force idr for %s\n", log_str);
+    }
+    enc->hdr_status.val = 0;
+}
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_QUALITY)
-            dst->quality = src->quality;
+static void show_prep_update(MppEncPrepCfg *cfg, MppEncPrepCfg *set)
+{
+    char str[256];
+    rk_s32 len;
+    rk_s32 base;
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_BPS) {
-            dst->bps_target = src->bps_target;
-            dst->bps_max = src->bps_max;
-            dst->bps_min = src->bps_min;
+    len = snprintf(str, sizeof(str) - 1, "set prep cfg ");
+    base = len;
+
+    if (set->width != cfg->width || set->height != cfg->height) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "w:h [%d:%d] -> [%d:%d] ",
+                        cfg->width, cfg->height, set->width, set->height);
+    }
+
+    if (set->hor_stride != cfg->hor_stride || set->ver_stride != cfg->ver_stride) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "stride [%d:%d] -> [%d:%d] ",
+                        cfg->hor_stride, cfg->ver_stride,
+                        set->hor_stride, set->ver_stride);
+    }
+
+    if (set->format != cfg->format) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "fmt %d -> %d ", cfg->format, set->format);
+    }
+
+    if (set->rotation != cfg->rotation) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "rotate %d -> %d ", cfg->rotation, set->rotation);
+    }
+
+    if (set->mirroring != cfg->mirroring) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "mirror %d -> %d ", cfg->mirroring, set->mirroring);
+    }
+
+    if (len > base)
+        enc_dbg_cfg("%s\n", str);
+
+    mpp_logi("set prep cfg w:h [%d:%d] stride [%d:%d] fmt %d rotate %d mirror %d\n",
+             set->width, set->height, set->hor_stride, set->ver_stride,
+             set->format, set->rotation, set->mirroring);
+}
+
+static void proc_prep_cfg(MppEncImpl *enc)
+{
+    MppEncPrepCfg *cfg = &enc->cfg->prep;
+    MppEncPrepCfg *set = &enc->set->prep;
+    rk_u32 flag = *mpp_enc_cfg_prep_change(enc->set);
+    rk_u32 change_res = 0;
+    rk_u32 change_rot = 0;
+    rk_u32 restore = 0;
+    rk_s32 mirroring;
+    rk_s32 rotation;
+
+    enc_dbg_cfg("prep cfg change 0x%x\n", flag);
+
+    if (!flag)
+        return;
+
+    {    /* chekc input and format change */
+        static KmppObjDef def = NULL;
+        static KmppEntry *tbl_input = NULL;
+        static KmppEntry *tbl_format = NULL;
+        static KmppEntry *tbl_rotation = NULL;
+        static rk_s32 once = 1;
+
+        if (!def && once) {
+            def = kmpp_obj_to_objdef(enc->set_obj);
+            kmpp_objdef_get_entry(def, "prep:width", &tbl_input);
+            kmpp_objdef_get_entry(def, "prep:format", &tbl_format);
+            kmpp_objdef_get_entry(def, "prep:rotation", &tbl_rotation);
+
+            if (!tbl_input || !tbl_format || !tbl_rotation)
+                mpp_loge("failed to get input and format table\n");
+
+            once = 0;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_IN) {
-            dst->fps_in_flex = src->fps_in_flex;
-            dst->fps_in_num = src->fps_in_num;
-            dst->fps_in_denom = src->fps_in_denom;
+        if (kmpp_obj_tbl_test(enc->set_obj, tbl_input) ||
+            kmpp_obj_tbl_test(enc->set_obj, tbl_format)) {
+            change_res = 1;
+        }
+        if (kmpp_obj_tbl_test(enc->set_obj, tbl_input) ||
+            kmpp_obj_tbl_test(enc->set_obj, tbl_rotation)) {
+            change_rot = 1;
+        }
+    }
+
+    if (set->rotation_ext >= MPP_ENC_ROT_BUTT || set->rotation_ext < 0 ||
+        set->mirroring_ext < 0 || set->flip < 0) {
+        mpp_loge("invalid rotation %d mirroring %d flip %d\n",
+                 set->rotation_ext, set->mirroring_ext, set->flip);
+        mpp_loge("restore rotation %d mirroring %d flip %d\n",
+                 cfg->rotation_ext, cfg->mirroring_ext, cfg->flip);
+        set->rotation_ext = cfg->rotation_ext;
+        set->mirroring_ext = cfg->mirroring_ext;
+        set->flip = cfg->flip;
+    }
+
+    /*
+     * For unifying the encoder's params used by CFG_SET and CFG_GET command,
+     * there is distinction between user's set and set in hal.
+     * User can externally set rotation_ext, mirroring_ext and flip,
+     * which should be transformed to mirroring and rotation in hal.
+     */
+    rotation = set->rotation_ext;
+    mirroring = set->mirroring_ext;
+
+    if (set->flip) {
+        mirroring = !mirroring;
+        rotation += MPP_ENC_ROT_180;
+        rotation &= MPP_ENC_ROT_270;
+    }
+
+    set->mirroring = mirroring;
+    set->rotation = (MppEncRotationCfg)rotation;
+
+    if (MPP_FRAME_FMT_IS_FBC(set->format) && (set->mirroring || set->rotation)) {
+        mpp_loge("conflict fbc input format %x with mirror %d or rotaion %d\n",
+                 set->format, set->mirroring, set->rotation);
+        mpp_loge("disable mirror and rotation\n");
+        set->mirroring = 0;
+        set->rotation = MPP_ENC_ROT_0;
+    }
+
+    if (set->range >= MPP_FRAME_RANGE_NB ||
+        set->color >= MPP_FRAME_SPC_NB ||
+        set->colorprim >= MPP_FRAME_PRI_NB ||
+        set->colortrc >= MPP_FRAME_TRC_NB) {
+        mpp_loge("invalid color range %d colorspace %d primaries %d transfer characteristic %d\n",
+                 set->range, set->color, set->colorprim, set->colortrc);
+        mpp_loge("restore color range %d colorspace %d primaries %d transfer characteristic %d\n",
+                 cfg->range, cfg->color, cfg->colorprim, cfg->colortrc);
+        set->range = cfg->range;
+        set->color = cfg->color;
+        set->colorprim = cfg->colorprim;
+        set->colortrc = cfg->colortrc;
+    }
+
+    if (set->rotation == MPP_ENC_ROT_90 || set->rotation == MPP_ENC_ROT_270) {
+        set->height = set->width_set;
+        set->width = set->height_set;
+
+        if (set->height > set->hor_stride || set->width > set->ver_stride)
+            restore = 1;
+    } else {
+        set->width = set->width_set;
+        set->height = set->height_set;
+
+        if (set->width > set->hor_stride || set->height > set->ver_stride)
+            restore = 1;
+    }
+
+    if (restore) {
+        mpp_loge("invalid set w:h [%d:%d] stride [%d:%d] rotation %d\n",
+                 set->width, set->height, set->hor_stride, set->ver_stride, set->rotation);
+        mpp_loge("restore cfg w:h [%d:%d] stride [%d:%d] rotation %d\n",
+                 cfg->width, cfg->height, cfg->hor_stride, cfg->ver_stride, cfg->rotation);
+        set->width = cfg->width;
+        set->height = cfg->height;
+        set->width_set = cfg->width;
+        set->height_set = cfg->height;
+        set->hor_stride = cfg->hor_stride;
+        set->ver_stride = cfg->ver_stride;
+        set->rotation = cfg->rotation;
+    }
+
+    if (!set->max_height || !set->max_width) {
+        set->max_width = set->width;
+        set->max_height = set->height;
+    }
+
+    show_prep_update(cfg, set);
+    memcpy(cfg, set, sizeof(*cfg));
+    enc_set_resend_hdr(enc, "change prep cfg");
+
+    /* NOTE: only set change res flag and NOT clear */
+    if (change_res || change_rot) {
+        cfg->change_res = 1;
+    }
+}
+
+#define RC_CHANGE_MODE      (1 << 0)
+#define RC_CHANGE_BPS       (1 << 1)
+#define RC_CHANGE_FPS_IN    (1 << 2)
+#define RC_CHANGE_FPS_OUT   (1 << 3)
+#define RC_CHANGE_GOP       (1 << 4)
+
+static void show_rc_update(MppEncRcCfg *cfg, MppEncRcCfg *set, rk_u32 change)
+{
+    char str[256];
+    rk_s32 len;
+    rk_s32 base;
+
+    len = snprintf(str, sizeof(str) - 1, "set rc cfg ");
+    base = len;
+
+    if (change & RC_CHANGE_MODE) {
+        len += snprintf(str + len, sizeof(str) - len - 1, "mode %s -> %s ",
+                        strof_rc_mode(cfg->rc_mode), strof_rc_mode(set->rc_mode));
+    }
+
+    if (change & RC_CHANGE_BPS) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "bps [%d:%d:%d] -> [%d:%d:%d] ",
+                        cfg->bps_target, cfg->bps_max, cfg->bps_min,
+                        set->bps_target, set->bps_max, set->bps_min);
+    }
+
+    if (len > base) {
+        enc_dbg_cfg("%s\n", str);
+        len = base;
+    }
+
+    if (change & RC_CHANGE_FPS_IN) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "fps in [%d:%d:%s] -> [%d:%d:%s] ",
+                        cfg->fps_in_num, cfg->fps_in_denom,
+                        cfg->fps_in_flex ? "flex" : "fix",
+                        set->fps_in_num, set->fps_in_denom,
+                        set->fps_in_flex ? "flex" : "fix");
+    }
+
+    if (change & RC_CHANGE_FPS_OUT) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "fps out [%d:%d:%s] -> [%d:%d:%s] ",
+                        cfg->fps_out_num, cfg->fps_out_denom,
+                        cfg->fps_out_flex ? "flex" : "fix",
+                        set->fps_out_num, set->fps_out_denom,
+                        set->fps_out_flex ? "flex" : "fix");
+    }
+
+    if (change & RC_CHANGE_GOP) {
+        len += snprintf(str + len, sizeof(str) - len - 1,
+                        "gop %d -> %d ", cfg->gop, set->gop);
+    }
+
+    if (len > base)
+        enc_dbg_cfg("%s\n", str);
+
+    mpp_logi("set rc %s bps [%d:%d:%d] fps [%d:%d:%s] - [%d:%d:%s] gop %d\n",
+             strof_rc_mode(set->rc_mode), set->bps_target, set->bps_max, set->bps_min,
+             set->fps_in_num, set->fps_in_denom, set->fps_in_flex ? "flex" : "fix",
+             set->fps_out_num, set->fps_out_denom, set->fps_out_flex ? "flex" : "fix",
+             set->gop);
+}
+
+static void proc_rc_cfg(MppEncImpl *enc)
+{
+    MppEncRcCfg *cfg = &enc->cfg->rc;
+    MppEncRcCfg *set = &enc->set->rc;
+    rk_u32 flag = *mpp_enc_cfg_rc_change(enc->set);
+    rk_u32 change = 0;
+    rk_s32 i;
+
+    enc_dbg_cfg("rc cfg change 0x%x\n", flag);
+
+    if (!flag)
+        return;
+
+    /* 1. check input rc config for invalid value and revert to valid value */
+    if (set->rc_priority >= MPP_ENC_RC_PRIORITY_BUTT) {
+        mpp_loge("invalid rc_priority %d should be in range [%d:%d]\n",
+                 set->rc_priority, MPP_ENC_RC_BY_BITRATE_FIRST, MPP_ENC_RC_PRIORITY_BUTT);
+        mpp_loge("restore rc_priority to %d\n", cfg->rc_priority);
+        set->rc_priority = cfg->rc_priority;
+    }
+
+    if (set->super_mode >= MPP_ENC_RC_SUPER_FRM_BUTT) {
+        mpp_loge("invalid super_mode %d should be in range [%d:%d]\n",
+                 set->super_mode, MPP_ENC_RC_SUPER_FRM_NONE, MPP_ENC_RC_SUPER_FRM_BUTT);
+        mpp_loge("restore super_mode to %d\n", cfg->super_mode);
+        set->super_mode = cfg->super_mode;
+    }
+
+    if (set->debreath_en && set->debre_strength > 35) {
+        mpp_loge("invalid debre_strength %d should be in range [%d:%d]\n",
+                 set->debre_strength, 0, 35, cfg->debre_strength);
+        mpp_loge("restore debre_strength to %d\n", cfg->debre_strength);
+        set->debre_strength = cfg->debre_strength;
+    }
+
+    if (set->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
+        mpp_loge("invalid rc mode %d must be in range [0:%d]\n",
+                 set->rc_mode, MPP_ENC_RC_MODE_BUTT - 1);
+
+        for (i = 0; i < MPP_ENC_RC_MODE_BUTT; i++)
+            mpp_loge("%d - %s\n", i, strof_rc_mode((MppEncRcMode)i));
+
+        mpp_loge("restore rc mode to %d\n", cfg->rc_mode);
+        set->rc_mode = cfg->rc_mode;
+    }
+
+    if (set->quality >= MPP_ENC_RC_QUALITY_BUTT) {
+        mpp_loge("invalid quality %d must be in ranget [0:%d]\n",
+                 set->quality, MPP_ENC_RC_QUALITY_BUTT - 1);
+        mpp_loge("0 - MPP_ENC_RC_QUALITY_WORST\n");
+        mpp_loge("1 - MPP_ENC_RC_QUALITY_BAD\n");
+        mpp_loge("2 - MPP_ENC_RC_QUALITY_MEDIUM\n");
+        mpp_loge("3 - MPP_ENC_RC_QUALITY_BETTER\n");
+        mpp_loge("4 - MPP_ENC_RC_QUALITY_BEST\n");
+        mpp_loge("5 - MPP_ENC_RC_QUALITY_CQP\n");
+        mpp_loge("6 - MPP_ENC_RC_QUALITY_AQ_ONLY\n");
+        mpp_loge("restore quality to %d\n", cfg->quality);
+        set->quality = cfg->quality;
+    }
+
+    if (set->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
+        if ((set->bps_target >= 100 * SZ_1M || set->bps_target <= 1 * SZ_1K) ||
+            (set->bps_max >= 100 * SZ_1M     || set->bps_max <= 1 * SZ_1K) ||
+            (set->bps_min >= 100 * SZ_1M     || set->bps_min <= 1 * SZ_1K)) {
+            mpp_loge("invalid bit per second (bps) %d [%d:%d] out of range 1K~100M\n",
+                     set->bps_target, set->bps_min, set->bps_max);
+            mpp_loge("restore bps to %d [%d:%d]\n",
+                     cfg->bps_target, cfg->bps_min, cfg->bps_max);
+            set->bps_target = cfg->bps_target;
+            set->bps_max = cfg->bps_max;
+            set->bps_min = cfg->bps_min;
+        }
+    }
+
+    // if I frame min/max is not set use normal case
+    if (set->qp_min_i <= 0)
+        set->qp_min_i = set->qp_min;
+    if (set->qp_max_i <= 0)
+        set->qp_max_i = set->qp_max;
+    if (set->qp_min < 0 || set->qp_max < 0 ||
+        set->qp_min > set->qp_max || set->qp_min_i < 0 ||
+        set->qp_max_i < 0 || set->qp_min_i > set->qp_max_i ||
+        (set->qp_init > 0 && (set->qp_init > set->qp_max_i ||
+                              set->qp_init < set->qp_min_i))) {
+        mpp_loge("invalid qp range: init %d i [%d:%d] p [%d:%d]\n",
+                 set->qp_init, set->qp_min_i, set->qp_max_i,
+                 set->qp_min, set->qp_max);
+
+        mpp_loge("restore qp range: init %d i [%d:%d] p [%d:%d]\n",
+                 set->qp_init, set->qp_min_i, set->qp_max_i,
+                 set->qp_min, set->qp_max);
+
+        set->qp_init = cfg->qp_init;
+        set->qp_min_i = cfg->qp_min_i;
+        set->qp_max_i = cfg->qp_max_i;
+        set->qp_min = cfg->qp_min;
+        set->qp_max = cfg->qp_max;
+    }
+
+    if (MPP_ABS(set->qp_delta_ip) > 8) {
+        mpp_loge("invalid qp delta ip %d restore to %d\n",
+                 set->qp_delta_ip, cfg->qp_delta_ip);
+        set->qp_delta_ip = cfg->qp_delta_ip;
+    }
+    if (MPP_ABS(set->qp_delta_vi) > 6) {
+        mpp_loge("invalid qp delta vi %d restore to %d\n",
+                 set->qp_delta_vi, cfg->qp_delta_vi);
+        set->qp_delta_vi = cfg->qp_delta_vi;
+    }
+    if (set->qp_max_step < 0) {
+        mpp_loge("invalid qp max step %d restore to %d\n",
+                 set->qp_max_step, cfg->qp_max_step);
+        set->qp_max_step = cfg->qp_max_step;
+    }
+    if (set->stats_time && set->stats_time > 60) {
+        mpp_loge("warning: bitrate statistic time %d is larger than 60s\n",
+                 set->stats_time);
+    }
+
+    /* 2. check rc cfg done now check rc cfg change */
+    if (set->rc_mode != cfg->rc_mode)
+        change |= RC_CHANGE_MODE;
+    if (set->bps_target != cfg->bps_target ||
+        set->bps_max != cfg->bps_max ||
+        set->bps_min != cfg->bps_min)
+        change |= RC_CHANGE_BPS;
+    if (set->fps_in_num != cfg->fps_in_num ||
+        set->fps_in_denom != cfg->fps_in_denom ||
+        set->fps_in_flex != cfg->fps_in_flex)
+        change |= RC_CHANGE_FPS_IN;
+    if (set->fps_out_num != cfg->fps_out_num ||
+        set->fps_out_denom != cfg->fps_out_denom ||
+        set->fps_out_flex != cfg->fps_out_flex)
+        change |= RC_CHANGE_FPS_OUT;
+    if (set->gop != cfg->gop)
+        change |= RC_CHANGE_GOP;
+
+    if (change & (RC_CHANGE_MODE | RC_CHANGE_FPS_IN | RC_CHANGE_FPS_OUT | RC_CHANGE_GOP))
+        enc_set_resend_hdr(enc, "change rc_mode/fps/gop");
+
+    /* NOTE: some rc change no need to (quality) */
+    if (flag)
+        enc_set_rc_updated(enc, "rc cfg changed");
+
+    show_rc_update(cfg, set, change);
+    memcpy(cfg, set, sizeof(*cfg));
+
+    if (change & RC_CHANGE_GOP)
+        mpp_enc_refs_set_rc_igop(enc->refs, cfg->gop);
+}
+
+static void proc_split_cfg(MppEncSliceSplit *cfg, MppEncSliceSplit *set)
+{
+    if (set->split_mode >= MPP_ENC_SPLIT_MODE_BUTT) {
+        mpp_loge("invalid split mode %d should be in range [%d:%d]\n",
+                 set->split_mode, MPP_ENC_SPLIT_NONE, MPP_ENC_SPLIT_MODE_BUTT);
+        mpp_loge("restore split mode %d\n", cfg->split_mode);
+        set->split_mode = cfg->split_mode;
+    }
+
+    if (!set->split_mode) {
+        set->split_arg = 0;
+        set->split_out = 0;
+    }
+
+    memcpy(cfg, set, sizeof(*cfg));
+}
+
+static void proc_hw_cfg(MppEncImpl *enc)
+{
+    MppEncHwCfg *cfg = &enc->cfg->hw;
+    MppEncHwCfg *set = &enc->set->hw;
+    rk_u32 flag = *mpp_enc_cfg_hw_change(enc->set);
+
+    enc_dbg_cfg("hw cfg change 0x%x\n", flag);
+
+    if (!flag)
+        return;
+
+    if (set->qp_delta_row < 0 || set->qp_delta_row_i < 0) {
+        mpp_loge("invalid hw qp delta row [%d:%d] restore to [%d:%d]\n",
+                 set->qp_delta_row_i, set->qp_delta_row,
+                 cfg->qp_delta_row_i, cfg->qp_delta_row);
+        set->qp_delta_row = cfg->qp_delta_row;
+        set->qp_delta_row_i = cfg->qp_delta_row_i;
+    }
+
+    if (set->qbias_en < 0) {
+        mpp_loge("invalid hw qbias_en %d restore to %d\n",
+                 set->qbias_en, cfg->qbias_en);
+        set->qbias_en = cfg->qbias_en;
+    }
+
+    if (set->qbias_i < 0 || set->qbias_p < 0) {
+        mpp_loge("invalid hw qp bias [%d:%d] restore to [%d:%d]\n",
+                 set->qbias_i, set->qbias_p, cfg->qbias_i, cfg->qbias_p);
+        set->qbias_i = cfg->qbias_i;
+    }
+
+    if (set->flt_str_i < 0 || set->flt_str_p < 0) {
+        mpp_loge("invalid filter strength [%d:%d] restore to [%d:%d]\n",
+                 set->flt_str_i, set->flt_str_p,
+                 cfg->flt_str_i, cfg->flt_str_p);
+        set->flt_str_i = cfg->flt_str_i;
+    }
+
+    memcpy(cfg, set, sizeof(*cfg));
+}
+
+static void proc_tune_cfg(MppEncImpl *enc)
+{
+    MppEncFineTuneCfg *cfg = &enc->cfg->tune;
+    MppEncFineTuneCfg *set = &enc->set->tune;
+    rk_u32 flag = *mpp_enc_cfg_tune_change(enc->set);
+
+    enc_dbg_cfg("tune cfg change 0x%x\n", flag);
+
+    if (!flag)
+        return;
+
+    if (set->scene_mode < MPP_ENC_SCENE_MODE_DEFAULT ||
+        set->scene_mode >= MPP_ENC_SCENE_MODE_BUTT) {
+        mpp_loge("invalid scene mode %d not in range [%d:%d]\n", set->scene_mode,
+                 MPP_ENC_SCENE_MODE_DEFAULT, MPP_ENC_SCENE_MODE_BUTT - 1);
+        mpp_loge("restore scene mode %d\n", cfg->scene_mode);
+        set->scene_mode = cfg->scene_mode;
+    }
+
+    if (set->motion_static_switch_enable < 0 || set->motion_static_switch_enable > 1) {
+        mpp_loge("invalid motion static switch enable not in range [%d : %d]\n", 0, 1);
+        mpp_loge("restore motion static switch enable %d\n", cfg->motion_static_switch_enable);
+        set->motion_static_switch_enable = cfg->motion_static_switch_enable;
+    }
+
+    if (set->deblur_str < 0 || set->deblur_str > 7) {
+        mpp_loge("invalid deblur strength not in range [0 : 7]\n");
+        mpp_loge("restore deblur strength %d\n", cfg->deblur_str);
+        set->deblur_str = cfg->deblur_str;
+    }
+
+    if (set->atr_str_i < 0 || set->atr_str_i > 3) {
+        mpp_loge("invalid anti ring strength of I frame not in range [0 : 3]\n");
+        mpp_loge("restore anti ring strength of I frame %d\n", cfg->atr_str_i);
+        set->atr_str_i = cfg->atr_str_i;
+    }
+
+    if (set->atr_str_p < 0 || set->atr_str_p > 3) {
+        mpp_loge("invalid anti ring strength of P frame not in range [0 : 3]\n");
+        mpp_loge("restore anti ring strength of P frame %d\n", cfg->atr_str_p);
+        set->atr_str_p = cfg->atr_str_p;
+    }
+
+    if (set->atl_str < 0 || set->atl_str > 3) {
+        mpp_loge("invalid anti line strength not in range [0 : 3]\n");
+        mpp_loge("restore anti line strength %d\n", cfg->atl_str);
+        set->atl_str = cfg->atl_str;
+    }
+
+    if (set->lambda_idx_p < 0 || set->lambda_idx_p > 8) {
+        mpp_loge("invalid lambda idx not in range [0 : 8]\n");
+        mpp_loge("restore lambda idx %d\n", cfg->lambda_idx_p);
+        set->lambda_idx_p = cfg->lambda_idx_p;
+    }
+
+    if (set->lambda_idx_i < 0 || set->lambda_idx_i > 8) {
+        mpp_loge("invalid I frame lambda idx not in range [0 : 8]\n");
+        mpp_loge("restore I frame lambda idx %d\n", cfg->lambda_idx_i);
+        set->lambda_idx_i = cfg->lambda_idx_i;
+    }
+
+    if (set->atf_str < 0 || set->atf_str > 3) {
+        mpp_loge("invalid anti flick strength not in range [0 : 3]\n");
+        mpp_loge("restore anti flick strength %d\n", cfg->atf_str);
+        set->atf_str = cfg->atf_str;
+    }
+
+    if (set->lgt_chg_lvl < 0 || set->lgt_chg_lvl > 7) {
+        mpp_loge("invalid lgt_chg_lvl %d not in range [0, 7]\n", set->lgt_chg_lvl);
+        mpp_loge("restore lgt_chg_lvl %d\n", cfg->lgt_chg_lvl);
+        set->lgt_chg_lvl = cfg->lgt_chg_lvl;
+    }
+
+    if (set->static_frm_num < 0 || set->static_frm_num > 7) {
+        mpp_loge("invalid static_frm_num %d not in range [0, 7]\n", set->static_frm_num);
+        mpp_loge("restore static_frm_num %d\n", cfg->static_frm_num);
+        set->static_frm_num = cfg->static_frm_num;
+    }
+
+    if (set->madp16_th < 0 || set->madp16_th > 63) {
+        mpp_loge("invalid madp16_th %d not in range [0, 255]\n", set->madp16_th);
+        mpp_loge("restore madp16_th %d\n", cfg->madp16_th);
+        set->madp16_th = cfg->madp16_th;
+    }
+
+    if (!(set->skip16_wgt == 0 || (set->skip16_wgt >= 3 && set->skip16_wgt <= 8))) {
+        mpp_loge("invalid skip16_wgt %d not in range [3, 8] or 0\n", set->skip16_wgt);
+        mpp_loge("restore skip16_wgt %d\n", cfg->skip16_wgt);
+        set->skip16_wgt = cfg->skip16_wgt;
+    }
+
+    if (!(set->skip32_wgt == 0 || (set->skip32_wgt >= 3 && set->skip32_wgt <= 8))) {
+        mpp_loge("invalid skip32_wgt %d not in range [3, 8] or 0\n", set->skip32_wgt);
+        mpp_loge("restore skip32_wgt %d\n", cfg->skip32_wgt);
+        set->skip32_wgt = cfg->skip32_wgt;
+    }
+
+    set->bmap_qpmin_i = mpp_clip(set->bmap_qpmin_i, 1, 51);
+    set->bmap_qpmin_p = mpp_clip(set->bmap_qpmin_p, 1, 51);
+    set->bmap_qpmax_i = mpp_clip(set->bmap_qpmax_i, 1, 51);
+    set->bmap_qpmax_p = mpp_clip(set->bmap_qpmax_p, 1, 51);
+    set->min_bg_fqp = mpp_clip(set->min_bg_fqp, 1, 51);
+    set->max_bg_fqp = mpp_clip(set->max_bg_fqp, 1, 51);
+    set->min_fg_fqp = mpp_clip(set->min_fg_fqp, 1, 51);
+    set->max_fg_fqp = mpp_clip(set->max_fg_fqp, 1, 51);
+    set->bg_delta_qp_i = mpp_clip(set->bg_delta_qp_i, -32, 32);
+    set->bg_delta_qp_p = mpp_clip(set->bg_delta_qp_p, -32, 32);
+    set->fg_delta_qp_i = mpp_clip(set->fg_delta_qp_i, -32, 32);
+    set->fg_delta_qp_p = mpp_clip(set->fg_delta_qp_p, -32, 32);
+    set->fg_area = mpp_clip(set->fg_area, -1, 100);
+
+    if (set->scene_mode != cfg->scene_mode ||
+        set->motion_static_switch_enable != cfg->motion_static_switch_enable ||
+        set->deblur_str != cfg->deblur_str)
+        enc_set_rc_updated(enc, "tune cfg changed");
+
+    memcpy(cfg, set, sizeof(*cfg));
+}
+
+static void proc_h264_cfg(MppEncImpl *enc)
+{
+    MppEncH264Cfg *cfg = &enc->cfg->h264;
+    MppEncH264Cfg *set = &enc->set->h264;
+    rk_u32 flag = *mpp_enc_cfg_h264_change(enc->set);
+    rk_s32 profile = set->profile;
+    rk_s32 entropy_coding_mode = set->entropy_coding_mode_ex;
+    rk_s32 cabac_init_idc = set->cabac_init_idc_ex;
+    rk_s32 transform8x8_mode = set->transform8x8_mode_ex;
+    rk_s32 disable_cabac = (H264_PROFILE_FREXT_CAVLC444 == profile ||
+                            H264_PROFILE_BASELINE == profile ||
+                            H264_PROFILE_EXTENDED == profile);
+
+    enc_dbg_cfg("h264 cfg change 0x%x\n", flag);
+
+    if (enc->cfg->rc.refresh_en) {
+        RK_U32 mb_rows;
+
+        if (!enc->cfg->rc.refresh_mode)
+            mb_rows = MPP_ALIGN(enc->cfg->prep.height, 16) / 16;
+        else
+            mb_rows = MPP_ALIGN(enc->cfg->prep.width, 16) / 16;
+
+        enc->cfg->rc.refresh_length = (mb_rows + enc->cfg->rc.refresh_num - 1) /
+                                      enc->cfg->rc.refresh_num;
+        if (enc->cfg->rc.gop < enc->cfg->rc.refresh_length)
+            enc->cfg->rc.refresh_length = enc->cfg->rc.gop;
+    }
+
+    if (!flag)
+        return;
+
+    /* 1. check input h264 config */
+    if (disable_cabac) {
+        if (entropy_coding_mode) {
+            mpp_loge("Warning: invalid cabac_en %d for h264 profile %d, set to 0.\n",
+                     entropy_coding_mode, profile);
+            entropy_coding_mode = 0;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_FPS_OUT) {
-            dst->fps_out_flex = src->fps_out_flex;
-            dst->fps_out_num = src->fps_out_num;
-            dst->fps_out_denom = src->fps_out_denom;
-            dst->fps_chg_no_idr = src->fps_chg_no_idr;
+        if (cabac_init_idc >= 0) {
+            mpp_loge("Warning: invalid cabac_init_idc %d for h264 profile %d, set to -1.\n",
+                     cabac_init_idc, profile);
+
+            cabac_init_idc = -1;
+        }
+    }
+
+    if (profile < H264_PROFILE_HIGH && transform8x8_mode) {
+        mpp_loge("Warning: invalid transform8x8_mode %d for h264 profile %d, set to 0.\n",
+                 transform8x8_mode, profile);
+
+        transform8x8_mode = 0;
+    }
+
+    set->entropy_coding_mode = entropy_coding_mode;
+    set->cabac_init_idc = cabac_init_idc;
+    set->transform8x8_mode = transform8x8_mode;
+
+    memcpy(cfg, set, sizeof(*cfg));
+    enc_set_resend_hdr(enc, "h264 cfg changed");
+}
+
+static void proc_h265_cfg(MppEncImpl *enc)
+{
+    MppEncH265Cfg *cfg = &enc->cfg->h265;
+    MppEncH265Cfg *set = &enc->set->h265;
+    rk_u32 flag = *mpp_enc_cfg_h265_change(enc->set);
+
+    enc_dbg_cfg("h265 cfg change 0x%x\n", flag);
+
+    if (enc->cfg->rc.refresh_en) {
+        RK_U32 mb_rows;
+
+        if (!enc->cfg->rc.refresh_mode)
+            mb_rows = MPP_ALIGN(enc->cfg->prep.height, 32) / 32;
+        else
+            mb_rows = MPP_ALIGN(enc->cfg->prep.width, 32) / 32;
+
+        enc->cfg->rc.refresh_length = (mb_rows + enc->cfg->rc.refresh_num - 1) /
+                                      enc->cfg->rc.refresh_num;
+        if (enc->cfg->rc.gop < enc->cfg->rc.refresh_length)
+            enc->cfg->rc.refresh_length = enc->cfg->rc.gop;
+    }
+
+    if (!flag)
+        return;
+
+    if (set->const_intra_pred) {
+        RockchipSocType soc_type = mpp_get_soc_type();
+
+        if (soc_type >= ROCKCHIP_SOC_RK3576) {
+            set->const_intra_pred = 0;
+
+            mpp_logw("warning: Only rk3576's HEVC encoder support constraint intra prediction flag = 1.");
+        }
+    }
+
+    if (set->trans_cfg.cb_qp_offset != set->trans_cfg.cr_qp_offset) {
+        mpp_loge("h265 cr_qp_offset %d MUST equal to cb_qp_offset %d. FORCE to same value\n",
+                 set->trans_cfg.cb_qp_offset, set->trans_cfg.cr_qp_offset);
+
+        set->trans_cfg.cr_qp_offset = set->trans_cfg.cb_qp_offset;
+    }
+
+    if (set->trans_cfg.diff_cu_qp_delta_depth > 2 || set->trans_cfg.diff_cu_qp_delta_depth < 0) {
+        mpp_loge("h265 diff_cu_qp_delta_depth must be in [0, 2] restore to 1\n");
+        set->trans_cfg.diff_cu_qp_delta_depth = 1;
+    }
+
+    memcpy(cfg, set, sizeof(*cfg));
+    enc_set_resend_hdr(enc, "h265 cfg changed");
+}
+
+static void proc_jpeg_cfg(MppEncImpl *enc)
+{
+    MppEncRcCfg *rc_cfg = &enc->cfg->rc;
+    MppEncRcCfg *rc_set = &enc->set->rc;
+    MppEncJpegCfg *cfg = &enc->cfg->jpeg;
+    MppEncJpegCfg *set = &enc->set->jpeg;
+    rk_u32 flag = *mpp_enc_cfg_jpeg_change(enc->set);
+    rk_u32 update = 1;
+    rk_u32 update_rc = 0;
+
+    enc_dbg_cfg("jpeg cfg change 0x%x\n", flag);
+
+    if (!flag)
+        return;
+
+    /* check input change then check validity */
+    if (set->quant != set->quant_ext) {
+        /* quant is set */
+        if (set->quant_ext < 0 || set->quant_ext > 10) {
+            mpp_loge("invalid quant %d not in range [0, 10] restore to 10 (best quality)\n", set->quant_ext);
+            set->quant_ext = 10;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP) {
-            /*
-             * If GOP is changed smaller, disable Intra-Refresh
-             * and User level should reconfig Intra-Refresh
-             */
-            if (dst->gop < src->gop && dst->refresh_en) {
-                dst->refresh_en = 0;
-            }
-            dst->gop = src->gop;
+        rc_set->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+        update_rc = 1;
+        set->quant = set->quant_ext;
+        set->q_mode = JPEG_QUANT;
+        mpp_logi("set jpeg quant %d\n", set->quant);
+    } else if (set->q_factor != set->q_factor_ext ||
+               set->qf_max != set->qf_max_ext ||
+               set->qf_min != set->qf_min_ext) {
+        if (set->q_factor_ext < 1 || set->q_factor_ext > 99) {
+            mpp_loge("invalid q_factor %d out of range [1, 99] restore to 80\n", set->q_factor_ext);
+            set->q_factor_ext = 80;
+        }
+        if (set->qf_min_ext < 1 || set->qf_min_ext > 99) {
+            mpp_loge("invalid qf_min %d out of range [1, 99] restore to 1\n", set->qf_min_ext);
+            set->qf_min_ext = 1;
+        }
+        if (set->qf_max_ext < 1 || set->qf_max_ext > 99) {
+            mpp_loge("invalid qf_max %d out of range [1, 99] restore to 99\n", set->qf_max_ext);
+            set->qf_max_ext = 99;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG)
-            dst->ref_cfg = src->ref_cfg;
+        /* generate q_factor */
+        set->q_factor = set->q_factor_ext;
+        set->qf_max = set->qf_max_ext;
+        set->qf_min = set->qf_min_ext;
+        set->q_mode = JPEG_QFACTOR;
+        mpp_logi("set jpeg qfactor [%d:%d:%d]\n", set->q_factor, set->qf_min, set->qf_max);
+    } else {
+        /* check qtable direct update */
+        static KmppObjDef def = NULL;
+        static KmppEntry *tbl_qtable = NULL;
+        static rk_s32 once = 1;
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_REENC)
-            dst->max_reenc_times = src->max_reenc_times;
+        if (!tbl_qtable && once) {
+            def = kmpp_obj_to_objdef(enc->set_obj);
+            kmpp_objdef_get_entry(def, "jpeg:qtable_y", &tbl_qtable);
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_DROP_FRM) {
-            dst->drop_mode = src->drop_mode;
-            dst->drop_threshold = src->drop_threshold;
-            dst->drop_gap = src->drop_gap;
+            if (!tbl_qtable)
+                mpp_loge("failed to get jpeg qtable update flag\n");
+
+            once = 0;
         }
 
-        if (change & MPP_ENC_RC_CFG_CHANGE_PRIORITY) {
-            if (src->rc_priority >= MPP_ENC_RC_PRIORITY_BUTT) {
-                mpp_err("invalid rc_priority %d should be[%d, %d] \n",
-                        src->rc_priority, MPP_ENC_RC_BY_BITRATE_FIRST, MPP_ENC_RC_PRIORITY_BUTT);
-                ret = MPP_ERR_VALUE;
-            }
-            dst->rc_priority = src->rc_priority;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_SUPER_FRM) {
-            if (src->super_mode >= MPP_ENC_RC_SUPER_FRM_BUTT) {
-                mpp_err("invalid super_mode %d should be[%d, %d] \n",
-                        src->super_mode, MPP_ENC_RC_SUPER_FRM_NONE, MPP_ENC_RC_SUPER_FRM_BUTT);
-                ret = MPP_ERR_VALUE;
-            }
-            dst->super_mode = src->super_mode;
-            dst->super_i_thd = src->super_i_thd;
-            dst->super_p_thd = src->super_p_thd;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_DEBREATH) {
-            dst->debreath_en    = src->debreath_en;
-            dst->debre_strength = src->debre_strength;
-            if (dst->debreath_en && dst->debre_strength > 35) {
-                mpp_err("invalid debre_strength should be[%d, %d] \n", 0, 35);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MAX_I_PROP)
-            dst->max_i_prop = src->max_i_prop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_MIN_I_PROP)
-            dst->min_i_prop = src->min_i_prop;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_INIT_IP_RATIO)
-            dst->init_ip_ratio = src->init_ip_ratio;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_INIT)
-            dst->qp_init = src->qp_init;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_RANGE) {
-            dst->qp_min = src->qp_min;
-            dst->qp_max = src->qp_max;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_RANGE_I) {
-            dst->qp_min_i = src->qp_min_i;
-            dst->qp_max_i = src->qp_max_i;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_MAX_STEP)
-            dst->qp_max_step = src->qp_max_step;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_IP)
-            dst->qp_delta_ip = src->qp_delta_ip;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_QP_VI)
-            dst->qp_delta_vi = src->qp_delta_vi;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_FQP) {
-            dst->fqp_min_i = src->fqp_min_i;
-            dst->fqp_min_p = src->fqp_min_p;
-            dst->fqp_max_i = src->fqp_max_i;
-            dst->fqp_max_p = src->fqp_max_p;
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_HIER_QP) {
-            dst->hier_qp_en = src->hier_qp_en;
-            memcpy(dst->hier_qp_delta, src->hier_qp_delta, sizeof(src->hier_qp_delta));
-            memcpy(dst->hier_frame_num, src->hier_frame_num, sizeof(src->hier_frame_num));
-        }
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_ST_TIME)
-            dst->stats_time = src->stats_time;
-
-        if (change & MPP_ENC_RC_CFG_CHANGE_REFRESH) {
-            if (dst->debreath_en) {
-                mpp_err_f("Turn off Debreath first.");
-                ret = MPP_ERR_VALUE;
-            }
-            dst->refresh_en = src->refresh_en;
-            dst->refresh_mode = src->refresh_mode;
-            // Make sure refresh_num is legal
-            dst->refresh_num = src->refresh_num;
-        }
-
-        // parameter checking
-        if (dst->rc_mode >= MPP_ENC_RC_MODE_BUTT) {
-            mpp_err("invalid rc mode %d should be RC_MODE_VBR or RC_MODE_CBR\n",
-                    src->rc_mode);
-            ret = MPP_ERR_VALUE;
-        }
-        if (dst->quality >= MPP_ENC_RC_QUALITY_BUTT) {
-            mpp_err("invalid quality %d should be from QUALITY_WORST to QUALITY_BEST\n",
-                    dst->quality);
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (dst->rc_mode != MPP_ENC_RC_MODE_FIXQP) {
-            RK_S32 bps_min = MPP_ENC_MIN_BPS;
-            RK_S32 bps_max = MPP_ENC_MAX_BPS;
-
-            if (coding == MPP_VIDEO_CodingMJPEG) {
-                bps_min *= 4;
-                bps_max *= 4;
-                if (bps_max < 0)
-                    bps_max = INT_MAX;
-            }
-
-            if ((dst->bps_target >= bps_max || dst->bps_target <= bps_min) ||
-                (dst->bps_max    >= bps_max || dst->bps_max    <= bps_min) ||
-                (dst->bps_min    >= bps_max || dst->bps_min    <= bps_min)) {
-                mpp_err("invalid bit per second %x:%u min %x:%u max %x:%u out of range %dK~%dM\n",
-                        dst->bps_target, dst->bps_target, dst->bps_min,
-                        dst->bps_min, dst->bps_max, dst->bps_max,
-                        bps_min / SZ_1K,  bps_max / SZ_1M);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        if (dst->fps_in_num < 0 || dst->fps_in_denom < 0 ||
-            dst->fps_out_num < 0 || dst->fps_out_denom < 0) {
-            mpp_err("invalid fps cfg [number:denom:flex]: in [%d:%d:%d] out [%d:%d:%d]\n",
-                    dst->fps_in_num, dst->fps_in_denom, dst->fps_in_flex,
-                    dst->fps_out_num, dst->fps_out_denom, dst->fps_out_flex);
-            ret = MPP_ERR_VALUE;
-        }
-
-        // if I frame min/max is not set use normal case
-        if (dst->qp_min_i <= 0)
-            dst->qp_min_i = dst->qp_min;
-        if (dst->qp_max_i <= 0)
-            dst->qp_max_i = dst->qp_max;
-        if (dst->qp_min < 0 || dst->qp_max < 0 || dst->qp_min > dst->qp_max ||
-            dst->qp_min_i < 0 || dst->qp_max_i < 0 ||
-            dst->qp_min_i > dst->qp_max_i ||
-            (dst->qp_init > 0 &&
-             (dst->qp_init > dst->qp_max_i || dst->qp_init < dst->qp_min_i))) {
-            mpp_err("invalid qp range: init %d i [%d:%d] p [%d:%d]\n",
-                    dst->qp_init, dst->qp_min_i, dst->qp_max_i,
-                    dst->qp_min, dst->qp_max);
-
-            dst->qp_init  = bak.qp_init;
-            dst->qp_min_i = bak.qp_min_i;
-            dst->qp_max_i = bak.qp_max_i;
-            dst->qp_min   = bak.qp_min;
-            dst->qp_max   = bak.qp_max;
-
-            mpp_err("restore qp range: init %d i [%d:%d] p [%d:%d]\n",
-                    dst->qp_init, dst->qp_min_i, dst->qp_max_i,
-                    dst->qp_min, dst->qp_max);
-        }
-        if (MPP_ABS(dst->qp_delta_ip) > 8) {
-            mpp_err("invalid qp delta ip %d restore to %d\n",
-                    dst->qp_delta_ip, bak.qp_delta_ip);
-            dst->qp_delta_ip = bak.qp_delta_ip;
-        }
-        if (MPP_ABS(dst->qp_delta_vi) > 6) {
-            mpp_err("invalid qp delta vi %d restore to %d\n",
-                    dst->qp_delta_vi, bak.qp_delta_vi);
-            dst->qp_delta_vi = bak.qp_delta_vi;
-        }
-        if (dst->qp_max_step < 0) {
-            mpp_err("invalid qp max step %d restore to %d\n",
-                    dst->qp_max_step, bak.qp_max_step);
-            dst->qp_max_step = bak.qp_max_step;
-        }
-        if (dst->stats_time && dst->stats_time > 60) {
-            mpp_err("warning: bitrate statistic time %d is larger than 60s\n",
-                    dst->stats_time);
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new rc config\n");
-            *dst = bak;
+        if (kmpp_obj_tbl_test(enc->set_obj, tbl_qtable)) {
+            rc_set->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+            update_rc = 1;
+            set->q_mode = JPEG_QTABLE;
+            mpp_logi("set jpeg qtable\n");
         } else {
-            mpp_log("MPP_ENC_SET_RC_CFG bps %d [%d : %d] fps [%d:%d] gop %d\n",
-                    dst->bps_target, dst->bps_min, dst->bps_max,
-                    dst->fps_in_num, dst->fps_out_num, dst->gop);
+            update = 0;
         }
     }
 
-    return ret;
+    if (!update) {
+        set->q_mode = JPEG_QUANT;
+        set->quant = 10;
+        rc_set->rc_mode = MPP_ENC_RC_MODE_FIXQP;
+        update_rc = 1;
+
+        mpp_loge("set jpeg invalid cfg, use default quant 10\n");
+    }
+    memcpy(cfg, set, sizeof(*cfg));
+
+    if (update_rc)
+        rc_cfg->rc_mode = rc_set->rc_mode;
+    cfg->update = 1;
 }
 
-MPP_RET mpp_enc_proc_hw_cfg(MppEncHwCfg *dst, MppEncHwCfg *src)
+static void proc_vp8_cfg(MppEncImpl *enc)
 {
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
+    MppEncH265Cfg *cfg = &enc->cfg->h265;
+    MppEncH265Cfg *set = &enc->set->h265;
+    rk_u32 flag = *mpp_enc_cfg_vp8_change(enc->set);
 
-    if (change) {
-        MppEncHwCfg bak = *dst;
+    enc_dbg_cfg("vp8 cfg change 0x%x\n", flag);
 
-        if (change & MPP_ENC_HW_CFG_CHANGE_QP_ROW)
-            dst->qp_delta_row = src->qp_delta_row;
+    if (!flag)
+        return;
 
-        if (change & MPP_ENC_HW_CFG_CHANGE_QP_ROW_I)
-            dst->qp_delta_row_i = src->qp_delta_row_i;
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_THRD_I)
-            memcpy(dst->aq_thrd_i, src->aq_thrd_i, sizeof(dst->aq_thrd_i));
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_THRD_P)
-            memcpy(dst->aq_thrd_p, src->aq_thrd_p, sizeof(dst->aq_thrd_p));
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_I)
-            memcpy(dst->aq_step_i, src->aq_step_i, sizeof(dst->aq_step_i));
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_AQ_STEP_P)
-            memcpy(dst->aq_step_p, src->aq_step_p, sizeof(dst->aq_step_p));
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_I)
-            dst->qbias_i = src->qbias_i;
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_P)
-            dst->qbias_p = src->qbias_p;
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_QBIAS_EN)
-            dst->qbias_en = src->qbias_en;
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_MB_RC)
-            dst->mb_rc_disable = src->mb_rc_disable;
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_CU_MODE_BIAS)
-            memcpy(dst->mode_bias, src->mode_bias, sizeof(dst->mode_bias));
-
-        if (change & MPP_ENC_HW_CFG_CHANGE_CU_SKIP_BIAS) {
-            dst->skip_bias_en = src->skip_bias_en;
-            dst->skip_sad = src->skip_sad;
-            dst->skip_bias = src->skip_bias;
-        }
-
-        if (dst->qp_delta_row < 0 || dst->qp_delta_row_i < 0) {
-            mpp_err("invalid hw qp delta row [%d:%d]\n",
-                    dst->qp_delta_row_i, dst->qp_delta_row);
-            ret = MPP_ERR_VALUE;
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new hw config\n");
-            *dst = bak;
-        }
-    }
-
-    return ret;
-}
-
-MPP_RET mpp_enc_proc_tune_cfg(MppEncFineTuneCfg *dst, MppEncFineTuneCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    if (change) {
-        MppEncFineTuneCfg bak = *dst;
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_SCENE_MODE)
-            dst->scene_mode = src->scene_mode;
-
-        if (dst->scene_mode < MPP_ENC_SCENE_MODE_DEFAULT ||
-            dst->scene_mode >= MPP_ENC_SCENE_MODE_BUTT) {
-            mpp_err("invalid scene mode %d not in range [%d, %d]\n", dst->scene_mode,
-                    MPP_ENC_SCENE_MODE_DEFAULT, MPP_ENC_SCENE_MODE_BUTT - 1);
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_SE_MODE)
-            dst->se_mode = src->se_mode;
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_EN)
-            dst->deblur_en = src->deblur_en;
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_DEBLUR_STR)
-            dst->deblur_str = src->deblur_str;
-
-        if (dst->deblur_str < 0 || dst->deblur_str > 7) {
-            mpp_err("invalid deblur strength not in range [0, 7]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_ANTI_FLICKER_STR)
-            dst->anti_flicker_str = src->anti_flicker_str;
-
-        if (dst->anti_flicker_str < 0 || dst->anti_flicker_str > 3) {
-            mpp_err("invalid anti_flicker_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_I)
-            dst->atr_str_i = src->atr_str_i;
-
-        if (dst->atr_str_i < 0 || dst->atr_str_i > 3) {
-            mpp_err("invalid atr_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATR_STR_P)
-            dst->atr_str_p = src->atr_str_p;
-
-        if (dst->atr_str_p < 0 || dst->atr_str_p > 3) {
-            mpp_err("invalid atr_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_ATL_STR)
-            dst->atl_str = src->atl_str;
-
-        if (dst->atl_str < 0 || dst->atl_str > 3) {
-            mpp_err("invalid atr_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_I)
-            dst->sao_str_i = src->sao_str_i;
-
-        if (dst->sao_str_i < 0 || dst->sao_str_i > 3) {
-            mpp_err("invalid atr_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_SAO_STR_P)
-            dst->sao_str_p = src->sao_str_p;
-
-        if (dst->sao_str_p < 0 || dst->sao_str_p > 3) {
-            mpp_err("invalid atr_str not in range [0 : 3]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_I)
-            dst->lambda_idx_i = src->lambda_idx_i;
-
-        if (dst->lambda_idx_i < 0 || dst->lambda_idx_i > 8) {
-            mpp_err("invalid lambda idx i not in range [0, 8]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_LAMBDA_IDX_P)
-            dst->lambda_idx_p = src->lambda_idx_p;
-
-        if (dst->lambda_idx_p < 0 || dst->lambda_idx_p > 8) {
-            mpp_err("invalid lambda idx i not in range [0, 8]\n");
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_RC_CONTAINER)
-            dst->rc_container = src->rc_container;
-
-        if (dst->rc_container < 0 || dst->rc_container > 2) {
-            mpp_err("invalid rc_container %d not in range [0, 2]\n", dst->rc_container);
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_VMAF_OPT)
-            dst->vmaf_opt = src->vmaf_opt;
-
-        if (dst->vmaf_opt < 0 || dst->vmaf_opt > 1) {
-            mpp_err("invalid vmaf_opt %d not in range [0, 1]\n", dst->vmaf_opt);
-            ret = MPP_ERR_VALUE;
-        }
-
-        if (change & MPP_ENC_TUNE_CFG_CHANGE_SMART_V3_CFG) {
-            dst->bg_delta_qp_i = src->bg_delta_qp_i;
-            dst->bg_delta_qp_p = src->bg_delta_qp_p;
-            dst->fg_delta_qp_i = src->fg_delta_qp_i;
-            dst->fg_delta_qp_p = src->fg_delta_qp_p;
-            dst->bmap_qpmin_i = src->bmap_qpmin_i;
-            dst->bmap_qpmin_p = src->bmap_qpmin_p;
-            dst->bmap_qpmax_i = src->bmap_qpmax_i;
-            dst->bmap_qpmax_p = src->bmap_qpmax_p;
-            dst->min_bg_fqp = src->min_bg_fqp;
-            dst->max_bg_fqp = src->max_bg_fqp;
-            dst->min_fg_fqp = src->min_fg_fqp;
-            dst->max_fg_fqp = src->max_fg_fqp;
-        }
-
-        dst->change |= change;
-
-        if (ret) {
-            mpp_err_f("failed to accept new tuning config\n");
-            *dst = bak;
-        }
-    }
-
-    return ret;
+    memcpy(cfg, set, sizeof(*cfg));
 }
 
 static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param)
 {
     MPP_RET ret = MPP_OK;
     MppEncRefCfg src = (MppEncRefCfg)param;
-    MppEncRefCfg dst = enc->cfg.ref_cfg;
+    MppEncRefCfg dst = enc->cfg->ref_cfg;
 
     if (NULL == src)
         src = mpp_enc_ref_default();
 
     if (NULL == dst) {
         mpp_enc_ref_cfg_init(&dst);
-        enc->cfg.ref_cfg = dst;
+        enc->cfg->ref_cfg = dst;
     }
 
     ret = mpp_enc_ref_cfg_copy(dst, src);
@@ -1020,75 +1250,72 @@ static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param)
 
 MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
 {
+    MppEncCfgSet *cfg = enc->cfg;
     MPP_RET ret = MPP_OK;
-    RK_BOOL encode_idr = RK_FALSE;
 
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        MppEncCfgSet *src = (MppEncCfgSet *)param;
-        RK_U32 change = src->base.change;
+        KmppObj in_obj = (KmppObj)param;
+        MppEncCfgSet *set = enc->set;
         MPP_RET ret_tmp = MPP_OK;
 
-        /* get base cfg here */
-        if (change) {
-            MppEncCfgSet *dst = &enc->cfg;
-
-            if (change & MPP_ENC_BASE_CFG_CHANGE_LOW_DELAY)
-                dst->base.low_delay = src->base.low_delay;
-
-            if (change & MPP_ENC_BASE_CFG_CHANGE_SMART_EN)
-                dst->base.smart_en = src->base.smart_en;
-
-            if (change & MPP_ENC_BASE_CFG_CHANGE_CODING)
-                dst->base.coding = src->base.coding;
-
-            src->base.change = 0;
+        /* update all element to temporal storage */
+        ret = (MPP_RET)kmpp_obj_update(enc->set_obj, in_obj);
+        if (ret) {
+            mpp_loge_f("failed to update set_obj\n");
+            break;
         }
 
-        /* process rc cfg at mpp_enc module */
-        if (src->rc.change) {
-            ret_tmp = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, &src->rc);
-            if (ret_tmp != MPP_OK)
-                ret = ret_tmp;
-            // update ref cfg
-            if ((enc->cfg.rc.change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG) &&
-                (enc->cfg.rc.gop > 0))
-                mpp_enc_control_set_ref_cfg(enc, enc->cfg.rc.ref_cfg);
-
-            src->rc.change = 0;
+        /* fix for cfg not setup coding */
+        if (set->base.coding != enc->coding) {
+            set->base.coding = enc->coding;
         }
 
-        /* process hardware cfg at mpp_enc module */
-        if (src->hw.change) {
-            ret_tmp = mpp_enc_proc_hw_cfg(&enc->cfg.hw, &src->hw);
-            if (ret_tmp != MPP_OK)
-                ret = ret_tmp;
-            src->hw.change = 0;
+        /* check all date status in set_obj */
+        /* 1. base cfg -> no check */
+        memcpy(&cfg->base, &set->base, sizeof(cfg->base));
+
+        /* 2. prep cfg -> chech and show resolution update */
+        proc_prep_cfg(enc);
+
+        /* 3. rc cfg -> check and show bps update */
+        proc_rc_cfg(enc);
+
+        /* 4. split cfg -> check with restore */
+        proc_split_cfg(&cfg->split, &set->split);
+
+        /* 5. hw cfg -> check with restore */
+        proc_hw_cfg(enc);
+
+        /* 6. tune cfg -> check with restore */
+        proc_tune_cfg(enc);
+
+        /* 7. codec config */
+        switch (enc->coding) {
+        case MPP_VIDEO_CodingAVC : {
+            proc_h264_cfg(enc);
+        } break;
+        case MPP_VIDEO_CodingHEVC : {
+            proc_h265_cfg(enc);
+        } break;
+        case MPP_VIDEO_CodingMJPEG : {
+            proc_jpeg_cfg(enc);
+        } break;
+        case MPP_VIDEO_CodingVP8 : {
+            proc_vp8_cfg(enc);
+        } break;
+        default : {
+            mpp_loge_f("unsupport coding %d\n", enc->coding);
+        } break;
         }
 
-        /* process hardware cfg at mpp_enc module */
-        if (src->tune.change) {
-            ret_tmp = mpp_enc_proc_tune_cfg(&enc->cfg.tune, &src->tune);
-            if (ret_tmp != MPP_OK)
-                ret = ret_tmp;
-            src->tune.change = 0;
-        }
+        if (enc->cfg->rc.refresh_en)
+            mpp_enc_refs_set_refresh_length(enc->refs, enc->cfg->rc.refresh_length);
 
         /* Then process the rest config */
         ret_tmp = enc_impl_proc_cfg(enc->impl, cmd, param);
         if (ret_tmp != MPP_OK)
             ret = ret_tmp;
-    } break;
-    case MPP_ENC_SET_RC_CFG : {
-        MppEncRcCfg *src = (MppEncRcCfg *)param;
-        if (src) {
-            ret = mpp_enc_proc_rc_cfg(enc->coding, &enc->cfg.rc, src);
-
-            // update ref cfg
-            if ((enc->cfg.rc.change & MPP_ENC_RC_CFG_CHANGE_GOP_REF_CFG) &&
-                (enc->cfg.rc.gop > 0))
-                mpp_enc_control_set_ref_cfg(enc, enc->cfg.rc.ref_cfg);
-        }
     } break;
     case MPP_ENC_SET_IDR_FRAME : {
         enc->frm_cfg.force_idr++;
@@ -1191,10 +1418,11 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
     } break;
     case MPP_ENC_SET_REF_CFG : {
         ret = mpp_enc_control_set_ref_cfg(enc, param);
+        enc_set_rc_updated(enc, "ref cfg update");
     } break;
     case MPP_ENC_SET_OSD_PLT_CFG : {
         MppEncOSDPltCfg *src = (MppEncOSDPltCfg *)param;
-        MppEncOSDPltCfg *dst = &enc->cfg.plt_cfg;
+        MppEncOSDPltCfg *dst = &enc->cfg->plt_cfg;
         RK_U32 change = src->change;
 
         if (change) {
@@ -1225,20 +1453,6 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
         ret = enc_impl_proc_cfg(enc->impl, cmd, param);
     } break;
     }
-
-    if (check_resend_hdr(cmd, param, &enc->cfg, &encode_idr)) {
-        if (encode_idr)
-            enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
-
-        enc->hdr_status.val = 0;
-    }
-    if (check_rc_cfg_update(cmd, &enc->cfg))
-        enc->rc_status.rc_api_user_cfg = 1;
-    if (check_rc_gop_update(cmd, &enc->cfg))
-        mpp_enc_refs_set_rc_igop(enc->refs, enc->cfg.rc.gop);
-
-    if (enc->cfg.rc.refresh_en)
-        mpp_enc_refs_set_refresh_length(enc->refs, enc->cfg.rc.refresh_length);
 
     if (check_hal_info_update(cmd))
         enc->hal_info_updated = 0;
@@ -1397,11 +1611,11 @@ static void set_rc_cfg(RcCfg *cfg, MppEncCfgSet *cfg_set)
     case MPP_VIDEO_CodingMJPEG : {
         MppEncJpegCfg *jpeg = &cfg_set->jpeg;
 
-        cfg->init_quality = jpeg->q_factor;
-        cfg->max_quality = jpeg->qf_max;
-        cfg->min_quality = jpeg->qf_min;
-        cfg->max_i_quality = jpeg->qf_max;
-        cfg->min_i_quality = jpeg->qf_min;
+        cfg->init_quality = 100 - jpeg->q_factor;
+        cfg->max_quality = 100 - jpeg->qf_max;
+        cfg->min_quality = 100 - jpeg->qf_min;
+        cfg->max_i_quality = 100 - jpeg->qf_max;
+        cfg->min_i_quality = 100 - jpeg->qf_min;
         cfg->fqp_min_i = 100 - jpeg->qf_max;
         cfg->fqp_max_i = 100 - jpeg->qf_min;
         cfg->fqp_min_p = 100 - jpeg->qf_max;
@@ -1485,9 +1699,7 @@ MPP_RET mpp_enc_proc_rc_update(MppEncImpl *enc)
 
     // check and update rate control config
     if (enc->rc_status.rc_api_user_cfg) {
-        MppEncCfgSet *cfg = &enc->cfg;
-        MppEncRcCfg *rc_cfg = &cfg->rc;
-        MppEncPrepCfg *prep_cfg = &cfg->prep;
+        MppEncCfgSet *cfg = enc->cfg;
         RcCfg usr_cfg;
 
         enc_dbg_detail("rc update cfg start\n");
@@ -1495,8 +1707,6 @@ MPP_RET mpp_enc_proc_rc_update(MppEncImpl *enc)
         memset(&usr_cfg, 0 , sizeof(usr_cfg));
         set_rc_cfg(&usr_cfg, cfg);
         ret = rc_update_usr_cfg(enc->rc_ctx, &usr_cfg);
-        rc_cfg->change = 0;
-        prep_cfg->change = 0;
 
         enc_dbg_detail("rc update cfg done\n");
         enc->rc_status.rc_api_user_cfg = 0;
@@ -1557,7 +1767,7 @@ static MPP_RET mpp_enc_check_pkt_buf(MppEncImpl *enc)
     if (NULL == enc->pkt_buf) {
         /* NOTE: set buffer w * h * 1.5 to avoid buffer overflow */
         Mpp *mpp = (Mpp *)enc->mpp;
-        MppEncPrepCfg *prep = &enc->cfg.prep;
+        MppEncPrepCfg *prep = &enc->cfg->prep;
         RK_U32 width  = MPP_ALIGN(prep->width, 16);
         RK_U32 height = MPP_ALIGN(prep->height, 16);
         RK_U32 size = (enc->coding == MPP_VIDEO_CodingMJPEG) ?
@@ -1651,7 +1861,7 @@ TASK_DONE:
 
 static void mpp_enc_rc_info_backup(MppEncImpl *enc, EncAsyncTaskInfo *task)
 {
-    if (!enc->support_hw_deflicker || !enc->cfg.rc.debreath_en)
+    if (!enc->support_hw_deflicker || !enc->cfg->rc.debreath_en)
         return;
 
     enc->rc_info_prev = task->rc.info;
@@ -1802,7 +2012,7 @@ static void mpp_enc_add_sw_header(MppEncImpl *enc, HalEncTask *hal_task)
         if (enc->hdr_mode == MPP_ENC_HEADER_MODE_EACH_IDR && frm->is_intra)
             add_header |= 1;
 
-        if (enc->cfg.rc.refresh_en && frm->is_i_recovery && !frm->is_idr)
+        if (enc->cfg->rc.refresh_en && frm->is_i_recovery && !frm->is_idr)
             add_header |= 2;
 
         if (add_header) {
@@ -1820,7 +2030,7 @@ static void mpp_enc_add_sw_header(MppEncImpl *enc, HalEncTask *hal_task)
             RK_S32 length = 0;
 
             enc_impl_add_prefix(impl, packet, &length, uuid_refresh_cfg,
-                                &enc->cfg.rc.refresh_length, 0);
+                                &enc->cfg->rc.refresh_length, 0);
 
             if (length) {
                 enc_dbg_detail("task %d refresh header length %d\n",
@@ -1873,7 +2083,7 @@ static MPP_RET mpp_enc_normal(Mpp *mpp, EncAsyncTaskInfo *task)
     MPP_RET ret = MPP_OK;
     EncAsyncStatus *status = &task->status;
 
-    if (enc->support_hw_deflicker && enc->cfg.rc.debreath_en) {
+    if (enc->support_hw_deflicker && enc->cfg->rc.debreath_en) {
         ret = mpp_enc_proc_two_pass(mpp, task);
         if (ret)
             return ret;
@@ -2560,7 +2770,7 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
     ENC_RUN_FUNC2(mpp_enc_normal, mpp, task, mpp, ret);
 
     // 18. drop, force pskip and reencode  process
-    while (frm->reencode && frm->reencode_times < enc->cfg.rc.max_reenc_times) {
+    while (frm->reencode && frm->reencode_times < enc->cfg->rc.max_reenc_times) {
         hal_task->length -= hal_task->hw_length;
         hal_task->hw_length = 0;
 
@@ -2890,7 +3100,7 @@ static MPP_RET check_async_pkt_buf(MppEncImpl *enc, EncAsyncTaskInfo *async)
     if (NULL == hal_task->output) {
         /* NOTE: set buffer w * h * 1.5 to avoid buffer overflow */
         Mpp *mpp = (Mpp *)enc->mpp;
-        MppEncPrepCfg *prep = &enc->cfg.prep;
+        MppEncPrepCfg *prep = &enc->cfg->prep;
         RK_U32 width  = MPP_ALIGN(prep->width, 16);
         RK_U32 height = MPP_ALIGN(prep->height, 16);
         RK_U32 size = (enc->coding == MPP_VIDEO_CodingMJPEG) ?
@@ -3196,7 +3406,7 @@ static MPP_RET proc_async_task(MppEncImpl *enc, EncAsyncWait *wait)
         }
     }
 
-    if (enc->support_hw_deflicker && enc->cfg.rc.debreath_en) {
+    if (enc->support_hw_deflicker && enc->cfg->rc.debreath_en) {
         bool two_pass_en = mpp_enc_refs_next_frm_is_intra(enc->refs);
 
         if (two_pass_en) {

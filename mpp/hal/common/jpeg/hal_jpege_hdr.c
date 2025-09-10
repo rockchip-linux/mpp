@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <string.h>
+
 #include "mpp_mem.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
@@ -309,6 +311,31 @@ static const RK_U8 qtable_c[11][64] = {
         1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1
     }
+};
+
+/*
+ *  from RFC435 spec.
+ */
+const RK_U8 jpege_luma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    16, 11, 10, 16, 24, 40, 51, 61,
+    12, 12, 14, 19, 26, 58, 60, 55,
+    14, 13, 16, 24, 40, 57, 69, 56,
+    14, 17, 22, 29, 51, 87, 80, 62,
+    18, 22, 37, 56, 68, 109, 103, 77,
+    24, 35, 55, 64, 81, 104, 113, 92,
+    49, 64, 78, 87, 103, 121, 120, 101,
+    72, 92, 95, 98, 112, 100, 103, 99
+};
+
+const RK_U8 jpege_chroma_quantizer[QUANTIZE_TABLE_SIZE] = {
+    17, 18, 24, 47, 99, 99, 99, 99,
+    18, 21, 26, 66, 99, 99, 99, 99,
+    24, 26, 56, 99, 99, 99, 99, 99,
+    47, 66, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99
 };
 
 typedef struct {
@@ -855,7 +882,7 @@ void write_jpeg_RestartInterval(JpegeBits *bits, JpegeSyntax *syntax)
     }
 }
 
-MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qtables[2])
+MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, HalJpegeRc *hal_rc)
 {
     RK_U32 i = 0;
     RK_U32 qtable_number = syntax->nb_components == 1 ? 1 : 2;
@@ -864,23 +891,8 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
     if (syntax->comment_length)
         write_jpeg_comment_header(bits, syntax);
 
-    /* Quant header */
-    if (!qtables[0]) {
-        if (syntax->qtable_y)
-            qtables[0] = syntax->qtable_y;
-        else
-            qtables[0] = qtable_y[syntax->quality];
-    }
-
-    if (!qtables[1]) {
-        if (syntax->qtable_c)
-            qtables[1] = syntax->qtable_c;
-        else
-            qtables[1] = qtable_c[syntax->quality];
-    }
-
     for (i = 0; i < qtable_number; i++)
-        write_jpeg_dqt_header(bits, qtables[i], i);
+        write_jpeg_dqt_header(bits, hal_rc->qtables[i], i);
 
     /* Frame header */
     write_jpeg_SOFO_header(bits, syntax);
@@ -896,4 +908,84 @@ MPP_RET write_jpeg_header(JpegeBits *bits, JpegeSyntax *syntax, const RK_U8 *qta
 
     jpege_bits_align_byte(bits);
     return MPP_OK;
+}
+
+void hal_jpege_rc_init(HalJpegeRc *hal_rc)
+{
+    /* default best quality qtable 10 */
+    hal_rc->q_mode = JPEG_QUANT;
+    hal_rc->quant = 10;
+    hal_rc->q_factor = -1;
+    memset(hal_rc->qtable_y, 1, QUANTIZE_TABLE_SIZE);
+    memset(hal_rc->qtable_u, 1, QUANTIZE_TABLE_SIZE);
+    memset(hal_rc->qtable_v, 1, QUANTIZE_TABLE_SIZE);
+    hal_rc->qtables[0] = qtable_y[hal_rc->quant];
+    hal_rc->qtables[1] = qtable_c[hal_rc->quant];
+    hal_rc->qtables[2] = qtable_c[hal_rc->quant];
+}
+
+static void qfactor_to_qf_table(RK_S32 qfactor, RK_U8 *hal_rc_qtable_y, RK_U8 *hal_rc_qtable_c)
+{
+    RK_U32 q;
+    RK_U32 i;
+
+    if (qfactor < 50)
+        q = 5000 / qfactor;
+    else
+        q = 200 - (qfactor << 1);
+
+    for (i = 0; i < QUANTIZE_TABLE_SIZE; i++) {
+        RK_S16 lq = (jpege_luma_quantizer[i] * q + 50) / 100;
+        RK_S16 cq = (jpege_chroma_quantizer[i] * q + 50) / 100;
+
+        /* Limit the quantizers to 1 <= q <= 255 */
+        hal_rc_qtable_y[i] = MPP_CLIP3(1, 255, lq);
+        hal_rc_qtable_c[i] = MPP_CLIP3(1, 255, cq);
+    }
+}
+
+void hal_jpege_rc_update(HalJpegeRc *hal_rc, JpegeSyntax *syntax)
+{
+    switch (syntax->q_mode) {
+    case JPEG_QUANT : {
+        RK_S32 quant = syntax->quant;
+
+        hal_rc->q_mode = JPEG_QUANT;
+        hal_rc->quant = quant;
+        hal_rc->qtables[0] = qtable_y[quant];
+        hal_rc->qtables[1] = qtable_c[quant];
+        hal_rc->qtables[2] = qtable_c[quant];
+        hal_rc->q_factor = -1;
+    } break;
+    case JPEG_QFACTOR : {
+        if (hal_rc->q_mode != JPEG_QFACTOR || hal_rc->q_factor != syntax->q_factor)
+            qfactor_to_qf_table(syntax->q_factor, hal_rc->qtable_y, hal_rc->qtable_u);
+
+        hal_rc->q_mode = JPEG_QFACTOR;
+        /* NOTE: qfactor mode uv use the same table */
+        hal_rc->qtables[0] = hal_rc->qtable_y;
+        hal_rc->qtables[1] = hal_rc->qtable_u;
+        hal_rc->qtables[2] = hal_rc->qtable_u;
+        hal_rc->q_factor = syntax->q_factor;
+    } break;
+    case JPEG_QTABLE : {
+        hal_rc->q_mode = JPEG_QTABLE;
+        memcpy(hal_rc->qtable_y, syntax->qtable_y, QUANTIZE_TABLE_SIZE);
+        memcpy(hal_rc->qtable_u, syntax->qtable_u, QUANTIZE_TABLE_SIZE);
+        memcpy(hal_rc->qtable_v, syntax->qtable_v, QUANTIZE_TABLE_SIZE);
+        hal_rc->qtables[0] = hal_rc->qtable_y;
+        hal_rc->qtables[1] = hal_rc->qtable_u;
+        hal_rc->qtables[2] = hal_rc->qtable_v;
+        hal_rc->q_factor = -1;
+    } break;
+    default : {
+        mpp_err_f("invalid q_mode %d use default best quanlity qtable\n", syntax->q_mode);
+        hal_rc->q_mode = JPEG_QUANT;
+        hal_rc->quant = 10;
+        hal_rc->qtables[0] = qtable_y[10];
+        hal_rc->qtables[1] = qtable_c[10];
+        hal_rc->qtables[2] = qtable_c[10];
+        hal_rc->q_factor = -1;
+    } break;
+    }
 }

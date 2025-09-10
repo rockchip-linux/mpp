@@ -276,7 +276,7 @@ static MPP_RET hal_h264e_vepu541_prepare(void *hal)
 
     hal_h264e_dbg_func("enter %p\n", hal);
 
-    if (prep->change & (MPP_ENC_PREP_CFG_CHANGE_INPUT | MPP_ENC_PREP_CFG_CHANGE_FORMAT)) {
+    if (prep->change_res) {
         RK_S32 i;
 
         // pre-alloc required buffers to reduce first frame delay
@@ -284,7 +284,7 @@ static MPP_RET hal_h264e_vepu541_prepare(void *hal)
         for (i = 0; i < ctx->max_buf_cnt; i++)
             hal_bufs_get_buf(ctx->hw_recn, i);
 
-        prep->change = 0;
+        prep->change_res = 0;
     }
 
     hal_h264e_dbg_func("leave %p\n", hal);
@@ -1212,8 +1212,6 @@ static void setup_vepu541_split(Vepu541H264eRegSet *regs, MppEncSliceSplit *cfg)
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
     } break;
     }
-
-    cfg->change = 0;
 
     hal_h264e_dbg_func("leave\n");
 }

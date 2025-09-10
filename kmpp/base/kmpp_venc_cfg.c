@@ -37,6 +37,7 @@ static char *kcfg_names[] = {
     [MPP_VENC_KCFG_TYPE_RESET]  = "KmppVencResetCfg",
     [MPP_VENC_KCFG_TYPE_START]  = "KmppVencStartCfg",
     [MPP_VENC_KCFG_TYPE_STOP]   = "KmppVencStopCfg",
+    [MPP_VENC_KCFG_TYPE_ST_CFG] = "KmppVencStCfg",
 };
 static KmppObjDef kcfg_defs[MPP_VENC_KCFG_TYPE_BUTT] = {NULL};
 

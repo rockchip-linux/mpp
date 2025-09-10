@@ -109,6 +109,7 @@ typedef struct JpegeVpu720HalCtx_t {
     MppBufferGroup      group;
     MppBuffer           qtbl_buffer;
     RK_U16              *qtbl_sw_buf;
+    HalJpegeRc          hal_rc;
 } JpegeVpu720HalCtx;
 
 #define JPEGE_VPU720_QTABLE_SIZE (64 * 3)
@@ -148,6 +149,7 @@ static MPP_RET hal_jpege_vpu720_init(void *hal, MppEncHalCfg *cfg)
     ret = mpp_buffer_get(ctx->group, &ctx->qtbl_buffer, JPEGE_VPU720_QTABLE_SIZE * sizeof(RK_U16));
     mpp_buffer_attach_dev(ctx->qtbl_buffer, ctx->dev);
     ctx->qtbl_sw_buf = (RK_U16 *)mpp_calloc(RK_U16, JPEGE_VPU720_QTABLE_SIZE);
+    hal_jpege_rc_init(&ctx->hal_rc);
 
     hal_jpege_leave();
     return ret;
@@ -373,7 +375,6 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     JpegeVpu720Reg *regs = ctx->regs;
     JpegeVpu720BaseReg *reg_base = &regs->reg_base;
     JpegeBits bits = ctx->bits;
-    const RK_U8 *qtable[2] = {NULL};
     size_t length = mpp_packet_get_length(task->packet);
     RK_U8 *buf = mpp_buffer_get_ptr(task->output);
     size_t size = mpp_buffer_get_size(task->output);
@@ -391,9 +392,15 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(JpegeVpu720Reg));
 
     mpp_buffer_sync_begin(task->output);
+
+    if (syntax->q_mode == JPEG_QFACTOR) {
+        syntax->q_factor = 100 - task->rc_task->info.quality_target;
+        hal_jpege_rc_update(&ctx->hal_rc, syntax);
+    }
+
     jpege_bits_setup(bits, buf, (RK_U32)size);
     jpege_seek_bits(bits, length << 3);
-    write_jpeg_header(bits, syntax, qtable);
+    write_jpeg_header(bits, syntax, &ctx->hal_rc);
     mpp_buffer_sync_end(task->output);
 
     bitpos = jpege_bits_get_bitpos(bits);
@@ -449,8 +456,8 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
 
     for (i = 0; i < 8; i++) {
         for (j = 0; j < 8; j++) {
-            ctx->qtbl_sw_buf[i * 8 + j] = 0x8000 / qtable[0][j * 8 + i];
-            ctx->qtbl_sw_buf[64 + i * 8 + j] = 0x8000 / qtable[1][j * 8 + i];
+            ctx->qtbl_sw_buf[i * 8 + j] = 0x8000 / ctx->hal_rc.qtables[0][j * 8 + i];
+            ctx->qtbl_sw_buf[64 + i * 8 + j] = 0x8000 / ctx->hal_rc.qtables[1][j * 8 + i];
         }
     }
 
@@ -616,6 +623,13 @@ MPP_RET hal_jpege_vpu720_get_task(void *hal, HalEncTask *task)
 
     hal_jpege_enter();
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
+
+    if (ctx->cfg->jpeg.update) {
+        hal_jpege_rc_update(&ctx->hal_rc, syntax);
+        ctx->cfg->jpeg.update = 0;
+    }
+
+    task->rc_task->frm.is_intra = 1;
 
     // TODO config rc
     hal_jpege_leave();

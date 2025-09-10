@@ -492,16 +492,13 @@ static MPP_RET control(Kmpp *ctx, MpiCmd cmd, MppParam param)
     switch (cmd) {
     case MPP_ENC_SET_CFG :
     case MPP_ENC_GET_CFG : {
-        MppEncCfgImpl *impl = (MppEncCfgImpl *)param;
+        KmppObj obj = (KmppObj)param;
 
-        mpp_assert(impl->is_kobj);
-        if (impl->is_kobj) {
-            KmppObj obj = impl->obj;
-
+        if (kmpp_obj_is_kobj(obj)) {
             arg = kmpp_obj_to_shm(obj);
             size = kmpp_obj_to_shm_size(obj);
         } else {
-            mpp_loge("can not set non-kobj %p to kmpp\n", impl);
+            mpp_loge("can not set non-kobj %p to kmpp\n", obj);
             return MPP_NOK;
         }
     } break;

@@ -69,7 +69,6 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
      * 720p
      * YUV420SP
      */
-    prep->change = 0;
     prep->width = 1280;
     prep->height = 720;
     prep->hor_stride = 1280;
@@ -88,7 +87,6 @@ static MPP_RET vp8e_init(void *ctx, EncImplCfg *ctrl_cfg)
      * 30fps
      * gop 60
      */
-    rc_cfg->change = 0;
     rc_cfg->rc_mode = MPP_ENC_RC_MODE_CBR;
     rc_cfg->quality = MPP_ENC_RC_QUALITY_MEDIUM;
     rc_cfg->bps_target = 2000 * 1000;
@@ -156,161 +154,13 @@ static MPP_RET vp8e_proc_dpb(void *ctx, HalEncTask *task)
     return MPP_OK;
 }
 
-static MPP_RET vp8e_proc_prep_cfg(MppEncPrepCfg *dst, MppEncPrepCfg *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    mpp_assert(change);
-    if (change) {
-        RK_S32 mirroring;
-        RK_S32 rotation;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FORMAT) {
-            if ((src->format < MPP_FRAME_FMT_RGB &&
-                 src->format >= MPP_FMT_YUV_BUTT) ||
-                src->format >= MPP_FMT_RGB_BUTT) {
-                mpp_err("invalid format %d\n", src->format);
-                ret = MPP_NOK;
-            }
-            dst->format = src->format;
-        }
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)
-            dst->rotation_ext = src->rotation_ext;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_MIRRORING)
-            dst->mirroring_ext = src->mirroring_ext;
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_FLIP)
-            dst->flip = src->flip;
-
-        // parameter checking
-        if (dst->rotation_ext >= MPP_ENC_ROT_BUTT || dst->rotation_ext < 0 ||
-            dst->mirroring_ext < 0 || dst->flip < 0) {
-            mpp_err("invalid trans: rotation %d, mirroring %d\n", dst->rotation_ext, dst->mirroring_ext);
-            ret = MPP_ERR_VALUE;
-        }
-
-        rotation = dst->rotation_ext;
-        mirroring = dst->mirroring_ext;
-
-        if (dst->flip) {
-            mirroring = !mirroring;
-            rotation += MPP_ENC_ROT_180;
-            rotation &= MPP_ENC_ROT_270;
-        }
-
-        dst->mirroring = mirroring;
-        dst->rotation = rotation;
-
-        /* vp8 encoder do not have denoise/sharpen feature */
-
-        if (change & MPP_ENC_PREP_CFG_CHANGE_INPUT ||
-            (change & MPP_ENC_PREP_CFG_CHANGE_ROTATION)) {
-            if ((src->width < 0 || src->width > 1920) ||
-                (src->height < 0 || src->height > 3840) ||
-                (src->hor_stride < 0 || src->hor_stride > 7680) ||
-                (src->ver_stride < 0 || src->ver_stride > 3840)) {
-                mpp_err("invalid input w:h [%d:%d] [%d:%d]\n",
-                        src->width, src->height,
-                        src->hor_stride, src->ver_stride);
-                ret = MPP_NOK;
-            }
-
-            if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-                dst->width = src->height;
-                dst->height = src->width;
-            } else {
-                dst->width = src->width;
-                dst->height = src->height;
-            }
-            dst->ver_stride = src->ver_stride;
-            dst->hor_stride = src->hor_stride;
-        }
-
-        dst->change |= src->change;
-
-        if (dst->rotation == MPP_ENC_ROT_90 || dst->rotation == MPP_ENC_ROT_270) {
-            if (dst->height > dst->hor_stride || dst->width > dst->ver_stride) {
-                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-                ret = MPP_ERR_VALUE;
-            }
-        } else {
-            if (dst->width > dst->hor_stride || dst->height > dst->ver_stride) {
-                mpp_err("invalid size w:h [%d:%d] stride [%d:%d]\n",
-                        dst->width, dst->height, dst->hor_stride, dst->ver_stride);
-                ret = MPP_ERR_VALUE;
-            }
-        }
-
-        vp8e_dbg_cfg("width %d height %d hor_stride %d ver_srtride %d format 0x%x\n",
-                     dst->width, dst->height, dst->hor_stride, dst->ver_stride, dst->format);
-    }
-    return ret;
-}
-
-static MPP_RET vp8e_proc_split_cfg(MppEncSliceSplit *dst, MppEncSliceSplit *src)
-{
-    MPP_RET ret = MPP_OK;
-    RK_U32 change = src->change;
-
-    if (change & MPP_ENC_SPLIT_CFG_CHANGE_MODE) {
-        dst->split_mode = src->split_mode;
-        dst->split_arg = src->split_arg;
-    }
-
-    if (change & MPP_ENC_SPLIT_CFG_CHANGE_ARG)
-        dst->split_arg = src->split_arg;
-
-    dst->change |= change;
-
-    return ret;
-}
-
-static MPP_RET vp8e_proc_vp8_cfg(MppEncVp8Cfg *dst, MppEncVp8Cfg *src)
-{
-    RK_U32 change = src->change;
-
-    if (change & MPP_ENC_VP8_CFG_CHANGE_QP) {
-        dst->qp_init = src->qp_init;
-        dst->qp_max = src->qp_max;
-        dst->qp_min = src->qp_min;
-        dst->qp_max_i = src->qp_max_i;
-        dst->qp_min_i = src->qp_min_i;
-    }
-    if (change & MPP_ENC_VP8_CFG_CHANGE_DIS_IVF) {
-        dst->disable_ivf = src->disable_ivf;
-    }
-    vp8e_dbg_cfg("rc cfg qp_init %d qp_max %d qp_min %d qp_max_i %d qp_min_i %d, disable_ivf %d\n",
-                 dst->qp_init, dst->qp_max, dst->qp_min, dst->qp_max_i, dst->qp_min_i, dst->disable_ivf);
-    dst->change |= src->change;
-    return MPP_OK;
-}
-
 static MPP_RET vp8e_proc_cfg(void *ctx, MpiCmd cmd, void *param)
 {
     MPP_RET ret = MPP_OK;
-    Vp8eCtx *p = (Vp8eCtx *)ctx;
-    MppEncCfgSet *cfg = p->cfg;
-    MppEncCfgSet *src = (MppEncCfgSet *)param;
 
     vp8e_dbg_fun("enter ctx %p cmd %x param %p\n", ctx, cmd, param);
     switch (cmd) {
     case MPP_ENC_SET_CFG : {
-        if (src->prep.change) {
-            ret |= vp8e_proc_prep_cfg(&cfg->prep, &src->prep);
-            src->prep.change = 0;
-        }
-        if (src->vp8.change) {
-            ret |= vp8e_proc_vp8_cfg(&cfg->vp8, &src->vp8);
-            src->vp8.change = 0;
-        }
-        if (src->split.change) {
-            ret |= vp8e_proc_split_cfg(&cfg->split, &src->split);
-            src->split.change = 0;
-        }
     } break;
     default: {
         mpp_err("No correspond cmd found, and can not config!");

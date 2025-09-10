@@ -24,34 +24,34 @@
 #define MPP_DEC_CFG_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
     CFG_DEF_START() \
     STRUCT_START(base) \
-    ENTRY(prefix, u32, rk_u32,     type,                FLAG_BASE(0),      base, type) \
-    ENTRY(prefix, u32, rk_u32,     coding,              FLAG_AT(1),     base, coding) \
-    ENTRY(prefix, u32, rk_u32,     hw_type,             FLAG_AT(2),     base, hw_type) \
-    ENTRY(prefix, u32, rk_u32,     batch_mode,          FLAG_AT(3),     base, batch_mode) \
-    ENTRY(prefix, u32, rk_u32,     out_fmt,             FLAG_AT(4),     base, out_fmt) \
-    ENTRY(prefix, u32, rk_u32,     fast_out,            FLAG_AT(5),     base, fast_out) \
-    ENTRY(prefix, u32, rk_u32,     fast_parse,          FLAG_AT(6),     base, fast_parse) \
-    ENTRY(prefix, u32, rk_u32,     split_parse,         FLAG_AT(7),     base, split_parse) \
-    ENTRY(prefix, u32, rk_u32,     internal_pts,        FLAG_AT(8),     base, internal_pts) \
-    ENTRY(prefix, u32, rk_u32,     sort_pts,            FLAG_AT(9),     base, sort_pts) \
-    ENTRY(prefix, u32, rk_u32,     disable_error,       FLAG_AT(10),    base, disable_error) \
-    ENTRY(prefix, u32, rk_u32,     enable_vproc,        FLAG_AT(11),    base, enable_vproc) \
-    ENTRY(prefix, u32, rk_u32,     enable_fast_play,    FLAG_AT(12),    base, enable_fast_play) \
-    ENTRY(prefix, u32, rk_u32,     enable_hdr_meta,     FLAG_AT(13),    base, enable_hdr_meta) \
-    ENTRY(prefix, u32, rk_u32,     enable_thumbnail,    FLAG_AT(14),    base, enable_thumbnail) \
-    ENTRY(prefix, u32, rk_u32,     enable_mvc,          FLAG_AT(15),    base, enable_mvc) \
-    ENTRY(prefix, u32, rk_u32,     disable_dpb_chk,     FLAG_AT(16),    base, disable_dpb_chk) \
-    ENTRY(prefix, u32, rk_u32,     disable_thread,      FLAG_AT(17),    base, disable_thread) \
-    ENTRY(prefix, u32, rk_u32,     codec_mode,          FLAG_AT(18),    base, codec_mode) \
-    ENTRY(prefix, u32, rk_u32,     dis_err_clr_mark,    FLAG_AT(19),    base, dis_err_clr_mark) \
+    ENTRY(prefix, u32, rk_u32,     type,                FLAG_BASE(0),   base, type) \
+    ENTRY(prefix, u32, rk_u32,     coding,              FLAG_INCR,      base, coding) \
+    ENTRY(prefix, u32, rk_u32,     hw_type,             FLAG_INCR,      base, hw_type) \
+    ENTRY(prefix, u32, rk_u32,     batch_mode,          FLAG_INCR,      base, batch_mode) \
+    ENTRY(prefix, u32, rk_u32,     out_fmt,             FLAG_INCR,      base, out_fmt) \
+    ENTRY(prefix, u32, rk_u32,     fast_out,            FLAG_INCR,      base, fast_out) \
+    ENTRY(prefix, u32, rk_u32,     fast_parse,          FLAG_INCR,      base, fast_parse) \
+    ENTRY(prefix, u32, rk_u32,     split_parse,         FLAG_INCR,      base, split_parse) \
+    ENTRY(prefix, u32, rk_u32,     internal_pts,        FLAG_INCR,      base, internal_pts) \
+    ENTRY(prefix, u32, rk_u32,     sort_pts,            FLAG_INCR,      base, sort_pts) \
+    ENTRY(prefix, u32, rk_u32,     disable_error,       FLAG_INCR,      base, disable_error) \
+    ENTRY(prefix, u32, rk_u32,     enable_vproc,        FLAG_INCR,      base, enable_vproc) \
+    ENTRY(prefix, u32, rk_u32,     enable_fast_play,    FLAG_INCR,      base, enable_fast_play) \
+    ENTRY(prefix, u32, rk_u32,     enable_hdr_meta,     FLAG_INCR,      base, enable_hdr_meta) \
+    ENTRY(prefix, u32, rk_u32,     enable_thumbnail,    FLAG_INCR,      base, enable_thumbnail) \
+    ENTRY(prefix, u32, rk_u32,     enable_mvc,          FLAG_INCR,      base, enable_mvc) \
+    ENTRY(prefix, u32, rk_u32,     disable_dpb_chk,     FLAG_INCR,      base, disable_dpb_chk) \
+    ENTRY(prefix, u32, rk_u32,     disable_thread,      FLAG_INCR,      base, disable_thread) \
+    ENTRY(prefix, u32, rk_u32,     codec_mode,          FLAG_INCR,      base, codec_mode) \
+    ENTRY(prefix, u32, rk_u32,     dis_err_clr_mark,    FLAG_INCR,      base, dis_err_clr_mark) \
     STRUCT_END(base) \
     STRUCT_START(cb) \
-    ENTRY(prefix, ptr, void *,     pkt_rdy_cb,          FLAG_BASE(0),      cb, pkt_rdy_cb) \
-    ENTRY(prefix, ptr, void *,     pkt_rdy_ctx,         FLAG_AT(0),     cb, pkt_rdy_ctx) \
-    ENTRY(prefix, s32, rk_s32,     pkt_rdy_cmd,         FLAG_AT(0),     cb, pkt_rdy_cmd) \
-    ENTRY(prefix, ptr, void *,     frm_rdy_cb,          FLAG_AT(1),     cb, frm_rdy_cb) \
-    ENTRY(prefix, ptr, void *,     frm_rdy_ctx,         FLAG_AT(1),     cb, frm_rdy_ctx) \
-    ENTRY(prefix, s32, rk_s32,     frm_rdy_cmd,         FLAG_AT(1),     cb, frm_rdy_cmd) \
+    ENTRY(prefix, ptr, void *,     pkt_rdy_cb,          FLAG_BASE(0),   cb, pkt_rdy_cb) \
+    ENTRY(prefix, ptr, void *,     pkt_rdy_ctx,         FLAG_PREV,      cb, pkt_rdy_ctx) \
+    ENTRY(prefix, s32, rk_s32,     pkt_rdy_cmd,         FLAG_PREV,      cb, pkt_rdy_cmd) \
+    ENTRY(prefix, ptr, void *,     frm_rdy_cb,          FLAG_INCR,      cb, frm_rdy_cb) \
+    ENTRY(prefix, ptr, void *,     frm_rdy_ctx,         FLAG_PREV,      cb, frm_rdy_ctx) \
+    ENTRY(prefix, s32, rk_s32,     frm_rdy_cmd,         FLAG_PREV,      cb, frm_rdy_cmd) \
     STRUCT_END(cb) \
     CFG_DEF_END()
 
