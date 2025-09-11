@@ -257,7 +257,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
 
 #endif
 
-void CONCAT_US(KMPP_OBJ_NAME, register)(void)
+static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 {
     mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
 
@@ -313,7 +313,7 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     KMPP_OBJ_DBG_LOG("register leave\n");
 }
 
-void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
+static void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
 {
     KmppObjDef def = __sync_fetch_and_and(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL);
 

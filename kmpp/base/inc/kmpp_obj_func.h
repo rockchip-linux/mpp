@@ -17,15 +17,22 @@
 
 /* always define object common function */
 #define KMPP_OBJ_FUNC_DEFINE(prefix) \
-    rk_s32 CONCAT_US(prefix, init)(void); \
-    rk_s32 CONCAT_US(prefix, deinit)(void); \
     rk_s32 CONCAT_US(prefix, size)(void); \
     rk_s32 CONCAT_US(prefix, get)(KMPP_OBJ_INTF_TYPE *p); \
     rk_s32 CONCAT_US(prefix, assign)(KMPP_OBJ_INTF_TYPE *p, void *buf, rk_s32 size); \
     rk_s32 CONCAT_US(prefix, put)(KMPP_OBJ_INTF_TYPE p); \
     rk_s32 CONCAT_US(prefix, dump)(KMPP_OBJ_INTF_TYPE p, const char *caller);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 KMPP_OBJ_FUNC_DEFINE(KMPP_OBJ_NAME)
+
+#ifdef __cplusplus
+}
+#endif
+
 #undef KMPP_OBJ_FUNC_DEFINE
 
 /* entry and hook access funcitons */
