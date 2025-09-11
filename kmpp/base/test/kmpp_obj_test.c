@@ -34,9 +34,9 @@ static rk_s32 kmpp_obj_std_test(const char *name, rk_u32 flag)
     KmppObj obj = NULL;
     MPP_RET ret = MPP_NOK;
 
-    ret = kmpp_objdef_get(&def, name);
+    ret = kmpp_objdef_find(&def, name);
     if (ret) {
-        mpp_log("kmpp_objdef_get %s failed\n", name);
+        mpp_log("kmpp_objdef_find %s failed\n", name);
         goto done;
     }
 
@@ -57,22 +57,13 @@ static rk_s32 kmpp_obj_std_test(const char *name, rk_u32 flag)
     ret = kmpp_obj_put_f(obj);
     if (ret) {
         mpp_log("kmpp_obj_put %s failed\n", name);
-        goto done;
     }
     obj = NULL;
-
-    ret = kmpp_objdef_put(def);
-    if (ret) {
-        mpp_log("kmpp_objdef_put %s failed\n", name);
-        goto done;
-    }
     def = NULL;
 
 done:
     if (obj)
         kmpp_obj_put_f(obj);
-    if (def)
-        kmpp_objdef_put(def);
 
     return ret;
 }

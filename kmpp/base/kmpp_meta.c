@@ -162,14 +162,13 @@ static void kmpp_meta_init(void)
     pthread_mutexattr_destroy(&attr);
 
     INIT_LIST_HEAD(&srv->list);
-    kmpp_objdef_get(&srv->def, "KmppMeta");
+    kmpp_objdef_get(&srv->def, sizeof(KmppMetaPriv), "KmppMeta");
     if (!srv->def) {
         kmeta_dbg_func("kmpp meta get objdef failed\n");
         MPP_FREE(srv);
         return;
     }
 
-    kmpp_objdef_set_prop(srv->def, "priv_size", sizeof(KmppMetaPriv));
     kmpp_objdef_add_init(srv->def, kmpp_meta_impl_init);
     kmpp_objdef_add_deinit(srv->def, kmpp_meta_impl_deinit);
 

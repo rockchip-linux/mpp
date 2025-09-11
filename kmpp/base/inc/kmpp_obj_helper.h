@@ -47,6 +47,10 @@
 
 #include <linux/stddef.h>
 
+#ifndef KMPP_OBJ_PRIV_SIZE
+#define KMPP_OBJ_PRIV_SIZE     0
+#endif
+
 #ifndef KMPP_OBJ_EXTRA_SIZE
 #define KMPP_OBJ_EXTRA_SIZE     0
 #endif
@@ -259,12 +263,12 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 
     KMPP_OBJ_DBG_LOG("register enter\n");
 
-    kmpp_objdef_get(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), TO_STR(KMPP_OBJ_INTF_TYPE));
+    kmpp_objdef_get(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_PRIV_SIZE, TO_STR(KMPP_OBJ_INTF_TYPE));
     if (KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
         KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " found at kernel\n");
     } else {
-        rk_s32 __entry_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
-        rk_s32 __flag_base = __entry_size << 3;
+        rk_s32 impl_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
+        rk_s32 __flag_base = impl_size << 3;
         rk_s32 __flag_step = 0;
         rk_s32 __flag_prev = 0;
         rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX];
@@ -273,7 +277,9 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
         (void) __flag_prev;
         (void) __flag_record;
 
-        kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), __entry_size, TO_STR(KMPP_OBJ_INTF_TYPE));
+        kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_PRIV_SIZE,
+                             impl_size, TO_STR(KMPP_OBJ_INTF_TYPE));
+
         if (!KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
             mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " init failed\n");
             return;
@@ -289,10 +295,6 @@ void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_QUERY, ENTRY_QUERY,
                          HOOK_QUERY, HOOK_QUERY, ENTRY_NOTHING);
 
-#if defined(KMPP_OBJ_PRIV_SIZE)
-    if (KMPP_OBJ_PRIV_SIZE)
-        kmpp_objdef_set_prop(KMPP_OBJ_DEF(KMPP_OBJ_NAME), "priv_size", KMPP_OBJ_PRIV_SIZE);
-#endif
 #if defined(KMPP_OBJ_FUNC_INIT)
     kmpp_objdef_add_init(KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_FUNC_INIT);
 #endif

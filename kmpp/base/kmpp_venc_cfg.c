@@ -45,7 +45,7 @@ static void mpp_venc_kcfg_def_init(void)
     RK_U32 i;
 
     for (i = 0; i < MPP_VENC_KCFG_TYPE_BUTT; i++) {
-        kmpp_objdef_get(&kcfg_defs[i], kcfg_names[i]);
+        kmpp_objdef_get(&kcfg_defs[i], 0, kcfg_names[i]);
     }
 }
 

@@ -10,6 +10,7 @@
 
 typedef rk_s32 (*KmppObjInit)(void *entry, KmppObj obj, const char *caller);
 typedef rk_s32 (*KmppObjDeinit)(void *entry, KmppObj obj, const char *caller);
+typedef rk_s32 (*KmppObjPreset)(void *entry, KmppObj obj, const char *val, const char *caller);
 typedef rk_s32 (*KmppObjDump)(void *entry);
 
 #ifdef __cplusplus
@@ -17,7 +18,14 @@ extern "C" {
 #endif
 
 /* userspace objdef register */
-rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 size, const char *name);
+rk_s32 kmpp_objdef_register(KmppObjDef *def, rk_s32 priv_size, rk_s32 size, const char *name);
+/* kernel objdef query from /dev/kmpp_objs */
+rk_s32 kmpp_objdef_get(KmppObjDef *def, rk_s32 priv_size, const char *name);
+/* find kernel objdef by name */
+rk_s32 kmpp_objdef_find(KmppObjDef *def, const char *name);
+/* kernel objdef from /dev/kmpp_objs reduce refcnt */
+rk_s32 kmpp_objdef_put(KmppObjDef def);
+
 /* userspace objdef add MppCfgObj root */
 rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root);
 /* userspace objdef add KmppEntry table */
@@ -26,15 +34,12 @@ rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl);
 rk_s32 kmpp_objdef_add_init(KmppObjDef def, KmppObjInit init);
 /* userspace object deinit function register */
 rk_s32 kmpp_objdef_add_deinit(KmppObjDef def, KmppObjDeinit deinit);
+/* userspace object preset function register */
+rk_s32 kmpp_objdef_add_preset(KmppObjDef def, KmppObjPreset preset);
 /* userspace object dump function register */
 rk_s32 kmpp_objdef_add_dump(KmppObjDef def, KmppObjDump dump);
 
 rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, rk_s32 value);
-
-/* kernel objdef query from /dev/kmpp_objs */
-rk_s32 kmpp_objdef_get(KmppObjDef *def, const char *name);
-/* kernel objdef from /dev/kmpp_objs reduce refcnt */
-rk_s32 kmpp_objdef_put(KmppObjDef def);
 
 rk_s32 kmpp_objdef_get_entry(KmppObjDef def, const char *name, KmppEntry **tbl);
 rk_s32 kmpp_objdef_get_offset(KmppObjDef def, const char *name);
@@ -43,8 +48,8 @@ rk_s32 kmpp_objdef_dump(KmppObjDef def);
 /* mpp objcet internal element set / get function */
 const char *kmpp_objdef_get_name(KmppObjDef def);
 rk_s32 kmpp_objdef_get_entry_size(KmppObjDef def);
-rk_s32 kmpp_objdef_get_flag_base(KmppObjDef def);
-rk_s32 kmpp_objdef_get_flag_size(KmppObjDef def);
+rk_s32 kmpp_objdef_get_flags_base(KmppObjDef def);
+rk_s32 kmpp_objdef_get_flags_size(KmppObjDef def);
 MppTrie kmpp_objdef_get_trie(KmppObjDef def);
 
 /* import kernel object ref */
@@ -55,7 +60,11 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller);
 rk_s32 kmpp_obj_put(KmppObj obj, const char *caller);
 /* release impl head only */
 rk_s32 kmpp_obj_impl_put(KmppObj obj, const char *caller);
+/* setup object to a preset value by string args input */
+rk_s32 kmpp_obj_preset(KmppObj obj, const char *arg, const char *caller);
+/* check object is valid or not */
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
+/* run object's ioctl to kernel with input and output object */
 rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
 
 #define kmpp_obj_get_f(obj, def)                kmpp_obj_get(obj, def, __FUNCTION__)
@@ -63,11 +72,15 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 #define kmpp_obj_get_by_sptr_f(obj, sptr)       kmpp_obj_get_by_sptr(obj, sptr, __FUNCTION__)
 #define kmpp_obj_put_f(obj)                     kmpp_obj_put(obj, __FUNCTION__)
 #define kmpp_obj_impl_put_f(obj)                kmpp_obj_impl_put(obj, __FUNCTION__)
+#define kmpp_obj_preset_f(obj, arg)             kmpp_obj_preset(obj, arg, __FUNCTION__)
 #define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
 #define kmpp_obj_ioctl_f(obj, cmd, in, out)     kmpp_obj_ioctl(obj, cmd, in, out, __FUNCTION__)
 
 /* check a object is kobject or not */
 rk_s32 kmpp_obj_is_kobj(KmppObj obj);
+/* object implement element update flags access */
+void *kmpp_obj_to_flags(KmppObj obj);
+rk_s32 kmpp_obj_to_flags_size(KmppObj obj);
 /* KmppShmPtr is the kernel share object userspace base address for kernel ioctl */
 KmppShmPtr *kmpp_obj_to_shm(KmppObj obj);
 /* KmppShmPtr size defined the copy size for kernel ioctl */
