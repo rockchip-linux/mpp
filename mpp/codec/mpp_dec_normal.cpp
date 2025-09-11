@@ -365,7 +365,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *    1. Prepare process is controlled by need_split flag
      *       If need_split flag is zero prepare function is just copy the input
      *       packet to task_dec->input_packet
-     *       If need_split flag is non-zero prepare function will call split funciton
+     *       If need_split flag is non-zero prepare function will call split function
      *       of different coding type and find the start and end of one frame. Then
      *       copy data to task_dec->input_packet
      *    2. On need_split mode if one input MppPacket contain multiple frame for

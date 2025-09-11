@@ -35,7 +35,7 @@ KMPP_OBJ_FUNC_DEFINE(KMPP_OBJ_NAME)
 
 #undef KMPP_OBJ_FUNC_DEFINE
 
-/* entry and hook access funcitons */
+/* entry and hook access functions */
 #ifdef KMPP_OBJ_ENTRY_TABLE
 /* disable all hierarchy macro in header */
 #define CFG_DEF_START(...)
