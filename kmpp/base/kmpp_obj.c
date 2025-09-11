@@ -105,7 +105,6 @@ typedef struct KmppObjDefImpl_t {
     MppMemPool pool;
     /* object define from kernel or userspace */
     rk_s32 is_kobj;
-    rk_s32 flag_base;
     KmppObjInit init;
     KmppObjDeinit deinit;
     KmppObjPreset preset;
@@ -825,20 +824,6 @@ rk_s32 kmpp_objdef_get_entry_size(KmppObjDef def)
     return impl ? impl->entry_size : 0;
 }
 
-rk_s32 kmpp_objdef_get_flags_base(KmppObjDef def)
-{
-    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
-
-    return impl ? impl->flag_base : 0;
-}
-
-rk_s32 kmpp_objdef_get_flags_size(KmppObjDef def)
-{
-    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
-
-    return (impl && impl->flag_base) ? (impl->flag_max_pos - impl->flag_base) : 0;
-}
-
 MppTrie kmpp_objdef_get_trie(KmppObjDef def)
 {
     KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
@@ -1186,6 +1171,20 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
     return ret;
 }
 
+rk_s32 kmpp_obj_is_kobj(KmppObj obj)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+
+    return (impl && impl->def) ? impl->def->is_kobj : 0;
+}
+
+KmppObjDef kmpp_obj_to_objdef(KmppObj obj)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+
+    return impl ? impl->def : NULL;
+}
+
 void *kmpp_obj_to_flags(KmppObj obj)
 {
     KmppObjImpl *impl = (KmppObjImpl *)obj;
@@ -1236,16 +1235,6 @@ const char *kmpp_obj_get_name(KmppObj obj)
         return impl->def->name;
 
     return NULL;
-}
-
-rk_s32 kmpp_obj_is_kobj(KmppObj obj)
-{
-    KmppObjImpl *impl = (KmppObjImpl *)obj;
-
-    if (impl && impl->def)
-        return impl->def->is_kobj;
-
-    return 0;
 }
 
 void *kmpp_obj_to_priv(KmppObj obj)
@@ -1525,17 +1514,22 @@ rk_s32 kmpp_obj_update(KmppObj dst, KmppObj src)
         }
     } while ((info = mpp_trie_get_info_next(trie, info)));
 
-    {
-        /* copy update flag to dst */
-        rk_s32 offset = kmpp_objdef_get_flags_base(src_impl->def);
-        rk_s32 size = kmpp_objdef_get_flags_size(src_impl->def);
-        rk_s32 i;
+    if (src_impl->def) {
+        KmppObjDefImpl *def = src_impl->def;
+        rk_s32 flag_offset = def->flag_offset;
+        rk_s32 flag_size = kmpp_obj_to_flags_size(src);
 
-        for (i = offset; i < offset + size; i += 4)
-            obj_dbg_update("obj %s %p update flag at %04x - %04x\n", src_impl->name,
-                           dst, i, *((rk_u32 *)((rk_u8 *)src_impl->entry + i)));
+        if (flag_offset && flag_size) {
+            rk_s32 i;
 
-        memcpy(dst_impl->entry + offset, src_impl->entry + offset, size);
+            for (i = flag_offset; i < flag_offset + flag_size; i += 4)
+                obj_dbg_update("obj %s %p update flag at %#06x - %08x\n", src_impl->def->name,
+                               dst, i, *((rk_u32 *)((rk_u8 *)src_impl->entry + i)));
+
+            memcpy(dst_impl->entry + flag_offset,
+                   src_impl->entry + flag_offset, flag_size);
+            memset(src_impl->entry + flag_offset, 0, flag_size);
+        }
     }
 
     return rk_ok;
@@ -1587,8 +1581,8 @@ rk_s32 kmpp_obj_copy_entry(KmppObj dst, KmppObj src)
 
     memcpy(dst_impl->entry, src_impl->entry, src_impl->def->entry_size);
     {   /* NOTE: clear dst update flags */
-        rk_s32 offset = kmpp_objdef_get_flags_base(src_impl->def);
-        rk_s32 size = kmpp_objdef_get_flags_size(src_impl->def);
+        rk_s32 offset = src_impl->def->flag_offset;
+        rk_s32 size = kmpp_obj_to_flags_size(src);
 
         memset(dst_impl->entry + offset, 0, size);
     }
@@ -1658,7 +1652,7 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
         e = (KmppEntry *)mpp_trie_info_ctx(info);
         name = mpp_trie_info_name(info);
 
-        if (strstr(name, "__"))
+        if (mpp_trie_info_is_self(info))
             continue;
 
         idx = i++;

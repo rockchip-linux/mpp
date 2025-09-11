@@ -341,7 +341,10 @@ rk_s32 CONCAT_US(KMPP_OBJ_NAME, put)(KMPP_OBJ_INTF_TYPE obj)
 
 rk_s32 CONCAT_US(KMPP_OBJ_NAME, dump)(KMPP_OBJ_INTF_TYPE obj, const char *caller)
 {
-    return kmpp_obj_kdump_f(obj, caller);
+    if (!obj)
+        return rk_nok;
+
+    return kmpp_obj_is_kobj(obj) ? kmpp_obj_kdump_f(obj, caller) : kmpp_obj_udump_f(obj, caller);
 }
 
 #if !defined(KMPP_OBJ_FUNC_EXPORT_DISABLE) && defined(__KERNEL__)
