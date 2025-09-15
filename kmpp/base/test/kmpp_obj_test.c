@@ -234,6 +234,34 @@ done:
     return ret;
 }
 
+static rk_s32 kmpp_shm_test(const char *name, rk_u32 flag)
+{
+    KmppShmPtr *shm[4];
+    rk_u32 sizes[4] = {512, 4096, 4096 * 4, 4096 * 4096};
+    rk_s32 ret = rk_ok;
+    rk_u32 i;
+    (void)name;
+    (void)flag;
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(sizes); i++) {
+        kmpp_shm_get_f(&shm[i], sizes[i]);
+        if (!shm[i]) {
+            mpp_log_f("shm get size %d failed\n", sizes[i]);
+            ret = rk_nok;
+        }
+    }
+
+    for (i = 0; i < MPP_ARRAY_ELEMS(sizes); i++) {
+        if (kmpp_shm_put_f(shm[i])) {
+            mpp_log_f("shm put size %d failed\n", sizes[i]);
+            ret = rk_nok;
+        }
+        shm[i] = NULL;
+    }
+
+    return ret;
+}
+
 static KmppObjTest obj_tests[] = {
     {
         "KmppFrame",
@@ -249,6 +277,11 @@ static KmppObjTest obj_tests[] = {
         "KmppBuffer",
         0,
         kmpp_buffer_test,
+    },
+    {
+        "kmpp_shm_test",
+        0,
+        kmpp_shm_test,
     },
 };
 

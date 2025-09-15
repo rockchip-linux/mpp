@@ -164,6 +164,12 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller);
 #define kmpp_obj_udump(obj) kmpp_obj_udump_f(obj, __FUNCTION__)
 #define kmpp_obj_kdump(obj) kmpp_obj_kdump_f(obj, __FUNCTION__)
 
+rk_s32 kmpp_shm_get(KmppShmPtr **shm, rk_s32 size, const char *caller);
+rk_s32 kmpp_shm_put(KmppShmPtr *shm, const char *caller);
+
+#define kmpp_shm_get_f(shm, size)   kmpp_shm_get(shm, size, __FUNCTION__)
+#define kmpp_shm_put_f(shm)         kmpp_shm_put(shm, __FUNCTION__)
+
 const char *strof_elem_type(ElemType type);
 
 #ifdef __cplusplus

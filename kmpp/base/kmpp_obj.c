@@ -76,6 +76,15 @@
 #define ENTRY_TEST_FLAG(e, entry) \
     (*ENTRY_TO_FLAG_PTR(e, entry) & 1ul << (ELEM_FLAG_BIT_POS(e->tbl.flag_offset))) ? 1 : 0
 
+typedef struct KmppShmReq_t {
+    /* shm_name     - NULL name addresss for shm direct allocation */
+    __u64           shm_name;
+    /* shm_size     - share memory size for shm direct allocation */
+    __u32           shm_size;
+    /* shm_flag     - share memory allocation flags */
+    __u32           shm_flag;
+} KmppShmReq;
+
 /* kernel object share memory get / put ioctl data */
 typedef struct KmppObjIocArg_t {
     /* address array element count */
@@ -96,6 +105,7 @@ typedef struct KmppObjIocArg_t {
         __u64       name_uaddr[0];
         /* ioctl object userspace / kernel address */
         KmppShmPtr  obj_sptr[0];
+        KmppShmReq  shm_req[0];
     };
 } KmppObjIocArg;
 
@@ -1834,4 +1844,74 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller)
         mpp_err("ioctl KMPP_SHM_IOC_DUMP failed ret %d\n", ret);
 
     return ret ? rk_nok : rk_ok;
+}
+
+rk_s32 kmpp_shm_get(KmppShmPtr **shm, rk_s32 size, const char *caller)
+{
+    KmppObjs *p;
+    KmppObjIocArg *ioc;
+    rk_s32 ret = rk_nok;
+
+    if (!shm || !size) {
+        mpp_loge_f("invalid param shm %p size %d at %s\n", shm, size, caller);
+        return ret;
+    }
+
+    *shm = NULL;
+
+    /* kernel objdef path */
+    p = get_objs(caller);
+    if (!p)
+        return ret;
+
+    ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
+
+    ioc->count = 1;
+    ioc->flag = 0;
+    ioc->shm_req->shm_name = 0;
+    ioc->shm_req->shm_size = size;
+    ioc->shm_req->shm_flag = 0;
+
+    ret = ioctl(p->fd, KMPP_SHM_IOC_GET_SHM, ioc);
+    if (ret) {
+        mpp_err("shm fd %d ioctl KMPP_SHM_IOC_GET_SHM failed at %s\n",
+                p->fd, caller);
+        return ret;
+    }
+
+    *shm = (KmppShmPtr *)U64_TO_PTR(ioc->obj_sptr[0].uaddr);
+
+    return *shm ? rk_ok : rk_nok;
+}
+
+rk_s32 kmpp_shm_put(KmppShmPtr *shm, const char *caller)
+{
+    KmppObjs *p = get_objs(caller);
+    rk_s32 ret = rk_nok;
+
+    if (!shm) {
+        mpp_loge_f("invalid param shm %p at %s\n", shm, caller);
+        return ret;
+    }
+
+    if (!p)
+        return ret;
+
+    if (p && p->fd >= 0) {
+        KmppObjIocArg *ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
+
+        ioc->count = 1;
+        ioc->flag = 0;
+        ioc->obj_sptr[0].uaddr = shm->uaddr;
+        ioc->obj_sptr[0].kaddr = shm->kaddr;
+
+        obj_dbg_flow("put shm %p entry [u:k] %llx:%llx at %s\n",
+                     shm, shm->uaddr, shm->kaddr, caller);
+
+        ret = ioctl(p->fd, KMPP_SHM_IOC_PUT_SHM, ioc);
+        if (ret)
+            mpp_err("ioctl KMPP_SHM_IOC_PUT_SHM failed ret %d at %s\n", ret, caller);
+    }
+
+    return ret;
 }
