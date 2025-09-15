@@ -19,11 +19,13 @@
 
 #include "rk_type.h"
 #include "mpp_err.h"
-#include "mpp_list.h"
-#include "h265e_dpb.h"
+
+#include "h265e_syntax.h"
+#include "h265e_syntax_new.h"
 #include "h265_syntax.h"
 #include "h265e_enctropy.h"
 #include "h265e_context_table.h"
+#include "h265e_dpb.h"
 
 #define MIN_PU_SIZE             4
 #define MIN_TU_SIZE             4
@@ -438,6 +440,23 @@ typedef struct H265eSlice_e {
     RK_U32      num_long_term_sps;
     RK_U32      num_long_term_pics;
 } H265eSlice;
+
+typedef struct H265eCtx_t {
+    MppEncCfgSet        *cfg;
+    RK_U32              rc_ready;
+    RK_S32              idr_request;
+
+    H265eVps            vps;
+    H265eSps            sps;
+    H265ePps            pps;
+    H265eSlice          *slice;
+    H265eDpb            *dpb;
+    RK_U32              plt_flag;
+
+    void                *extra_info;
+    H265eSyntax_new     syntax;
+    H265eFeedback       feedback;
+} H265eCtx;
 
 #ifdef  __cplusplus
 extern "C" {

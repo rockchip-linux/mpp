@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "h265e_codec.h"
+#include "h265e_slice.h"
 #include "h265e_syntax_new.h"
 
 RK_S32 h265e_get_nal_type(H265eSlicParams* sp, RK_S32 frame_type)

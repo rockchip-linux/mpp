@@ -19,21 +19,20 @@
 #include <string.h>
 #include <limits.h>
 
+#include "mpp_common.h"
 #include "mpp_env.h"
 #include "mpp_mem.h"
 
-#include "rc.h"
 #include "mpp_soc.h"
 #include "mpp_enc_cfg.h"
 #include "mpp_packet_impl.h"
 #include "mpp_enc_impl.h"
 
 #include "h265e_api.h"
-#include "h265e_slice.h"
 #include "h265e_codec.h"
-#include "h265e_syntax_new.h"
 #include "h265e_ps.h"
 #include "h265e_header_gen.h"
+#include "h265e_slice.h"
 
 RK_U32 h265e_debug = 0;
 
@@ -178,7 +177,6 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     rc_cfg->fqp_min_p = INT_MAX;
     rc_cfg->fqp_max_i = INT_MAX;
     rc_cfg->fqp_max_p = INT_MAX;
-    INIT_LIST_HEAD(&p->rc_list);
 
     h265e_dbg_func("leave ctx %p\n", ctx);
     return ret;

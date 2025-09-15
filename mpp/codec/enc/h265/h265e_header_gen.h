@@ -101,6 +101,8 @@ RK_U32 h265e_data_to_sei(void *dst, RK_U8 uuid[16], const void *payload, RK_S32 
 MPP_RET h265e_sei_recovery_point(void *dst, RK_U8 uuid[16], const void *payload,
                                  RK_S32 size);
 
+typedef struct H265eCtx_t H265eCtx;
+
 MPP_RET h265e_set_extra_info(H265eCtx *ctx);
 MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out);
 

@@ -18,7 +18,6 @@
 #define __H265E_DPB_H__
 
 #include "mpp_buffer.h"
-#include "h265e_slice.h"
 #include "h265_syntax.h"
 #include "mpp_enc_cfg.h"
 
