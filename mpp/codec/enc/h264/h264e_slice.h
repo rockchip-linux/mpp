@@ -162,6 +162,9 @@ MPP_RET h264e_marking_rd_op(H264eMarkingInfo *info, H264eMmco *op);
  */
 void h264e_slice_init(H264eSlice *slice, H264eReorderInfo *reorder,
                       H264eMarkingInfo *marking);
+
+typedef struct H264eDpbFrm_t        H264eDpbFrm;
+
 RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
                           H264eSps *sps, H264ePps *pps,
                           H264eDpbFrm *frm);

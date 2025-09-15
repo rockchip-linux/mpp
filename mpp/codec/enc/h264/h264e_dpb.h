@@ -19,6 +19,7 @@
 
 #include "h264e_syntax.h"
 #include "h264e_sps.h"
+#include "h264e_slice.h"
 #include "mpp_enc_ref.h"
 
 /*

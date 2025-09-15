@@ -54,9 +54,6 @@ typedef struct H264ePrefixNal_t {
     RK_S32      output_flag;
 } H264ePrefixNal;
 
-typedef struct H264eReorderInfo_t   H264eReorderInfo;
-typedef struct H264eMarkingInfo_t   H264eMarkingInfo;
-typedef struct H264eDpbFrm_t        H264eDpbFrm;
 
 /*
  * Split reference frame configure to two parts
