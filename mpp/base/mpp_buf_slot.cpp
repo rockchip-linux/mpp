@@ -1234,7 +1234,8 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
             impl->info_changed = 1;
             impl->info_change_slot_idx = index;
 
-            impl->align_chk_log_en = impl->align_chk_log_env;
+            if (impl->coding_type != MPP_VIDEO_CodingMJPEG)
+                impl->align_chk_log_en = impl->align_chk_log_env;
 
             if (old->width || old->height) {
                 mpp_dbg_info("info change found\n");
