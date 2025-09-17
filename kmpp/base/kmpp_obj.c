@@ -1325,8 +1325,55 @@ MPP_OBJ_ACCESS(u32, rk_u32)
 MPP_OBJ_ACCESS(s64, rk_s64)
 MPP_OBJ_ACCESS(u64, rk_u64)
 MPP_OBJ_ACCESS(obj, KmppObj)
-MPP_OBJ_ACCESS(ptr, void *)
 MPP_OBJ_ACCESS(fp, void *)
+
+/* compatible for pointer and structure setup */
+rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void* val) \
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl->trie) {
+        MppTrieInfo *info = mpp_trie_get_info(impl->trie, name);
+
+        if (info) {
+            KmppEntry *tbl = (KmppEntry *)mpp_trie_info_ctx(info);
+
+            if (tbl->tbl.elem_type == ELEM_TYPE_st)
+                ret = kmpp_obj_impl_set_st(tbl, impl->entry, val);
+            else
+                ret = kmpp_obj_impl_set_ptr(tbl, impl->entry, val);
+        }
+    }
+    if (ret)
+        mpp_loge("obj %s set %s ptr failed ret %d\n",
+                 impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+    return ret;
+}
+
+rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl->trie) {
+        MppTrieInfo *info = mpp_trie_get_info(impl->trie, name);
+
+        if (info) {
+            KmppEntry *tbl = (KmppEntry *)mpp_trie_info_ctx(info);
+
+            if (tbl->tbl.elem_type == ELEM_TYPE_st)
+                ret = kmpp_obj_impl_get_st(tbl, impl->entry, val);
+            else
+                ret = kmpp_obj_impl_get_ptr(tbl, impl->entry, val);
+        }
+    }
+
+    if (ret)
+        mpp_loge("obj %s get %s ptr failed ret %d\n",
+                impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+    return ret;
+}
 
 #define MPP_OBJ_STRUCT_ACCESS(type, base_type) \
     rk_s32 kmpp_obj_set_##type(KmppObj obj, const char *name, base_type *val) \
