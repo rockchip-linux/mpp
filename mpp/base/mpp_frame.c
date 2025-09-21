@@ -124,7 +124,7 @@ MppBuffer mpp_frame_get_buffer(MppFrame frame)
     if (check_is_mpp_frame(p))
         return NULL;
 
-    return (MppFrame)p->buffer;
+    return (MppBuffer)p->buffer;
 }
 
 void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
