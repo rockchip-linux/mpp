@@ -186,6 +186,8 @@ typedef void* MppMeta;
 typedef void* KmppObjDef;
 /* KmppObj    - mpp object for string name access and function access */
 typedef void* KmppObj;
+/* KmppShm    - mpp share memory for kernel / userspace transaction */
+typedef void* KmppShm;
 
 /* kmpp transaction object */
 typedef void* KmppMeta;

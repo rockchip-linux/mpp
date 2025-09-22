@@ -1893,7 +1893,7 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller)
     return ret ? rk_nok : rk_ok;
 }
 
-rk_s32 kmpp_shm_get(KmppShmPtr **shm, rk_s32 size, const char *caller)
+rk_s32 kmpp_shm_get(KmppShm *shm, rk_s32 size, const char *caller)
 {
     KmppObjs *p;
     KmppObjIocArg *ioc;
@@ -1926,12 +1926,12 @@ rk_s32 kmpp_shm_get(KmppShmPtr **shm, rk_s32 size, const char *caller)
         return ret;
     }
 
-    *shm = (KmppShmPtr *)U64_TO_PTR(ioc->obj_sptr[0].uaddr);
+    *shm = U64_TO_PTR(ioc->obj_sptr[0].uaddr);
 
     return *shm ? rk_ok : rk_nok;
 }
 
-rk_s32 kmpp_shm_put(KmppShmPtr *shm, const char *caller)
+rk_s32 kmpp_shm_put(KmppShm shm, const char *caller)
 {
     KmppObjs *p = get_objs(caller);
     rk_s32 ret = rk_nok;
@@ -1945,15 +1945,19 @@ rk_s32 kmpp_shm_put(KmppShmPtr *shm, const char *caller)
         return ret;
 
     if (p && p->fd >= 0) {
+        KmppShmPtr *sptr = (KmppShmPtr *)shm;
         KmppObjIocArg *ioc = alloca(sizeof(KmppObjIocArg) + sizeof(KmppShmPtr));
 
         ioc->count = 1;
         ioc->flag = 0;
-        ioc->obj_sptr[0].uaddr = shm->uaddr;
-        ioc->obj_sptr[0].kaddr = shm->kaddr;
+
+        ioc->count = 1;
+        ioc->flag = 0;
+        ioc->obj_sptr[0].uaddr = sptr->uaddr;
+        ioc->obj_sptr[0].kaddr = sptr->kaddr;
 
         obj_dbg_flow("put shm %p entry [u:k] %llx:%llx at %s\n",
-                     shm, shm->uaddr, shm->kaddr, caller);
+                     sptr, sptr->uaddr, sptr->kaddr, caller);
 
         ret = ioctl(p->fd, KMPP_SHM_IOC_PUT_SHM, ioc);
         if (ret)
@@ -1961,4 +1965,17 @@ rk_s32 kmpp_shm_put(KmppShmPtr *shm, const char *caller)
     }
 
     return ret;
+}
+
+void *kmpp_shm_to_entry(KmppShm shm, const char *caller)
+{
+    KmppObjs *p = get_objs(caller);
+    KmppShmPtr *sptr = (KmppShmPtr *)shm;
+
+    if (!shm) {
+        mpp_loge_f("invalid param shm %p at %s\n", shm, caller);
+        return NULL;
+    }
+
+    return sptr->uptr + p->entry_offset;
 }
