@@ -2112,7 +2112,9 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 
         coeff_cdf_idx = reg_ctx->ref_info_tbl[mapped_idx].coeff_idx;
         if (!dxva->coding.disable_frame_end_update_cdf &&
-            reg_ctx->ref_info_tbl[mapped_idx].cdf_valid) {
+            reg_ctx->ref_info_tbl[mapped_idx].cdf_valid &&
+            dxva->frame_refs[mapped_idx].Index != (CHAR)0xff &&
+            dxva->frame_refs[mapped_idx].Index != 0x7f) {
             cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->frame_refs[mapped_idx].Index);
             buf_tmp = cdf_buf->buf[0];
         } else {
