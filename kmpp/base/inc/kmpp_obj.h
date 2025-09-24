@@ -43,6 +43,7 @@ rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, rk_s32 value);
 
 rk_s32 kmpp_objdef_get_entry(KmppObjDef def, const char *name, KmppEntry **tbl);
 rk_s32 kmpp_objdef_get_offset(KmppObjDef def, const char *name);
+rk_s32 kmpp_objdef_get_cmd(KmppObjDef def, const char *name);
 rk_s32 kmpp_objdef_dump(KmppObjDef def);
 
 /* mpp objcet internal element set / get function */
@@ -63,7 +64,7 @@ rk_s32 kmpp_obj_preset(KmppObj obj, const char *arg, const char *caller);
 /* check object is valid or not */
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
 /* run object's ioctl to kernel with input and output object */
-rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
+rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
 
 #define kmpp_obj_get_f(obj, def)                kmpp_obj_get(obj, def, __FUNCTION__)
 #define kmpp_obj_get_by_name_f(obj, name)       kmpp_obj_get_by_name(obj, name, __FUNCTION__)
@@ -72,7 +73,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj obj, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 #define kmpp_obj_impl_put_f(obj)                kmpp_obj_impl_put(obj, __FUNCTION__)
 #define kmpp_obj_preset_f(obj, arg)             kmpp_obj_preset(obj, arg, __FUNCTION__)
 #define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
-#define kmpp_obj_ioctl_f(obj, cmd, in, out)     kmpp_obj_ioctl(obj, cmd, in, out, __FUNCTION__)
+#define kmpp_obj_ioctl_f(ctx, cmd, in, out)     kmpp_obj_ioctl(ctx, cmd, in, out, __FUNCTION__)
 
 /* check a object is kobject or not */
 rk_s32 kmpp_obj_is_kobj(KmppObj obj);
