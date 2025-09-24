@@ -44,6 +44,9 @@
 #define VDPP_DCI_VSD_MODE_1     (1)
 #define VDPP_DCI_VSD_MODE_2     (2)
 
+/* Pyramid layer number */
+#define VDPP_PYR_MAX_LAYERS     (8)
+
 /* vdpp reg format definition */
 typedef enum VdppFmt_e {
     VDPP_FMT_YUV444 = 0, // yuv444sp
@@ -64,6 +67,8 @@ typedef enum VdppParamType_e {
     VDPP_PARAM_TYPE_ES,
     VDPP_PARAM_TYPE_HIST,
     VDPP_PARAM_TYPE_SHARP,
+    VDPP_PARAM_TYPE_PYR = 0x20, // pyramid building
+    VDPP_PARAM_TYPE_BBD,        // black bar detection
 } VdppParamType;
 
 typedef enum VdppCmd_e {
@@ -87,6 +92,11 @@ typedef enum VdppCmd_e {
     VDPP_CMD_SET_DCI_HIST,                    /* config dci hist configure */
     VDPP_CMD_SET_SHARP,                       /* config sharp configure */
     VDPP_CMD_GET_AVG_LUMA         = 0x2100,   /* get average luma value */
+
+    /* new after vdpp3 */
+    VDPP_CMD_SET_PYR              = 0x3100,   /* config pyramid building configure */
+    VDPP_CMD_SET_BBD              = 0x3200,   /* config black bar detection configure */
+    VDPP_CMD_GET_BBD,                         /* get black bar detection result to vdpp_results */
 } VdppCmd;
 
 /* forward declaration */
@@ -94,13 +104,24 @@ typedef void* VdppCtx;
 typedef struct VdppComCtx_t VdppComCtx;
 
 typedef struct VdppImg_t {
-    RK_U32  mem_addr; /* base address fd */
-    RK_U32  uv_addr;  /* chroma address fd */
-    RK_U32  uv_off;   /* chroma offset, unit: byte */
+    /* memory info */
+    RK_U32 mem_addr; /* base address fd */
+    RK_U32 uv_addr;  /* chroma address fd */
+    RK_U32 uv_off;   /* chroma offset, unit: byte */
+    RK_U32 y_off;    /* luma offset, unit: byte */
+    RK_U32 reserved1[4];
+
+    /* image info */
+    RK_U32 fmt;     /* see MppFrameFormat */
+    RK_U32 wid;     /* real width, unit: pixel */
+    RK_U32 hgt;     /* real width, unit: pixel */
+    RK_U32 wid_vir; /* virtual width, unit: pixel */
+    RK_U32 hgt_vir; /* virtual height, unit: pixel */
+    RK_U32 reserved2[3];
 } VdppImg;
 
 typedef struct VdppComOps_t {
-    MPP_RET (*init)(VdppCtx *ctx);
+    MPP_RET (*init)(VdppCtx ctx);
     MPP_RET (*deinit)(VdppCtx ctx);
     MPP_RET (*control)(VdppCtx ctx, VdppCmd cmd, void *param);
     void    (*release)(VdppComCtx *ctx); /* RESERVED */
@@ -185,6 +206,7 @@ typedef union VdppApiContent_u {
         RK_U32 hist_mode_en;
         /* high 16 bit: mask; low 3 bit (msb->lsb): dmsr|es|sharp */
         RK_U32 cfg_set;
+        RK_S32 src_range;         // {0-limited, 1-full}, default: 0
     } com2;
 
     struct {
@@ -362,6 +384,18 @@ typedef union VdppApiContent_u {
         RK_S32 tex_adj_grd[6];
         RK_S32 tex_adj_val[6];
     } sharp;
+
+    /* new after vdpp3 */
+    struct {
+        RK_U32  pyr_en;
+        RK_U32  nb_layers;                           // [1, 3], default: 3
+        VdppImg layer_imgs[VDPP_PYR_MAX_LAYERS];     // fd buffer of layer 1
+    } pyr;
+
+    struct {
+        RK_U32 bbd_en;
+        RK_U32 bbd_det_blcklmt; // luma threshold for black bar detection, always considered as full-range
+    } bbd;
 } VdppApiContent;
 
 typedef union VdppResults_u {
@@ -369,6 +403,12 @@ typedef union VdppResults_u {
         RK_S32 luma_avg;        // output mean luma value in U10 range, <0 means invalid value
     } hist;
 
+    struct {
+        RK_U32 bbd_size_top;    // output black bar size on top
+        RK_U32 bbd_size_bottom; // output black bar size on bottom
+        RK_U32 bbd_size_left;   // output black bar size on left
+        RK_U32 bbd_size_right;  // output black bar size on right
+    } bbd;
 } VdppResults;
 
 typedef struct VdppApiParams_t {

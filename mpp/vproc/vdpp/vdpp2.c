@@ -29,9 +29,6 @@
 #define VDPP2_HIST_VSD_DISABLE_LIMIT (1080)
 #define VDPP2_HIST_VSD_MODE_1_LIMIT  (2160)
 
-#define VDPP2_DEBUG_DUMP_ALL_REGS    (0)
-#define VDPP2_DEBUG_ENV_NAME         "vdpp2_debug"
-
 // default log level: warning
 extern RK_U32 vdpp_debug;
 
@@ -124,7 +121,8 @@ int update_dci_ctl(HistParams *hist_params)
     RK_S32 dci_alpha_swap = 0;
     RK_S32 dci_rbuv_swap = 0;
 
-    /* Only consider luma data for YUV formats */
+    /* for YUV formats: only consider luma data  */
+    /* for RGB unpacked formats: convert LSB order to MSB order */
     switch (hist_params->src_fmt) {
     case MPP_FMT_YUV420SP:
     case MPP_FMT_YUV422SP:
@@ -149,7 +147,6 @@ int update_dci_ctl(HistParams *hist_params)
         dci_format = VDPP_DCI_FMT_Y_10bit_SP;
         dci_rbuv_swap = 0;
     } break;
-    /* convert LSB order to MSB order for RGB unpacked formats */
     case MPP_FMT_RGB888: {
         dci_format = VDPP_DCI_FMT_RGB888;
         dci_rbuv_swap = 1;
@@ -987,7 +984,7 @@ void set_shp_to_vdpp2_reg(ShpParams *p_shp_param, RegShp *shp)
     shp->reg161.sw_tex_slp45 = mpp_clip(global_gain_slp_temp[4], -1024, 1023);
 }
 
-static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, Vdpp2ApiCtx *ctx)
+static MPP_RET vdpp2_params_to_reg(Vdpp2Params* src_params, Vdpp2ApiCtx *ctx)
 {
     Vdpp2Regs *dst_reg = &ctx->reg;
     DmsrParams *dmsr_params = &src_params->dmsr_params;
@@ -1044,10 +1041,10 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, Vdpp2ApiCtx 
     dst_reg->common.reg8.sw_vep_config_error_en = 1;
     /* 0x0024 ~ 0x002C(reg9 ~ reg11), skip */
     {
-        RK_U32 src_right_redundant = src_params->src_width % 16 == 0 ? 0 : 16 - src_params->src_width % 16;
-        RK_U32 src_down_redundant  = src_params->src_height % 8 == 0 ? 0 : 8 - src_params->src_height % 8;
+        RK_U32 src_right_redundant = (16 - (src_params->src_width & 0xF)) & 0xF;
+        RK_U32 src_down_redundant  = (8 - (src_params->src_height & 0x7)) & 0x7;
         // TODO: check if the dst_right_redundant is aligned to 2 or 4(for yuv420sp)
-        RK_U32 dst_right_redundant = src_params->dst_width % 16 == 0 ? 0 : 16 - src_params->dst_width % 16;
+        RK_U32 dst_right_redundant = (16 - (src_params->dst_width & 0xF)) & 0xF;
         /* 0x0030(reg12) */
         dst_reg->common.reg12.sw_vep_src_vir_y_stride = src_params->src_width_vir / 4;
 
@@ -1094,7 +1091,7 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, Vdpp2ApiCtx 
             dst_c_width_vir *= 2;
         }
 
-        dst_redundant_c = (16 - dst_c_width % 16) & 0xF;
+        dst_redundant_c = (16 - (dst_c_width & 0xF)) & 0xF;
         dst_reg->common.reg1.sw_vep_yuvout_diff_en = 1;
         dst_reg->common.reg13.sw_vep_dst_vir_c_stride = dst_c_width_vir / 4; // unit: dword
         /* 0x0040(reg16) */
@@ -1141,7 +1138,7 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, Vdpp2ApiCtx 
     return MPP_OK;
 }
 
-static MPP_RET vdpp2_set_default_param(struct vdpp2_params *param)
+static MPP_RET vdpp2_set_default_param(Vdpp2Params *param)
 {
     // base
     param->src_fmt = MPP_FMT_YUV420SP; // default 420sp
@@ -1362,15 +1359,15 @@ void vdpp2_set_default_shp_param(ShpParams *param)
     memcpy(param->tex_adj_val, tex_val_tmp, sizeof(tex_val_tmp));
 }
 
-MPP_RET vdpp2_init(VdppCtx *ictx)
+MPP_RET vdpp2_init(VdppCtx ictx)
 {
-    MPP_RET ret;
     MppReqV1 mpp_req;
     RK_U32 client_data = VDPP_CLIENT_TYPE;
-    Vdpp2ApiCtx *ctx = NULL;
+    Vdpp2ApiCtx *ctx = ictx;
+    MPP_RET ret = MPP_OK;
 
-    if (NULL == *ictx) {
-        vdpp_loge("found NULL input vdpp2 ctx %p\n", *ictx);
+    if (NULL == ictx) {
+        vdpp_loge("found NULL input vdpp2 ctx %p\n", ictx);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -1381,7 +1378,6 @@ MPP_RET vdpp2_init(VdppCtx *ictx)
 
     vdpp_enter();
 
-    ctx = *ictx;
     ctx->fd = open("/dev/mpp_service", O_RDWR | O_CLOEXEC);
     if (ctx->fd < 0) {
         vdpp_loge("can NOT find device /dev/vdpp\n");
@@ -1394,7 +1390,7 @@ MPP_RET vdpp2_init(VdppCtx *ictx)
     mpp_req.data_ptr = REQ_DATA_PTR(&client_data);
 
     /* set default parameters */
-    memset(&ctx->params, 0, sizeof(struct vdpp2_params));
+    memset(&ctx->params, 0, sizeof(Vdpp2Params));
     vdpp2_set_default_param(&ctx->params);
 
     ret = (RK_S32)ioctl(ctx->fd, MPP_IOC_CFG_V1, &mpp_req);
@@ -1404,7 +1400,7 @@ MPP_RET vdpp2_init(VdppCtx *ictx)
     }
 
     vdpp_leave();
-    return MPP_OK;
+    return ret;
 }
 
 MPP_RET vdpp2_deinit(VdppCtx ictx)
@@ -1471,7 +1467,8 @@ static MPP_RET vdpp2_set_param(Vdpp2ApiCtx *ctx, VdppApiContent *param, VdppPara
             ctx->params.dst_c_height_vir = MPP_ALIGN(ctx->params.dst_c_height, 2);
     } break;
     case VDPP_PARAM_TYPE_DMSR: {
-        memcpy(&ctx->params.dmsr_params, &param->dmsr, sizeof(struct dmsr_params));
+        mpp_assert(sizeof(ctx->params.dmsr_params) == sizeof(param->dmsr));
+        memcpy(&ctx->params.dmsr_params, &param->dmsr, sizeof(DmsrParams));
     } break;
     case VDPP_PARAM_TYPE_ZME_COM: {
         ctx->params.zme_params.zme_bypass_en = param->zme.bypass_enable;
@@ -1522,6 +1519,7 @@ static MPP_RET vdpp2_set_param(Vdpp2ApiCtx *ctx, VdppApiContent *param, VdppPara
             ctx->params.shp_params.sharp_enable = ((cfg_set & VDPP_SHARP_EN) != 0) ? 1 : 0;
     } break;
     case VDPP_PARAM_TYPE_ES: {
+        mpp_assert(sizeof(ctx->params.es_params) == sizeof(param->es));
         memcpy(&ctx->params.es_params, &param->es, sizeof(EsParams));
     } break;
     case VDPP_PARAM_TYPE_HIST: {
@@ -1534,6 +1532,7 @@ static MPP_RET vdpp2_set_param(Vdpp2ApiCtx *ctx, VdppApiContent *param, VdppPara
         ctx->params.hist_params.hist_addr = param->hist.hist_addr;
     } break;
     case VDPP_PARAM_TYPE_SHARP: {
+        mpp_assert(sizeof(ctx->params.shp_params) == sizeof(param->sharp));
         memcpy(&ctx->params.shp_params, &param->sharp, sizeof(ShpParams));
     } break;
     default: {
@@ -1544,7 +1543,7 @@ static MPP_RET vdpp2_set_param(Vdpp2ApiCtx *ctx, VdppApiContent *param, VdppPara
     return MPP_OK;
 }
 
-static RK_S32 check_cap(struct vdpp2_params *params)
+static RK_S32 check_cap(Vdpp2Params *params)
 {
     RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
     RK_U32 vep_mode_check = 0;
@@ -1710,14 +1709,14 @@ static RK_S32 check_cap(struct vdpp2_params *params)
 
 MPP_RET vdpp2_start(Vdpp2ApiCtx *ctx)
 {
-    MPP_RET ret;
     VdppRegOffsetInfo reg_off[2];
     /* Note: req_cnt must be 12 here! Make sure req_cnt<=11! */
     MppReqV1 mpp_req[12];
     RK_U32 req_cnt = 0;
-    struct vdpp2_reg *reg = NULL;
+    Vdpp2Regs *reg = NULL;
     RK_S32 ret_cap = VDPP_CAP_UNSUPPORTED;
     RK_S32 work_mode;
+    MPP_RET ret = MPP_OK;
 
     if (NULL == ctx) {
         vdpp_loge("found NULL input vdpp2 ctx %p\n", ctx);
@@ -1854,8 +1853,8 @@ MPP_RET vdpp2_start(Vdpp2ApiCtx *ctx)
 
 static MPP_RET vdpp2_wait(Vdpp2ApiCtx *ctx)
 {
-    MPP_RET ret;
     MppReqV1 mpp_req;
+    MPP_RET ret = MPP_OK;
 
     if (NULL == ctx) {
         vdpp_loge("found NULL input vdpp ctx %p\n", ctx);
@@ -1877,7 +1876,7 @@ static MPP_RET vdpp2_wait(Vdpp2ApiCtx *ctx)
 
 static MPP_RET vdpp2_done(Vdpp2ApiCtx *ctx)
 {
-    struct vdpp2_reg *reg = NULL;
+    Vdpp2Regs *reg = NULL;
 
     if (NULL == ctx) {
         vdpp_loge("found NULL input vdpp ctx %p\n", ctx);

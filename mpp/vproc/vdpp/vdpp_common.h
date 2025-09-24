@@ -14,6 +14,7 @@
 #include "vdpp_api.h"
 #include "vdpp_reg.h"
 #include "vdpp2_reg.h"
+#include "vdpp3_reg.h"
 
 /* marco define */
 #define VDPP_TILE_W_MAX                 (120)
@@ -25,6 +26,7 @@
 #define FLOOR(a)                (int)( (double)(a) < (int)(a) ? (int)((a)-1) : (int)(a) )
 #define ROUND(a)                (int)( (a) > 0 ? ((double) (a) + 0.5) : ((double) (a) - 0.5) )
 #endif
+#define DIV_255_FAST(x)         (((x) + 1 + (((x) + 1) >> 8)) >> 8)
 
 // marcos for zme
 #define SCALE_FACTOR_DN_FIXPOINT_SHIFT  (12)
@@ -114,6 +116,16 @@ void set_hist_to_vdpp2_reg(HistParams *hist_param, RegHist *hist_reg, RegCom2 *c
 void set_es_to_vdpp2_reg(EsParams *es_param, RegEs *es_reg);
 void set_shp_to_vdpp2_reg(ShpParams *shp_param, RegShp *shp_reg);
 int update_dci_ctl(HistParams *hist_params);
+
+/* implemented in vdpp3 */
+typedef struct PyrParams_t PyrParams; // forward declarations
+typedef struct BbdParams_t BbdParams;
+
+void vdpp3_set_default_pyr_param(PyrParams *pyr_param);
+void vdpp3_set_default_bbd_param(BbdParams *bbd_param);
+void set_pyr_to_vdpp3_reg(const PyrParams *pyr_params, RegPyr *pyr_reg);
+void set_bbd_to_vdpp3_reg(const BbdParams *bbd_params, RegBbd *bbd_reg);
+void set_zme_to_vdpp3_reg(const ZmeParams *zme_params, RegZme3 *zme_reg);
 
 #ifdef __cplusplus
 }

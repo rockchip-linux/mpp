@@ -117,24 +117,24 @@ typedef struct vdpp_params {
     RK_U32 dst_width;
     RK_U32 dst_height;
 
-    struct vdpp_addr src; // src frame
-    struct vdpp_addr dst; // dst frame
+    VdppAddr    src; // src frame
+    VdppAddr    dst; // dst frame
 
-    struct dmsr_params dmsr_params;
-    struct zme_params zme_params;
+    DmsrParams  dmsr_params;
+    ZmeParams   zme_params;
 } Vdpp1Params;
 
 typedef struct vdpp_api_ctx {
     RK_S32 fd; // device fd, like '/dev/mpp_service'
-    struct vdpp_params params;
-    struct vdpp_reg reg;
+    Vdpp1Params params;
+    Vdpp1Regs reg;
 } Vdpp1ApiCtx;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET vdpp_init(VdppCtx *ictx);
+MPP_RET vdpp_init(VdppCtx ictx);
 MPP_RET vdpp_deinit(VdppCtx ictx);
 MPP_RET vdpp_control(VdppCtx ictx, VdppCmd cmd, void *iparam);
 RK_S32  vdpp_check_cap(VdppCtx ictx);

@@ -62,6 +62,9 @@ typedef struct {
     RK_S32 en_es;
     RK_S32 en_shp;
     RK_S32 en_hist;
+    RK_S32 en_pyr;
+    RK_S32 en_bbd;
+    RK_S32 bbd_th; // default: 20 in U8 range
 } VdppCmdCfg;
 
 typedef struct {
@@ -71,9 +74,7 @@ typedef struct {
     FILE *fp_o_y;
     FILE *fp_o_uv;
     FILE *fp_o_hist;
-    FILE *fp_o_pyr1;
-    FILE *fp_o_pyr2;
-    FILE *fp_o_pyr3;
+    FILE *fp_o_pyrs[3];
     FILE *fp_o_res;
 
     RK_U32 frm_eos; // frame end-of-stream flag
@@ -112,6 +113,11 @@ static void *multi_vdpp(void *cmd_ctx)
     size_t srcfrmsize = 0;
     size_t dstfrmsize = 0;
     size_t dstfrmsize_c = 0;
+    RK_U32 pyr_vir_wids[3] = {0};
+    RK_U32 pyr_vir_hgts[3] = {0};
+    RK_U32 pyr_buf_sizes[3]  = {0};
+    RK_S32 pyr_fds[3] = {-1, -1, -1};
+    void *pyr_addrs[3] = {0};
 
     MppBufferGroup memGroup = NULL;
     MppBuffer srcbuf = NULL;
@@ -122,18 +128,12 @@ static void *multi_vdpp(void *cmd_ctx)
     MppBuffer pyrbuf_l3 = NULL;
     void *psrc = NULL;
     void *pdst = NULL;
-    void *pdst_c = NULL;
     void *phist = NULL;
-    void *ppyr_l1 = NULL;
-    void *ppyr_l2 = NULL;
-    void *ppyr_l3 = NULL;
     RK_S32 fdsrc = -1;
     RK_S32 fddst = -1;
     RK_S32 fdhist = -1;
-    RK_S32 fdpyr_l1 = -1;
-    RK_S32 fdpyr_l2 = -1;
-    RK_S32 fdpyr_l3 = -1;
     RK_S32 frame_idx = 0;
+    RK_S32 i = 0;
     RK_S32 ret = 0;
 
     /* init vdpp context */
@@ -144,11 +144,38 @@ static void *multi_vdpp(void *cmd_ctx)
     }
 
     /* run cmds, query vdpp info */
-    ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_VERSION, &vdpp_info, sizeof(vdpp_info), NULL);
+    ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_VERSION, &vdpp_info,
+                            sizeof(vdpp_info), NULL);
     vdpp_ver = vdpp_info.version.vdpp_ver >> 8; // {0x100, 0x200, 0x300} => {1, 2, 3}
 
-    ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_SOC_NAME, &vdpp_info, sizeof(vdpp_info), NULL);
+    ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_SOC_NAME, &vdpp_info,
+                            sizeof(vdpp_info), NULL);
     mpp_logi("get vdpp_info: vdpp_ver: %d, soc: %s\n", vdpp_ver, vdpp_info.platform.soc_name);
+
+    memset(&vdpp_info, 0, sizeof(vdpp_info));
+    vdpp_info.pyr.dst_width = cfg->img_w_o;
+    vdpp_info.pyr.dst_height = cfg->img_h_o;
+    ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE,
+                            &vdpp_info, sizeof(vdpp_info), NULL);
+    if (0 == ret) {
+        pyr_vir_wids[0] = vdpp_info.pyr.vir_widths[0];
+        pyr_vir_wids[1] = vdpp_info.pyr.vir_widths[1];
+        pyr_vir_wids[2] = vdpp_info.pyr.vir_widths[2];
+        pyr_vir_hgts[0] = vdpp_info.pyr.vir_heights[0];
+        pyr_vir_hgts[1] = vdpp_info.pyr.vir_heights[1];
+        pyr_vir_hgts[2] = vdpp_info.pyr.vir_heights[2];
+    } else {
+        mpp_logw("failed to run cmd: HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE  %d", ret);
+        pyr_vir_wids[0] = MPP_ALIGN(cfg->img_w_o / 2, 16);
+        pyr_vir_wids[1] = MPP_ALIGN(cfg->img_w_o / 4, 16);
+        pyr_vir_wids[2] = MPP_ALIGN(cfg->img_w_o / 8, 16);
+        pyr_vir_hgts[0] = (cfg->img_h_o + 1) / 2;
+        pyr_vir_hgts[1] = (cfg->img_h_o + 3) / 4;
+        pyr_vir_hgts[2] = (cfg->img_h_o + 7) / 8;
+    }
+    pyr_buf_sizes[0] = pyr_vir_wids[0] * pyr_vir_hgts[0];
+    pyr_buf_sizes[1] = pyr_vir_wids[1] * pyr_vir_hgts[1];
+    pyr_buf_sizes[2] = pyr_vir_wids[2] * pyr_vir_hgts[2];
 
     ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_SET_DEF_CFG, &vdpp_params.vdpp_config,
                             sizeof(HwpqVdppConfig), NULL);
@@ -162,8 +189,10 @@ static void *multi_vdpp(void *cmd_ctx)
     cfg->en_es   &= (vdpp_ver >= 2) && (cfg->work_mode != VDPP_WORK_MODE_DCI);
     cfg->en_shp  &= (vdpp_ver >= 2) && (cfg->work_mode != VDPP_WORK_MODE_DCI);
     cfg->en_hist &= (vdpp_ver >= 2);
-    mpp_logi("update enbale flags: dmsr=%d, es=%d, shp=%d, hist=%d\n",
-             cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist);
+    cfg->en_pyr  &= (vdpp_ver >= 3) && (cfg->work_mode != VDPP_WORK_MODE_DCI);
+    cfg->en_bbd  &= (vdpp_ver >= 3);
+    mpp_logi("update enbale flags: dmsr=%d, es=%d, shp=%d, hist=%d, pyr=%d, bbd=%d\n",
+             cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist, cfg->en_pyr, cfg->en_bbd);
     mpp_logi("is_yuv_out_diff: %d, work_mode: %d\n", yuv_out_diff, cfg->work_mode);
 
     srcfrmsize = get_frame_size(cfg->img_fmt_i, cfg->img_w_i_vir, cfg->img_h_i_vir);
@@ -180,14 +209,23 @@ static void *multi_vdpp(void *cmd_ctx)
     mpp_buffer_get(memGroup, &srcbuf, srcfrmsize);
     mpp_buffer_get(memGroup, &dstbuf, dstfrmsize);
     mpp_buffer_get(memGroup, &histbuf, VDPP_HIST_LENGTH);
+    mpp_buffer_get(memGroup, &pyrbuf_l1, pyr_buf_sizes[0]);
+    mpp_buffer_get(memGroup, &pyrbuf_l2, pyr_buf_sizes[1]);
+    mpp_buffer_get(memGroup, &pyrbuf_l3, pyr_buf_sizes[2]);
 
     psrc = mpp_buffer_get_ptr(srcbuf);
     pdst = mpp_buffer_get_ptr(dstbuf);
     phist = mpp_buffer_get_ptr(histbuf);
+    pyr_addrs[0] = mpp_buffer_get_ptr(pyrbuf_l1);
+    pyr_addrs[1] = mpp_buffer_get_ptr(pyrbuf_l2);
+    pyr_addrs[2] = mpp_buffer_get_ptr(pyrbuf_l3);
 
     fdsrc = mpp_buffer_get_fd(srcbuf);
     fddst = mpp_buffer_get_fd(dstbuf);
     fdhist = mpp_buffer_get_fd(histbuf);
+    pyr_fds[0] = mpp_buffer_get_fd(pyrbuf_l1);
+    pyr_fds[1] = mpp_buffer_get_fd(pyrbuf_l2);
+    pyr_fds[2] = mpp_buffer_get_fd(pyrbuf_l3);
 
     mpp_logi("src w:h [%d:%d] stride [%d:%d] require buf %d bytes. fd %d", cfg->img_w_i,
              cfg->img_h_i, cfg->img_w_i_vir, cfg->img_h_i_vir, srcfrmsize, fdsrc);
@@ -196,6 +234,10 @@ static void *multi_vdpp(void *cmd_ctx)
     if (yuv_out_diff) {
         mpp_logi("dst_c w:h [%d:%d] stride [%d:%d] require buf %d bytes. fd %d", cfg->img_w_o_c,
                  cfg->img_h_o_c, cfg->img_w_o_c_vir, cfg->img_h_o_c_vir, dstfrmsize_c, fddst);
+    }
+    for (i = 0; i < 3; i++) {
+        mpp_logi("pyr[%d] info: size=%ux%u, require buf %u bytes. fd %d\n",
+                 i + 1, pyr_vir_wids[i], pyr_vir_hgts[i], pyr_buf_sizes[i], pyr_fds[i]);
     }
 
     /* open files */
@@ -234,6 +276,13 @@ static void *multi_vdpp(void *cmd_ctx)
             snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_hist_packed.bin", cfg->dst_dir_name);
             mul_ctx->fp_o_hist = fopen(filename, "wb");
         }
+        if (cfg->en_pyr) {
+            for (i = 0; i < 3; i++) {
+                snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_pyr_l%d.yuv",
+                         cfg->dst_dir_name, i + 1);
+                mul_ctx->fp_o_pyrs[i] = fopen(filename, "wb");
+            }
+        }
     }
 
     /* set parameters: switch module flag */
@@ -243,8 +292,10 @@ static void *multi_vdpp(void *cmd_ctx)
         vdpp_params.vdpp_config.shp_en = cfg->en_shp;
         vdpp_params.vdpp_config.hist_cnt_en = cfg->en_hist;
         vdpp_params.vdpp_config.hist_csc_range = cfg->img_range;
-        mpp_logi("modules to run: dmsr=%d, es=%d, shp=%d, hist=%d\n",
-                 cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist);
+        vdpp_params.vdpp_config.pyr_en = cfg->en_pyr;
+        vdpp_params.vdpp_config.bbd_en = cfg->en_bbd;
+        mpp_logi("modules to run: dmsr=%d, es=%d, shp=%d, hist=%d, pyr=%d, bbd=%d\n",
+                 cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist, cfg->en_pyr, cfg->en_bbd);
     }
 
     /* set parameters: set buffer info */
@@ -286,6 +337,13 @@ static void *multi_vdpp(void *cmd_ctx)
 
         vdpp_params.hist_buf_fd = fdhist;
         vdpp_params.p_hist_buf = phist;
+
+        for (i = 0; i < 3; ++i) {
+            vdpp_params.vdpp_config.pyr_layers[i].img_yrgb.fd = pyr_fds[i];
+            vdpp_params.vdpp_config.pyr_layers[i].img_yrgb.addr = pyr_addrs[i];
+            vdpp_params.vdpp_config.pyr_layers[i].img_yrgb.w_vir = pyr_vir_wids[i];
+            vdpp_params.vdpp_config.pyr_layers[i].img_yrgb.h_vir = pyr_vir_hgts[i];
+        }
     }
 
     /* set parameters: remaining config */
@@ -351,6 +409,7 @@ static void *multi_vdpp(void *cmd_ctx)
             mpp_logi("dst chroma data dump to: %s\n", cfg->dst_file_name_uv);
         }
 
+        /* get & write hist result */
         if (cfg->en_hist && mul_ctx->fp_o_hist) {
             ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_HIST_RESULT, &vdpp_output,
                                     sizeof(vdpp_output), NULL);
@@ -358,10 +417,40 @@ static void *multi_vdpp(void *cmd_ctx)
                 mpp_logw("failed to run cmd: HWPQ_VDPP_CMD_GET_HIST_RESULT  %d", ret);
             }
 
-            fwrite(vdpp_output.hist.dci_vdpp_info.p_hist_addr, 1, VDPP_HIST_LENGTH, mul_ctx->fp_o_hist);
+            fwrite(vdpp_output.hist.dci_vdpp_info.p_hist_addr, 1, VDPP_HIST_LENGTH,
+                   mul_ctx->fp_o_hist);
             mpp_logi("get mean luma result: %d (in U10)\n", vdpp_output.hist.luma_avg);
             if (mul_ctx->fp_o_res) {
                 fprintf(mul_ctx->fp_o_res, "mean luma result: %d\n", vdpp_output.hist.luma_avg);
+                fflush(mul_ctx->fp_o_res);
+            }
+        }
+
+        /* write pyr result */
+        if (cfg->en_pyr && !vdpp_params.hist_mode_en) {
+            for (i = 0; i < 3; ++i) {
+                if (mul_ctx->fp_o_pyrs[i]) {
+                    fwrite(vdpp_params.vdpp_config.pyr_layers[i].img_yrgb.addr,
+                           1, pyr_buf_sizes[i], mul_ctx->fp_o_pyrs[i]);
+                }
+            }
+        }
+
+        /* get bbd result */
+        if (cfg->en_bbd) {
+            ret = hwpq_vdpp_run_cmd(vdpp_ctx, HWPQ_VDPP_CMD_GET_BBD_RESULT, &vdpp_output,
+                                    sizeof(vdpp_output), NULL);
+            if (ret) {
+                mpp_logw("failed to run cmd: HWPQ_VDPP_CMD_GET_BBD_RESULT  %d", ret);
+            }
+
+            mpp_logi("get bbd result: top/bottom/left/right = [%d, %d, %d, %d]\n",
+                     vdpp_output.bbd.bbd_size_top, vdpp_output.bbd.bbd_size_bottom,
+                     vdpp_output.bbd.bbd_size_left, vdpp_output.bbd.bbd_size_right);
+            if (mul_ctx->fp_o_res) {
+                fprintf(mul_ctx->fp_o_res, "bbd result: [top=%d, btm=%d, left=%d, right=%d]\n",
+                        vdpp_output.bbd.bbd_size_top, vdpp_output.bbd.bbd_size_bottom,
+                        vdpp_output.bbd.bbd_size_left, vdpp_output.bbd.bbd_size_right);
                 fflush(mul_ctx->fp_o_res);
             }
         }
@@ -392,14 +481,19 @@ __RET:
         fclose(mul_ctx->fp_o_hist);
         mul_ctx->fp_o_hist = NULL;
     }
-    if (mul_ctx->fp_o_res) {
-        fclose(mul_ctx->fp_o_res);
-        mul_ctx->fp_o_res = NULL;
+    for (i = 0; i < 3; ++i) {
+        if (mul_ctx->fp_o_pyrs[i]) {
+            fclose(mul_ctx->fp_o_pyrs[i]);
+            mul_ctx->fp_o_pyrs[i] = NULL;
+        }
     }
 
     mpp_buffer_put(srcbuf);
     mpp_buffer_put(dstbuf);
     mpp_buffer_put(histbuf);
+    mpp_buffer_put(pyrbuf_l1);
+    mpp_buffer_put(pyrbuf_l2);
+    mpp_buffer_put(pyrbuf_l3);
 
     if (memGroup) {
         mpp_buffer_group_put(memGroup);
@@ -474,6 +568,9 @@ static RK_S32 parse_cmd(char **argv, RK_S32 argc, VdppCmdCfg *cfg)
         {"en_es",   required_argument, 0, 0  }, // 10
         {"en_shp",  required_argument, 0, 0  }, // 11
         {"en_hist", required_argument, 0, 0  }, // 12
+        {"en_pyr",  required_argument, 0, 0  }, // 13
+        {"en_bbd",  required_argument, 0, 0  }, // 14
+        {"bbd_th",  required_argument, 0, 0  }, // 15
         {"help",    no_argument,       0, 'h'},
         {"version", no_argument,       0, 'v'},
         {"input",   required_argument, 0, 'i'},
@@ -507,6 +604,9 @@ static RK_S32 parse_cmd(char **argv, RK_S32 argc, VdppCmdCfg *cfg)
     cfg->en_es = 0;
     cfg->en_shp = 0;
     cfg->en_hist = 1;
+    cfg->en_pyr = 1;
+    cfg->en_bbd = 1;
+    cfg->bbd_th = 20;
 
     /* parse arguments */
     opterr = 0;
@@ -555,6 +655,15 @@ static RK_S32 parse_cmd(char **argv, RK_S32 argc, VdppCmdCfg *cfg)
             } break;
             case 12: {
                 cfg->en_hist = strtol(optarg, NULL, 0);
+            } break;
+            case 13: {
+                cfg->en_pyr = strtol(optarg, NULL, 0);
+            } break;
+            case 14: {
+                cfg->en_bbd = strtol(optarg, NULL, 0);
+            } break;
+            case 15: {
+                cfg->bbd_th = strtol(optarg, NULL, 0);
             } break;
             default: break;
             }
@@ -673,8 +782,8 @@ static RK_S32 parse_cmd(char **argv, RK_S32 argc, VdppCmdCfg *cfg)
     }
     mpp_logi(" - set output image size: %dx%d, virtual size: %dx%d, hwpq_vdpp_format: %d\n",
              cfg->img_w_o, cfg->img_h_o, cfg->img_w_o_vir, cfg->img_h_o_vir, cfg->img_fmt_o);
-    mpp_logi(" - set enbale flags: dmsr=%d, es=%d, shp=%d, hist=%d\n",
-             cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist);
+    mpp_logi(" - set enbale flags: dmsr=%d, es=%d, shp=%d, hist=%d, pyr=%d, bbd=%d\n",
+             cfg->en_dmsr, cfg->en_es, cfg->en_shp, cfg->en_hist, cfg->en_pyr, cfg->en_bbd);
 
     return 0;
 }
@@ -713,6 +822,9 @@ static void print_help_info()
     mpp_logi("      --en_es      [int]: en_es   flag, default: 0\n");
     mpp_logi("      --en_shp     [int]: en_shp  flag, default: 0\n");
     mpp_logi("      --en_hist    [int]: en_hist flag, default: 1\n");
+    mpp_logi("      --en_pyr     [int]: en_pyr  flag, default: 1\n");
+    mpp_logi("      --en_bbd     [int]: en_bbd  flag, default: 1\n");
+    mpp_logi("      --bbd_th     [int]: bbd threshold, default: 20 in U8 input range\n");
 }
 
 #if 0

@@ -7,8 +7,8 @@
 #define HWPQ_VDPP_PROC_API_H
 
 /* version definition */
-#define HWPQ_VDPP_PROC_VERSION_HEX  (0x01030000)    /* [31:0] = [major:8-minor:8-patch:16] */
-#define HWPQ_VDPP_PROC_VERSION_STR  "v1.3.0"
+#define HWPQ_VDPP_PROC_VERSION_HEX  (0x01040000)    /* [31:0] = [major:8-minor:8-patch:16] */
+#define HWPQ_VDPP_PROC_VERSION_STR  "v1.4.0"
 
 /* hwpq vdpp color format definition */
 #define VDPP_FRAME_FMT_COLOR_MASK   (0x000f0000)    /* DEPRECATED */
@@ -114,6 +114,17 @@ typedef struct vdpp_params {
     unsigned int shp_shoot_ctrl_under;  // default: 8
     unsigned int reserve_shp[4];
 
+    /* vdpp3 features */
+    // pyramid config
+    unsigned int    pyr_en;             // default: 0
+    HwpqVdppImgInfo pyr_layers[8];      // Only 3 layers of luma data is supported in vdpp3
+    unsigned int    reserve_pyr[8];
+
+    // black_bar_detect config
+    unsigned int bbd_en;                // default: 0
+    unsigned int bbd_threshold;         // default: 20 for U8 Full-range. always consider as Full-range.
+    unsigned int reserve_bbd[8];
+
     /* new features add here */
 } HwpqVdppConfig;
 
@@ -136,12 +147,12 @@ typedef union hwpq_vdpp_output_t {
     } hist;
 
     /* bbd result, unit: pixel */
-    // struct HwpqVdppBbdSize {
-    //     int bbd_size_top;       // [0, H], <0 means invalid value.
-    //     int bbd_size_bottom;    // [0, H], <0 means invalid value.
-    //     int bbd_size_left;      // [0, W], <0 means invalid value.
-    //     int bbd_size_right;     // [0, W], <0 means invalid value.
-    // } bbd;
+    struct HwpqVdppBbdSize {
+        int bbd_size_top;       // [0, H], <0 means invalid value.
+        int bbd_size_bottom;    // [0, H], <0 means invalid value.
+        int bbd_size_left;      // [0, W], <0 means invalid value.
+        int bbd_size_right;     // [0, W], <0 means invalid value.
+    } bbd;
 } HwpqVdppOutput;
 
 typedef struct rk_vdpp_proc_params {
@@ -170,11 +181,11 @@ typedef enum {
     /* Get useful info from a context, use 'HwpqVdppQueryInfo' as data in 'hwpq_vdpp_run_cmd()' */
     HWPQ_VDPP_CMD_GET_VERSION,              /* get vdpp version info */
     HWPQ_VDPP_CMD_GET_SOC_NAME,             /* get platform soc name */
-    // HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE,         /* get minimal virtual size for each layer of PYR */
+    HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE,         /* get minimal virtual size for each layer of PYR */
 
     /* Get result from a context, use 'HwpqVdppOutput' as data in 'hwpq_vdpp_run_cmd()' */
     HWPQ_VDPP_CMD_GET_HIST_RESULT = 0x0100, /* get DCI info  */
-    // HWPQ_VDPP_CMD_GET_BBD_RESULT,           /* get BBD result */
+    HWPQ_VDPP_CMD_GET_BBD_RESULT,           /* get BBD result */
 
     /* Set module config to default values */
     HWPQ_VDPP_CMD_SET_DEF_CFG = 0x1000,     /* set 'HwpqVdppConfig' to default values */
@@ -192,13 +203,13 @@ typedef union vdpp_query_info {
     } version;
 
     /* query pyr minimal virtual size info, unit: pixel */
-    // struct {
-    //     int dst_width;      // [I] set the dst width  after ZME, unit: pixel
-    //     int dst_height;     // [I] set the dst height after ZME, unit: pixel
-    //     int nb_layers;      // [O] get the number of layers exclude the original layer, always be 3 for now!
-    //     int vir_widths[8];  // [O] output virtual widths  of each layer, unit: pixel
-    //     int vir_heights[8]; // [O] output virtual heights of each layer, unit: pixel
-    // } pyr;
+    struct {
+        int dst_width;      // [I] set the dst width  after ZME, unit: pixel
+        int dst_height;     // [I] set the dst height after ZME, unit: pixel
+        int nb_layers;      // [O] get the number of layers exclude the original layer, always be 3 for now!
+        int vir_widths[8];  // [O] output virtual widths  of each layer, unit: pixel
+        int vir_heights[8]; // [O] output virtual heights of each layer, unit: pixel
+    } pyr;
 } HwpqVdppQueryInfo;
 
 

@@ -224,9 +224,9 @@ typedef struct vdpp2_params {
     RK_U32 dst_c_height_vir; // unit: pixel, valid when yuv_out_diff=1
     RK_U32 working_mode;     // 1-IEP2, 2-VEP, 3-DCI_HIST
 
-    struct vdpp_addr src;    // src frame
-    struct vdpp_addr dst;    // dst frame
-    struct vdpp_addr dst_c;  // dst chroma frame, valid when yuv_out_diff=1
+    VdppAddr    src;         // src frame
+    VdppAddr    dst;         // dst frame
+    VdppAddr    dst_c;       // dst chroma frame, valid when yuv_out_diff=1
 
     /* vdpp features */
     DmsrParams  dmsr_params;
@@ -240,15 +240,15 @@ typedef struct vdpp2_params {
 
 typedef struct vdpp2_api_ctx {
     RK_S32 fd;
-    struct vdpp2_params params;
-    struct vdpp2_reg reg;
+    Vdpp2Params params;
+    Vdpp2Regs reg;
 } Vdpp2ApiCtx;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MPP_RET vdpp2_init(VdppCtx *ictx);
+MPP_RET vdpp2_init(VdppCtx ictx);
 MPP_RET vdpp2_deinit(VdppCtx ictx);
 MPP_RET vdpp2_control(VdppCtx ictx, VdppCmd cmd, void *iparam);
 RK_S32  vdpp2_check_cap(VdppCtx ictx);

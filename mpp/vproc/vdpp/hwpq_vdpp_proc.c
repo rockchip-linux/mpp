@@ -47,10 +47,10 @@ typedef struct VdppCtxImpl_t {
         HwpqVdppDciInfo dci_vdpp_info;
 
         // bbd
-        // RK_S32 bbd_size_top;
-        // RK_S32 bbd_size_bottom;
-        // RK_S32 bbd_size_left;
-        // RK_S32 bbd_size_right;
+        RK_S32          bbd_size_top;
+        RK_S32          bbd_size_bottom;
+        RK_S32          bbd_size_left;
+        RK_S32          bbd_size_right;
     } output;
 } VdppCtxImpl;
 
@@ -393,12 +393,30 @@ static void set_shp_default_config(VdppApiParams *api_params)
     memcpy(api_params->param.sharp.tex_adj_val, tex_val_tmp, sizeof(tex_val_tmp));
 }
 
+static void set_pyr_default_config(VdppApiParams *api_params)
+{
+    api_params->ptype = VDPP_PARAM_TYPE_PYR;
+    memset(&api_params->param, 0, sizeof(VdppApiContent));
+
+    api_params->param.pyr.pyr_en = 0;
+}
+
+static void set_bbd_default_config(VdppApiParams *api_params)
+{
+    api_params->ptype = VDPP_PARAM_TYPE_BBD;
+    memset(&api_params->param, 0, sizeof(VdppApiContent));
+
+    api_params->param.bbd.bbd_en = 0;
+    api_params->param.bbd.bbd_det_blcklmt = 20;
+}
+
 static RK_S32 vdpp_set_user_cfg(VdppComCtx *ctx, const HwpqVdppParams *hwpq_param,
                                 RK_U32 cfg_update_flag)
 {
     VdppApiParams params;
     const HwpqVdppConfig *hwpq_config = &hwpq_param->vdpp_config;
     const RK_S32 vdpp_ver = MPP_MAX(ctx->ver >> 8, 1);
+    RK_S32 i = 0;
     RK_S32 ret = MPP_OK;
 
     if (cfg_update_flag == 0) {
@@ -407,7 +425,8 @@ static RK_S32 vdpp_set_user_cfg(VdppComCtx *ctx, const HwpqVdppParams *hwpq_para
     }
 
     hwpq_enter();
-    hwpq_logd("update vdpp config... vdpp_ver=%d\n", vdpp_ver);
+    hwpq_logd("update vdpp config... vdpp_ver=%d, hist_only_mode=%d\n",
+              vdpp_ver, hwpq_param->hist_mode_en);
 
     /* set vdpp1 configs */
     {
@@ -448,6 +467,34 @@ static RK_S32 vdpp_set_user_cfg(VdppComCtx *ctx, const HwpqVdppParams *hwpq_para
         params.param.sharp.shootctrl_alpha_under = hwpq_config->shp_shoot_ctrl_under;
         ret |= ctx->ops->control(ctx->priv, VDPP_CMD_SET_SHARP, &params);
         hwpq_logv("set api param: sharp.shp_en=%d\n", params.param.sharp.sharp_enable);
+    }
+
+    /* set vdpp3 configs */
+    if (vdpp_ver >= 3) {
+        set_pyr_default_config(&params);
+        params.param.pyr.pyr_en = hwpq_config->pyr_en && !hwpq_param->hist_mode_en &&
+                                  hwpq_config->pyr_layers[0].img_yrgb.fd > 0 &&
+                                  hwpq_config->pyr_layers[1].img_yrgb.fd > 0 &&
+                                  hwpq_config->pyr_layers[2].img_yrgb.fd > 0;
+        hwpq_logv("set api param: pyr_en=%d\n", params.param.pyr.pyr_en);
+        if (params.param.pyr.pyr_en) {
+            params.param.pyr.nb_layers = 3;
+            for (i = 0; i < 3; i++) {
+                params.param.pyr.layer_imgs[i].mem_addr = hwpq_config->pyr_layers[i].img_yrgb.fd;
+                params.param.pyr.layer_imgs[i].wid_vir = hwpq_config->pyr_layers[i].img_yrgb.w_vir;
+                hwpq_logv("set api param: pyr[%d] addr=%u, wid_vir=%u (unit: pixel)\n",
+                          i + 1, params.param.pyr.layer_imgs[i].mem_addr,
+                          params.param.pyr.layer_imgs[i].wid_vir);
+            }
+        }
+        ret |= ctx->ops->control(ctx->priv, VDPP_CMD_SET_PYR, &params);
+
+        set_bbd_default_config(&params);
+        params.param.bbd.bbd_en = hwpq_config->bbd_en;
+        params.param.bbd.bbd_det_blcklmt = hwpq_config->bbd_threshold;
+        ret |= ctx->ops->control(ctx->priv, VDPP_CMD_SET_BBD, &params);
+        hwpq_logv("set api param: bbd_en=%d, bbd_det_blcklmt=%d\n", params.param.bbd.bbd_en,
+                  params.param.bbd.bbd_det_blcklmt);
     }
 
     hwpq_leave();
@@ -493,11 +540,13 @@ static inline void vdpp_unmap_buffer(void *ptr, size_t bufSize)
     }
 }
 
-static FILE *try_env_file(const char *env, const char *path, pid_t tid, RK_S32 index)
+#if 0
+static FILE *try_env_file(const char *env, const char *path, RK_S32 index)
 {
     const char *fname = NULL;
     FILE *fp = NULL;
     char name[HWPQ_VDPP_MAX_FILE_NAME_LEN];
+    pid_t tid = syscall(SYS_gettid);
 
     mpp_env_get_str(env, &fname, path);
     if (fname == path) {
@@ -510,12 +559,12 @@ static FILE *try_env_file(const char *env, const char *path, pid_t tid, RK_S32 i
 
     return fp;
 }
+#endif
 
 static void vdpp_dump_bufs(HwpqVdppParams *p_proc_param, RK_S32 index)
 {
     FILE *fp_in = NULL;
     FILE *fp_out = NULL;
-    pid_t tid = syscall(SYS_gettid);
     char filename[256] = {0};
 
     if (NULL == p_proc_param) {
@@ -723,8 +772,8 @@ static void dump_vdpp_params(const HwpqVdppParams *params)
                   params->dst_img_info.img_cbcr.h_vld, params->dst_img_info.img_cbcr.w_vir,
                   params->dst_img_info.img_cbcr.h_vir, params->dst_img_info.img_cbcr.offset);
     }
-    hwpq_logv(" - dmsr_en: %d, str_pri_y: %d, str_sec_y: %d, dumping_y: %d\n", config->dmsr_en,
-              config->str_pri_y, config->str_sec_y, config->dumping_y);
+    hwpq_logv(" - dmsr_en: %d, str_pri_y: %d, str_sec_y: %d, dumping_y: %d\n",
+              config->dmsr_en, config->str_pri_y, config->str_sec_y, config->dumping_y);
     hwpq_logv(" - es_en: %d, es_iWgtGain: %d\n", config->es_en, config->es_iWgtGain);
     hwpq_logv(" - shp_en: %d, peaking_gain: %d, shoot_ctrl_en: %d, shoot_ctrl_over/under: %d/%d\n",
               config->shp_en, config->peaking_gain, config->shp_shoot_ctrl_en,
@@ -734,6 +783,11 @@ static void dump_vdpp_params(const HwpqVdppParams *params)
               "fd=%d, addr=%p\n",
               config->hist_cnt_en, params->hist_mode_en, config->hist_csc_range,
               config->hist_vsd_mode, config->hist_hsd_mode, params->hist_buf_fd, params->p_hist_buf);
+    hwpq_logv(" - pyr_en: %d, fds: %d/%d/%d, addrs: %p/%p/%p\n", params->vdpp_config.pyr_en,
+              config->pyr_layers[0].img_yrgb.fd, config->pyr_layers[1].img_yrgb.fd,
+              config->pyr_layers[2].img_yrgb.fd, config->pyr_layers[0].img_yrgb.addr,
+              config->pyr_layers[1].img_yrgb.addr, config->pyr_layers[2].img_yrgb.addr);
+    hwpq_logv(" - bbd_en: %d, threshold: %d\n", config->bbd_en, config->bbd_threshold);
 }
 
 int hwpq_vdpp_deinit(HwpqVdppContext ctx)
@@ -840,7 +894,7 @@ int hwpq_vdpp_init(HwpqVdppContext *p_ctx_ptr)
     hwpq_logd("create internal histbuf(fd=%d, addr=%p) inside context.\n", fdhist, phist);
 
     if (ctx_com->ops->init) {
-        ret = ctx_com->ops->init(&ctx_com->priv);
+        ret = ctx_com->ops->init(ctx_com->priv);
         if (ret) {
             hwpq_loge("vdpp init failed! ret %d\n", ret);
             goto __ERR;
@@ -894,6 +948,7 @@ static MPP_RET hwpq_vdpp_common_config(VdppComCtx *ctx, const HwpqVdppParams *p_
         params.param.com2.src_height = p_proc_param->src_img_info.img_yrgb.h_vld;
         params.param.com2.src_width_vir = p_proc_param->src_img_info.img_yrgb.w_vir;
         params.param.com2.src_height_vir = p_proc_param->src_img_info.img_yrgb.h_vir;
+        params.param.com2.src_range = p_proc_param->vdpp_config.hist_csc_range;
         params.param.com2.dfmt = vdpp_format_convert(p_proc_param->dst_img_info.img_fmt);
         params.param.com2.dswap = get_img_format_swap(p_proc_param->dst_img_info.img_fmt);
         params.param.com2.dst_width = p_proc_param->dst_img_info.img_yrgb.w_vld;
@@ -910,8 +965,8 @@ static MPP_RET hwpq_vdpp_common_config(VdppComCtx *ctx, const HwpqVdppParams *p_
         params.param.com2.hist_mode_en = hist_only_mode;
         ret = ctx->ops->control(ctx->priv, VDPP_CMD_SET_COM2_CFG, &params);
 
-        hwpq_logv("set api param: sfmt=%d, sswap=%d, src_range=TBD, size=%dx%d [%dx%d]\n",
-                  params.param.com2.sfmt, params.param.com2.sswap,
+        hwpq_logv("set api param: sfmt=%d, sswap=%d, src_range=%d, size=%dx%d [%dx%d]\n",
+                  params.param.com2.sfmt, params.param.com2.sswap, params.param.com2.src_range,
                   params.param.com2.src_width, params.param.com2.src_height,
                   params.param.com2.src_width_vir, params.param.com2.src_height_vir);
         hwpq_logv("set api param: dfmt=%d, dswap=%d, size=%dx%d [%dx%d]\n",
@@ -1041,6 +1096,10 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
     /* post process */
     memset(&ctx_impl->output, 0, sizeof(ctx_impl->output));
     ctx_impl->output.luma_avg = -1; // init to invalid value
+    ctx_impl->output.bbd_size_top = -1;
+    ctx_impl->output.bbd_size_bottom = -1;
+    ctx_impl->output.bbd_size_left = -1;
+    ctx_impl->output.bbd_size_right = -1;
 
     if ((vdpp_ver >= 2) && hwpq_param->vdpp_config.hist_cnt_en) {
         /* Calc avg luma */
@@ -1106,6 +1165,20 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
         ctx_impl->output.dci_vdpp_info.vdpp_img_h_out = hwpq_param->dst_img_info.img_yrgb.h_vld;
         ctx_impl->output.dci_vdpp_info.vdpp_blk_size_h = hwpq_param->src_img_info.img_yrgb.w_vld / 16;
         ctx_impl->output.dci_vdpp_info.vdpp_blk_size_v = hwpq_param->src_img_info.img_yrgb.h_vld / 16;
+    }
+
+    if ((vdpp_ver >= 3) && hwpq_param->vdpp_config.bbd_en) {
+        VdppResults results = {0};
+
+        ret = ctx_com->ops->control(ctx_com->priv, VDPP_CMD_GET_BBD, &results);
+        if (MPP_OK == ret) {
+            ctx_impl->output.bbd_size_top = results.bbd.bbd_size_top;
+            ctx_impl->output.bbd_size_bottom = results.bbd.bbd_size_bottom;
+            ctx_impl->output.bbd_size_left = results.bbd.bbd_size_left;
+            ctx_impl->output.bbd_size_right = results.bbd.bbd_size_right;
+        } else {
+            hwpq_loge("get bbd result error! %d\n", ret);
+        }
     }
 
     vdpp_dump_bufs(hwpq_param, internal_frame_idx);
@@ -1180,10 +1253,12 @@ int hwpq_vdpp_run_cmd(HwpqVdppContext ctx, HwpqVdppCmd cmd, void *data, int data
 
     switch (cmd) {
     case HWPQ_VDPP_CMD_GET_VERSION:
-    case HWPQ_VDPP_CMD_GET_SOC_NAME: {
+    case HWPQ_VDPP_CMD_GET_SOC_NAME:
+    case HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE: {
         min_data_size = sizeof(HwpqVdppQueryInfo);
     } break;
-    case HWPQ_VDPP_CMD_GET_HIST_RESULT: {
+    case HWPQ_VDPP_CMD_GET_HIST_RESULT:
+    case HWPQ_VDPP_CMD_GET_BBD_RESULT: {
         min_data_size = sizeof(HwpqVdppOutput);
     } break;
     case HWPQ_VDPP_CMD_SET_DEF_CFG: {
@@ -1210,12 +1285,35 @@ int hwpq_vdpp_run_cmd(HwpqVdppContext ctx, HwpqVdppCmd cmd, void *data, int data
         snprintf(query_info->platform.soc_name, HWPQ_VDPP_SOC_NAME_LENGTH - 1, "%s",
                  mpp_get_soc_name());
     } break;
+    case HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE: {
+        HwpqVdppQueryInfo *query_info = (HwpqVdppQueryInfo *)data;
+
+        if (query_info->pyr.dst_width < 128 || query_info->pyr.dst_height < 128) {
+            hwpq_logw("dst_width=%d or dst_height=%d is too small, Need >= 128.\n",
+                      query_info->pyr.dst_width, query_info->pyr.dst_height);
+        }
+        query_info->pyr.nb_layers = 3;
+        query_info->pyr.vir_widths[0] = MPP_ALIGN(query_info->pyr.dst_width / 2, 16);
+        query_info->pyr.vir_widths[1] = MPP_ALIGN(query_info->pyr.dst_width / 4, 16);
+        query_info->pyr.vir_widths[2] = MPP_ALIGN(query_info->pyr.dst_width / 8, 16);
+        query_info->pyr.vir_heights[0] = (query_info->pyr.dst_height + 1) / 2;
+        query_info->pyr.vir_heights[1] = (query_info->pyr.dst_height + 3) / 4;
+        query_info->pyr.vir_heights[2] = (query_info->pyr.dst_height + 7) / 8;
+    } break;
     case HWPQ_VDPP_CMD_GET_HIST_RESULT: {
         HwpqVdppOutput *output = (HwpqVdppOutput *)data;
 
         output->hist.luma_avg = ctx_impl->output.luma_avg;
         memcpy(&output->hist.dci_vdpp_info, &ctx_impl->output.dci_vdpp_info,
                sizeof(HwpqVdppDciInfo));
+    } break;
+    case HWPQ_VDPP_CMD_GET_BBD_RESULT: {
+        HwpqVdppOutput *output = (HwpqVdppOutput *)data;
+
+        output->bbd.bbd_size_top = ctx_impl->output.bbd_size_top;
+        output->bbd.bbd_size_bottom = ctx_impl->output.bbd_size_bottom;
+        output->bbd.bbd_size_left = ctx_impl->output.bbd_size_left;
+        output->bbd.bbd_size_right = ctx_impl->output.bbd_size_right;
     } break;
     case HWPQ_VDPP_CMD_SET_DEF_CFG: {
         HwpqVdppConfig *vdpp_config = (HwpqVdppConfig *)data;
@@ -1239,6 +1337,14 @@ int hwpq_vdpp_run_cmd(HwpqVdppContext ctx, HwpqVdppCmd cmd, void *data, int data
         vdpp_config->shp_shoot_ctrl_en = 1;
         vdpp_config->shp_shoot_ctrl_over = 8;
         vdpp_config->shp_shoot_ctrl_under = 8;
+
+        vdpp_config->pyr_en = 0;
+        for (int i = 0; i < 8; ++i) {
+            vdpp_config->pyr_layers[i].img_fmt = VDPP_FMT_Y_ONLY_8BIT;
+        }
+
+        vdpp_config->bbd_en = 0;
+        vdpp_config->bbd_threshold = 20;
     } break;
     default: break;
     }

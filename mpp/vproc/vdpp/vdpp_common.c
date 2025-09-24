@@ -14,7 +14,7 @@ const char *working_mode_name[] = {
     "DCI HIST MODE",
 };
 
-MPP_RET set_addr(struct vdpp_addr *addr, VdppImg *img)
+MPP_RET set_addr(VdppAddr *addr, VdppImg *img)
 {
     if (NULL == addr || NULL == img) {
         vdpp_loge("found NULL vdpp_addr %p img %p\n", addr, img);

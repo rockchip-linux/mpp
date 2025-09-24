@@ -7,6 +7,7 @@ add_library(vproc_vdpp OBJECT
     vdpp_api.c
     vdpp.c
     vdpp2.c
+    vdpp3.c
     vdpp_common.c
 )
 

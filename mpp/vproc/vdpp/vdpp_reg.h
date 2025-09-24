@@ -1737,7 +1737,7 @@ typedef struct vdpp_zme_reg {
         struct {
             RK_U32 cbcr_xsd_en      : 1;
             RK_U32 cbcr_xsu_en      : 1;
-            RK_U32 cbcr_scl_mode    : 2;
+            RK_U32 cbcr_xscl_mode   : 2;
             RK_U32 cbcr_ysd_en      : 1;
             RK_U32 cbcr_ysu_en      : 1;
             RK_U32 cbcr_yscl_mode   : 2;

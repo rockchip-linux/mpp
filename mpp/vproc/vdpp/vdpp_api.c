@@ -11,6 +11,7 @@
 #include "vdpp_api.h"
 #include "vdpp.h"
 #include "vdpp2.h"
+#include "vdpp3.h"
 
 VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
 {
@@ -27,9 +28,20 @@ VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
     case ROCKCHIP_SOC_RK3576: {
         vdpp_ver = 2;
     } break;
-    default:
-        vdpp_logf("unsupported soc_type %d for vdpp!!!\n", soc_type);
-        goto __ERR;
+    case ROCKCHIP_SOC_RK3538:
+    case ROCKCHIP_SOC_RK3539:
+    case ROCKCHIP_SOC_RK3572: {
+        vdpp_ver = 3;
+    } break;
+    default: {
+        if (soc_type > ROCKCHIP_SOC_RK3539) {
+            vdpp_ver = 3;
+            vdpp_logw("unsupported soc_type %d for vdpp, try use vdpp3...\n", soc_type);
+        } else {
+            vdpp_logf("unsupported soc_type %d for vdpp!!!\n", soc_type);
+            goto __ERR;
+        }
+    } break;
     }
 
     if (NULL == com_ctx || NULL == ops) {
@@ -45,7 +57,7 @@ VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
         com_ctx->ver = 0x100;
 
         ctx = mpp_calloc(Vdpp1ApiCtx, 1);
-    } else {
+    } else if (2 == vdpp_ver) {
         ops->init = vdpp2_init;
         ops->deinit = vdpp2_deinit;
         ops->control = vdpp2_control;
@@ -53,6 +65,14 @@ VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
         com_ctx->ver = 0x200;
 
         ctx = mpp_calloc(Vdpp2ApiCtx, 1);
+    } else {
+        ops->init = vdpp3_init;
+        ops->deinit = vdpp3_deinit;
+        ops->control = vdpp3_control;
+        ops->check_cap = vdpp3_check_cap;
+        com_ctx->ver = 0x300;
+
+        ctx = mpp_calloc(Vdpp3ApiCtx, 1);
     }
 
     if (NULL == ctx) {
