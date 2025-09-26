@@ -17,6 +17,17 @@
 #define _TO_STR(x)                  #x
 #define TO_STR(x)                   _TO_STR(x)
 
+/* concat two args */
+#define CONCAT_1(a)                 a
+#define CONCAT_2(a,b)               a##b
+#define CONCAT_3(a,b,c)             a##b##c
+#define CONCAT_4(a,b,c,d)           a##b##c##d
+#define CONCAT_5(a,b,c,d,e)         a##b##c##d##e
+#define CONCAT_6(a,b,c,d,e,f)       a##b##c##d##e##f
+
+#define CONCAT_HELPER(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
+#define CONCAT(...)     CONCAT_HELPER(__VA_ARGS__, CONCAT_6, CONCAT_5, CONCAT_4, CONCAT_3, CONCAT_2, CONCAT_1)(__VA_ARGS__)
+
 /* concat by underscore */
 #define CONCAT_US1(a)               a
 #define CONCAT_US2(a,b)             a##_##b
@@ -157,5 +168,8 @@ typedef enum ElemFlagType_e {
     })
 
 #define ENTRY_NOTHING(prefix, ftype, type, name, flag, ...)
+
+#define GET_ARG0(def, ...) GET_ARG0_(def, __VA_ARGS__)
+#define GET_ARG0_(def, _0, ...) _0
 
 #endif /* __KMPP_OBJ_MACRO_H__ */

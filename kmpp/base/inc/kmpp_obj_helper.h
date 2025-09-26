@@ -301,9 +301,6 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 #if defined(KMPP_OBJ_FUNC_DEINIT)
     kmpp_objdef_add_deinit(KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_FUNC_DEINIT);
 #endif
-#if defined(KMPP_OBJ_FUNC_IOCTL)
-    kmpp_objdef_add_ioctl(KMPP_OBJ_DEF(KMPP_OBJ_NAME), &KMPP_OBJ_FUNC_IOCTL);
-#endif
 #if defined(KMPP_OBJ_FUNC_DUMP)
     kmpp_objdef_add_dump(KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_FUNC_DUMP);
 #endif
@@ -345,6 +342,11 @@ rk_s32 CONCAT_US(KMPP_OBJ_NAME, dump)(KMPP_OBJ_INTF_TYPE obj, const char *caller
         return rk_nok;
 
     return kmpp_obj_is_kobj(obj) ? kmpp_obj_kdump_f(obj, caller) : kmpp_obj_udump_f(obj, caller);
+}
+
+KmppObjDef CONCAT_US(KMPP_OBJ_NAME, objdef)(void)
+{
+    return KMPP_OBJ_DEF(KMPP_OBJ_NAME);
 }
 
 #if !defined(KMPP_OBJ_FUNC_EXPORT_DISABLE) && defined(__KERNEL__)
@@ -392,6 +394,114 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
 #undef CFG_DEF_END
 #undef STRUCT_START
 #undef STRUCT_END
+
+/* kmpp_obj ioctl function */
+#ifdef KMPP_OBJ_FUNC_IOCTL
+
+#define IOCTL_CTX(prefix, func, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx) \
+    { \
+        static rk_s32 old_cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 cmd = -1; \
+        static rk_s32 once = 1; \
+        KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
+        if (!def) { \
+            mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
+            return rk_nok; \
+        } \
+        /* legacy compatible */ \
+        if (old_cmd >= 0) \
+            return kmpp_obj_ioctl(ctx, old_cmd, ctx, NULL, __FUNCTION__); \
+        if (cmd < 0) { \
+            cmd = kmpp_objdef_get_cmd(def, TO_STR(func)); \
+            if (cmd < 0) { \
+                mpp_loge_cf(once, TO_STR(KMPP_OBJ_NAME) " ioctl cmd %s not supported\n", TO_STR(func)); \
+                once = 0; \
+                return rk_nok; \
+            } \
+        } \
+        return kmpp_obj_ioctl(ctx, cmd, NULL, NULL, __FUNCTION__); \
+    }
+
+#define IOCTL_IN_(prefix, func, in_type, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in) \
+    { \
+        KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
+        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 once = 1; \
+        if (!def) { \
+            mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
+            return rk_nok; \
+        } \
+        if (cmd < 0) { \
+            cmd = kmpp_objdef_get_cmd(def, TO_STR(func)); \
+            if (cmd < 0) { \
+                mpp_loge_cf(once, TO_STR(KMPP_OBJ_NAME) " ioctl cmd %s not supported\n", TO_STR(func)); \
+                once = 0; \
+                return rk_nok; \
+            } \
+        } \
+        return kmpp_obj_ioctl(ctx, cmd, in, NULL, __FUNCTION__); \
+    }
+
+#define IOCTL_OUT(prefix, name, out_type, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, out_type out) \
+    { \
+        KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
+        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 once = 1; \
+        if (!def) { \
+            mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
+            return rk_nok; \
+        } \
+        if (cmd < 0) { \
+            cmd = kmpp_objdef_get_cmd(def, TO_STR(func)); \
+            if (cmd < 0) { \
+                mpp_loge_cf(once, TO_STR(KMPP_OBJ_NAME) " ioctl cmd %s not supported\n", TO_STR(func)); \
+                once = 0; \
+                return rk_nok; \
+            } \
+        } \
+        return kmpp_obj_ioctl(ctx, cmd, NULL, out, __FUNCTION__); \
+    }
+
+#define IOCTL_IO_(prefix, name, in_type, out_type, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in, out_type out) \
+    { \
+        KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
+        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 once = 1; \
+        if (!def) { \
+            mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
+            return rk_nok; \
+        } \
+        if (cmd < 0) { \
+            cmd = kmpp_objdef_get_cmd(def, TO_STR(func)); \
+            if (cmd < 0) { \
+                mpp_loge_cf(once, TO_STR(KMPP_OBJ_NAME) " ioctl cmd %s not supported\n", TO_STR(func)); \
+                once = 0; \
+                return rk_nok; \
+            } \
+        } \
+        return kmpp_obj_ioctl(ctx, cmd, in, out, __FUNCTION__); \
+    }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+KMPP_OBJ_FUNC_IOCTL(KMPP_OBJ_NAME, IOCTL_CTX, IOCTL_IN_, IOCTL_OUT, IOCTL_IO_)
+
+#ifdef __cplusplus
+}
+#endif
+
+#undef IOCTL_CTX
+#undef IOCTL_IN_
+#undef IOCTL_OUT
+#undef IOCTL_IO_
+
+#endif /* KMPP_OBJ_FUNC_IOCTL */
 
 #undef KMPP_OBJ_NAME
 #undef KMPP_OBJ_INTF_TYPE
