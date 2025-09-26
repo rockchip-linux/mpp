@@ -35,4 +35,5 @@ typedef struct KmppIocImpl_t {
 #define KMPP_OBJ_IMPL_TYPE          KmppIocImpl
 #define KMPP_OBJ_SGLN_ID            MPP_SGLN_KMPP_IOC
 #define KMPP_OBJ_ENTRY_TABLE        KMPP_IOC_ENTRY_TABLE
+#define KMPP_OBJ_MISMATCH_LOG_DISABLE
 #include "kmpp_obj_helper.h"

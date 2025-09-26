@@ -32,6 +32,7 @@
 #warning "KMPP_OBJ_ACCESS_DISABLE       - disable access function creation"
 #warning "KMPP_OBJ_SHARE_DISABLE        - disable object sharing by /dev/kmpp_objs to userspace"
 #warning "KMPP_OBJ_HIERARCHY_ENABLE     - enable hierarchy name creation"
+#warning "KMPP_OBJ_MISMATCH_LOG_DISABLE - disable entry query mismatch log"
 
 #ifndef KMPP_OBJ_NAME
 #error "KMPP_OBJ_NAME not defined"
@@ -292,6 +293,10 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL, NULL);
     }
 
+#if defined(KMPP_OBJ_MISMATCH_LOG_DISABLE)
+    kmpp_objdef_set_prop(KMPP_OBJ_DEF(KMPP_OBJ_NAME), "disable_mismatch_log", 1);
+#endif
+
     KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_QUERY, ENTRY_QUERY,
                          HOOK_QUERY, HOOK_QUERY, ENTRY_NOTHING);
 
@@ -518,6 +523,7 @@ KMPP_OBJ_FUNC_IOCTL(KMPP_OBJ_NAME, IOCTL_CTX, IOCTL_IN_, IOCTL_OUT, IOCTL_IO_)
 #undef KMPP_OBJ_ACCESS_DISABLE
 #undef KMPP_OBJ_SHARE_DISABLE
 #undef KMPP_OBJ_HIERARCHY_ENABLE
+#undef KMPP_OBJ_MISMATCH_LOG_DISABLE
 
 /* undef tmp macro */
 #undef ENTRY_TO_TRIE
