@@ -216,7 +216,7 @@ static rk_s32 kmpp_buffer_test(const char *name, rk_u32 flag)
     }
 
     /* enable KmppBufferCfg by ioctl */
-    ret = kmpp_obj_ioctl_f(buf, 0, buf, NULL);
+    ret = kmpp_buffer_setup(buf);
 
     test_detail("object %s ioctl ret %d\n", kmpp_obj_get_name(buf), ret);
 

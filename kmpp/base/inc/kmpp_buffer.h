@@ -32,12 +32,15 @@ typedef enum {
  * 4. kmpp_buf_grp_setup() to activate buffer group config
  * 5. kmpp_buf_grp_put() to release buffer group with group config
  */
+#define KMPP_BUF_GRP_IOCTL_TABLE(prefix, IOC_CTX, IOC_IN_, IOC_OUT, IOC_IO_) \
+    IOC_CTX(prefix, setup,      0)
+
 #define KMPP_OBJ_NAME                   kmpp_buf_grp
 #define KMPP_OBJ_INTF_TYPE              KmppBufGrp
+#define KMPP_OBJ_FUNC_IOCTL             KMPP_BUF_GRP_IOCTL_TABLE
 #include "kmpp_obj_func.h"
 
 KmppBufGrpCfg kmpp_buf_grp_to_cfg(KmppBufGrp grp);
-rk_s32 kmpp_buf_grp_setup(KmppBufGrp grp);
 
 #define KMPP_BUF_GRP_CFG_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
     ENTRY(prefix, u32,  rk_u32,         flag,       FLAG_NONE,  flag) \
@@ -66,14 +69,17 @@ rk_s32 kmpp_buf_grp_setup(KmppBufGrp grp);
  * 4. kmpp_buffer_setup() to activate buffer config
  * 5. kmpp_buffer_put() to release buffer with config
  */
+#define KMPP_BUFFER_IOCTL_TABLE(prefix, IOC_CTX, IOC_IN_, IOC_OUT, IOC_IO_) \
+    IOC_CTX(prefix, setup,      0) \
+    IOC_CTX(prefix, inc_ref,    1) \
+    IOC_CTX(prefix, flush,      2)
+
 #define KMPP_OBJ_NAME                   kmpp_buffer
 #define KMPP_OBJ_INTF_TYPE              KmppBuffer
+#define KMPP_OBJ_FUNC_IOCTL             KMPP_BUFFER_IOCTL_TABLE
 #include "kmpp_obj_func.h"
 
 KmppBufCfg kmpp_buffer_to_cfg(KmppBuffer buf);
-rk_s32 kmpp_buffer_setup(KmppBuffer buffer);
-rk_s32 kmpp_buffer_inc_ref(KmppBuffer buffer);
-rk_s32 kmpp_buffer_flush(KmppBuffer buffer);
 
 #define KMPP_BUF_CFG_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
     ENTRY(prefix, u32,  rk_u32,         size,       FLAG_NONE,  size) \

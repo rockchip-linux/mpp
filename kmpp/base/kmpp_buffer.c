@@ -34,16 +34,6 @@ KmppBufGrpCfg kmpp_buf_grp_to_cfg(KmppBufGrp grp)
     return NULL;
 }
 
-rk_s32 kmpp_buf_grp_setup(KmppBufGrp group)
-{
-    KmppBufGrpImpl *impl = kmpp_obj_to_entry(group);
-
-    if (!impl)
-        mpp_loge_f("invalid NULL group\n");
-
-    return kmpp_obj_ioctl_f(group, 0, group, NULL);
-}
-
 rk_s32 kmpp_buf_grp_impl_init(void *entry, KmppObj obj, const char *caller)
 {
     KmppBufGrpPriv *priv = (KmppBufGrpPriv *)kmpp_obj_to_priv(obj);
@@ -96,6 +86,7 @@ rk_s32 kmpp_buf_grp_impl_deinit(void *entry, KmppObj obj, const char *caller)
 #define KMPP_OBJ_SGLN_ID            MPP_SGLN_KMPP_BUF_GRP
 #define KMPP_OBJ_FUNC_INIT          kmpp_buf_grp_impl_init
 #define KMPP_OBJ_FUNC_DEINIT        kmpp_buf_grp_impl_deinit
+#define KMPP_OBJ_FUNC_IOCTL         KMPP_BUF_GRP_IOCTL_TABLE
 #define KMPP_OBJ_PRIV_SIZE          sizeof(KmppBufGrpPriv)
 #include "kmpp_obj_helper.h"
 
@@ -116,40 +107,6 @@ KmppBufCfg kmpp_buffer_to_cfg(KmppBuffer buf)
     }
 
     return NULL;
-}
-
-rk_s32 kmpp_buffer_setup(KmppBuffer buffer)
-{
-    KmppBufferImpl *impl = (KmppBufferImpl *)kmpp_obj_to_entry(buffer);
-
-    if (!impl)
-        mpp_loge_f("invalid NULL buffer\n");
-
-    return kmpp_obj_ioctl_f(buffer, 0, buffer, NULL);
-}
-
-rk_s32 kmpp_buffer_inc_ref(KmppBuffer buffer)
-{
-    KmppBufferImpl *impl = (KmppBufferImpl *)kmpp_obj_to_entry(buffer);
-
-    if (!impl) {
-        mpp_loge_f("invalid NULL buffer\n");
-        return rk_nok;
-    }
-
-    return kmpp_obj_ioctl_f(buffer, 1, buffer, NULL);
-}
-
-rk_s32 kmpp_buffer_flush(KmppBuffer buffer)
-{
-    KmppBufferImpl *impl = (KmppBufferImpl *)kmpp_obj_to_entry(buffer);
-
-    if (!impl) {
-        mpp_loge_f("invalid NULL buffer\n");
-        return rk_nok;
-    }
-
-    return kmpp_obj_ioctl_f(buffer, 2, buffer, NULL);
 }
 
 rk_s32 kmpp_buffer_impl_init(void *entry, KmppObj obj, const char *caller)
@@ -209,5 +166,6 @@ rk_s32 kmpp_buffer_impl_deinit(void *entry,  KmppObj obj, const char *caller)
 #define KMPP_OBJ_SGLN_ID            MPP_SGLN_KMPP_BUFFER
 #define KMPP_OBJ_FUNC_INIT          kmpp_buffer_impl_init
 #define KMPP_OBJ_FUNC_DEINIT        kmpp_buffer_impl_deinit
+#define KMPP_OBJ_FUNC_IOCTL         KMPP_BUFFER_IOCTL_TABLE
 #define KMPP_OBJ_PRIV_SIZE          sizeof(KmppBufPriv)
 #include "kmpp_obj_helper.h"
