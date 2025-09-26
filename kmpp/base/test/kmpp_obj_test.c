@@ -245,23 +245,33 @@ static rk_s32 kmpp_shm_test(const char *name, rk_u32 flag)
     (void)name;
     (void)flag;
 
+    memset(shm, 0, sizeof(shm));
+
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(sizes); i++) {
         kmpp_shm_get_f(&shm[i], sizes[i]);
         if (!shm[i]) {
             mpp_log_f("shm get size %d failed\n", sizes[i]);
             ret = rk_nok;
+            break;
         }
 
         test_detail("shm get size %d addr %p\n", sizes[i], kmpp_shm_to_entry_f(shm[i]));
     }
 
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(sizes); i++) {
+        if (!shm[i])
+            continue;
+
         if (kmpp_shm_put_f(shm[i])) {
             mpp_log_f("shm put size %d failed\n", sizes[i]);
             ret = rk_nok;
+            break;
         }
         shm[i] = NULL;
     }
+
+    if (ret)
+        return ret;
 
     for (i = (RK_S32)MPP_ARRAY_ELEMS(sizes) - 1; i >= 0; i--) {
         kmpp_shm_get_f(&shm[i], sizes[i]);
@@ -270,11 +280,15 @@ static rk_s32 kmpp_shm_test(const char *name, rk_u32 flag)
             ret = rk_nok;
         }
 
+        if (ret)
+            break;
+
         ptr = kmpp_shm_to_entry_f(shm[i]);
 
         test_detail("shm get size %d addr %p\n", sizes[i], ptr);
 
-        memset(ptr, 0, sizes[i]);
+        if (ptr)
+            memset(ptr, 0, sizes[i]);
 
         if (kmpp_shm_put_f(shm[i])) {
             mpp_log_f("shm put size %d failed\n", sizes[i]);
