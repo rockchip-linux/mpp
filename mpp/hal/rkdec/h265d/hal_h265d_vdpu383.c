@@ -774,7 +774,7 @@ static RK_S32 hal_h265d_vdpu383_rps(void *dxva, void *rps_buf, void* sw_rps_buf,
     RK_S32 i = 0, j = 0;
     h265d_dxva2_picture_context_t *dxva_ctx = (h265d_dxva2_picture_context_t*)dxva;
 
-    if (!dxva_ctx->pp.ps_update_flag) {
+    if (!dxva_ctx->pp.rps_update_flag) {
         if (fast_mode) {
             memcpy(rps_buf, sw_rps_buf, fifo_len * sizeof(RK_U64));
         }

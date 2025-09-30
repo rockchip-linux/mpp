@@ -370,7 +370,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         width = (dxva_ctx->pp.PicWidthInMinCbsY << log2_min_cb_size);
         height = (dxva_ctx->pp.PicHeightInMinCbsY << log2_min_cb_size);
 
-        mpp_set_bitput_ctx(&bp, pps_packet, 22); // 22*64bits
+        mpp_set_bitput_ctx(&bp, pps_packet, SPSPPS_ALIGNED_SIZE / 8);
 
         if (dxva_ctx->pp.ps_update_flag) {
             mpp_put_bits(&bp, dxva_ctx->pp.vps_id, 4);
@@ -573,7 +573,9 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
             for (i = 0; i < 22; i++)
                 mpp_put_bits(&bp, row_height[i], 12);
         }
-        {
+
+        /* update rps */
+        if (dxva_ctx->pp.rps_update_flag) {
             Short_SPS_RPS_HEVC *cur_st_rps_ptr = &dxva_ctx->pp.cur_st_rps;
 
             for (i = 0; i < 32; i ++) {
@@ -598,8 +600,8 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
                 mpp_put_bits(&bp, 0, 16);
                 mpp_put_bits(&bp, 0, 1);
             }
+            mpp_put_align(&bp, 64, 0);//128
         }
-        mpp_put_align(&bp, 64, 0);//128
         memcpy(pps_ptr, reg_ctx->pps_buf, SPSPPS_ALIGNED_SIZE);
     } /* --- end spspps data ------*/
 
@@ -633,7 +635,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         char *cur_fname = "global_cfg.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 18*128, 128, 0);
     }
 #endif
 
@@ -827,7 +829,7 @@ static MPP_RET hal_h265d_vdpu384a_gen_regs(void *hal,  HalTaskInfo *syn)
 #ifdef DUMP_VDPU384A_DATAS
     {
         memset(dump_cur_dir, 0, sizeof(dump_cur_dir));
-        sprintf(dump_cur_dir, "hevc/Frame%04d", dump_cur_frame);
+        sprintf(dump_cur_dir, "/data/hevc/Frame%04d", dump_cur_frame);
         if (access(dump_cur_dir, 0)) {
             if (mkdir(dump_cur_dir))
                 mpp_err_f("error: mkdir %s\n", dump_cur_dir);
@@ -1088,7 +1090,7 @@ static MPP_RET hal_h265d_vdpu384a_gen_regs(void *hal,  HalTaskInfo *syn)
 
     /* pps */
     hw_regs->common_addr.reg131_gbl_base = reg_ctx->bufs_fd;
-    hw_regs->h265d_paras.reg67_global_len = 0xc; //22 * 8;
+    hw_regs->h265d_paras.reg67_global_len = SPSPPS_ALIGNED_SIZE / 16;
 
     mpp_dev_set_reg_offset(reg_ctx->dev, 131, reg_ctx->spspps_offset);
 

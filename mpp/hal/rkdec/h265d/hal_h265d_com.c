@@ -312,7 +312,8 @@ RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf, void* sw_rps_buf, RK_U3
     RK_S32 fifo_len = 400;
     RK_S32 i = 0, j = 0;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
-    if (!dxva_cxt->pp.ps_update_flag) {
+
+    if (!dxva_cxt->pp.rps_update_flag) {
         if (fast_mode) {
             memcpy(rps_buf, sw_rps_buf, fifo_len * sizeof(RK_U64));
         }

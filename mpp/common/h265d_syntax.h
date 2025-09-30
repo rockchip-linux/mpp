@@ -202,6 +202,7 @@ typedef struct _DXVA_PicParams_HEVC {
 
     UCHAR  scaling_list_data_present_flag;
     UCHAR  ps_update_flag;
+    UCHAR  rps_update_flag;
 } DXVA_PicParams_HEVC, *LPDXVA_PicParams_HEVC;
 
 /* HEVC Quantizatiuon Matrix structure */
