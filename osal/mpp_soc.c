@@ -1097,6 +1097,8 @@ static void mpp_soc_srv_init()
 
     srv_soc = srv;
 
+    mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
+
     read_soc_name(srv->soc_name, sizeof(srv->soc_name));
     srv->soc_info = check_soc_info(srv->soc_name);
     if (NULL == srv->soc_info) {
