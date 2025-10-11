@@ -38,12 +38,12 @@ int main()
     ret |= kmpp_buf_grp_cfg_set_size(grp_cfg, size);
     ret |= kmpp_buf_grp_cfg_set_fd(grp_cfg, -1);
 
-    sptr.uaddr = 0;
-    sptr.kptr = "rk dma heap";
+    sptr.uptr = "rk dma heap";
+    sptr.kaddr = 0;
     ret |= kmpp_buf_grp_cfg_set_allocator(grp_cfg, &sptr);
 
-    sptr.uaddr = 0;
-    sptr.kptr = "test";
+    sptr.uptr = "test";
+    sptr.kaddr = 0;
     ret |= kmpp_buf_grp_cfg_set_name(grp_cfg, &sptr);
     if (ret)
         mpp_loge("set buf grp cfg failed\n");
