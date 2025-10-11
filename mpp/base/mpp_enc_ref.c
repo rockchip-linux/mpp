@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_enc_ref"
@@ -28,9 +17,7 @@
 #include "mpp_enc_refs.h"
 
 #define setup_mpp_enc_ref_cfg(ref) \
-    ((MppEncRefCfgImpl*)ref)->name = module_name;
-
-static const char *module_name = MODULE_TAG;
+    ((MppEncRefCfgImpl*)ref)->name = MODULE_TAG;
 
 MPP_RET _check_is_mpp_enc_ref_cfg(const char *func, void *ref)
 {
@@ -39,7 +26,7 @@ MPP_RET _check_is_mpp_enc_ref_cfg(const char *func, void *ref)
         return MPP_NOK;
     }
 
-    if (((MppEncRefCfgImpl*)(ref))->name != module_name) {
+    if (strcmp(((MppEncRefCfgImpl*)(ref))->name, MODULE_TAG) != 0) {
         mpp_err("%s input ref check %p %p failed\n", func, ((MppEncRefCfgImpl*)(ref))->name);
         return MPP_NOK;
     }
@@ -426,7 +413,7 @@ static MppEncRefStFrmCfg default_st_ref_cfg = {
 };
 
 static const MppEncRefCfgImpl default_ref_cfg = {
-    .name               = module_name,
+    .name               = MODULE_TAG,
     .ready              = 1,
     .debug              = 0,
     .keep_cpb           = 0,

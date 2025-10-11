@@ -15,9 +15,9 @@ add_subdirectory(common)
 # add mpp_hal implement
 # ----------------------------------------------------------------------------
 add_library(mpp_hal STATIC
-    mpp_enc_hal.cpp
-    hal_task.cpp
-    mpp_hal.cpp
+    mpp_enc_hal.c
+    hal_task.c
+    mpp_hal.c
     )
 
 set_target_properties(mpp_hal PROPERTIES FOLDER "mpp/hal")

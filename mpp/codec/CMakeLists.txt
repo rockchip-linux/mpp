@@ -10,10 +10,10 @@ add_library(mpp_codec OBJECT
     mpp_dec_no_thread.cpp
     mpp_dec_normal.cpp
     mpp_dec.cpp
-    mpp_parser.cpp
+    mpp_parser.c
     )
 
-add_library(mpp_rc OBJECT mpp_rc.cpp)
+add_library(mpp_rc OBJECT mpp_rc.c)
 
 set_target_properties(mpp_codec PROPERTIES FOLDER "mpp/codec")
 

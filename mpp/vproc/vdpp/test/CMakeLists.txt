@@ -11,7 +11,7 @@ if (VDPP_TEST)
     add_test(NAME vdpp_test COMMAND vdpp_test)
 
     # hwpq test (call libvdpp.so)
-    add_executable(hwpq_test hwpq_test.cpp)
+    add_executable(hwpq_test hwpq_test.c)
     target_link_libraries(hwpq_test vdpp ${ASAN_LIB})
     set_target_properties(hwpq_test PROPERTIES FOLDER "mpp/vproc/vdpp")
     add_test(NAME hwpq_test COMMAND hwpq_test)
