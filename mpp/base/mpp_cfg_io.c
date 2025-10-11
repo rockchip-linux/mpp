@@ -1214,10 +1214,10 @@ done:
         } else if (value >= 0 && value <= UINT_MAX) {
             *type = MPP_CFG_TYPE_U32;
             val->u32 = (unsigned int)value;
-        } else if (value >= LLONG_MIN && value <= LLONG_MAX) {
+        } else if (value >= (long double)LLONG_MIN && value <= (long double)LLONG_MAX) {
             *type = MPP_CFG_TYPE_U64;
             val->u64 = (unsigned long long)value;
-        } else if (value >= 0 && value <= ULLONG_MAX) {
+        } else if (value >= 0 && value <= (long double)ULLONG_MAX) {
             *type = MPP_CFG_TYPE_S64;
             val->s64 = (long long)value;
         } else {
