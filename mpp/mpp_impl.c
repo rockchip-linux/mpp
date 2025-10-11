@@ -1,18 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- *
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_impl"
@@ -69,35 +57,36 @@ typedef struct MppDumpImpl_t {
     RK_U32                  idx;
 } MppDumpImpl;
 
+typedef union OpsArgs_u {
+    struct MppOpsInitArg_t {
+        MppCtxType      type;
+        MppCodingType   coding;
+    } init_arg;
+
+    struct MppOpsPktArg_t {
+        RK_U32          offset;         // offset in packet file
+        RK_U32          length;         // pakcet length
+        RK_S64          pts;
+    } pkt_arg;
+
+    struct MppOpsFrmArg_t {
+        RK_U32          fd;
+        RK_U32          info_change;
+        RK_U32          error;
+        RK_U32          discard;
+        RK_S64          pts;
+    } frm_arg;
+
+    struct MppOpCtrlArg_t {
+        MpiCmd          cmd;
+    } ctrl_arg;
+} OpsArgs;
+
 typedef struct MppOpsInfo_t {
-    RK_U32                  idx;
-    RK_U32                  id;
-    RK_S64                  time;
-
-    union OpsArgs_u {
-        struct MppOpsInitArg_t {
-            MppCtxType      type;
-            MppCodingType   coding;
-        };
-
-        struct MppOpsPktArg_t {
-            RK_U32          offset;         // offset in packet file
-            RK_U32          length;         // pakcet length
-            RK_S64          pts;
-        };
-
-        struct MppOpsFrmArg_t {
-            RK_U32          fd;
-            RK_U32          info_change;
-            RK_U32          error;
-            RK_U32          discard;
-            RK_S64          pts;
-        };
-
-        struct MppOpCtrlArg_t {
-            MpiCmd          cmd;
-        };
-    };
+    RK_U32              idx;
+    RK_U32              id;
+    RK_S64              time;
+    OpsArgs             args;
 } MppOpsInfo;
 
 /*
@@ -147,7 +136,7 @@ static RK_U8 fetch_data(RK_U32 fmt, RK_U8 *line, RK_U32 num)
         value = line[num];
     }
 
-    return RK_U8(value);
+    return (RK_U8)value;
 }
 
 static void rearrange_pix(RK_U8 *tmp_line, RK_U8 *base, RK_U32 n)

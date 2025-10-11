@@ -4,12 +4,12 @@
 # add mpp_dec implement
 # ----------------------------------------------------------------------------
 add_library(mpp_codec OBJECT
-    mpp_enc_impl.cpp
-    mpp_enc_v2.cpp
-    enc_impl.cpp
-    mpp_dec_no_thread.cpp
-    mpp_dec_normal.cpp
-    mpp_dec.cpp
+    mpp_enc_impl.c
+    mpp_enc_v2.c
+    enc_impl.c
+    mpp_dec_no_thread.c
+    mpp_dec_normal.c
+    mpp_dec.c
     mpp_parser.c
     )
 

@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpi"
@@ -117,7 +106,7 @@ static MPP_RET mpi_decode(MppCtx ctx, MppPacket packet, MppFrame *frame)
         if (frame)
             *frame = NULL;
 
-        ret = p->ctx->decode(packet, frame);
+        ret = mpp_decode(p->ctx, packet, frame);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -141,7 +130,7 @@ static MPP_RET mpi_decode_put_packet(MppCtx ctx, MppPacket packet)
             break;
         }
 
-        ret = p->ctx->put_packet(packet);
+        ret = mpp_put_packet(p->ctx, packet);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -165,7 +154,7 @@ static MPP_RET mpi_decode_get_frame(MppCtx ctx, MppFrame *frame)
             break;
         }
 
-        ret = p->ctx->get_frame(frame);
+        ret = mpp_get_frame(p->ctx, frame);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -213,7 +202,7 @@ static MPP_RET mpi_encode_put_frame(MppCtx ctx, MppFrame frame)
             break;
         }
 
-        ret = p->ctx->put_frame(frame);
+        ret = mpp_put_frame(p->ctx, frame);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -237,7 +226,7 @@ static MPP_RET mpi_encode_get_packet(MppCtx ctx, MppPacket *packet)
             break;
         }
 
-        ret = p->ctx->get_packet(packet);
+        ret = mpp_get_packet(p->ctx, packet);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -296,7 +285,7 @@ static MPP_RET mpi_poll(MppCtx ctx, MppPortType type, MppPollType timeout)
             break;
         }
 
-        ret = p->ctx->poll(type, timeout);
+        ret = mpp_poll(p->ctx, type, timeout);
         if (ret > 0)
             ret = MPP_OK;
     } while (0);
@@ -322,7 +311,7 @@ static MPP_RET mpi_dequeue(MppCtx ctx, MppPortType type, MppTask *task)
             break;
         }
 
-        ret = p->ctx->dequeue(type, task);
+        ret = mpp_dequeue(p->ctx, type, task);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -346,7 +335,7 @@ static MPP_RET mpi_enqueue(MppCtx ctx, MppPortType type, MppTask task)
             break;
         }
 
-        ret = p->ctx->enqueue(type, task);
+        ret = mpp_enqueue(p->ctx, type, task);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -364,7 +353,7 @@ static MPP_RET mpi_reset(MppCtx ctx)
         if (ret)
             break;;
 
-        ret = p->ctx->reset();
+        ret = mpp_reset(p->ctx);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -382,7 +371,7 @@ static MPP_RET mpi_control(MppCtx ctx, MpiCmd cmd, MppParam param)
         if (ret)
             break;;
 
-        ret = p->ctx->control(cmd, param);
+        ret = mpp_control(p->ctx, cmd, param);
     } while (0);
 
     mpi_dbg_func("leave ctx %p ret %d\n", ctx, ret);
@@ -433,10 +422,10 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
         }
 
         memset(p, 0, sizeof(*p));
-        p->ctx = new Mpp(p);
-        if (NULL == p->ctx) {
+        ret = mpp_ctx_create(&p->ctx, p);
+        if (ret || NULL == p->ctx) {
             mpp_free(p);
-            mpp_err_f("failed to new Mpp\n");
+            mpp_err_f("failed to create Mpp context ret %d\n", ret);
             ret = MPP_ERR_MALLOC;
             break;
         }
@@ -472,7 +461,7 @@ MPP_RET mpp_init(MppCtx ctx, MppCtxType type, MppCodingType coding)
             break;
         }
 
-        ret = p->ctx->init(type, coding);
+        ret = mpp_ctx_init(p->ctx, type, coding);
         p->type     = type;
         p->coding   = coding;
     } while (0);
@@ -494,7 +483,7 @@ MPP_RET mpp_destroy(MppCtx ctx)
             return ret;
 
         if (p->ctx)
-            delete p->ctx;
+            mpp_ctx_destroy(p->ctx);
 
         mpp_free(p);
     } while (0);
@@ -519,7 +508,7 @@ MPP_RET mpp_check_support_format(MppCtxType type, MppCodingType coding)
     return ret;
 }
 
-void mpp_show_support_format()
+void mpp_show_support_format(void)
 {
     RK_U32 i = 0;
 
@@ -566,7 +555,7 @@ static MppFrameFormatInfo color_list[] = {
     { MPP_FMT_RGBA8888,         "RGBA8888"              },
 };
 
-void mpp_show_color_format()
+void mpp_show_color_format(void)
 {
     RK_U32 i = 0;
 

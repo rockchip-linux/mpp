@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2020 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "mpp_dec_vproc"
@@ -90,7 +79,7 @@ typedef struct MppDecVprocCtxImpl_t {
     IepCtx              iep_ctx;
     iep_com_ctx         *com_ctx;
     IepCmdParamDeiCfg   dei_cfg;
-    iep2_api_info       dei_info;
+    struct iep2_api_info  dei_info;
 
     VprocTaskStatus     task_status;
     VprocTaskWait       task_wait;
@@ -278,7 +267,7 @@ static MPP_RET dec_vproc_set_dei_v1(MppDecVprocCtx *vproc_ctx, MppFrame frm)
     if (ret)
         mpp_log_f("IEP_CMD_INIT failed %d\n", ret);
 
-    IepCap_t *cap = NULL;
+    struct IepCap_t *cap = NULL;
     ret = ctx->com_ctx->ops->control(ctx->iep_ctx, IEP_CMD_QUERY_CAP, &cap);
     if (ret)
         mpp_log_f("IEP_CMD_QUERY_CAP failed %d\n", ret);

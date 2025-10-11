@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef __MPP_H__
@@ -25,6 +14,10 @@
 #include "mpp_impl.h"
 #include "kmpp_obj.h"
 #include "kmpp.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MPP_DBG_FUNCTION                    (0x00000001)
 #define MPP_DBG_PACKET                      (0x00000002)
@@ -101,40 +94,8 @@ typedef enum MppIOMode_e {
  *  +--------------+     +-----------+     +-----------+     +--------------+
  */
 
-#ifdef __cplusplus
-
-class Mpp
-{
-public:
-    Mpp(MppCtx ctx = NULL);
-    ~Mpp();
-    MPP_RET init(MppCtxType type, MppCodingType coding);
-
-    MPP_RET start();
-    MPP_RET stop();
-
-    MPP_RET pause();
-    MPP_RET resume();
-
-    MPP_RET put_packet(MppPacket packet);
-    MPP_RET get_frame(MppFrame *frame);
-    MPP_RET get_frame_noblock(MppFrame *frame);
-
-    MPP_RET put_frame(MppFrame frame);
-    MPP_RET get_packet(MppPacket *packet);
-
-    MPP_RET poll(MppPortType type, MppPollType timeout);
-    MPP_RET dequeue(MppPortType type, MppTask *task);
-    MPP_RET enqueue(MppPortType type, MppTask task);
-
-    MPP_RET decode(MppPacket packet, MppFrame *frame);
-
-    MPP_RET reset();
-    MPP_RET control(MpiCmd cmd, MppParam param);
-
-    MPP_RET notify(RK_U32 flag);
-    MPP_RET notify(MppBufferGroup group);
-
+typedef struct Mpp {
+    /* Public members that were previously public in C++ class */
     MppList        *mPktIn;
     MppList        *mPktOut;
     MppList        *mFrmIn;
@@ -204,8 +165,6 @@ public:
     /* kmpp infos */
     Kmpp            *mKmpp;
     KmppObj         mVencInitKcfg;
-private:
-    void clear();
 
     MppCtxType      mType;
     MppCodingType   mCoding;
@@ -222,26 +181,57 @@ private:
     RK_U32          mImmediateOut;
     /* backup extra packet for seek */
     MppPacket       mExtraPacket;
+} Mpp;
 
-    MPP_RET control_mpp(MpiCmd cmd, MppParam param);
-    MPP_RET control_osal(MpiCmd cmd, MppParam param);
-    MPP_RET control_codec(MpiCmd cmd, MppParam param);
-    MPP_RET control_dec(MpiCmd cmd, MppParam param);
-    MPP_RET control_enc(MpiCmd cmd, MppParam param);
-    MPP_RET control_isp(MpiCmd cmd, MppParam param);
+MPP_RET mpp_ctx_create(Mpp **mpp, MppCtx ctx);
+MPP_RET mpp_ctx_destroy(Mpp *mpp);
+MPP_RET mpp_ctx_init(Mpp *mpp, MppCtxType type, MppCodingType coding);
+void    mpp_clear(Mpp *mpp);
 
-    /* for special encoder async io mode */
-    MPP_RET put_frame_async(MppFrame frame);
-    MPP_RET get_packet_async(MppPacket *packet);
+/* Control functions */
+MPP_RET mpp_start(Mpp *mpp);
+MPP_RET mpp_stop(Mpp *mpp);
+MPP_RET mpp_pause(Mpp *mpp);
+MPP_RET mpp_resume(Mpp *mpp);
 
-    void set_io_mode(MppIoMode mode);
+/* Data processing functions */
+MPP_RET mpp_put_packet(Mpp *mpp, MppPacket packet);
+MPP_RET mpp_get_frame(Mpp *mpp, MppFrame *frame);
+MPP_RET mpp_get_frame_noblock(Mpp *mpp, MppFrame *frame);
 
-    Mpp(const Mpp &);
-    Mpp &operator=(const Mpp &);
-};
+MPP_RET mpp_put_frame(Mpp *mpp, MppFrame frame);
+MPP_RET mpp_get_packet(Mpp *mpp, MppPacket *packet);
 
+/* Task queue functions */
+MPP_RET mpp_poll(Mpp *mpp, MppPortType type, MppPollType timeout);
+MPP_RET mpp_dequeue(Mpp *mpp, MppPortType type, MppTask *task);
+MPP_RET mpp_enqueue(Mpp *mpp, MppPortType type, MppTask task);
 
-extern "C" {
+/* Decode function */
+MPP_RET mpp_decode(Mpp *mpp, MppPacket packet, MppFrame *frame);
+
+/* System functions */
+MPP_RET mpp_reset(Mpp *mpp);
+MPP_RET mpp_control(Mpp *mpp, MpiCmd cmd, MppParam param);
+
+/* Notification functions */
+MPP_RET mpp_notify_flag(Mpp *mpp, RK_U32 flag);
+MPP_RET mpp_notify_group(Mpp *mpp, MppBufferGroup group);
+
+MPP_RET mpp_control_mpp(Mpp *mpp, MpiCmd cmd, MppParam param);
+MPP_RET mpp_control_osal(Mpp *mpp, MpiCmd cmd, MppParam param);
+MPP_RET mpp_control_codec(Mpp *mpp, MpiCmd cmd, MppParam param);
+MPP_RET mpp_control_dec(Mpp *mpp, MpiCmd cmd, MppParam param);
+MPP_RET mpp_control_enc(Mpp *mpp, MpiCmd cmd, MppParam param);
+MPP_RET mpp_control_isp(Mpp *mpp, MpiCmd cmd, MppParam param);
+
+/* for special encoder async io mode */
+MPP_RET mpp_put_frame_async(Mpp *mpp, MppFrame frame);
+MPP_RET mpp_get_packet_async(Mpp *mpp, MppPacket *packet);
+
+void mpp_set_io_mode(Mpp *mpp, MppIoMode mode);
+
+#ifdef __cplusplus
 }
 #endif
 

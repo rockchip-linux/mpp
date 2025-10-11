@@ -40,10 +40,10 @@ add_subdirectory(hal)
 # add mpp implement
 # ----------------------------------------------------------------------------
 set (MPP_SRC
-    mpp_info.cpp
-    mpp.cpp
-    mpp_impl.cpp
-    mpi.cpp
+    mpp_info.c
+    mpp.c
+    mpp_impl.c
+    mpi.c
     )
 
 set(MPP_VERSION "0")
@@ -63,7 +63,7 @@ endif()
 set_target_properties(${MPP_SHARED} PROPERTIES FOLDER "mpp")
 set_target_properties(${MPP_SHARED} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${MPP_SHARED} mpp_codec mpp_hal mpp_vproc kmpp
-                      ${BEGIN_WHOLE_ARCHIVE} mpp_base kmpp_base osal ${END_WHOLE_ARCHIVE})
+                      ${BEGIN_WHOLE_ARCHIVE} mpp_base kmpp_base osal ${END_WHOLE_ARCHIVE} m)
 
 # build static library
 add_library(${MPP_STATIC} STATIC ${MPP_SRC})
