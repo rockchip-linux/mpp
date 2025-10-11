@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2021 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
 #define  MODULE_TAG "mpp_cluster"
@@ -24,6 +13,7 @@
 #include "mpp_time.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
+#include "mpp_singleton.h"
 
 #include "mpp_cluster.h"
 #include "mpp_dev_defs.h"
@@ -139,6 +129,16 @@ struct MppCluster_s {
     MppThreadFunc           worker_func;
 };
 
+typedef struct MppClusterServer_s {
+    MppMutex                mutex;
+    MppCluster              *clusters[VPU_CLIENT_BUTT];
+} MppClusterServer;
+
+static MppClusterServer *srv_cluster = NULL;
+
+static MppCluster *cluster_server_get(MppClientType client_type);
+static MPP_RET cluster_server_put(MppClientType client_type);
+
 #define mpp_node_task_schedule(task) \
     mpp_node_task_schedule_f(__FUNCTION__, task)
 
@@ -147,6 +147,20 @@ struct MppCluster_s {
 
 #define cluster_queue_lock(queue)   cluster_queue_lock_f(__FUNCTION__, queue)
 #define cluster_queue_unlock(queue) cluster_queue_unlock_f(__FUNCTION__, queue)
+
+#define get_srv_cluster_f() \
+    ({ \
+        MppClusterServer *__tmp; \
+        if (srv_cluster) { \
+            __tmp = srv_cluster; \
+        } else { \
+            mpp_cluster_srv_init(); \
+            __tmp = srv_cluster; \
+            if (!__tmp) \
+                mpp_err("mpp cluster srv not init at %s\n", __FUNCTION__); \
+        } \
+        __tmp; \
+    })
 
 static MPP_RET cluster_queue_lock_f(const char *caller, ClusterQueue *queue)
 {
@@ -592,67 +606,60 @@ void cluster_signal_f(const char *caller, MppCluster *p)
     }
 }
 
-class MppClusterServer;
-
-MppClusterServer *cluster_server = NULL;
-
-class MppClusterServer
+static void mpp_cluster_srv_init(void)
 {
-private:
-    // avoid any unwanted function
-    MppClusterServer();
-    ~MppClusterServer();
-    MppClusterServer(const MppClusterServer &);
-    MppClusterServer &operator=(const MppClusterServer &);
-
-    MppMutex    mutex;
-    MppCluster  *mClusters[VPU_CLIENT_BUTT];
-
-public:
-    static MppClusterServer *single() {
-        static MppClusterServer inst;
-        cluster_server = &inst;
-        return &inst;
-    }
-
-    MppCluster  *get(MppClientType client_type);
-    MPP_RET     put(MppClientType client_type);
-};
-
-MppClusterServer::MppClusterServer()
-{
-    memset(mClusters, 0, sizeof(mClusters));
+    MppClusterServer *srv = srv_cluster;
 
     mpp_env_get_u32("mpp_cluster_debug", &mpp_cluster_debug, 0);
     mpp_env_get_u32("mpp_cluster_thd_cnt", &mpp_cluster_thd_cnt, 1);
 
-    mpp_mutex_init(&mutex);
+    if (srv)
+        return;
+
+    srv = mpp_calloc(MppClusterServer, 1);
+    if (!srv) {
+        mpp_err_f("failed to allocate cluster server\n");
+        return;
+    }
+
+    memset(srv->clusters, 0, sizeof(srv->clusters));
+    mpp_mutex_init(&srv->mutex);
+
+    srv_cluster = srv;
 }
 
-MppClusterServer::~MppClusterServer()
+static void mpp_cluster_srv_deinit(void)
 {
+    MppClusterServer *srv = srv_cluster;
     RK_S32 i;
 
-    for (i = 0; i < VPU_CLIENT_BUTT; i++)
-        put((MppClientType)i);
+    if (!srv)
+        return;
 
-    mpp_mutex_destroy(&mutex);
+    for (i = 0; i < VPU_CLIENT_BUTT; i++)
+        cluster_server_put((MppClientType)i);
+
+    mpp_mutex_destroy(&srv->mutex);
+    MPP_FREE(srv_cluster);
 }
 
-MppCluster *MppClusterServer::get(MppClientType client_type)
+MPP_SINGLETON(MPP_SGLN_SYS_CFG, mpp_cluster, mpp_cluster_srv_init, mpp_cluster_srv_deinit)
+
+static MppCluster *cluster_server_get(MppClientType client_type)
 {
+    MppClusterServer *srv = get_srv_cluster_f();
     RK_S32 i;
     MppCluster *p = NULL;
 
-    if (client_type >= VPU_CLIENT_BUTT)
+    if (!srv || client_type >= VPU_CLIENT_BUTT)
         goto done;
 
     {
-        mpp_mutex_lock(&mutex);
+        mpp_mutex_lock(&srv->mutex);
 
-        p = mClusters[client_type];
+        p = srv->clusters[client_type];
         if (p) {
-            mpp_mutex_unlock(&mutex);
+            mpp_mutex_unlock(&srv->mutex);
             goto done;
         }
 
@@ -676,11 +683,11 @@ MppCluster *MppClusterServer::get(MppClientType client_type)
             for (i = 0; i < p->worker_count; i++)
                 cluster_worker_init(&p->worker[i], p);
 
-            mClusters[client_type] = p;
+            srv->clusters[client_type] = p;
             cluster_dbg_flow("%s created\n", p->name);
         }
 
-        mpp_mutex_unlock(&mutex);
+        mpp_mutex_unlock(&srv->mutex);
     }
 
 done:
@@ -692,30 +699,36 @@ done:
     return p;
 }
 
-MPP_RET MppClusterServer::put(MppClientType client_type)
+static MPP_RET cluster_server_put(MppClientType client_type)
 {
+    MppClusterServer *srv = get_srv_cluster_f();
     MppCluster *p;
     RK_S32 i;
 
-    if (client_type >= VPU_CLIENT_BUTT)
+    if (!srv || client_type >= VPU_CLIENT_BUTT)
         return MPP_NOK;
 
-    mpp_mutex_lock(&mutex);
+    mpp_mutex_lock(&srv->mutex);
 
-    p = mClusters[client_type];
+    p = srv->clusters[client_type];
     if (!p) {
-        mpp_mutex_unlock(&mutex);
+        mpp_mutex_unlock(&srv->mutex);
         return MPP_NOK;
     }
 
     for (i = 0; i < p->worker_count; i++)
         cluster_worker_deinit(&p->worker[i]);
 
+    for (i = 0; i < MAX_PRIORITY; i++)
+        mpp_cluster_queue_deinit(&p->queue[i]);
+
     cluster_dbg_flow("put %s\n", p->name);
 
+    MPP_FREE(p->worker);
     mpp_free(p);
+    srv->clusters[client_type] = NULL;
 
-    mpp_mutex_unlock(&mutex);
+    mpp_mutex_unlock(&srv->mutex);
 
     return MPP_OK;
 }
@@ -723,7 +736,7 @@ MPP_RET MppClusterServer::put(MppClientType client_type)
 MPP_RET mpp_node_attach(MppNode node, MppClientType type)
 {
     MppNodeImpl *impl = (MppNodeImpl *)node;
-    MppCluster *p = MppClusterServer::single()->get(type);
+    MppCluster *p = cluster_server_get(type);
     RK_U32 priority = impl->priority;
     ClusterQueue *queue = &p->queue[priority];
 

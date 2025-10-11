@@ -10,7 +10,7 @@ add_library(mpp_base OBJECT
     mpp_dec_cfg.c
     mpp_sys_cfg.c
     mpp_sys_cfg_st.c
-    mpp_cluster.cpp
+    mpp_cluster.c
     mpp_buf_slot.cpp
     mpp_buffer_impl.c
     mpp_buffer.c
