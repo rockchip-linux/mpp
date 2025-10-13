@@ -128,7 +128,10 @@ typedef struct KmppObjDefImpl_t {
     /* comment data of userspace / kernel objdef */
     MppTrie trie;
     MppTrie ioctl;
+    /* objdef index in kernel (/dev/kmpp_objs) */
     rk_s32 index;
+    /* objdef set index in objdefset for ioctl */
+    rk_s32 defs_idx;
     rk_s32 ref_cnt;
     /* private data size for priv in KmppObjImpl */
     rk_s32 priv_size;
@@ -460,6 +463,7 @@ static void kmpp_objs_init(void)
 
         info_objdef = mpp_trie_get_info(trie_objdef, "__index");
         impl->index = info_objdef ? *(rk_s32 *)mpp_trie_info_ctx(info_objdef) : -1;
+        impl->defs_idx = info->index;
         info_objdef = mpp_trie_get_info(trie_objdef, "__size");
         impl->entry_size = info_objdef ? *(rk_s32 *)mpp_trie_info_ctx(info_objdef) : 0;
         impl->name = name;
@@ -481,7 +485,7 @@ static void kmpp_objs_init(void)
 
                 mpp_trie_init_by_root(&impl->ioctl, ioc.root + ioc_offset);
                 if (impl->ioctl)
-                    obj_dbg_flow("objdef %-16s in kernel support ioctl %d\n",
+                    obj_dbg_flow("objdef %-16s in kernel  support ioctl %d\n",
                                  name, mpp_trie_get_info_count(impl->ioctl));
             }
         }
@@ -1226,7 +1230,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
     def = impl->def;
 
     obj_dbg_ioctl("ioctl def %s:%d cmd %d ctx %p in %p out %p at %s\n",
-                  def->name, def->index, cmd, ctx, in, out, caller);
+                  def->name, def->defs_idx, cmd, ctx, in, out, caller);
 
     ret = kmpp_obj_get((KmppObj *)&ioc, def_ioc, caller);
     if (ret) {
@@ -1243,7 +1247,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
     obj_dbg_ioctl("ioctl arg %p obj_sptr [u:k] %llx : %llx\n", ioc_arg,
                   ioc_arg->obj_sptr[0].uaddr, ioc_arg->obj_sptr[0].kaddr);
 
-    kmpp_ioc_set_def(ioc, def->index);
+    kmpp_ioc_set_def(ioc, def->defs_idx);
     kmpp_ioc_set_cmd(ioc, cmd);
     kmpp_ioc_set_flags(ioc, 0);
     kmpp_ioc_set_id(ioc, 0);
