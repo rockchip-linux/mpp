@@ -169,7 +169,10 @@ typedef enum ElemFlagType_e {
 
 #define ENTRY_NOTHING(prefix, ftype, type, name, flag, ...)
 
-#define GET_ARG0(def, ...) GET_ARG0_(def, __VA_ARGS__)
-#define GET_ARG0_(def, _0, ...) _0
+#define GET_ARG0(val, ...)      GET_ARG0_CHOOSER(dummy, ##__VA_ARGS__)(__VA_ARGS__)
+#define GET_ARG0_1(_1)          (-1)
+#define GET_ARG0_2(_1, _2, ...) _1
+#define GET_ARG0_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, N, ...) GET_ARG0_##N
+#define GET_ARG0_CHOOSER(...)  GET_ARG0_N(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
 #endif /* __KMPP_OBJ_MACRO_H__ */
