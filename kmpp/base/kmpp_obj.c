@@ -1218,7 +1218,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
     }
 
     if (!impl || !impl->def) {
-        mpp_err("invalid ioctl ctx %px def %px failed at %s\n",
+        mpp_err("invalid ioctl ctx %p def %p failed at %s\n",
                 impl, impl ? impl->def : NULL, caller);
         return rk_nok;
     }
