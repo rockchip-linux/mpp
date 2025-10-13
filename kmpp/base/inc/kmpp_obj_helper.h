@@ -13,14 +13,13 @@
 #define __OBJECT_HERLPER_H__
 
 #if !defined(KMPP_OBJ_NAME) || \
-    !defined(KMPP_OBJ_INTF_TYPE) || \
-    !defined(KMPP_OBJ_IMPL_TYPE)
+    !defined(KMPP_OBJ_INTF_TYPE)
 
 #warning "When using kmpp_obj_helper.h The following macro must be defined:"
 #warning "KMPP_OBJ_NAME                 - object name"
 #warning "KMPP_OBJ_INTF_TYPE            - object interface type"
-#warning "KMPP_OBJ_IMPL_TYPE            - object implement type"
 #warning "option macro:"
+#warning "KMPP_OBJ_IMPL_TYPE            - object implement type"
 #warning "KMPP_OBJ_EXTRA_SIZE           - object extra size in bytes"
 #warning "KMPP_OBJ_ENTRY_TABLE          - object element value / pointer entry table"
 #warning "KMPP_OBJ_FUNC_IOCTL           - object element ioctl cmd and function table"
@@ -40,9 +39,6 @@
 #ifndef KMPP_OBJ_INTF_TYPE
 #error "KMPP_OBJ_INTF_TYPE not defined"
 #endif
-#ifndef KMPP_OBJ_IMPL_TYPE
-#error "KMPP_OBJ_IMPL_TYPE not defined"
-#endif
 
 #else /* all input macro defined */
 
@@ -60,6 +56,7 @@
 #define KMPP_OBJ_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS)
 #endif
 
+#ifdef KMPP_OBJ_IMPL_TYPE
 #define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...) \
     do { \
         KmppEntry tbl = { \
@@ -71,6 +68,9 @@
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
         ENTRY_TO_NAME_END(name); \
     } while (0);
+#else
+#define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...)
+#endif
 
 #if !defined(KMPP_OBJ_ACCESS_DISABLE)
 #define VAL_ENTRY_TBL(prefix, ftype, type, name, flag, ...) \
@@ -93,6 +93,7 @@
         kmpp_objdef_get_hook(KMPP_OBJ_DEF(prefix), CONCAT_STR(get, __VA_ARGS__)); \
     } while (0);
 
+#ifdef KMPP_OBJ_IMPL_TYPE
 #define ENTRY_TO_FUNC(prefix, ftype, type, name, flag, ...) \
     rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type *v) \
     { \
@@ -148,6 +149,53 @@
         if (kmpp_obj_check(s, __FUNCTION__)) return 0; \
         return kmpp_obj_tbl_test(s, CONCAT_US(tbl, prefix, __VA_ARGS__)); \
     }
+#else
+#define ENTRY_TO_FUNC(prefix, ftype, type, name, flag, ...) \
+    rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type *v) \
+    { \
+        rk_s32 ret = kmpp_obj_check(s, __FUNCTION__); \
+        if (ret) return ret; \
+        if (CONCAT_US(tbl, prefix, __VA_ARGS__)) \
+            ret = kmpp_obj_tbl_get_##ftype(s, CONCAT_US(tbl, prefix, __VA_ARGS__), v); \
+        return ret; \
+    } \
+    rk_s32 CONCAT_US(prefix, set, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type v) \
+    { \
+        rk_s32 ret = kmpp_obj_check(s, __FUNCTION__); \
+        if (ret) return ret; \
+        if (CONCAT_US(tbl, prefix, __VA_ARGS__)) \
+            ret = kmpp_obj_tbl_set_##ftype(s, CONCAT_US(tbl, prefix, __VA_ARGS__), v); \
+        return ret; \
+    } \
+    rk_s32 CONCAT_US(prefix, test, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s) \
+    { \
+        if (kmpp_obj_check(s, __FUNCTION__)) return 0; \
+        return kmpp_obj_tbl_test(s, CONCAT_US(tbl, prefix, __VA_ARGS__)); \
+    }
+
+#define STRUCT_TO_FUNC(prefix, ftype, type, name, flag, ...) \
+    rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type *v) \
+    { \
+        rk_s32 ret = kmpp_obj_check(s, __FUNCTION__); \
+        if (ret) return ret; \
+        if (CONCAT_US(tbl, prefix, __VA_ARGS__)) \
+            ret = kmpp_obj_tbl_get_##ftype(s, CONCAT_US(tbl, prefix, __VA_ARGS__), v); \
+        return ret; \
+    } \
+    rk_s32 CONCAT_US(prefix, set, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type *v) \
+    { \
+        rk_s32 ret = kmpp_obj_check(s, __FUNCTION__); \
+        if (ret) return ret; \
+        if (CONCAT_US(tbl, prefix, __VA_ARGS__)) \
+            ret = kmpp_obj_tbl_set_##ftype(s, CONCAT_US(tbl, prefix, __VA_ARGS__), v); \
+        return ret; \
+    } \
+    rk_s32 CONCAT_US(prefix, test, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s) \
+    { \
+        if (kmpp_obj_check(s, __FUNCTION__)) return 0; \
+        return kmpp_obj_tbl_test(s, CONCAT_US(tbl, prefix, __VA_ARGS__)); \
+    }
+#endif
 
 #define EHOOK_TO_FUNC(prefix, ftype, type, name, flag, ...) \
     rk_s32 CONCAT_US(prefix, get, __VA_ARGS__)(KMPP_OBJ_INTF_TYPE s, type *v) \
@@ -268,6 +316,7 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     if (KMPP_OBJ_DEF(KMPP_OBJ_NAME)) {
         KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " found at kernel\n");
     } else {
+#ifdef KMPP_OBJ_IMPL_TYPE
         rk_s32 impl_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
         rk_s32 __flag_base = impl_size << 3;
         rk_s32 __flag_step = 0;
@@ -291,6 +340,10 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
         KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_TO_TRIE, ENTRY_TO_TRIE,
                              ENTRY_TO_TRIE, ENTRY_TO_TRIE, ENTRY_TO_TRIE)
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL, NULL);
+#else
+        KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " has no implementation\n");
+        return;
+#endif
     }
 
 #if defined(KMPP_OBJ_MISMATCH_LOG_DISABLE)
@@ -432,7 +485,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
     rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in) \
     { \
         KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
-        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 cmd = -1; \
         static rk_s32 once = 1; \
         if (!def) { \
             mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
@@ -453,7 +506,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
     rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, out_type out) \
     { \
         KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
-        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 cmd = -1; \
         static rk_s32 once = 1; \
         if (!def) { \
             mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
@@ -474,7 +527,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
     rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in, out_type out) \
     { \
         KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
-        static rk_s32 cmd = GET_ARG0(-1, __VA_ARGS__); \
+        static rk_s32 cmd = -1; \
         static rk_s32 once = 1; \
         if (!def) { \
             mpp_loge_f(TO_STR(KMPP_OBJ_NAME) " can not be found for ioctl\n"); \
