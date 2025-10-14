@@ -34,6 +34,7 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_KMPP_FRAME,
     MPP_SGLN_KMPP_PACKET,
     MPP_SGLN_KMPP_VENC_CFG,
+    MPP_SGLN_KMPP_VENC,
     /* userspace base module */
     MPP_SGLN_BUFFER,
     MPP_SGLN_META,

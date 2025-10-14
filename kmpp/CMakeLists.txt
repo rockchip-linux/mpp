@@ -16,8 +16,14 @@ add_subdirectory(base)
 # ----------------------------------------------------------------------------
 set (KMPP_SRC
     kmpp.c
+    kmpp_venc.c
     )
 
 add_library(kmpp OBJECT ${KMPP_SRC})
 set_target_properties(kmpp PROPERTIES FOLDER "kmpp")
+
+# ----------------------------------------------------------------------------
+# add kmpp test case
+# ----------------------------------------------------------------------------
+add_subdirectory(test)
 

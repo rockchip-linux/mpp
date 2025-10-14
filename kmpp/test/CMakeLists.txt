@@ -3,7 +3,7 @@
 # kmpp/base built-in unit test case
 # ----------------------------------------------------------------------------
 # macro for adding osal sub-module unit test
-macro(add_kmpp_base_test module)
+macro(add_kmpp_test module)
     set(test_name ${module}_test)
     string(TOUPPER ${test_name} test_tag)
     #message(STATUS "moduule   : ${module}")
@@ -19,14 +19,6 @@ macro(add_kmpp_base_test module)
     endif()
 endmacro()
 
-# kmpp object unit test
-add_kmpp_base_test(kmpp_obj)
+# kmpp venc unit test
+add_kmpp_test(kmpp_venc)
 
-# kmpp frame unit test
-add_kmpp_base_test(kmpp_frame)
-
-# kmpp buffer unit test
-add_kmpp_base_test(kmpp_buffer)
-
-# kmpp meta unit test
-add_kmpp_base_test(kmpp_meta)
