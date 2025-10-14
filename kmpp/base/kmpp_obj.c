@@ -1276,7 +1276,7 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
     if (out) {
         KmppShmPtr *sptr = kmpp_obj_to_shm(out);
 
-        kmpp_ioc_set_in(ioc, sptr);
+        kmpp_ioc_set_out(ioc, sptr);
         obj_dbg_ioctl("ioctl [u:k] out %#llx : %#llx\n", sptr->uaddr, sptr->kaddr);
     }
 
