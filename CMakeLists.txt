@@ -162,7 +162,16 @@ if(GCC)
         endif()
     endif()
 
-    if(NOT ${CMAKE_BUILD_TYPE} MATCHES "Release")
+    if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+        # remove -g option for high version ndk
+        string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_C_FLAGS}")
+        string(REGEX REPLACE "[ ]+" " " CMAKE_C_FLAGS "${TMP}")
+        string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_CXX_FLAGS}")
+        string(REGEX REPLACE "[ ]+" " " CMAKE_CXX_FLAGS "${TMP}")
+
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+    else()
         add_definitions(-g)
     endif()
 
