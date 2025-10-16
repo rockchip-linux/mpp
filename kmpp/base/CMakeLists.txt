@@ -10,6 +10,7 @@ add_library(kmpp_base OBJECT
     kmpp_frame.c
     kmpp_buffer.c
     kmpp_venc_cfg.c
+    kmpp_vdec_cfg.c
     kmpp_packet.c
     )
 

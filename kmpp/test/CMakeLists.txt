@@ -22,3 +22,6 @@ endmacro()
 # kmpp venc unit test
 add_kmpp_test(kmpp_venc)
 
+# kmpp vdec unit test
+add_kmpp_test(kmpp_vdec)
+

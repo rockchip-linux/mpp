@@ -17,6 +17,7 @@ add_subdirectory(base)
 set (KMPP_SRC
     kmpp.c
     kmpp_venc.c
+    kmpp_vdec.c
     )
 
 add_library(kmpp OBJECT ${KMPP_SRC})
