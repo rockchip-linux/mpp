@@ -77,9 +77,9 @@ if(ANDROID)
     # in Android pthread is in libc, also need liblog
     # Android 14 requires libc++ not libstdc++
     if("${ANDROID_STL}" STREQUAL "c++_static")
-        target_link_libraries(osal log m)
+        target_link_libraries(osal log ${LIBM})
     else()
-        target_link_libraries(osal log stdc++ m)
+        target_link_libraries(osal log stdc++ ${LIBM})
     endif()
 endif(ANDROID)
 

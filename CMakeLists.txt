@@ -120,29 +120,8 @@ endif(UNIX)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CLANG true)
 endif()
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-    set(INTEL_CXX true)
-endif()
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(GCC true)
-endif()
-
-if(INTEL_CXX AND UNIX)
-    # treat icpc roughly like gcc
-    set(GCC true)
-    add_definitions(-Wall -Wextra -Wshadow)
-elseif(CLANG)
-    # treat clang roughly like gcc
-    set(GCC true)
-    add_definitions(-Wall -Wextra -Wshadow -ffast-math)
-elseif(CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-Wall -Wextra -Wshadow -ffast-math)
-    check_cxx_compiler_flag(-Wno-narrowing GCC_HAS_NO_NARROWING)
-    check_cxx_compiler_flag(-mstackrealign GCC_HAS_STACK_REALIGN)
-    if (GCC_HAS_STACK_REALIGN)
-        add_definitions(-mstackrealign)
-    endif()
-    execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 endif()
 
 if(GCC)
@@ -183,6 +162,15 @@ if(GCC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
     # save intermediate files
     # add_definitions(-save-temps)
+
+    # check library mvec
+    find_library(LMVEC_LIB mvec)
+    if(LMVEC_LIB)
+        set(LIBM mvec m)
+    else()
+        set(LIBM m)
+        add_definitions(-fno-builtin-pow)
+    endif()
 
     # for libary linking
     set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)
