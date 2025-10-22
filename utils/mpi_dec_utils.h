@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPI_DEC_UTILS_H__
-#define __MPI_DEC_UTILS_H__
+#ifndef MPI_DEC_UTILS_H
+#define MPI_DEC_UTILS_H
 
 #include <stdio.h>
 #include "utils.h"

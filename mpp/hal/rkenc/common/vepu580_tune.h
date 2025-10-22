@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VEPU580_TUNE_H__
-#define __VEPU580_TUNE_H__
+#ifndef VEPU580_TUNE_H
+#define VEPU580_TUNE_H
 
 #define FRAME_CONTENT_ANALYSIS_NUM  5
 #define FRAME_MOTION_ANALYSIS_NUM   5

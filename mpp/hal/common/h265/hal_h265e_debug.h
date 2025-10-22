@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H265E_DEBUG_H__
-#define __HAL_H265E_DEBUG_H__
+#ifndef HAL_H265E_DEBUG_H
+#define HAL_H265E_DEBUG_H
 
 #include "mpp_debug.h"
 

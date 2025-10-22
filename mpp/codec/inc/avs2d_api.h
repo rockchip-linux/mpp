@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_API_H__
-#define __AVS2D_API_H__
+#ifndef AVS2D_API_H
+#define AVS2D_API_H
 
 #include "parser_api.h"
 
@@ -29,4 +29,4 @@ extern const ParserApi api_avs2d_parser;
 }
 #endif
 
-#endif /*__AVS2D_API_H__*/
+#endif /* AVS2D_API_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __DUMMY_DEC_API_H__
-#define __DUMMY_DEC_API_H__
+#ifndef DUMMY_DEC_API_H
+#define DUMMY_DEC_API_H
 
 #include "parser_api.h"
 
@@ -38,4 +38,4 @@ MPP_RET dummy_dec_callback(void *dec, void *err_info);
 }
 #endif
 
-#endif /*__DUMMY_DEC_API_H__*/
+#endif /* DUMMY_DEC_API_H */

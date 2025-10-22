@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_API_H__
-#define __HAL_AVSD_API_H__
+#ifndef HAL_AVSD_API_H
+#define HAL_AVSD_API_H
 
 #include "mpp_hal.h"
 
@@ -30,4 +30,4 @@ extern const MppHalApi hal_api_avsd_plus;
 }
 #endif
 
-#endif /*__HAL_AVSD_API_H__*/
+#endif /* HAL_AVSD_API_H */

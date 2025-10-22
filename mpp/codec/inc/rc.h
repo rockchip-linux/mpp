@@ -3,8 +3,8 @@
  * Copyright (c) 2016 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RC_H__
-#define __RC_H__
+#ifndef RC_H
+#define RC_H
 
 #include "mpp_err.h"
 
@@ -73,4 +73,4 @@ MPP_RET rc_hal_end(RcCtx ctx, EncRcTask *task);
 }
 #endif
 
-#endif /* __RC_H__ */
+#endif /* RC_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGE_BASE_H__
-#define __HAL_JPEGE_BASE_H__
+#ifndef HAL_JPEGE_BASE_H
+#define HAL_JPEGE_BASE_H
 
 #include "mpp_device.h"
 #include "hal_enc_task.h"
@@ -72,4 +72,4 @@ void get_msb_lsb_at_pos(RK_U32 *msb, RK_U32 *lsb, RK_U8 *buf, RK_U32 bytepos);
 }
 #endif
 
-#endif /* __HAL_JPEGE_BASE_H__ */
+#endif /* HAL_JPEGE_BASE_H */

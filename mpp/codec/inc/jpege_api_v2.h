@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __JPEGE_API_V2_H__
-#define __JPEGE_API_V2_H__
+#ifndef JPEGE_API_V2_H
+#define JPEGE_API_V2_H
 
 #include "enc_impl_api.h"
 
@@ -28,4 +28,4 @@ extern const EncImplApi api_jpege;
 }
 #endif
 
-#endif /* __JPEGE_API_V2_H__ */
+#endif /* JPEGE_API_V2_H */

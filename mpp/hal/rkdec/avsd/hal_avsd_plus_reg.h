@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_REG_H__
-#define __HAL_AVSD_REG_H__
+#ifndef HAL_AVSD_REG_H
+#define HAL_AVSD_REG_H
 
 #include "mpp_debug.h"
 #include "mpp_device.h"
@@ -278,4 +278,4 @@ typedef struct {
     RK_U32 sw59;
 } AvsdPlusRegs_t;
 
-#endif /*__HAL_AVSD_PLUS_REG_H__*/
+#endif /* HAL_AVSD_PLUS_REG_H */

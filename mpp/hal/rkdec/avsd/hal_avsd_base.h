@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_BASE_H__
-#define __HAL_AVSD_BASE_H__
+#ifndef HAL_AVSD_BASE_H
+#define HAL_AVSD_BASE_H
 
 #include "parser_api.h"
 #include "hal_avsd_api.h"
@@ -145,4 +145,4 @@ RK_S32 get_frame_fd(AvsdHalCtx_t *p_hal, RK_S32 idx);
 }
 #endif
 
-#endif /*__HAL_AVSD_COMMON_H__*/
+#endif /* HAL_AVSD_COMMON_H */

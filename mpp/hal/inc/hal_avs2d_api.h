@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVS2D_API_H__
-#define __HAL_AVS2D_API_H__
+#ifndef HAL_AVS2D_API_H
+#define HAL_AVS2D_API_H
 
 #include "mpp_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppHalApi hal_api_avs2d;
 }
 #endif
 
-#endif /*__HAL_AVS2D_API_H__*/
+#endif /* HAL_AVS2D_API_H */

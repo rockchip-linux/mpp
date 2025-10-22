@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __JPEGE_DEBUG_H__
-#define __JPEGE_DEBUG_H__
+#ifndef JPEGE_DEBUG_H
+#define JPEGE_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -34,4 +34,4 @@
 
 extern RK_U32 jpege_debug;
 
-#endif /* __JPEGE_DEBUG_H__ */
+#endif /* JPEGE_DEBUG_H */

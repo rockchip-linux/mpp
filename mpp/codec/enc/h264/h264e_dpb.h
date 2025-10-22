@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_DPB_H__
-#define __H264E_DPB_H__
+#ifndef H264E_DPB_H
+#define H264E_DPB_H
 
 #include "h264e_syntax.h"
 #include "h264e_sps.h"
@@ -168,4 +168,4 @@ void h264e_dpb_dump_frm(H264eDpb *dpb, const char *caller, RK_S32 line);
 }
 #endif
 
-#endif /* __H264E_DPB_H__ */
+#endif /* H264E_DPB_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SERVICE_IMPL_H__
-#define __MPP_SERVICE_IMPL_H__
+#ifndef MPP_SERVICE_IMPL_H
+#define MPP_SERVICE_IMPL_H
 
 #include "mpp_list.h"
 
@@ -74,4 +74,4 @@ MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap);
 }
 #endif
 
-#endif /* __MPP_SERVICE_IMPL_H__ */
+#endif /* MPP_SERVICE_IMPL_H */

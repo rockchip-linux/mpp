@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_BUFS_H__
-#define __HAL_BUFS_H__
+#ifndef HAL_BUFS_H
+#define HAL_BUFS_H
 
 #include "mpp_buffer.h"
 

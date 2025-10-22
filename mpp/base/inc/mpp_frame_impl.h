@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_FRAME_IMPL_H__
-#define __MPP_FRAME_IMPL_H__
+#ifndef MPP_FRAME_IMPL_H
+#define MPP_FRAME_IMPL_H
 
 #include "mpp_time.h"
 #include "mpp_frame.h"
@@ -221,4 +221,4 @@ MPP_RET __check_is_mpp_frame(void *frame);
 }
 #endif
 
-#endif /*__MPP_FRAME_IMPL_H__*/
+#endif /* MPP_FRAME_IMPL_H */

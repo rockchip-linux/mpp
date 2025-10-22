@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VPU_API_H__
-#define __VPU_API_H__
+#ifndef VPU_API_H
+#define VPU_API_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -517,4 +517,4 @@ void release_vpu_memory_pool_allocator(vpu_display_mem_pool *ipool);
 }
 #endif
 
-#endif /*__VPU_API_H__*/
+#endif /* VPU_API_H */

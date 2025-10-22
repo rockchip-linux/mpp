@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AV1D_VDPU_H__
-#define __HAL_AV1D_VDPU_H__
+#ifndef HAL_AV1D_VDPU_H
+#define HAL_AV1D_VDPU_H
 
 #include "mpp_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppHalApi hal_av1d_vdpu;
 }
 #endif
 
-#endif /* __HAL_H264D_VDPU34X_H__ */
+#endif /* HAL_H264D_VDPU34X_H */

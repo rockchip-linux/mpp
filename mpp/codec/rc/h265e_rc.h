@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __H265E_RC_H__
-#define __H265E_RC_H__
+#ifndef H265E_RC_H
+#define H265E_RC_H
 
 #include "mpp_rc_api.h"
 
@@ -28,4 +28,4 @@ extern const RcImplApi default_h265e;
 }
 #endif
 
-#endif /* __H265E_RC_H__ */
+#endif /* H265E_RC_H */

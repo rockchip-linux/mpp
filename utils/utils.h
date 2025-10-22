@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <stdio.h>
 
@@ -98,4 +98,4 @@ MPP_RET str_to_frm_fmt(const char *nptr, long *number);
 }
 #endif
 
-#endif /*__UTILS_H__*/
+#endif /* UTILS_H */

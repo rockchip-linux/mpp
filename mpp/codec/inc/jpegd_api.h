@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __JPEGD_API_H__
-#define __JPEGD_API_H__
+#ifndef JPEGD_API_H
+#define JPEGD_API_H
 #include "parser_api.h"
 
 #ifdef  __cplusplus
@@ -28,4 +28,4 @@ extern const ParserApi api_jpegd_parser;
 }
 #endif
 
-#endif /*__JPEGD_API_H__*/
+#endif /* JPEGD_API_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_PLUS_H__
-#define __HAL_AVSD_PLUS_H__
+#ifndef HAL_AVSD_PLUS_H
+#define HAL_AVSD_PLUS_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -34,4 +34,4 @@ MPP_RET hal_avsd_plus_control (void *decoder, MpiCmd cmd_type, void *param);
 }
 #endif
 
-#endif /*__HAL_AVSD_PLUS_H__*/
+#endif /* HAL_AVSD_PLUS_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_SYNTAX_H__
-#define __H264E_SYNTAX_H__
+#ifndef H264E_SYNTAX_H
+#define H264E_SYNTAX_H
 
 #include "mpp_rc_api.h"
 #include "h264_syntax.h"
@@ -79,4 +79,4 @@ typedef struct H264eFrmInfo_s {
         number++; \
     } while (0)
 
-#endif /* __H264E_SYNTAX_H__ */
+#endif /* H264E_SYNTAX_H */

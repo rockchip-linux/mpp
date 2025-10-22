@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __VP8E_RC_H__
-#define __VP8E_RC_H__
+#ifndef VP8E_RC_H
+#define VP8E_RC_H
 
 #include "mpp_rc_api.h"
 
@@ -28,4 +28,4 @@ extern const RcImplApi default_vp8e;
 }
 #endif
 
-#endif /* __VP8E_RC_H__ */
+#endif /* VP8E_RC_H */

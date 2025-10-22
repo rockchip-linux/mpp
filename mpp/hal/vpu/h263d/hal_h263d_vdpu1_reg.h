@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_VDPU1_REG_TBL_H__
-#define __HAL_H263D_VDPU1_REG_TBL_H__
+#ifndef HAL_H263D_VDPU1_REG_TBL_H
+#define HAL_H263D_VDPU1_REG_TBL_H
 
 #include "rk_type.h"
 /* Number registers for the decoder */
@@ -272,4 +272,4 @@ typedef struct {
     RK_U32 SwReg56_100[45];
 } Vpu1H263dRegSet_t;
 
-#endif /*__HAL_H263_VDPU1_REG_TBL_H__*/
+#endif /* HAL_H263_VDPU1_REG_TBL_H */

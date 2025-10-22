@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_PPS_H__
-#define __H264E_PPS_H__
+#ifndef H264E_PPS_H
+#define H264E_PPS_H
 
 #include "mpp_packet.h"
 #include "mpp_enc_cfg.h"
@@ -68,4 +68,4 @@ MPP_RET h264e_pps_dump(H264ePps *pps);
 }
 #endif
 
-#endif /* __H264E_PPS_H__ */
+#endif /* H264E_PPS_H */

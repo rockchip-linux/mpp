@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_VPROC_H__
-#define __MPP_DEC_VPROC_H__
+#ifndef MPP_DEC_VPROC_H
+#define MPP_DEC_VPROC_H
 
 #include "mpp_dec_cfg.h"
 #include "hal_dec_task.h"
@@ -55,4 +55,4 @@ MPP_RET dec_vproc_set_mode(MppDecVprocCtx ctx, MppVprocMode mode);
 }
 #endif
 
-#endif /* __MPP_DEC_VPROC_H__ */
+#endif /* MPP_DEC_VPROC_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP9D_DEBUG_H__
-#define __HAL_VP9D_DEBUG_H__
+#ifndef HAL_VP9D_DEBUG_H
+#define HAL_VP9D_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -35,4 +35,4 @@
 
 extern RK_U32 hal_vp9d_debug;
 
-#endif /* __HAL_VP9D_DEBUG_H__ */
+#endif /* HAL_VP9D_DEBUG_H */

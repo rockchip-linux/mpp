@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8D_SYNTAX_H__
-#define __VP8D_SYNTAX_H__
+#ifndef VP8D_SYNTAX_H
+#define VP8D_SYNTAX_H
 
 #include "rk_type.h"
 

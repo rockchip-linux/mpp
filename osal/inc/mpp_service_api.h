@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SERVICE_API_H__
-#define __MPP_SERVICE_API_H__
+#ifndef MPP_SERVICE_API_H
+#define MPP_SERVICE_API_H
 
 #include "mpp_device.h"
 
@@ -18,4 +18,4 @@ extern const MppDevApi mpp_service_api;
 }
 #endif
 
-#endif /* __MPP_SERVICE_API_H__ */
+#endif /* MPP_SERVICE_API_H */

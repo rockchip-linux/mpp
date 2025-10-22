@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_EVENTFD_H__
-#define __MPP_EVENTFD_H__
+#ifndef MPP_EVENTFD_H
+#define MPP_EVENTFD_H
 
 #include "rk_type.h"
 
@@ -22,5 +22,5 @@ RK_S32 mpp_eventfd_write(RK_S32 fd, RK_U64 val);
 }
 #endif
 
-#endif /*__MPP_EVENTFD_H__*/
+#endif /* MPP_EVENTFD_H */
 

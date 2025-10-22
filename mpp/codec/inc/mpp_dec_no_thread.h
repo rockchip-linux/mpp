@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_NO_THREAD_H__
-#define __MPP_DEC_NO_THREAD_H__
+#ifndef MPP_DEC_NO_THREAD_H
+#define MPP_DEC_NO_THREAD_H
 
 #include "mpp_dec_impl.h"
 
@@ -29,4 +29,4 @@ extern MppDecModeApi dec_api_no_thread;
 }
 #endif
 
-#endif /*__MPP_DEC_NO_THREAD_H__*/
+#endif /* MPP_DEC_NO_THREAD_H */

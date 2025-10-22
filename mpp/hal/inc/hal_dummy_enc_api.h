@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __HAL_DUMMY_ENC_API_H__
-#define __HAL_DUMMY_ENC_API_H__
+#ifndef HAL_DUMMY_ENC_API_H
+#define HAL_DUMMY_ENC_API_H
 
 #include "mpp_hal.h"
 
@@ -31,4 +31,4 @@ extern const MppHalApi hal_api_dummy_enc;
 }
 #endif
 
-#endif /*__HAL_DUMMY_ENC_API_H__*/
+#endif /* HAL_DUMMY_ENC_API_H */

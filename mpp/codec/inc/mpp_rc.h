@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_RC__
-#define __MPP_RC__
+#ifndef MPP_RC_H
+#define MPP_RC_H
 
 #include "rk_venc_cmd.h"
 
@@ -135,4 +135,4 @@ RK_S32 mpp_pid_calc(MppPIDCtx *ctx);
 }
 #endif
 
-#endif /* __MPP_RC__ */
+#endif /* MPP_RC_H */

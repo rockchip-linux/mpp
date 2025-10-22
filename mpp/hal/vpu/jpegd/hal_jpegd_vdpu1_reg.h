@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_JPEGD_VDPU1_REG_H__
-#define __HAL_JPEGD_VDPU1_REG_H__
+#ifndef HAL_JPEGD_VDPU1_REG_H
+#define HAL_JPEGD_VDPU1_REG_H
 
 #include "vcodec_service.h"
 

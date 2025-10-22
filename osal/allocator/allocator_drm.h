@@ -3,8 +3,8 @@
  * Copyright (c) 2010 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __ALLOCATOR_DRM_H__
-#define __ALLOCATOR_DRM_H__
+#ifndef ALLOCATOR_DRM_H
+#define ALLOCATOR_DRM_H
 
 #include "mpp_allocator_api.h"
 

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_IMPL_H__
-#define __MPP_IMPL_H__
+#ifndef MPP_IMPL_H
+#define MPP_IMPL_H
 
 #include "rk_type.h"
 #include "mpp_err.h"

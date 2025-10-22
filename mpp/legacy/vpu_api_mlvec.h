@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VPU_API_MLVEC_H__
-#define __VPU_API_MLVEC_H__
+#ifndef VPU_API_MLVEC_H
+#define VPU_API_MLVEC_H
 
 #include "rk_mpi.h"
 
@@ -90,4 +90,4 @@ MPP_RET vpu_api_mlvec_set_dy_max_tid(VpuApiMlvec ctx, RK_S32 max_tid);
 }
 #endif
 
-#endif /* __VPU_API_MLVEC_H__ */
+#endif /* VPU_API_MLVEC_H */

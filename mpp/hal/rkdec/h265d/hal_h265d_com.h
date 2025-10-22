@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H265D_COM_H__
-#define __HAL_H265D_COM_H__
+#ifndef HAL_H265D_COM_H
+#define HAL_H265D_COM_H
 
 #include "rk_type.h"
 #include <limits.h>
@@ -157,4 +157,4 @@ void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva);
 }
 #endif
 
-#endif /*__HAL_H265D_COM_H__*/
+#endif /* HAL_H265D_COM_H */

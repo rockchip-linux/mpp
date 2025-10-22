@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_2STR_H__
-#define __MPP_2STR_H__
+#ifndef MPP_2STR_H
+#define MPP_2STR_H
 
 #include "rk_type.h"
 #include "rk_venc_rc.h"

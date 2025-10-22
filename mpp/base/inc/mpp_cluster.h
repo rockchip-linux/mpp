@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_CLUSTER_H__
-#define __MPP_CLUSTER_H__
+#ifndef MPP_CLUSTER_H
+#define MPP_CLUSTER_H
 
 #include "mpp_err.h"
 #include "mpp_list.h"
@@ -48,4 +48,4 @@ MPP_RET mpp_node_trigger_f(const char *caller, MppNode node, RK_S32 trigger);
 }
 #endif
 
-#endif /*__MPP_CLUSTER_H__*/
+#endif /* MPP_CLUSTER_H */

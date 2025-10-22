@@ -16,8 +16,8 @@
 
 /* This header is for communication between userspace driver and kernel driver */
 
-#ifndef __IEP_H__
-#define __IEP_H__
+#ifndef IEP_H
+#define IEP_H
 
 #include <sys/ioctl.h>
 #include "rk_type.h"
@@ -236,4 +236,4 @@ typedef struct IepMsg_t {
     void    *base;
 } IepMsg;
 
-#endif /* __IEP_H__ */
+#endif /* IEP_H */

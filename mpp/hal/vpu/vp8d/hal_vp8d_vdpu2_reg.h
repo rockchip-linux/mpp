@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8D_VDPU2_REG_H__
-#define __HAL_VP8D_VDPU2_REG_H__
+#ifndef HAL_VP8D_VDPU2_REG_H
+#define HAL_VP8D_VDPU2_REG_H
 #include "rk_type.h"
 
 #define VP8HWD_VP7             1

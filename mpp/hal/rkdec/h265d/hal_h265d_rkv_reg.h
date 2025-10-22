@@ -25,8 +25,8 @@
  *   2015.7.15 : Create
  */
 
-#ifndef __HAL_H265D_REG_H__
-#define __HAL_H265D_REG_H__
+#ifndef HAL_H265D_REG_H
+#define HAL_H265D_REG_H
 
 #include "rk_type.h"
 

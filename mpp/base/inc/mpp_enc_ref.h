@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_REF_H__
-#define __MPP_ENC_REF_H__
+#ifndef MPP_ENC_REF_H
+#define MPP_ENC_REF_H
 
 #include "rk_venc_ref.h"
 
@@ -68,4 +68,4 @@ MPP_RET _check_is_mpp_enc_ref_cfg(const char *func, void *ref);
 }
 #endif
 
-#endif /*__MPP_ENC_REF_H__*/
+#endif /* MPP_ENC_REF_H */

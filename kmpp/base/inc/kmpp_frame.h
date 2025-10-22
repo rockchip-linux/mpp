@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_FRAME_H__
-#define __KMPP_FRAME_H__
+#ifndef KMPP_FRAME_H
+#define KMPP_FRAME_H
 
 #include "mpp_frame.h"
 
@@ -47,4 +47,4 @@ rk_s32 kmpp_frame_get_meta(KmppFrame frame, KmppMeta *meta);
 }
 #endif
 
-#endif /*__KMPP_FRAME_H__*/
+#endif /* KMPP_FRAME_H */

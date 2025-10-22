@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_API_H__
-#define __IEP2_API_H__
+#ifndef IEP2_API_H
+#define IEP2_API_H
 
 #include <stdint.h>
 #include <stdbool.h>

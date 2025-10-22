@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H265E_API_H__
-#define __HAL_H265E_API_H__
+#ifndef HAL_H265E_API_H
+#define HAL_H265E_API_H
 
 #include "mpp_enc_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppEncHalApi hal_api_h265e_v2;
 }
 #endif
 
-#endif /*__HAL_H265E_API_H__*/
+#endif /* HAL_H265E_API_H */

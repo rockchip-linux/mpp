@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU1_REG_TBL_H__
-#define __HAL_H264E_VEPU1_REG_TBL_H__
+#ifndef HAL_H264E_VEPU1_REG_TBL_H
+#define HAL_H264E_VEPU1_REG_TBL_H
 
 #include "rk_type.h"
 

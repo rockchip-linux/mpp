@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AV1D_VDPU_REG_H__
-#define __HAL_AV1D_VDPU_REG_H__
+#ifndef HAL_AV1D_VDPU_REG_H
+#define HAL_AV1D_VDPU_REG_H
 
 #include "mpp_device.h"
 

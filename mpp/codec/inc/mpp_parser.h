@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_PARSER_H__
-#define __MPP_PARSER_H__
+#ifndef MPP_PARSER_H
+#define MPP_PARSER_H
 
 #include "parser_api.h"
 
@@ -40,4 +40,4 @@ MPP_RET mpp_parser_callback(void* prs, void *err_info);
 }
 #endif
 
-#endif /*__MPP_PARSER_H__*/
+#endif /* MPP_PARSER_H */

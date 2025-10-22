@@ -1,5 +1,5 @@
-#ifndef __MPG4D_API_H__
-#define __MPG4D_API_H__
+#ifndef MPG4D_API_H
+#define MPG4D_API_H
 
 #include "parser_api.h"
 

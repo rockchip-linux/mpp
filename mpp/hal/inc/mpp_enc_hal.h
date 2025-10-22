@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_HAL_H__
-#define __MPP_ENC_HAL_H__
+#ifndef MPP_ENC_HAL_H
+#define MPP_ENC_HAL_H
 
 #include "hal_enc_task.h"
 #include "mpp_enc_cfg.h"
@@ -90,4 +90,4 @@ MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx);
 }
 #endif
 
-#endif /*__MPP_ENC_HAL_H__*/
+#endif /* MPP_ENC_HAL_H */

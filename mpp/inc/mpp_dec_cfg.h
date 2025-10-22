@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_CFG_H__
-#define __MPP_DEC_CFG_H__
+#ifndef MPP_DEC_CFG_H
+#define MPP_DEC_CFG_H
 
 #include "mpp_frame.h"
 #include "rk_vdec_cmd.h"
@@ -142,4 +142,4 @@ rk_s32 mpp_dec_cfg_set_default(void *entry, KmppObj obj, const char *caller);
 }
 #endif
 
-#endif /* __MPP_DEC_CFG_H__ */
+#endif /* MPP_DEC_CFG_H */

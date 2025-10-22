@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_INFO_H__
-#define __HAL_INFO_H__
+#ifndef HAL_INFO_H
+#define HAL_INFO_H
 
 #include "mpp_enc_cfg.h"
 #include "mpp_device.h"
@@ -72,4 +72,4 @@ MPP_RET hal_info_from_enc_cfg(HalInfo ctx, MppEncCfgSet *cfg);
 }
 #endif
 
-#endif /* __HAL_INFO_H__ */
+#endif /* HAL_INFO_H */

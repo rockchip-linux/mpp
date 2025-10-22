@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef __VDPU382_H__
-#define __VDPU382_H__
+#ifndef VDPU382_H
+#define VDPU382_H
 
 #define HWID_VDPU382_RK3528             (0x70393f05)
 #define HWID_VDPU382_RK3562             (0x72bb0f01)
 
-#endif /* __VDPU382_H__ */
+#endif /* VDPU382_H */

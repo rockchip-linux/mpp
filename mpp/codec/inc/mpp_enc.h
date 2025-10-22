@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_H__
-#define __MPP_ENC_H__
+#ifndef MPP_ENC_H
+#define MPP_ENC_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -176,4 +176,4 @@ MPP_RET mpp_enc_reset_v2(MppEnc ctx);
 }
 #endif
 
-#endif /*__MPP_ENC_H__*/
+#endif /* MPP_ENC_H */

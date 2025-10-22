@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VDPU382_H264D_H__
-#define __VDPU382_H264D_H__
+#ifndef VDPU382_H264D_H
+#define VDPU382_H264D_H
 
 #include "vdpu382_com.h"
 
@@ -273,4 +273,4 @@ typedef struct Vdpu382H264dRegSet_t {
     Vdpu382RegStatistic     statistic;
 } Vdpu382H264dRegSet;
 
-#endif /* __VDPU382_H264D_H__ */
+#endif /* VDPU382_H264D_H */

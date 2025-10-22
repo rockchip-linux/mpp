@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP9D_COM_H__
-#define __HAL_VP9D_COM_H__
+#ifndef HAL_VP9D_COM_H
+#define HAL_VP9D_COM_H
 
 #include "rk_type.h"
 #include "mpp_err.h"

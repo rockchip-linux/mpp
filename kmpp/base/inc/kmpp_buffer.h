@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_BUFFER_H__
-#define __KMPP_BUFFER_H__
+#ifndef KMPP_BUFFER_H
+#define KMPP_BUFFER_H
 
 #include "mpp_buffer.h"
 
@@ -105,4 +105,4 @@ KmppBufCfg kmpp_buffer_to_cfg(KmppBuffer buf);
 }
 #endif
 
-#endif /*__KMPP_BUFFER_H__*/
+#endif /* KMPP_BUFFER_H */

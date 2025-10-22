@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AV1D_API_H__
-#define __AV1D_API_H__
+#ifndef AV1D_API_H
+#define AV1D_API_H
 
 #include "parser_api.h"
 
@@ -38,4 +38,4 @@ MPP_RET  av1d_callback(void *decoder, void *info);
 }
 #endif
 
-#endif /* __AV1D_API_H__*/
+#endif /* AV1D_API_H */

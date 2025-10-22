@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_AVS2D_GLOBAL_H__
-#define __HAL_AVS2D_GLOBAL_H__
+#ifndef HAL_AVS2D_GLOBAL_H
+#define HAL_AVS2D_GLOBAL_H
 
 #include "mpp_device.h"
 #include "hal_bufs.h"
@@ -99,4 +99,4 @@ typedef struct avs2d_hal_ctx_t {
     const MppDecHwCap       *hw_info;
 } Avs2dHalCtx_t;
 
-#endif /*__HAL_AVS2D_GLOBAL_H__*/
+#endif /* HAL_AVS2D_GLOBAL_H */

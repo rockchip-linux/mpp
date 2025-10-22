@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_STREAM_AMEND_H__
-#define __HAL_H264E_STREAM_AMEND_H__
+#ifndef HAL_H264E_STREAM_AMEND_H
+#define HAL_H264E_STREAM_AMEND_H
 
 #include "h264e_slice.h"
 
@@ -50,4 +50,4 @@ MPP_RET h264e_vepu_stream_amend_config(HalH264eVepuStreamAmend *ctx,
 MPP_RET h264e_vepu_stream_amend_proc(HalH264eVepuStreamAmend *ctx, MppEncH264HwCfg *hw_cfg);
 MPP_RET h264e_vepu_stream_amend_sync_ref_idc(HalH264eVepuStreamAmend *ctx);
 
-#endif /* __HAL_H264E_STREAM_AMEND_H__ */
+#endif /* HAL_H264E_STREAM_AMEND_H */

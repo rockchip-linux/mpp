@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_DPB_H__
-#define __AVS2D_DPB_H__
+#ifndef AVS2D_DPB_H
+#define AVS2D_DPB_H
 
 #include "avs2d_global.h"
 
@@ -34,4 +34,4 @@ Avs2dFrame_t* get_dpb_frm_by_slot_idx(Avs2dFrameMgr_t *mgr, RK_S32 slot_idx);
 }
 #endif
 
-#endif /*__AVS2D_DPB_H__*/
+#endif /* AVS2D_DPB_H */

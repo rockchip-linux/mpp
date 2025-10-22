@@ -1,5 +1,5 @@
-#ifndef __RK_LIST_H__
-#define __RK_LIST_H__
+#ifndef RK_LIST_H
+#define RK_LIST_H
 
 #include <pthread.h>
 #include "rk_type.h"
@@ -46,4 +46,4 @@ private:
     rk_list &operator=(const rk_list &);
 };
 
-#endif /*__RK_LIST_H__*/
+#endif /* RK_LIST_H */

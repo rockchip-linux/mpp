@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __FILM_GRAIN_NOISE_TABLE_H__
-#define __FILM_GRAIN_NOISE_TABLE_H__
+#ifndef FILM_GRAIN_NOISE_TABLE_H
+#define FILM_GRAIN_NOISE_TABLE_H
 #include "rk_type.h"
 
 void GenerateLumaGrainBlock(RK_S32 luma_grain_block[][82], RK_S32 bitdepth,
@@ -30,4 +30,4 @@ void GenerateChromaGrainBlock(
     RK_S32 ar_coeffs_cb[], RK_S32 ar_coeffs_cr[], RK_S32 ar_coeff_shift, RK_S32 grain_min,
     RK_S32 grain_max, RK_U8 chroma_scaling_from_luma, RK_U16 random_seed);
 
-#endif  //__FILM_GRAIN_NOISE_TABLE_H__
+#endif // FILM_GRAIN_NOISE_TABLE_H 

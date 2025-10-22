@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_THREAD_H__
-#define __MPP_THREAD_H__
+#ifndef MPP_THREAD_H
+#define MPP_THREAD_H
 
 #include <unistd.h>
 #include <semaphore.h>

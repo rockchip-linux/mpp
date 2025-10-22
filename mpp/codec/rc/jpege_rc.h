@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __JPEGE_RC_H__
-#define __JPEGE_RC_H__
+#ifndef JPEGE_RC_H
+#define JPEGE_RC_H
 
 #include "mpp_rc_api.h"
 
@@ -28,4 +28,4 @@ extern const RcImplApi default_jpege;
 }
 #endif
 
-#endif /* __JPEGE_RC_H__ */
+#endif /* JPEGE_RC_H */

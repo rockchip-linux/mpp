@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_LOG_DEF_H__
-#define __MPP_LOG_DEF_H__
+#ifndef MPP_LOG_DEF_H
+#define MPP_LOG_DEF_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,4 +34,4 @@ extern "C" {
 }
 #endif
 
-#endif /*__MPP_LOG_DEF_H__*/
+#endif /* MPP_LOG_DEF_H */

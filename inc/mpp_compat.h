@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_COMPAT_H__
-#define __MPP_COMPAT_H__
+#ifndef MPP_COMPAT_H
+#define MPP_COMPAT_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -59,4 +59,4 @@ void mpp_compat_show(void);
 }
 #endif
 
-#endif /*__MPP_COMPAT_H__*/
+#endif /* MPP_COMPAT_H */

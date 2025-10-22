@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU541_REG_L2_H__
-#define __HAL_H264E_VEPU541_REG_L2_H__
+#ifndef HAL_H264E_VEPU541_REG_L2_H
+#define HAL_H264E_VEPU541_REG_L2_H
 
 #include "rk_type.h"
 
@@ -428,4 +428,4 @@ typedef struct Vepu541H264eRegL2Set_t {
     } atr1_thd1_h264;
 } Vepu541H264eRegL2Set;
 
-#endif /* __HAL_H264E_VEPU541_REG_L2_H__ */
+#endif /* HAL_H264E_VEPU541_REG_L2_H */

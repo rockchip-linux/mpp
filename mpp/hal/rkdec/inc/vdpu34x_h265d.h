@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VDPU34X_H265D_H__
-#define __VDPU34X_H265D_H__
+#ifndef VDPU34X_H265D_H
+#define VDPU34X_H265D_H
 
 #include "vdpu34x_com.h"
 
@@ -185,4 +185,4 @@ typedef struct Vdpu34xH265dRegSet_t {
     Vdpu34xRegStatistic     statistic;
 } Vdpu34xH265dRegSet;
 
-#endif /* __VDPU34X_H265D_H__ */
+#endif /* VDPU34X_H265D_H */

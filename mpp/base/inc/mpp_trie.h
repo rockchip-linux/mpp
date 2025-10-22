@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_TRIE_H__
-#define __MPP_TRIE_H__
+#ifndef MPP_TRIE_H
+#define MPP_TRIE_H
 
 #include <string.h>
 
@@ -91,4 +91,4 @@ void mpp_trie_timing_test(MppTrie trie);
 }
 #endif
 
-#endif /*__MPP_TRIE_H__*/
+#endif /* MPP_TRIE_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_LIST_H__
-#define __MPP_LIST_H__
+#ifndef MPP_LIST_H
+#define MPP_LIST_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -195,4 +195,4 @@ void list_sort(void *priv, struct list_head *head, ListCmpFunc cmp);
 #endif
 
 
-#endif /*__MPP_LIST_H__*/
+#endif /* MPP_LIST_H */

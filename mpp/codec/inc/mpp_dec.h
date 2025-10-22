@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_H__
-#define __MPP_DEC_H__
+#ifndef MPP_DEC_H
+#define MPP_DEC_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -68,4 +68,4 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet);
 }
 #endif
 
-#endif /*__MPP_DEC_H__*/
+#endif /* MPP_DEC_H */

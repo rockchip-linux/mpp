@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M2VD_API_H__
-#define __HAL_M2VD_API_H__
+#ifndef HAL_M2VD_API_H
+#define HAL_M2VD_API_H
 
 #include "mpp_hal.h"
 
@@ -38,4 +38,4 @@ MPP_RET hal_m2vd_control (void *hal, MpiCmd cmd_type, void *param);
 }
 #endif
 
-#endif /*__HAL_M2VD_API_H__*/
+#endif /* HAL_M2VD_API_H */

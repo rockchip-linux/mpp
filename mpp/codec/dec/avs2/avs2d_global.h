@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_GLOBAL_H__
-#define __AVS2D_GLOBAL_H__
+#ifndef AVS2D_GLOBAL_H
+#define AVS2D_GLOBAL_H
 
 #include "mpp_list.h"
 #include "parser_api.h"
@@ -411,4 +411,4 @@ typedef struct avs2_dec_ctx_t {
     RK_U32                  hdr_dynamic;
 } Avs2dCtx_t;
 
-#endif /*__AVS2D_GLOBAL_H__*/
+#endif /* AVS2D_GLOBAL_H */

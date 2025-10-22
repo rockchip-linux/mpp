@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_ENC_CFG_H__
-#define __MPP_ENC_CFG_H__
+#ifndef MPP_ENC_CFG_H
+#define MPP_ENC_CFG_H
 
 #include "rk_venc_cfg.h"
 #include "rk_venc_cmd.h"
@@ -78,4 +78,4 @@ rk_u32 *mpp_enc_cfg_vp8_change(MppEncCfgSet *cfg);
 }
 #endif
 
-#endif /*__MPP_ENC_CFG_H__*/
+#endif /* MPP_ENC_CFG_H */

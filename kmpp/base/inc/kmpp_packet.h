@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_PACKET_H__
-#define __KMPP_PACKET_H__
+#ifndef KMPP_PACKET_H
+#define KMPP_PACKET_H
 
 #include "rk_type.h"
 
@@ -35,4 +35,4 @@ rk_s32 kmpp_packet_get_meta(KmppPacket packet, KmppMeta *meta);
 }
 #endif
 
-#endif /*__KMPP_PACKET_H__*/
+#endif /* KMPP_PACKET_H */

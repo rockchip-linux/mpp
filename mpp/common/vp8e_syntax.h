@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_SYNTAX_H__
-#define __VP8E_SYNTAX_H__
+#ifndef VP8E_SYNTAX_H
+#define VP8E_SYNTAX_H
 
 #include "rk_type.h"
 #include "mpp_enc_cfg.h"
@@ -109,4 +109,4 @@ typedef struct {
     Vp8eSyntaxType type;
     void *data;
 } Vp8eSyntax;
-#endif /*__VP8E_SYNTAX_H__*/
+#endif /* VP8E_SYNTAX_H */

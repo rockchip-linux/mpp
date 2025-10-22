@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_GMV_H__
-#define __IEP2_GMV_H__
+#ifndef IEP2_GMV_H
+#define IEP2_GMV_H
 
 #include "iep2.h"
 #include "iep2_api.h"

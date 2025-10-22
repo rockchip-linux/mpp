@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_PLATFORM__
-#define __MPP_PLATFORM__
+#ifndef MPP_PLATFORM_H
+#define MPP_PLATFORM_H
 
 #include "rk_type.h"
 #include "mpp_soc.h"
@@ -42,4 +42,4 @@ rk_u32 mpp_get_vcodec_type(void);
 }
 #endif
 
-#endif /*__MPP_PLATFORM__*/
+#endif /* MPP_PLATFORM_H */

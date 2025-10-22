@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef _H264D_INIT_H_
-#define _H264D_INIT_H_
+#ifndef H264D_INIT_H
+#define H264D_INIT_H
 
 
 #include "rk_type.h"
@@ -38,5 +38,5 @@ void flush_dpb_buf_slot(H264_DecCtx_t *p_Dec);
 #endif
 
 //========================================
-#endif /* end of _RKV_H264_DECODER_INIT_H_ */
+#endif /* H264D_INIT_H */
 

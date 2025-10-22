@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGE_VEPU540C_REG_H__
-#define __HAL_JPEGE_VEPU540C_REG_H__
+#ifndef HAL_JPEGE_VEPU540C_REG_H
+#define HAL_JPEGE_VEPU540C_REG_H
 
 #include "rk_type.h"
 #include "vepu540c_common.h"

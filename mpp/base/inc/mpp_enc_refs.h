@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_REFS_H__
-#define __MPP_ENC_REFS_H__
+#ifndef MPP_ENC_REFS_H
+#define MPP_ENC_REFS_H
 
 #include "mpp_enc_cfg.h"
 #include "mpp_enc_ref.h"
@@ -90,4 +90,4 @@ void _dump_frm(EncFrmStatus *frm, const char *func, RK_S32 line);
 }
 #endif
 
-#endif /*__MPP_ENC_REFS_H__*/
+#endif /* MPP_ENC_REFS_H */

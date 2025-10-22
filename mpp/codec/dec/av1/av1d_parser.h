@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AV1D_PARSER_H__
-#define __AV1D_PARSER_H__
+#ifndef AV1D_PARSER_H
+#define AV1D_PARSER_H
 
 #include <stdlib.h>
 
@@ -195,4 +195,4 @@ void Av1StoreCDFs(AV1Context *ctx, RK_U32 refresh_frame_flags);
 }
 #endif
 
-#endif // __AV1D_PARSER_H__
+#endif // AV1D_PARSER_H 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_PARSE_H__
-#define __AVS2D_PARSE_H__
+#ifndef AVS2D_PARSE_H
+#define AVS2D_PARSE_H
 
 #include "avs2d_global.h"
 
@@ -38,4 +38,4 @@ RK_S32 avs2d_split_frame(void *sc, const RK_U8 **poutbuf, RK_S32 *poutbuf_size,
 }
 #endif
 
-#endif /*__AVS2D_PARSE_H__*/
+#endif /* AVS2D_PARSE_H */

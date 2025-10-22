@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_H265E_VEPU510_REG_H__
-#define __HAL_H265E_VEPU510_REG_H__
+#ifndef HAL_H265E_VEPU510_REG_H
+#define HAL_H265E_VEPU510_REG_H
 
 #include "rk_type.h"
 #include "vepu510_common.h"

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_DPB_H__
-#define __H265E_DPB_H__
+#ifndef H265E_DPB_H
+#define H265E_DPB_H
 
 #include "mpp_buffer.h"
 #include "h265_syntax.h"
@@ -156,4 +156,4 @@ void h265e_dpb_dump_frm(H265eDpb *dpb, const char *caller);
 }
 #endif
 
-#endif /* __H265E_DPB_H__ */
+#endif /* H265E_DPB_H */

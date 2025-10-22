@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_JPEGE_VEPU2_V2_H__
-#define __HAL_JPEGE_VEPU2_V2_H__
+#ifndef HAL_JPEGE_VEPU2_V2_H
+#define HAL_JPEGE_VEPU2_V2_H
 
 #include "mpp_enc_hal.h"
 

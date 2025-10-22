@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_PACKET_IMPL_H__
-#define __MPP_PACKET_IMPL_H__
+#ifndef MPP_PACKET_IMPL_H
+#define MPP_PACKET_IMPL_H
 
 #include "mpp_packet.h"
 
@@ -115,4 +115,4 @@ MPP_RET check_is_mpp_packet_f(void *ptr, const char *caller);
 }
 #endif
 
-#endif /*__MPP_PACKET_IMPL_H__*/
+#endif /* MPP_PACKET_IMPL_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __M2VD_CODEC_H__
-#define __M2VD_CODEC_H__
+#ifndef M2VD_CODEC_H
+#define M2VD_CODEC_H
 
 #include "mpp_common.h"
 

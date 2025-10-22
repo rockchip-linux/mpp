@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __H265E_CODEC_H__
-#define __H265E_CODEC_H__
+#ifndef H265E_CODEC_H
+#define H265E_CODEC_H
 
 #include "mpp_debug.h"
 

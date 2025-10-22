@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __OS_MEM_H__
-#define __OS_MEM_H__
+#ifndef OS_MEM_H
+#define OS_MEM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +18,6 @@ void os_free(void *ptr);
 }
 #endif
 
-#endif /*__OS_MEM_H__*/
+#endif /* OS_MEM_H */
 
 

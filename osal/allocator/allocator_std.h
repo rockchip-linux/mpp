@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __ALLOCATOR_STD_H__
-#define __ALLOCATOR_STD_H__
+#ifndef ALLOCATOR_STD_H
+#define ALLOCATOR_STD_H
 
 #include "mpp_allocator_api.h"
 

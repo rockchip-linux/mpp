@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __H264D_PARSE_H__
-#define __H264D_PARSE_H__
+#ifndef H264D_PARSE_H
+#define H264D_PARSE_H
 #include "rk_type.h"
 #include "mpp_err.h"
 
@@ -42,4 +42,4 @@ MPP_RET parse_prepare_avcC_data(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur);
 #endif
 
 
-#endif /* __H264D_PARSE_H__ */
+#endif /* H264D_PARSE_H */

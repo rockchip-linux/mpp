@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP9D_API_H__
-#define __VP9D_API_H__
+#ifndef VP9D_API_H
+#define VP9D_API_H
 
 #include "parser_api.h"
 
@@ -40,4 +40,4 @@ MPP_RET  vp9d_callback(void *decoder, void *info);
 }
 #endif
 
-#endif /* __VP9D_API_H__*/
+#endif /* VP9D_API_H */

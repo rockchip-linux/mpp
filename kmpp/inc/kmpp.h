@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_H__
-#define __KMPP_H__
+#ifndef KMPP_H
+#define KMPP_H
 
 #include <unistd.h>
 
@@ -81,4 +81,4 @@ void mpp_get_api(Kmpp *ctx);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__MPP_H__*/
+#endif /* MPP_H */

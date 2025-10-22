@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __HAL_VP8D_API_H__
-#define __HAL_VP8D_API_H__
+#ifndef HAL_VP8D_API_H
+#define HAL_VP8D_API_H
 
 #include "mpp_hal.h"
 
@@ -31,4 +31,4 @@ extern const MppHalApi hal_api_vp8d;
 }
 #endif
 
-#endif /*__HAL_VP8D_API_H__*/
+#endif /* HAL_VP8D_API_H */

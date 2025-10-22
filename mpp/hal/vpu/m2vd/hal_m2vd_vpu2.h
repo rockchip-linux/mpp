@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_MV2D_VPU2_H__
-#define __HAL_MV2D_VPU2_H__
+#ifndef HAL_MV2D_VPU2_H
+#define HAL_MV2D_VPU2_H
 
 #include "mpp_hal.h"
 
@@ -33,4 +33,4 @@ MPP_RET hal_m2vd_vdpu2_wait    (void *hal, HalTaskInfo *task);
 }
 #endif
 
-#endif /*__HAL_MV2D_VPU2_H__*/
+#endif /* HAL_MV2D_VPU2_H */

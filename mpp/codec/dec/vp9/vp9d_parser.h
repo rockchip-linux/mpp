@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#ifndef __VP9D_PARSER_H__
-#define __VP9D_PARSER_H__
+#ifndef VP9D_PARSER_H
+#define VP9D_PARSER_H
 
 #include <stdlib.h>
 
@@ -295,4 +295,4 @@ RK_S32 vp9d_parser2_syntax(Vp9CodecContext *ctx);
 #endif
 
 
-#endif /* __VP9D_PARSER_H__ */
+#endif /* VP9D_PARSER_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8E_BASE_H__
-#define __HAL_VP8E_BASE_H__
+#ifndef HAL_VP8E_BASE_H
+#define HAL_VP8E_BASE_H
 
 #include "mpp_device.h"
 
@@ -382,4 +382,4 @@ void write_ivf_header(void *hal, RK_U8 *dst);
 }
 #endif
 
-#endif /*__HAL_VP*E_BASE_H__*/
+#endif /* HAL_VP8E_BASE_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_VCODEC_CLIENT_H__
-#define __MPP_VCODEC_CLIENT_H__
+#ifndef MPP_VCODEC_CLIENT_H
+#define MPP_VCODEC_CLIENT_H
 
 #include "rk_type.h"
 #include "mpp_err.h"

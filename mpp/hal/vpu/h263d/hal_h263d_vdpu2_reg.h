@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_VDPU2_REG_H__
-#define __HAL_H263D_VDPU2_REG_H__
+#ifndef HAL_H263D_VDPU2_REG_H
+#define HAL_H263D_VDPU2_REG_H
 
 #include "rk_type.h"
 

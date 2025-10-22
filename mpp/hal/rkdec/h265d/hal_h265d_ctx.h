@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_H265D_CTX_H__
-#define __HAL_H265D_CTX_H__
+#ifndef HAL_H265D_CTX_H
+#define HAL_H265D_CTX_H
 
 #include "mpp_device.h"
 #include "mpp_hal.h"

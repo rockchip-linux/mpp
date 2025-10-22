@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __M2VD_API_H__
-#define __M2VD_API_H__
+#ifndef M2VD_API_H
+#define M2VD_API_H
 
 #include "parser_api.h"
 

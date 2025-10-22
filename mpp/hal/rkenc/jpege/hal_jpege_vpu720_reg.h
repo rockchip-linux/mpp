@@ -3,8 +3,8 @@
  * Copyright (c) 2023 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_JPEGE_VPU720_REG_H__
-#define __HAL_JPEGE_VPU720_REG_H__
+#ifndef HAL_JPEGE_VPU720_REG_H
+#define HAL_JPEGE_VPU720_REG_H
 
 #include "rk_type.h"
 
@@ -552,4 +552,4 @@ typedef struct JpegeVpu720RegSet_t {
     RK_U32 int_state;
 } JpegeVpu720Reg;
 
-#endif /* __HAL_JPEGE_VPU720_REG_H__ */
+#endif /* HAL_JPEGE_VPU720_REG_H */

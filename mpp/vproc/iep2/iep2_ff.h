@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_FF_H__
-#define __IEP2_FF_H__
+#ifndef IEP2_FF_H
+#define IEP2_FF_H
 
 #include "rk_type.h"
 

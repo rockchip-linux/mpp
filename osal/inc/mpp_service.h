@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SERVICE_H__
-#define __MPP_SERVICE_H__
+#ifndef MPP_SERVICE_H
+#define MPP_SERVICE_H
 
 #include "rk_type.h"
 #include <asm/ioctl.h>
@@ -118,4 +118,4 @@ const char *mpp_get_mpp_service_name(void);
 }
 #endif
 
-#endif /* __MPP_SERVICE_H__ */
+#endif /* MPP_SERVICE_H */

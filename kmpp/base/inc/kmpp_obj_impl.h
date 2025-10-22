@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_OBJ_IMPL_H__
-#define __KMPP_OBJ_IMPL_H__
+#ifndef KMPP_OBJ_IMPL_H
+#define KMPP_OBJ_IMPL_H
 
 #include "kmpp_obj.h"
 
@@ -29,4 +29,4 @@ rk_s32 kmpp_obj_impl_get_ptr(KmppEntry *tbl, void *entry, void **val);
 rk_s32 kmpp_obj_impl_set_fp(KmppEntry *tbl, void *entry, void *val);
 rk_s32 kmpp_obj_impl_get_fp(KmppEntry *tbl, void *entry, void **val);
 
-#endif /* __KMPP_OBJ_IMPL_H__ */
+#endif /* KMPP_OBJ_IMPL_H */

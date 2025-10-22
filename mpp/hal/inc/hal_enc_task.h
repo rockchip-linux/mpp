@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __HAL_ENC_TASK__
-#define __HAL_ENC_TASK__
+#ifndef HAL_ENC_TASK_H
+#define HAL_ENC_TASK_H
 
 #include "mpp_time.h"
 
@@ -153,4 +153,4 @@ typedef struct EncAsyncTaskInfo_t {
     MppEncRefFrmUsrCfg  usr;
 } EncAsyncTaskInfo;
 
-#endif /* __HAL_ENC_TASK__ */
+#endif /* HAL_ENC_TASK_H */

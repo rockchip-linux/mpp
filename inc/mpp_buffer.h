@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_BUFFER_H__
-#define __MPP_BUFFER_H__
+#ifndef MPP_BUFFER_H
+#define MPP_BUFFER_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -351,4 +351,4 @@ RK_U32 mpp_buffer_total_max();
 }
 #endif
 
-#endif /*__MPP_BUFFER_H__*/
+#endif /* MPP_BUFFER_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_HASH_H__
-#define __MPP_HASH_H__
+#ifndef MPP_HASH_H
+#define MPP_HASH_H
 
 #include <stdbool.h>
 
@@ -372,4 +372,4 @@ static inline void hash_del(struct hlist_node *node)
 }
 #endif
 
-#endif /*__MPP_HASH_H__*/
+#endif /* MPP_HASH_H */

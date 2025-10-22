@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_CB_PARAM_H__
-#define __MPP_ENC_CB_PARAM_H__
+#ifndef MPP_ENC_CB_PARAM_H
+#define MPP_ENC_CB_PARAM_H
 
 #include "rk_type.h"
 
@@ -36,4 +36,4 @@ typedef struct EncOutParam_t {
     RK_S32  length;
 } EncOutParam;
 
-#endif /* __MPP_ENC_CB_PARAM_H__ */
+#endif /* MPP_ENC_CB_PARAM_H */

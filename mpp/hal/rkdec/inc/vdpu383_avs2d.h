@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPU383_AVS2D_H__
-#define __VDPU383_AVS2D_H__
+#ifndef VDPU383_AVS2D_H
+#define VDPU383_AVS2D_H
 
 #include "vdpu383_com.h"
 
@@ -171,4 +171,4 @@ typedef struct Vdpu383Avs2dRegSet_t {
     Vdpu383RegAvs2dAddr     avs2d_addrs;        /* 168-185, 192-210, 216-232 */
 } Vdpu383Avs2dRegSet;
 
-#endif /* __VDPU34X_H264D_H__ */
+#endif /* VDPU34X_H264D_H */

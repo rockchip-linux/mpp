@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_VP8D_VDPU1_REG_H__
-#define __HAL_VP8D_VDPU1_REG_H__
+#ifndef HAL_VP8D_VDPU1_REG_H
+#define HAL_VP8D_VDPU1_REG_H
 
 #include "rk_type.h"
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_TYPE_H__
-#define __RK_TYPE_H__
+#ifndef RK_TYPE_H
+#define RK_TYPE_H
 
 #include <stddef.h>
 
@@ -212,4 +212,4 @@ typedef struct KmppShmPtr_t {
     /* DO NOT access reserved data only used by kernel */
 } KmppShmPtr;
 
-#endif /*__RK_TYPE_H__*/
+#endif /* RK_TYPE_H */

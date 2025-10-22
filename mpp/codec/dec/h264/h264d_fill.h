@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef _H264D_FILL_H_
-#define _H264D_FILL_H_
+#ifndef H264D_FILL_H
+#define H264D_FILL_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -39,5 +39,5 @@ MPP_RET fill_slice_syntax(H264_SLICE_t *currSlice, H264dDxvaCtx_t *dxva_ctx);
 #endif
 
 //========================================
-#endif /* end of _RKV_H264_DECODER_FILL_H_ */
+#endif /* H264D_FILL_H */
 

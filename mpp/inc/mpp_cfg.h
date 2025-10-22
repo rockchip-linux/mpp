@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_CFG_H__
-#define __MPP_CFG_H__
+#ifndef MPP_CFG_H
+#define MPP_CFG_H
 
 #include "mpp_internal.h"
 
@@ -58,4 +58,4 @@ MPP_RET check_cfg_info(MppCfgInfo *node, const char *name, CfgType type,
 }
 #endif
 
-#endif /*__MPP_CFG_H__*/
+#endif /* MPP_CFG_H */

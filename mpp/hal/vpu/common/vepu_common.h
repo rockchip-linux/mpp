@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __VEPU_COMMON_H__
-#define __VEPU_COMMON_H__
+#ifndef VEPU_COMMON_H
+#define VEPU_COMMON_H
 
 #include "mpp_frame.h"
 

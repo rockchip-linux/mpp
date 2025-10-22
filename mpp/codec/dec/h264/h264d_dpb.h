@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef _H264D_DPB_H_
-#define _H264D_DPB_H_
+#ifndef H264D_DPB_H
+#define H264D_DPB_H
 
 
 #include "rk_type.h"
@@ -53,5 +53,5 @@ H264_StorePic_t *alloc_storable_picture(H264dVideoCtx_t *p_Vid, RK_S32 structure
 #endif
 
 //========================================
-#endif /* end of _H264D_DPB_H_ */
+#endif /* H264D_DPB_H */
 

@@ -10,8 +10,8 @@
  * os_err for error message
  */
 
-#ifndef __OS_LOG_H__
-#define __OS_LOG_H__
+#ifndef OS_LOG_H
+#define OS_LOG_H
 
 typedef void (*os_log_callback)(const char*, const char*, va_list);
 
@@ -30,5 +30,5 @@ void os_log_fatal(const char* tag, const char* msg, va_list list);
 }
 #endif
 
-#endif /*__OS_LOG_H__*/
+#endif /* OS_LOG_H */
 

@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HWPQ_VDPP_PROC_API_H__
-#define __HWPQ_VDPP_PROC_API_H__
+#ifndef HWPQ_VDPP_PROC_API_H
+#define HWPQ_VDPP_PROC_API_H
 
 typedef void* rk_vdpp_context;
 
@@ -153,4 +153,4 @@ int hwpq_vdpp_deinit(rk_vdpp_context ctx);
 }
 #endif
 
-#endif // __HWPQ_VDPP_PROC_API_H__
+#endif // HWPQ_VDPP_PROC_API_H 

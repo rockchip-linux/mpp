@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SINGLETON_H__
-#define __MPP_SINGLETON_H__
+#ifndef MPP_SINGLETON_H
+#define MPP_SINGLETON_H
 
 #include "rk_type.h"
 
@@ -87,4 +87,4 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller);
 }
 #endif
 
-#endif /* __MPP_SINGLETON_H__ */
+#endif /* MPP_SINGLETON_H */

@@ -25,8 +25,8 @@
 *   2016.04.11 : Create
 */
 
-#ifndef __HAL_MPEG4D_API_H__
-#define __HAL_MPEG4D_API_H__
+#ifndef HAL_MPEG4D_API_H
+#define HAL_MPEG4D_API_H
 
 #include "mpp_hal.h"
 
@@ -40,4 +40,4 @@ extern const MppHalApi hal_api_mpg4d;
 }
 #endif
 
-#endif /*__HAL_MPEG4D_API_H__*/
+#endif /* HAL_MPEG4D_API_H */

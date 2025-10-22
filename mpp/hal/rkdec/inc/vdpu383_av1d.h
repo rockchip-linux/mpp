@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPU383_AV1D_H__
-#define __VDPU383_AV1D_H__
+#ifndef VDPU383_AV1D_H
+#define VDPU383_AV1D_H
 
 #include "rk_type.h"
 #include "vdpu383_com.h"
@@ -267,4 +267,4 @@ typedef struct Vdpu383Av1dRegSet_t {
     /* 216-232(col mv) */
 } Vdpu383Av1dRegSet;
 
-#endif /* __VDPU383_AV1D_H__ */
+#endif /* VDPU383_AV1D_H */

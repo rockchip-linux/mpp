@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RC_CTX_H__
-#define __RC_CTX_H__
+#ifndef RC_CTX_H
+#define RC_CTX_H
 
 #include "mpp_rc_api.h"
 #include "rc_base.h"
@@ -131,4 +131,4 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg);
 }
 #endif
 
-#endif /* __RC_CTX_H__ */
+#endif /* RC_CTX_H */

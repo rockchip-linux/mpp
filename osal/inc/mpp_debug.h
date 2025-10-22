@@ -3,8 +3,8 @@
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_DEBUG_H__
-#define __MPP_DEBUG_H__
+#ifndef MPP_DEBUG_H
+#define MPP_DEBUG_H
 
 #include <stdlib.h>
 
@@ -109,4 +109,4 @@ void mpp_llog(int level, const char *tag, const char *fmt, const char *func, ...
 }
 #endif
 
-#endif /*__MPP_DEBUG_H__*/
+#endif /* MPP_DEBUG_H */

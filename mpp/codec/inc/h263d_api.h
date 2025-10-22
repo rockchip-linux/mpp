@@ -1,5 +1,5 @@
-#ifndef __H263D_API_H__
-#define __H263D_API_H__
+#ifndef H263D_API_H
+#define H263D_API_H
 
 #include "parser_api.h"
 

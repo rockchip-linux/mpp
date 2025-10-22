@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_API_H__
-#define __HAL_H263D_API_H__
+#ifndef HAL_H263D_API_H
+#define HAL_H263D_API_H
 
 #include "mpp_hal.h"
 
@@ -35,5 +35,5 @@ extern const MppHalApi hal_api_h263d;
 }
 #endif
 
-#endif /*__HAL_H263D_API_H__*/
+#endif /* HAL_H263D_API_H */
 

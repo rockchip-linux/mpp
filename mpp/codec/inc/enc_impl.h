@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __ENC_IMPL_H__
-#define __ENC_IMPL_H__
+#ifndef ENC_IMPL_H
+#define ENC_IMPL_H
 
 #include "enc_impl_api.h"
 
@@ -44,4 +44,4 @@ MPP_RET enc_impl_sw_enc(EncImpl impl, HalEncTask *task);
 }
 #endif
 
-#endif /*__MPP_ENC_IMPL_H__*/
+#endif /* MPP_ENC_IMPL_H */

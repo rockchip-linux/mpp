@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_PACKET_IMPL_H__
-#define __KMPP_PACKET_IMPL_H__
+#ifndef KMPP_PACKET_IMPL_H
+#define KMPP_PACKET_IMPL_H
 
 #include "kmpp_packet.h"
 
@@ -60,4 +60,4 @@ typedef struct KmppPacketPriv_t {
     KmppMeta    meta;
 } KmppPacketPriv;
 
-#endif /* __KMPP_PACKET_IMPL_H__ */
+#endif /* KMPP_PACKET_IMPL_H */

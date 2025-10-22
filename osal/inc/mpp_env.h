@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_ENV_H__
-#define __MPP_ENV_H__
+#ifndef MPP_ENV_H
+#define MPP_ENV_H
 
 #include "rk_type.h"
 
@@ -22,5 +22,5 @@ RK_S32 mpp_env_set_str(const char *name, char *value);
 }
 #endif
 
-#endif /*__MPP_ENV_H__*/
+#endif /* MPP_ENV_H */
 

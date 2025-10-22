@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_INTERNAL_H__
-#define __MPP_INTERNAL_H__
+#ifndef MPP_INTERNAL_H
+#define MPP_INTERNAL_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -178,4 +178,4 @@ typedef union KmppEntry_u {
     };
 } KmppEntry;
 
-#endif /*__MPP_INTERNAL_H__*/
+#endif /* MPP_INTERNAL_H */

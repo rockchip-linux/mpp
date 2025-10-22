@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_VDPU1_H__
-#define __HAL_H263D_VDPU1_H__
+#ifndef HAL_H263D_VDPU1_H
+#define HAL_H263D_VDPU1_H
 
 #include "mpp_hal.h"
 
@@ -33,4 +33,4 @@ MPP_RET hal_vpu1_h263d_wait(void *hal, HalTaskInfo *task);
 }
 #endif
 
-#endif /*__HAL_H263_VDPU1_H__*/
+#endif /* HAL_H263_VDPU1_H */

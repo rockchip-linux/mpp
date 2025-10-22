@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_META_H__
-#define __KMPP_META_H__
+#ifndef KMPP_META_H
+#define KMPP_META_H
 
 #include "mpp_meta.h"
 
@@ -46,4 +46,4 @@ rk_s32 kmpp_meta_get_shm_d(KmppMeta meta, KmppMetaKey key, KmppShmPtr *sptr, Kmp
 }
 #endif
 
-#endif /*__KMPP_META_H__*/
+#endif /* KMPP_META_H */

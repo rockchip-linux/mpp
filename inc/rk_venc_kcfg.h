@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RK_VENC_KCFG_H__
-#define __RK_VENC_KCFG_H__
+#ifndef RK_VENC_KCFG_H
+#define RK_VENC_KCFG_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -49,4 +49,4 @@ void mpp_venc_kcfg_show(MppVencKcfg cfg);
 }
 #endif
 
-#endif /*__RK_VENC_KCFG_H__*/
+#endif /* RK_VENC_KCFG_H */

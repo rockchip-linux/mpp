@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_HDR_META_COM_H__
-#define __RK_HDR_META_COM_H__
+#ifndef RK_HDR_META_COM_H
+#define RK_HDR_META_COM_H
 
 #include "rk_type.h"
 

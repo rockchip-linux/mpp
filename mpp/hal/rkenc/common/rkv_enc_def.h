@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RKV_ENC_DEF_H__
-#define __RKV_ENC_DEF_H__
+#ifndef RKV_ENC_DEF_H
+#define RKV_ENC_DEF_H
 
 #define RKV_ENC_INT_ONE_FRAME_FINISH    0x00000001
 #define RKV_ENC_INT_LINKTABLE_FINISH    0x00000002

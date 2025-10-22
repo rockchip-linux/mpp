@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP_API_H__
-#define __IEP_API_H__
+#ifndef IEP_API_H
+#define IEP_API_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -178,4 +178,4 @@ void rockchip_iep_api_release_ctx(iep_com_ctx *com_ctx);
 }
 #endif
 
-#endif /* __IEP_API_H__ */
+#endif /* IEP_API_H */

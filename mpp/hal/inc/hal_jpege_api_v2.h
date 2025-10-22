@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGE_API_V2_H__
-#define __HAL_JPEGE_API_V2_H__
+#ifndef HAL_JPEGE_API_V2_H
+#define HAL_JPEGE_API_V2_H
 
 #include "mpp_enc_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppEncHalApi hal_api_jpege_v2;
 }
 #endif
 
-#endif /*__HAL_JPEGE_API_V2_H__*/
+#endif /* HAL_JPEGE_API_V2_H */

@@ -15,8 +15,8 @@
  */
 
 
-#ifndef __HAL_AV1D_GLOBAL_H__
-#define __HAL_AV1D_GLOBAL_H__
+#ifndef HAL_AV1D_GLOBAL_H
+#define HAL_AV1D_GLOBAL_H
 
 #include "mpp_hal.h"
 #include "mpp_debug.h"
@@ -136,4 +136,4 @@ typedef struct av1d_hal_ctx_t {
     const MppDecHwCap       *hw_info;
 } Av1dHalCtx;
 
-#endif /* __HAL_AV1D_GLOBAL_H__ */
+#endif /* HAL_AV1D_GLOBAL_H */

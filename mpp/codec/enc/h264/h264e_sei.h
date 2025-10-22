@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_SEI_H__
-#define __H264E_SEI_H__
+#ifndef H264E_SEI_H
+#define H264E_SEI_H
 
 #include "mpp_packet.h"
 
@@ -31,4 +31,4 @@ MPP_RET h264e_sei_to_packet(MppPacket packet, RK_S32 *len, RK_S32 type,
 }
 #endif
 
-#endif /* __H264E_SEI_H__ */
+#endif /* H264E_SEI_H */

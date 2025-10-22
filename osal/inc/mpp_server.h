@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SERVER_H__
-#define __MPP_SERVER_H__
+#ifndef MPP_SERVER_H
+#define MPP_SERVER_H
 
 #include "mpp_device.h"
 
@@ -22,4 +22,4 @@ rk_s32 mpp_server_wait_task(MppDev ctx, RK_S64 timeout);
 }
 #endif
 
-#endif /* __MPP_SERVER_H__ */
+#endif /* MPP_SERVER_H */

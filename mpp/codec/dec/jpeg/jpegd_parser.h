@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __JPEGD_PARSER_H__
-#define __JPEGD_PARSER_H__
+#ifndef JPEGD_PARSER_H
+#define JPEGD_PARSER_H
 
 #include <limits.h>
 #include <string.h>
@@ -148,4 +148,4 @@ typedef struct JpegdCtx {
     JpegdSyntax              *syntax;
 } JpegdCtx;
 
-#endif /* __JPEGD_PARSER_H__ */
+#endif /* JPEGD_PARSER_H */

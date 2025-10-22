@@ -3,8 +3,8 @@
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __ALLOCATOR_DMA_HEAP_H__
-#define __ALLOCATOR_DMA_HEAP_H__
+#ifndef ALLOCATOR_DMA_HEAP_H
+#define ALLOCATOR_DMA_HEAP_H
 
 #include "mpp_allocator_api.h"
 

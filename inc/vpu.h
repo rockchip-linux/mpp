@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VPU_H__
-#define __VPU_H__
+#ifndef VPU_H
+#define VPU_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,4 +120,4 @@ RK_U32 VPUCheckSupportWidth();
 }
 #endif
 
-#endif /* __VPU_H__ */
+#endif /* VPU_H */

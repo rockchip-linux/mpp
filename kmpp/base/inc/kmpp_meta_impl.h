@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_META_IMPL_H__
-#define __KMPP_META_IMPL_H__
+#ifndef KMPP_META_IMPL_H
+#define KMPP_META_IMPL_H
 
 #include "mpp_list.h"
 #include "kmpp_meta.h"
@@ -33,4 +33,4 @@ extern "C" {
 }
 #endif
 
-#endif /*__KMPP_META_IMPL_H__*/
+#endif /* KMPP_META_IMPL_H */

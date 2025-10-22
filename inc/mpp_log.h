@@ -3,8 +3,8 @@
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_LOG_H__
-#define __MPP_LOG_H__
+#ifndef MPP_LOG_H
+#define MPP_LOG_H
 
 #include <stdarg.h>
 
@@ -90,4 +90,4 @@ void _mpp_err(const char *tag, const char *fmt, const char *func, ...);
 }
 #endif
 
-#endif /*__MPP_LOG_H__*/
+#endif /* MPP_LOG_H */

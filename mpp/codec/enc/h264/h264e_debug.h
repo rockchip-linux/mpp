@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_DEBUG_H__
-#define __H264E_DEBUG_H__
+#ifndef H264E_DEBUG_H
+#define H264E_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -52,4 +52,4 @@
 
 extern RK_U32 h264e_debug;
 
-#endif /* __H264E_DEBUG_H__ */
+#endif /* H264E_DEBUG_H */

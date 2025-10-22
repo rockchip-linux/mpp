@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __HAL_DEC_TASK__
-#define __HAL_DEC_TASK__
+#ifndef HAL_DEC_TASK_H
+#define HAL_DEC_TASK_H
 
 #include "hal_task.h"
 #include "mpp_callback.h"
@@ -116,4 +116,4 @@ typedef union HalTask_u {
     HalDecVprocTask         dec_vproc;
 } HalTaskInfo;
 
-#endif /* __HAL_DEC_TASK__ */
+#endif /* HAL_DEC_TASK_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8E_DEBUG_H__
-#define __HAL_VP8E_DEBUG_H__
+#ifndef HAL_VP8E_DEBUG_H
+#define HAL_VP8E_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -53,4 +53,4 @@
 
 extern RK_U32 vp8e_hal_debug;
 
-#endif /*__HAL_VP8E_DEBUG_H__*/
+#endif /* HAL_VP8E_DEBUG_H */

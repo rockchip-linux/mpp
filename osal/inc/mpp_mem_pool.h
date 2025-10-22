@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_MEM_POOL_H__
-#define __MPP_MEM_POOL_H__
+#ifndef MPP_MEM_POOL_H
+#define MPP_MEM_POOL_H
 
 #include "mpp_mem.h"
 
@@ -30,4 +30,4 @@ void mpp_mem_pool_put(MppMemPool pool, void *p, const char *caller);
 }
 #endif
 
-#endif /*__MPP_MEM_POOL_H__*/
+#endif /* MPP_MEM_POOL_H */

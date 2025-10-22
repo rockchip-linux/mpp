@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_VDEC_CFG_H__
-#define __RK_VDEC_CFG_H__
+#ifndef RK_VDEC_CFG_H
+#define RK_VDEC_CFG_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -47,4 +47,4 @@ void mpp_dec_cfg_show(void);
 }
 #endif
 
-#endif /*__RK_VDEC_CFG_H__*/
+#endif /* RK_VDEC_CFG_H */

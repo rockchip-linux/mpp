@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_BUF_SLOT_H__
-#define __MPP_BUF_SLOT_H__
+#ifndef MPP_BUF_SLOT_H
+#define MPP_BUF_SLOT_H
 
 #include "mpp_frame.h"
 #include "mpp_callback.h"
@@ -268,4 +268,4 @@ MPP_RET mpp_buf_slot_default_info(MppBufSlots slots, RK_S32 index, void *val);
 }
 #endif
 
-#endif /*__MPP_BUF_SLOT_H__*/
+#endif /* MPP_BUF_SLOT_H */

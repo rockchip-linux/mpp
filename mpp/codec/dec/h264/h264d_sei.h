@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef _H264D_SEI_H_
-#define _H264D_SEI_H_
+#ifndef H264D_SEI_H
+#define H264D_SEI_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -33,5 +33,5 @@ MPP_RET process_sei(H264_SLICE_t *currSlice);
 #endif
 
 //========================================
-#endif /* end of _H264D_SEI_H_ */
+#endif /* H264D_SEI_H */
 

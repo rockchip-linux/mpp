@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_VDPU1_REG_H__
-#define __HAL_AVSD_VDPU1_REG_H__
+#ifndef HAL_AVSD_VDPU1_REG_H
+#define HAL_AVSD_VDPU1_REG_H
 
 
 typedef struct {
@@ -244,4 +244,4 @@ typedef struct {
     RK_U32 resever[40];
 } AvsdVdpu1Regs_t;
 
-#endif /*__HAL_AVSD_VDPU1_REG_H__*/
+#endif /* HAL_AVSD_VDPU1_REG_H */

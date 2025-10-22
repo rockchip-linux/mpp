@@ -3,8 +3,8 @@
  * Copyright (c) 2023 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_ALLOCATOR_API_H__
-#define __MPP_ALLOCATOR_API_H__
+#ifndef MPP_ALLOCATOR_API_H
+#define MPP_ALLOCATOR_API_H
 
 #include "mpp_allocator.h"
 
@@ -27,4 +27,4 @@ typedef struct os_allocator_t {
     MppAllocFlagType (*flags)(void *ctx);
 } os_allocator;
 
-#endif /* __MPP_ALLOCATOR_API_H__ */
+#endif /* MPP_ALLOCATOR_API_H */

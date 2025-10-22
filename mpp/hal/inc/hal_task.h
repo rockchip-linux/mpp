@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_TASK__
-#define __HAL_TASK__
+#ifndef HAL_TASK_H
+#define HAL_TASK_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -78,4 +78,4 @@ MPP_RET hal_task_check_empty(HalTaskGroup group, RK_S32 status);
 }
 #endif
 
-#endif /*__HAL_TASK__*/
+#endif /* HAL_TASK_H */

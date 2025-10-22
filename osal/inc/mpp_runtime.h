@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_RUNTIME__
-#define __MPP_RUNTIME__
+#ifndef MPP_RUNTIME_H
+#define MPP_RUNTIME_H
 
 #include "mpp_buffer.h"
 
@@ -22,5 +22,5 @@ rk_u32 mpp_rt_allcator_is_valid(MppBufferType type);
 }
 #endif
 
-#endif /*__MPP_RUNTIME__*/
+#endif /* MPP_RUNTIME_H */
 

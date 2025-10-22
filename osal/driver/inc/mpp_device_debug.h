@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_DEVICE_DEBUG_H__
-#define __MPP_DEVICE_DEBUG_H__
+#ifndef MPP_DEVICE_DEBUG_H
+#define MPP_DEVICE_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -29,4 +29,4 @@
 
 extern RK_U32 mpp_device_debug;
 
-#endif /* __MPP_DEVICE_DEBUG_H__ */
+#endif /* MPP_DEVICE_DEBUG_H */

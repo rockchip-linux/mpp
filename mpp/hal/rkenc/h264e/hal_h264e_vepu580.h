@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU580_H__
-#define __HAL_H264E_VEPU580_H__
+#ifndef HAL_H264E_VEPU580_H
+#define HAL_H264E_VEPU580_H
 
 #include "mpp_enc_hal.h"
 
 extern const MppEncHalApi hal_h264e_vepu580;
 
-#endif /* __HAL_H264E_VEPU541_H__ */
+#endif /* HAL_H264E_VEPU541_H */

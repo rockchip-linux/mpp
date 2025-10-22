@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_CFG_IO__
-#define __MPP_CFG_IO__
+#ifndef MPP_CFG_IO_H
+#define MPP_CFG_IO_H
 
 #include "rk_mpp_cfg.h"
 
@@ -101,4 +101,4 @@ rk_s32 mpp_cfg_print_string(char *buf);
 }
 #endif
 
-#endif /* __MPP_CFG_IO__ */
+#endif /* MPP_CFG_IO_H */

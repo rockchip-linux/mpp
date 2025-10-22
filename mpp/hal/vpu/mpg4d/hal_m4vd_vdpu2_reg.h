@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M4V_VDPU2_REG_TBL_H__
-#define __HAL_M4V_VDPU2_REG_TBL_H__
+#ifndef HAL_M4V_VDPU2_REG_TBL_H
+#define HAL_M4V_VDPU2_REG_TBL_H
 
 #include "rk_type.h"
 
@@ -394,4 +394,4 @@ typedef struct  {
     } reg158;
 } M4vdVdpu2Regs_t;
 
-#endif /*__HAL_M4V_VDPU2_REG_TBL_H__*/
+#endif /* HAL_M4V_VDPU2_REG_TBL_H */

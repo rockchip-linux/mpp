@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_API_H__
-#define __H265E_API_H__
+#ifndef H265E_API_H
+#define H265E_API_H
 
 #include "enc_impl_api.h"
 
@@ -29,4 +29,4 @@ extern const EncImplApi api_h265e;
 }
 #endif
 
-#endif /*__H265E_API_H__*/
+#endif /* H265E_API_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2016 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_RC_API_H__
-#define __MPP_RC_API_H__
+#ifndef MPP_RC_API_H
+#define MPP_RC_API_H
 
 #include "mpp_err.h"
 #include "rk_venc_rc.h"
@@ -252,4 +252,4 @@ MPP_RET rc_brief_get_by_type(RcApiQueryType *query);
 }
 #endif
 
-#endif /* __MPP_RC_API_H__ */
+#endif /* MPP_RC_API_H */

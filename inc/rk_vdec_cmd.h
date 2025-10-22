@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_VDEC_CMD_H__
-#define __RK_VDEC_CMD_H__
+#ifndef RK_VDEC_CMD_H
+#define RK_VDEC_CMD_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -66,4 +66,4 @@ typedef struct MppDecQueryCfg_t {
 typedef void* MppExtCbCtx;
 typedef MPP_RET (*MppExtCbFunc)(MppExtCbCtx cb_ctx, MppCtx mpp, RK_S32 cmd, void *arg);
 
-#endif /*__RK_VDEC_CMD_H__*/
+#endif /* RK_VDEC_CMD_H */

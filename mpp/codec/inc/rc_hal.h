@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RC_HAL_H__
-#define __RC_HAL_H__
+#ifndef RC_HAL_H
+#define RC_HAL_H
 
 #include "mpp_platform.h"
 
@@ -46,4 +46,4 @@ typedef struct RcHalRet_t {
     };
 } RcHalRet;
 
-#endif /* __RC_HAL_H__ */
+#endif /* RC_HAL_H */

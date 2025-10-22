@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_BUFFER_IMPL_H__
-#define __KMPP_BUFFER_IMPL_H__
+#ifndef KMPP_BUFFER_IMPL_H
+#define KMPP_BUFFER_IMPL_H
 
 #include "mpp_list.h"
 #include "kmpp_obj.h"
@@ -150,4 +150,4 @@ typedef struct KmppBufferImpl_t {
     KmppBufCfgImpl      cfg_int;
 } KmppBufferImpl;
 
-#endif /* __KMPP_BUF_GRP_IMPL_H__ */
+#endif /* KMPP_BUF_GRP_IMPL_H */

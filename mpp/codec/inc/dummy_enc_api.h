@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __DUMMY_ENC_API_H__
-#define __DUMMY_ENC_API_H__
+#ifndef DUMMY_ENC_API_H
+#define DUMMY_ENC_API_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -26,4 +26,4 @@ extern "C" {
 }
 #endif
 
-#endif /*__DUMMY_ENC_API_H__*/
+#endif /* DUMMY_ENC_API_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_NORMAL_H__
-#define __MPP_DEC_NORMAL_H__
+#ifndef MPP_DEC_NORMAL_H
+#define MPP_DEC_NORMAL_H
 
 #include "mpp_dec_impl.h"
 
@@ -29,4 +29,4 @@ extern MppDecModeApi dec_api_normal;
 }
 #endif
 
-#endif /*__MPP_DEC_NORMAL_H__*/
+#endif /* MPP_DEC_NORMAL_H */

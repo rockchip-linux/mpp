@@ -5,12 +5,12 @@
 
 #include "kmpp_obj_macro.h"
 
-#ifdef __OBJECT_HERLPER_H__
+#ifdef OBJECT_HERLPER_H
 #error “MUST NOT include obj_helper.h within obj_helper.h“
 #endif
 
 /* define object helper for loop include detection */
-#define __OBJECT_HERLPER_H__
+#define OBJECT_HERLPER_H
 
 #if !defined(KMPP_OBJ_NAME) || \
     !defined(KMPP_OBJ_INTF_TYPE)
@@ -643,6 +643,6 @@ extern "C" {
 #undef MPP_CFG_TYPE_ptr
 #undef MPP_CFG_TYPE_st
 
-#undef __OBJECT_HERLPER_H__
+#undef OBJECT_HERLPER_H
 
 #endif

@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_MEM_H__
-#define __MPP_MEM_H__
+#ifndef MPP_MEM_H
+#define MPP_MEM_H
 
 #include <stdlib.h>
 
@@ -55,5 +55,5 @@ rk_u32 mpp_mem_total_max();
 }
 #endif
 
-#endif /*__MPP_MEM_H__*/
+#endif /* MPP_MEM_H */
 

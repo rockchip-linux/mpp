@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __HAL_JPEGD_API_H__
-#define __HAL_JPEGD_API_H__
+#ifndef HAL_JPEGD_API_H
+#define HAL_JPEGD_API_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -42,4 +42,4 @@ MPP_RET hal_jpegd_control(void *hal, MpiCmd cmd_type, void *param);
 }
 #endif
 
-#endif /*__HAL_JPEGD_API_H__*/
+#endif /* HAL_JPEGD_API_H */

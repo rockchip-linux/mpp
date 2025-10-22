@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VCODEC_SERVICE_API_H__
-#define __VCODEC_SERVICE_API_H__
+#ifndef VCODEC_SERVICE_API_H
+#define VCODEC_SERVICE_API_H
 
 #include "mpp_device.h"
 
@@ -18,4 +18,4 @@ extern const MppDevApi vcodec_service_api;
 }
 #endif
 
-#endif /* __VCODEC_SERVICE_API_H__ */
+#endif /* VCODEC_SERVICE_API_H */

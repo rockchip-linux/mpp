@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGD_VDPU2_REG_H__
-#define __HAL_JPEGD_VDPU2_REG_H__
+#ifndef HAL_JPEGD_VDPU2_REG_H
+#define HAL_JPEGD_VDPU2_REG_H
 
 #include "vcodec_service.h"
 
@@ -674,4 +674,4 @@ typedef struct JpegdIocRegInfo_t {
     RK_U8                  extra_info[EXTRA_INFO_SIZE];
 } JpegdIocRegInfo;
 
-#endif /* __HAL_JPEGD_VDPU2_REG_H__ */
+#endif /* HAL_JPEGD_VDPU2_REG_H */

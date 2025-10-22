@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M4VD_COM_H__
-#define __HAL_M4VD_COM_H__
+#ifndef HAL_M4VD_COM_H
+#define HAL_M4VD_COM_H
 
 #include "mpp_hal.h"
 #include "mpp_device.h"
@@ -54,4 +54,4 @@ extern RK_U8 default_intra_matrix[64];
 
 extern void vpu_mpg4d_get_buffer_by_index(hal_mpg4_ctx *ctx, RK_S32 index, MppBuffer *buffer);
 
-#endif /*__HAL_M4VD_COM_H__*/
+#endif /* HAL_M4VD_COM_H */

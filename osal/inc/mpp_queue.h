@@ -3,8 +3,8 @@
  * Copyright (c) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_QUEUE_H__
-#define __MPP_QUEUE_H__
+#ifndef MPP_QUEUE_H
+#define MPP_QUEUE_H
 
 #include "mpp_list.h"
 

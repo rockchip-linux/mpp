@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_AV1D_VDPU383_H__
-#define __HAL_AV1D_VDPU383_H__
+#ifndef HAL_AV1D_VDPU383_H
+#define HAL_AV1D_VDPU383_H
 
 #include "mpp_hal.h"
 #include "vdpu383.h"
@@ -19,4 +19,4 @@ extern const MppHalApi hal_av1d_vdpu383;
 }
 #endif
 
-#endif /* __HAL_AV1D_VDPU383_H__ */
+#endif /* HAL_AV1D_VDPU383_H */

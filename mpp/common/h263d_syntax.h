@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __H263D_SYNTAX__
-#define __H263D_SYNTAX__
+#ifndef H263D_SYNTAX_H
+#define H263D_SYNTAX_H
 
 #include "dxva_syntax.h"
 
@@ -95,4 +95,4 @@ typedef struct h263d_dxva2_picture_context {
     DXVA2_DecodeBufferDesc      desc[2];
 } h263d_dxva2_picture_context_t;
 
-#endif /*__H263D_SYNTAX__*/
+#endif /* H263D_SYNTAX_H */

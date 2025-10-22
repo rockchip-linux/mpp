@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_JPEGE_HDR_H__
-#define __HAL_JPEGE_HDR_H__
+#ifndef HAL_JPEGE_HDR_H
+#define HAL_JPEGE_HDR_H
 
 #include "jpege_syntax.h"
 
@@ -56,5 +56,5 @@ void hal_jpege_rc_update(HalJpegeRc *hal_rc, JpegeSyntax *syntax);
 }
 #endif
 
-#endif /*__HAL_JPEGE_HDR_H__*/
+#endif /* HAL_JPEGE_HDR_H */
 

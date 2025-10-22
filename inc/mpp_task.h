@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_TASK_H__
-#define __MPP_TASK_H__
+#ifndef MPP_TASK_H
+#define MPP_TASK_H
 
 #include "mpp_meta.h"
 
@@ -234,4 +234,4 @@ MPP_RET mpp_task_meta_get_buffer(MppTask task, MppMetaKey key, MppBuffer *buffer
 }
 #endif
 
-#endif /*__MPP_QUEUE_H__*/
+#endif /* MPP_QUEUE_H */

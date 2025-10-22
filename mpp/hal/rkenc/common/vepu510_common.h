@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VEPU510_COMMON_H__
-#define __VEPU510_COMMON_H__
+#ifndef VEPU510_COMMON_H
+#define VEPU510_COMMON_H
 
 #include "rk_venc_cmd.h"
 
@@ -2222,4 +2222,4 @@ MPP_RET vepu510_set_roi(void *roi_reg_base, MppEncROICfg * roi, RK_S32 w,
 }
 #endif
 
-#endif /* __VEPU510_COMMON_H__ */
+#endif /* VEPU510_COMMON_H */

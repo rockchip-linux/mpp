@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_MPI_CMD_H__
-#define __RK_MPI_CMD_H__
+#ifndef RK_MPI_CMD_H
+#define RK_MPI_CMD_H
 
 /*
  * Command id bit usage is defined as follows:
@@ -220,4 +220,4 @@ typedef enum {
 #include "rk_venc_cfg.h"
 #include "rk_venc_ref.h"
 
-#endif /*__RK_MPI_CMD_H__*/
+#endif /* RK_MPI_CMD_H */

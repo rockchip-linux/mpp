@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPI_IMPL_H__
-#define __MPI_IMPL_H__
+#ifndef MPI_IMPL_H
+#define MPI_IMPL_H
 
 #include "mpp.h"
 
@@ -39,4 +39,4 @@ struct MpiImpl_t {
 
 extern RK_U32 mpi_debug;
 
-#endif /*__MPI_IMPL_H__*/
+#endif /* MPI_IMPL_H */

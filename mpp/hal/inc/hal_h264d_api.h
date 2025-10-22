@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __HAL_H264D_API_H__
-#define __HAL_H264D_API_H__
+#ifndef HAL_H264D_API_H
+#define HAL_H264D_API_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -35,4 +35,4 @@ extern const MppHalApi hal_api_h264d;
 }
 #endif
 
-#endif /*__HAL_H264D_API_H__*/
+#endif /* HAL_H264D_API_H */

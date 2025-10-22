@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_VDPU383_VP9D_H__
-#define __HAL_VDPU383_VP9D_H__
+#ifndef HAL_VDPU383_VP9D_H
+#define HAL_VDPU383_VP9D_H
 
 #include "rk_type.h"
 #include "vdpu383_com.h"
@@ -181,4 +181,4 @@ typedef struct Vdpu383Vp9dRegSet_t {
     Vdpu383RegVp9dAddr      vp9d_addrs;         /* 168-185, 192-210, 216-232 */
 } Vdpu383Vp9dRegSet;
 
-#endif /* __HAL_VDPU383_VP9D_H__ */
+#endif /* HAL_VDPU383_VP9D_H */

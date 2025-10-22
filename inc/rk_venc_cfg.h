@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RK_VENC_CFG_H__
-#define __RK_VENC_CFG_H__
+#ifndef RK_VENC_CFG_H
+#define RK_VENC_CFG_H
 
 #include "rk_mpp_cfg.h"
 
@@ -43,4 +43,4 @@ MPP_RET mpp_enc_cfg_apply(MppEncCfg cfg, MppCfgStrFmt fmt, char *buf);
 }
 #endif
 
-#endif /*__RK_VENC_CFG_H__*/
+#endif /* RK_VENC_CFG_H */

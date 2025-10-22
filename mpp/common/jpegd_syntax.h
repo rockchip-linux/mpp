@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __JPEGD_SYNTAX__
-#define __JPEGD_SYNTAX__
+#ifndef JPEGD_SYNTAX_H
+#define JPEGD_SYNTAX_H
 
 #include "mpp_frame.h"
 
@@ -190,4 +190,4 @@ typedef struct JpegdSyntax {
     RK_U8          htbl_entry;
 } JpegdSyntax;
 
-#endif /*__JPEGD_SYNTAX__*/
+#endif /* JPEGD_SYNTAX_H */

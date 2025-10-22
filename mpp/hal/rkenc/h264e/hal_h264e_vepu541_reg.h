@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU541_REG_H__
-#define __HAL_H264E_VEPU541_REG_H__
+#ifndef HAL_H264E_VEPU541_REG_H
+#define HAL_H264E_VEPU541_REG_H
 
 #include "vepu541_common.h"
 
@@ -2484,4 +2484,4 @@ typedef struct Vepu541H264eRegRet_t {
     RK_U32  st_mb_num;
 } Vepu541H264eRegRet;
 
-#endif /* __HAL_H264E_VEPU541_REG_H__ */
+#endif /* HAL_H264E_VEPU541_REG_H */

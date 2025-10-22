@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __H264_SYNTAX_H__
-#define __H264_SYNTAX_H__
+#ifndef H264_SYNTAX_H
+#define H264_SYNTAX_H
 
 /* H.264/AVC-specific definition */
 
@@ -180,4 +180,4 @@ typedef enum H264ScalingListType_e {
 
 #define H264E_MAX_REFS_CNT          16
 
-#endif /*__H264_SYNTAX_H__*/
+#endif /* H264_SYNTAX_H */

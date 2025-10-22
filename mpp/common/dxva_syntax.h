@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __DXVA_SYNTAX_H__
-#define __DXVA_SYNTAX_H__
+#ifndef DXVA_SYNTAX_H
+#define DXVA_SYNTAX_H
 
 #include "rk_type.h"
 
@@ -66,5 +66,5 @@ typedef struct _DXVA2_DecodeBufferDesc {
     void   *pvPVPState;
 }   DXVA2_DecodeBufferDesc;
 
-#endif /*__DXVA_SYNTAX_H__*/
+#endif /* DXVA_SYNTAX_H */
 

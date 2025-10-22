@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SOC_H__
-#define __MPP_SOC_H__
+#ifndef MPP_SOC_H
+#define MPP_SOC_H
 
 #include "mpp_dev_defs.h"
 
@@ -99,4 +99,4 @@ const MppDecHwCap* mpp_get_dec_hw_info_by_client_type(MppClientType client_type)
 }
 #endif
 
-#endif /*__MPP_SOC_H__*/
+#endif /* MPP_SOC_H */

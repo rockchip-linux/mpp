@@ -18,8 +18,8 @@
 #include <stdint.h>
 #include "rk_type.h"
 
-#ifndef __VP8D_DATA_H__
-#define __VP8D_DATA_H__
+#ifndef VP8D_DATA_H
+#define VP8D_DATA_H
 
 #define VP7_MV_PROBS_PER_COMPONENT      (17)
 #define VP8_MV_PROBS_PER_COMPONENT      (19)

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_VENC_REF_H__
-#define __RK_VENC_REF_H__
+#ifndef RK_VENC_REF_H
+#define RK_VENC_REF_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -263,4 +263,4 @@ MPP_RET mpp_enc_ref_cfg_show(MppEncRefCfg ref);
 }
 #endif
 
-#endif /*__RK_VENC_REF_H__*/
+#endif /* RK_VENC_REF_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_SLICE_H__
-#define __H265E_SLICE_H__
+#ifndef H265E_SLICE_H
+#define H265E_SLICE_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -472,4 +472,4 @@ H265eDpbFrm* get_lt_ref_pic(H265eDpbFrm *frame_list, H265eSlice *slice, RK_S32 p
 }
 #endif
 
-#endif /* __H265E_SLICE_H__ */
+#endif /* H265E_SLICE_H */

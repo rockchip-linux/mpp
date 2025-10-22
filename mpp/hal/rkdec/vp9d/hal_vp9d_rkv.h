@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP9D_RKV_H__
-#define __HAL_VP9D_RKV_H__
+#ifndef HAL_VP9D_RKV_H
+#define HAL_VP9D_RKV_H
 
 #include "mpp_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppHalApi hal_vp9d_rkv;
 }
 #endif
 
-#endif /*__HAL_VP9D_RKV_H__*/
+#endif /* HAL_VP9D_RKV_H */

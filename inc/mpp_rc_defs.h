@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_RC_DEFS_H__
-#define __MPP_RC_DEFS_H__
+#ifndef MPP_RC_DEFS_H
+#define MPP_RC_DEFS_H
 
 #include "rk_venc_ref.h"
 
@@ -232,4 +232,4 @@ typedef struct EncRcTask_s {
     MppFrame        frame;
 } EncRcTask;
 
-#endif /* __MPP_RC_DEFS_H__ */
+#endif /* MPP_RC_DEFS_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VDPU382_COM_H__
-#define __VDPU382_COM_H__
+#ifndef VDPU382_COM_H
+#define VDPU382_COM_H
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
@@ -575,4 +575,4 @@ RK_U32 vdpu382_get_colmv_size(RK_U32 width, RK_U32 height, RK_U32 ctu_size,
 }
 #endif
 
-#endif /* __VDPU382_COM_H__ */
+#endif /* VDPU382_COM_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VEPU540C_COMMON_H__
-#define __VEPU540C_COMMON_H__
+#ifndef VEPU540C_COMMON_H
+#define VEPU540C_COMMON_H
 
 #include "rk_venc_cmd.h"
 #include "mpp_device.h"
@@ -1778,4 +1778,4 @@ MPP_RET vepu540c_set_roi(void *roi_reg_base, MppEncROICfg * roi, RK_S32 w,
 #ifdef __cplusplus
 }
 #endif
-#endif              /* __VEPU540C_COMMON_H__ */
+#endif /* VEPU540C_COMMON_H */

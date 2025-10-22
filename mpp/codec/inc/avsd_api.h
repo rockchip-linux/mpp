@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVSD_API_H__
-#define __AVSD_API_H__
+#ifndef AVSD_API_H
+#define AVSD_API_H
 
 #include "parser_api.h"
 
@@ -30,4 +30,4 @@ extern const ParserApi api_avsd_plus_parser;
 }
 #endif
 
-#endif /*__AVSD_API_H__*/
+#endif /* AVSD_API_H */

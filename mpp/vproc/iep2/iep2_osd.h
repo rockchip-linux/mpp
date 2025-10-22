@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_OSD_H__
-#define __IEP2_OSD_H__
+#ifndef IEP2_OSD_H
+#define IEP2_OSD_H
 
 #include "iep2.h"
 #include "iep2_api.h"

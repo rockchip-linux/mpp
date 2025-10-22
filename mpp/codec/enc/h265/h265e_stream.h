@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_STREAM_H__
-#define __H265E_STREAM_H__
+#ifndef H265E_STREAM_H
+#define H265E_STREAM_H
 
 #include "mpp_bitwrite.h"
 
@@ -51,4 +51,4 @@ MPP_RET h265e_stream_flush(H265eStream *s);
 }
 #endif
 
-#endif /* __H265E_STREAM_H__ */
+#endif /* H265E_STREAM_H */

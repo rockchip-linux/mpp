@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __M2VD_COM_H__
-#define __M2VD_COM_H__
+#ifndef M2VD_COM_H
+#define M2VD_COM_H
 
 #include <stdio.h>
 #include <stdlib.h>

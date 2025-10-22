@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPI_ENC_UTILS_H__
-#define __MPI_ENC_UTILS_H__
+#ifndef MPI_ENC_UTILS_H
+#define MPI_ENC_UTILS_H
 
 #include <stdio.h>
 
@@ -138,4 +138,4 @@ MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd);
 }
 #endif
 
-#endif /*__MPI_ENC_UTILS_H__*/
+#endif /* MPI_ENC_UTILS_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_DEBUG_H__
-#define __VP8E_DEBUG_H__
+#ifndef VP8E_DEBUG_H
+#define VP8E_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -35,4 +35,4 @@
 
 extern RK_U32 vp8e_rc_debug;
 
-#endif //__VP8E_DEBUG_H__
+#endif // VP8E_DEBUG_H 

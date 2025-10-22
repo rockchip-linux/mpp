@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_AVSD_VDPU2_H__
-#define __HAL_AVSD_VDPU2_H__
+#ifndef HAL_AVSD_VDPU2_H
+#define HAL_AVSD_VDPU2_H
 
 #include "mpp_hal.h"
 
@@ -36,4 +36,4 @@ MPP_RET hal_avsd_vdpu2_control (void *decoder, MpiCmd cmd_type, void *param);
 }
 #endif
 
-#endif /*__HAL_AVSD_VDPU2_H__*/
+#endif /* HAL_AVSD_VDPU2_H */

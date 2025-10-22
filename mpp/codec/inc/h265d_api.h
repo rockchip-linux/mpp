@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265D_API_H__
-#define __H265D_API_H__
+#ifndef H265D_API_H
+#define H265D_API_H
 
 #include "parser_api.h"
 
@@ -45,4 +45,4 @@ MPP_RET h265d_set_compare_info(void *ctx, void *info);
 }
 #endif
 
-#endif /*__H265D_API_H__*/
+#endif /* H265D_API_H */

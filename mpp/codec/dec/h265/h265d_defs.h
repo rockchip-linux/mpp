@@ -26,8 +26,8 @@
  */
 
 
-#ifndef __H265D_DEF_H__
-#define __H265D_DEF_H__
+#ifndef H265D_DEF_H
+#define H265D_DEF_H
 
 #ifdef VPS_EXTENSION
 #define MAX_VPS_NUM_SCALABILITY_TYPES       16

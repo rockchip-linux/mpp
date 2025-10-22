@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_COMMON_H__
-#define __MPP_COMMON_H__
+#ifndef MPP_COMMON_H
+#define MPP_COMMON_H
 
 #include "rk_type.h"
 
@@ -234,5 +234,5 @@ RK_U32 mpp_align_128_odd_plus_64(RK_U32 val);
 }
 #endif
 
-#endif /*__MPP_COMMON_H__*/
+#endif /* MPP_COMMON_H */
 

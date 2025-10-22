@@ -23,8 +23,8 @@
  * @history
  *   2016.04.06 : Create
  */
-#ifndef __MPG4D_SYNTAX__
-#define __MPG4D_SYNTAX__
+#ifndef MPG4D_SYNTAX_H
+#define MPG4D_SYNTAX_H
 
 #include "dxva_syntax.h"
 
@@ -145,4 +145,4 @@ typedef struct mpeg4d_dxva2_picture_context {
     RK_U32                      bitstream_size;
 } mpeg4d_dxva2_picture_context_t;
 
-#endif /*__MPG4D_SYNTAX__*/
+#endif /* MPG4D_SYNTAX_H */

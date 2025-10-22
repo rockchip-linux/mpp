@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_ENC_IMPL_H__
-#define __MPP_ENC_IMPL_H__
+#ifndef MPP_ENC_IMPL_H
+#define MPP_ENC_IMPL_H
 
 #include "enc_impl.h"
 #include "mpp_enc_hal.h"
@@ -166,4 +166,4 @@ MPP_RET mpp_enc_callback(const char *caller, void *ctx, RK_S32 cmd, void *param)
 }
 #endif
 
-#endif /*__MPP_ENC_IMPL_H__*/
+#endif /* MPP_ENC_IMPL_H */

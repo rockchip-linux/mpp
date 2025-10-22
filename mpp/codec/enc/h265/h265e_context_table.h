@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_CONTEXT_TABLE_H__
-#define __H265E_CONTEXT_TABLE_H__
+#ifndef H265E_CONTEXT_TABLE_H
+#define H265E_CONTEXT_TABLE_H
 
 #include "rk_type.h"
 
@@ -61,4 +61,4 @@ static const RK_U8 INIT_MERGE_IDX_EXT[3][NUM_MERGE_IDX_EXT_CTX] = {
     { CNU, },
 };
 
-#endif /* __H265E_CONTEXT_TABLE_H__ */
+#endif /* H265E_CONTEXT_TABLE_H */

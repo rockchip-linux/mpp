@@ -3,8 +3,8 @@
  * Copyright (c) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_EVENT_TRIGGER_H__
-#define __MPP_EVENT_TRIGGER_H__
+#ifndef MPP_EVENT_TRIGGER_H
+#define MPP_EVENT_TRIGGER_H
 
 typedef void (*event_trigger)(void *parent, void *event);
 

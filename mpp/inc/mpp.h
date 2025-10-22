@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_H__
-#define __MPP_H__
+#ifndef MPP_H
+#define MPP_H
 
 #include "mpp_queue.h"
 #include "mpp_task_impl.h"
@@ -235,4 +235,4 @@ void mpp_set_io_mode(Mpp *mpp, MppIoMode mode);
 }
 #endif
 
-#endif /*__MPP_H__*/
+#endif /* MPP_H */

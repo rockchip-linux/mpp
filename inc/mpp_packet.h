@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_PACKET_H__
-#define __MPP_PACKET_H__
+#ifndef MPP_PACKET_H
+#define MPP_PACKET_H
 
 #include "mpp_meta.h"
 
@@ -103,4 +103,4 @@ const MppPktSeg *mpp_packet_get_segment_info(const MppPacket packet);
 }
 #endif
 
-#endif /*__MPP_PACKET_H__*/
+#endif /* MPP_PACKET_H */

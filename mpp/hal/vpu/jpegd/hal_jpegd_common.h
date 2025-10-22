@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_JPEGD_COMMON_H__
-#define __HAL_JPEGD_COMMON_H__
+#ifndef HAL_JPEGD_COMMON_H
+#define HAL_JPEGD_COMMON_H
 
 #include "hal_jpegd_base.h"
 
@@ -80,4 +80,4 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax,
 
 MPP_RET jpeg_image_check_size(RK_U32 hor_stride, RK_U32 ver_stride);
 
-#endif /* __HAL_JPEGD_COMMON_H__ */
+#endif /* HAL_JPEGD_COMMON_H */

@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __H264D_SYNTAX_H__
-#define __H264D_SYNTAX_H__
+#ifndef H264D_SYNTAX_H
+#define H264D_SYNTAX_H
 
 #include "h264_syntax.h"
 #include "dxva_syntax.h"
@@ -437,5 +437,5 @@ typedef struct h264d_syntax_t {
     DXVA2_DecodeBufferDesc *buf;
 } H264dSyntax_t;
 
-#endif /*__H264D_SYNTAX_H__*/
+#endif /* H264D_SYNTAX_H */
 

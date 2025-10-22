@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VEPU580_COMMON_H__
-#define __VEPU580_COMMON_H__
+#ifndef VEPU580_COMMON_H
+#define VEPU580_COMMON_H
 
 #include "vepu5xx_common.h"
 
@@ -145,4 +145,4 @@ typedef struct Vepu580OsdReg_t {
 
 MPP_RET vepu580_set_osd(Vepu5xxOsdCfg *cfg);
 
-#endif /* __VEPU580_COMMON_H__ */
+#endif /* VEPU580_COMMON_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VEPU511_COMMON_H__
-#define __VEPU511_COMMON_H__
+#ifndef VEPU511_COMMON_H
+#define VEPU511_COMMON_H
 
 #include "rk_venc_cmd.h"
 #include "mpp_device.h"
@@ -2259,4 +2259,4 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg);
 }
 #endif
 
-#endif /* __VEPU511_COMMON_H__ */
+#endif /* VEPU511_COMMON_H */

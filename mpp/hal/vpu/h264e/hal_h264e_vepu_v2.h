@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_VEPU_V2_H__
-#define __HAL_H264E_VEPU_V2_H__
+#ifndef HAL_H264E_VEPU_V2_H
+#define HAL_H264E_VEPU_V2_H
 
 #include "mpp_enc_cfg.h"
 #include "mpp_rc.h"

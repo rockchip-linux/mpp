@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_IMPL_H__
-#define __MPP_DEC_IMPL_H__
+#ifndef MPP_DEC_IMPL_H
+#define MPP_DEC_IMPL_H
 
 #include "mpp_time.h"
 #include "mpp_mem_pool.h"
@@ -247,4 +247,4 @@ RK_S32 mpp_dec_push_display(Mpp *mpp, HalDecTaskFlag flags);
 }
 #endif
 
-#endif /*__MPP_DEC_IMPL_H__*/
+#endif /* MPP_DEC_IMPL_H */

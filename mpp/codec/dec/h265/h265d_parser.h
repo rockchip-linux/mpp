@@ -26,8 +26,8 @@
  */
 
 
-#ifndef __H265D_PARSER_H__
-#define __H265D_PARSER_H__
+#ifndef H265D_PARSER_H
+#define H265D_PARSER_H
 
 #include <limits.h>
 #include <string.h>
@@ -718,4 +718,4 @@ void mpp_hevc_pps_free(RK_U8 *data);
 
 void mpp_hevc_fill_dynamic_meta(HEVCContext *s, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt);
 
-#endif /* __H265D_PAESER_H__ */
+#endif /* H265D_PAESER_H */

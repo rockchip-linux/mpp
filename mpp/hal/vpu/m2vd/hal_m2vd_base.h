@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M2VD_BASE_H__
-#define __HAL_M2VD_BASE_H__
+#ifndef HAL_M2VD_BASE_H
+#define HAL_M2VD_BASE_H
 
 #include <stdio.h>
 
@@ -76,4 +76,4 @@ typedef struct M2vdHalCtx_t {
     RK_U32          reg_len;
 } M2vdHalCtx;
 
-#endif // __HAL_M2VD_BASE_H__
+#endif // HAL_M2VD_BASE_H 

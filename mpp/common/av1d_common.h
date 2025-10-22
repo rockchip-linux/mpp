@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AV1D_COMMON_H__
-#define __AV1D_COMMON_H__
+#ifndef AV1D_COMMON_H
+#define AV1D_COMMON_H
 
 #include "mpp_common.h"
 
@@ -872,4 +872,4 @@ typedef struct {
     RK_S16 cropped_chroma_grain_block[1024 * 2];
 } AV1FilmGrainMemory;
 
-#endif  // __AV1COMMONDEC_H__
+#endif // AV1COMMONDEC_H 

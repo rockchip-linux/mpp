@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_CALLBACK_H__
-#define __MPP_CALLBACK_H__
+#ifndef MPP_CALLBACK_H
+#define MPP_CALLBACK_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -29,4 +29,4 @@ MPP_RET mpp_callback_f(const char *caller, MppCbCtx *ctx, void *param);
 }
 #endif
 
-#endif /* __MPP_CALLBACK_H__ */
+#endif /* MPP_CALLBACK_H */

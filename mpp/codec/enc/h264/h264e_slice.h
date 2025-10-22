@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_SLICE_H__
-#define __H264E_SLICE_H__
+#ifndef H264E_SLICE_H
+#define H264E_SLICE_H
 
 #include "mpp_enc_cfg.h"
 
@@ -181,4 +181,4 @@ RK_S32 h264e_slice_write_prefix_nal_unit_svc(H264ePrefixNal *nal, void *p, RK_S3
 }
 #endif
 
-#endif /* __H264E_SLICE_H__ */
+#endif /* H264E_SLICE_H */

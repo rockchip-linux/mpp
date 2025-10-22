@@ -3,8 +3,8 @@
  * Copyright (c) 2023 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_DMABUF_H__
-#define __MPP_DMABUF_H__
+#ifndef MPP_DMABUF_H
+#define MPP_DMABUF_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -25,4 +25,4 @@ RK_U32 mpp_dmabuf_sync_partial_support(void);
 }
 #endif
 
-#endif /* __MPP_DMABUF_H__ */
+#endif /* MPP_DMABUF_H */

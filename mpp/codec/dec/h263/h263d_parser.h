@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __H263D_PARSER_H__
-#define __H263D_PARSER_H__
+#ifndef H263D_PARSER_H
+#define H263D_PARSER_H
 
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
@@ -50,4 +50,4 @@ MPP_RET mpp_h263_parser_update_dpb(H263dParser ctx);
 }
 #endif
 
-#endif/* __H263D_PAESER_H__ */
+#endif /* H263D_PAESER_H */

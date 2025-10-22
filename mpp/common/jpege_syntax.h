@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __JPEGE_SYNTAX_H__
-#define __JPEGE_SYNTAX_H__
+#ifndef JPEGE_SYNTAX_H
+#define JPEGE_SYNTAX_H
 
 #include "mpp_frame.h"
 #include "rk_venc_cmd.h"

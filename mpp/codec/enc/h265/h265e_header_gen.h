@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_HEADER_GEN_H__
-#define __H265E_HEADER_GEN_H__
+#ifndef H265E_HEADER_GEN_H
+#define H265E_HEADER_GEN_H
 
 #include "h265e_stream.h"
 #define H265E_UUID_LENGTH 16
@@ -110,4 +110,4 @@ MPP_RET h265e_get_extra_info(H265eCtx *ctx, MppPacket pkt_out);
 }
 #endif
 
-#endif /*__H265E_HEADER_GEN_H__ */
+#endif /* H265E_HEADER_GEN_H */

@@ -3,9 +3,9 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPU383_H__
-#define __VDPU383_H__
+#ifndef VDPU383_H
+#define VDPU383_H
 
 #define HWID_VDPU383                (0x38321746)
 
-#endif /* __VDPU383_H__ */
+#endif /* VDPU383_H */

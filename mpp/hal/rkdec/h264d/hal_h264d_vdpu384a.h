@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_H264D_VDPU384A_H__
-#define __HAL_H264D_VDPU384A_H__
+#ifndef HAL_H264D_VDPU384A_H
+#define HAL_H264D_VDPU384A_H
 
 #include "mpp_hal.h"
 #include "vdpu384a.h"
@@ -19,4 +19,4 @@ extern const MppHalApi hal_h264d_vdpu384a;
 }
 #endif
 
-#endif /* __HAL_H264D_VDPU384A_H__ */
+#endif /* HAL_H264D_VDPU384A_H */

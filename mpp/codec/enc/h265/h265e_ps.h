@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_PS_H__
-#define __H265E_PS_H__
+#ifndef H265E_PS_H
+#define H265E_PS_H
 
 #include "h265e_slice.h"
 #include "h265e_codec.h"

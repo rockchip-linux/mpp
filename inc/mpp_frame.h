@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_FRAME_H__
-#define __MPP_FRAME_H__
+#ifndef MPP_FRAME_H
+#define MPP_FRAME_H
 
 #include "mpp_buffer.h"
 #include "mpp_meta.h"
@@ -476,4 +476,4 @@ void    mpp_frame_set_hdr_dynamic_meta(MppFrame frame, MppFrameHdrDynamicMeta *v
 }
 #endif
 
-#endif /*__MPP_FRAME_H__*/
+#endif /* MPP_FRAME_H */

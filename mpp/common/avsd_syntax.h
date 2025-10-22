@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVSD_SYNTAX_H__
-#define __AVSD_SYNTAX_H__
+#ifndef AVSD_SYNTAX_H
+#define AVSD_SYNTAX_H
 
 #include "rk_type.h"
 
@@ -96,5 +96,5 @@ typedef struct avsd_syntax_t {
 
 
 
-#endif /*__AVSD_SYNTAX_H__*/
+#endif /* AVSD_SYNTAX_H */
 

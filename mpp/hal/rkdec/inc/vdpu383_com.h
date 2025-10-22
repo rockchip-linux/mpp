@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPU383_COM_H__
-#define __VDPU383_COM_H__
+#ifndef VDPU383_COM_H
+#define VDPU383_COM_H
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
@@ -665,4 +665,4 @@ MPP_RET dump_data_to_file(char *fname_path, void *data, RK_U32 data_bit_size,
 }
 #endif
 
-#endif /* __VDPU383_COM_H__ */
+#endif /* VDPU383_COM_H */

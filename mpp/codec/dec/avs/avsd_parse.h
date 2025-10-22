@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVSD_PARSE_H__
-#define __AVSD_PARSE_H__
+#ifndef AVSD_PARSE_H
+#define AVSD_PARSE_H
 
 #include "mpp_debug.h"
 
@@ -263,4 +263,4 @@ MPP_RET avsd_parse_stream(AvsdCtx_t *p_dec, HalDecTask *task);
 }
 #endif
 
-#endif /*__AVSD_PARSE_H__*/
+#endif /* AVSD_PARSE_H */

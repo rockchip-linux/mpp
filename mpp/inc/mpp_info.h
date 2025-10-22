@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_INFO_H__
-#define __MPP_INFO_H__
+#ifndef MPP_INFO_H
+#define MPP_INFO_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,4 +28,4 @@ const char *get_mpp_version(void);
 }
 #endif
 
-#endif /*__MPP_INFO_H__*/
+#endif /* MPP_INFO_H */

@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef __H264D_SLICE_H__
-#define __H264D_SLICE_H__
+#ifndef H264D_SLICE_H
+#define H264D_SLICE_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -38,5 +38,5 @@ MPP_RET  reset_cur_slice(H264dCurCtx_t *p_Cur, H264_SLICE_t *p);
 #endif
 
 //========================================
-#endif /* end of __H264D_SLICE_H__ */
+#endif /* H264D_SLICE_H */
 

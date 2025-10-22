@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPU383_H264D_H__
-#define __VDPU383_H264D_H__
+#ifndef VDPU383_H264D_H
+#define VDPU383_H264D_H
 
 #include "vdpu383_com.h"
 
@@ -172,4 +172,4 @@ typedef struct Vdpu383H264dRegSet_t {
     Vdpu383RegH264dAddr   h264d_addrs;       /* 168-185, 192-210, 216-232 */
 } Vdpu383H264dRegSet;
 
-#endif /* __VDPU383_H264D_H__ */
+#endif /* VDPU383_H264D_H */

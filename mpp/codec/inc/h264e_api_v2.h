@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264E_API_V2_H__
-#define __H264E_API_V2_H__
+#ifndef H264E_API_V2_H
+#define H264E_API_V2_H
 
 #include "enc_impl_api.h"
 
@@ -29,4 +29,4 @@ extern const EncImplApi api_h264e;
 }
 #endif
 
-#endif /* __H264E_API_V2_H__ */
+#endif /* H264E_API_V2_H */

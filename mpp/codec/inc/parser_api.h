@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __PARSER_API_H__
-#define __PARSER_API_H__
+#ifndef PARSER_API_H
+#define PARSER_API_H
 
 #include "rk_mpi_cmd.h"
 #include "mpp_packet.h"
@@ -74,4 +74,4 @@ typedef struct ParserApi_t {
 } ParserApi;
 
 
-#endif /*__PARSER_API_H__*/
+#endif /* PARSER_API_H */

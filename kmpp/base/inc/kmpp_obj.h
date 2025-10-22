@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_OBJ_H__
-#define __KMPP_OBJ_H__
+#ifndef KMPP_OBJ_H
+#define KMPP_OBJ_H
 
 #include "mpp_internal.h"
 
@@ -182,4 +182,4 @@ const char *strof_elem_type(ElemType type);
 }
 #endif
 
-#endif /* __KMPP_OBJ_H__ */
+#endif /* KMPP_OBJ_H */

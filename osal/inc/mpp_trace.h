@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_TRACE_H__
-#define __MPP_TRACE_H__
+#ifndef MPP_TRACE_H
+#define MPP_TRACE_H
 
 #include "rk_type.h"
 
@@ -23,4 +23,4 @@ void mpp_trace_int64(const char* name, rk_s64 value);
 }
 #endif
 
-#endif /*__MPP_TRACE_H__*/
+#endif /* MPP_TRACE_H */

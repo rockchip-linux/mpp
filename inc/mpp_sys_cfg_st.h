@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SYS_CFG_ST_H__
-#define __MPP_SYS_CFG_ST_H__
+#ifndef MPP_SYS_CFG_ST_H
+#define MPP_SYS_CFG_ST_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -75,4 +75,4 @@ MPP_RET mpp_sys_cfg_st_get_size(MppSysCfgStSize *size_cfg);
 }
 #endif
 
-#endif /* MPP_SYS_CFGI_H__ */
+#endif /* MPP_SYS_CFGI_H */

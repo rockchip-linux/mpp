@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_BUFFER_IMPL_H__
-#define __MPP_BUFFER_IMPL_H__
+#ifndef MPP_BUFFER_IMPL_H
+#define MPP_BUFFER_IMPL_H
 
 #include "mpp_list.h"
 #include "mpp_hash.h"
@@ -218,4 +218,4 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
 }
 #endif
 
-#endif /*__MPP_BUFFER_IMPL_H__*/
+#endif /* MPP_BUFFER_IMPL_H */

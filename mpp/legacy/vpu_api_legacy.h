@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VPU_API_LEGACY_H__
-#define __VPU_API_LEGACY_H__
+#ifndef VPU_API_LEGACY_H
+#define VPU_API_LEGACY_H
 
 #include <stdio.h>
 
@@ -103,4 +103,4 @@ private:
     RK_S32 dec_out_frm_struct_type;
 };
 
-#endif /*__VPU_API_LEGACY_H__*/
+#endif /* VPU_API_LEGACY_H */

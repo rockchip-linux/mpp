@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_PD_H__
-#define __IEP2_PD_H__
+#ifndef IEP2_PD_H
+#define IEP2_PD_H
 
 struct iep2_pd_info {
     int temporal[5];

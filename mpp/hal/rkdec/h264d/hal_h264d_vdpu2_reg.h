@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264D_VDPU2_REG_TBL_H__
-#define __HAL_H264D_VDPU2_REG_TBL_H__
+#ifndef HAL_H264D_VDPU2_REG_TBL_H
+#define HAL_H264D_VDPU2_REG_TBL_H
 
 #include "rk_type.h"
 
@@ -463,4 +463,4 @@ typedef struct {
     RK_U32 sw116_158[43];
 } H264dVdpuRegs_t;
 
-#endif /*__HAL_H264D_VDPU_REG_TBL_H__*/
+#endif /* HAL_H264D_VDPU_REG_TBL_H */

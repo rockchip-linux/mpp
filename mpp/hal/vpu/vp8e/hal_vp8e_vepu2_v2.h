@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8E_VEPU2_V2_H__
-#define __HAL_VP8E_VEPU2_V2_H__
+#ifndef HAL_VP8E_VEPU2_V2_H
+#define HAL_VP8E_VEPU2_V2_H
 
 #include "mpp_enc_hal.h"
 
 extern const MppEncHalApi hal_vp8e_vepu2;
 
-#endif /*__HAL_VP8E_VEPU2_H__*/
+#endif /* HAL_VP8E_VEPU2_H */

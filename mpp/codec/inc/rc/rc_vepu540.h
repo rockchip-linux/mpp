@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RC_VEPU_540_H__
-#define __RC_VEPU_540_H__
+#ifndef RC_VEPU_540_H
+#define RC_VEPU_540_H
 
 #include "rk_type.h"
 
@@ -49,4 +49,4 @@ typedef struct RcVepu540Ret_t {
     RK_U64  sse_sum;
 } RcVepu540Ret;
 
-#endif /* __RC_VEPU_540_H__ */
+#endif /* RC_VEPU_540_H */

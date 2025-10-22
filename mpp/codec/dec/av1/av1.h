@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AV1_H__
-#define __AV1_H__
+#ifndef AV1_H
+#define AV1_H
 
 // OBU types (section 6.2.2).
 typedef enum {
@@ -157,4 +157,4 @@ enum {
 #define PROFILE_AV1_PROFESSIONAL                 2
 #define AV1_MAX_TILES     128
 
-#endif /*__AV1_H__ */
+#endif /* AV1_H */

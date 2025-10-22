@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8D_API_H__
-#define __VP8D_API_H__
+#ifndef VP8D_API_H
+#define VP8D_API_H
 
 #include "parser_api.h"
 #ifdef  __cplusplus
@@ -25,4 +25,4 @@ extern const ParserApi api_vp8d_parser;
 #ifdef  __cplusplus
 }
 #endif
-#endif /*__VP8D_API_H__*/
+#endif /* VP8D_API_H */

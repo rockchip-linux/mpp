@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_M4V_VDPU1_REG_TBL_H__
-#define __HAL_M4V_VDPU1_REG_TBL_H__
+#ifndef HAL_M4V_VDPU1_REG_TBL_H
+#define HAL_M4V_VDPU1_REG_TBL_H
 
 #include "rk_type.h"
 
@@ -273,4 +273,4 @@ typedef struct {
     RK_U32 SwReg56_100[45];
 } M4vdVdpu1Regs_t;
 
-#endif /*__HAL_M4V_VDPU1_REG_TBL_H__*/
+#endif /* HAL_M4V_VDPU1_REG_TBL_H */

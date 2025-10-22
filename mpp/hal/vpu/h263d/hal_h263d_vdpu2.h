@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H263D_VDPU2_H__
-#define __HAL_H263D_VDPU2_H__
+#ifndef HAL_H263D_VDPU2_H
+#define HAL_H263D_VDPU2_H
 
 #include "mpp_hal.h"
 

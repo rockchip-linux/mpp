@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VDPU34X_VP9D_H__
-#define __HAL_VDPU34X_VP9D_H__
+#ifndef HAL_VDPU34X_VP9D_H
+#define HAL_VDPU34X_VP9D_H
 
 #include "rk_type.h"
 #include "vdpu34x_com.h"
@@ -291,4 +291,4 @@ typedef struct Vdpu34xVp9dRegSet_t {
     Vdpu34xRegStatistic     statistic;
 } Vdpu34xVp9dRegSet;
 
-#endif /* __HAL_VDPU34X_VP9D_H__ */
+#endif /* HAL_VDPU34X_VP9D_H */

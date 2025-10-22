@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_DEBUG_H__
-#define __MPP_DEC_DEBUG_H__
+#ifndef MPP_DEC_DEBUG_H
+#define MPP_DEC_DEBUG_H
 
 #include "mpp_debug.h"
 
@@ -37,4 +37,4 @@
 
 extern RK_U32 mpp_dec_debug;
 
-#endif /* __MPP_DEC_DEBUG_H__ */
+#endif /* MPP_DEC_DEBUG_H */

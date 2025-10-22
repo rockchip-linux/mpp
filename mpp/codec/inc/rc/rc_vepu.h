@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RC_VEPU_H__
-#define __RC_VEPU_H__
+#ifndef RC_VEPU_H
+#define RC_VEPU_H
 
 #include "rk_type.h"
 
@@ -59,4 +59,4 @@ typedef struct RcVepuRet_t {
     RK_S32  cp_bits[VEPU_BLK_RC_CHECK_POINTS_MAX];
 } RcVepuRet;
 
-#endif /* __RC_VEPU_H__ */
+#endif /* RC_VEPU_H */

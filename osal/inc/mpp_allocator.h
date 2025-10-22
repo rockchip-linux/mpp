@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_ALLOCATOR_H__
-#define __MPP_ALLOCATOR_H__
+#ifndef MPP_ALLOCATOR_H
+#define MPP_ALLOCATOR_H
 
 #include "mpp_buffer.h"
 
@@ -44,4 +44,4 @@ MppAllocFlagType mpp_allocator_get_flags(const MppAllocator allocator);
 }
 #endif
 
-#endif /*__MPP_ALLOCATOR_H__*/
+#endif /* MPP_ALLOCATOR_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPP2_REG_H__
-#define __VDPP2_REG_H__
+#ifndef VDPP2_REG_H
+#define VDPP2_REG_H
 
 #include "rk_type.h"
 

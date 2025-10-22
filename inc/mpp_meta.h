@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_META_H__
-#define __MPP_META_H__
+#ifndef MPP_META_H
+#define MPP_META_H
 
 #include <stdint.h>
 #include "rk_type.h"
@@ -201,4 +201,4 @@ MPP_RET mpp_meta_get_buffer_d(MppMeta meta, MppMetaKey key, MppBuffer *buffer, M
 }
 #endif
 
-#endif /*__MPP_META_H__*/
+#endif /* MPP_META_H */

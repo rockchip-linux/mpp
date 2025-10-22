@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VEPU5XX_COMMON_H__
-#define __VEPU5XX_COMMON_H__
+#ifndef VEPU5XX_COMMON_H
+#define VEPU5XX_COMMON_H
 
 #include "rk_venc_cmd.h"
 #include "mpp_device.h"
@@ -113,4 +113,4 @@ extern const RK_U32 lamd_moda_qp[52];
 extern const RK_U32 lamd_modb_qp[52];
 extern const RK_U32 lamd_satd_qp_510[52];
 
-#endif /* __VEPU5XX_COMMON_H__ */
+#endif /* VEPU5XX_COMMON_H */

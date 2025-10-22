@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264D_GLOBAL_H__
-#define __H264D_GLOBAL_H__
+#ifndef H264D_GLOBAL_H
+#define H264D_GLOBAL_H
 
 #include <stdio.h>
 #include "h2645d_sei.h"
@@ -1158,4 +1158,4 @@ typedef struct h264_dec_ctx_t {
     struct h264_err_ctx_t      errctx;
 } H264_DecCtx_t;
 
-#endif /* __H264D_GLOBAL_H__ */
+#endif /* H264D_GLOBAL_H */

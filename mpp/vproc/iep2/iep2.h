@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP2_H__
-#define __IEP2_H__
+#ifndef IEP2_H
+#define IEP2_H
 
 #include <stdint.h>
 

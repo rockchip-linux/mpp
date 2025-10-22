@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __OSAL_2STR_H__
-#define __OSAL_2STR_H__
+#ifndef OSAL_2STR_H
+#define OSAL_2STR_H
 
 #include "mpp_dev_defs.h"
 

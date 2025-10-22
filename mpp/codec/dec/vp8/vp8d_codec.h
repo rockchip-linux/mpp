@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8D_CODEC_H__
-#define __VP8D_CODEC_H__
+#ifndef VP8D_CODEC_H
+#define VP8D_CODEC_H
 
 typedef struct VP8DContext_t {
     void        *parse_ctx;

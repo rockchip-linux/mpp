@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8E_PUT_BIT_H__
-#define __HAL_VP8E_PUT_BIT_H__
+#ifndef HAL_VP8E_PUT_BIT_H
+#define HAL_VP8E_PUT_BIT_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -52,4 +52,4 @@ MPP_RET vp8e_set_buffer(Vp8ePutBitBuf *bitbuf, RK_U8 *data, RK_S32 size);
 }
 #endif
 
-#endif /*__HAL_VP8E_PUTBIT_H__*/
+#endif /* HAL_VP8E_PUTBIT_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H265E_SYNTAX_NEW_H__
-#define __H265E_SYNTAX_NEW_H__
+#ifndef H265E_SYNTAX_NEW_H
+#define H265E_SYNTAX_NEW_H
 #include "mpp_rc.h"
 #include "h265_syntax.h"
 #include "rc.h"

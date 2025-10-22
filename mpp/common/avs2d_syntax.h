@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_SYNTAX_H__
-#define __AVS2D_SYNTAX_H__
+#ifndef AVS2D_SYNTAX_H
+#define AVS2D_SYNTAX_H
 
 #include "rk_type.h"
 
@@ -88,4 +88,4 @@ typedef struct avs2d_syntax_t {
     RK_U32              bitstream_size;
 } Avs2dSyntax_t;
 
-#endif /*__AVS2D_SYNTAX_H__*/
+#endif /* AVS2D_SYNTAX_H */

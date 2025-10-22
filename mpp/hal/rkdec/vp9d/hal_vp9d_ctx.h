@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP9D_CTX_H__
-#define __HAL_VP9D_CTX_H__
+#ifndef HAL_VP9D_CTX_H
+#define HAL_VP9D_CTX_H
 
 #include "mpp_device.h"
 #include "mpp_hal.h"
@@ -68,4 +68,4 @@ typedef struct HalVp9dCtx_t {
     const MppDecHwCap   *hw_info;
 } HalVp9dCtx;
 
-#endif /*__HAL_VP9D_CTX_H__*/
+#endif /* HAL_VP9D_CTX_H */

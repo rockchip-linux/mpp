@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_ERR_H__
-#define __MPP_ERR_H__
+#ifndef MPP_ERR_H
+#define MPP_ERR_H
 
 #define RK_OK                   0
 #define RK_SUCCESS              0
@@ -40,4 +40,4 @@ typedef enum {
     MPP_ERR_DISPLAY_FULL        = MPP_ERR_BASE - 13,
 } MPP_RET;
 
-#endif /*__MPP_ERR_H__*/
+#endif /* MPP_ERR_H */

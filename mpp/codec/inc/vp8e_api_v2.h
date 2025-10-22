@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VP8E_API_V2_H__
-#define __VP8E_API_V2_H__
+#ifndef VP8E_API_V2_H
+#define VP8E_API_V2_H
 
 #include "enc_impl_api.h"
 
@@ -29,4 +29,4 @@ extern const EncImplApi api_vp8e;
 }
 #endif
 
-#endif /*__VP8E_API_H__*/
+#endif /* VP8E_API_H */

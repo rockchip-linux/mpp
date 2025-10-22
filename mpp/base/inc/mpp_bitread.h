@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#ifndef __MPP_BITREAD_H__
-#define __MPP_BITREAD_H__
+#ifndef MPP_BITREAD_H
+#define MPP_BITREAD_H
 
 #include <stdio.h>
 #include <assert.h>
@@ -175,4 +175,4 @@ RK_S32 mpp_get_bits_count(BitReadCtx_t *bitctx);
 #endif
 
 
-#endif /* __MPP_BITREAD_H__ */
+#endif /* MPP_BITREAD_H */

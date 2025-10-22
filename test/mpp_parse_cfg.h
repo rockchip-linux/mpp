@@ -3,8 +3,8 @@
  * Copyright (c) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_PARSE_CFG_H__
-#define __MPP_PARSE_CFG_H__
+#ifndef MPP_PARSE_CFG_H
+#define MPP_PARSE_CFG_H
 
 struct rc_event {
     union {

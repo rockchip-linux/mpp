@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPG4D_PARSER_H__
-#define __MPG4D_PARSER_H__
+#ifndef MPG4D_PARSER_H
+#define MPG4D_PARSER_H
 
 #include "mpp_packet.h"
 #include "mpp_buf_slot.h"
@@ -51,4 +51,4 @@ MPP_RET mpp_mpg4_parser_update_dpb(Mpg4dParser ctx);
 }
 #endif
 
-#endif/* __MPG4D_PAESER_H__ */
+#endif /* MPG4D_PAESER_H */

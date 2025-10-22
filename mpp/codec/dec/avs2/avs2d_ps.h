@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __AVS2D_PS_H__
-#define __AVS2D_PS_H__
+#ifndef AVS2D_PS_H
+#define AVS2D_PS_H
 
 #include "avs2d_global.h"
 
@@ -30,4 +30,4 @@ MPP_RET avs2d_parse_picture_header(Avs2dCtx_t *p_dec, RK_U32 startcode);
 }
 #endif
 
-#endif /*__AVS2D_PS_H__*/
+#endif /* AVS2D_PS_H */

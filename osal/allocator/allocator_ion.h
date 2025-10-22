@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __ALLOCATOR_ION_H__
-#define __ALLOCATOR_ION_H__
+#ifndef ALLOCATOR_ION_H
+#define ALLOCATOR_ION_H
 
 #include "mpp_allocator_api.h"
 

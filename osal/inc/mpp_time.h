@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_TIME_H__
-#define __MPP_TIME_H__
+#ifndef MPP_TIME_H
+#define MPP_TIME_H
 
 #include <unistd.h>
 
@@ -96,4 +96,4 @@ rk_s64 mpp_stopwatch_elapsed_time(MppStopwatch stopwatch);
 }
 #endif
 
-#endif /*__MPP_TIME_H__*/
+#endif /* MPP_TIME_H */

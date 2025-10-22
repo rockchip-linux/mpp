@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __HAL_H264D_RKV_REG_H__
-#define __HAL_H264D_RKV_REG_H__
+#ifndef HAL_H264D_RKV_REG_H
+#define HAL_H264D_RKV_REG_H
 
 #include "mpp_hal.h"
 
@@ -240,4 +240,4 @@ extern const MppHalApi hal_h264d_rkvdpu;
 }
 #endif
 
-#endif /* __HAL_H264D_RKV_REG_H__ */
+#endif /* HAL_H264D_RKV_REG_H */

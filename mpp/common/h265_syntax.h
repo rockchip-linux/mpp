@@ -16,8 +16,8 @@
 */
 
 
-#ifndef __H265_SYNTAX_H__
-#define __H265_SYNTAX_H__
+#ifndef H265_SYNTAX_H
+#define H265_SYNTAX_H
 
 #define PIXW_1080P      (1920)
 #define PIXH_1080P      (1088)

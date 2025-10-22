@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RK_VENC_CMD_H__
-#define __RK_VENC_CMD_H__
+#ifndef RK_VENC_CMD_H
+#define RK_VENC_CMD_H
 
 #include "mpp_frame.h"
 #include "rk_venc_rc.h"
@@ -1306,4 +1306,4 @@ typedef struct MppEncFineTuneCfg_t {
     RK_S32              fg_area; /* foreground area, [-1, 100] */
 } MppEncFineTuneCfg;
 
-#endif /*__RK_VENC_CMD_H__*/
+#endif /* RK_VENC_CMD_H */

@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_FRAME_IMPL_H__
-#define __KMPP_FRAME_IMPL_H__
+#ifndef KMPP_FRAME_IMPL_H
+#define KMPP_FRAME_IMPL_H
 
 #include "kmpp_frame.h"
 
@@ -88,4 +88,4 @@ typedef struct KmppFramePriv_t {
     KmppMeta    meta;
 } KmppFramePriv;
 
-#endif /* __KMPP_FRAME_IMPL_H__ */
+#endif /* KMPP_FRAME_IMPL_H */

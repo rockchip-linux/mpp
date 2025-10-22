@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __HAL_JPEGD_RKV_REG_H__
-#define __HAL_JPEGD_RKV_REG_H__
+#ifndef HAL_JPEGD_RKV_REG_H
+#define HAL_JPEGD_RKV_REG_H
 
 #define JPEGD_REG_NUM   (42)
 
@@ -308,4 +308,4 @@ typedef struct {
 
 } JpegRegSet;
 
-#endif /* __HAL_JPEGD_RKV_REG_H__ */
+#endif /* HAL_JPEGD_RKV_REG_H */

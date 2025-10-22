@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_H264D_GLOBAL_H__
-#define __HAL_H264D_GLOBAL_H__
+#ifndef HAL_H264D_GLOBAL_H
+#define HAL_H264D_GLOBAL_H
 
 #include "mpp_hal.h"
 #include "mpp_debug.h"
@@ -123,4 +123,4 @@ typedef struct h264d_hal_ctx_t {
 
 extern const RK_U32 h264_cabac_table[928];
 
-#endif /*__HAL_H264D_GLOBAL_H__*/
+#endif /* HAL_H264D_GLOBAL_H */

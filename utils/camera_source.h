@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __CAMERA_SOURCE_H__
-#define __CAMERA_SOURCE_H__
+#ifndef CAMERA_SOURCE_H
+#define CAMERA_SOURCE_H
 
 #include "mpp_frame.h"
 
@@ -43,4 +43,4 @@ MppBuffer camera_frame_to_buf(CamSource *ctx, RK_S32 idx);
 }
 #endif
 
-#endif /* __CAMERA_SOURCE_H__ */
+#endif /* CAMERA_SOURCE_H */

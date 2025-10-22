@@ -3,8 +3,8 @@
  * Copyright (c) 2016 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RC_IMPL_H__
-#define __RC_IMPL_H__
+#ifndef RC_IMPL_H
+#define RC_IMPL_H
 
 #include "mpp_rc_api.h"
 
@@ -18,4 +18,4 @@ RcImplApi *rc_api_get(MppCodingType type, const char *name);
 }
 #endif
 
-#endif /* __RC_IMPL_H__ */
+#endif /* RC_IMPL_H */

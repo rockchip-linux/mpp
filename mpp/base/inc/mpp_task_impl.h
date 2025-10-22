@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_TASK_IMPL_H__
-#define __MPP_TASK_IMPL_H__
+#ifndef MPP_TASK_IMPL_H
+#define MPP_TASK_IMPL_H
 
 #include "mpp_list.h"
 #include "mpp_task.h"
@@ -126,4 +126,4 @@ MppMeta mpp_task_get_meta(MppTask task);
 }
 #endif
 
-#endif /*__MPP_TASK_IMPL_H__*/
+#endif /* MPP_TASK_IMPL_H */

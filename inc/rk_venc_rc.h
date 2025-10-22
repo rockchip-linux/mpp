@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_VENC_RC_H__
-#define __RK_VENC_RC_H__
+#ifndef RK_VENC_RC_H
+#define RK_VENC_RC_H
 
 #include "rk_type.h"
 
@@ -74,4 +74,4 @@ typedef enum MppEncRcIntraRefreshMode_e {
     MPP_ENC_RC_INTRA_REFRESH_BUTT
 } MppEncRcRefreshMode;
 
-#endif /*__RK_VENC_RC_H__*/
+#endif /* RK_VENC_RC_H */

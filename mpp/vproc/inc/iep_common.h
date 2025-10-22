@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __IEP_COMMON_H__
-#define __IEP_COMMON_H__
+#ifndef IEP_COMMON_H
+#define IEP_COMMON_H
 
 #include "mpp_debug.h"
 
@@ -131,4 +131,4 @@ extern RK_U32 iep_debug;
 }
 #endif
 
-#endif /* __IEP_API_H__ */
+#endif /* IEP_API_H */

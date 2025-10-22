@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __OSD3_TEST_H__
-#define __OSD3_TEST_H__
+#ifndef OSD3_TEST_H
+#define OSD3_TEST_H
 
 #include "rk_venc_cmd.h"
 
@@ -87,4 +87,4 @@ typedef struct OsdCaseCfg_t {
 MPP_RET osd3_gen_smpte_bar_argb(RK_U8 **dst);
 MPP_RET osd3_get_test_case(MppEncOSDData3 *osd_data, RK_U8 *base_pattern,
                            RK_U32 case_idx, KmppBuffer *osd_buffer);
-#endif /* __OSD3_TEST_H__ */
+#endif /* OSD3_TEST_H */

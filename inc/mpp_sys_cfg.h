@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_SYS_CFG_H__
-#define __MPP_SYS_CFG_H__
+#ifndef MPP_SYS_CFG_H
+#define MPP_SYS_CFG_H
 
 #include "mpp_frame.h"
 #include "mpp_list.h"
@@ -95,4 +95,4 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg);
 }
 #endif
 
-#endif /* __MPP_SYS_CFG_H__ */
+#endif /* MPP_SYS_CFG_H */

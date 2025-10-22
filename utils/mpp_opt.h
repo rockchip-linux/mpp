@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_OPT_H__
-#define __MPP_OPT_H__
+#ifndef MPP_OPT_H
+#define MPP_OPT_H
 
 #include "rk_type.h"
 
@@ -51,4 +51,4 @@ MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv);
 }
 #endif
 
-#endif /*__MPP_OPT_H__*/
+#endif /* MPP_OPT_H */

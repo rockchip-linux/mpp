@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_OBJ_MACRO_H__
-#define __KMPP_OBJ_MACRO_H__
+#ifndef KMPP_OBJ_MACRO_H
+#define KMPP_OBJ_MACRO_H
 
 #include <string.h>
 
@@ -175,4 +175,4 @@ typedef enum ElemFlagType_e {
 #define GET_ARG0_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, N, ...) GET_ARG0_##N
 #define GET_ARG0_CHOOSER(...)  GET_ARG0_N(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
-#endif /* __KMPP_OBJ_MACRO_H__ */
+#endif /* KMPP_OBJ_MACRO_H */

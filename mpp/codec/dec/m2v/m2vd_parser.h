@@ -24,8 +24,8 @@
  *   2015.7.15 : Create
  */
 
-#ifndef __M2VD_PARSER_H__
-#define __M2VD_PARSER_H__
+#ifndef M2VD_PARSER_H
+#define M2VD_PARSER_H
 
 #include "mpp_mem.h"
 #include "mpp_bitread.h"

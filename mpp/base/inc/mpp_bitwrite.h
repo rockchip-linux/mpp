@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_BITWRITER_H__
-#define __MPP_BITWRITER_H__
+#ifndef MPP_BITWRITER_H
+#define MPP_BITWRITER_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -66,4 +66,4 @@ RK_S32 mpp_writer_bits(MppWriteCtx *ctx);
 
 RK_S32 mpp_exp_golomb_signed(RK_S32 val);
 
-#endif /* __MPP_BITWRITER_H__ */
+#endif /* MPP_BITWRITER_H */

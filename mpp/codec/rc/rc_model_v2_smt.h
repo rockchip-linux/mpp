@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __RC_MODEL_V2_SMT_H__
-#define __RC_MODEL_V2_SMT_H__
+#ifndef RC_MODEL_V2_SMT_H
+#define RC_MODEL_V2_SMT_H
 
 #include "mpp_rc_api.h"
 
@@ -29,4 +29,4 @@ extern const RcImplApi smt_h265e;
 }
 #endif
 
-#endif /* __RC_MODEL_V2_SMT_H__ */
+#endif /* RC_MODEL_V2_SMT_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H265E_VEPU54X_REG_L2_H__
-#define __HAL_H265E_VEPU54X_REG_L2_H__
+#ifndef HAL_H265E_VEPU54X_REG_L2_H
+#define HAL_H265E_VEPU54X_REG_L2_H
 
 #include "rk_type.h"
 
@@ -824,4 +824,4 @@ typedef struct H265eV54xL2RegSet_t {
     RK_U32 i32_sobel_e_00_09_hevc[10];// 0 2 4 ... low 32bit ; 1 3 5 ... high 9bit
 } H265eV54xL2RegSet;
 
-#endif /* __HAL_H265E_VEPU54X_REG_L2_H__ */
+#endif /* HAL_H265E_VEPU54X_REG_L2_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_RGA_H__
-#define __MPP_RGA_H__
+#ifndef MPP_RGA_H
+#define MPP_RGA_H
 
 /* NOTE: RGA support sync mode and async mode. We use sync mode only.  */
 #define RGA_BLIT_SYNC       0x5017
@@ -184,4 +184,4 @@ typedef struct RgaRequest_t {
     void (*complete)(int retval);
 } RgaReq;
 
-#endif // __MPP_RGA_H__
+#endif // MPP_RGA_H 

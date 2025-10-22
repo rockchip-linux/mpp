@@ -24,8 +24,8 @@
  * @history
  *   2015.7.15 : Create
  */
-#ifndef __H265D_SYNTAX__
-#define __H265D_SYNTAX__
+#ifndef H265D_SYNTAX_H
+#define H265D_SYNTAX_H
 typedef unsigned long       DWORD;
 typedef unsigned char       BYTE;
 typedef unsigned short      WORD;
@@ -241,4 +241,4 @@ typedef struct h265d_dxva2_picture_context {
     INT                         max_slice_num;
 } h265d_dxva2_picture_context_t;
 
-#endif /*__H265D_SYNTAX__*/
+#endif /* H265D_SYNTAX_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_H264E_API_V2_H__
-#define __HAL_H264E_API_V2_H__
+#ifndef HAL_H264E_API_V2_H
+#define HAL_H264E_API_V2_H
 
 #include "mpp_enc_hal.h"
 
@@ -29,4 +29,4 @@ extern const MppEncHalApi hal_api_h264e_v2;
 }
 #endif
 
-#endif /* __HAL_H264E_API_V2_H__ */
+#endif /* HAL_H264E_API_V2_H */

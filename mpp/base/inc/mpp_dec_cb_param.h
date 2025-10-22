@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_DEC_CB_PARAM_H__
-#define __MPP_DEC_CB_PARAM_H__
+#ifndef MPP_DEC_CB_PARAM_H
+#define MPP_DEC_CB_PARAM_H
 
 #include "rk_type.h"
 
@@ -34,4 +34,4 @@ typedef struct DecCallBackParam_t {
     RK_U32  hard_err;
 } DecCbHalDone;
 
-#endif /* __MPP_DEC_CB_PARAM_H__ */
+#endif /* MPP_DEC_CB_PARAM_H */

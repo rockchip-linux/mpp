@@ -3,8 +3,8 @@
  * Copyright (c) 2018 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __ALLOCATOR_EXT_DMA_H__
-#define __ALLOCATOR_EXT_DMA_H__
+#ifndef ALLOCATOR_EXT_DMA_H
+#define ALLOCATOR_EXT_DMA_H
 
 #include "mpp_allocator_api.h"
 

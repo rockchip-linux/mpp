@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_JPEGE_VEPU511_REG_H__
-#define __HAL_JPEGE_VEPU511_REG_H__
+#ifndef HAL_JPEGE_VEPU511_REG_H
+#define HAL_JPEGE_VEPU511_REG_H
 
 #include "rk_type.h"
 #include "vepu511_common.h"

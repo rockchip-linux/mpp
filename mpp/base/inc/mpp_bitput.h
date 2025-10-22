@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_BITPUT_H__
-#define __MPP_BITPUT_H__
+#ifndef MPP_BITPUT_H
+#define MPP_BITPUT_H
 
 #include "rk_type.h"
 #include "mpp_err.h"

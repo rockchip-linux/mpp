@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8E_VEPU1_REG_H__
-#define __HAL_VP8E_VEPU1_REG_H__
+#ifndef HAL_VP8E_VEPU1_REG_H
+#define HAL_VP8E_VEPU1_REG_H
 
 #include "rk_type.h"
 
@@ -452,4 +452,4 @@ typedef struct {
 
 } Vp8eVepu1Reg_t;
 
-#endif /*__HAL_VP8E_VEPU1_REG_H__*/
+#endif /* HAL_VP8E_VEPU1_REG_H */

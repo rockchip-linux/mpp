@@ -3,8 +3,8 @@
  * Copyright (c) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_VP8E_ENTROPY_H__
-#define __HAL_VP8E_ENTROPY_H__
+#ifndef HAL_VP8E_ENTROPY_H
+#define HAL_VP8E_ENTROPY_H
 
 #include "rk_type.h"
 
@@ -27,4 +27,4 @@ MPP_RET vp8e_swap_endian(RK_U32 *buf, RK_U32 bytes);
 }
 #endif
 
-#endif /*__HAL_VP8E_ENTROPY_H__*/
+#endif /* HAL_VP8E_ENTROPY_H */

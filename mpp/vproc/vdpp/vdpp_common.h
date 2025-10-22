@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPP_COMMON_H__
-#define __VDPP_COMMON_H__
+#ifndef VDPP_COMMON_H
+#define VDPP_COMMON_H
 
 #include <string.h>
 

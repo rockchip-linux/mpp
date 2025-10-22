@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __OS_ENV_H__
-#define __OS_ENV_H__
+#ifndef OS_ENV_H
+#define OS_ENV_H
 
 #include "rk_type.h"
 
@@ -22,5 +22,5 @@ RK_S32 os_set_env_str(const char *name, char *value);
 }
 #endif
 
-#endif /*__OS_ENV_H__*/
+#endif /* OS_ENV_H */
 

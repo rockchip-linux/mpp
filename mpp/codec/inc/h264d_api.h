@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __H264D_API_H__
-#define __H264D_API_H__
+#ifndef H264D_API_H
+#define H264D_API_H
 
 #include "parser_api.h"
 
@@ -46,4 +46,4 @@ MPP_RET  h264d_callback(void *decoder, void *err_info);
 }
 #endif
 
-#endif /*__H264D_API_H__*/
+#endif /* H264D_API_H */

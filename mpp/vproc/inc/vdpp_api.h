@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __VDPP_API_H__
-#define __VDPP_API_H__
+#ifndef VDPP_API_H
+#define VDPP_API_H
 
 #include <stdbool.h>
 

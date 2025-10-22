@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RK_MPI_H__
-#define __RK_MPI_H__
+#ifndef RK_MPI_H
+#define RK_MPI_H
 
 /**
  * @addtogroup rk_mpi
@@ -271,4 +271,4 @@ void    mpp_show_color_format(void);
 }
 #endif
 
-#endif /*__RK_MPI_H__*/
+#endif /* RK_MPI_H */

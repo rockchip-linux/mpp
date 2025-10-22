@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MPP_HAL_H__
-#define __MPP_HAL_H__
+#ifndef MPP_HAL_H
+#define MPP_HAL_H
 
 #include "rk_mpi_cmd.h"
 
@@ -95,4 +95,4 @@ MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param);
 }
 #endif
 
-#endif /*__MPP_HAL_H__*/
+#endif /* MPP_HAL_H */

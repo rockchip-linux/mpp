@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __ENC_IMPL_API_H__
-#define __ENC_IMPL_API_H__
+#ifndef ENC_IMPL_API_H
+#define ENC_IMPL_API_H
 
 #include "rk_mpi_cmd.h"
 
@@ -74,4 +74,4 @@ typedef struct EncImplApi_t {
     MPP_RET (*sw_enc)(void *ctx, HalEncTask *task);
 } EncImplApi;
 
-#endif /*__ENC_IMPL_API_H__*/
+#endif /* ENC_IMPL_API_H */

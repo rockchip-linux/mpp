@@ -3,8 +3,8 @@
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __MPP_LOCK_H__
-#define __MPP_LOCK_H__
+#ifndef MPP_LOCK_H
+#define MPP_LOCK_H
 
 #include <stdbool.h>
 
@@ -52,4 +52,4 @@ bool mpp_spinlock_trylock(spinlock_t *lock);
 }
 #endif
 
-#endif /*__MPP_LOCK_H__*/
+#endif /* MPP_LOCK_H */

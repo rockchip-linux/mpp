@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __RGA_API_H__
-#define __RGA_API_H__
+#ifndef RGA_API_H
+#define RGA_API_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -57,4 +57,4 @@ MPP_RET rga_control(RgaCtx ctx, RgaCmd cmd, void *param);
 }
 #endif
 
-#endif /* __RGA_API_H__ */
+#endif /* RGA_API_H */

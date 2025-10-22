@@ -3,11 +3,11 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HAL_JPEGE_VPU720_H__
-#define __HAL_JPEGE_VPU720_H__
+#ifndef HAL_JPEGE_VPU720_H
+#define HAL_JPEGE_VPU720_H
 
 #include "mpp_enc_hal.h"
 
 extern const MppEncHalApi hal_jpege_vpu720;
 
-#endif /* __HAL_JPEGE_VPU720_H__ */
+#endif /* HAL_JPEGE_VPU720_H */

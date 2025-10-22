@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __HAL_VP8D_VDPU2_H__
-#define __HAL_VP8D_VDPU2_H__
+#ifndef HAL_VP8D_VDPU2_H
+#define HAL_VP8D_VDPU2_H
 
 #include "hal_vp8d_base.h"
 
