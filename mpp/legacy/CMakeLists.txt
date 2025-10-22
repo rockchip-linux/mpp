@@ -11,7 +11,6 @@ set (MPP_LEGACY_SRC
     vpu_api_mlvec.cpp
     vpu_mem_legacy.c
     rk_list.cpp
-    ppOp.cpp
     ../mpp_info.c
     )
 
