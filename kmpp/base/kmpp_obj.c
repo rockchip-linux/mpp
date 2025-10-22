@@ -1282,6 +1282,9 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
 
     ret = ioctl(p->ioc.fd, 0, ioc_arg);
 
+    /* if defined ret in ioc object use ret in ioc object */
+    kmpp_ioc_get_ret(ioc, &ret);
+
     kmpp_obj_put(ioc, caller);
 
     return ret;

@@ -15,6 +15,7 @@ typedef void* KmppIoc;
     ENTRY(prefix, u32,  rk_u32,         cmd,    FLAG_NONE,  cmd) \
     ENTRY(prefix, u32,  rk_u32,         flags,  FLAG_NONE,  flags) \
     ENTRY(prefix, u32,  rk_u32,         id,     FLAG_NONE,  id) \
+    ENTRY(prefix, s32,  rk_s32,         ret,    FLAG_NONE,  ret) \
     STRCT(prefix, shm,  KmppShmPtr,     ctx,    FLAG_NONE,  ctx) \
     STRCT(prefix, shm,  KmppShmPtr,     in,     FLAG_NONE,  in) \
     STRCT(prefix, shm,  KmppShmPtr,     out,    FLAG_NONE,  out)
