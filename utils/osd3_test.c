@@ -44,6 +44,7 @@ MPP_RET osd3_gen_smpte_bar_argb(RK_U8 **dst)
         {0, 0, 0,}          // Black
     };
     RK_U8 *base = malloc(bar_width * bar_height * SMPTE_BAR_CNT * 4);
+
     *dst = base;
     fp = fopen("/userdata/wind_ABGR8888.ABGR8888", "rb");
     if (!fp) {
@@ -59,7 +60,16 @@ MPP_RET osd3_gen_smpte_bar_argb(RK_U8 **dst)
             }
         }
     } else {
-        fread(base, 1, OSD_PATTERN_WIDTH * OSD_PATTERN_HEIGHT * 4, fp);
+        size_t read_size = OSD_PATTERN_WIDTH * OSD_PATTERN_HEIGHT * 4;
+        size_t fp_size;
+
+        fp_size = fread(base, 1, read_size, fp);
+        if (fp_size != read_size) {
+            mpp_err("fread failed, read_size: %zu, fp_size: %zu", read_size, fp_size);
+            free(base);
+            *dst = NULL;
+            ret = MPP_NOK;
+        }
         fclose(fp);
     }
 
