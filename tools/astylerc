@@ -1,6 +1,5 @@
 # directory setting
 --exclude=../build
---exclude=../osal/windows/pthread
 --exclude=../osal/linux/drm.h
 
 # bracket style setting
