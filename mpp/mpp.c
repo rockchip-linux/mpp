@@ -1576,8 +1576,7 @@ MPP_RET mpp_notify_group(Mpp *mpp, MppBufferGroup group)
     switch (mpp->mType) {
     case MPP_CTX_DEC : {
         if (group == mpp->mFrameGroup)
-            ret = mpp_notify_flag(mpp, MPP_DEC_NOTIFY_BUFFER_VALID |
-                                               MPP_DEC_NOTIFY_BUFFER_MATCH);
+            ret = mpp_notify_flag(mpp, MPP_DEC_NOTIFY_BUFFER_VALID | MPP_DEC_NOTIFY_BUFFER_MATCH);
     } break;
     default : {
     } break;

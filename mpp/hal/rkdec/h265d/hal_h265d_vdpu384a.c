@@ -635,7 +635,7 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
         char *cur_fname = "global_cfg.dat";
         memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
         sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 18*128, 128, 0);
+        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 18 * 128, 128, 0);
     }
 #endif
 

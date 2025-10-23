@@ -1465,9 +1465,11 @@ rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void* val)
                 ret = kmpp_obj_impl_set_ptr(tbl, impl->entry, val);
         }
     }
+
     if (ret)
         mpp_loge("obj %s set %s ptr failed ret %d\n",
-                 impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+                 (impl && impl->def && impl->def->name) ? impl->def->name : NULL, name, ret);
+
     return ret;
 }
 
@@ -1491,7 +1493,8 @@ rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val)
 
     if (ret)
         mpp_loge("obj %s get %s ptr failed ret %d\n",
-                 impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+                 (impl && impl->def && impl->def->name) ? impl->def->name : NULL, name, ret);
+
     return ret;
 }
 

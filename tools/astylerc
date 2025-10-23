@@ -4,7 +4,6 @@
 
 # bracket style setting
 --style=linux
-#--style=kr
 
 # indent setting
 --indent=spaces=4
@@ -12,7 +11,7 @@
 #--indent-switches
 #--indent-preprocessor
 --min-conditional-indent=0
---max-instatement-indent=80
+--max-instatement-indent=120
 
 # padding setting
 #--break-blocks
