@@ -502,8 +502,8 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
         return kmpp_obj_ioctl(ctx, cmd, in, NULL, __FUNCTION__); \
     }
 
-#define IOCTL_OUT(prefix, name, out_type, ...) \
-    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, out_type out) \
+#define IOCTL_OUT(prefix, func, out_type, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, out_type *out) \
     { \
         KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
         static rk_s32 cmd = -1; \
@@ -523,8 +523,8 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, KMPP_OBJ_EXPORT, KMPP_OBJ_EXPORT,
         return kmpp_obj_ioctl(ctx, cmd, NULL, out, __FUNCTION__); \
     }
 
-#define IOCTL_IO_(prefix, name, in_type, out_type, ...) \
-    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in, out_type out) \
+#define IOCTL_IO_(prefix, func, in_type, out_type, ...) \
+    rk_s32 CONCAT_US(prefix, func)(KMPP_OBJ_INTF_TYPE ctx, in_type in, out_type *out) \
     { \
         KmppObjDef def = KMPP_OBJ_DEF(KMPP_OBJ_NAME); \
         static rk_s32 cmd = -1; \

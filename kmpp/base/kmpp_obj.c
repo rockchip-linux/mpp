@@ -1051,13 +1051,17 @@ rk_s32 kmpp_obj_get_by_sptr(KmppObj *obj, KmppShmPtr *sptr, const char *caller)
     KmppObjDefImpl *def;
     rk_u8 *uptr = sptr ? sptr->uptr : NULL;
 
-    if (!obj || !sptr || !uptr) {
+    if (!obj) {
         mpp_loge_f("invalid param obj %p sptr %p uptr %p at %s\n",
                    obj, sptr, uptr, caller);
         return rk_nok;
     }
 
     *obj = NULL;
+
+    /* allow NULL sptr and NULL uptr return NULL object value without error */
+    if (!sptr || !uptr)
+        return rk_ok;
 
     if (!p)
         return rk_nok;
@@ -1197,7 +1201,7 @@ rk_s32 kmpp_obj_check(KmppObj obj, const char *caller)
     return rk_ok;
 }
 
-rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller)
+rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj *out, const char *caller)
 {
     KmppObjs *p = get_objs_f();
     KmppObjDef def_ioc = kmpp_ioc_objdef();
@@ -1273,17 +1277,24 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const ch
         obj_dbg_ioctl("ioctl [u:k] in %#llx : %#llx\n", sptr->uaddr, sptr->kaddr);
     }
 
-    if (out) {
-        KmppShmPtr *sptr = kmpp_obj_to_shm(out);
-
-        kmpp_ioc_set_out(ioc, sptr);
-        obj_dbg_ioctl("ioctl [u:k] out %#llx : %#llx\n", sptr->uaddr, sptr->kaddr);
-    }
-
     ret = ioctl(p->ioc.fd, 0, ioc_arg);
 
     /* if defined ret in ioc object use ret in ioc object */
     kmpp_ioc_get_ret(ioc, &ret);
+
+    if (out) {
+        *out = NULL;
+
+        if (!ret) {
+            KmppShmPtr sptr = { 0 };
+
+            kmpp_ioc_get_out(ioc, &sptr);
+            kmpp_obj_get_by_sptr(out, &sptr, caller);
+
+            obj_dbg_ioctl("ioctl [u:k] out %#llx : %#llx obj %p\n",
+                          sptr.uaddr, sptr.kaddr, *out);
+        }
+    }
 
     kmpp_obj_put(ioc, caller);
 
@@ -1437,7 +1448,7 @@ MPP_OBJ_ACCESS(obj, KmppObj)
 MPP_OBJ_ACCESS(fp, void *)
 
 /* compatible for pointer and structure setup */
-rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void* val) \
+rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void* val)
 {
     KmppObjImpl *impl = (KmppObjImpl *)obj;
     rk_s32 ret = rk_nok;
@@ -1480,7 +1491,7 @@ rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val)
 
     if (ret)
         mpp_loge("obj %s get %s ptr failed ret %d\n",
-                impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+                 impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
     return ret;
 }
 

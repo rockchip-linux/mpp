@@ -64,7 +64,7 @@ rk_s32 kmpp_obj_preset(KmppObj obj, const char *arg, const char *caller);
 /* check object is valid or not */
 rk_s32 kmpp_obj_check(KmppObj obj, const char *caller);
 /* run object's ioctl to kernel with input and output object */
-rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj out, const char *caller);
+rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj *out, const char *caller);
 
 #define kmpp_obj_get_f(obj, def)                kmpp_obj_get(obj, def, __FUNCTION__)
 #define kmpp_obj_get_by_name_f(obj, name)       kmpp_obj_get_by_name(obj, name, __FUNCTION__)
