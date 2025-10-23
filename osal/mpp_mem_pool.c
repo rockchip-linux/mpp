@@ -41,11 +41,15 @@
 
 static rk_u32 mpp_mem_pool_debug = 0;
 
+/*
+ * Aligning MppMemPoolNode to 8-byte
+ * Avoiding alignment traps caused by compiler optimizations
+ */
 typedef struct MppMemPoolNode_t {
     void                *check;
     struct list_head    list;
     void                *ptr;
-    size_t              size;
+    rk_u64              size;
 } MppMemPoolNode;
 
 typedef struct MppMemPoolImpl_t {
