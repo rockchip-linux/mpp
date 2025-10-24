@@ -643,7 +643,7 @@ static void mpp_cluster_srv_deinit(void)
     MPP_FREE(srv_cluster);
 }
 
-MPP_SINGLETON(MPP_SGLN_SYS_CFG, mpp_cluster, mpp_cluster_srv_init, mpp_cluster_srv_deinit)
+MPP_SINGLETON(MPP_SGLN_CLUSTER, mpp_cluster, mpp_cluster_srv_init, mpp_cluster_srv_deinit)
 
 static MppCluster *cluster_server_get(MppClientType client_type)
 {

@@ -21,6 +21,7 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_SOC,
     MPP_SGLN_PLATFORM,
     MPP_SGLN_SERVER,
+    MPP_SGLN_CLUSTER,
     /* software platform */
     MPP_SGLN_RUNTIME,
     /* kernel module (MUST before userspace module) */

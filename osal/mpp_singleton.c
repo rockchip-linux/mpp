@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "mpp_env.h"
+#include "mpp_time.h"
 #include "mpp_singleton.h"
 
 #define sgln_dbg(fmt, ...) \
@@ -86,6 +87,7 @@ static void mpp_singleton_deinit(void)
 
 __attribute__((constructor(65535))) static void mpp_singleton_init(void)
 {
+    rk_s64 sum = 0;
     rk_s32 i;
 
     sgln_dbg("init enter\n");
@@ -98,16 +100,21 @@ __attribute__((constructor(65535))) static void mpp_singleton_init(void)
             MppSingletonInfo *info = &sgln_info[i];
 
             if (info->init) {
+                rk_s64 time;
+
                 sgln_dbg("info %2d %-*s init start\n", info->id,
                          sgln_max_name_len, info->name);
 
+                time = mpp_time();
                 info->init();
+                time = mpp_time() - time;
+                sum += time;
 
-                sgln_dbg("info %2d %-*s init finish\n", info->id,
-                         sgln_max_name_len, info->name);
+                sgln_dbg("info %2d %-*s init finish %lld us\n", info->id,
+                         sgln_max_name_len, info->name, time);
             }
         }
     }
 
-    sgln_dbg("init leave\n");
+    sgln_dbg("init leave total %lld us\n", sum);
 }
