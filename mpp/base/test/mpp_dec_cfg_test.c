@@ -24,7 +24,7 @@
 #include "rk_vdec_cfg.h"
 #include "mpp_dec_cfg.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppDecCfg cfg;

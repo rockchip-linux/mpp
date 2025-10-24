@@ -113,8 +113,8 @@ RK_S32 VPUClientSendReg(int socket, RK_U32 *regs, RK_U32 nregs);
 RK_S32 VPUClientSendReg2(RK_S32 socket, RK_S32 offset, RK_S32 size, void *param);
 RK_S32 VPUClientWaitResult(int socket, RK_U32 *regs, RK_U32 nregs, VPU_CMD_TYPE *cmd, RK_S32 *len);
 RK_S32 VPUClientGetHwCfg(int socket, RK_U32 *cfg, RK_U32 cfg_size);
-RK_S32 VPUClientGetIOMMUStatus();
-RK_U32 VPUCheckSupportWidth();
+RK_S32 VPUClientGetIOMMUStatus(void);
+RK_U32 VPUCheckSupportWidth(void);
 
 #ifdef __cplusplus
 }

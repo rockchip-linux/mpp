@@ -9,7 +9,7 @@
 #include "mpp_platform.h"
 #include "vcodec_service.h"
 
-int main()
+int main(void)
 {
     const char *dev = NULL;
     RK_U32 vcodec_type = mpp_get_vcodec_type();

@@ -204,7 +204,7 @@ int check_pthread_clock()
 }
 #endif // COND_USE_CLOCK_MONOTONIC
 
-int main()
+int main(void)
 {
     allocator_check();
     // system compatibility test

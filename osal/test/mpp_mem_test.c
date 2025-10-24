@@ -11,7 +11,7 @@
 
 // TODO: need to add pressure test case and parameter scan case
 
-int main()
+int main(void)
 {
     void *tmp = NULL;
 

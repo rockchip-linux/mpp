@@ -328,7 +328,7 @@ __NORMAL:
     return ret;
 }
 
-int main()
+int main(void)
 {
     BitReadCtx_t reader;
     RK_U32 i;

@@ -191,7 +191,7 @@ void serial_task(void)
     }
 }
 
-int main()
+int main(void)
 {
     RK_S64 time_start, time_end;
 

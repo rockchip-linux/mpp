@@ -22,7 +22,7 @@
 
 #include "rk_venc_ref.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     RK_S32 lt_cnt = 0;

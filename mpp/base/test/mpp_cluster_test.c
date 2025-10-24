@@ -39,7 +39,7 @@ static RK_S32 mpp_cluster_test_worker(void *param)
     return ret;
 }
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppNode node = test_node.node;

@@ -322,7 +322,7 @@ static KmppObjTest obj_tests[] = {
     },
 };
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_NOK;
     rk_u32 i;

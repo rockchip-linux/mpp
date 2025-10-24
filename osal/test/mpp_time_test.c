@@ -18,7 +18,7 @@ void *timer_test(void *param)
     return NULL;
 }
 
-int main()
+int main(void)
 {
     RK_S64 time_0;
     RK_S64 time_1;

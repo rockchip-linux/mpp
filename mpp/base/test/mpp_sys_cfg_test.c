@@ -13,7 +13,7 @@
 #include "rk_mpp_cfg.h"
 #include "mpp_sys_cfg.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppSysCfg cfg;

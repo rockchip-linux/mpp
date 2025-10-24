@@ -80,7 +80,7 @@ void proc_bit_ops(MppWriteCtx *writer, BitOps *ops)
     }
 }
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     void *data = NULL;

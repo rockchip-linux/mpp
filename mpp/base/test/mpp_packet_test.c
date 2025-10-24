@@ -23,7 +23,7 @@
 
 #define MPP_PACKET_TEST_SIZE    1024
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     MppPacket packet = NULL;

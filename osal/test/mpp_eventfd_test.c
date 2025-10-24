@@ -50,7 +50,7 @@ void *thread_read(void *arg)
     return NULL;
 }
 
-int main()
+int main(void)
 {
     pthread_t td;
 

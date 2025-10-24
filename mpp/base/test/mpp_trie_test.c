@@ -66,7 +66,7 @@ TestCase test_case[] = {
     { "",                           MPP_NOK, },
 };
 
-int main()
+int main(void)
 {
     MppTrie trie = NULL;
     RK_S32 i;

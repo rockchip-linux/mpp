@@ -32,7 +32,7 @@
 #define MPP_BUFFER_TEST_COMMIT_COUNT    10
 #define MPP_BUFFER_TEST_NORMAL_COUNT    10
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppAllocator allocator = NULL;

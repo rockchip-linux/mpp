@@ -19,7 +19,7 @@
         } \
     } while (0)
 
-int main()
+int main(void)
 {
     KmppFrame frame = NULL;
     rk_u32 width = 1920;

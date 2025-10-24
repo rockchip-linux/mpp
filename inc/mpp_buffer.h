@@ -344,8 +344,8 @@ MppBufferType mpp_buffer_group_type(MppBufferGroup group);
  */
 MPP_RET mpp_buffer_group_limit_config(MppBufferGroup group, size_t size, RK_S32 count);
 
-RK_U32 mpp_buffer_total_now();
-RK_U32 mpp_buffer_total_max();
+RK_U32 mpp_buffer_total_now(void);
+RK_U32 mpp_buffer_total_max(void);
 
 #ifdef __cplusplus
 }

@@ -119,7 +119,7 @@ void mutex_performance_test_once(void)
     pthread_mutex_destroy(&mutex);
 }
 
-int main()
+int main(void)
 {
     int i;
     int pdata[MAX_THREAD_NUM];

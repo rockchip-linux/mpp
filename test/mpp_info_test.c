@@ -10,7 +10,7 @@
 #include "mpp_info.h"
 #include "mpp_compat.h"
 
-int main()
+int main(void)
 {
     mpp_env_set_u32("mpp_show_history", 0);
 

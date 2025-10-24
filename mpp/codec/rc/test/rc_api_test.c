@@ -51,7 +51,7 @@ const RcImplApi test_h265_api = {
     NULL,
 };
 
-int main()
+int main(void)
 {
     RcApiQueryAll query;
     RcApiBrief briefs[MAX_QUERY_COUNT];

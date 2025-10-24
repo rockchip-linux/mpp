@@ -10,7 +10,7 @@
 #include "kmpp_obj.h"
 #include "kmpp_buffer.h"
 
-int main()
+int main(void)
 {
     KmppShmPtr    sptr;
     KmppBufGrp    grp = NULL;

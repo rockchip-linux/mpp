@@ -10,7 +10,7 @@
 #include "rk_mpp_cfg.h"
 #include "mpp_sys_cfg_st.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppCodingType type = MPP_VIDEO_CodingHEVC;

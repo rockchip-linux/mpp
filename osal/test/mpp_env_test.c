@@ -12,7 +12,7 @@ const char env_debug[] = "test_env_debug";
 const char env_string[] = "test_env_string";
 char env_test_string[] = "just for debug";
 
-int main()
+int main(void)
 {
     RK_U32 env_debug_u32 = 0x100;
     const char *env_str_out = NULL;

@@ -21,7 +21,7 @@
 #include "mpp_log.h"
 #include "rc_base.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppDataV2 *data_2 = NULL;

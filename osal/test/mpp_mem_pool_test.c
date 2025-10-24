@@ -13,7 +13,7 @@
 #define MPP_MEM_POOL_TEST_SIZE      1024
 #define MPP_MEM_POOL_TEST_COUNT     20
 
-int main()
+int main(void)
 {
     MppMemPool pool = NULL;
     size_t size = MPP_MEM_POOL_TEST_SIZE;

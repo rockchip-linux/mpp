@@ -33,7 +33,7 @@ typedef enum MppBufSrvStatus_e {
 
 #define SEARCH_GROUP_BY_ID(srv, id)     (get_group_by_id(srv, id))
 
-#define get_srv_buffer() \
+#define get_srv_buffer(void) \
     ({ \
         MppBufferService *__tmp; \
         if (srv_buffer) \
@@ -57,7 +57,7 @@ typedef enum MppBufSrvStatus_e {
         __tmp; \
     })
 
-static void mpp_buffer_service_init();
+static void mpp_buffer_service_init(void);
 
 typedef MPP_RET (*BufferOp)(MppAllocator allocator, MppBufferInfo *data);
 
@@ -882,7 +882,7 @@ MPP_RET mpp_buffer_group_set_callback(MppBufferGroupImpl *p,
     return MPP_OK;
 }
 
-rk_u32 mpp_buffer_total_now()
+rk_u32 mpp_buffer_total_now(void)
 {
     MppBufferService *srv = get_srv_buffer();
     rk_u32 size = 0;
@@ -893,7 +893,7 @@ rk_u32 mpp_buffer_total_now()
     return size;
 }
 
-rk_u32 mpp_buffer_total_max()
+rk_u32 mpp_buffer_total_max(void)
 {
     MppBufferService *srv = get_srv_buffer();
     rk_u32 size = 0;
@@ -972,7 +972,7 @@ MppBufferGroupImpl *mpp_buffer_get_misc_group(MppBufferMode mode, MppBufferType 
     return misc;
 }
 
-static void mpp_buffer_service_init()
+static void mpp_buffer_service_init(void)
 {
     MppBufferService *srv = srv_buffer;
     rk_s32 i, j, k;

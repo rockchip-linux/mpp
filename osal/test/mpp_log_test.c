@@ -7,7 +7,7 @@
 
 #include "mpp_log.h"
 
-int main()
+int main(void)
 {
     mpp_logi("mpp log test start\n");
 

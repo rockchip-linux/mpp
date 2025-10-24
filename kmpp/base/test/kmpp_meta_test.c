@@ -127,7 +127,7 @@ void *meta_test(void *param)
     return NULL;
 }
 
-int main()
+int main(void)
 {
     pthread_t thds[TEST_MAX];
     RK_S64 times[TEST_MAX];

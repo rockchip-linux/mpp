@@ -13,7 +13,7 @@
 #include "rk_venc_cfg.h"
 #include "mpp_enc_cfg.h"
 
-int main()
+int main(void)
 {
     MPP_RET ret = MPP_OK;
     MppEncCfg cfg;

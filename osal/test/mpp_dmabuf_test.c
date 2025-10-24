@@ -13,7 +13,7 @@
 #include "mpp_common.h"
 #include "mpp_dmabuf.h"
 
-int main()
+int main(void)
 {
     MppBufferGroup grp = NULL;
     MppBuffer buf = NULL;
