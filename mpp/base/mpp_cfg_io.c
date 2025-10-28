@@ -111,12 +111,12 @@ static const char *strof_type(MppCfgType type)
         [MPP_CFG_TYPE_INVALID] = "invalid",
         [MPP_CFG_TYPE_NULL] = "null",
         [MPP_CFG_TYPE_BOOL] = "bool",
-        [MPP_CFG_TYPE_S32] = "s32",
-        [MPP_CFG_TYPE_U32] = "u32",
-        [MPP_CFG_TYPE_S64] = "s64",
-        [MPP_CFG_TYPE_U64] = "u64",
-        [MPP_CFG_TYPE_F32] = "f32",
-        [MPP_CFG_TYPE_F64] = "f64",
+        [MPP_CFG_TYPE_s32] = "s32",
+        [MPP_CFG_TYPE_u32] = "u32",
+        [MPP_CFG_TYPE_s64] = "s64",
+        [MPP_CFG_TYPE_u64] = "u64",
+        [MPP_CFG_TYPE_f32] = "f32",
+        [MPP_CFG_TYPE_f64] = "f64",
         [MPP_CFG_TYPE_STRING] = "string",
         [MPP_CFG_TYPE_RAW] = "raw",
         [MPP_CFG_TYPE_OBJECT] = "object",
@@ -557,17 +557,17 @@ rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info)
             memcpy(&impl->info, info, sizeof(impl->info));
 
             switch (info->data_type) {
-            case CFG_FUNC_TYPE_S32 : {
-                impl->type = MPP_CFG_TYPE_S32;
+            case CFG_FUNC_TYPE_s32 : {
+                impl->type = MPP_CFG_TYPE_s32;
             } break;
-            case CFG_FUNC_TYPE_U32 : {
-                impl->type = MPP_CFG_TYPE_U32;
+            case CFG_FUNC_TYPE_u32 : {
+                impl->type = MPP_CFG_TYPE_u32;
             } break;
-            case CFG_FUNC_TYPE_S64 : {
-                impl->type = MPP_CFG_TYPE_S64;
+            case CFG_FUNC_TYPE_s64 : {
+                impl->type = MPP_CFG_TYPE_s64;
             } break;
-            case CFG_FUNC_TYPE_U64 : {
-                impl->type = MPP_CFG_TYPE_U64;
+            case CFG_FUNC_TYPE_u64 : {
+                impl->type = MPP_CFG_TYPE_u64;
             } break;
             default : {
             } break;
@@ -851,22 +851,22 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s\n", impl->val.b1 ? "true" : "false");
         } break;
-        case MPP_CFG_TYPE_S32 : {
+        case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d\n", impl->val.s32);
         } break;
-        case MPP_CFG_TYPE_U32 : {
+        case MPP_CFG_TYPE_u32 : {
             len += snprintf(buf + len, total - len, "%u\n", impl->val.u32);
         } break;
-        case MPP_CFG_TYPE_S64 : {
+        case MPP_CFG_TYPE_s64 : {
             len += snprintf(buf + len, total - len, "%lld\n", impl->val.s64);
         } break;
-        case MPP_CFG_TYPE_U64 : {
+        case MPP_CFG_TYPE_u64 : {
             len += snprintf(buf + len, total - len, "%llu\n", impl->val.u64);
         } break;
-        case MPP_CFG_TYPE_F32 : {
+        case MPP_CFG_TYPE_f32 : {
             len += snprintf(buf + len, total - len, "%f\n", impl->val.f32);
         } break;
-        case MPP_CFG_TYPE_F64 : {
+        case MPP_CFG_TYPE_f64 : {
             len += snprintf(buf + len, total - len, "%lf\n", impl->val.f64);
         } break;
         case MPP_CFG_TYPE_STRING :
@@ -942,22 +942,22 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s,\n", impl->val.b1 ? "true" : "false");
         } break;
-        case MPP_CFG_TYPE_S32 : {
+        case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d,\n", impl->val.s32);
         } break;
-        case MPP_CFG_TYPE_U32 : {
+        case MPP_CFG_TYPE_u32 : {
             len += snprintf(buf + len, total - len, "%u,\n", impl->val.u32);
         } break;
-        case MPP_CFG_TYPE_S64 : {
+        case MPP_CFG_TYPE_s64 : {
             len += snprintf(buf + len, total - len, "%lld,\n", impl->val.s64);
         } break;
-        case MPP_CFG_TYPE_U64 : {
+        case MPP_CFG_TYPE_u64 : {
             len += snprintf(buf + len, total - len, "%llu,\n", impl->val.u64);
         } break;
-        case MPP_CFG_TYPE_F32 : {
+        case MPP_CFG_TYPE_f32 : {
             len += snprintf(buf + len, total - len, "%f,\n", impl->val.f32);
         } break;
-        case MPP_CFG_TYPE_F64 : {
+        case MPP_CFG_TYPE_f64 : {
             len += snprintf(buf + len, total - len, "%lf,\n", impl->val.f64);
         } break;
         case MPP_CFG_TYPE_STRING :
@@ -1081,22 +1081,22 @@ static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str, rk_s32 firs
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s", impl->val.b1 ? "true" : "false");
         } break;
-        case MPP_CFG_TYPE_S32 : {
+        case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d", impl->val.s32);
         } break;
-        case MPP_CFG_TYPE_U32 : {
+        case MPP_CFG_TYPE_u32 : {
             len += snprintf(buf + len, total - len, "%u", impl->val.u32);
         } break;
-        case MPP_CFG_TYPE_S64 : {
+        case MPP_CFG_TYPE_s64 : {
             len += snprintf(buf + len, total - len, "%lld", impl->val.s64);
         } break;
-        case MPP_CFG_TYPE_U64 : {
+        case MPP_CFG_TYPE_u64 : {
             len += snprintf(buf + len, total - len, "%llu", impl->val.u64);
         } break;
-        case MPP_CFG_TYPE_F32 : {
+        case MPP_CFG_TYPE_f32 : {
             len += snprintf(buf + len, total - len, "%f", impl->val.f32);
         } break;
-        case MPP_CFG_TYPE_F64 : {
+        case MPP_CFG_TYPE_f64 : {
             len += snprintf(buf + len, total - len, "%lf", impl->val.f64);
         } break;
         case MPP_CFG_TYPE_STRING :
@@ -1201,24 +1201,24 @@ done:
 
     if (strstr(tmp, ".")) {
         if (value >= FLT_MIN && value <= FLT_MAX) {
-            *type = MPP_CFG_TYPE_F32;
+            *type = MPP_CFG_TYPE_f32;
             val->f32 = (float)value;
         } else {
-            *type = MPP_CFG_TYPE_F64;
+            *type = MPP_CFG_TYPE_f64;
             val->f64 = (double)value;
         }
     } else {
         if (value >= INT_MIN && value <= INT_MAX) {
-            *type = MPP_CFG_TYPE_S32;
+            *type = MPP_CFG_TYPE_s32;
             val->s32 = (int)value;
         } else if (value >= 0 && value <= UINT_MAX) {
-            *type = MPP_CFG_TYPE_U32;
+            *type = MPP_CFG_TYPE_u32;
             val->u32 = (unsigned int)value;
         } else if (value >= (long double)LLONG_MIN && value <= (long double)LLONG_MAX) {
-            *type = MPP_CFG_TYPE_U64;
+            *type = MPP_CFG_TYPE_u64;
             val->u64 = (unsigned long long)value;
         } else if (value >= 0 && value <= (long double)ULLONG_MAX) {
-            *type = MPP_CFG_TYPE_S64;
+            *type = MPP_CFG_TYPE_s64;
             val->s64 = (long long)value;
         } else {
             mpp_loge_f("invalid number %s\n", tmp);
@@ -3078,16 +3078,16 @@ static void write_struct(MppCfgIoImpl *obj, MppTrie trie, MppCfgStrBuf *str, voi
 
     if (tbl->data_type < CFG_FUNC_TYPE_BUTT) {
         switch (tbl->data_type) {
-        case CFG_FUNC_TYPE_S32 : {
+        case CFG_FUNC_TYPE_s32 : {
             mpp_cfg_set_s32(tbl, st, obj->val.s32);
         } break;
-        case CFG_FUNC_TYPE_U32 : {
+        case CFG_FUNC_TYPE_u32 : {
             mpp_cfg_set_u32(tbl, st, obj->val.u32);
         } break;
-        case CFG_FUNC_TYPE_S64 : {
+        case CFG_FUNC_TYPE_s64 : {
             mpp_cfg_set_s64(tbl, st, obj->val.s64);
         } break;
-        case CFG_FUNC_TYPE_U64 : {
+        case CFG_FUNC_TYPE_u64 : {
             mpp_cfg_set_u64(tbl, st, obj->val.u64);
         } break;
         default : {
@@ -3158,33 +3158,33 @@ static MppCfgObj read_struct(MppCfgIoImpl *impl, MppCfgObj parent, void *st)
 
     /* assign value by different type */
     switch (info->data_type) {
-    case CFG_FUNC_TYPE_S32 :
-    case CFG_FUNC_TYPE_U32 :
-    case CFG_FUNC_TYPE_S64 :
-    case CFG_FUNC_TYPE_U64 : {
+    case CFG_FUNC_TYPE_s32 :
+    case CFG_FUNC_TYPE_u32 :
+    case CFG_FUNC_TYPE_s64 :
+    case CFG_FUNC_TYPE_u64 : {
         switch (info->data_type) {
-        case CFG_FUNC_TYPE_S32 : {
-            mpp_assert(impl->type == MPP_CFG_TYPE_S32);
+        case CFG_FUNC_TYPE_s32 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_s32);
             mpp_cfg_get_s32(info, st, &ret->val.s32);
         } break;
-        case CFG_FUNC_TYPE_U32 : {
-            mpp_assert(impl->type == MPP_CFG_TYPE_U32);
+        case CFG_FUNC_TYPE_u32 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_u32);
             mpp_cfg_get_u32(info, st, &ret->val.u32);
         } break;
-        case CFG_FUNC_TYPE_S64 : {
-            mpp_assert(impl->type == MPP_CFG_TYPE_S64);
+        case CFG_FUNC_TYPE_s64 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_s64);
             mpp_cfg_get_s64(info, st, &ret->val.s64);
         } break;
-        case CFG_FUNC_TYPE_U64 : {
-            mpp_assert(impl->type == MPP_CFG_TYPE_U64);
+        case CFG_FUNC_TYPE_u64 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_u64);
             mpp_cfg_get_u64(info, st, &ret->val.u64);
         } break;
         default : {
         } break;
         }
     } break;
-    case CFG_FUNC_TYPE_St :
-    case CFG_FUNC_TYPE_Ptr : {
+    case CFG_FUNC_TYPE_st :
+    case CFG_FUNC_TYPE_ptr : {
         ret->val = impl->val;
     } break;
     default : {

@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     for (i = 0; i < array_size; i++) {
         obj = NULL;
         val.s32 = i;
-        ret = mpp_cfg_get_object(&obj, NULL, MPP_CFG_TYPE_S32, &val);
+        ret = mpp_cfg_get_object(&obj, NULL, MPP_CFG_TYPE_s32, &val);
         if (ret) {
             mpp_loge("mpp_cfg_get_object array element failed\n");
             goto DONE;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 
     obj = NULL;
     val.s32 = 1920;
-    ret = mpp_cfg_get_object(&obj, "width", MPP_CFG_TYPE_S32, &val);
+    ret = mpp_cfg_get_object(&obj, "width", MPP_CFG_TYPE_s32, &val);
     if (ret) {
         mpp_loge("mpp_cfg_get s32 failed\n");
         goto DONE;
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 
     obj = NULL;
     val.u32 = 1080;
-    ret = mpp_cfg_get_object(&obj, "height", MPP_CFG_TYPE_U32, &val);
+    ret = mpp_cfg_get_object(&obj, "height", MPP_CFG_TYPE_u32, &val);
     if (ret) {
         mpp_loge("mpp_cfg_get u32 failed\n");
         goto DONE;

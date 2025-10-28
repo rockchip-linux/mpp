@@ -128,7 +128,7 @@ MPP_RET check_cfg_info(MppCfgInfo *node, const char *name, CfgType type,
     MPP_RET ret = MPP_OK;
 
     switch (type) {
-    case CFG_FUNC_TYPE_St : {
+    case CFG_FUNC_TYPE_st : {
         if (cfg_type != type) {
             show_cfg_info_err(node, type, func, name);
             ret = MPP_NOK;
@@ -138,21 +138,21 @@ MPP_RET check_cfg_info(MppCfgInfo *node, const char *name, CfgType type,
             ret = MPP_NOK;
         }
     } break;
-    case CFG_FUNC_TYPE_Ptr : {
+    case CFG_FUNC_TYPE_ptr : {
         if (cfg_type != type) {
             show_cfg_info_err(node, type, func, name);
             ret = MPP_NOK;
         }
     } break;
-    case CFG_FUNC_TYPE_S32 :
-    case CFG_FUNC_TYPE_U32 : {
+    case CFG_FUNC_TYPE_s32 :
+    case CFG_FUNC_TYPE_u32 : {
         if (cfg_size != sizeof(RK_S32)) {
             show_cfg_info_err(node, type, func, name);
             ret = MPP_NOK;
         }
     } break;
-    case CFG_FUNC_TYPE_S64 :
-    case CFG_FUNC_TYPE_U64 : {
+    case CFG_FUNC_TYPE_s64 :
+    case CFG_FUNC_TYPE_u64 : {
         if (cfg_size != sizeof(RK_S64)) {
             show_cfg_info_err(node, type, func, name);
             ret = MPP_NOK;

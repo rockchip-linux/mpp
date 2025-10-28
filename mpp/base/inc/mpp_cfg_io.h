@@ -18,12 +18,12 @@ typedef enum MppCfgType_e {
 
     /* leaf type must with name */
     MPP_CFG_TYPE_BOOL,
-    MPP_CFG_TYPE_S32,
-    MPP_CFG_TYPE_U32,
-    MPP_CFG_TYPE_S64,
-    MPP_CFG_TYPE_U64,
-    MPP_CFG_TYPE_F32,
-    MPP_CFG_TYPE_F64,
+    MPP_CFG_TYPE_s32,
+    MPP_CFG_TYPE_u32,
+    MPP_CFG_TYPE_s64,
+    MPP_CFG_TYPE_u64,
+    MPP_CFG_TYPE_f32,
+    MPP_CFG_TYPE_f64,
     MPP_CFG_TYPE_STRING,
     MPP_CFG_TYPE_RAW,
 

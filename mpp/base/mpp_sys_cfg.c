@@ -74,32 +74,32 @@ static RK_U32 mpp_sys_cfg_debug = 0;
     } while (0);
 
 #define ENTRY_TABLE(ENTRY)  \
-    ENTRY(dec_buf_chk, enable,      U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_ENABLE,          dec_buf_chk, enable) \
-    ENTRY(dec_buf_chk, type,        U32, MppCodingType,     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_TYPE,            dec_buf_chk, type) \
-    ENTRY(dec_buf_chk, fmt_codec,   U32, MppFrameFormat,    MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_CODEC,       dec_buf_chk, fmt_codec) \
-    ENTRY(dec_buf_chk, fmt_fbc,     U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_FBC,         dec_buf_chk, fmt_fbc) \
-    ENTRY(dec_buf_chk, fmt_hdr,     U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_HDR,         dec_buf_chk, fmt_hdr) \
-    ENTRY(dec_buf_chk, width,       U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_WIDTH,           dec_buf_chk, width) \
-    ENTRY(dec_buf_chk, height,      U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_HEIGHT,          dec_buf_chk, height) \
-    ENTRY(dec_buf_chk, crop_top,    U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_TOP,        dec_buf_chk, crop_top) \
-    ENTRY(dec_buf_chk, crop_bottom, U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_BOTTOM,     dec_buf_chk, crop_bottom) \
-    ENTRY(dec_buf_chk, crop_left,   U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_LEFT,       dec_buf_chk, crop_left) \
-    ENTRY(dec_buf_chk, crop_right,  U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, crop_right) \
-    ENTRY(dec_buf_chk, unit_size,   U32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, unit_size) \
-    ENTRY(dec_buf_chk, has_metadata,    U32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_METADATA,   dec_buf_chk, has_metadata) \
-    ENTRY(dec_buf_chk, has_thumbnail,   U32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_THUMBNAIL,  dec_buf_chk, has_thumbnail) \
-    ENTRY(dec_buf_chk, h_stride_by_byte,  U32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_H_STRIDE_BYTE,   dec_buf_chk, h_stride_by_byte) \
-    ENTRY(dec_buf_chk, v_stride,          U32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_V_STRIDE,        dec_buf_chk, v_stride) \
+    ENTRY(dec_buf_chk, enable,      u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_ENABLE,          dec_buf_chk, enable) \
+    ENTRY(dec_buf_chk, type,        u32, MppCodingType,     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_TYPE,            dec_buf_chk, type) \
+    ENTRY(dec_buf_chk, fmt_codec,   u32, MppFrameFormat,    MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_CODEC,       dec_buf_chk, fmt_codec) \
+    ENTRY(dec_buf_chk, fmt_fbc,     u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_FBC,         dec_buf_chk, fmt_fbc) \
+    ENTRY(dec_buf_chk, fmt_hdr,     u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_HDR,         dec_buf_chk, fmt_hdr) \
+    ENTRY(dec_buf_chk, width,       u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_WIDTH,           dec_buf_chk, width) \
+    ENTRY(dec_buf_chk, height,      u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_HEIGHT,          dec_buf_chk, height) \
+    ENTRY(dec_buf_chk, crop_top,    u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_TOP,        dec_buf_chk, crop_top) \
+    ENTRY(dec_buf_chk, crop_bottom, u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_BOTTOM,     dec_buf_chk, crop_bottom) \
+    ENTRY(dec_buf_chk, crop_left,   u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_LEFT,       dec_buf_chk, crop_left) \
+    ENTRY(dec_buf_chk, crop_right,  u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, crop_right) \
+    ENTRY(dec_buf_chk, unit_size,   u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, unit_size) \
+    ENTRY(dec_buf_chk, has_metadata,    u32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_METADATA,   dec_buf_chk, has_metadata) \
+    ENTRY(dec_buf_chk, has_thumbnail,   u32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_THUMBNAIL,  dec_buf_chk, has_thumbnail) \
+    ENTRY(dec_buf_chk, h_stride_by_byte,  u32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_H_STRIDE_BYTE,   dec_buf_chk, h_stride_by_byte) \
+    ENTRY(dec_buf_chk, v_stride,          u32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_V_STRIDE,        dec_buf_chk, v_stride) \
     /* read-only config */ \
-    ENTRY(dec_buf_chk, cap_fbc,     U32, RK_U32,            0,                                              dec_buf_chk, cap_fbc) \
-    ENTRY(dec_buf_chk, cap_tile,    U32, RK_U32,            0,                                              dec_buf_chk, cap_tile) \
-    ENTRY(dec_buf_chk, h_stride_by_pixel,   U32, RK_U32,    0,                                              dec_buf_chk, h_stride_by_pixel) \
-    ENTRY(dec_buf_chk, offset_y,    U32, RK_U32,            0,                                              dec_buf_chk, offset_y) \
-    ENTRY(dec_buf_chk, size_total,  U32, RK_U32,            0,                                              dec_buf_chk, size_total) \
-    ENTRY(dec_buf_chk, size_fbc_hdr, U32, RK_U32,           0,                                              dec_buf_chk, size_fbc_hdr) \
-    ENTRY(dec_buf_chk, size_fbc_bdy, U32, RK_U32,           0,                                              dec_buf_chk, size_fbc_bdy) \
-    ENTRY(dec_buf_chk, size_metadata,   U32, RK_U32,        0,                                              dec_buf_chk, size_metadata) \
-    ENTRY(dec_buf_chk, size_thumbnail,  U32, RK_U32,        0,                                              dec_buf_chk, size_thumbnail)
+    ENTRY(dec_buf_chk, cap_fbc,     u32, RK_U32,            0,                                              dec_buf_chk, cap_fbc) \
+    ENTRY(dec_buf_chk, cap_tile,    u32, RK_U32,            0,                                              dec_buf_chk, cap_tile) \
+    ENTRY(dec_buf_chk, h_stride_by_pixel,   u32, RK_U32,    0,                                              dec_buf_chk, h_stride_by_pixel) \
+    ENTRY(dec_buf_chk, offset_y,    u32, RK_U32,            0,                                              dec_buf_chk, offset_y) \
+    ENTRY(dec_buf_chk, size_total,  u32, RK_U32,            0,                                              dec_buf_chk, size_total) \
+    ENTRY(dec_buf_chk, size_fbc_hdr, u32, RK_U32,           0,                                              dec_buf_chk, size_fbc_hdr) \
+    ENTRY(dec_buf_chk, size_fbc_bdy, u32, RK_U32,           0,                                              dec_buf_chk, size_fbc_bdy) \
+    ENTRY(dec_buf_chk, size_metadata,   u32, RK_U32,        0,                                              dec_buf_chk, size_metadata) \
+    ENTRY(dec_buf_chk, size_thumbnail,  u32, RK_U32,        0,                                              dec_buf_chk, size_thumbnail)
 
 static void mpp_sys_cfg_srv_init()
 {
@@ -657,12 +657,12 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
         return ret; \
     }
 
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_s32, RK_S32, S32);
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_u32, RK_U32, U32);
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_s64, RK_S64, S64);
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_u64, RK_U64, U64);
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_ptr, void *, Ptr);
-MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, St);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_s32, RK_S32, s32);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_u32, RK_U32, u32);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_s64, RK_S64, s64);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_u64, RK_U64, u64);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_ptr, void *, ptr);
+MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, st);
 
 #define MPP_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppSysCfg cfg, const char *name, in_type *val) \
@@ -689,12 +689,12 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, St);
         return ret; \
     }
 
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_s32, RK_S32, S32);
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_u32, RK_U32, U32);
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_s64, RK_S64, S64);
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_u64, RK_U64, U64);
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_ptr, void *, Ptr);
-MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_st,  void  , St);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_s32, RK_S32, s32);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_u32, RK_U32, u32);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_s64, RK_S64, s64);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_u64, RK_U64, u64);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_ptr, void *, ptr);
+MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_st,  void  , st);
 
 void mpp_sys_cfg_show(void)
 {

@@ -27,12 +27,12 @@ typedef void* KmppObjDef;
 typedef void* KmppObj;
 
 typedef enum CfgType_e {
-    CFG_FUNC_TYPE_S32,
-    CFG_FUNC_TYPE_U32,
-    CFG_FUNC_TYPE_S64,
-    CFG_FUNC_TYPE_U64,
-    CFG_FUNC_TYPE_St,
-    CFG_FUNC_TYPE_Ptr,
+    CFG_FUNC_TYPE_s32,
+    CFG_FUNC_TYPE_u32,
+    CFG_FUNC_TYPE_s64,
+    CFG_FUNC_TYPE_u64,
+    CFG_FUNC_TYPE_st,
+    CFG_FUNC_TYPE_ptr,
     CFG_FUNC_TYPE_BUTT,
 } CfgType;
 
