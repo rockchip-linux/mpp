@@ -26,7 +26,13 @@
 #define CFG_TO_u64_PTR(info, cfg)   ((RK_U64 *)CFG_TO_PTR(info, cfg))
 #define CFG_TO_ptr_PTR(info, cfg)   ((void **)CFG_TO_PTR(info, cfg))
 
-#define CFG_TO_FLAG_PTR(info, cfg)  ((RK_U32 *)((char *)cfg + info->flag_offset))
+/* 32bit unsigned long pointer */
+#define ELEM_FLAG_U32_POS(offset)       (((offset) & (~31)) / 8)
+#define ELEM_FLAG_BIT_POS(offset)       ((offset) & 31)
+#define CFG_TO_FLAG_PTR(info, cfg)      ((rk_ul *)((rk_u8 *)cfg + ELEM_FLAG_U32_POS(info->flag_offset)))
+
+#define CFG_SET_FLAG(info, cfg) \
+    *CFG_TO_FLAG_PTR(info, cfg) |= 1ul << (ELEM_FLAG_BIT_POS(info->flag_offset))
 
 static RK_U32 mpp_cfg_debug = 0;
 
@@ -58,7 +64,7 @@ static MPP_RET mpp_cfg_set(MppCfgInfo *info, void *cfg, void *val)
 {
     if (memcmp((char *)cfg + info->data_offset, val, info->data_size)) {
         memcpy((char *)cfg + info->data_offset, val, info->data_size);
-        *((RK_U32 *)((char *)cfg + info->flag_offset)) |= info->flag_value;
+        CFG_SET_FLAG(info, cfg);
     }
     return MPP_OK;
 }
@@ -75,13 +81,13 @@ static MPP_RET mpp_cfg_get(MppCfgInfo *info, void *cfg, void *val)
         base_type *dst = CFG_TO_##type##_PTR(info, cfg); \
         base_type old = dst[0]; \
         dst[0] = val; \
-        if (!info->flag_value) { \
+        if (!info->flag_offset) { \
             mpp_cfg_dbg_set("%p + %d set " #type " change %d -> %d\n", cfg, info->data_offset, old, val); \
         } else { \
             if (old != val) { \
-                mpp_cfg_dbg_set("%p + %d set " #type " update %d -> %d flag %d|%x\n", \
-                                cfg, info->data_offset, old, val, info->flag_offset, info->flag_value); \
-                CFG_TO_FLAG_PTR(info, cfg)[0] |= info->flag_value; \
+                mpp_cfg_dbg_set("%p + %d set " #type " update %d -> %d flag %d\n", \
+                                cfg, info->data_offset, old, val, info->flag_offset); \
+                CFG_SET_FLAG(info, cfg); \
             } else { \
                 mpp_cfg_dbg_set("%p + %d set " #type " keep   %d\n", cfg, info->data_offset, old); \
             } \

@@ -633,9 +633,9 @@ MppTrie mpp_cfg_to_trie(MppCfgObj obj)
             break;
         }
 
-        ret = mpp_trie_init(&p, impl->name);
+        ret = mpp_trie_init(&p, impl->name ? impl->name : "cfg_io");
         if (ret || !p) {
-            mpp_loge_f("failed to init obj %s trie\n", impl->name);
+            mpp_loge_f("failed to init obj %s trie\n", impl->name ? impl->name : "cfg_io");
             break;
         }
 

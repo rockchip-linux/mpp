@@ -15,6 +15,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_singleton.h"
+#include "mpp_internal.h"
 
 #include "mpp_trie.h"
 #include "mpp_cfg.h"

@@ -28,6 +28,8 @@ rk_s32 kmpp_objdef_put(KmppObjDef def);
 
 /* userspace objdef add MppCfgObj root */
 rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root);
+/* userspace objdef get MppCfgObj root */
+MppCfgObj kmpp_objdef_get_cfg_root(KmppObjDef def);
 /* userspace objdef add KmppEntry table */
 rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl);
 /* userspace object init function register default object is all zero */

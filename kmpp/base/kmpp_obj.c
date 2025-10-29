@@ -521,8 +521,6 @@ rk_s32 kmpp_objdef_put(KmppObjDef def)
             if (impl->cfg) {
                 mpp_cfg_put_all(impl->cfg);
                 impl->cfg = NULL;
-                /* When init with MppCfgObj the trie is associated to the MppCfgObj */
-                impl->trie = NULL;
             }
             release = 1;
         }
@@ -681,11 +679,17 @@ rk_s32 kmpp_objdef_add_cfg_root(KmppObjDef def, MppCfgObj root)
 
     if (impl) {
         impl->cfg = root;
-        impl->trie = mpp_cfg_to_trie(root);
         ret = rk_ok;
     }
 
     return ret;
+}
+
+MppCfgObj kmpp_objdef_get_cfg_root(KmppObjDef def)
+{
+    KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
+
+    return impl ? impl->cfg : NULL;
 }
 
 rk_s32 kmpp_objdef_add_entry(KmppObjDef def, const char *name, KmppEntry *tbl)

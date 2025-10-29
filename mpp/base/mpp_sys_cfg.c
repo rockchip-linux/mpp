@@ -66,7 +66,6 @@ static RK_U32 mpp_sys_cfg_debug = 0;
         MppCfgInfo tmp = { \
             CFG_FUNC_TYPE_##cfg_type, \
             (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.change)), \
-            flag, \
             (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.field_data)), \
             sizeof((((MppSysCfgSet *)0)->field_change.field_data)), \
         }; \
@@ -647,7 +646,7 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
         if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        if (!info->flag_value) { \
+        if (!info->flag_offset) { \
             mpp_log_f("can not set readonly cfg %s\n", mpp_trie_info_name(node)); \
             return MPP_NOK; \
         } \

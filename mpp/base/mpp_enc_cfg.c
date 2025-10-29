@@ -16,9 +16,11 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 #include "mpp_singleton.h"
+#include "mpp_internal.h"
 
 #include "mpp_cfg.h"
 #include "mpp_trie.h"
+#include "mpp_cfg_io.h"
 #include "mpp_enc_cfg.h"
 
 #define ENC_CFG_DBG_FUNC            (0x00000001)
@@ -60,7 +62,7 @@
     ALIAS(prefix, s32,  rk_s32,     fps_out_denom,          FLAG_PREV,                          rc, fps_out_denom) \
     ENTRY(prefix, s32,  rk_s32,     fps_chg_no_idr,         FLAG_PREV,                          rc, fps_chg_no_idr) \
     ENTRY(prefix, s32,  rk_s32,     gop,                    FLAG_INCR,                          rc, gop) \
-    ENTRY(prefix, kptr, void *,     ref_cfg,                FLAG_INCR,                          rc, ref_cfg) \
+    ENTRY(prefix, ptr,  void *,     ref_cfg,                FLAG_INCR,                          rc, ref_cfg) \
     ENTRY(prefix, u32,  rk_u32,     max_reenc_times,        FLAG_INCR,                          rc, max_reenc_times) \
     ENTRY(prefix, u32,  rk_u32,     priority,               FLAG_INCR,                          rc, rc_priority) \
     ENTRY(prefix, u32,  rk_u32,     drop_mode,              FLAG_INCR,                          rc, drop_mode) \
@@ -482,3 +484,37 @@ GET_ENC_CFG_CHANGE(h264)
 GET_ENC_CFG_CHANGE(h265)
 GET_ENC_CFG_CHANGE(jpeg)
 GET_ENC_CFG_CHANGE(vp8)
+
+MPP_RET mpp_enc_cfg_extract(MppEncCfg cfg, MppCfgStrFmt fmt, char **buf)
+{
+    MppEncCfgSet *cfg_impl = kmpp_obj_to_entry(cfg);
+    MppCfgObj obj = NULL;
+    MppCfgObj root = NULL;
+
+    root = kmpp_objdef_get_cfg_root(mpp_enc_cfg_def);
+
+    mpp_cfg_from_struct(&obj, root, cfg_impl);
+    if (obj) {
+        mpp_cfg_to_string(obj, fmt, buf);
+        mpp_cfg_put_all(obj);
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_cfg_apply(MppEncCfg cfg, MppCfgStrFmt fmt, char *buf)
+{
+    MppEncCfgSet *cfg_impl = kmpp_obj_to_entry(cfg);
+    MppCfgObj obj = NULL;
+    MppCfgObj root = NULL;
+
+    root = kmpp_objdef_get_cfg_root(mpp_enc_cfg_def);
+
+    mpp_cfg_from_string(&obj, fmt, buf);
+    if (obj) {
+        mpp_cfg_to_struct(obj, root, cfg_impl);
+        mpp_cfg_put_all(obj);
+    }
+
+    return MPP_OK;
+}

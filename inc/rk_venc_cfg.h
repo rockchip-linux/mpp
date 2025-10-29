@@ -6,8 +6,7 @@
 #ifndef __RK_VENC_CFG_H__
 #define __RK_VENC_CFG_H__
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "rk_mpp_cfg.h"
 
 typedef void* MppEncCfg;
 
@@ -37,6 +36,8 @@ MPP_RET mpp_enc_cfg_get_ptr(MppEncCfg cfg, const char *name, void **val);
 MPP_RET mpp_enc_cfg_get_st(MppEncCfg cfg, const char *name, void *val);
 
 void mpp_enc_cfg_show(void);
+MPP_RET mpp_enc_cfg_extract(MppEncCfg cfg, MppCfgStrFmt fmt, char **buf);
+MPP_RET mpp_enc_cfg_apply(MppEncCfg cfg, MppCfgStrFmt fmt, char *buf);
 
 #ifdef __cplusplus
 }

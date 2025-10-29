@@ -57,6 +57,33 @@
 #endif
 
 #ifdef KMPP_OBJ_IMPL_TYPE
+#ifdef KMPP_OBJ_HIERARCHY_ENABLE
+
+#define MPP_CFG_TYPE_ptr MPP_CFG_TYPE_OBJECT
+#define MPP_CFG_TYPE_st  MPP_CFG_TYPE_OBJECT
+
+#define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...) \
+    do { \
+            KmppEntry tbl = { \
+                .tbl.elem_offset = ((size_t)&(((KMPP_OBJ_IMPL_TYPE *)0)->CONCAT_DOT(__VA_ARGS__))), \
+                .tbl.elem_size = sizeof(((KMPP_OBJ_IMPL_TYPE *)0)->CONCAT_DOT(__VA_ARGS__)), \
+                .tbl.elem_type = ELEM_TYPE_##ftype, \
+                .tbl.flag_offset = FLAG_TYPE_TO_OFFSET(name, flag, #flag), \
+            }; \
+            MppCfgInfo info = { \
+                .data_type = CFG_FUNC_TYPE_##ftype, \
+                .flag_offset = tbl.tbl.flag_offset, \
+                .data_offset = tbl.tbl.elem_offset, \
+                .data_size = tbl.tbl.elem_size, \
+            }; \
+            MppCfgObj CONCAT_US(obj, name) = NULL; \
+            kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
+            mpp_cfg_get_object(&CONCAT_US(obj, name), TO_STR(name), MPP_CFG_TYPE_##ftype, NULL); \
+            mpp_cfg_set_info(CONCAT_US(obj, name), &info); \
+            mpp_cfg_add(__parent, CONCAT_US(obj, name)); \
+            ENTRY_TO_NAME_END(name); \
+    } while (0);
+#else
 #define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...) \
     do { \
         KmppEntry tbl = { \
@@ -68,9 +95,10 @@
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
         ENTRY_TO_NAME_END(name); \
     } while (0);
+#endif /* KMPP_OBJ_HIERARCHY_ENABLE */
 #else
 #define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...)
-#endif
+#endif /* KMPP_OBJ_IMPL_TYPE */
 
 #if !defined(KMPP_OBJ_ACCESS_DISABLE)
 #define VAL_ENTRY_TBL(prefix, ftype, type, name, flag, ...) \
@@ -280,19 +308,40 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
     { \
         char str_buf[256] = {0}; \
         rk_s32 str_pos = 0; \
-        rk_s32 str_size = sizeof(str_buf) - 1;
+        rk_s32 str_size = sizeof(str_buf) - 1; \
+        MppCfgObj root = NULL; \
+        MppCfgObj __parent = NULL; \
+        if (once) { \
+            mpp_cfg_get_object(&root, NULL, MPP_CFG_TYPE_OBJECT, NULL); \
+            __parent = root; \
+        }
 
 #define CFG_DEF_END(...) \
+        { \
+            if (once) { \
+                kmpp_objdef_add_cfg_root(KMPP_OBJ_DEF(KMPP_OBJ_NAME), root); \
+            } \
+        } \
     }
 
 #define STRUCT_START(...) \
     { \
         rk_s32 CONCAT_US(pos, __VA_ARGS__, root) = str_pos; \
-        str_pos += snprintf(str_buf + str_pos, str_size - str_pos, str_pos ? ":%s" : "%s", CONCAT_STR(__VA_ARGS__));
+        MppCfgObj CONCAT_US(obj, __VA_ARGS__) = NULL; \
+        MppCfgObj CONCAT_US(__parent, __VA_ARGS__) = __parent; \
+        if (once) { \
+            str_pos += snprintf(str_buf + str_pos, str_size - str_pos, \
+                                str_pos ? ":%s" : "%s", CONCAT_STR(__VA_ARGS__)); \
+            mpp_cfg_get_object(&CONCAT_US(obj, __VA_ARGS__), CONCAT_STR(__VA_ARGS__), MPP_CFG_TYPE_OBJECT, NULL); \
+            mpp_cfg_add(CONCAT_US(__parent, __VA_ARGS__), CONCAT_US(obj, __VA_ARGS__)); \
+            __parent = CONCAT_US(obj, __VA_ARGS__); \
+        }
 
 #define STRUCT_END(...) \
         str_pos = CONCAT_US(pos, __VA_ARGS__, root); \
         str_buf[str_pos] = '\0'; \
+        if (__parent) \
+            __parent = CONCAT_US(__parent, __VA_ARGS__); \
     }
 
 #define ENTRY_TO_NAME_START(name, ...) \
@@ -308,6 +357,8 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
 
 static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 {
+    rk_u32 once = 1;
+
     mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
 
     KMPP_OBJ_DBG_LOG("register enter\n");
@@ -340,6 +391,7 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
         KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, ENTRY_TO_TRIE, ENTRY_TO_TRIE,
                              ENTRY_TO_TRIE, ENTRY_TO_TRIE, ENTRY_TO_TRIE)
         kmpp_objdef_add_entry(KMPP_OBJ_DEF(KMPP_OBJ_NAME), NULL, NULL);
+        once = 0;
 #else
         KMPP_OBJ_DBG_LOG(TO_STR(KMPP_OBJ_NAME) " has no implementation\n");
         return;
@@ -588,6 +640,8 @@ extern "C" {
 #undef VAL_HOOK_IDX
 #undef ENTRY_QUERY
 #undef HOOK_QUERY
+#undef MPP_CFG_TYPE_ptr
+#undef MPP_CFG_TYPE_st
 
 #undef __OBJECT_HERLPER_H__
 
