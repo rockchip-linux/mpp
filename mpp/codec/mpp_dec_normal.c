@@ -156,6 +156,8 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
     // do parser reset process
     {
         RK_S32 index;
+        RK_U32 i;
+
         task->status.curr_task_rdy = 0;
         task->status.prev_task_rdy = 1;
         task_dec->valid = 0;
@@ -172,7 +174,7 @@ static RK_U32 reset_parser_thread(Mpp *mpp, DecTask *task)
             if (task_dec->output >= 0)
                 mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
 
-            for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 index = task_dec->refer[i];
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
@@ -776,6 +778,7 @@ void *mpp_dec_hal_thread(void *data)
     HalTaskHnd  task = NULL;
     HalTaskInfo task_info;
     HalDecTask  *task_dec = &task_info.dec;
+    RK_U32 i;
 
     mpp_clock_start(dec->clocks[DEC_HAL_TOTAL]);
 
@@ -884,7 +887,7 @@ void *mpp_dec_hal_thread(void *data)
             if (task_dec->output >= 0)
                 mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
 
-            for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+            for (i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
                 RK_S32 index = task_dec->refer[i];
                 if (index >= 0)
                     mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);

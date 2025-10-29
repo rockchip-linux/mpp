@@ -1030,6 +1030,7 @@ static const MppSocInfo mpp_soc_default = {
 static void read_soc_name(char *name, rk_s32 size)
 {
     const char *path = "/proc/device-tree/compatible";
+    char *ptr = NULL;
     rk_s32 fd = open(path, O_RDONLY);
 
     if (fd < 0) {
@@ -1042,7 +1043,7 @@ static void read_soc_name(char *name, rk_s32 size)
         if (soc_name_len > 0) {
             name[soc_name_len] = '\0';
             /* replacing the termination character to space */
-            for (char *ptr = name;; ptr = name) {
+            for (ptr = name;; ptr = name) {
                 ptr += strnlen(name, size);
                 if (ptr >= name + soc_name_len - 1)
                     break;

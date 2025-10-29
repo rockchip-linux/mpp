@@ -27,6 +27,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     MppPacket input = dec->mpp_pkt_in;
     size_t stream_size = 0;
     RK_S32 output = 0;
+    RK_U32 i;
 
     mpp_mutex_cond_lock(cmd_lock);
 
@@ -322,7 +323,7 @@ MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet)
     if (task_dec->output >= 0)
         mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
 
-    for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+    for (i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
         RK_S32 index = task_dec->refer[i];
         if (index >= 0)
             mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);
@@ -351,6 +352,7 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
     MppMutexCond *cmd_lock = &dec->cmd_lock;
     HalDecTask *task_dec = &task->info.dec;
     RK_S32 index;
+    RK_U32 i;
 
     mpp_mutex_cond_lock(cmd_lock);
 
@@ -374,7 +376,7 @@ MPP_RET mpp_dec_reset_no_thread(MppDecImpl *dec)
     if (task->status.task_parsed_rdy) {
         mpp_log("task no send to hal que must clr current frame hal status\n");
         mpp_buf_slot_clr_flag(frame_slots, task_dec->output, SLOT_HAL_OUTPUT);
-        for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(task_dec->refer); i++) {
             index = task_dec->refer[i];
             if (index >= 0)
                 mpp_buf_slot_clr_flag(frame_slots, index, SLOT_HAL_INPUT);

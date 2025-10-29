@@ -480,6 +480,7 @@ MPP_RET mpp_task_queue_setup(MppTaskQueue queue, RK_S32 task_count)
 MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
 {
     MppTaskQueueImpl *p = (MppTaskQueueImpl *)queue;
+    RK_S32 i;
 
     if (!p) {
         mpp_err_f("found NULL input queue\n");
@@ -493,7 +494,7 @@ MPP_RET mpp_task_queue_deinit(MppTaskQueue queue)
     mpp_cond_signal(&p->info[MPP_OUTPUT_PORT].cond);
 
     if (p->tasks) {
-        for (RK_S32 i = 0; i < p->task_count; i++) {
+        for (i = 0; i < p->task_count; i++) {
             MppMeta meta = p->tasks[i].meta;
 
             /* we must ensure that all task return to init status */

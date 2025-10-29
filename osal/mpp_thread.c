@@ -22,6 +22,7 @@ static rk_u32 thread_debug = 0;
 MppThread *mpp_thread_create(MppThreadFunc func, void *ctx, const char *name)
 {
     MppThread *thread = mpp_malloc(MppThread, 1);
+    int i;
 
     if (thread) {
         thread->func = func;
@@ -38,7 +39,7 @@ MppThread *mpp_thread_create(MppThreadFunc func, void *ctx, const char *name)
         } else {
             snprintf(thread->name, THREAD_NAME_LEN, "MppThread");
         }
-        for (int i = 0; i < THREAD_SIGNAL_BUTT; i++) {
+        for (i = 0; i < THREAD_SIGNAL_BUTT; i++) {
             mpp_mutex_cond_init(&thread->mutex_cond[i]);
         }
     }
@@ -243,11 +244,13 @@ void mpp_thread_init(MppThread *thread, MppThreadFunc func, void *ctx, const cha
 {
     thread->func = func;
     thread->ctx = ctx;
+    int i;
+
     if (name) {
         strncpy(thread->name, name, THREAD_NAME_LEN - 1);
         thread->name[THREAD_NAME_LEN - 1] = '\0';
     }
-    for (int i = 0; i < THREAD_SIGNAL_BUTT; i++) {
+    for (i = 0; i < THREAD_SIGNAL_BUTT; i++) {
         mpp_mutex_cond_init(&thread->mutex_cond[i]);
         thread->thd_status[i] = MPP_THREAD_UNINITED;
     }

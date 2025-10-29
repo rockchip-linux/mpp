@@ -805,6 +805,7 @@ static void clear_slots_impl(MppBufSlotsImpl *impl)
 MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 {
     MppBufSlotsImpl *impl;
+    RK_U32 i;
 
     if (!slots) {
         mpp_err_f("found NULL input\n");
@@ -829,7 +830,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
 
         mpp_mutex_init(&impl->lock);
 
-        for (RK_U32 i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
+        for (i = 0; i < MPP_ARRAY_ELEMS(impl->queue); i++) {
             INIT_LIST_HEAD(&impl->queue[i]);
         }
 
