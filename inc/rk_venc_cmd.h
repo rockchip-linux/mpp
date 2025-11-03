@@ -966,6 +966,14 @@ typedef struct MppEncVp8Cfg_t {
     RK_S32              disable_ivf;
 } MppEncVp8Cfg;
 
+typedef enum MppEncSliceSplit_e {
+    /* change on quant parameter */
+    MPP_ENC_SPLIT_CFG_CHANGE_MODE           = (1 << 0),
+    MPP_ENC_SPLIT_CFG_CHANGE_ARG            = (1 << 1),
+    MPP_ENC_SPLIT_CFG_CHANGE_OUTPUT         = (1 << 2),
+    MPP_ENC_SPLIT_CFG_CHANGE_ALL            = (0xFFFFFFFF),
+} MppEncSliceSplitChange;
+
 typedef enum MppEncSplitMode_e {
     MPP_ENC_SPLIT_NONE,
     MPP_ENC_SPLIT_BY_BYTE,
@@ -979,6 +987,7 @@ typedef enum MppEncSplitOutMode_e {
 } MppEncSplitOutMode;
 
 typedef struct MppEncSliceSplit_t {
+    RK_U32  change;
     /*
      * slice split mode
      *
