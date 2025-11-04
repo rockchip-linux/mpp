@@ -38,13 +38,13 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
         return rk_nok;
     }
 
-    if (sgln_mask & (1 << info->id)) {
+    if (sgln_mask & ((rk_u64)1 << info->id)) {
         sgln_dbg("info %d has been registered at %s\n", info->id, caller);
         return rk_nok;
     }
 
     sgln_info[info->id] = *info;
-    sgln_mask |= (1 << info->id);
+    sgln_mask |= ((rk_u64)1 << info->id);
 
     {
         rk_u32 name_len = strlen(info->name);
@@ -67,7 +67,7 @@ static void mpp_singleton_deinit(void)
 
     /* NOTE: revert deinit order */
     for (i = MPP_SGLN_MAX_CNT - 1; i >= 0; i--) {
-        if (sgln_mask & (1 << i)) {
+        if (sgln_mask & ((rk_u64)1 << i)) {
             MppSingletonInfo *info = &sgln_info[i];
 
             if (info->deinit) {
@@ -96,7 +96,7 @@ __attribute__((constructor(65535))) static void mpp_singleton_init(void)
     atexit(mpp_singleton_deinit);
 
     for (i = 0; i < MPP_SGLN_MAX_CNT; i++) {
-        if (sgln_mask & (1 << i)) {
+        if (sgln_mask & ((rk_u64)1 << i)) {
             MppSingletonInfo *info = &sgln_info[i];
 
             if (info->init) {
