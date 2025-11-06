@@ -174,6 +174,7 @@ extern "C" {
 MPP_RET mpp_meta_get_with_tag(MppMeta *meta, const char *tag, const char *caller);
 MPP_RET mpp_meta_put(MppMeta meta);
 RK_S32  mpp_meta_size(MppMeta meta);
+MppMeta mpp_meta_dup(MppMeta meta);
 
 MPP_RET mpp_meta_set_s32(MppMeta meta, MppMetaKey key, RK_S32 val);
 MPP_RET mpp_meta_set_s64(MppMeta meta, MppMetaKey key, RK_S64 val);

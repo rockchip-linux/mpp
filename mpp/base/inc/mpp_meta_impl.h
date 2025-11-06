@@ -58,6 +58,11 @@ RK_S32 mpp_meta_size(MppMeta meta);
 MPP_RET mpp_meta_dump(MppMeta meta);
 MPP_RET mpp_meta_inc_ref(MppMeta meta);
 
+RK_S32 mpp_meta_s32_read(MppMeta meta, RK_S32 index, RK_S32 *val);
+
+extern RK_S32 meta_hdr_offset_index;
+extern RK_S32 meta_hdr_size_index;
+
 #ifdef __cplusplus
 }
 #endif

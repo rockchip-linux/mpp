@@ -199,7 +199,8 @@ struct MppFrameImpl_t {
 extern "C" {
 #endif
 
-MPP_RET mpp_frame_copy(MppFrame frame, MppFrame next);
+MppFrame mpp_frame_dup(MppFrame src);
+MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src);
 MPP_RET mpp_frame_info_cmp(MppFrame frame0, MppFrame frame1);
 RK_U32  mpp_frame_get_fbc_offset(MppFrame frame);
 RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);

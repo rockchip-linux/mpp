@@ -172,6 +172,9 @@ static RK_U32 mpp_meta_debug = 0;
 static RK_S32 user_data_index = -1;
 static RK_S32 user_datas_index = -1;
 
+RK_S32 meta_hdr_offset_index = -1;
+RK_S32 meta_hdr_size_index = -1;
+
 static void put_meta(MppMetaSrv *srv, MppMetaImpl *meta);
 static inline RK_S32 get_index_of_key(MppMetaKey key, MppMetaType type, const char *caller);
 #define get_index_of_key_f(key, type) get_index_of_key(key, type, __FUNCTION__);
@@ -203,6 +206,8 @@ static void mpp_meta_srv_init()
         mpp_trie_add_info(srv->trie, NULL, NULL, 0);
         user_data_index = get_index_of_key_f(KEY_USER_DATA, TYPE_UPTR);
         user_datas_index = get_index_of_key_f(KEY_USER_DATAS, TYPE_UPTR);
+        meta_hdr_offset_index = get_index_of_key_f(KEY_HDR_META_OFFSET, TYPE_VAL_32);
+        meta_hdr_size_index = get_index_of_key_f(KEY_HDR_META_SIZE, TYPE_VAL_32);
     }
 
     pool_meta = mpp_mem_pool_init_f("MppMeta", sizeof(MppMetaImpl) +
@@ -393,64 +398,6 @@ RK_S32 mpp_meta_size(MppMeta meta)
     return MPP_FETCH_ADD(&impl->node_count, 0);
 }
 
-MPP_RET mpp_meta_dump(MppMeta meta)
-{
-    MppMetaSrv *srv = get_srv_meta_f();
-    MppMetaImpl *impl = (MppMetaImpl *)meta;
-    MppTrieInfo *root;
-
-    if (!impl) {
-        mpp_err_f("found NULL input\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    mpp_logi("dumping meta %d node count %d\n", impl->meta_id, impl->node_count);
-
-    if (!srv || !srv->trie)
-        return MPP_NOK;
-
-    root = mpp_trie_get_info_first(srv->trie);
-    if (root) {
-        MppTrieInfo *node = root;
-        const char *key = NULL;
-        char log_str[256];
-        RK_S32 pos;
-
-        do {
-            if (mpp_trie_info_is_self(node))
-                continue;
-
-            key = mpp_trie_info_name(node);
-
-            pos = snprintf(log_str, sizeof(log_str) - 1, "key %c%c%c%c - ",
-                           key[0], key[1], key[2], key[3]);
-
-            switch (key[4]) {
-            case '3' : {
-                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "s32 - %d",
-                         impl->vals[node->index].val_s32);
-            } break;
-            case '6' : {
-                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "s64 - %lld",
-                         impl->vals[node->index].val_s64);
-            } break;
-            case 'k' :
-            case 'u' :
-            case 's' : {
-                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "ptr - %p",
-                         impl->vals[node->index].val_ptr);
-            } break;
-            default : {
-            } break;
-            }
-
-            mpp_logi("%s\n", log_str);
-        } while ((node = mpp_trie_get_info_next(srv->trie, node)));
-    }
-
-    return MPP_OK;
-}
-
 static MPP_RET set_user_data(MppMetaImpl *impl, void *user_data)
 {
     MppEncUserData *src = (MppEncUserData *)user_data;
@@ -576,6 +523,90 @@ static MPP_RET get_user_datas(MppMetaImpl *impl, void **val)
     return MPP_NOK;
 }
 
+MppMeta mpp_meta_dup(MppMeta meta)
+{
+    MppMetaSrv *srv = get_srv_meta_f();
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaImpl *ret;
+
+    if (!srv || !meta)
+        return NULL;
+
+    ret = get_meta(srv, impl->tag, __FUNCTION__);
+    if (ret) {
+        memcpy(ret->vals, impl->vals, meta_key_count * sizeof(MppMetaVal));
+        if (ret->user_data.len) {
+            memset(&ret->user_data, 0, sizeof(ret->user_data));
+            set_user_data(ret, (void *)(intptr_t)&impl->user_data);
+        }
+        if (ret->user_data_set.count) {
+            memset(&ret->user_data, 0, sizeof(ret->user_data));
+            set_user_datas(impl, (void *)(intptr_t)&impl->user_data_set);
+        }
+        ret->node_count = impl->node_count;
+    }
+
+    return ret;
+}
+
+MPP_RET mpp_meta_dump(MppMeta meta)
+{
+    MppMetaSrv *srv = get_srv_meta_f();
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppTrieInfo *root;
+
+    if (!impl) {
+        mpp_err_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    mpp_logi("dumping meta %d node count %d\n", impl->meta_id, impl->node_count);
+
+    if (!srv || !srv->trie)
+        return MPP_NOK;
+
+    root = mpp_trie_get_info_first(srv->trie);
+    if (root) {
+        MppTrieInfo *node = root;
+        const char *key = NULL;
+        char log_str[256];
+        RK_S32 pos;
+
+        do {
+            if (mpp_trie_info_is_self(node))
+                continue;
+
+            key = mpp_trie_info_name(node);
+
+            pos = snprintf(log_str, sizeof(log_str) - 1, "key %c%c%c%c - ",
+                           key[0], key[1], key[2], key[3]);
+
+            switch (key[4]) {
+            case '3' : {
+                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "s32 - %d",
+                         impl->vals[node->index].val_s32);
+            } break;
+            case '6' : {
+                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "s64 - %lld",
+                         impl->vals[node->index].val_s64);
+            } break;
+            case 'k' :
+            case 'u' :
+            case 's' : {
+                snprintf(log_str + pos, sizeof(log_str) - pos - 1, "ptr - %p",
+                         impl->vals[node->index].val_ptr);
+            } break;
+            default : {
+            } break;
+            }
+
+            mpp_logi("%s\n", log_str);
+        } while ((node = mpp_trie_get_info_next(srv->trie, node)));
+    }
+
+    return MPP_OK;
+}
+
 #define MPP_META_ACCESSOR(func_type, arg_type, key_type, key_field)  \
     MPP_RET mpp_meta_set_##func_type(MppMeta meta, MppMetaKey key, arg_type val) \
     { \
@@ -663,3 +694,23 @@ MPP_META_ACCESSOR(ptr, void *, TYPE_UPTR, val_ptr)
 MPP_META_ACCESSOR(frame, MppFrame, TYPE_SPTR, frame)
 MPP_META_ACCESSOR(packet, MppPacket, TYPE_SPTR, packet)
 MPP_META_ACCESSOR(buffer, MppBuffer, TYPE_SPTR, buffer)
+
+RK_S32 mpp_meta_s32_read(MppMeta meta, RK_S32 index, RK_S32 *val)
+{
+    MppMetaImpl *impl = (MppMetaImpl *)meta;
+    MppMetaVal *meta_val;
+    MPP_RET ret = MPP_NOK;
+
+    if (!impl || index < 0 || index >= meta_key_count) {
+        mpp_err_f("found NULL input meta %p index %d\n", meta, index);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    meta_val = &impl->vals[index];
+    if (meta_val->state == (META_VAL_VALID | META_VAL_READY)) {
+        *val = meta_val->val_s32;
+        ret = MPP_OK;
+    }
+
+    return ret;
+}

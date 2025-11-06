@@ -220,6 +220,30 @@ MppStopwatch mpp_frame_get_stopwatch(const MppFrame frame)
     return p->stopwatch;
 }
 
+MppFrame mpp_frame_dup(MppFrame src)
+{
+    MppFrameImpl *p = (MppFrameImpl *)src;
+    MppFrameImpl *ret;
+    MppFrame frame = NULL;
+
+    if (check_is_mpp_frame(src)) {
+        mpp_err_f("invalid input src %p\n", src);
+        return NULL;
+    }
+
+    mpp_frame_init(&frame);
+    if (!frame)
+        return NULL;
+
+    ret = (MppFrameImpl *)frame;
+    memcpy(ret, p, sizeof(MppFrameImpl));
+
+    if (p->meta)
+        ret->meta = mpp_meta_dup(p->meta);
+
+    return frame;
+}
+
 MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
 {
     MppFrameImpl *p = (MppFrameImpl *)dst;
