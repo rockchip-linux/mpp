@@ -13,6 +13,7 @@
 
 #include "mpp_dec_impl.h"
 
+#include "mpp_meta_impl.h"
 #include "mpp_frame_impl.h"
 #include "mpp_dec_vproc.h"
 #include "iep_api.h"
@@ -103,16 +104,33 @@ typedef struct MppDecVprocCtxImpl_t {
 static void dec_vproc_put_frame(Mpp *mpp, MppFrame frame, MppBuffer buf, RK_S64 pts, RK_U32 err)
 {
     MppList *list = mpp->mFrmOut;
-    MppFrame out = NULL;
-    MppFrameImpl *impl = NULL;
+    MppFrame out = mpp_frame_dup(frame);
+    MppFrameImpl *impl = (MppFrameImpl *)out;
+    MppBuffer src_buf = mpp_frame_get_buffer(frame);
 
-    mpp_frame_init(&out);
-    mpp_frame_copy(out, frame);
-    impl = (MppFrameImpl *)out;
     if (pts >= 0)
         impl->pts = pts;
+
     if (buf)
         impl->buffer = buf;
+
+    /* check and copy hdr info */
+    if (impl->meta && src_buf != buf) {
+        RK_S32 hdr_offset = 0;
+        RK_S32 hdr_size = 0;
+
+        mpp_meta_s32_read(impl->meta, meta_hdr_offset_index, &hdr_offset);
+        mpp_meta_s32_read(impl->meta, meta_hdr_size_index, &hdr_size);
+
+        if (hdr_offset && hdr_size) {
+            RK_U8 *src = (RK_U8 *)mpp_buffer_get_ptr(src_buf) + hdr_offset;
+            RK_U8 *dst = (RK_U8 *)mpp_buffer_get_ptr(buf) + hdr_offset;
+
+            mpp_buffer_sync_ro_partial_begin(src_buf, hdr_offset, hdr_size);
+            memcpy(dst, src, hdr_size);
+            mpp_buffer_sync_partial_end(buf, hdr_offset, hdr_size);
+        }
+    }
 
     impl->errinfo |= err;
 
@@ -914,6 +932,7 @@ static void *dec_vproc_thread(void *data)
             if (!ctx->task_status.buf_rdy && !ctx->reset) {
                 MppBuffer buf = mpp_frame_get_buffer(frm);
                 size_t buf_size = mpp_buffer_get_size(buf);
+
                 if (!ctx->out_buf0) {
                     mpp_buffer_get(mpp->mFrameGroup, &ctx->out_buf0, buf_size);
                     vproc_dbg_out("get out buf0 ptr %p\n", mpp_buffer_get_ptr(ctx->out_buf0));
