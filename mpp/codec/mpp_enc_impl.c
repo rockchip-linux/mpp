@@ -612,6 +612,7 @@ static void proc_prep_cfg(MppEncImpl *enc)
 #define RC_CHANGE_FPS_OUT   (1 << 3)
 #define RC_CHANGE_GOP       (1 << 4)
 
+static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param);
 static void show_rc_update(MppEncRcCfg *cfg, MppEncRcCfg *set, rk_u32 change)
 {
     char str[256];
@@ -820,6 +821,9 @@ static void proc_rc_cfg(MppEncImpl *enc)
 
     if (change & RC_CHANGE_GOP)
         mpp_enc_refs_set_rc_igop(enc->refs, cfg->gop);
+
+    if (set->ref_cfg)
+        mpp_enc_control_set_ref_cfg(enc, set->ref_cfg);
 }
 
 static void proc_split_cfg(MppEncSliceSplit *cfg, MppEncSliceSplit *set)
