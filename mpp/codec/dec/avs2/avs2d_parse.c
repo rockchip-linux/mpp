@@ -607,7 +607,7 @@ MPP_RET avs2d_parse_prepare_fast(Avs2dCtx_t *p_dec, MppPacket *pkt, HalDecTask *
             p_curdata = p_end - remain + 1;
         }
 
-        if (p_dec->new_frame_flag || (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1)
+        if (p_dec->new_frame_flag || (p_dec->nal_cnt && (p_dec->p_nals[p_dec->nal_cnt - 1].eof == 1))
             || p_curdata >= p_end) {
             task->valid = 1;
             break;
