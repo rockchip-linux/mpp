@@ -7,6 +7,6 @@ Name: rockchip_vpu
 Description: Rockchip Media Process Platform (Legacy)
 Requires.private:
 Version: 0.3.1
-Libs: -L${libdir} -lrockchip_vpu
+Libs: -L${libdir} -lrockchip_vpu @MPP_PKGCONFIG_DEPENDENT_LIBS@
 Libs.private:
 Cflags: -I${includedir}
