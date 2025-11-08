@@ -7,6 +7,6 @@ Name: rockchip_mpp
 Description: Rockchip Media Process Platform
 Requires.private:
 Version: 1.3.9
-Libs: -L${libdir} -lrockchip_mpp
+Libs: -L${libdir} -lrockchip_mpp @MPP_PKGCONFIG_DEPENDENT_LIBS@
 Libs.private:
 Cflags: -I${includedir}
