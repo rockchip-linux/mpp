@@ -11,7 +11,7 @@
 
 #define MPP_TAG_SIZE            32
 
-typedef struct __attribute__((packed)) KmppMetaVal_t {
+typedef struct __attribute__((packed, aligned(4))) KmppMetaVal_t {
     rk_u32              state;
     union {
         rk_s32          val_s32;
@@ -20,7 +20,7 @@ typedef struct __attribute__((packed)) KmppMetaVal_t {
     };
 } KmppMetaVal;
 
-typedef struct __attribute__((packed)) KmppMetaShmVal_t {
+typedef struct __attribute__((packed, aligned(4))) KmppMetaShmVal_t {
     rk_u32              state;
     KmppShmPtr          val_shm;
 } KmppMetaObj;
