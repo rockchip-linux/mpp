@@ -183,7 +183,6 @@ int mpp_hevc_set_new_ref(HEVCContext *s, MppFrame *mframe, int poc)
     // set hdr dynamic meta
     if (s->hdr_dynamic_meta && s->hdr_dynamic) {
         mpp_frame_set_hdr_dynamic_meta(ref->frame, s->hdr_dynamic_meta);
-        s->hdr_dynamic = 0;
     }
 
     *mframe = ref->frame;
