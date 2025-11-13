@@ -644,6 +644,8 @@ MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     regs = reg_ctx->regs;
+    memset(regs, 0, sizeof(Vdpu34xAvs2dRegSet));
+    init_common_regs(regs);
 
     prepare_header(p_hal, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat));
     prepare_scalist(p_hal, reg_ctx->scalist_dat, sizeof(reg_ctx->scalist_dat));

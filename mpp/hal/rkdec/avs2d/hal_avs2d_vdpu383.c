@@ -669,6 +669,8 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     regs = reg_ctx->regs;
+    memset(regs, 0, sizeof(Vdpu383Avs2dRegSet));
+    init_ctrl_regs(regs);
 
     prepare_header(p_hal, reg_ctx->shph_dat, sizeof(reg_ctx->shph_dat) / 8);
     prepare_scalist(p_hal, reg_ctx->scalist_dat, sizeof(reg_ctx->scalist_dat));
@@ -906,7 +908,7 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
     if (avs2d_hal_debug & AVS2D_HAL_DBG_OUT)
         hal_avs2d_vdpu383_dump_yuv(hal, task);
 
-    AVS2D_HAL_TRACE("read irq_status 0x%08x\n", regs->ctrl_regs.reg19);
+    AVS2D_HAL_TRACE("read irq_status 0x%08x\n", regs->ctrl_regs.reg15);
 
     if (p_hal->dec_cb) {
         DecCbHalDone param;
@@ -932,7 +934,7 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
         mpp_callback(p_hal->dec_cb, &param);
     }
 
-    memset(&regs->ctrl_regs.reg19, 0, sizeof(RK_U32));
+    memset(&regs->ctrl_regs.reg15, 0, sizeof(RK_U32));
     if (p_hal->fast_mode)
         reg_ctx->reg_buf[task->dec.reg_index].valid = 0;
 
