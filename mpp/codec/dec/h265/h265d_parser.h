@@ -663,6 +663,7 @@ typedef struct HEVCContext {
 
     RK_U32  deny_flag;
     RecoveryPoint recovery;
+    RK_U32  cap_hw_h265_rps;
 } HEVCContext;
 
 RK_S32 mpp_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
