@@ -194,7 +194,7 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
 {
     HalEncTask *task = ( HalEncTask *)cfg->enc_task;
     JpegeSyntax *syn = (JpegeSyntax *)task->syntax.data;
-    Vepu511JpegReg *regs = (Vepu511JpegReg *)cfg->jpeg_reg_base;
+    JpegVepu511Frame *regs = (JpegVepu511Frame *)cfg->jpeg_reg_base;
     VepuFmtCfg *fmt = (VepuFmtCfg *)cfg->input_fmt;
     RK_U32 pic_width_align8, pic_height_align8;
     RK_S32 stridey = 0;
@@ -289,11 +289,11 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     regs->u_cfg.bias_u = 0;
     regs->v_cfg.bias_v = 0;
 
-    regs->base_cfg.ri  = syn->restart_ri;
-    regs->base_cfg.out_mode = 0;
-    regs->base_cfg.start_rst_m = 0;
-    regs->base_cfg.pic_last_ecs = 1;
-    regs->base_cfg.stnd = 1;
+    regs->base_cfg.jpeg_ri  = syn->restart_ri;
+    regs->base_cfg.jpeg_out_mode = 0;
+    regs->base_cfg.jpeg_start_rst_m = 0;
+    regs->base_cfg.jpeg_pic_last_ecs = 1;
+    regs->base_cfg.jpeg_stnd = 1;    //enable
 
     regs->uvc_cfg.uvc_partition0_len = 0;
     regs->uvc_cfg.uvc_partition_len = 0;
@@ -305,7 +305,7 @@ static void hal_jpege_vepu511_set_roi(JpegeV511HalContext *ctx)
 {
     MppJpegROICfg *roi_cfg = (MppJpegROICfg *)ctx->roi_data;
     JpegV511RegSet *regs = ctx->regs;
-    Vepu511JpegRoiRegion *reg_regions = &regs->reg_base.jpegReg.roi_regions[0];
+    Vepu511JpegRoi *reg_regions = &regs->reg_frm.roi_cfg[0];
     MppJpegROIRegion *region;
     RK_U32 frame_width = ctx->cfg->prep.width;
     RK_U32 frame_height = ctx->cfg->prep.height;
@@ -357,7 +357,7 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
     JpegeV511HalContext *ctx = (JpegeV511HalContext *)hal;
     JpegV511RegSet *regs = ctx->regs;
     Vepu511ControlCfg *reg_ctl = &regs->reg_ctl;
-    JpegVepu511Base *reg_base = &regs->reg_base;
+    JpegVepu511Frame *jpeg_frm = &regs->reg_frm;
     JpegeBits bits = ctx->bits;
     size_t length = mpp_packet_get_length(task->packet);
     RK_U8  *buf = mpp_buffer_get_ptr(task->output);
@@ -369,7 +369,7 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
 
     hal_jpege_enter();
     cfg.enc_task = task;
-    cfg.jpeg_reg_base = &reg_base->jpegReg;
+    cfg.jpeg_reg_base = jpeg_frm;
     cfg.dev = ctx->dev;
     cfg.input_fmt = ctx->input_fmt;
 
@@ -422,20 +422,20 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->dtrns_map.lktw_bus_edin    = 0x0;
     reg_ctl->dtrns_map.rec_nfbc_bus_edin   = 0x0;
     reg_ctl->dtrns_cfg.jsrc_bus_edin = fmt->src_endian;
-    reg_base->common.enc_pic.enc_stnd = 2; // disable h264 or hevc
+    regs->reg_frm.video_enc_pic.enc_stnd = 2; // disable h264 or hevc
 
     reg_ctl->dtrns_cfg.axi_brsp_cke     = 0x0;
     reg_ctl->enc_wdg.vs_load_thd        = 0x1fffff;
-    reg_base->common.enc_pic.jpeg_slen_fifo = 0;
+    regs->reg_frm.video_enc_pic.jpeg_slen_fifo = 0;
 
     vepu511_set_jpeg_reg(&cfg);
     hal_jpege_vepu511_set_roi(ctx);
 
-    if (ctx->osd_cfg.osd_data3 || ctx->osd_cfg.osd_data)
-        vepu511_set_osd(&ctx->osd_cfg, &regs->reg_osd.osd_jpeg_cfg);
+    if (ctx->osd_cfg.osd_data3)
+        vepu511_set_osd(&ctx->osd_cfg);
 
     {
-        RK_U16 *tbl = &regs->jpeg_table.qua_tab0[0];
+        RK_U16 *tbl = &regs->reg_table.qua_tab0[0];
         RK_U32 i, j;
 
         for ( i = 0; i < 8; i++) {
@@ -488,9 +488,9 @@ MPP_RET hal_jpege_vepu511_start(void *hal, HalEncTask *enc_task)
         return ret;
     }
 
-    cfg.reg = &hw_regs->jpeg_table;
-    cfg.size = sizeof(JpegVepu511Tab);
-    cfg.offset = VEPU511_JPEGTAB_OFFSET;
+    cfg.reg = &hw_regs->reg_table;
+    cfg.size = sizeof(Vepu511JpegTable);
+    cfg.offset = VEPU511_JPEGE_TABLE_OFFSET;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
     if (ret) {
@@ -498,9 +498,9 @@ MPP_RET hal_jpege_vepu511_start(void *hal, HalEncTask *enc_task)
         return ret;
     }
 
-    cfg.reg = &hw_regs->reg_base;
-    cfg.size = sizeof(JpegVepu511Base);
-    cfg.offset = VEPU511_FRAME_OFFSET;
+    cfg.reg = &hw_regs->reg_frm;
+    cfg.size = sizeof(JpegVepu511Frame);
+    cfg.offset = VEPU511_JPEGE_FRAME_OFFSET;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
     if (ret) {
@@ -509,8 +509,8 @@ MPP_RET hal_jpege_vepu511_start(void *hal, HalEncTask *enc_task)
     }
 
     cfg.reg = &hw_regs->reg_osd;
-    cfg.size = sizeof(Vepu511OsdRegs);
-    cfg.offset = VEPU511_OSD_OFFSET;
+    cfg.size = sizeof(Vepu511Osd);
+    cfg.offset = VEPU511_JPEGE_OSD_OFFSET;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg);
     if (ret) {
@@ -530,7 +530,7 @@ MPP_RET hal_jpege_vepu511_start(void *hal, HalEncTask *enc_task)
 
     cfg1.reg = &reg_out->st;
     cfg1.size = sizeof(JpegV511Status) - 4;
-    cfg1.offset = VEPU511_STATUS_OFFSET;
+    cfg1.offset = VEPU511_JPEGE_STATUS_OFFSET;
 
     ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &cfg1);
     if (ret) {

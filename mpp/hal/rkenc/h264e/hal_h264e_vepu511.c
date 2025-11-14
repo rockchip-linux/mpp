@@ -98,6 +98,7 @@ typedef struct HalH264eVepu511Ctx_t {
     RK_S32                  pixel_buf_fbc_bdy_size;
     RK_S32                  pixel_buf_size;
     RK_S32                  thumb_buf_size;
+    RK_S32                  smear_size;
     RK_S32                  max_buf_cnt;
     MppDevRegOffCfgs        *offsets;
 
@@ -177,6 +178,44 @@ static RK_S32 h264_P_aq_step_default[16] = {
 static RK_S32 h264_I_aq_step_default[16] = {
     -8, -7, -6, -5, -4, -3, -2, -1,
     0,  1,  2,  3,  4,  5,  7,  8
+};
+
+#define H264E_LAMBDA_TAB_SIZE       (52 * sizeof(RK_U32))
+
+static RK_U32 h264e_lambda_default[60] = {
+    0x00000005, 0x00000006, 0x00000007, 0x00000009,
+    0x0000000b, 0x0000000e, 0x00000012, 0x00000016,
+    0x0000001c, 0x00000024, 0x0000002d, 0x00000039,
+    0x00000048, 0x0000005b, 0x00000073, 0x00000091,
+    0x000000b6, 0x000000e6, 0x00000122, 0x0000016d,
+    0x000001cc, 0x00000244, 0x000002db, 0x00000399,
+    0x00000489, 0x000005b6, 0x00000733, 0x00000912,
+    0x00000b6d, 0x00000e66, 0x00001224, 0x000016db,
+    0x00001ccc, 0x00002449, 0x00002db7, 0x00003999,
+    0x00004892, 0x00005b6f, 0x00007333, 0x00009124,
+    0x0000b6de, 0x0000e666, 0x00012249, 0x00016dbc,
+    0x0001cccc, 0x00024492, 0x0002db79, 0x00039999,
+    0x00048924, 0x0005b6f2, 0x00073333, 0x00091249,
+    0x000b6de5, 0x000e6666, 0x00122492, 0x0016dbcb,
+    0x001ccccc, 0x00244924, 0x002db796, 0x00399998,
+};
+
+static RK_U32 h264e_lambda_cvr[60] = {
+    0x00000009, 0x0000000b, 0x0000000e, 0x00000011,
+    0x00000016, 0x0000001b, 0x00000022, 0x0000002b,
+    0x00000036, 0x00000045, 0x00000056, 0x0000006d,
+    0x00000089, 0x000000ad, 0x000000da, 0x00000112,
+    0x00000159, 0x000001b3, 0x00000224, 0x000002b3,
+    0x00000366, 0x00000449, 0x00000566, 0x000006cd,
+    0x00000891, 0x00000acb, 0x00000d9a, 0x000013c1,
+    0x000018e4, 0x00001f5c, 0x00002783, 0x000031c8,
+    0x00003eb8, 0x00004f06, 0x00006390, 0x00008e14,
+    0x0000b302, 0x0000e18a, 0x00011c29, 0x00016605,
+    0x0001c313, 0x00027ae1, 0x00031fe6, 0x0003efcf,
+    0x0004f5c3, 0x0006e785, 0x0008b2ef, 0x000af5c3,
+    0x000f1e7a, 0x00130c7f, 0x00180000, 0x001e3cf4,
+    0x002618fe, 0x00300000, 0x003c79e8, 0x004c31fc,
+    0x00600000, 0x0078f3d0, 0x009863f8, 0x0c000000,
 };
 
 static void setup_ext_line_bufs(HalH264eVepu511Ctx *ctx)
@@ -407,6 +446,8 @@ static void setup_hal_bufs(HalH264eVepu511Ctx *ctx)
     RK_S32 thumb_buf_size = MPP_ALIGN(aligned_w / 64 * aligned_h / 64 * 256, SZ_8K);
     RK_S32 old_max_cnt = ctx->max_buf_cnt;
     RK_S32 new_max_cnt = 4;
+    RK_S32 smear_size = 0;
+    RK_S32 smear_r_size = 0;
     MppEncRefCfg ref_cfg = cfg->ref_cfg;
 
     if (ref_cfg) {
@@ -440,10 +481,15 @@ static void setup_hal_bufs(HalH264eVepu511Ctx *ctx)
         ctx->ext_line_buf_size = 0;
     }
 
+    smear_size = MPP_ALIGN(aligned_w, 1024) / 1024 * MPP_ALIGN(aligned_h, 16) / 16 * 16;
+    smear_r_size = MPP_ALIGN(aligned_h, 1024) / 1024 * MPP_ALIGN(aligned_w, 16) / 16 * 16;
+    smear_size = MPP_MAX(smear_size, smear_r_size);
+
     if ((ctx->pixel_buf_fbc_hdr_size != pixel_buf_fbc_hdr_size) ||
         (ctx->pixel_buf_fbc_bdy_size != pixel_buf_fbc_bdy_size) ||
         (ctx->pixel_buf_size != pixel_buf_size) ||
         (ctx->thumb_buf_size != thumb_buf_size) ||
+        (ctx->smear_size != smear_size) ||
         (new_max_cnt > old_max_cnt)) {
         size_t sizes[3];
 
@@ -456,7 +502,7 @@ static void setup_hal_bufs(HalH264eVepu511Ctx *ctx)
         /* thumb buffer */
         sizes[1] = thumb_buf_size;
         /* smear buffer */
-        sizes[2] = MPP_ALIGN(aligned_w / 64, 16) * MPP_ALIGN(aligned_h / 16, 16);
+        sizes[2] = smear_size;
         new_max_cnt = MPP_MAX(new_max_cnt, old_max_cnt);
 
         hal_bufs_setup(ctx->hw_recn, new_max_cnt, MPP_ARRAY_ELEMS(sizes), sizes);
@@ -465,6 +511,7 @@ static void setup_hal_bufs(HalH264eVepu511Ctx *ctx)
         ctx->pixel_buf_fbc_bdy_size = pixel_buf_fbc_bdy_size;
         ctx->pixel_buf_size = pixel_buf_size;
         ctx->thumb_buf_size = thumb_buf_size;
+        ctx->smear_size = smear_size;
         ctx->max_buf_cnt = new_max_cnt;
     }
 }
@@ -697,7 +744,6 @@ static void setup_vepu511_normal(HalVepu511RegSet *regs)
 
 static MPP_RET setup_vepu511_prep(HalVepu511RegSet *regs, MppEncPrepCfg *prep, HalEncTask *task)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     VepuFmtCfg cfg;
     MppFrameFormat fmt = prep->format;
     MPP_RET ret = vepu5xx_set_fmt(&cfg, fmt);
@@ -711,20 +757,20 @@ static MPP_RET setup_vepu511_prep(HalVepu511RegSet *regs, MppEncPrepCfg *prep, H
     if (ret)
         return ret;
 
-    reg_frm->common.enc_rsl.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
-    reg_frm->common.src_fill.pic_wfill = MPP_ALIGN(prep->width, 16) - prep->width;
-    reg_frm->common.enc_rsl.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
-    reg_frm->common.src_fill.pic_hfill = MPP_ALIGN(prep->height, 16) - prep->height;
+    regs->reg_frm.enc_rsl.pic_wd8_m1 = MPP_ALIGN(prep->width, 16) / 8 - 1;
+    regs->reg_frm.src_fill.pic_wfill = MPP_ALIGN(prep->width, 16) - prep->width;
+    regs->reg_frm.enc_rsl.pic_hd8_m1 = MPP_ALIGN(prep->height, 16) / 8 - 1;
+    regs->reg_frm.src_fill.pic_hfill = MPP_ALIGN(prep->height, 16) - prep->height;
 
     regs->reg_ctl.dtrns_map.src_bus_edin = cfg.src_endian;
 
-    reg_frm->common.src_fmt.src_cfmt   = hw_fmt;
-    reg_frm->common.src_fmt.alpha_swap = cfg.alpha_swap;
-    reg_frm->common.src_fmt.rbuv_swap  = cfg.rbuv_swap;
-    reg_frm->common.src_fmt.out_fmt = ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV400 ? 0 : 1);
+    regs->reg_frm.src_fmt.src_cfmt   = hw_fmt;
+    regs->reg_frm.src_fmt.alpha_swap = cfg.alpha_swap;
+    regs->reg_frm.src_fmt.rbuv_swap  = cfg.rbuv_swap;
+    regs->reg_frm.src_fmt.out_fmt = ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV400 ? 0 : 1);
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-        reg_frm->common.src_proc.rkfbcd_en = 1;
+        regs->reg_frm.src_proc.rkfbcd_en = 1;
 
         y_stride = mpp_frame_get_fbc_hdr_stride(task->frame);
         if (!y_stride)
@@ -763,52 +809,53 @@ static MPP_RET setup_vepu511_prep(HalVepu511RegSet *regs, MppEncPrepCfg *prep, H
 
         hal_h264e_dbg_flow("input color range %d colorspace %d", prep->range, prep->color);
 
-        reg_frm->common.src_udfy.csc_wgt_b2y = cfg_coeffs->_2y.b_coeff;
-        reg_frm->common.src_udfy.csc_wgt_g2y = cfg_coeffs->_2y.g_coeff;
-        reg_frm->common.src_udfy.csc_wgt_r2y = cfg_coeffs->_2y.r_coeff;
+        regs->reg_frm.src_udfy.csc_wgt_b2y = 29;
+        regs->reg_frm.src_udfy.csc_wgt_g2y = 150;
+        regs->reg_frm.src_udfy.csc_wgt_r2y = 77;
 
-        reg_frm->common.src_udfu.csc_wgt_b2u = cfg_coeffs->_2u.b_coeff;
-        reg_frm->common.src_udfu.csc_wgt_g2u = cfg_coeffs->_2u.g_coeff;
-        reg_frm->common.src_udfu.csc_wgt_r2u = cfg_coeffs->_2u.r_coeff;
+        regs->reg_frm.src_udfu.csc_wgt_b2u = 128;
+        regs->reg_frm.src_udfu.csc_wgt_g2u = -85;
+        regs->reg_frm.src_udfu.csc_wgt_r2u = -43;
 
-        reg_frm->common.src_udfv.csc_wgt_b2v = cfg_coeffs->_2v.b_coeff;
-        reg_frm->common.src_udfv.csc_wgt_g2v = cfg_coeffs->_2v.g_coeff;
-        reg_frm->common.src_udfv.csc_wgt_r2v = cfg_coeffs->_2v.r_coeff;
+        regs->reg_frm.src_udfv.csc_wgt_b2v = -21;
+        regs->reg_frm.src_udfv.csc_wgt_g2v = -107;
+        regs->reg_frm.src_udfv.csc_wgt_r2v = 128;
 
-        reg_frm->common.src_udfo.csc_ofst_y  = cfg_coeffs->_2y.offset;
-        reg_frm->common.src_udfo.csc_ofst_u  = cfg_coeffs->_2u.offset;
-        reg_frm->common.src_udfo.csc_ofst_v  = cfg_coeffs->_2v.offset;
+        regs->reg_frm.src_udfo.csc_ofst_y  = 0;
+        regs->reg_frm.src_udfo.csc_ofst_u  = 128;
+        regs->reg_frm.src_udfo.csc_ofst_v  = 128;
 
         hal_h264e_dbg_flow("use color range %d colorspace %d", cfg_coeffs->dst_range, cfg_coeffs->color);
     } else {
-        reg_frm->common.src_udfy.csc_wgt_b2y = cfg.weight[0];
-        reg_frm->common.src_udfy.csc_wgt_g2y = cfg.weight[1];
-        reg_frm->common.src_udfy.csc_wgt_r2y = cfg.weight[2];
+        regs->reg_frm.src_udfy.csc_wgt_b2y = cfg.weight[0];
+        regs->reg_frm.src_udfy.csc_wgt_g2y = cfg.weight[1];
+        regs->reg_frm.src_udfy.csc_wgt_r2y = cfg.weight[2];
 
-        reg_frm->common.src_udfu.csc_wgt_b2u = cfg.weight[3];
-        reg_frm->common.src_udfu.csc_wgt_g2u = cfg.weight[4];
-        reg_frm->common.src_udfu.csc_wgt_r2u = cfg.weight[5];
+        regs->reg_frm.src_udfu.csc_wgt_b2u = cfg.weight[3];
+        regs->reg_frm.src_udfu.csc_wgt_g2u = cfg.weight[4];
+        regs->reg_frm.src_udfu.csc_wgt_r2u = cfg.weight[5];
 
-        reg_frm->common.src_udfv.csc_wgt_b2v = cfg.weight[6];
-        reg_frm->common.src_udfv.csc_wgt_g2v = cfg.weight[7];
-        reg_frm->common.src_udfv.csc_wgt_r2v = cfg.weight[8];
+        regs->reg_frm.src_udfv.csc_wgt_b2v = cfg.weight[6];
+        regs->reg_frm.src_udfv.csc_wgt_g2v = cfg.weight[7];
+        regs->reg_frm.src_udfv.csc_wgt_r2v = cfg.weight[8];
 
-        reg_frm->common.src_udfo.csc_ofst_y  = cfg.offset[0];
-        reg_frm->common.src_udfo.csc_ofst_u  = cfg.offset[1];
-        reg_frm->common.src_udfo.csc_ofst_v  = cfg.offset[2];
+        regs->reg_frm.src_udfo.csc_ofst_y  = cfg.offset[0];
+        regs->reg_frm.src_udfo.csc_ofst_u  = cfg.offset[1];
+        regs->reg_frm.src_udfo.csc_ofst_v  = cfg.offset[2];
     }
 
-    reg_frm->common.src_strd0.src_strd0  = y_stride;
-    reg_frm->common.src_strd1.src_strd1  = c_stride;
+    regs->reg_frm.src_strd0.src_strd0  = y_stride;
+    regs->reg_frm.src_strd1.src_strd1  = c_stride;
 
-    reg_frm->common.src_proc.src_mirr    = prep->mirroring > 0;
-    reg_frm->common.src_proc.src_rot     = prep->rotation;
+    regs->reg_frm.src_proc.src_mirr    = prep->mirroring > 0;
+    regs->reg_frm.src_proc.src_rot     = prep->rotation;
 
-    reg_frm->sli_cfg.mv_v_lmt_thd = 0;
-    reg_frm->sli_cfg.mv_v_lmt_en  = 0;
+    regs->reg_frm.src_proc.tile4x4_en  = 0;
+    regs->reg_frm.sli_cfg.mv_v_lmt_thd = 0;
+    regs->reg_frm.sli_cfg.mv_v_lmt_en  = 0;
 
-    reg_frm->common.pic_ofst.pic_ofst_y  = 0;
-    reg_frm->common.pic_ofst.pic_ofst_x  = 0;
+    regs->reg_frm.pic_ofst.pic_ofst_y  = 0;
+    regs->reg_frm.pic_ofst.pic_ofst_x  = 0;
 
     hal_h264e_dbg_func("leave\n");
 
@@ -817,7 +864,6 @@ static MPP_RET setup_vepu511_prep(HalVepu511RegSet *regs, MppEncPrepCfg *prep, H
 
 static MPP_RET vepu511_h264e_save_pass1_patch(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 16);
     RK_S32 height_align = MPP_ALIGN(ctx->cfg->prep.height, 16);
 
@@ -829,23 +875,22 @@ static MPP_RET vepu511_h264e_save_pass1_patch(HalVepu511RegSet *regs, HalH264eVe
         }
     }
 
-    reg_frm->common.enc_pic.cur_frm_ref = 1;
-    reg_frm->common.rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
-    reg_frm->common.rfpw_b_addr = reg_frm->common.rfpw_h_addr;
-    reg_frm->common.enc_pic.rec_fbc_dis = 1;
+    regs->reg_frm.enc_pic.cur_frm_ref = 1;
+    regs->reg_frm.rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
+    regs->reg_frm.rfpw_b_addr = regs->reg_frm.rfpw_h_addr;
+    regs->reg_frm.enc_pic.rec_fbc_dis = 1;
 
     mpp_dev_multi_offset_update(ctx->offsets, 164, width_align * height_align);
 
     /* NOTE: disable split to avoid lowdelay slice output */
-    reg_frm->common.sli_splt.sli_splt = 0;
-    reg_frm->common.enc_pic.slen_fifo = 0;
+    regs->reg_frm.sli_splt.sli_splt = 0;
+    regs->reg_frm.enc_pic.slen_fifo = 0;
 
     return MPP_OK;
 }
 
 static MPP_RET vepu511_h264e_use_pass1_patch(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     RK_S32 fd_in = mpp_buffer_get_fd(ctx->buf_pass1);
     RK_S32 width_align = MPP_ALIGN(ctx->cfg->prep.width, 16);
     RK_S32 height_align = MPP_ALIGN(ctx->cfg->prep.height, 16);
@@ -853,23 +898,24 @@ static MPP_RET vepu511_h264e_use_pass1_patch(HalVepu511RegSet *regs, HalH264eVep
 
     hal_h264e_dbg_func("enter\n");
 
-    reg_frm->common.enc_pic.rfpr_compress_mode = 1;
-    reg_frm->common.src_fmt.src_cfmt   = VEPU5xx_FMT_YUV420SP;
-    reg_frm->common.src_fmt.alpha_swap = 0;
-    reg_frm->common.src_fmt.rbuv_swap  = 0;
-    reg_frm->common.src_fmt.out_fmt    = 1;
+    regs->reg_frm.enc_pic.rfpr_compress_mode = 1;
+    regs->reg_frm.src_fmt.src_cfmt   = VEPU5xx_FMT_YUV420SP;
+    regs->reg_frm.src_fmt.alpha_swap = 0;
+    regs->reg_frm.src_fmt.rbuv_swap  = 0;
+    regs->reg_frm.src_fmt.out_fmt    = 1;
 
-    reg_frm->common.src_strd0.src_strd0 = y_stride;
-    reg_frm->common.src_strd1.src_strd1 = y_stride;
+    regs->reg_frm.src_strd0.src_strd0 = y_stride;
+    regs->reg_frm.src_strd1.src_strd1 = y_stride;
 
-    reg_frm->common.src_proc.src_mirr   = 0;
-    reg_frm->common.src_proc.src_rot    = 0;
+    regs->reg_frm.src_proc.src_mirr   = 0;
+    regs->reg_frm.src_proc.src_rot    = 0;
 
-    reg_frm->common.pic_ofst.pic_ofst_y = 0;
-    reg_frm->common.pic_ofst.pic_ofst_x = 0;
+    regs->reg_frm.pic_ofst.pic_ofst_y = 0;
+    regs->reg_frm.pic_ofst.pic_ofst_x = 0;
 
-    reg_frm->common.adr_src0   = fd_in;
-    reg_frm->common.adr_src1   = fd_in;
+    regs->reg_frm.adr_src0 = fd_in;
+    regs->reg_frm.adr_src1 = fd_in;
+    regs->reg_frm.adr_src2 = 0;
 
     mpp_dev_multi_offset_update(ctx->offsets, 161, width_align * height_align);
 
@@ -879,47 +925,45 @@ static MPP_RET vepu511_h264e_use_pass1_patch(HalVepu511RegSet *regs, HalH264eVep
 
 static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
 
     hal_h264e_dbg_func("enter\n");
 
-    reg_frm->common.enc_pic.enc_stnd       = 0;
-    reg_frm->common.enc_pic.cur_frm_ref    = slice->nal_reference_idc > 0;
-    reg_frm->common.enc_pic.bs_scp         = 1;
+    regs->reg_frm.enc_pic.enc_stnd       = 0;
+    regs->reg_frm.enc_pic.cur_frm_ref    = slice->nal_reference_idc > 0;
+    regs->reg_frm.enc_pic.bs_scp         = 1;
 
-    reg_frm->synt_nal.nal_ref_idc    = slice->nal_reference_idc;
-    reg_frm->synt_nal.nal_unit_type  = slice->nalu_type;
+    regs->reg_frm.synt_nal.nal_ref_idc    = slice->nal_reference_idc;
+    regs->reg_frm.synt_nal.nal_unit_type  = slice->nalu_type;
 
-    reg_frm->synt_sps.max_fnum       = sps->log2_max_frame_num_minus4;
-    reg_frm->synt_sps.drct_8x8       = sps->direct8x8_inference;
-    reg_frm->synt_sps.mpoc_lm4       = sps->log2_max_poc_lsb_minus4;
-    reg_frm->synt_sps.poc_type       = sps->pic_order_cnt_type;
+    regs->reg_frm.synt_sps.max_fnum       = sps->log2_max_frame_num_minus4;
+    regs->reg_frm.synt_sps.drct_8x8       = sps->direct8x8_inference;
+    regs->reg_frm.synt_sps.mpoc_lm4       = sps->log2_max_poc_lsb_minus4;
+    regs->reg_frm.synt_sps.poc_type       = sps->pic_order_cnt_type;
+    regs->reg_frm.synt_pps.etpy_mode      = pps->entropy_coding_mode;
+    regs->reg_frm.synt_pps.trns_8x8       = pps->transform_8x8_mode;
+    regs->reg_frm.synt_pps.csip_flag      = pps->constrained_intra_pred;
+    regs->reg_frm.synt_pps.num_ref0_idx   = pps->num_ref_idx_l0_default_active - 1;
+    regs->reg_frm.synt_pps.num_ref1_idx   = pps->num_ref_idx_l1_default_active - 1;
+    regs->reg_frm.synt_pps.pic_init_qp    = pps->pic_init_qp;
+    regs->reg_frm.synt_pps.cb_ofst        = pps->chroma_qp_index_offset;
+    regs->reg_frm.synt_pps.cr_ofst        = pps->second_chroma_qp_index_offset;
+    regs->reg_frm.synt_pps.dbf_cp_flg     = pps->deblocking_filter_control;
 
-    reg_frm->synt_pps.etpy_mode      = pps->entropy_coding_mode;
-    reg_frm->synt_pps.trns_8x8       = pps->transform_8x8_mode;
-    reg_frm->synt_pps.csip_flag      = pps->constrained_intra_pred;
-    reg_frm->synt_pps.num_ref0_idx   = pps->num_ref_idx_l0_default_active - 1;
-    reg_frm->synt_pps.num_ref1_idx   = pps->num_ref_idx_l1_default_active - 1;
-    reg_frm->synt_pps.pic_init_qp    = pps->pic_init_qp;
-    reg_frm->synt_pps.cb_ofst        = pps->chroma_qp_index_offset;
-    reg_frm->synt_pps.cr_ofst        = pps->second_chroma_qp_index_offset;
-    reg_frm->synt_pps.dbf_cp_flg     = pps->deblocking_filter_control;
+    regs->reg_frm.synt_sli0.sli_type       = (slice->slice_type == H264_I_SLICE) ? (2) : (0);
+    regs->reg_frm.synt_sli0.pps_id         = slice->pic_parameter_set_id;
+    regs->reg_frm.synt_sli0.drct_smvp      = 0;
+    regs->reg_frm.synt_sli0.num_ref_ovrd   = slice->num_ref_idx_override;
+    regs->reg_frm.synt_sli0.cbc_init_idc   = slice->cabac_init_idc;
+    regs->reg_frm.synt_sli0.frm_num        = slice->frame_num;
 
-    reg_frm->synt_sli0.sli_type       = (slice->slice_type == H264_I_SLICE) ? (2) : (0);
-    reg_frm->synt_sli0.pps_id         = slice->pic_parameter_set_id;
-    reg_frm->synt_sli0.drct_smvp      = 0;
-    reg_frm->synt_sli0.num_ref_ovrd   = slice->num_ref_idx_override;
-    reg_frm->synt_sli0.cbc_init_idc   = slice->cabac_init_idc;
-    reg_frm->synt_sli0.frm_num        = slice->frame_num;
+    regs->reg_frm.synt_sli1.idr_pid        = (slice->slice_type == H264_I_SLICE) ? slice->idr_pic_id : (RK_U32)(-1);
+    regs->reg_frm.synt_sli1.poc_lsb        = slice->pic_order_cnt_lsb;
 
-    reg_frm->synt_sli1.idr_pid        = (slice->slice_type == H264_I_SLICE) ? slice->idr_pic_id : (RK_U32)(-1);
-    reg_frm->synt_sli1.poc_lsb        = slice->pic_order_cnt_lsb;
-
-    reg_frm->synt_sli2.dis_dblk_idc   = slice->disable_deblocking_filter_idc;
-    reg_frm->synt_sli2.sli_alph_ofst  = slice->slice_alpha_c0_offset_div2;
+    regs->reg_frm.synt_sli2.dis_dblk_idc   = slice->disable_deblocking_filter_idc;
+    regs->reg_frm.synt_sli2.sli_alph_ofst  = slice->slice_alpha_c0_offset_div2;
 
     h264e_reorder_rd_rewind(slice->reorder);
     {   /* reorder process */
@@ -927,56 +971,56 @@ static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
         MPP_RET ret = h264e_reorder_rd_op(slice->reorder, &rplmo);
 
         if (MPP_OK == ret) {
-            reg_frm->synt_sli2.ref_list0_rodr = 1;
-            reg_frm->synt_sli2.rodr_pic_idx   = rplmo.modification_of_pic_nums_idc;
+            regs->reg_frm.synt_sli2.ref_list0_rodr = 1;
+            regs->reg_frm.synt_sli2.rodr_pic_idx   = rplmo.modification_of_pic_nums_idc;
 
             switch (rplmo.modification_of_pic_nums_idc) {
             case 0 :
             case 1 : {
-                reg_frm->synt_sli2.rodr_pic_num   = rplmo.abs_diff_pic_num_minus1;
+                regs->reg_frm.synt_sli2.rodr_pic_num = rplmo.abs_diff_pic_num_minus1;
             } break;
             case 2 : {
-                reg_frm->synt_sli2.rodr_pic_num   = rplmo.long_term_pic_idx;
+                regs->reg_frm.synt_sli2.rodr_pic_num = rplmo.long_term_pic_idx;
             } break;
             default : {
-                mpp_err_f("invalid modification_of_pic_nums_idc %d\n",
-                          rplmo.modification_of_pic_nums_idc);
+                mpp_loge_f("invalid modification_of_pic_nums_idc %d\n",
+                           rplmo.modification_of_pic_nums_idc);
             } break;
             }
         } else {
             // slice->ref_pic_list_modification_flag;
-            reg_frm->synt_sli2.ref_list0_rodr = 0;
-            reg_frm->synt_sli2.rodr_pic_idx   = 0;
-            reg_frm->synt_sli2.rodr_pic_num   = 0;
+            regs->reg_frm.synt_sli2.ref_list0_rodr = 0;
+            regs->reg_frm.synt_sli2.rodr_pic_idx   = 0;
+            regs->reg_frm.synt_sli2.rodr_pic_num   = 0;
         }
     }
 
     /* clear all mmco arg first */
-    reg_frm->synt_refm0.nopp_flg               = 0;
-    reg_frm->synt_refm0.ltrf_flg               = 0;
-    reg_frm->synt_refm0.arpm_flg               = 0;
-    reg_frm->synt_refm0.mmco4_pre              = 0;
-    reg_frm->synt_refm0.mmco_type0             = 0;
-    reg_frm->synt_refm0.mmco_parm0             = 0;
-    reg_frm->synt_refm0.mmco_type1             = 0;
-    reg_frm->synt_refm1.mmco_parm1             = 0;
-    reg_frm->synt_refm0.mmco_type2             = 0;
-    reg_frm->synt_refm1.mmco_parm2             = 0;
-    reg_frm->synt_refm2.long_term_frame_idx0   = 0;
-    reg_frm->synt_refm2.long_term_frame_idx1   = 0;
-    reg_frm->synt_refm2.long_term_frame_idx2   = 0;
+    regs->reg_frm.synt_refm0.nopp_flg             = 0;
+    regs->reg_frm.synt_refm0.ltrf_flg             = 0;
+    regs->reg_frm.synt_refm0.arpm_flg             = 0;
+    regs->reg_frm.synt_refm0.mmco4_pre            = 0;
+    regs->reg_frm.synt_refm0.mmco_type0           = 0;
+    regs->reg_frm.synt_refm0.mmco_parm0           = 0;
+    regs->reg_frm.synt_refm0.mmco_type1           = 0;
+    regs->reg_frm.synt_refm1.mmco_parm1           = 0;
+    regs->reg_frm.synt_refm0.mmco_type2           = 0;
+    regs->reg_frm.synt_refm1.mmco_parm2           = 0;
+    regs->reg_frm.synt_refm2.long_term_frame_idx0 = 0;
+    regs->reg_frm.synt_refm2.long_term_frame_idx1 = 0;
+    regs->reg_frm.synt_refm2.long_term_frame_idx2 = 0;
 
     h264e_marking_rd_rewind(slice->marking);
 
     /* only update used parameter */
     if (slice->slice_type == H264_I_SLICE) {
-        reg_frm->synt_refm0.nopp_flg       = slice->no_output_of_prior_pics;
-        reg_frm->synt_refm0.ltrf_flg       = slice->long_term_reference_flag;
+        regs->reg_frm.synt_refm0.nopp_flg = slice->no_output_of_prior_pics;
+        regs->reg_frm.synt_refm0.ltrf_flg = slice->long_term_reference_flag;
     } else {
         if (!h264e_marking_is_empty(slice->marking)) {
             H264eMmco mmco;
 
-            reg_frm->synt_refm0.arpm_flg       = 1;
+            regs->reg_frm.synt_refm0.arpm_flg = 1;
 
             /* max 3 mmco */
             do {
@@ -1006,14 +1050,14 @@ static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
                     param_0 = mmco.long_term_frame_idx;
                 } break;
                 default : {
-                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    mpp_loge_f("unsupported mmco 0 %d\n", type);
                     type = 0;
                 } break;
                 }
 
-                reg_frm->synt_refm0.mmco_type0 = type;
-                reg_frm->synt_refm0.mmco_parm0 = param_0;
-                reg_frm->synt_refm2.long_term_frame_idx0 = param_1;
+                regs->reg_frm.synt_refm0.mmco_type0 = type;
+                regs->reg_frm.synt_refm0.mmco_parm0 = param_0;
+                regs->reg_frm.synt_refm2.long_term_frame_idx0 = param_1;
 
                 if (h264e_marking_is_empty(slice->marking))
                     break;
@@ -1042,14 +1086,14 @@ static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
                     param_0 = mmco.long_term_frame_idx;
                 } break;
                 default : {
-                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    mpp_loge_f("unsupported mmco 0 %d\n", type);
                     type = 0;
                 } break;
                 }
 
-                reg_frm->synt_refm0.mmco_type1 = type;
-                reg_frm->synt_refm1.mmco_parm1 = param_0;
-                reg_frm->synt_refm2.long_term_frame_idx1 = param_1;
+                regs->reg_frm.synt_refm0.mmco_type1 = type;
+                regs->reg_frm.synt_refm1.mmco_parm1 = param_0;
+                regs->reg_frm.synt_refm2.long_term_frame_idx1 = param_1;
 
                 if (h264e_marking_is_empty(slice->marking))
                     break;
@@ -1078,14 +1122,14 @@ static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
                     param_0 = mmco.long_term_frame_idx;
                 } break;
                 default : {
-                    mpp_err_f("unsupported mmco 0 %d\n", type);
+                    mpp_loge_f("unsupported mmco 0 %d\n", type);
                     type = 0;
                 } break;
                 }
 
-                reg_frm->synt_refm0.mmco_type2 = type;
-                reg_frm->synt_refm1.mmco_parm2 = param_0;
-                reg_frm->synt_refm2.long_term_frame_idx2 = param_1;
+                regs->reg_frm.synt_refm0.mmco_type2 = type;
+                regs->reg_frm.synt_refm1.mmco_parm2 = param_0;
+                regs->reg_frm.synt_refm2.long_term_frame_idx2 = param_1;
             } while (0);
         }
     }
@@ -1096,11 +1140,11 @@ static void setup_vepu511_codec(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 static void setup_vepu511_rdo_pred(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     H264eSps *sps = ctx->sps;
     H264ePps *pps = ctx->pps;
     H264eSlice *slice = ctx->slice;
-    RK_U32 is_ipc_scene = (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC);
+    MppEncSceneMode sm = ctx->cfg->tune.scene_mode;
+    RK_S32 lambda_idx = 0;
 
     hal_h264e_dbg_func("enter\n");
 
@@ -1116,35 +1160,101 @@ static void setup_vepu511_rdo_pred(HalH264eVepu511Ctx *ctx)
      * - Set cime_srch_lftw/rgtw/uph/dwnh = 12/12/15/15, expand CIME search range degraded real-time performance.
      * - Set rime_prelvl_en = 0, disable RIME pre-level to improve real-time performance.
     */
+    switch (ctx->cfg->tune.speed) {
+    default :
+    case 0 : {
+        // FULL RDO MODE, 0.63ppc
+        regs->reg_frm.rdo_mark_mode.p16_interp_num = 3;
+        regs->reg_frm.rdo_mark_mode.p16t8_rdo_num  = 3;
+        regs->reg_frm.rdo_mark_mode.p16t4_rmd_num  = 2;
+        regs->reg_frm.rdo_mark_mode.p8_interp_num  = 3;
+        regs->reg_frm.rdo_mark_mode.p8t8_rdo_num   = 2;
+        regs->reg_frm.rdo_mark_mode.p8t4_rmd_num   = 2;
+        regs->reg_frm.rdo_mark_mode.i8_rdo_num     = 2;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num  = 2;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num   = 2;
+        } else {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        }
+    } break;
+    case 1 : {
+        // 0.69ppc
+        regs->reg_frm.rdo_mark_mode.p16_interp_num    = 2;
+        regs->reg_frm.rdo_mark_mode.p16t8_rdo_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p16t4_rmd_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p8_interp_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p8t8_rdo_num      = 2;
+        regs->reg_frm.rdo_mark_mode.p8t4_rmd_num      = 2;
+        regs->reg_frm.rdo_mark_mode.i8_rdo_num        = 2;
+        regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num = 1;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 2;
+        } else {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+        }
+    } break;
+    case 2 : {
+        // 0.71
+        regs->reg_frm.rdo_mark_mode.p16_interp_num    = 2;
+        regs->reg_frm.rdo_mark_mode.p16t8_rdo_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p16t4_rmd_num     = 1;
+        regs->reg_frm.rdo_mark_mode.p8_interp_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p8t8_rdo_num      = 1;
+        regs->reg_frm.rdo_mark_mode.p8t4_rmd_num      = 1;
+        regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num = 1;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 2;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 2;
+        } else {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+        }
+    } break;
+    case 3 : {
+        // 0.73ppc
+        regs->reg_frm.rdo_mark_mode.p16_interp_num    = 2;
+        regs->reg_frm.rdo_mark_mode.p16t8_rdo_num     = 1;
+        regs->reg_frm.rdo_mark_mode.p16t4_rmd_num     = 1;
+        regs->reg_frm.rdo_mark_mode.p8_interp_num     = 2;
+        regs->reg_frm.rdo_mark_mode.p8t8_rdo_num      = 1;
+        regs->reg_frm.rdo_mark_mode.p8t4_rmd_num      = 1;
+        regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num = 1;
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 2;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 2;
+        } else {
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+        }
+    } break;
+    }
     if (slice->slice_type == H264_I_SLICE) {
         regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-        reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 2;
-        reg_frm->rdo_mark_mode.i8_rdo_num         = 2;
-        reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-        reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
+        lambda_idx = ctx->cfg->tune.lambda_idx_i;
     } else {
-        regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-        reg_frm->rdo_mark_mode.p16_interp_num  = 2;
-        reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
-        reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
-        reg_frm->rdo_mark_mode.rdo_mark_mode   = 0;
-        reg_frm->rdo_mark_mode.p8_interp_num   = 2;
-        reg_frm->rdo_mark_mode.p8t8_rdo_num    = 2;
-        reg_frm->rdo_mark_mode.p8t4_rmd_num    = 2;
-        regs->reg_frm.rdo_mark_mode.i8_rdo_num = 2;
-        regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+        regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = (sm == MPP_ENC_SCENE_MODE_IPC) ? 9 : 6;
+        lambda_idx = ctx->cfg->tune.lambda_idx_p;
     }
 
-    reg_frm->rdo_cfg.rect_size      = (sps->profile_idc == H264_PROFILE_BASELINE &&
-                                       sps->level_idc <= H264_LEVEL_3_0) ? 1 : 0;
-    reg_frm->rdo_cfg.vlc_lmt        = (sps->profile_idc < H264_PROFILE_MAIN) &&
-                                      !pps->entropy_coding_mode;
-    reg_frm->rdo_cfg.ccwa_e         = 1;
-    reg_frm->rdo_cfg.scl_lst_sel    = pps->pic_scaling_matrix_present;
-    reg_frm->rdo_cfg.atf_e          = ctx->cfg->tune.anti_flicker_str > 0;
-    reg_frm->rdo_cfg.atr_e          = ctx->cfg->tune.atr_str_i > 0;
-    reg_frm->rdo_cfg.atr_mult_sel_e = 1;
+    if (sm == MPP_ENC_SCENE_MODE_IPC || sm == MPP_ENC_SCENE_MODE_IPC_PTZ)
+        memcpy(regs->reg_param.rdo_wgta_qp_grpa_0_51, &h264e_lambda_default[lambda_idx],
+               H264E_LAMBDA_TAB_SIZE);
+    else
+        memcpy(regs->reg_param.rdo_wgta_qp_grpa_0_51, &h264e_lambda_cvr[lambda_idx],
+               H264E_LAMBDA_TAB_SIZE);
+
+    regs->reg_frm.rdo_cfg.rect_size      = (sps->profile_idc == H264_PROFILE_BASELINE &&
+                                            sps->level_idc <= H264_LEVEL_3_0) ? 1 : 0;
+    regs->reg_frm.rdo_cfg.vlc_lmt        = (sps->profile_idc < H264_PROFILE_MAIN) &&
+                                           !pps->entropy_coding_mode;
+    regs->reg_frm.rdo_cfg.ccwa_e         = 1;
+    regs->reg_frm.rdo_cfg.scl_lst_sel    = pps->pic_scaling_matrix_present;
+    regs->reg_frm.rdo_cfg.atf_e          = ctx->cfg->tune.atf_str > 0;
+    regs->reg_frm.rdo_cfg.atr_e          = ctx->cfg->tune.atr_str_i > 0;
+    regs->reg_frm.rdo_cfg.atr_mult_sel_e = 1;
+    regs->reg_frm.rdo_mark_mode.rdo_mark_mode = 0;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1154,10 +1264,8 @@ static void setup_vepu511_rc_base(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ct
     H264eSps *sps = ctx->sps;
     H264eSlice *slice = ctx->slice;
     MppEncCfgSet *cfg = ctx->cfg;
-    MppEncRcCfg *rc = &cfg->rc;
     MppEncHwCfg *hw = &cfg->hw;
     EncRcTaskInfo *rc_info = &rc_task->info;
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     RK_S32 mb_w = sps->pic_width_in_mbs;
     RK_S32 mb_h = sps->pic_height_in_mbs;
     RK_U32 qp_target = rc_info->quality_target;
@@ -1173,33 +1281,6 @@ static void setup_vepu511_rc_base(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ct
 
     hal_h264e_dbg_func("enter\n");
 
-    regs->reg_rc_roi.roi_qthd0.qpmin_area0    = qp_min;
-    regs->reg_rc_roi.roi_qthd0.qpmax_area0    = qp_max;
-    regs->reg_rc_roi.roi_qthd0.qpmin_area1    = qp_min;
-    regs->reg_rc_roi.roi_qthd0.qpmax_area1    = qp_max;
-    regs->reg_rc_roi.roi_qthd0.qpmin_area2    = qp_min;
-
-    regs->reg_rc_roi.roi_qthd1.qpmax_area2    = qp_max;
-    regs->reg_rc_roi.roi_qthd1.qpmin_area3    = qp_min;
-    regs->reg_rc_roi.roi_qthd1.qpmax_area3    = qp_max;
-    regs->reg_rc_roi.roi_qthd1.qpmin_area4    = qp_min;
-    regs->reg_rc_roi.roi_qthd1.qpmax_area4    = qp_max;
-
-    regs->reg_rc_roi.roi_qthd2.qpmin_area5    = qp_min;
-    regs->reg_rc_roi.roi_qthd2.qpmax_area5    = qp_max;
-    regs->reg_rc_roi.roi_qthd2.qpmin_area6    = qp_min;
-    regs->reg_rc_roi.roi_qthd2.qpmax_area6    = qp_max;
-    regs->reg_rc_roi.roi_qthd2.qpmin_area7    = qp_min;
-    regs->reg_rc_roi.roi_qthd3.qpmax_area7    = qp_max;
-
-    if (rc->rc_mode == MPP_ENC_RC_MODE_FIXQP) {
-        reg_frm->common.enc_pic.pic_qp    = rc_info->quality_target;
-        reg_frm->common.rc_qp.rc_max_qp   = rc_info->quality_target;
-        reg_frm->common.rc_qp.rc_min_qp   = rc_info->quality_target;
-
-        return;
-    }
-
     if (mb_target_bits_mul_16 >= 0x100000)
         mb_target_bits_mul_16 = 0x50000;
 
@@ -1207,25 +1288,22 @@ static void setup_vepu511_rc_base(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ct
     negative_bits_thd = 0 - 5 * mb_target_bits / 16;
     positive_bits_thd = 5 * mb_target_bits / 16;
 
-    reg_frm->common.enc_pic.pic_qp         = qp_target;
+    regs->reg_frm.enc_pic.pic_qp    = qp_target;
+    regs->reg_frm.rc_cfg.rc_en      = 1;
+    regs->reg_frm.rc_cfg.aq_en      = 1;
+    regs->reg_frm.rc_cfg.rc_ctu_num = mb_w;
+    regs->reg_frm.rc_qp.rc_max_qp   = qp_max;
+    regs->reg_frm.rc_qp.rc_min_qp   = qp_min;
+    regs->reg_frm.rc_tgt.ctu_ebit   = mb_target_bits_mul_16;
 
-    reg_frm->common.rc_cfg.rc_en          = 1;
-    reg_frm->common.rc_cfg.aq_en          = 1;
-    reg_frm->common.rc_cfg.rc_ctu_num     = mb_w;
-
-    reg_frm->common.rc_qp.rc_max_qp       = qp_max;
-    reg_frm->common.rc_qp.rc_min_qp       = qp_min;
-    reg_frm->common.rc_tgt.ctu_ebit       = mb_target_bits_mul_16;
-
-    if (rc->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
-        reg_frm->common.rc_qp.rc_qp_range = 0;
-    } else {
-        reg_frm->common.rc_qp.rc_qp_range = (slice->slice_type == H264_I_SLICE) ?
-                                            hw->qp_delta_row_i : hw->qp_delta_row;
-    }
+    if (ctx->smart_en)
+        regs->reg_frm.rc_qp.rc_qp_range = 0;
+    else
+        regs->reg_frm.rc_qp.rc_qp_range = (slice->slice_type == H264_I_SLICE) ?
+                                          hw->qp_delta_row_i : hw->qp_delta_row;
 
     {
-        /* fixed frame level QP */
+        MppEncRcCfg *rc = &ctx->cfg->rc;
         RK_S32 fqp_min, fqp_max;
 
         if (slice->slice_type == H264_I_SLICE) {
@@ -1237,20 +1315,20 @@ static void setup_vepu511_rc_base(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ct
         }
 
         if ((fqp_min == fqp_max) && (fqp_min >= 1) && (fqp_max <= 51)) {
-            reg_frm->common.enc_pic.pic_qp = fqp_min;
-            reg_frm->common.rc_qp.rc_qp_range = 0;
+            regs->reg_frm.enc_pic.pic_qp = fqp_min;
+            regs->reg_frm.rc_qp.rc_qp_range = 0;
         }
     }
 
-    regs->reg_rc_roi.rc_adj0.qp_adj0        = -2;
-    regs->reg_rc_roi.rc_adj0.qp_adj1        = -1;
-    regs->reg_rc_roi.rc_adj0.qp_adj2        = 0;
-    regs->reg_rc_roi.rc_adj0.qp_adj3        = 1;
-    regs->reg_rc_roi.rc_adj0.qp_adj4        = 2;
-    regs->reg_rc_roi.rc_adj1.qp_adj5        = 0;
-    regs->reg_rc_roi.rc_adj1.qp_adj6        = 0;
-    regs->reg_rc_roi.rc_adj1.qp_adj7        = 0;
-    regs->reg_rc_roi.rc_adj1.qp_adj8        = 0;
+    regs->reg_rc_roi.rc_adj0.qp_adj0 = -2;
+    regs->reg_rc_roi.rc_adj0.qp_adj1 = -1;
+    regs->reg_rc_roi.rc_adj0.qp_adj2 = 0;
+    regs->reg_rc_roi.rc_adj0.qp_adj3 = 1;
+    regs->reg_rc_roi.rc_adj0.qp_adj4 = 2;
+    regs->reg_rc_roi.rc_adj1.qp_adj5 = 0;
+    regs->reg_rc_roi.rc_adj1.qp_adj6 = 0;
+    regs->reg_rc_roi.rc_adj1.qp_adj7 = 0;
+    regs->reg_rc_roi.rc_adj1.qp_adj8 = 0;
 
     regs->reg_rc_roi.rc_dthd_0_8[0] = 4 * negative_bits_thd;
     regs->reg_rc_roi.rc_dthd_0_8[1] = negative_bits_thd;
@@ -1261,6 +1339,26 @@ static void setup_vepu511_rc_base(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ct
     regs->reg_rc_roi.rc_dthd_0_8[6] = 0x7FFFFFFF;
     regs->reg_rc_roi.rc_dthd_0_8[7] = 0x7FFFFFFF;
     regs->reg_rc_roi.rc_dthd_0_8[8] = 0x7FFFFFFF;
+
+    regs->reg_rc_roi.roi_qthd0.qpmin_area0 = qp_min;
+    regs->reg_rc_roi.roi_qthd0.qpmax_area0 = qp_max;
+    regs->reg_rc_roi.roi_qthd0.qpmin_area1 = qp_min;
+    regs->reg_rc_roi.roi_qthd0.qpmax_area1 = qp_max;
+    regs->reg_rc_roi.roi_qthd0.qpmin_area2 = qp_min;
+
+    regs->reg_rc_roi.roi_qthd1.qpmax_area2 = qp_max;
+    regs->reg_rc_roi.roi_qthd1.qpmin_area3 = qp_min;
+    regs->reg_rc_roi.roi_qthd1.qpmax_area3 = qp_max;
+    regs->reg_rc_roi.roi_qthd1.qpmin_area4 = qp_min;
+    regs->reg_rc_roi.roi_qthd1.qpmax_area4 = qp_max;
+
+    regs->reg_rc_roi.roi_qthd2.qpmin_area5 = qp_min;
+    regs->reg_rc_roi.roi_qthd2.qpmax_area5 = qp_max;
+    regs->reg_rc_roi.roi_qthd2.qpmin_area6 = qp_min;
+    regs->reg_rc_roi.roi_qthd2.qpmax_area6 = qp_max;
+    regs->reg_rc_roi.roi_qthd2.qpmin_area7 = qp_min;
+
+    regs->reg_rc_roi.roi_qthd3.qpmax_area7 = qp_max;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1273,7 +1371,6 @@ static void setup_vepu511_io_buf(HalVepu511RegSet *regs, MppDevRegOffCfgs *offse
     MppBuffer buf_in = mpp_frame_get_buffer(frm);
     MppBuffer buf_out = task->output;
     MppFrameFormat fmt = mpp_frame_get_fmt(frm);
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     RK_S32 hor_stride = mpp_frame_get_hor_stride(frm);
     RK_S32 ver_stride = mpp_frame_get_ver_stride(frm);
     RK_S32 fd_in = mpp_buffer_get_fd(buf_in);
@@ -1284,19 +1381,19 @@ static void setup_vepu511_io_buf(HalVepu511RegSet *regs, MppDevRegOffCfgs *offse
 
     hal_h264e_dbg_func("enter\n");
 
-    reg_frm->common.adr_src0   = fd_in;
-    reg_frm->common.adr_src1   = fd_in;
-    reg_frm->common.adr_src2   = fd_in;
+    regs->reg_frm.adr_src0   = fd_in;
+    regs->reg_frm.adr_src1   = fd_in;
+    regs->reg_frm.adr_src2   = fd_in;
 
-    reg_frm->common.bsbt_addr  = fd_out;
-    reg_frm->common.bsbb_addr  = fd_out;
-    reg_frm->common.adr_bsbs   = fd_out;
-    reg_frm->common.bsbr_addr  = fd_out;
+    regs->reg_frm.bsbt_addr  = fd_out;
+    regs->reg_frm.bsbb_addr  = fd_out;
+    regs->reg_frm.bsbs_addr  = fd_out;
+    regs->reg_frm.bsbr_addr  = fd_out;
 
-    reg_frm->common.rfpt_h_addr = 0xffffffff;
-    reg_frm->common.rfpb_h_addr = 0;
-    reg_frm->common.rfpt_b_addr = 0xffffffff;
-    reg_frm->common.adr_rfpb_b  = 0;
+    regs->reg_frm.rfpt_h_addr = 0xffffffff;
+    regs->reg_frm.rfpb_h_addr = 0;
+    regs->reg_frm.rfpt_b_addr = 0xffffffff;
+    regs->reg_frm.rfpb_b_addr = 0;
 
     if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(task->frame))) {
         off_in[0] = mpp_frame_get_fbc_offset(task->frame);;
@@ -1351,10 +1448,10 @@ static void setup_vepu511_io_buf(HalVepu511RegSet *regs, MppDevRegOffCfgs *offse
     mpp_dev_multi_offset_update(offsets, 172, siz_out);
     mpp_dev_multi_offset_update(offsets, 174, off_out);
 
-    reg_frm->common.meiw_addr = task->md_info ? mpp_buffer_get_fd(task->md_info) : 0;
-    reg_frm->common.enc_pic.mei_stor = 0;
-    reg_frm->common.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
-    reg_frm->common.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
+    regs->reg_frm.meiw_addr = task->md_info ? mpp_buffer_get_fd(task->md_info) : 0;
+    regs->reg_frm.enc_pic.mei_stor = 0;
+    regs->reg_frm.pic_ofst.pic_ofst_y = mpp_frame_get_offset_y(task->frame);
+    regs->reg_frm.pic_ofst.pic_ofst_x = mpp_frame_get_offset_x(task->frame);
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -1415,7 +1512,6 @@ static MPP_RET setup_vepu511_intra_refresh(HalVepu511RegSet *regs, HalH264eVepu5
     RK_U32 w = mb_w * 16;
     RK_U32 h = mb_h * 16;
     MppEncROIRegion *region = NULL;
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     RK_U32 refresh_num = ctx->cfg->rc.refresh_num;
     RK_U32 stride_h = MPP_ALIGN(mb_w, 4);
     RK_U32 stride_v = MPP_ALIGN(mb_h, 4);
@@ -1464,7 +1560,7 @@ static MPP_RET setup_vepu511_intra_refresh(HalVepu511RegSet *regs, HalH264eVepu5
             region->y = refresh_idx * 16 * refresh_num;
             region->h = 16 * refresh_num;
         }
-        reg_frm->common.me_rnge.cime_srch_uph = 1;
+        regs->reg_frm.me_rnge.cime_srch_uph = 1;
     } else if (ctx->cfg->rc.refresh_mode == MPP_ENC_RC_INTRA_REFRESH_COL) {
         region->y = 0;
         region->h = h;
@@ -1475,7 +1571,7 @@ static MPP_RET setup_vepu511_intra_refresh(HalVepu511RegSet *regs, HalH264eVepu5
             region->x = refresh_idx * 16 * refresh_num;
             region->w = 16 * refresh_num;
         }
-        reg_frm->common.me_rnge.cime_srch_dwnh = 1;
+        regs->reg_frm.me_rnge.cime_srch_dwnh = 1;
     }
 
     region->intra = 1;
@@ -1495,7 +1591,6 @@ RET:
 static void setup_vepu511_recn_refr(HalH264eVepu511Ctx *ctx, HalVepu511RegSet *regs)
 {
 
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     H264eFrmInfo *frms = ctx->frms;
     HalBufs bufs = ctx->hw_recn;
     RK_S32 fbc_hdr_size = ctx->pixel_buf_fbc_hdr_size;
@@ -1514,25 +1609,25 @@ static void setup_vepu511_recn_refr(HalH264eVepu511Ctx *ctx, HalVepu511RegSet *r
         mpp_assert(buf_pixel);
         mpp_assert(buf_thumb);
 
-        reg_frm->common.rfpw_h_addr = fd;
-        reg_frm->common.rfpw_b_addr = fd;
-        reg_frm->common.dspw_addr = mpp_buffer_get_fd(buf_thumb);
-        reg_frm->common.adr_smear_wr = mpp_buffer_get_fd(buf_smear);
+        regs->reg_frm.rfpw_h_addr = fd;
+        regs->reg_frm.rfpw_b_addr = fd;
+        regs->reg_frm.dspw_addr = mpp_buffer_get_fd(buf_thumb);
+        regs->reg_frm.adr_smear_wr = mpp_buffer_get_fd(buf_smear);
     }
 
     if (refr && refr->cnt) {
         MppBuffer buf_pixel = refr->buf[0];
         MppBuffer buf_thumb = refr->buf[1];
-        MppBuffer buf_smear = curr->buf[2];
+        MppBuffer buf_smear = refr->buf[2];
         RK_S32 fd = mpp_buffer_get_fd(buf_pixel);
 
         mpp_assert(buf_pixel);
         mpp_assert(buf_thumb);
 
-        reg_frm->common.rfpr_h_addr = fd;
-        reg_frm->common.rfpr_b_addr = fd;
-        reg_frm->common.dspr_addr = mpp_buffer_get_fd(buf_thumb);
-        reg_frm->common.adr_smear_rd = mpp_buffer_get_fd(buf_smear);
+        regs->reg_frm.rfpr_h_addr = fd;
+        regs->reg_frm.rfpr_b_addr = fd;
+        regs->reg_frm.dspr_addr = mpp_buffer_get_fd(buf_thumb);
+        regs->reg_frm.adr_smear_rd = mpp_buffer_get_fd(buf_smear);
     }
     mpp_dev_multi_offset_update(ctx->offsets, 164, fbc_hdr_size);
     mpp_dev_multi_offset_update(ctx->offsets, 166, fbc_hdr_size);
@@ -1542,55 +1637,53 @@ static void setup_vepu511_recn_refr(HalH264eVepu511Ctx *ctx, HalVepu511RegSet *r
 
 static void setup_vepu511_split(HalVepu511RegSet *regs, MppEncCfgSet *enc_cfg)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     MppEncSliceSplit *cfg = &enc_cfg->split;
 
     hal_h264e_dbg_func("enter\n");
 
     switch (cfg->split_mode) {
     case MPP_ENC_SPLIT_NONE : {
-        reg_frm->common.sli_splt.sli_splt         = 0;
-        reg_frm->common.sli_splt.sli_splt_mode    = 0;
-        reg_frm->common.sli_splt.sli_splt_cpst    = 0;
-        reg_frm->common.sli_splt.sli_max_num_m1   = 0;
-        reg_frm->common.sli_splt.sli_flsh         = 0;
-        reg_frm->common.sli_cnum.sli_splt_cnum_m1 = 0;
+        regs->reg_frm.sli_splt.sli_splt         = 0;
+        regs->reg_frm.sli_splt.sli_splt_mode    = 0;
+        regs->reg_frm.sli_splt.sli_splt_cpst    = 0;
+        regs->reg_frm.sli_splt.sli_max_num_m1   = 0;
+        regs->reg_frm.sli_splt.sli_flsh         = 0;
+        regs->reg_frm.sli_cnum.sli_splt_cnum_m1 = 0;
 
-        reg_frm->common.sli_byte.sli_splt_byte    = 0;
-        reg_frm->common.enc_pic.slen_fifo         = 0;
+        regs->reg_frm.sli_byte.sli_splt_byte    = 0;
+        regs->reg_frm.enc_pic.slen_fifo         = 0;
     } break;
     case MPP_ENC_SPLIT_BY_BYTE : {
-        reg_frm->common.sli_splt.sli_splt         = 1;
-        reg_frm->common.sli_splt.sli_splt_mode    = 0;
-        reg_frm->common.sli_splt.sli_splt_cpst    = 0;
-        reg_frm->common.sli_splt.sli_max_num_m1   = 500;
-        reg_frm->common.sli_splt.sli_flsh         = 1;
-        reg_frm->common.sli_cnum.sli_splt_cnum_m1 = 0;
+        regs->reg_frm.sli_splt.sli_splt         = 1;
+        regs->reg_frm.sli_splt.sli_splt_mode    = 0;
+        regs->reg_frm.sli_splt.sli_splt_cpst    = 0;
+        regs->reg_frm.sli_splt.sli_max_num_m1   = 500;
+        regs->reg_frm.sli_splt.sli_flsh         = 1;
+        regs->reg_frm.sli_cnum.sli_splt_cnum_m1 = 0;
 
-        reg_frm->common.sli_byte.sli_splt_byte    = cfg->split_arg;
-        reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en         = reg_frm->common.enc_pic.slen_fifo;
+        regs->reg_frm.sli_byte.sli_splt_byte    = cfg->split_arg;
+        regs->reg_frm.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en       = cfg->split_out ? 1 : 0;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
         RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 16) / 16;
         RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 16) / 16;
         RK_U32 slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
 
-        reg_frm->common.sli_splt.sli_splt         = 1;
-        reg_frm->common.sli_splt.sli_splt_mode    = 1;
-        reg_frm->common.sli_splt.sli_splt_cpst    = 0;
-        reg_frm->common.sli_splt.sli_max_num_m1   = 500;
-        reg_frm->common.sli_splt.sli_flsh         = 1;
-        reg_frm->common.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
+        regs->reg_frm.sli_splt.sli_splt         = 1;
+        regs->reg_frm.sli_splt.sli_splt_mode    = 1;
+        regs->reg_frm.sli_splt.sli_splt_cpst    = 0;
+        regs->reg_frm.sli_splt.sli_max_num_m1   = 500;
+        regs->reg_frm.sli_splt.sli_flsh         = 1;
+        regs->reg_frm.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
-        reg_frm->common.sli_byte.sli_splt_byte    = 0;
-        reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
-        if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
-            (regs->reg_frm.common.enc_pic.slen_fifo && (slice_num > VEPU511_SLICE_FIFO_LEN)))
+        regs->reg_frm.sli_byte.sli_splt_byte    = 0;
+        regs->reg_frm.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
+        if (cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY)
             regs->reg_ctl.int_en.vslc_done_en = 1;
     } break;
     default : {
-        mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
+        mpp_logi_f("invalide slice split mode %d\n", cfg->split_mode);
     } break;
     }
 
@@ -1600,120 +1693,82 @@ static void setup_vepu511_split(HalVepu511RegSet *regs, MppEncCfgSet *enc_cfg)
 static void setup_vepu511_me(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
-    H264eVepu511Param *reg_param = &regs->reg_param;
+    Vepu511FrameCfg *reg_frm = &regs->reg_frm;
+    Vepu511Param *reg_param = &regs->reg_param;
     MppEncSceneMode sm = ctx->cfg->tune.scene_mode;
 
     hal_h264e_dbg_func("enter\n");
 
-    reg_frm->common.me_rnge.cime_srch_dwnh    = 15;
-    reg_frm->common.me_rnge.cime_srch_uph     = 15;
-    reg_frm->common.me_rnge.cime_srch_rgtw    = 12;
-    reg_frm->common.me_rnge.cime_srch_lftw    = 12;
-    reg_frm->common.me_cfg.rme_srch_h         = 3;
-    reg_frm->common.me_cfg.rme_srch_v         = 3;
+    reg_frm->me_rnge.cime_srch_dwnh   = 15;
+    reg_frm->me_rnge.cime_srch_uph    = 15;
+    reg_frm->me_rnge.cime_srch_rgtw   = 12;
+    reg_frm->me_rnge.cime_srch_lftw   = 12;
+    reg_frm->me_cfg.rme_srch_h        = 3;
+    reg_frm->me_cfg.rme_srch_v        = 3;
 
-    reg_frm->common.me_cfg.srgn_max_num       = 72;
-    reg_frm->common.me_cfg.cime_dist_thre     = 1024;
-    reg_frm->common.me_cfg.rme_dis            = 0;
-    reg_frm->common.me_cfg.fme_dis            = 0;
-    reg_frm->common.me_rnge.dlt_frm_num       = 0x0;
-    reg_frm->common.me_cach.cime_zero_thre    = 64;
+    reg_frm->me_cfg.srgn_max_num      = 72;
+    reg_frm->me_cfg.cime_dist_thre    = 1024;
+    reg_frm->me_cfg.rme_dis           = 0;
+    reg_frm->me_cfg.fme_dis           = 0;
+    reg_frm->me_rnge.dlt_frm_num      = 0x0;
+    reg_frm->me_cach.cime_zero_thre   = 64;
 
     /* CIME: 0x1760 - 0x176C */
-    reg_param->me_sqi_comb.cime_pmv_num       = 1;
-    reg_param->me_sqi_comb.cime_fuse          = 0;
-    reg_param->me_sqi_comb.move_lambda        = 0;
-    reg_param->me_sqi_comb.rime_lvl_mrg       = 1;
-    reg_param->me_sqi_comb.rime_prelvl_en     = 0;
-    reg_param->me_sqi_comb.rime_prersu_en     = 0;
-    reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
-    reg_param->cime_mvd_th_comb.cime_mvd_th0  = 16;
-    reg_param->cime_mvd_th_comb.cime_mvd_th1  = 48;
-    reg_param->cime_mvd_th_comb.cime_mvd_th2  = 80;
-    reg_param->cime_madp_th_comb.cime_madp_th = 16;
-    reg_param->cime_multi_comb.cime_multi0    = 8;
-    reg_param->cime_multi_comb.cime_multi1    = 12;
-    reg_param->cime_multi_comb.cime_multi2    = 16;
-    reg_param->cime_multi_comb.cime_multi3    = 20;
+    reg_param->me_sqi_cfg.cime_pmv_num      = 1;
+    reg_param->me_sqi_cfg.cime_fuse         = 0;
+    reg_param->me_sqi_cfg.move_lambda       = 0;
+    reg_param->me_sqi_cfg.rime_lvl_mrg      = 1;
+    reg_param->me_sqi_cfg.rime_prelvl_en    = 3;
+    reg_param->me_sqi_cfg.rime_prersu_en    = 0;
+    reg_param->me_sqi_cfg.fme_lvl_mrg       = 0;
+    reg_param->cime_mvd_th.cime_mvd_th0     = 16;
+    reg_param->cime_mvd_th.cime_mvd_th1     = 48;
+    reg_param->cime_mvd_th.cime_mvd_th2     = 80;
+    reg_param->cime_madp_th.cime_madp_th    = 16;
+    reg_param->cime_madp_th.ratio_consi_cfg = 13;
+    reg_param->cime_madp_th.ratio_bmv_dist  = 9;
+    reg_param->cime_multi.cime_multi0 = 8;
+    reg_param->cime_multi.cime_multi1 = 12;
+    reg_param->cime_multi.cime_multi2 = 16;
+    reg_param->cime_multi.cime_multi3 = 20;
 
     /* RFME: 0x1770 - 0x1778 */
-    reg_param->rime_mvd_th_comb.rime_mvd_th0   = 1;
-    reg_param->rime_mvd_th_comb.rime_mvd_th1   = 2;
-    reg_param->rime_mvd_th_comb.fme_madp_th    = 0;
-    reg_param->rime_madp_th_comb.rime_madp_th0 = 8;
-    reg_param->rime_madp_th_comb.rime_madp_th1 = 16;
-    reg_param->rime_multi_comb.rime_multi0 = 4;
-    reg_param->rime_multi_comb.rime_multi1 = 8;
-    reg_param->rime_multi_comb.rime_multi2 = 12;
-    reg_param->cmv_st_th_comb.cmv_th0 = 64;
-    reg_param->cmv_st_th_comb.cmv_th1 = 96;
-    reg_param->cmv_st_th_comb.cmv_th2 = 128;
+    reg_param->rime_mvd_th.rime_mvd_th0   = 1;
+    reg_param->rime_mvd_th.rime_mvd_th1   = 2;
+    reg_param->rime_mvd_th.fme_madp_th    = 0;
+    reg_param->rime_madp_th.rime_madp_th0 = 8;
+    reg_param->rime_madp_th.rime_madp_th1 = 16;
+    reg_param->rime_multi.rime_multi0 = 4;
+    reg_param->rime_multi.rime_multi1 = 8;
+    reg_param->rime_multi.rime_multi2 = 12;
 
     if (sm != MPP_ENC_SCENE_MODE_IPC) {
         /* disable subjective optimization */
-        reg_param->cime_madp_th_comb.cime_madp_th = 0;
-        reg_param->rime_madp_th_comb.rime_madp_th0 = 0;
-        reg_param->rime_madp_th_comb.rime_madp_th1 = 0;
-        reg_param->cime_multi_comb.cime_multi0 = 4;
-        reg_param->cime_multi_comb.cime_multi1 = 4;
-        reg_param->cime_multi_comb.cime_multi2 = 4;
-        reg_param->cime_multi_comb.cime_multi3 = 4;
-        reg_param->rime_multi_comb.rime_multi0 = 4;
-        reg_param->rime_multi_comb.rime_multi1 = 4;
-        reg_param->rime_multi_comb.rime_multi2 = 4;
+        reg_param->cime_madp_th.cime_madp_th  = 0;
+        reg_param->rime_madp_th.rime_madp_th0 = 0;
+        reg_param->rime_madp_th.rime_madp_th1 = 0;
+        reg_param->cime_multi.cime_multi0 = 4;
+        reg_param->cime_multi.cime_multi1 = 4;
+        reg_param->cime_multi.cime_multi2 = 4;
+        reg_param->cime_multi.cime_multi3 = 4;
+        reg_param->rime_multi.rime_multi0 = 4;
+        reg_param->rime_multi.rime_multi1 = 4;
+        reg_param->rime_multi.rime_multi2 = 4;
     }
 
-    /* 0x1064 */
+    /* 0x177C */
+    reg_param->cmv_st_th.cmv_th0 = 64;
+    reg_param->cmv_st_th.cmv_th1 = 96;
+    reg_param->cmv_st_th.cmv_th2 = 128;
     regs->reg_rc_roi.madi_st_thd.madi_th0 = 5;
     regs->reg_rc_roi.madi_st_thd.madi_th1 = 12;
     regs->reg_rc_roi.madi_st_thd.madi_th2 = 20;
-    /* 0x1068 */
     regs->reg_rc_roi.madp_st_thd0.madp_th0 = 4 << 4;
     regs->reg_rc_roi.madp_st_thd0.madp_th1 = 9 << 4;
-    /* 0x106C */
     regs->reg_rc_roi.madp_st_thd1.madp_th2 = 15 << 4;
 
     hal_h264e_dbg_func("leave\n");
 }
-
-#define H264E_LAMBDA_TAB_SIZE       (52 * sizeof(RK_U32))
-
-static RK_U32 h264e_lambda_default[60] = {
-    0x00000005, 0x00000006, 0x00000007, 0x00000009,
-    0x0000000b, 0x0000000e, 0x00000012, 0x00000016,
-    0x0000001c, 0x00000024, 0x0000002d, 0x00000039,
-    0x00000048, 0x0000005b, 0x00000073, 0x00000091,
-    0x000000b6, 0x000000e6, 0x00000122, 0x0000016d,
-    0x000001cc, 0x00000244, 0x000002db, 0x00000399,
-    0x00000489, 0x000005b6, 0x00000733, 0x00000912,
-    0x00000b6d, 0x00000e66, 0x00001224, 0x000016db,
-    0x00001ccc, 0x00002449, 0x00002db7, 0x00003999,
-    0x00004892, 0x00005b6f, 0x00007333, 0x00009124,
-    0x0000b6de, 0x0000e666, 0x00012249, 0x00016dbc,
-    0x0001cccc, 0x00024492, 0x0002db79, 0x00039999,
-    0x00048924, 0x0005b6f2, 0x00073333, 0x00091249,
-    0x000b6de5, 0x000e6666, 0x00122492, 0x0016dbcb,
-    0x001ccccc, 0x00244924, 0x002db796, 0x00399998,
-};
-
-static RK_U32 h264e_lambda_cvr[60] = {
-    0x00000009, 0x0000000b, 0x0000000e, 0x00000011,
-    0x00000016, 0x0000001b, 0x00000022, 0x0000002b,
-    0x00000036, 0x00000045, 0x00000056, 0x0000006d,
-    0x00000089, 0x000000ad, 0x000000da, 0x00000112,
-    0x00000159, 0x000001b3, 0x00000224, 0x000002b3,
-    0x00000366, 0x00000449, 0x00000566, 0x000006cd,
-    0x00000891, 0x00000acb, 0x00000d9a, 0x000013c1,
-    0x000018e4, 0x00001f5c, 0x00002783, 0x000031c8,
-    0x00003eb8, 0x00004f06, 0x00006390, 0x00008e14,
-    0x0000b302, 0x0000e18a, 0x00011c29, 0x00016605,
-    0x0001c313, 0x00027ae1, 0x00031fe6, 0x0003efcf,
-    0x0004f5c3, 0x0006e785, 0x0008b2ef, 0x000af5c3,
-    0x000f1e7a, 0x00130c7f, 0x00180000, 0x001e3cf4,
-    0x002618fe, 0x00300000, 0x003c79e8, 0x004c31fc,
-    0x00600000, 0x0078f3d0, 0x009863f8, 0x0c000000,
-};
 
 static void
 setup_vepu511_l2(HalH264eVepu511Ctx *ctx)
@@ -1737,22 +1792,21 @@ setup_vepu511_l2(HalH264eVepu511Ctx *ctx)
 
 static void setup_vepu511_ext_line_buf(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 {
-    H264eVepu511Frame *reg_frm = &regs->reg_frm;
     MppDevRcbInfoCfg rcb_cfg;
     RK_S32 offset = 0;
     RK_S32 fd;
 
     if (!ctx->ext_line_buf) {
-        reg_frm->common.ebufb_addr = 0;
-        reg_frm->common.ebufb_addr = 0;
+        regs->reg_frm.ebufb_addr = 0;
+        regs->reg_frm.ebuft_addr = 0;
         return;
     }
 
     fd = mpp_buffer_get_fd(ctx->ext_line_buf);
     offset = ctx->ext_line_buf_size;
 
-    reg_frm->common.ebuft_addr = fd;
-    reg_frm->common.ebufb_addr = fd;
+    regs->reg_frm.ebufb_addr = fd;
+    regs->reg_frm.ebuft_addr = fd;
 
     mpp_dev_multi_offset_update(ctx->offsets, 178, offset);
 
@@ -1772,7 +1826,7 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
 {
     MppEncCfgSet *cfg = ctx->cfg;
     MppEncHwCfg *hw = &cfg->hw;
-    Vepu511RcRoi *s = &ctx->regs_set->reg_rc_roi;
+    Vepu511RcRoiCfg *s = &ctx->regs_set->reg_rc_roi;
     RK_S32 *aq_step, *aq_thd;
     RK_U8 i;
 
@@ -1784,8 +1838,22 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
         aq_step = &hw->aq_step_p[0];
     }
 
-    for (i = 0; i < 16; i++)
-        s->aq_tthd[i] = aq_thd[i] & 0xff;
+    s->aq_tthd0.aq_tthd0  = (RK_U8)aq_thd[0] & 0xff;
+    s->aq_tthd0.aq_tthd1  = (RK_U8)aq_thd[1] & 0xff;
+    s->aq_tthd0.aq_tthd2  = (RK_U8)aq_thd[2] & 0xff;
+    s->aq_tthd0.aq_tthd3  = (RK_U8)aq_thd[3] & 0xff;
+    s->aq_tthd1.aq_tthd4  = (RK_U8)aq_thd[4] & 0xff;
+    s->aq_tthd1.aq_tthd5  = (RK_U8)aq_thd[5] & 0xff;
+    s->aq_tthd1.aq_tthd6  = (RK_U8)aq_thd[6] & 0xff;
+    s->aq_tthd1.aq_tthd7  = (RK_U8)aq_thd[7] & 0xff;
+    s->aq_tthd2.aq_tthd8  = (RK_U8)aq_thd[8] & 0xff;
+    s->aq_tthd2.aq_tthd9  = (RK_U8)aq_thd[9] & 0xff;
+    s->aq_tthd2.aq_tthd10 = (RK_U8)aq_thd[10] & 0xff;
+    s->aq_tthd2.aq_tthd11 = (RK_U8)aq_thd[11] & 0xff;
+    s->aq_tthd3.aq_tthd12 = (RK_U8)aq_thd[12] & 0xff;
+    s->aq_tthd3.aq_tthd13 = (RK_U8)aq_thd[13] & 0xff;
+    s->aq_tthd3.aq_tthd14 = (RK_U8)aq_thd[14] & 0xff;
+    s->aq_tthd3.aq_tthd15 = (RK_U8)aq_thd[15] & 0xff;
 
     s->aq_stp0.aq_stp_s0 = aq_step[0] & 0x1f;
     s->aq_stp0.aq_stp_0t1 = aq_step[1] & 0x1f;
@@ -1804,12 +1872,13 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
     s->aq_stp2.aq_stp_13t14 = aq_step[13] & 0x1f;
     s->aq_stp2.aq_stp_14t15 = aq_step[14] & 0x1f;
     s->aq_stp2.aq_stp_b15 = aq_step[15] & 0x1f;
+    s->aq_clip.aq16_rnge = 15;
 }
 
 static void setup_vepu511_anti_stripe(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Param *s = &regs->reg_param;
+    Vepu511Param *s = &regs->reg_param;
     RK_S32 str = ctx->cfg->tune.atl_str;
 
     s->iprd_tthdy4_0.iprd_tthdy4_0 = 1;
@@ -1851,7 +1920,7 @@ static void setup_vepu511_anti_stripe(HalH264eVepu511Ctx *ctx)
 static void setup_vepu511_anti_ringing(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Sqi *s = &regs->reg_sqi;
+    Vepu511SqiCfg *s = &regs->reg_sqi;
     MppEncSceneMode sm = ctx->cfg->tune.scene_mode;
 
     s->atr_thd.atr_qp = (sm == MPP_ENC_SCENE_MODE_IPC) ? 32 : 45;
@@ -1912,55 +1981,56 @@ static void setup_vepu511_anti_ringing(HalH264eVepu511Ctx *ctx)
 static void setup_vepu511_anti_flicker(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Sqi *reg = &regs->reg_sqi;
+    Vepu511SqiCfg *reg = &regs->reg_sqi;
     RK_U32 str = ctx->cfg->tune.anti_flicker_str;
-    rdo_skip_par *p_skip = NULL;
-    rdo_noskip_par *p_no_skip = NULL;
 
-    static RK_U8 pskip_atf_th0[4] = { 0, 0, 0, 1 };
-    static RK_U8 pskip_atf_th1[4] = { 7, 7, 7, 10 };
-    static RK_U8 pskip_atf_wgt0[4] = { 16, 16, 16, 20 };
-    static RK_U8 pskip_atf_wgt1[4] = { 16, 16, 14, 16 };
-    static RK_U8 intra_atf_th0[4] = { 8, 16, 20, 20 };
-    static RK_U8 intra_atf_th1[4] = { 16, 32, 40, 40 };
-    static RK_U8 intra_atf_th2[4] = { 32, 56, 72, 72 };
-    static RK_U8 intra_atf_wgt0[4] = { 16, 24, 27, 27 };
-    static RK_U8 intra_atf_wgt1[4] = { 16, 22, 25, 25 };
-    static RK_U8 intra_atf_wgt2[4] = { 16, 19, 20, 20 };
+    static RK_U8 pskip_atf_th0[4]  = { 0, 0, 1, 1 };
+    static RK_U8 pskip_atf_th1[4]  = { 7, 7, 10, 10 };
+    static RK_U8 pskip_atf_th2[4]  = { 15, 15, 15, 15 };
+    static RK_U8 pskip_atf_th3[4]  = { 25, 25, 25, 25 };
+    static RK_U8 pskip_atf_wgt0[4] = { 16, 16, 20, 20 };
+    static RK_U8 pskip_atf_wgt1[4] = { 16, 16, 15, 14 };
+    static RK_U8 pskip_atf_wgt2[4] = { 16, 16, 16, 15 };
+    static RK_U8 pskip_atf_wgt3[4] = { 16, 16, 16, 15 };
+    static RK_U8 pskip_atf_wgt4[4] = { 16, 16, 16, 16 };
+    static RK_U8 intra_atf_th0[4]  = { 8, 16, 20, 20 };
+    static RK_U8 intra_atf_th1[4]  = { 16, 32, 40, 40 };
+    static RK_U8 intra_atf_th2[4]  = { 32, 56, 72, 72 };
+    static RK_U8 intra_atf_wgt0[4] = { 16, 24, 28, 28 };
+    static RK_U8 intra_atf_wgt1[4] = { 16, 22, 26, 26 };
+    static RK_U8 intra_atf_wgt2[4] = { 16, 20, 22, 22 };
+    static RK_U8 intra_atf_wgt3[4] = { 16, 16, 16, 18 };
 
-    p_skip = &reg->rdo_b16_skip;
-    p_skip->atf_thd0.madp_thd0 = pskip_atf_th0[str];
-    p_skip->atf_thd0.madp_thd1 = pskip_atf_th1[str];
-    p_skip->atf_thd1.madp_thd2 = 15;
-    p_skip->atf_thd1.madp_thd3 = 25;
-    p_skip->atf_wgt0.wgt0 = pskip_atf_wgt0[str];
-    p_skip->atf_wgt0.wgt1 = pskip_atf_wgt1[str];
-    p_skip->atf_wgt0.wgt2 = 16;
-    p_skip->atf_wgt0.wgt3 = 16;
-    p_skip->atf_wgt1.wgt4 = 16;
+    reg->rdo_b16_skip_atf_thd0.madp_thd0 = pskip_atf_th0[str];
+    reg->rdo_b16_skip_atf_thd0.madp_thd1 = pskip_atf_th1[str];
+    reg->rdo_b16_skip_atf_thd1.madp_thd2 = pskip_atf_th2[str];
+    reg->rdo_b16_skip_atf_thd1.madp_thd3 = pskip_atf_th3[str];
+    reg->rdo_b16_skip_atf_wgt0.wgt0 = pskip_atf_wgt0[str];
+    reg->rdo_b16_skip_atf_wgt0.wgt1 = pskip_atf_wgt1[str];
+    reg->rdo_b16_skip_atf_wgt0.wgt2 = pskip_atf_wgt2[str];
+    reg->rdo_b16_skip_atf_wgt0.wgt3 = pskip_atf_wgt3[str];
+    reg->rdo_b16_skip_atf_wgt1.wgt4 = pskip_atf_wgt4[str];
 
-    p_no_skip = &reg->rdo_b16_inter;
-    p_no_skip->ratf_thd0.madp_thd0 = 20;
-    p_no_skip->ratf_thd0.madp_thd1 = 40;
-    p_no_skip->ratf_thd1.madp_thd2 = 72;
-    p_no_skip->atf_wgt.wgt0 = 16;
-    p_no_skip->atf_wgt.wgt1 = 16;
-    p_no_skip->atf_wgt.wgt2 = 16;
-    p_no_skip->atf_wgt.wgt3 = 16;
+    reg->rdo_b16_inter_atf_thd0.madp_thd0 = 20;
+    reg->rdo_b16_inter_atf_thd0.madp_thd1 = 40;
+    reg->rdo_b16_inter_atf_thd1.madp_thd2 = 72;
+    reg->rdo_b16_inter_atf_wgt.wgt0 = 16;
+    reg->rdo_b16_inter_atf_wgt.wgt1 = 16;
+    reg->rdo_b16_inter_atf_wgt.wgt2 = 16;
+    reg->rdo_b16_inter_atf_wgt.wgt3 = 16;
 
-    p_no_skip = &reg->rdo_b16_intra;
-    p_no_skip->ratf_thd0.madp_thd0 = intra_atf_th0[str];
-    p_no_skip->ratf_thd0.madp_thd1 = intra_atf_th1[str];
-    p_no_skip->ratf_thd1.madp_thd2 = intra_atf_th2[str];
-    p_no_skip->atf_wgt.wgt0 = intra_atf_wgt0[str];
-    p_no_skip->atf_wgt.wgt1 = intra_atf_wgt1[str];
-    p_no_skip->atf_wgt.wgt2 = intra_atf_wgt2[str];
-    p_no_skip->atf_wgt.wgt3 = 16;
+    reg->rdo_b16_intra_atf_thd0.madp_thd0 = intra_atf_th0[str];
+    reg->rdo_b16_intra_atf_thd0.madp_thd1 = intra_atf_th1[str];
+    reg->rdo_b16_intra_atf_thd1.madp_thd2 = intra_atf_th2[str];
+    reg->rdo_b16_intra_atf_wgt.wgt0 = intra_atf_wgt0[str];
+    reg->rdo_b16_intra_atf_wgt.wgt1 = intra_atf_wgt1[str];
+    reg->rdo_b16_intra_atf_wgt.wgt2 = intra_atf_wgt2[str];
+    reg->rdo_b16_intra_atf_wgt.wgt3 = intra_atf_wgt3[str];
 
-    reg->rdo_b16_intra_atf_cnt_thd.thd0 = 1;
-    reg->rdo_b16_intra_atf_cnt_thd.thd1 = 4;
-    reg->rdo_b16_intra_atf_cnt_thd.thd2 = 1;
-    reg->rdo_b16_intra_atf_cnt_thd.thd3 = 4;
+    reg->rdo_b16_intra_atf_cnt_thd.cnt_thd0 = 1;
+    reg->rdo_b16_intra_atf_cnt_thd.cnt_thd1 = 4;
+    reg->rdo_b16_intra_atf_cnt_thd.cnt_thd2 = 1;
+    reg->rdo_b16_intra_atf_cnt_thd.cnt_thd3 = 4;
 
     reg->rdo_atf_resi_thd.big_th0 = 16;
     reg->rdo_atf_resi_thd.big_th1 = 16;
@@ -1971,7 +2041,7 @@ static void setup_vepu511_anti_flicker(HalH264eVepu511Ctx *ctx)
 static void setup_vepu511_anti_smear(HalH264eVepu511Ctx *ctx)
 {
     HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511Sqi *reg = &regs->reg_sqi;
+    Vepu511SqiCfg *reg = &regs->reg_sqi;
     H264eSlice *slice = ctx->slice;
     Vepu511H264Fbk *last_fb = &ctx->last_frame_fb;
     RK_U32 mb_cnt = last_fb->st_mb_num;
@@ -2083,18 +2153,17 @@ static void setup_vepu511_anti_smear(HalH264eVepu511Ctx *ctx)
     reg->smear_resi_thd4.resi_th0 = flg2 ? 0 : 10;
     reg->smear_resi_thd4.resi_th1 = flg2 ? 0 : 6;
 
-    reg->smear_st_thd.madp_cnt_th0 = flg2 ? 0 : 1;
-    reg->smear_st_thd.madp_cnt_th1 = flg2 ? 0 : 5;
-    reg->smear_st_thd.madp_cnt_th2 = flg2 ? 0 : 1;
-    reg->smear_st_thd.madp_cnt_th3 = flg2 ? 0 : 3;
+    reg->rdo_smear_st_thd.madp_cnt_th0 = flg2 ? 0 : 1;
+    reg->rdo_smear_st_thd.madp_cnt_th1 = flg2 ? 0 : 5;
+    reg->rdo_smear_st_thd.madp_cnt_th2 = flg2 ? 0 : 1;
+    reg->rdo_smear_st_thd.madp_cnt_th3 = flg2 ? 0 : 3;
 
     hal_h264e_dbg_func("leave\n");
 }
 
 static void setup_vepu511_scaling_list(HalH264eVepu511Ctx *ctx)
 {
-    HalVepu511RegSet *regs = ctx->regs_set;
-    H264eVepu511SclCfg *s = &regs->reg_scl;
+    Vepu511SclCfg *s = &ctx->regs_set->reg_scl_jpgtbl.scl;
     RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
     RK_U8 idx;
 
@@ -2158,7 +2227,7 @@ static MPP_RET hal_h264e_vepu511_gen_regs(void *hal, HalEncTask *task)
     setup_vepu511_ext_line_buf(regs, ctx);
 
     if (ctx->osd_cfg.osd_data3)
-        vepu511_set_osd(&ctx->osd_cfg, &regs->reg_osd.osd_comb_cfg);
+        vepu511_set_osd(&ctx->osd_cfg);
 
     if (ctx->roi_data)
         vepu511_set_roi(&ctx->regs_set->reg_rc_roi.roi_cfg, ctx->roi_data,
@@ -2250,9 +2319,9 @@ static MPP_RET hal_h264e_vepu511_start(void *hal, HalEncTask *task)
             break;
         }
 
-        wr_cfg.reg = &regs->reg_scl;
-        wr_cfg.size = sizeof(regs->reg_scl);
-        wr_cfg.offset = VEPU511_SCL_OFFSET ;
+        wr_cfg.reg = &regs->reg_scl_jpgtbl;
+        wr_cfg.size = sizeof(regs->reg_scl_jpgtbl);
+        wr_cfg.offset = VEPU511_SCL_JPGTBL_OFFSET ;
 
         ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {

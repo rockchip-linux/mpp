@@ -9,32 +9,57 @@
 #include "rk_type.h"
 #include "vepu511_common.h"
 
-typedef struct Vepu511JpegRoiRegion_t {
-    struct {
-        RK_U32 roi0_rdoq_start_x    : 11;
-        RK_U32 roi0_rdoq_start_y    : 11;
-        RK_U32 reserved             : 3;
-        RK_U32 roi0_rdoq_level      : 6;
-        RK_U32 roi0_rdoq_en         : 1;
-    } roi_cfg0;
+#define VEPU511_JPEGE_FRAME_OFFSET      (0x300)
+#define VEPU511_JPEGE_TABLE_OFFSET      (0x2ca0)
+#define VEPU511_JPEGE_OSD_OFFSET        (0x3138)
+#define VEPU511_JPEGE_STATUS_OFFSET     (0x4000)
+#define VEPU511_JPEGE_INT_OFFSET        (0x2c)
 
+typedef struct JpegVepu511Frame_t {
+    /* 0x00000300 reg192 */
     struct {
-        RK_U32 roi0_rdoq_width_m1     : 11;
-        RK_U32 roi0_rdoq_height_m1    : 11;
-        /* the below 10 bits only for roi0 */
-        RK_U32 reserved               : 3;
-        RK_U32 frm_rdoq_level         : 6;
-        RK_U32 frm_rdoq_en            : 1;
-    } roi_cfg1;
-} Vepu511JpegRoiRegion;
+        RK_U32 enc_stnd                : 2;
+        RK_U32 cur_frm_ref             : 1;
+        RK_U32 mei_stor                : 1;
+        RK_U32 bs_scp                  : 1;
+        RK_U32 meiw_mode               : 1;
+        RK_U32 reserved0               : 2;
+        RK_U32 pic_qp                  : 6;
+        RK_U32 num_pic_tot_cur_hevc    : 5;
+        RK_U32 log2_ctu_num_hevc       : 5;
+        RK_U32 rfpr_compress_mode      : 1;
+        RK_U32 reserved1               : 2;
+        RK_U32 eslf_out_e_jpeg         : 1;
+        RK_U32 jpeg_slen_fifo          : 1;
+        RK_U32 eslf_out_e              : 1;
+        RK_U32 slen_fifo               : 1;
+        RK_U32 rec_fbc_dis             : 1;
+    } video_enc_pic;
 
-/* 0x00000400 reg256 - 0x0000050c reg323*/
-typedef struct Vepu511JpegReg_t {
+    RK_U32 reserved_reg304;
+
+    /* 0x00000308 reg194 */
+    struct {
+        RK_U32 frame_id        : 8;
+        RK_U32 frm_id_match    : 1;
+        RK_U32 reserved        : 3;
+        RK_U32 source_id       : 1;
+        RK_U32 src_id_match    : 1;
+        RK_U32 reserved1       : 2;
+        RK_U32 ch_id           : 2;
+        RK_U32 vrsp_rtn_en     : 1;
+        RK_U32 vinf_req_en     : 1;
+        RK_U32 reserved2       : 12;
+    } enc_id;
+
+    /* 0x0000030c reg195 - 0x000003fc reg255 */
+    RK_U32 reserved195_255[61];
+
     /* 0x00000400 reg256 */
-    RK_U32  adr_bsbt;
+    RK_U32 adr_bsbt;
 
     /* 0x00000404 reg257 */
-    RK_U32  adr_bsbb;
+    RK_U32 adr_bsbb;
 
     /* 0x00000408 reg258 */
     RK_U32 adr_bsbs;
@@ -194,12 +219,12 @@ typedef struct Vepu511JpegReg_t {
 
     /* 0x0000047c reg287 */
     struct {
-        RK_U32 ri              : 25;
-        RK_U32 out_mode        : 1;
-        RK_U32 start_rst_m     : 3;
-        RK_U32 pic_last_ecs    : 1;
-        RK_U32 reserved        : 1;
-        RK_U32 stnd            : 1;
+        RK_U32 jpeg_ri              : 25;
+        RK_U32 jpeg_out_mode        : 1;
+        RK_U32 jpeg_start_rst_m     : 3;
+        RK_U32 jpeg_pic_last_ecs    : 1;
+        RK_U32 reserved             : 1;
+        RK_U32 jpeg_stnd            : 1;
     } base_cfg;
 
     /* 0x00000480 reg288 */
@@ -211,10 +236,7 @@ typedef struct Vepu511JpegReg_t {
     } uvc_cfg;
 
     /* 0x00000484 reg289 */
-    struct {
-        RK_U32 reserved     : 4;
-        RK_U32 eslf_badr    : 28;
-    } adr_eslf;
+    RK_U32 adr_eslf;
 
     /* 0x00000488 reg290 */
     struct {
@@ -228,151 +250,18 @@ typedef struct Vepu511JpegReg_t {
     RK_U32 reserved_291;
 
     /* 0x00000490 reg292 - 0x0000050c reg323*/
-    Vepu511JpegRoiRegion roi_regions[16];
-} Vepu511JpegReg;
-
-/* 0x00002ca0 reg2856 - - 0x00002e1c reg2951 */
-typedef struct JpegVepu511Tab_t {
-    RK_U16 qua_tab0[64];
-    RK_U16 qua_tab1[64];
-    RK_U16 qua_tab2[64];
-} JpegVepu511Tab;
-
-typedef struct Vepu511JpegOsdCfg_t {
-    /* 0x00003138 reg3150 */
-    struct {
-        RK_U32 osd_en                : 1;
-        RK_U32 reserved              : 4;
-        RK_U32 osd_qp_adj_en         : 1;
-        RK_U32 osd_range_trns_en     : 1;
-        RK_U32 osd_range_trns_sel    : 1;
-        RK_U32 osd_fmt               : 4;
-        RK_U32 osd_alpha_swap        : 1;
-        RK_U32 osd_rbuv_swap         : 1;
-        RK_U32 reserved1             : 8;
-        RK_U32 osd_fg_alpha          : 8;
-        RK_U32 osd_fg_alpha_sel      : 2;
-    } osd_cfg0;
-
-    /* 0x0000313c reg3151 */
-    struct {
-        RK_U32 osd_lt_xcrd    : 14;
-        RK_U32 osd_lt_ycrd    : 14;
-        RK_U32 osd_endn       : 4;
-    } osd_cfg1;
-
-    /* 0x00003140 reg3152 */
-    struct {
-        RK_U32 osd_rb_xcrd    : 14;
-        RK_U32 osd_rb_ycrd    : 14;
-        RK_U32 reserved       : 4;
-    } osd_cfg2;
-
-    /* 0x00003144 reg3153 */
-    RK_U32 osd_st_addr;
-
-    /* 0x3148 */
-    RK_U32 reserved_3154;
-
-    /* 0x0000314c reg3155 */
-    struct {
-        RK_U32 osd_stride        : 17;
-        RK_U32 reserved          : 8;
-        RK_U32 osd_ch_ds_mode    : 1;
-        RK_U32 reserved1         : 6;
-    } osd_cfg5;
-
-    /* 0x00003150 reg3156 */
-    struct {
-        RK_U32 osd_v_b_lut0    : 8;
-        RK_U32 osd_u_g_lut0    : 8;
-        RK_U32 osd_y_r_lut0    : 8;
-        RK_U32 osd_v_b_lut1    : 8;
-    } osd_cfg6;
-
-    /* 0x00003154 reg3157 */
-    struct {
-        RK_U32 osd0_u_g_lut1      : 8;
-        RK_U32 osd0_y_r_lut1      : 8;
-        RK_U32 osd0_alpha_lut0    : 8;
-        RK_U32 osd0_alpha_lut1    : 8;
-    } osd_cfg7;
-
-    /* 0x3158 */
-    RK_U32 reserved_3158;
-} JpegVepu511Osd_cfg;
-
-/* 0x00003138 reg3150 - - 0x00003264 reg3225 */
-typedef struct Vepu511JpegOsd_t {
-    JpegVepu511Osd_cfg osd_cfg[8];
-    /* 0x00003258 reg3222 */
-    struct {
-        RK_U32 osd_csc_yr    : 9;
-        RK_U32 osd_csc_yg    : 9;
-        RK_U32 osd_csc_yb    : 9;
-        RK_U32 reserved      : 5;
-    } osd_whi_cfg0;
-
-    /* 0x0000325c reg3223 */
-    struct {
-        RK_U32 osd_csc_ur    : 9;
-        RK_U32 osd_csc_ug    : 9;
-        RK_U32 osd_csc_ub    : 9;
-        RK_U32 reserved      : 5;
-    } osd_whi_cfg1;
-
-    /* 0x00003260 reg3224 */
-    struct {
-        RK_U32 osd_csc_vr    : 9;
-        RK_U32 osd_csc_vg    : 9;
-        RK_U32 osd_csc_vb    : 9;
-        RK_U32 reserved      : 5;
-    } osd_whi_cfg2;
-
-    /* 0x00003264 reg3225 */
-    struct {
-        RK_U32 osd_csc_ofst_y    : 8;
-        RK_U32 osd_csc_ofst_u    : 8;
-        RK_U32 osd_csc_ofst_v    : 8;
-        RK_U32 reserved          : 8;
-    } osd_whi_cfg3;
-} JpegVepu511Osd;
-
-/* class: buffer/video syntax */
-/* 0x00000270 reg156 - 0x0000050c reg323 */
-typedef struct JpegVepu511Base_t {
-    /* 0x00000270 reg156  - 0x0000039c reg231 */
-    Vepu511FrmCommon    common;
-
-    /* 0x000003a0 reg232 - 0x000003f4 reg253*/
-    RK_U32 reserved232_253[22];
-
-    /* 0x000003f8 reg254 */
-    struct {
-        RK_U32 slice_sta_x      : 9;
-        RK_U32 reserved1        : 7;
-        RK_U32 slice_sta_y      : 10;
-        RK_U32 reserved2        : 5;
-        RK_U32 slice_enc_ena    : 1;
-    } slice_enc_cfg0;
-
-    /* 0x000003fc reg255 */
-    struct {
-        RK_U32 slice_end_x    : 9;
-        RK_U32 reserved       : 7;
-        RK_U32 slice_end_y    : 10;
-        RK_U32 reserved1      : 6;
-    } slice_enc_cfg1;
-
-    /* 0x00000400 reg256 - 0x0000050c reg323 */
-    Vepu511JpegReg jpegReg;
-} JpegVepu511Base;
+    Vepu511JpegRoi roi_cfg[16];
+} JpegVepu511Frame;
 
 typedef struct JpegV511RegSet_t {
     Vepu511ControlCfg   reg_ctl;
-    JpegVepu511Base     reg_base;
-    JpegVepu511Tab      jpeg_table;
-    Vepu511OsdRegs      reg_osd;
+    /* 0x300 - 0x50c */
+    JpegVepu511Frame    reg_frm;
+    /* 0x2ca0 - 0x2e1c */
+    Vepu511JpegTable    reg_table;
+    /* 0x00003138 reg3150 - 0x00003264 reg3225 */
+    Vepu511Osd          reg_osd;
+    /* 0x00005000 reg5120 - 0x00005230 reg5260*/
     Vepu511Dbg          reg_dbg;
 } JpegV511RegSet;
 

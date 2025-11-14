@@ -21,9 +21,9 @@
 #include "mpp_debug.h"
 #include "mpp_mem.h"
 
-MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg, Vepu511Osd *osd_reg)
+MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg)
 {
-    Vepu511Osd *regs = osd_reg;
+    Vepu511Osd *regs = (Vepu511Osd *) (cfg->reg_base);
     MppEncOSDData3 *osd_ptr = cfg->osd_data3;
     Vepu511OsdRegion *osd_regions = &regs->osd_regions[0];
     MppEncOSDRegion3 *region = osd_ptr->region;
@@ -42,7 +42,7 @@ MPP_RET vepu511_set_osd(Vepu511OsdCfg * cfg, Vepu511Osd *osd_reg)
     }
 
     for (i = 0; i < osd_ptr->num_region; i++, region++) {
-        Vepu511OsdRegion *reg = &osd_reg->osd_regions[i];
+        Vepu511OsdRegion *reg = &regs->osd_regions[i];
         VepuFmtCfg fmt_cfg;
         MppFrameFormat fmt = region->fmt;
         KmppBuffer buffer = NULL;
@@ -152,8 +152,8 @@ MPP_RET vepu511_set_roi(Vepu511RoiCfg *roi_reg_base, MppEncROICfg * roi, RK_S32 
         reg_regions->roi_base.roi_en = 1;
         reg_regions->roi_base.roi_pri = 0x1f;
         if (region->intra) {
-            reg_regions->reg1063.roi0_mdc0_hevc.mdc_intra16 = 1;
-            reg_regions->roi_mdc_hevc.mdc_intra32 = 1;
+            reg_regions->roi_mdc0.h265.roi_mdc_intra16 = 1;
+            reg_regions->roi_mdc1.roi_mdc_intra32 = 1;
         }
         reg_regions++;
     }
