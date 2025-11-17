@@ -1322,6 +1322,7 @@ MPP_RET mpp_enc_proc_cfg(MppEncImpl *enc, MpiCmd cmd, void *param)
             ret = ret_tmp;
     } break;
     case MPP_ENC_SET_IDR_FRAME : {
+        enc->frm_cfg.force_flag |= ENC_FORCE_IDR;
         enc->frm_cfg.force_idr++;
     } break;
     case MPP_ENC_GET_HDR_SYNC :
