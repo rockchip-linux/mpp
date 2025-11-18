@@ -443,8 +443,6 @@ MPP_RET h264d_reset(void *decoder)
     p_strm->prefixdata        = 0xffffffff;
     p_strm->nalu_offset       = 0;
     p_strm->nalu_len          = 0;
-    if (p_strm->nalu_type != H264_NALU_TYPE_PPS && p_strm->nalu_type != H264_NALU_TYPE_SPS)
-        p_strm->head_offset   = 0;
     p_strm->tmp_offset        = 0;
     p_strm->first_mb_in_slice = 0;
     p_strm->endcode_found     = 0;
