@@ -19,35 +19,33 @@
 
 #include "rk_type.h"
 
-#define BIT(n)  (1<<(n))
-
 /* RK3288 Encoder registers. */
 #define VEPU_REG_INTERRUPT          0x004
-#define     VEPU_REG_INTERRUPT_SLICE_READY      BIT(8)
-#define     VEPU_REG_INTERRUPT_TIMEOUT          BIT(6)
-#define     VEPU_REG_INTERRUPT_BUFFER_FULL      BIT(5)
-#define     VEPU_REG_INTERRUPT_RESET            BIT(4)
-#define     VEPU_REG_INTERRUPT_BUS_ERROR        BIT(3)
-#define     VEPU_REG_INTERRUPT_FRAME_READY      BIT(2)
-#define     VEPU_REG_INTERRUPT_DIS_BIT          BIT(1)
-#define     VEPU_REG_INTERRUPT_BIT              BIT(0)
+#define     VEPU_REG_INTERRUPT_SLICE_READY      MPP_BIT(8)
+#define     VEPU_REG_INTERRUPT_TIMEOUT          MPP_BIT(6)
+#define     VEPU_REG_INTERRUPT_BUFFER_FULL      MPP_BIT(5)
+#define     VEPU_REG_INTERRUPT_RESET            MPP_BIT(4)
+#define     VEPU_REG_INTERRUPT_BUS_ERROR        MPP_BIT(3)
+#define     VEPU_REG_INTERRUPT_FRAME_READY      MPP_BIT(2)
+#define     VEPU_REG_INTERRUPT_DIS_BIT          MPP_BIT(1)
+#define     VEPU_REG_INTERRUPT_BIT              MPP_BIT(0)
 
 #define VEPU_REG_AXI_CTRL           0x008
 #define     VEPU_REG_AXI_CTRL_WRITE_ID(x)       (((x) & 0xff) << 24)
 #define     VEPU_REG_AXI_CTRL_READ_ID(x)        (((x) & 0xff) << 16)
-#define     VEPU_REG_OUTPUT_SWAP16              BIT(15)
-#define     VEPU_REG_INPUT_SWAP16               BIT(14)
+#define     VEPU_REG_OUTPUT_SWAP16              MPP_BIT(15)
+#define     VEPU_REG_INPUT_SWAP16               MPP_BIT(14)
 #define     VEPU_REG_INPUT_SWAP16_(x)            (((x) & 1) << 14)
 #define     VEPU_REG_AXI_CTRL_BURST_LEN(x)      (((x) & 0x3f) << 8)
-#define     VEPU_REG_AXI_CTRL_BURST_DISABLE     BIT(7)
-#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE    BIT(6)
-#define     VEPU_REG_AXI_CTRL_BURST_DISCARD     BIT(5)
-#define     VEPU_REG_CLK_GATING_EN              BIT(4)
-#define     VEPU_REG_OUTPUT_SWAP32              BIT(3)
-#define     VEPU_REG_INPUT_SWAP32               BIT(2)
+#define     VEPU_REG_AXI_CTRL_BURST_DISABLE     MPP_BIT(7)
+#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE    MPP_BIT(6)
+#define     VEPU_REG_AXI_CTRL_BURST_DISCARD     MPP_BIT(5)
+#define     VEPU_REG_CLK_GATING_EN              MPP_BIT(4)
+#define     VEPU_REG_OUTPUT_SWAP32              MPP_BIT(3)
+#define     VEPU_REG_INPUT_SWAP32               MPP_BIT(2)
 #define     VEPU_REG_INPUT_SWAP32_(x)            (((x) & 1) << 2)
-#define     VEPU_REG_OUTPUT_SWAP8               BIT(1)
-#define     VEPU_REG_INPUT_SWAP8                BIT(0)
+#define     VEPU_REG_OUTPUT_SWAP8               MPP_BIT(1)
+#define     VEPU_REG_INPUT_SWAP8                MPP_BIT(0)
 #define     VEPU_REG_INPUT_SWAP8_(x)             ((x) & 1)
 
 #define VEPU_REG_ADDR_OUTPUT_STREAM     0x014
@@ -63,16 +61,16 @@
 #define VEPU_REG_ADDR_IN_CR             0x034
 
 #define VEPU_REG_ENCODE_CTRL            0x038
-#define     VEPU_REG_INTERRUPT_TIMEOUT_EN           BIT(31)
-#define     VEPU_REG_MV_WRITE_EN                    BIT(30)
-#define     VEPU_REG_SIZE_TABLE_PRESENT             BIT(29)
-#define     VEPU_REG_INTERRUPT_SLICE_READY_EN       BIT(28)
+#define     VEPU_REG_INTERRUPT_TIMEOUT_EN           MPP_BIT(31)
+#define     VEPU_REG_MV_WRITE_EN                    MPP_BIT(30)
+#define     VEPU_REG_SIZE_TABLE_PRESENT             MPP_BIT(29)
+#define     VEPU_REG_INTERRUPT_SLICE_READY_EN       MPP_BIT(28)
 #define     VEPU_REG_MB_WIDTH(x)                    (((x) & 0x1ff) << 19)
 #define     VEPU_REG_MB_HEIGHT(x)                   (((x) & 0x1ff) << 10)
-#define     VEPU_REG_RECON_WRITE_DIS                BIT(6)
+#define     VEPU_REG_RECON_WRITE_DIS                MPP_BIT(6)
 #define     VEPU_REG_PIC_TYPE(x)                    (((x) & 0x3) << 3)
 #define     VEPU_REG_ENCODE_FORMAT(x)               (((x) & 0x3) << 1)
-#define     VEPU_REG_ENCODE_ENABLE                  BIT(0)
+#define     VEPU_REG_ENCODE_ENABLE                  MPP_BIT(0)
 
 #define VEPU_REG_ENC_INPUT_IMAGE_CTRL  0x03c
 #define     VEPU_REG_IN_IMG_CHROMA_OFFSET(x)    (((x) & 0x7) << 29)
@@ -89,7 +87,7 @@
 #define     VEPU_REG_SLICE_FILTER_BETA(x)           (((x) & 0xf) << 18)
 #define     VEPU_REG_CHROMA_QP_OFFSET(x)            (((x) & 0x1f) << 13)
 #define     VEPU_REG_IDR_PIC_ID(x)                  (((x) & 0xf) << 1)
-#define     VEPU_REG_CONSTRAINED_INTRA_PREDICTION   BIT(0)
+#define     VEPU_REG_CONSTRAINED_INTRA_PREDICTION   MPP_BIT(0)
 
 #define VEPU_REG_ENC_CTRL1          0x044
 #define     VEPU_REG_PPS_ID(x)              (((x) & 0xff) << 24)
@@ -99,16 +97,16 @@
 #define VEPU_REG_ENC_CTRL2          0x048
 #define     VEPU_REG_DEBLOCKING_FILTER_MODE(x)  (((x) & 0x3) << 30)
 #define     VEPU_REG_H264_SLICE_SIZE(x)         (((x) & 0x7f) << 23)
-#define     VEPU_REG_DISABLE_QUARTER_PIXEL_MV   BIT(22)
-#define     VEPU_REG_H264_TRANS8X8_MODE         BIT(21)
+#define     VEPU_REG_DISABLE_QUARTER_PIXEL_MV   MPP_BIT(22)
+#define     VEPU_REG_H264_TRANS8X8_MODE         MPP_BIT(21)
 #define     VEPU_REG_CABAC_INIT_IDC(x)          (((x) & 0x3) << 19)
-#define     VEPU_REG_ENTROPY_CODING_MODE        BIT(18)
-#define     VEPU_REG_H264_INTER4X4_MODE         BIT(17)
-#define     VEPU_REG_H264_STREAM_MODE           BIT(16)
+#define     VEPU_REG_ENTROPY_CODING_MODE        MPP_BIT(18)
+#define     VEPU_REG_H264_INTER4X4_MODE         MPP_BIT(17)
+#define     VEPU_REG_H264_STREAM_MODE           MPP_BIT(16)
 #define     VEPU_REG_INTRA16X16_MODE(x)         (((x) & 0xffff) << 0)
 
 #define VEPU_REG_ENC_CTRL3         0x04c
-#define     VEPU_REG_SPLIT_MV_MODE_EN           BIT(30)
+#define     VEPU_REG_SPLIT_MV_MODE_EN           MPP_BIT(30)
 #define     VEPU_REG_QMV_PENALTY(x)             (((x) & 0x3ff) << 20)
 #define     VEPU_REG_4MV_PENALTY(x)             (((x) & 0x3ff) << 10)
 #define     VEPU_REG_1MV_PENALTY(x)             (((x) & 0x3ff) << 0)
@@ -214,8 +212,8 @@
 #define     VEPU_REG_MVC_PRIORITY_ID(x)         (((x) & 0x7) << 16)
 #define     VEPU_REG_MVC_VIEW_ID(x)             (((x) & 0x7) << 13)
 #define     VEPU_REG_MVC_TEMPORAL_ID(x)         (((x) & 0x7) << 10)
-#define     VEPU_REG_MVC_ANCHOR_PIC_FLAG        BIT(9)
-#define     VEPU_REG_MVC_INTER_VIEW_FLAG        BIT(8)
+#define     VEPU_REG_MVC_ANCHOR_PIC_FLAG        MPP_BIT(9)
+#define     VEPU_REG_MVC_INTER_VIEW_FLAG        MPP_BIT(8)
 #define     VEPU_REG_ROI_QP_DELTA_1             (((x) & 0xf) << 4)
 #define     VEPU_REG_ROI_QP_DELTA_2             (((x) & 0xf) << 0)
 

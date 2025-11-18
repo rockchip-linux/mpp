@@ -185,7 +185,7 @@ static const rk_u8 default_single_ref_p[REF_CONTEXTS][2] = {
 #endif
 
 const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS]
-[TX_SIZE_MAX_SB - 1] = {
+[AV1D_TX_SIZE_MAX_SB - 1] = {
     {
         3,
         136,
@@ -198,7 +198,7 @@ const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS]
     },
 };
 const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS]
-[TX_SIZE_MAX_SB - 2] = {
+[AV1D_TX_SIZE_MAX_SB - 2] = {
     {
         20,
         152,
@@ -208,7 +208,7 @@ const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS]
         101,
     },
 };
-const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 3] = {
+const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 3] = {
     {
         100,
     },

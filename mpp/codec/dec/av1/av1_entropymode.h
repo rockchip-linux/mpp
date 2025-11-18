@@ -25,11 +25,9 @@
 #define AV1_UPD_INTERINTRA_PROB 192
 #define SEPARATE_INTERINTRA_UV 0
 
-extern const RK_S8 av1hwd_intra_mode_tree[];
-
 extern const rk_u8 av1_kf_default_bmode_probs[AV1_INTRA_MODES]
 [AV1_INTRA_MODES]
-[AV1_INTRA_MODES - 1];
+[AV1_INTRA_MODES - 1U];
 
 extern const RK_S8 av1hwd_intra_mode_tree[];
 
@@ -51,19 +49,15 @@ struct AV1Common;
 
 // extern void Av1InitModeContexts(struct Av1Decoder *pc);
 
-extern const enum InterpolationFilterType av1hwd_switchable_interp[AV1_SWITCHABLE_FILTERS];
-
-extern const int av1hwd_switchable_interp_map[SWITCHABLE + 1];
-
 extern const RK_S8 av1hwd_switchable_interp_tree[2 * (AV1_SWITCHABLE_FILTERS - 1)];
 
 // extern struct av1_token av1hwd_switchable_interp_encodings[AV1_SWITCHABLE_FILTERS];
 
 extern const rk_u8 av1hwd_switchable_interp_prob[AV1_SWITCHABLE_FILTERS + 1][AV1_SWITCHABLE_FILTERS - 1];
 
-extern const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 1];
-extern const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 2];
-extern const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS] [TX_SIZE_MAX_SB - 3];
+extern const rk_u8 av1_default_tx_probs_32x32p[TX_SIZE_CONTEXTS] [AV1D_TX_SIZE_MAX_SB - 1U];
+extern const rk_u8 av1_default_tx_probs_16x16p[TX_SIZE_CONTEXTS] [AV1D_TX_SIZE_MAX_SB - 2U];
+extern const rk_u8 av1_default_tx_probs_8x8p[TX_SIZE_CONTEXTS] [AV1D_TX_SIZE_MAX_SB - 3U];
 
 extern const rk_u8 av1_default_intra_ext_tx_prob[EXT_TX_SIZES][TX_TYPES] [TX_TYPES - 1];
 extern const rk_u8 av1_default_inter_ext_tx_prob[EXT_TX_SIZES][TX_TYPES - 1];

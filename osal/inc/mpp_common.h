@@ -189,7 +189,7 @@ RK_S32 mpp_log2_16bit(RK_U32 v);
 
 static __inline RK_S32 mpp_ceil_log2(RK_S32 x)
 {
-    return mpp_log2((x - 1) << 1);
+    return mpp_log2(((RK_U32)x - 1U) << 1);
 }
 
 static __inline RK_S32 mpp_clip(RK_S32 a, RK_S32 amin, RK_S32 amax)
@@ -197,11 +197,6 @@ static __inline RK_S32 mpp_clip(RK_S32 a, RK_S32 amin, RK_S32 amax)
     if      (a < amin) return amin;
     else if (a > amax) return amax;
     else               return a;
-}
-
-static __inline RK_U32 mpp_is_32bit()
-{
-    return ((sizeof(void *) == 4) ? (1) : (0));
 }
 
 static __inline RK_S32 mpp_dup(RK_S32 fd)

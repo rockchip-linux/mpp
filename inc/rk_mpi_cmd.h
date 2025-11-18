@@ -17,6 +17,8 @@
 #ifndef RK_MPI_CMD_H
 #define RK_MPI_CMD_H
 
+#include "rk_type.h"
+
 /*
  * Command id bit usage is defined as follows:
  * bit 20 - 23  - module id
@@ -79,7 +81,7 @@ typedef enum {
     MPP_SET_SELECT_TIMEOUT,             /* kmpp path select operation timeout */
     MPP_SET_VENC_INIT_KCFG,             /* kmpp path venc init cfg set */
 
-    MPP_STATE_CMD_BASE                  = CMD_MODULE_MPP | CMD_STATE_OPS,
+    MPP_STATE_CMD_BASE                  = MPP_FLAG_OR(CMD_MODULE_MPP, CMD_STATE_OPS),
     MPP_START,
     MPP_STOP,
     MPP_PAUSE,
@@ -91,7 +93,7 @@ typedef enum {
     MPP_CODEC_GET_FRAME_INFO,
     MPP_CODEC_CMD_END,
 
-    MPP_DEC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_DEC,
+    MPP_DEC_CMD_BASE                    = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_DEC),
     MPP_DEC_SET_FRAME_INFO,             /* vpu api legacy control for buffer slot dimension init */
     MPP_DEC_SET_EXT_BUF_GROUP,          /* IMPORTANT: set external buffer group to mpp decoder */
     MPP_DEC_SET_INFO_CHANGE_READY,
@@ -114,17 +116,17 @@ typedef enum {
     MPP_DEC_SET_CODEC_MODE,             /* select codec mode */
     MPP_DEC_SET_DIS_ERR_CLR_MARK,
 
-    MPP_DEC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_QUERY,
+    MPP_DEC_CMD_QUERY                   = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_DEC, CMD_DEC_QUERY),
     /* query decoder runtime information for decode stage */
     MPP_DEC_QUERY,                      /* set and get MppDecQueryCfg structure */
 
-    CMD_DEC_CMD_CFG                     = CMD_MODULE_CODEC | CMD_CTX_ID_DEC | CMD_DEC_CFG,
+    CMD_DEC_CMD_CFG                     = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_DEC, CMD_DEC_CFG),
     MPP_DEC_SET_CFG,                    /* set MppDecCfg structure */
     MPP_DEC_GET_CFG,                    /* get MppDecCfg structure */
 
     MPP_DEC_CMD_END,
 
-    MPP_ENC_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC,
+    MPP_ENC_CMD_BASE                    = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC),
     /* basic encoder setup control */
     MPP_ENC_SET_CFG,                    /* set MppEncCfg structure */
     MPP_ENC_GET_CFG,                    /* get MppEncCfg structure */
@@ -151,12 +153,12 @@ typedef enum {
     MPP_ENC_SET_JPEG_ROI_CFG,           /* set MppJpegROICfg structure */
     MPP_ENC_GET_JPEG_ROI_CFG,           /* get MppJpegROICfg structure */
 
-    MPP_ENC_CMD_QUERY                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_QUERY,
+    MPP_ENC_CMD_QUERY                   = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_QUERY),
     /* query encoder runtime information for encode stage */
     MPP_ENC_QUERY,                      /* set and get MppEncQueryCfg structure */
 
     /* User define rate control stategy API control */
-    MPP_ENC_CFG_RC_API                  = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_RC_API,
+    MPP_ENC_CFG_RC_API                  = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_RC_API),
     /*
      * Get RcApiQueryAll structure
      * Get all available rate control stategy string and count
@@ -183,29 +185,29 @@ typedef enum {
      */
     MPP_ENC_SET_RC_API_CURRENT          = MPP_ENC_CFG_RC_API + 5,
 
-    MPP_ENC_CFG_MISC                    = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_MISC,
+    MPP_ENC_CFG_MISC                    = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_MISC),
     MPP_ENC_SET_HEADER_MODE,            /* set MppEncHeaderMode */
     MPP_ENC_GET_HEADER_MODE,            /* get MppEncHeaderMode */
 
-    MPP_ENC_CFG_SPLIT                   = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_SPLIT,
+    MPP_ENC_CFG_SPLIT                   = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_SPLIT),
     MPP_ENC_SET_SPLIT,                  /* set MppEncSliceSplit structure */
     MPP_ENC_GET_SPLIT,                  /* get MppEncSliceSplit structure */
 
-    MPP_ENC_CFG_REF                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_REF,
+    MPP_ENC_CFG_REF                     = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_REF),
     MPP_ENC_SET_REF_CFG,                /* set MppEncRefCfg structure */
     MPP_ENC_GET_REF_CFG,
 
-    MPP_ENC_CFG_OSD                     = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_OSD,
+    MPP_ENC_CFG_OSD                     = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_OSD),
     MPP_ENC_SET_OSD_PLT_CFG,            /* set OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_GET_OSD_PLT_CFG,            /* get OSD palette, parameter should be pointer to MppEncOSDPltCfg */
     MPP_ENC_SET_OSD_DATA_CFG,           /* set OSD data with at most 8 regions, parameter should be pointer to MppEncOSDData */
 
-    MPP_ENC_CFG_USERDATA                = CMD_MODULE_CODEC | CMD_CTX_ID_ENC | CMD_ENC_CFG_USERDATA,
+    MPP_ENC_CFG_USERDATA                = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ENC, CMD_ENC_CFG_USERDATA),
     MPP_ENC_SET_USERDATA,
     MPP_ENC_GET_USERDATA,
     MPP_ENC_CMD_END,
 
-    MPP_ISP_CMD_BASE                    = CMD_MODULE_CODEC | CMD_CTX_ID_ISP,
+    MPP_ISP_CMD_BASE                    = MPP_FLAG_OR(CMD_MODULE_CODEC, CMD_CTX_ID_ISP),
     MPP_ISP_CMD_END,
 
     MPP_HAL_CMD_BASE                    = CMD_MODULE_HAL,

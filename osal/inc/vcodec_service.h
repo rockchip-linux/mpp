@@ -33,7 +33,7 @@
 #define VEPU2_REGISTERS                     (184)
 #define RKVENC_REGISTERS                    (140)
 
-#define EXTRA_INFO_SIZE                     (sizeof(RK_U32) * 34)
+#define EXTRA_INFO_SIZE                     (sizeof(RK_U32) * 34U)
 
 #ifdef __cplusplus
 extern "C" {

@@ -67,8 +67,8 @@
 
 #define MBSKIP_CONTEXTS 3
 
-#define MAX_MB_SEGMENTS 8
-#define MB_SEG_TREE_PROBS (MAX_MB_SEGMENTS - 1)
+#define MAX_MB_SEGMENTS 8U
+#define MB_SEG_TREE_PROBS (MAX_MB_SEGMENTS - 1U)
 
 #define MAX_REF_LF_DELTAS_EX 8
 
@@ -93,11 +93,11 @@
 #define AV1_NMV_UPDATE_PROB 252
 #define AV1_MV_UPDATE_PRECISION 7
 #define MV_JOINTS 4
-#define MV_FP_SIZE 4
-#define MV_CLASSES 11
-#define CLASS0_BITS 1
-#define CLASS0_SIZE (1 << CLASS0_BITS)
-#define MV_OFFSET_BITS (MV_CLASSES + CLASS0_BITS - 2)
+#define MV_FP_SIZE 4U
+#define MV_CLASSES 11U
+#define CLASS0_BITS 1U
+#define CLASS0_SIZE (1U << CLASS0_BITS)
+#define MV_OFFSET_BITS (MV_CLASSES + CLASS0_BITS - 2U)
 
 #define MV_MAX_BITS (MV_CLASSES + CLASS0_BITS + 2)
 #define MV_MAX ((1 << MV_MAX_BITS) - 1)
@@ -291,9 +291,7 @@ enum BlockSizeType {
     BLOCK_SIZE_SB32X8,
     BLOCK_SIZE_SB16X64,
     BLOCK_SIZE_SB64X16,
-    BLOCK_SIZE_TYPES,
-    BLOCK_SIZES_ALL = BLOCK_SIZE_TYPES
-
+    BLOCK_SIZES_ALL
 };
 
 enum PartitionType {
@@ -336,12 +334,10 @@ enum MbPredictionMode {
               */
     D27_PRED, /* Directional 22 deg prediction  [anti-clockwise from 0 deg hor] */
     D63_PRED, /* Directional 67 deg prediction  [anti-clockwise from 0 deg hor] */
-    SMOOTH_PRED,
-    TM_PRED_AV1 = SMOOTH_PRED,
+    TM_PRED_AV1,
     SMOOTH_V_PRED,  // Vertical interpolation
     SMOOTH_H_PRED,  // Horizontal interpolation
     TM_PRED,        /* Truemotion prediction */
-    PAETH_PRED = TM_PRED,
     NEARESTMV,
     NEARMV,
     ZEROMV,
@@ -359,13 +355,13 @@ enum MbPredictionMode {
 };
 
 // Must match hardware/src/include/common_defs.h
-#define AV1_INTRA_MODES 13
+#define AV1_INTRA_MODES 13U
 
 #define MAX_INTRA_MODES AV1_INTRA_MODES
 
-#define MAX_INTRA_MODES_DRAM_ALIGNED ((MAX_INTRA_MODES + 15) & (~15))
+#define MAX_INTRA_MODES_DRAM_ALIGNED ((MAX_INTRA_MODES + 15U) & (~15U))
 
-#define AV1_INTER_MODES (1 + NEWMV - NEARESTMV)
+#define AV1_INTER_MODES (1U + (RK_U32)NEWMV - (RK_U32)NEARESTMV)
 
 #define MOTION_MODE_CONTEXTS 10
 
@@ -408,15 +404,7 @@ enum InterpolationFilterType {
     BILINEAR,
     SWITCHABLE, /* should be the last one */
 #endif
-    MULTITAP_SHARP = EIGHTTAP_SHARP
 };
-
-static const int av1_literal_to_filter[4] = {EIGHTTAP_SMOOTH, EIGHTTAP,
-                                             EIGHTTAP_SHARP, BILINEAR
-                                            };
-
-extern const enum InterpolationFilterType
-av1hwd_switchable_interp[AV1_SWITCHABLE_FILTERS];
 
 enum CompPredModeType {
     SINGLE_PREDICTION_ONLY = 0,
@@ -443,22 +431,20 @@ enum SegLevelFeatures {
 enum { AV1_SEG_FEATURE_DELTA, AV1_SEG_FEATURE_ABS };
 
 static const int av1_seg_feature_data_signed[SEG_AV1_LVL_MAX] = {1, 1, 1, 1,
-                                                                 1, 0, 0
+                                                                 1, 0, 0, 0
                                                                 };
 static const int av1_seg_feature_data_max[SEG_AV1_LVL_MAX] = {255, 63, 63, 63,
-                                                              63,  7,  0
+                                                              63, 7, 0, 0
                                                              };
 static const int av1_seg_feature_data_bits[SEG_AV1_LVL_MAX] = {8, 6, 6, 6,
-                                                               6, 3, 0
+                                                               6, 3, 0, 0
                                                               };
 
-enum TxSize {
-    TX_4X4 = 0,
-    TX_8X8 = 1,
-    TX_16X16 = 2,
-    TX_32X32 = 3,
-    TX_SIZE_MAX_SB,
-};
+#define AV1D_TX_4X4  0U
+#define AV1D_TX_8X8  1U
+#define AV1D_TX_16X16 2U
+#define AV1D_TX_32X32 3U
+#define AV1D_TX_SIZE_MAX_SB 4U
 #define MAX_TX_DEPTH 2
 
 enum TxType { DCT_DCT = 0, ADST_DCT = 1, DCT_ADST = 2, ADST_ADST = 3 };
@@ -511,14 +497,14 @@ struct NmvContext {
     RK_U8 sign[2];                // 2B
 
     // A+1
-    RK_U8 class0[2][CLASS0_SIZE - 1];  // 2B
-    RK_U8 fp[2][MV_FP_SIZE - 1];       // 6B
+    RK_U8 class0[2][CLASS0_SIZE - 1U];  // 2B
+    RK_U8 fp[2][MV_FP_SIZE - 1U];       // 6B
     RK_U8 class0_hp[2];                // 2B
     RK_U8 hp[2];                       // 2B
-    RK_U8 classes[2][MV_CLASSES - 1];  // 20B
+    RK_U8 classes[2][MV_CLASSES - 1U];  // 20B
 
     // A+2
-    RK_U8 class0_fp[2][CLASS0_SIZE][MV_FP_SIZE - 1];  // 12B
+    RK_U8 class0_fp[2][CLASS0_SIZE][MV_FP_SIZE - 1U];  // 12B
     RK_U8 bits[2][MV_OFFSET_BITS];                    // 20B
 };
 
@@ -545,12 +531,12 @@ struct NmvJointSign {
     RK_U8 sign[2];                // 2B
 };
 struct NmvMagnitude {
-    RK_U8 class0[2][CLASS0_SIZE - 1];
-    RK_U8 fp[2][MV_FP_SIZE - 1];
+    RK_U8 class0[2][CLASS0_SIZE - 1U];
+    RK_U8 fp[2][MV_FP_SIZE - 1U];
     RK_U8 class0_hp[2];
     RK_U8 hp[2];
-    RK_U8 classes[2][MV_CLASSES - 1];
-    RK_U8 class0_fp[2][CLASS0_SIZE][MV_FP_SIZE - 1];
+    RK_U8 classes[2][MV_CLASSES - 1U];
+    RK_U8 class0_fp[2][CLASS0_SIZE][MV_FP_SIZE - 1U];
     RK_U8 bits[2][MV_OFFSET_BITS];
 };
 
@@ -577,17 +563,14 @@ struct Av1AdaptiveEntropyProbs {
     RK_U8 uv_mode_prob[MAX_INTRA_MODES]
     [MAX_INTRA_MODES_DRAM_ALIGNED];  // 10*16/32 = 5 addrs
 
-#if ((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32)
-    AV1HWPAD(pad1,
-             ((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32 == 0)
-             ? 0
-             : 32 - (MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32);
+#if (!!((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32))
+    AV1HWPAD(pad1, 32U - (MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32U);
 #endif
 
     // Address A+6
-    RK_U8 tx8x8_prob[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 3];    // 2*(4-3) = 2B
-    RK_U8 tx16x16_prob[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 2];  // 2*(4-2) = 4B
-    RK_U8 tx32x32_prob[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 1];  // 2*(4-1) = 6B
+    RK_U8 tx8x8_prob[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 3U];    // 2*(4-3) = 2B
+    RK_U8 tx16x16_prob[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 2U];  // 2*(4-2) = 4B
+    RK_U8 tx32x32_prob[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 1U];  // 2*(4-1) = 6B
 
     RK_U8 switchable_interp_prob[AV1_SWITCHABLE_FILTERS + 1]
     [AV1_SWITCHABLE_FILTERS - 1];  // 8B
@@ -638,14 +621,8 @@ struct Av1EntropyProbs {
     RK_U8 kf_bmode_prob[MAX_INTRA_MODES][MAX_INTRA_MODES]
     [MAX_INTRA_MODES_DRAM_ALIGNED];
 
-#if ((MAX_INTRA_MODES * MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32)
-    AV1HWPAD(pad0, (((MAX_INTRA_MODES * MAX_INTRA_MODES *
-                      MAX_INTRA_MODES_DRAM_ALIGNED) %
-                     32) == 0)
-             ? 0
-             : 32 - ((MAX_INTRA_MODES * MAX_INTRA_MODES *
-                      MAX_INTRA_MODES_DRAM_ALIGNED) %
-                     32));
+#if (!!((MAX_INTRA_MODES * MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32))
+    AV1HWPAD(pad0, 32U - ((MAX_INTRA_MODES * MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32U));
 #endif
 
     // Address 50
@@ -659,11 +636,8 @@ struct Av1EntropyProbs {
     // Address 51
     RK_U8 kf_uv_mode_prob[MAX_INTRA_MODES][MAX_INTRA_MODES_DRAM_ALIGNED];
 
-#if ((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32)
-    AV1HWPAD(pad51,
-             ((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32 == 0)
-             ? 0
-             : 32 - (MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32);
+#if (!!((MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32))
+    AV1HWPAD(pad51, 32U - (MAX_INTRA_MODES * MAX_INTRA_MODES_DRAM_ALIGNED) % 32U);
 #endif
 
     // Address 56
@@ -672,7 +646,7 @@ struct Av1EntropyProbs {
 
 /* Counters for adaptive entropy contexts */
 struct Av1EntropyCounts {
-    RK_U32 inter_mode_counts[INTER_MODE_CONTEXTS][AV1_INTER_MODES - 1][2];
+    RK_U32 inter_mode_counts[INTER_MODE_CONTEXTS][AV1_INTER_MODES - 1U][2];
     RK_U32 sb_ymode_counts[BLOCK_SIZE_GROUPS][MAX_INTRA_MODES];
     RK_U32 uv_mode_counts[MAX_INTRA_MODES][MAX_INTRA_MODES];
     RK_U32 partition_counts[NUM_PARTITION_CONTEXTS][PARTITION_TYPES];
@@ -682,9 +656,9 @@ struct Av1EntropyCounts {
     RK_U32 comp_inter_count[COMP_INTER_CONTEXTS][2];
     RK_U32 single_ref_count[REF_CONTEXTS][2][2];
     RK_U32 comp_ref_count[REF_CONTEXTS][2];
-    RK_U32 tx32x32_count[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB];
-    RK_U32 tx16x16_count[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 1];
-    RK_U32 tx8x8_count[TX_SIZE_CONTEXTS][TX_SIZE_MAX_SB - 2];
+    RK_U32 tx32x32_count[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB];
+    RK_U32 tx16x16_count[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 1U];
+    RK_U32 tx8x8_count[TX_SIZE_CONTEXTS][AV1D_TX_SIZE_MAX_SB - 2U];
     RK_U32 mbskip_count[MBSKIP_CONTEXTS][2];
 
     struct NmvContextCounts nmvcount;
@@ -698,7 +672,7 @@ struct Av1EntropyCounts {
     RK_U32 count_coeffs32x32[BLOCK_TYPES][REF_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS]
     [UNCONSTRAINED_NODES + 1];
 
-    RK_U32 count_eobs[TX_SIZE_MAX_SB][BLOCK_TYPES][REF_TYPES][COEF_BANDS]
+    RK_U32 count_eobs[AV1D_TX_SIZE_MAX_SB][BLOCK_TYPES][REF_TYPES][COEF_BANDS]
     [PREV_COEF_CONTEXTS];
 };
 
@@ -779,9 +753,9 @@ typedef struct {
 typedef struct {
     RK_U16 partition_cdf[13][16];
     // 64
-    RK_U16 kf_ymode_cdf[KF_MODE_CONTEXTS][KF_MODE_CONTEXTS][AV1_INTRA_MODES - 1];
+    RK_U16 kf_ymode_cdf[KF_MODE_CONTEXTS][KF_MODE_CONTEXTS][AV1_INTRA_MODES - 1U];
     RK_U16 segment_pred_cdf[PREDICTION_PROBS];
-    RK_U16 spatial_pred_seg_tree_cdf[SPATIAL_PREDICTION_PROBS][MAX_MB_SEGMENTS - 1];
+    RK_U16 spatial_pred_seg_tree_cdf[SPATIAL_PREDICTION_PROBS][MAX_MB_SEGMENTS - 1U];
     RK_U16 mbskip_cdf[MBSKIP_CONTEXTS];
     RK_U16 delta_q_cdf[DELTA_Q_PROBS];
     RK_U16 delta_lf_multi_cdf[FRAME_LF_COUNT][DELTA_LF_PROBS];
@@ -789,8 +763,8 @@ typedef struct {
     RK_U16 skip_mode_cdf[SKIP_MODE_CONTEXTS];
     RK_U16 vartx_part_cdf[VARTX_PART_CONTEXTS][1];
     RK_U16 tx_size_cdf[MAX_TX_CATS][AV1_TX_SIZE_CONTEXTS][MAX_TX_DEPTH];
-    RK_U16 if_ymode_cdf[BLOCK_SIZE_GROUPS][AV1_INTRA_MODES - 1];
-    RK_U16 uv_mode_cdf[2][AV1_INTRA_MODES][AV1_INTRA_MODES - 1 + 1];
+    RK_U16 if_ymode_cdf[BLOCK_SIZE_GROUPS][AV1_INTRA_MODES - 1U];
+    RK_U16 uv_mode_cdf[2][AV1_INTRA_MODES][AV1_INTRA_MODES - 1U + 1U];
     RK_U16 intra_inter_cdf[INTRA_INTER_CONTEXTS];
     RK_U16 comp_inter_cdf[COMP_INTER_CONTEXTS];
     RK_U16 single_ref_cdf[AV1_REF_CONTEXTS][SINGLE_REFS - 1];
@@ -806,15 +780,15 @@ typedef struct {
 
     MvCDFs mv_cdf;
 
-    RK_U16 obmc_cdf[BLOCK_SIZE_TYPES];
-    RK_U16 motion_mode_cdf[BLOCK_SIZE_TYPES][2];
+    RK_U16 obmc_cdf[BLOCK_SIZES_ALL];
+    RK_U16 motion_mode_cdf[BLOCK_SIZES_ALL][2];
 
     RK_U16 inter_compound_mode_cdf[AV1_INTER_MODE_CONTEXTS][INTER_COMPOUND_MODES - 1];
-    RK_U16 compound_type_cdf[BLOCK_SIZE_TYPES][CDF_SIZE(COMPOUND_TYPES - 1)];
+    RK_U16 compound_type_cdf[BLOCK_SIZES_ALL][CDF_SIZE(COMPOUND_TYPES - 1)];
     RK_U16 interintra_cdf[BLOCK_SIZE_GROUPS];
     RK_U16 interintra_mode_cdf[BLOCK_SIZE_GROUPS][INTERINTRA_MODES - 1];
-    RK_U16 wedge_interintra_cdf[BLOCK_SIZE_TYPES];
-    RK_U16 wedge_idx_cdf[BLOCK_SIZE_TYPES][CDF_SIZE(16)];
+    RK_U16 wedge_interintra_cdf[BLOCK_SIZES_ALL];
+    RK_U16 wedge_idx_cdf[BLOCK_SIZES_ALL][CDF_SIZE(16)];
 
     RK_U16 palette_y_mode_cdf[PALETTE_BLOCK_SIZES][PALETTE_Y_MODE_CONTEXTS][1];
     RK_U16 palette_uv_mode_cdf[PALETTE_UV_MODE_CONTEXTS][1];
@@ -827,7 +801,7 @@ typedef struct {
     RK_U16 intrabc_cdf[1];
     RK_U16 angle_delta_cdf[DIRECTIONAL_MODES][6];
 
-    RK_U16 filter_intra_mode_cdf[FILTER_INTRA_MODES - 1];
+    RK_U16 filter_intra_mode_cdf[(RK_U32)FILTER_INTRA_MODES - 1U];
     RK_U16 filter_intra_cdf[BLOCK_SIZES_ALL];
     RK_U16 comp_group_idx_cdf[COMP_GROUP_IDX_CONTEXTS][CDF_SIZE(2)];
     RK_U16 compound_idx_cdf[COMP_INDEX_CONTEXTS][CDF_SIZE(2)];
@@ -872,4 +846,4 @@ typedef struct {
     RK_S16 cropped_chroma_grain_block[1024 * 2];
 } AV1FilmGrainMemory;
 
-#endif // AV1COMMONDEC_H 
+#endif // AV1COMMONDEC_H
