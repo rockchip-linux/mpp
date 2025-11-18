@@ -110,7 +110,7 @@ typedef struct RkMetaHdrHeader_t {
     RK_U32  reserve[4];
 
     /* payload data aligned to 32bits */
-    RK_U32  payload[];
+    RK_U32  payload[0];
 } RkMetaHdrHeader;
 
 #ifdef __cplusplus

@@ -34,7 +34,7 @@ typedef struct MppDataV2_t {
     RK_S32  pos_w;
     RK_S32  pos_ahead;
     RK_S64  sum;
-    RK_S32  val[];
+    RK_S32  val[0];
 } MppDataV2;
 
 #ifdef __cplusplus

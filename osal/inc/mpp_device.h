@@ -67,7 +67,7 @@ typedef struct MppDevRegOffsetCfg_t {
 typedef struct MppDevRegOffsCfg_t {
     RK_S32  size;
     RK_S32  count;
-    MppDevRegOffsetCfg cfgs[];
+    MppDevRegOffsetCfg cfgs[0];
 } MppDevRegOffCfgs;
 
 /* for MPP_DEV_RCB_INFO */
@@ -97,7 +97,7 @@ typedef struct MppDevPollCfg_t {
     RK_S32  poll_ret;
     RK_S32  count_max;
     RK_S32  count_ret;
-    MppDevPollEncSliceInfo slice_info[];
+    MppDevPollEncSliceInfo slice_info[0];
 } MppDevPollCfg;
 
 typedef struct MppDevBufMapNode_t {

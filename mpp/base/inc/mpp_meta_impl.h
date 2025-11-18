@@ -47,14 +47,13 @@ typedef struct MppMetaImpl_t {
     MppEncUserData      user_data;
     MppEncUserDataSet   user_data_set;
     RK_U32              datas_buf_size;
-    MppMetaVal          vals[];
+    MppMetaVal          vals[0];
 } MppMetaImpl;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-RK_S32 mpp_meta_size(MppMeta meta);
 MPP_RET mpp_meta_dump(MppMeta meta);
 MPP_RET mpp_meta_inc_ref(MppMeta meta);
 

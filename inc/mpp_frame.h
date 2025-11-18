@@ -317,7 +317,7 @@ typedef struct MppFrameContentLightMetadata {
 typedef struct MppFrameHdrDynamicMeta {
     RK_U32 hdr_fmt;
     RK_U32 size;
-    RK_U8 data[];
+    RK_U8 data[0];
 } MppFrameHdrDynamicMeta;
 
 typedef enum MppFrameError {
