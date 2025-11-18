@@ -44,7 +44,7 @@ typedef void               *PVOID;
 
 /* HEVC Picture Entry structure */
 #define MAX_SLICES 600
-typedef struct _DXVA_PicEntry_HEVC {
+typedef struct DXVA_PicEntry_HEVC_t {
     union {
         struct {
             UCHAR Index7Bits : 7;
@@ -54,7 +54,7 @@ typedef struct _DXVA_PicEntry_HEVC {
     };
 } DXVA_PicEntry_HEVC, *LPDXVA_PicEntry_HEVC;
 
-typedef struct _Short_SPS_RPS_HEVC {
+typedef struct Short_SPS_RPS_HEVC_t {
     UCHAR num_negative_pics;
     UCHAR num_positive_pics;
     SHORT delta_poc_s0[16];
@@ -63,12 +63,12 @@ typedef struct _Short_SPS_RPS_HEVC {
     UCHAR  s1_used_flag[16];
 } Short_SPS_RPS_HEVC;
 
-typedef struct _LT_SPS_RPS_HEVC {
+typedef struct LT_SPS_RPS_HEVC_t {
     USHORT lt_ref_pic_poc_lsb;
     UCHAR  used_by_curr_pic_lt_flag;
 } LT_SPS_RPS_HEVC;
 /* HEVC Picture Parameter structure */
-typedef struct _DXVA_PicParams_HEVC {
+typedef struct DXVA_PicParams_HEVC_t {
     USHORT      PicWidthInMinCbsY;
     USHORT      PicHeightInMinCbsY;
     union {
@@ -206,7 +206,7 @@ typedef struct _DXVA_PicParams_HEVC {
 } DXVA_PicParams_HEVC, *LPDXVA_PicParams_HEVC;
 
 /* HEVC Quantizatiuon Matrix structure */
-typedef struct _DXVA_Qmatrix_HEVC {
+typedef struct DXVA_Qmatrix_HEVC_t {
     UCHAR ucScalingLists0[6][16];
     UCHAR ucScalingLists1[6][64];
     UCHAR ucScalingLists2[6][64];
@@ -217,14 +217,14 @@ typedef struct _DXVA_Qmatrix_HEVC {
 
 
 /* HEVC Slice Control Structure */
-typedef struct _DXVA_Slice_HEVC_Short {
+typedef struct DXVA_Slice_HEVC_Short_t {
     UINT    BSNALunitDataLocation;
     UINT    SliceBytesInBuffer;
     USHORT  wBadSliceChopping;
 } DXVA_Slice_HEVC_Short, *LPDXVA_Slice_HEVC_Short;
 
 /* just use in the case of pps->slice_header_extension_present_flag is 1 */
-typedef struct _DXVA_Slice_HEVC_Cut_Param {
+typedef struct DXVA_Slice_HEVC_Cut_Param_t {
     UINT    start_bit;
     UINT    end_bit;
     USHORT  is_enable;

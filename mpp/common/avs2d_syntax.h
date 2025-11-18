@@ -20,7 +20,7 @@
 #include "rk_type.h"
 
 //!< avs2 decoder picture parameters structure
-typedef struct _DXVA_PicParams_AVS2 {
+typedef struct DXVA_PicParams_AVS2_t {
     //!< sequence header
     RK_U32      chroma_format_idc : 2;
     RK_U32      pic_width_in_luma_samples : 16;
@@ -53,7 +53,7 @@ typedef struct _DXVA_PicParams_AVS2 {
     RK_S32      cur_poc;
 } PicParams_Avs2d, *LP_PicParams_Avs2d;
 
-typedef struct _DXVA_RefParams_AVS2 {
+typedef struct DXVA_RefParams_AVS2_t {
     RK_U8       ref_pic_num;
     RK_S32      ref_poc_list[32];
     RK_S32      scene_ref_slot_idx;
@@ -61,7 +61,7 @@ typedef struct _DXVA_RefParams_AVS2 {
     RK_S32      scene_ref_replace_pos;
 } RefParams_Avs2d, *LP_RefParams_Avs2d;
 
-typedef struct _DXVA_AlfParams_AVS2 {
+typedef struct DXVA_AlfParams_AVS2_t {
     RK_U8       enable_pic_alf_y;       //!< 1bits
     RK_U8       enable_pic_alf_cb;      //!< 1bits
     RK_U8       enable_pic_alf_cr;      //!< 1bits
@@ -72,7 +72,7 @@ typedef struct _DXVA_AlfParams_AVS2 {
     RK_S32      alf_coeff_cr[9];
 } AlfParams_Avs2d, *LP_AlfParams_Avs2d;
 
-typedef struct _DXVA_WqmParams_AVS2 {
+typedef struct DXVA_WqmParams_AVS2_t {
     RK_U8               pic_weight_quant_enable_flag;
     RK_S8               chroma_quant_param_delta_cb;    //!< 6bits
     RK_S8               chroma_quant_param_delta_cr;    //!< 6bits

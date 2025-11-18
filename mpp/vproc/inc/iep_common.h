@@ -123,7 +123,7 @@ struct dev_compatible {
     int ver;
 };
 
-iep_com_ctx* get_iep_ctx();
+iep_com_ctx* get_iep_ctx(void);
 void put_iep_ctx(iep_com_ctx *ictx);
 extern RK_U32 iep_debug;
 

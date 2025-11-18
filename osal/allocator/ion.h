@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef _LINUX_ION_H
-#define _LINUX_ION_H
+#ifndef LINUX_ION_H
+#define LINUX_ION_H
 
 #include <linux/types.h>
 #define ION_VERSION     "1.0"
@@ -485,4 +485,4 @@ struct ion_pmem_region {
 #endif
 ///////////////////////////////////////////
 
-#endif /* _LINUX_ION_H */
+#endif /* LINUX_ION_H */

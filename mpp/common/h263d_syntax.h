@@ -28,7 +28,7 @@ typedef enum {
 } H263VOPType;
 
 /* H263PT2 Picture Parameter structure */
-typedef struct _DXVA_PicParams_H263 {
+typedef struct DXVA_PicParams_H263_t {
     RK_U8   short_video_header;
     RK_U8   vop_coding_type;
     RK_U8   vop_quant;

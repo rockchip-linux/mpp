@@ -21,7 +21,7 @@
 
 
 //!< cavs decoder picture parameters structure
-typedef struct _PicParams_Avsd {
+typedef struct PicParams_Avsd_t {
     //!< sequence header
     RK_U32 profileId;
     RK_U32 levelId;

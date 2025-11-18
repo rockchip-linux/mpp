@@ -947,9 +947,6 @@ typedef struct Vepu540cSection3_t {
         RK_U32    reserve1 : 20;
     } ATR_THD11; //       only 264
 
-    // /* 0x1748 - 0x174c */
-    // RK_U32 reserved1490_1491[2];
-
     /* 0x00001750 reg1492 */
     struct {
         RK_U32    lvl16_atr_wgt0 : 8;

@@ -32,8 +32,6 @@
 #include "hal_jpegd_vdpu2_reg.h"
 #include "mpp_dec_cb_param.h"
 
-extern RK_U32 jpegd_debug;
-
 static MPP_RET jpegd_regs_init(JpegRegSet *reg)
 {
     jpegd_dbg_func("enter\n");

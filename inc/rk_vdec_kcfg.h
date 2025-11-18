@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __RK_VDEC_KCFG_H__
-#define __RK_VDEC_KCFG_H__
+#ifndef RK_VDEC_KCFG_H
+#define RK_VDEC_KCFG_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -48,4 +48,4 @@ void mpp_vdec_kcfg_show(MppVdecKcfg cfg);
 }
 #endif
 
-#endif /*__RK_VDEC_KCFG_H__*/
+#endif /* RK_VDEC_KCFG_H */

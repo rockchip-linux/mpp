@@ -3,8 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __HWPQ_DEBUG_H_
-#define __HWPQ_DEBUG_H_
+#ifndef HWPQ_DEBUG_H
+#define HWPQ_DEBUG_H
 
 #include <stdio.h>
 #include "mpp_log.h"
@@ -43,4 +43,4 @@
 
 extern RK_U32 hwpq_vdpp_debug;
 
-#endif // __HWPQ_DEBUG_H_
+#endif // HWPQ_DEBUG_H

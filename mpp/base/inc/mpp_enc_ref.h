@@ -19,7 +19,7 @@
 
 #include "rk_venc_ref.h"
 
-#define REF_MODE_IS_GLOBAL(mode)    ((mode >= REF_MODE_GLOBAL) && (mode < REF_MODE_GLOBAL_BUTT))
+#define REF_MODE_IS_GLOBAL(mode)    ((mode >= REF_TO_PREV_REF_FRM) && (mode < REF_MODE_GLOBAL_BUTT))
 #define REF_MODE_IS_LT_MODE(mode)   ((mode > REF_MODE_LT) && (mode < REF_MODE_LT_BUTT))
 #define REF_MODE_IS_ST_MODE(mode)   ((mode > REF_MODE_ST) && (mode < REF_MODE_ST_BUTT))
 

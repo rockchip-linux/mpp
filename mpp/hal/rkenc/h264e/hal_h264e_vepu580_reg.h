@@ -1134,9 +1134,6 @@ typedef struct Vepu580Section3_t {
         RK_U32    reserve1 : 20;
     } ATR_THD11; //       only 264
 
-    // /* 0x1748 - 0x174c */
-    // RK_U32 reserved1490_1491[2];
-
     /* 0x00001750 reg1492 */
     struct {
         RK_U32    lvl16_atr_wgt0 : 8;
@@ -2297,18 +2294,6 @@ typedef struct Vepu580Osd_t {
     /* 0x03080-0x347c reg3104-reg3360 */
     RK_U32 plt[256];
 } Vepu580Osd;
-
-// /* class: osd_plt 255 */
-// /* 0x0000347c reg3359 */
-// typedef struct Vepu580Section6_t {
-//     /* 0x0000347c reg3359 */
-//     struct {
-//         RK_U32 y        : 8;
-//         RK_U32 u        : 8;
-//         RK_U32 v        : 8;
-//         RK_U32 alpha    : 8;
-//     } osd_plt255;
-// } vepu580section6;
 
 /* class: st */
 /* 0x00004000 reg4096 - 0x000042cc reg4275 */

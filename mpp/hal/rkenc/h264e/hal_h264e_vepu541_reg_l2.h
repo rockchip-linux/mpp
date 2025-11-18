@@ -47,25 +47,6 @@
  * Address offset: 0x3F8 Access type: read and write
  * L2 configuration read data
  */
-struct {
-    /*
-     * L2 configuration read data.
-     *
-     * Single access:
-     * write address to VEPU_L2CFG_ADDR then read data from VEPU_L2CFG_RDATA.
-     *
-     * Burst access:
-     * write the start address to VEPU_L2CFG_ADDR then read datas
-     * (from VEPU_L2CFG_RDATA) consecutively.
-     * Address will be auto increased after read VEPU_L2CFG_RDATA,
-     * no need to configure VEPU_L2CFG_ADDR.
-     */
-    RK_U32  l2cfg_rdata;
-} reg254;
-
-/* reg gap 255 */
-RK_U32 reg_255;
-
 
 typedef struct Vepu541H264eRegL2Set_t {
     /*

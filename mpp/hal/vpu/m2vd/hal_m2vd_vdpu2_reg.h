@@ -19,8 +19,6 @@
 
 #include "rk_type.h"
 
-extern RK_U32 m2vh_debug;
-
 #define M2VD_VDPU2_REG_NUM    159
 
 typedef struct M2vdVdpu2Reg_t {

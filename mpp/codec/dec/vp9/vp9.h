@@ -23,8 +23,7 @@ enum TxfmMode {
     TX_8X8,
     TX_16X16,
     TX_32X32,
-    N_TXFM_SIZES,
-    TX_SWITCHABLE = N_TXFM_SIZES,
+    TX_SWITCHABLE,
     N_TXFM_MODES
 };
 

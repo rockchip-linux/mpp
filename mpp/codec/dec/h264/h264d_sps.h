@@ -15,8 +15,8 @@
 * limitations under the License.
 */
 
-#ifndef _H264D_SPS_H_
-#define _H264D_SPS_H_
+#ifndef H264D_SPS_H
+#define H264D_SPS_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -37,5 +37,5 @@ MPP_RET activate_sps(H264dVideoCtx_t *p_Vid, H264_SPS_t *sps, H264_subSPS_t *sub
 #endif
 
 //========================================
-#endif /* end of _H264D_SPS_H_ */
+#endif /* end of H264D_SPS_H */
 

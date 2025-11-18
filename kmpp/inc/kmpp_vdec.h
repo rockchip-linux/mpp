@@ -3,8 +3,8 @@
  * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_VDEC_H__
-#define __KMPP_VDEC_H__
+#ifndef KMPP_VDEC_H
+#define KMPP_VDEC_H
 
 #include "rk_vdec_kcfg.h"
 
@@ -30,4 +30,4 @@ typedef void* KmppVdec;
 #define KMPP_OBJ_FUNC_IOCTL         KMPP_VDEC_IOCTL_TABLE
 #include "kmpp_obj_func.h"
 
-#endif /*__KMPP_VDEC_H__*/
+#endif /* KMPP_VDEC_H */

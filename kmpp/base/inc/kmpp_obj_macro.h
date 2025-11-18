@@ -14,8 +14,8 @@
 
 #include "kmpp_obj.h"
 
-#define _TO_STR(x)                  #x
-#define TO_STR(x)                   _TO_STR(x)
+#define TO_STR_(x)                  #x
+#define TO_STR(x)                   TO_STR_(x)
 
 /* concat two args */
 #define CONCAT_1(a)                 a

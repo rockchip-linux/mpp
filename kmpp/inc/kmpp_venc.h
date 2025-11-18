@@ -3,8 +3,8 @@
  * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __KMPP_VENC_H__
-#define __KMPP_VENC_H__
+#ifndef KMPP_VENC_H__
+#define KMPP_VENC_H__
 
 #include "rk_venc_kcfg.h"
 
@@ -30,4 +30,4 @@ typedef void* KmppVenc;
 #define KMPP_OBJ_FUNC_IOCTL         KMPP_VENC_IOCTL_TABLE
 #include "kmpp_obj_func.h"
 
-#endif /*__KMPP_VENC_H__*/
+#endif /* KMPP_VENC_H__*/

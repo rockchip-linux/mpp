@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _VP9D_SYNTAX_H_
-#define _VP9D_SYNTAX_H_
+#ifndef VP9D_SYNTAX_H
+#define VP9D_SYNTAX_H
 
 typedef unsigned long       DWORD;
 typedef unsigned char       BYTE;
@@ -33,7 +33,7 @@ typedef signed   short      SHORT;
 typedef signed   long       LONG;
 typedef void               *PVOID;
 
-typedef struct _DXVA_PicEntry_VPx {
+typedef struct DXVA_PicEntry_VPx_t {
     union {
         struct {
             UCHAR Index7Bits     : 7;
@@ -43,7 +43,7 @@ typedef struct _DXVA_PicEntry_VPx {
     };
 } DXVA_PicEntry_VPx, *LPDXVA_PicEntry_Vpx;
 
-typedef struct _segmentation_VP9 {
+typedef struct DXVA_segmentation_VP9_t {
     union {
         struct {
             UCHAR enabled : 1;
@@ -87,7 +87,7 @@ typedef struct {
     RK_U8 partition[4][4][3];
 } DXVA_prob_vp9;
 
-typedef struct _DXVA_PicParams_VP9 {
+typedef struct DXVA_PicParams_VP9_t {
     DXVA_PicEntry_VPx CurrPic;
     UCHAR profile;
     union {
@@ -208,7 +208,7 @@ typedef struct _DXVA_PicParams_VP9 {
     CHAR refmode;
 } DXVA_PicParams_VP9, *LPDXVA_PicParams_VP9;
 
-typedef struct _DXVA_Slice_VPx_Short {
+typedef struct DXVA_Slice_VPx_Short_t {
     UINT BSNALunitDataLocation;
     UINT SliceByteInBuffer;
     USHORT wBadSliceChopping;

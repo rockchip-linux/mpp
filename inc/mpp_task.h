@@ -69,7 +69,7 @@ typedef enum {
  * a - poll(input)
  * b - dequeue(input, *task)
  * c - task_set_item(packet/frame)
- * d - enqueue(input, task)     // when enqueue return the task is not done yet
+ * d - enqueue(input, task)     -- when enqueue return the task is not done yet
  *
  * output thread
  * a - poll(output)
@@ -84,7 +84,7 @@ typedef enum {
  * a - poll(input)
  * b - dequeue(input, *task)
  * c - task_set_item(packet/frame)
- * d - enqueue(task)            // when enqueue return the task is finished
+ * d - enqueue(task)            -- when enqueue return the task is finished
  ******************************************************************************
  */
 typedef enum {
@@ -149,7 +149,7 @@ typedef enum {
  * input side:
  * task_dequeue(ctx, PORT_INPUT, &task);
  * task_put_item(task, MODE_INPUT, packet)
- * task_put_item(task, MODE_OUTPUT, frame)  // buffer will be specified here
+ * task_put_item(task, MODE_OUTPUT, frame)  -- buffer will be specified here
  * task_enqueue(ctx, PORT_INPUT, task);
  * output side:
  * task_dequeue(ctx, PORT_OUTPUT, &task);
@@ -181,7 +181,7 @@ typedef enum {
  * secure flow
  * input side:
  * task_dequeue(ctx, PORT_INPUT, &task);
- * task_put_item(task, MODE_OUTPUT, packet)  // buffer will be specified here
+ * task_put_item(task, MODE_OUTPUT, packet)  -- buffer will be specified here
  * task_put_item(task, MODE_INPUT, frame)
  * task_enqueue(ctx, PORT_INPUT, task);
  * output side:

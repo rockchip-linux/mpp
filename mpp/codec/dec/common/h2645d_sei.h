@@ -3,8 +3,8 @@
  * Copyright (c) 2023 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef _H2645D_SEI_H_
-#define _H2645D_SEI_H_
+#ifndef H2645D_SEI_H
+#define H2645D_SEI_H
 
 #include "rk_type.h"
 #include "mpp_err.h"
@@ -30,4 +30,4 @@ MPP_RET check_encoder_sei_info(BitReadCtx_t *gb, RK_S32 payload_size, RK_U32 *is
 #endif
 
 //========================================
-#endif /* end of _H2645D_SEI_H_ */
+#endif /* end of H2645D_SEI_H */

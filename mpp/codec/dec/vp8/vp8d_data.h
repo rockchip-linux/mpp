@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
-#include "rk_type.h"
-
 #ifndef VP8D_DATA_H
 #define VP8D_DATA_H
+
+#include <stdint.h>
+#include "rk_type.h"
 
 #define VP7_MV_PROBS_PER_COMPONENT      (17)
 #define VP8_MV_PROBS_PER_COMPONENT      (19)
@@ -402,6 +402,5 @@ static const RK_U8 DefaultCoeffProbs [4][8][3][11] = {
         }
     }
 };
-
 
 #endif

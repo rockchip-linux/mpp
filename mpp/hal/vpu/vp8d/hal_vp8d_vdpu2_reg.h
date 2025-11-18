@@ -26,7 +26,7 @@
 #define DEC_MODE_VP8           10
 
 #define VP8D_PROB_TABLE_SIZE  (1<<16) /* TODO */
-#define VP8D_MAX_SEGMAP_SIZE  (2048 + 1024)  //1920*1080 /* TODO */
+#define VP8D_MAX_SEGMAP_SIZE  (2048 + 1024)  //1920*1080
 
 #define VP8D_REG_NUM    159
 

@@ -33,8 +33,6 @@ typedef enum MppBufOps_e {
     GRP_RESET,
     GRP_ORPHAN,
     GRP_DESTROY,
-
-    GRP_OPS_BUTT    = GRP_DESTROY,
     BUF_COMMIT,
     BUF_CREATE,
     BUF_MMAP,
@@ -64,7 +62,7 @@ typedef struct MppBufLogs_t {
 
 typedef struct MppBufferImpl_t          MppBufferImpl;
 typedef struct MppBufferGroupImpl_t     MppBufferGroupImpl;
-typedef void (*MppBufCallback)(void *, void *);
+typedef void (*MppBufCallback)(void *arg1, void *arg2);
 
 // use index instead of pointer to avoid invalid pointer
 struct MppBufferImpl_t {

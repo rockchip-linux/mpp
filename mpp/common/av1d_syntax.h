@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _AV1D_SYNTAX_H_
-#define _AV1D_SYNTAX_H_
+#ifndef AV1D_SYNTAX_H
+#define AV1D_SYNTAX_H
 
 #include "av1d_common.h"
 
@@ -35,7 +35,7 @@ typedef signed   short      SHORT;
 typedef signed   long       LONG;
 typedef void               *PVOID;
 
-typedef struct _DXVA_PicEntry_AV1 {
+typedef struct DXVA_PicEntry_AV1_t {
     union {
         struct {
             UCHAR Index7Bits     : 7;
@@ -46,7 +46,7 @@ typedef struct _DXVA_PicEntry_AV1 {
 } DXVA_PicEntry_AV1, *LPDXVA_PicEntry_AV1;
 
 
-typedef struct _DXVA_PicParams_AV1 {
+typedef struct DXVA_PicParams_AV1_t {
     DXVA_PicEntry_AV1 CurrPic;
     USHORT width               ;
     USHORT height              ;
@@ -262,7 +262,7 @@ typedef struct _DXVA_PicParams_AV1 {
     RK_U8 tile_rows_log2;
 } DXVA_PicParams_AV1, *LPDXVA_PicParams_AV1;
 
-typedef struct _DXVA_Slice_AV1_Short {
+typedef struct DXVA_Slice_AV1_Short_t {
     UINT BSNALunitDataLocation;
     UINT SliceByteInBuffer;
     USHORT wBadSliceChopping;

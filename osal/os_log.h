@@ -13,7 +13,7 @@
 #ifndef OS_LOG_H
 #define OS_LOG_H
 
-typedef void (*os_log_callback)(const char*, const char*, va_list);
+typedef void (*os_log_callback)(const char* tag, const char* msg, va_list list);
 
 #ifdef __cplusplus
 extern "C" {

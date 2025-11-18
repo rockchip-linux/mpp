@@ -65,7 +65,7 @@ typedef enum {
 #define MPEG4_INFO_CHANGE   -10
 
 /* MPEG4PT2 Picture Parameter structure */
-typedef struct _DXVA_PicParams_MPEG4_PART2 {
+typedef struct DXVA_PicParams_MPEG4_PART2 {
     RK_U8   short_video_header;
     RK_U8   vop_coding_type;
     RK_U8   vop_quant;
@@ -127,7 +127,7 @@ typedef struct _DXVA_PicParams_MPEG4_PART2 {
     RK_U32  header_bits;
 } DXVA_PicParams_MPEG4_PART2, *LPDXVA_PicParams_MPEG4_PART2;
 
-typedef struct _DXVA_QmatrixData {
+typedef struct DXVA_QmatrixData {
     RK_U8   bNewQmatrix[4]; // intra Y, inter Y, intra chroma, inter chroma
     RK_U8   Qmatrix[4][64]; // NOTE: here we change U16 to U8
 } DXVA_QmatrixData, *LPDXVA_QmatrixData;

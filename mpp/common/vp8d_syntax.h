@@ -20,7 +20,7 @@
 
 #include "rk_type.h"
 
-typedef struct _DXVA_PicEntry_VP8 {
+typedef struct DXVA_PicEntry_VP8_t {
     union {
         struct {
             RK_U8 Index7Bits     : 7;

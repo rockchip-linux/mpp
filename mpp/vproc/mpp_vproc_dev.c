@@ -26,7 +26,7 @@ struct dev_compatible dev_comp[] = {
     },
 };
 
-iep_com_ctx* get_iep_ctx()
+iep_com_ctx* get_iep_ctx(void)
 {
     uint32_t i;
 
