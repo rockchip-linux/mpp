@@ -17,7 +17,7 @@
 #include "mpp_common.h"
 #include "mpp_thread.h"
 
-rk_s64 mpp_time()
+rk_s64 mpp_time(void)
 {
     struct timespec time = {0, 0};
 
@@ -68,30 +68,30 @@ MppClock mpp_clock_get(const char *name)
     return impl;
 }
 
-void mpp_clock_put(MppClock clock)
+void mpp_clock_put(MppClock clk)
 {
-    if (check_is_mpp_clock(clock)) {
-        mpp_err_f("invalid clock %p\n", clock);
+    if (check_is_mpp_clock(clk)) {
+        mpp_err_f("invalid clock %p\n", clk);
         return;
     }
 
-    mpp_free(clock);
+    mpp_free(clk);
 }
 
-void mpp_clock_enable(MppClock clock, rk_u32 enable)
+void mpp_clock_enable(MppClock clk, rk_u32 enable)
 {
-    if (check_is_mpp_clock(clock)) {
-        mpp_err_f("invalid clock %p\n", clock);
+    if (check_is_mpp_clock(clk)) {
+        mpp_err_f("invalid clock %p\n", clk);
     } else {
-        MppClockImpl *p = (MppClockImpl *)clock;
+        MppClockImpl *p = (MppClockImpl *)clk;
 
         p->enable = (enable) ? (1) : (0);
     }
 }
 
-rk_s64 mpp_clock_start(MppClock clock)
+rk_s64 mpp_clock_start(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
 
     if (check_is_mpp_clock(p)) {
         mpp_err_f("invalid clock %p\n", p);
@@ -106,9 +106,9 @@ rk_s64 mpp_clock_start(MppClock clock)
     return p->base;
 }
 
-rk_s64 mpp_clock_pause(MppClock clock)
+rk_s64 mpp_clock_pause(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
     rk_s64 time;
 
     if (check_is_mpp_clock(p)) {
@@ -132,9 +132,9 @@ rk_s64 mpp_clock_pause(MppClock clock)
     return p->time - p->base;
 }
 
-rk_s64 mpp_clock_reset(MppClock clock)
+rk_s64 mpp_clock_reset(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
 
     if (check_is_mpp_clock(p)) {
         mpp_err_f("invalid clock %p\n", p);
@@ -148,9 +148,9 @@ rk_s64 mpp_clock_reset(MppClock clock)
     return 0;
 }
 
-rk_s64 mpp_clock_get_sum(MppClock clock)
+rk_s64 mpp_clock_get_sum(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
 
     if (check_is_mpp_clock(p)) {
         mpp_err_f("invalid clock %p\n", p);
@@ -160,9 +160,9 @@ rk_s64 mpp_clock_get_sum(MppClock clock)
     return (p->enable) ? (p->sum) : (0);
 }
 
-rk_s64 mpp_clock_get_count(MppClock clock)
+rk_s64 mpp_clock_get_count(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
 
     if (check_is_mpp_clock(p)) {
         mpp_err_f("invalid clock %p\n", p);
@@ -172,9 +172,9 @@ rk_s64 mpp_clock_get_count(MppClock clock)
     return (p->enable) ? (p->count) : (0);
 }
 
-const char *mpp_clock_get_name(MppClock clock)
+const char *mpp_clock_get_name(MppClock clk)
 {
-    MppClockImpl *p = (MppClockImpl *)clock;
+    MppClockImpl *p = (MppClockImpl *)clk;
 
     if (check_is_mpp_clock(p)) {
         mpp_err_f("invalid clock %p\n", p);

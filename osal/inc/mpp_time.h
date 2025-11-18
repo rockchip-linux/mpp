@@ -20,7 +20,7 @@ typedef void* MppStopwatch;
 extern "C" {
 #endif
 
-rk_s64 mpp_time();
+rk_s64 mpp_time(void);
 void mpp_time_diff(rk_s64 start, rk_s64 end, rk_s64 limit, const char *fmt);
 
 /*
@@ -30,8 +30,8 @@ void mpp_time_diff(rk_s64 start, rk_s64 end, rk_s64 limit, const char *fmt);
  * User can use enable function with enable = 0 to disable the clock.
  */
 MppClock mpp_clock_get(const char *name);
-void mpp_clock_put(MppClock clock);
-void mpp_clock_enable(MppClock clock, rk_u32 enable);
+void mpp_clock_put(MppClock clk);
+void mpp_clock_enable(MppClock clk, rk_u32 enable);
 
 /*
  * Clock basic operation function:
@@ -39,9 +39,9 @@ void mpp_clock_enable(MppClock clock, rk_u32 enable);
  * pause : let clock pause and return the diff to start time
  * reset : let clock counter to all zero
  */
-rk_s64 mpp_clock_start(MppClock clock);
-rk_s64 mpp_clock_pause(MppClock clock);
-rk_s64 mpp_clock_reset(MppClock clock);
+rk_s64 mpp_clock_start(MppClock clk);
+rk_s64 mpp_clock_pause(MppClock clk);
+rk_s64 mpp_clock_reset(MppClock clk);
 
 /*
  * These clock helper function can only be call when clock is paused:
@@ -49,9 +49,9 @@ rk_s64 mpp_clock_reset(MppClock clock);
  * mpp_clock_get_count  - Return clock sum up counter value
  * mpp_clock_get_name   - Return clock name
  */
-rk_s64 mpp_clock_get_sum(MppClock clock);
-rk_s64 mpp_clock_get_count(MppClock clock);
-const char *mpp_clock_get_name(MppClock clock);
+rk_s64 mpp_clock_get_sum(MppClock clk);
+rk_s64 mpp_clock_get_count(MppClock clk);
+const char *mpp_clock_get_name(MppClock clk);
 
 /*
  * MppTimer is for timer with callback function

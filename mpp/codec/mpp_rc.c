@@ -132,17 +132,17 @@ void mpp_pid_reset(MppPIDCtx *p)
     p->count = 0;
 }
 
-void mpp_pid_set_param(MppPIDCtx *ctx, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div, RK_S32 len)
+void mpp_pid_set_param(MppPIDCtx *ctx, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div_val, RK_S32 len)
 {
     ctx->coef_p = coef_p;
     ctx->coef_i = coef_i;
     ctx->coef_d = coef_d;
-    ctx->div = div;
+    ctx->div = div_val;
     ctx->len = len;
     ctx->count = 0;
 
     mpp_rc_dbg_rc("RC: pid ctx %p coef: P %d I %d D %d div %d len %d\n",
-                  ctx, coef_p, coef_i, coef_d, div, len);
+                  ctx, coef_p, coef_i, coef_d, div_val, len);
 }
 
 void mpp_pid_update(MppPIDCtx *ctx, RK_S32 val, RK_S32 is_reset)

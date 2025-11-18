@@ -127,7 +127,7 @@ void mpp_data_update(MppData *p, RK_S32 val);
 RK_S32 mpp_data_avg(MppData *p, RK_S32 len, RK_S32 num, RK_S32 denom);
 
 void mpp_pid_reset(MppPIDCtx *p);
-void mpp_pid_set_param(MppPIDCtx *p, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div, RK_S32 len);
+void mpp_pid_set_param(MppPIDCtx *p, RK_S32 coef_p, RK_S32 coef_i, RK_S32 coef_d, RK_S32 div_val, RK_S32 len);
 void mpp_pid_update(MppPIDCtx *p, RK_S32 val, RK_S32 is_reset);
 RK_S32 mpp_pid_calc(MppPIDCtx *ctx);
 
