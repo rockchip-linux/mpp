@@ -121,11 +121,8 @@ typedef enum ReOsdPltType_e {
 #define RKV_ENC_MODE                  RKVENC_LINKTABLE_DISABLE //2
 #define RKVE_LINKTABLE_FRAME_NUM       1 //2
 
-#if RKV_ENC_MODE == RKVENC_LINKTABLE_START
 #define RKVE_LINKTABLE_EACH_NUM        RKVE_LINKTABLE_FRAME_NUM
-#else
-#define RKVE_LINKTABLE_EACH_NUM        1
-#endif
+
 #define RKVE_LINKTABLE_MAX_SIZE        256
 
 #define RKVE_RC_TEXTURE_THR_SIZE 16

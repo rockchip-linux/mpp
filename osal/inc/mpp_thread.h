@@ -9,9 +9,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <pthread.h>
-#include <sys/time.h>
 #include <string.h>
-#include <time.h>
 #include <assert.h>
 
 #include "rk_type.h"
@@ -30,7 +28,7 @@
 extern "C" {
 #endif
 
-typedef void *(*MppThreadFunc)(void *);
+typedef void *(*MppThreadFunc)(void *arg);
 
 typedef enum MppThreadStatus_e {
     MPP_THREAD_UNINITED,
@@ -149,7 +147,7 @@ typedef struct MppSThdCtx_t {
     void        *ctx;
 } MppSThdCtx;
 
-typedef void *(*MppSThdFunc)(MppSThdCtx *);
+typedef void *(*MppSThdFunc)(MppSThdCtx *ctx);
 
 MppSThd mpp_sthd_get(const char *name);
 void mpp_sthd_put(MppSThd thd);

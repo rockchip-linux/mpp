@@ -25,7 +25,7 @@
 /* H.264/AVC-specific structures */
 
 /* H.264/AVC picture entry data structure */
-typedef struct _DXVA_PicEntry_H264 {
+typedef struct DXVA_PicEntry_H264_t {
     union {
         struct {
             RK_U8  Index7Bits : 7;
@@ -36,7 +36,7 @@ typedef struct _DXVA_PicEntry_H264 {
 } DXVA_PicEntry_H264, *LPDXVA_PicEntry_H264;  /* 1 byte */
 
 /* H.264/AVC picture parameters structure */
-typedef struct _DXVA_PicParams_H264 {
+typedef struct DXVA_PicParams_H264_t {
     RK_U16  wFrameWidthInMbsMinus1;
     RK_U16  wFrameHeightInMbsMinus1;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */
@@ -104,27 +104,24 @@ typedef struct _DXVA_PicParams_H264 {
     RK_U8   Reserved8BitsB;
 
     RK_U16  slice_group_change_rate_minus1;
-
-    //RK_U8   SliceGroupMap[810]; /* 4b/sgmu, Size BT.601 */
-
 } DXVA_PicParams_H264, *LPDXVA_PicParams_H264;
 
 /* H.264/AVC quantization weighting matrix data structure */
-typedef struct _DXVA_Qmatrix_H264 {
+typedef struct DXVA_Qmatrix_H264_t {
     RK_U8   bScalingLists4x4[6][16];
     RK_U8   bScalingLists8x8[6][64];
 
 } DXVA_Qmatrix_H264, *LPDXVA_Qmatrix_H264;
 
 /* H.264/AVC slice control data structure - short form */
-typedef struct _DXVA_Slice_H264_Short {
+typedef struct DXVA_Slice_H264_Short_t {
     RK_U32  BSNALunitDataLocation; /* type 1..5 */
     RK_U32  SliceBytesInBuffer; /* for off-host parse */
     RK_U16  wBadSliceChopping;  /* for off-host parse */
 } DXVA_Slice_H264_Short, *LPDXVA_Slice_H264_Short;
 
 /* H.264/AVC picture entry data structure - long form */
-typedef struct _DXVA_Slice_H264_Long {
+typedef struct DXVA_Slice_H264_Long_t {
     RK_U32  BSNALunitDataLocation; /* type 1..5 */
     RK_U32  SliceBytesInBuffer; /* for off-host parse */
     RK_U16  wBadSliceChopping;  /* for off-host parse */
@@ -166,7 +163,7 @@ typedef struct _DXVA_Slice_H264_Long {
 } DXVA_Slice_H264_Long, *LPDXVA_Slice_H264_Long;
 
 /* H.264/AVC macro block control command data structure */
-typedef struct _DXVA_MBctrl_H264 {
+typedef struct DXVA_MBctrl_H264_t {
     union {
         struct {
             RK_U32  bSliceID : 8;   /* 1 byte */
@@ -220,7 +217,7 @@ typedef struct _DXVA_MBctrl_H264 {
 } DXVA_MBctrl_H264, *LPDXVA_MBctrl_H264;
 
 /* H.264/AVC IndexA and IndexB data structure */
-typedef struct _DXVA_DeblockIndexAB_H264 {
+typedef struct DXVA_DeblockIndexAB_H264_t {
     RK_U8   bIndexAinternal; /* 6b - could get from MB CC */
     RK_U8   bIndexBinternal; /* 6b - could get from MB CC */
 
@@ -239,7 +236,7 @@ typedef struct _DXVA_DeblockIndexAB_H264 {
 /* 10 bytes in struct */
 
 /* H.264/AVC deblocking filter control data structure */
-typedef struct _DXVA_Deblock_H264 {
+typedef struct DXVA_Deblock_H264_t {
     RK_U16  CurrMbAddr; /* dup info */   /* 2 bytes so far */
     union {
         struct {
@@ -276,7 +273,7 @@ typedef struct _DXVA_Deblock_H264 {
 } DXVA_Deblock_H264, *LPDXVA_Deblock_H264;/* 48 bytes */
 
 /* H.264/AVC film grain characteristics data structure */
-typedef struct _DXVA_FilmGrainCharacteristics {
+typedef struct DXVA_FilmGrainCharacteristics_t {
 
     RK_U16  wFrameWidthInMbsMinus1;
     RK_U16  wFrameHeightInMbsMinus1;
@@ -311,7 +308,7 @@ typedef struct _DXVA_FilmGrainCharacteristics {
 } DXVA_FilmGrainChar_H264, *LPDXVA_FilmGrainChar_H264;
 
 /* H.264/AVC status reporting data structure */
-typedef struct _DXVA_Status_H264 {
+typedef struct DXVA_Status_H264_t {
     RK_U32  StatusReportFeedbackNumber;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */
     RK_U8   field_pic_flag;
@@ -323,7 +320,7 @@ typedef struct _DXVA_Status_H264 {
 } DXVA_Status_H264, *LPDXVA_Status_H264;
 
 /* H.264 MVC picture parameters structure */
-typedef struct _DXVA_PicParams_H264_MVC {
+typedef struct DXVA_PicParams_H264_MVC_t {
     RK_U16  wFrameWidthInMbsMinus1;
     RK_U16  wFrameHeightInMbsMinus1;
     DXVA_PicEntry_H264  CurrPic; /* flag is bot field flag */

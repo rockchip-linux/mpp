@@ -23,7 +23,7 @@ extern "C" {
 
 typedef struct MppListNode_t MppListNode;
 // desctructor of list node
-typedef void *(*node_destructor)(void *);
+typedef void *(*node_destructor)(void *arg);
 
 struct MppListNode_t {
     MppListNode     *prev;
@@ -131,9 +131,9 @@ struct list_head {
          &pos->member != (head);                    \
          pos = n, n = list_prev_entry(n, type, member))
 
-static __inline void __list_add(struct list_head * _new,
-                                struct list_head * prev,
-                                struct list_head * next)
+static __inline void list_add_(struct list_head * _new,
+                               struct list_head * prev,
+                               struct list_head * next)
 {
     next->prev = _new;
     _new->next = next;
@@ -143,15 +143,15 @@ static __inline void __list_add(struct list_head * _new,
 
 static __inline void list_add(struct list_head *_new, struct list_head *head)
 {
-    __list_add(_new, head, head->next);
+    list_add_(_new, head, head->next);
 }
 
 static __inline void list_add_tail(struct list_head *_new, struct list_head *head)
 {
-    __list_add(_new, head->prev, head);
+    list_add_(_new, head->prev, head);
 }
 
-static __inline void __list_del(struct list_head * prev, struct list_head * next)
+static __inline void list_del_(struct list_head * prev, struct list_head * next)
 {
     next->prev = prev;
     prev->next = next;
@@ -159,34 +159,34 @@ static __inline void __list_del(struct list_head * prev, struct list_head * next
 
 static __inline void list_del_init(struct list_head *entry)
 {
-    __list_del(entry->prev, entry->next);
+    list_del_(entry->prev, entry->next);
 
     INIT_LIST_HEAD(entry);
 }
 
 static __inline void list_move(struct list_head *list, struct list_head *head)
 {
-    __list_del(list->prev, list->next);
+    list_del_(list->prev, list->next);
     list_add(list, head);
 }
 
 static __inline void list_move_tail(struct list_head *list, struct list_head *head)
 {
-    __list_del(list->prev, list->next);
+    list_del_(list->prev, list->next);
     list_add_tail(list, head);
 }
 
 static __inline int list_is_last(const struct list_head *list, const struct list_head *head)
 {
-    return list->next == head;
+    return (list->next == head) ? 1 : 0;
 }
 
 static __inline int list_empty(struct list_head *head)
 {
-    return head->next == head;
+    return (head->next == head) ? 1 : 0;
 }
 
-typedef rk_s32 (*ListCmpFunc)(void *, const struct list_head *, const struct list_head *);
+typedef rk_s32 (*ListCmpFunc)(void *arg, const struct list_head *list1, const struct list_head *list2);
 
 void list_sort(void *priv, struct list_head *head, ListCmpFunc cmp);
 

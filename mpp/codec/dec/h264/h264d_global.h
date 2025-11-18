@@ -862,11 +862,11 @@ typedef struct h264_old_slice_par_t {
 #define SYNTAX_BUF_SIZE            (5)
 typedef struct h264d_dxva_ctx_t {
     RK_U8                            cfgBitstrmRaw;
-    struct _DXVA_PicParams_H264_MVC  pp;
-    struct _DXVA_Qmatrix_H264        qm;
+    struct DXVA_PicParams_H264_MVC_t pp;
+    struct DXVA_Qmatrix_H264_t       qm;
     RK_U32                           max_slice_size;
     RK_U32                           slice_count;
-    struct _DXVA_Slice_H264_Long     *slice_long;   //!<  MAX_SLICES
+    struct DXVA_Slice_H264_Long_t    *slice_long;   //!<  MAX_SLICES
     RK_U8                            *bitstream;
     RK_U32                           max_strm_size;
     RK_U32                           strm_offset;

@@ -29,7 +29,7 @@ typedef struct DXVA_PicEntry_VP8_t {
         RK_U8 bPicEntry;
     };
 } DXVA_PicEntry_VP8;
-typedef struct _segmentation_Vp8 {
+typedef struct DXVA_segmentation_Vp8_t {
     union {
         struct {
             RK_U8 segmentation_enabled         : 1;
