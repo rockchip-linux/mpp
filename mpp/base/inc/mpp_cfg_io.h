@@ -65,8 +65,6 @@ rk_s32 mpp_cfg_del(MppCfgObj obj);
 /* find by name string */
 rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type);
 
-/* attach MppCfgInfo for access location */
-rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info);
 /* attach KmppEntry for access location */
 rk_s32 mpp_cfg_set_entry(MppCfgObj obj, KmppEntry *entry);
 /* add cfg obj condition for input / output option */

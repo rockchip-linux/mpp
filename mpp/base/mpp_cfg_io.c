@@ -20,6 +20,7 @@
 #include "mpp_cfg.h"
 #include "mpp_cfg_io.h"
 #include "rk_venc_cfg.h"
+#include "kmpp_obj.h"
 
 #define MAX_CFG_DEPTH                   (64)
 
@@ -77,9 +78,9 @@ struct MppCfgIoImpl_t {
     rk_s32                  name_len;
     rk_s32                  name_buf_len;
 
-    /* location info for structure access */
+    /* location entry for structure access */
     MppTrie                 trie;
-    MppCfgInfo              info;
+    KmppEntry               entry;
 
     union {
         /* MPP_CFG_TYPE_STRING */
@@ -262,7 +263,7 @@ rk_s32 mpp_cfg_get_object(MppCfgObj *obj, const char *name, MppCfgType type, Mpp
         impl->val = *val;
     impl->buf_size = buf_size;
     /* set invalid data type by default */
-    impl->info.data_type = CFG_FUNC_TYPE_BUTT;
+    impl->entry.tbl.elem_type = ELEM_TYPE_BUTT;
 
     if (type == MPP_CFG_TYPE_STRING)
         impl->val.str = impl->string;
@@ -316,7 +317,7 @@ rk_s32 mpp_cfg_get_array(MppCfgObj *obj, const char *name, rk_s32 count)
     impl->type = MPP_CFG_TYPE_ARRAY;
     impl->buf_size = buf_size;
     /* set invalid data type by default */
-    impl->info.data_type = CFG_FUNC_TYPE_BUTT;
+    impl->entry.tbl.elem_type = ELEM_TYPE_BUTT;
 
     if (count) {
         impl->elems = (MppCfgIoImpl **)((char *)(impl + 1) + name_buf_len);
@@ -544,36 +545,36 @@ rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type)
     return rk_ok;
 }
 
-rk_s32 mpp_cfg_set_info(MppCfgObj obj, MppCfgInfo *info)
+rk_s32 mpp_cfg_set_entry(MppCfgObj obj, KmppEntry *entry)
 {
     MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
 
-    if (impl && info) {
-        cfg_io_dbg_info("obj %-16s set info type %s offset %d size %d\n",
-                        impl->name, strof_cfg_type(info->data_type),
-                        info->data_offset, info->data_size);
+    if (impl && entry) {
+        cfg_io_dbg_info("obj %-16s set entry type %s offset %d size %d\n",
+                        impl->name, strof_elem_type(entry->tbl.elem_type),
+                        entry->tbl.elem_offset, entry->tbl.elem_size);
 
-        if (info->data_type < CFG_FUNC_TYPE_BUTT) {
-            memcpy(&impl->info, info, sizeof(impl->info));
+        if (entry->tbl.elem_type < ELEM_TYPE_BUTT) {
+            memcpy(&impl->entry, entry, sizeof(impl->entry));
 
-            switch (info->data_type) {
-            case CFG_FUNC_TYPE_s32 : {
+            switch (entry->tbl.elem_type) {
+            case ELEM_TYPE_s32 : {
                 impl->type = MPP_CFG_TYPE_s32;
             } break;
-            case CFG_FUNC_TYPE_u32 : {
+            case ELEM_TYPE_u32 : {
                 impl->type = MPP_CFG_TYPE_u32;
             } break;
-            case CFG_FUNC_TYPE_s64 : {
+            case ELEM_TYPE_s64 : {
                 impl->type = MPP_CFG_TYPE_s64;
             } break;
-            case CFG_FUNC_TYPE_u64 : {
+            case ELEM_TYPE_u64 : {
                 impl->type = MPP_CFG_TYPE_u64;
             } break;
             default : {
             } break;
             }
         } else {
-            impl->info.data_type = CFG_FUNC_TYPE_BUTT;
+            impl->entry.tbl.elem_type = ELEM_TYPE_BUTT;
         }
 
         return rk_ok;
@@ -600,11 +601,11 @@ typedef struct MppCfgFullNameCtx_t {
 static void add_obj_info(MppCfgIoImpl *impl, void *data)
 {
     /* NOTE: skip the root object and the invalid object */
-    if (impl->info.data_type < CFG_FUNC_TYPE_BUTT && impl->parent) {
+    if (impl->entry.tbl.elem_type < ELEM_TYPE_BUTT && impl->parent) {
         MppCfgFullNameCtx *ctx = (MppCfgFullNameCtx *)data;
 
         get_full_name(impl, ctx->buf, ctx->buf_size);
-        mpp_trie_add_info(ctx->trie, ctx->buf, &impl->info, sizeof(impl->info));
+        mpp_trie_add_info(ctx->trie, ctx->buf, &impl->entry, sizeof(impl->entry));
     }
 }
 
@@ -3056,7 +3057,7 @@ rk_s32 mpp_cfg_from_string(MppCfgObj *obj, MppCfgStrFmt fmt, const char *buf)
 
 static void write_struct(MppCfgIoImpl *obj, MppTrie trie, MppCfgStrBuf *str, void *st)
 {
-    MppCfgInfo *tbl = NULL;
+    KmppEntry *tbl = NULL;
 
     if (obj->name) {
         MppTrieInfo *info = NULL;
@@ -3070,25 +3071,25 @@ static void write_struct(MppCfgIoImpl *obj, MppTrie trie, MppCfgStrBuf *str, voi
     }
 
     if (!tbl)
-        tbl = &obj->info;
+        tbl = &obj->entry;
 
     cfg_io_dbg_show("depth %d obj type %s name %s -> info %s offset %d size %d\n",
                     obj->depth, strof_type(obj->type), obj->name ? str->buf : "null",
-                    strof_cfg_type(tbl->data_type), tbl->data_offset, tbl->data_size);
+                    strof_elem_type(tbl->tbl.elem_type), tbl->tbl.elem_offset, tbl->tbl.elem_size);
 
-    if (tbl->data_type < CFG_FUNC_TYPE_BUTT) {
-        switch (tbl->data_type) {
-        case CFG_FUNC_TYPE_s32 : {
-            mpp_cfg_set_s32(tbl, st, obj->val.s32);
+    if (tbl->tbl.elem_type < ELEM_TYPE_BUTT) {
+        switch (tbl->tbl.elem_type) {
+        case ELEM_TYPE_s32 : {
+            kmpp_obj_impl_set_s32(tbl, st, obj->val.s32);
         } break;
-        case CFG_FUNC_TYPE_u32 : {
-            mpp_cfg_set_u32(tbl, st, obj->val.u32);
+        case ELEM_TYPE_u32 : {
+            kmpp_obj_impl_set_u32(tbl, st, obj->val.u32);
         } break;
-        case CFG_FUNC_TYPE_s64 : {
-            mpp_cfg_set_s64(tbl, st, obj->val.s64);
+        case ELEM_TYPE_s64 : {
+            kmpp_obj_impl_set_s64(tbl, st, obj->val.s64);
         } break;
-        case CFG_FUNC_TYPE_u64 : {
-            mpp_cfg_set_u64(tbl, st, obj->val.u64);
+        case ELEM_TYPE_u64 : {
+            kmpp_obj_impl_set_u64(tbl, st, obj->val.u64);
         } break;
         default : {
         } break;
@@ -3126,14 +3127,14 @@ rk_s32 mpp_cfg_to_struct(MppCfgObj obj, MppCfgObj type, void *st)
     str.offset = 0;
     str.depth = 0;
 
-    write_struct(impl, trie, &str, st + orig->info.data_offset);
+    write_struct(impl, trie, &str, st + orig->entry.tbl.elem_offset);
 
     return rk_ok;
 }
 
 static MppCfgObj read_struct(MppCfgIoImpl *impl, MppCfgObj parent, void *st)
 {
-    MppCfgInfo *info = &impl->info;
+    KmppEntry *entry = &impl->entry;
     MppCfgIoImpl *ret = NULL;
 
     /* dup node first */
@@ -3157,34 +3158,34 @@ static MppCfgObj read_struct(MppCfgIoImpl *impl, MppCfgObj parent, void *st)
     }
 
     /* assign value by different type */
-    switch (info->data_type) {
-    case CFG_FUNC_TYPE_s32 :
-    case CFG_FUNC_TYPE_u32 :
-    case CFG_FUNC_TYPE_s64 :
-    case CFG_FUNC_TYPE_u64 : {
-        switch (info->data_type) {
-        case CFG_FUNC_TYPE_s32 : {
+    switch (entry->tbl.elem_type) {
+    case ELEM_TYPE_s32 :
+    case ELEM_TYPE_u32 :
+    case ELEM_TYPE_s64 :
+    case ELEM_TYPE_u64 : {
+        switch (entry->tbl.elem_type) {
+        case ELEM_TYPE_s32 : {
             mpp_assert(impl->type == MPP_CFG_TYPE_s32);
-            mpp_cfg_get_s32(info, st, &ret->val.s32);
+            kmpp_obj_impl_get_s32(entry, st, &ret->val.s32);
         } break;
-        case CFG_FUNC_TYPE_u32 : {
+        case ELEM_TYPE_u32 : {
             mpp_assert(impl->type == MPP_CFG_TYPE_u32);
-            mpp_cfg_get_u32(info, st, &ret->val.u32);
+            kmpp_obj_impl_get_u32(entry, st, &ret->val.u32);
         } break;
-        case CFG_FUNC_TYPE_s64 : {
+        case ELEM_TYPE_s64 : {
             mpp_assert(impl->type == MPP_CFG_TYPE_s64);
-            mpp_cfg_get_s64(info, st, &ret->val.s64);
+            kmpp_obj_impl_get_s64(entry, st, &ret->val.s64);
         } break;
-        case CFG_FUNC_TYPE_u64 : {
+        case ELEM_TYPE_u64 : {
             mpp_assert(impl->type == MPP_CFG_TYPE_u64);
-            mpp_cfg_get_u64(info, st, &ret->val.u64);
+            kmpp_obj_impl_get_u64(entry, st, &ret->val.u64);
         } break;
         default : {
         } break;
         }
     } break;
-    case CFG_FUNC_TYPE_st :
-    case CFG_FUNC_TYPE_ptr : {
+    case ELEM_TYPE_st :
+    case ELEM_TYPE_ptr : {
         ret->val = impl->val;
     } break;
     default : {
@@ -3218,7 +3219,7 @@ rk_s32 mpp_cfg_from_struct(MppCfgObj *obj, MppCfgObj type, void *st)
     }
 
     /* NOTE: update structure pointer by data_offset */
-    *obj = read_struct(orig, NULL, st + orig->info.data_offset);
+    *obj = read_struct(orig, NULL, st + orig->entry.tbl.elem_offset);
 
     return *obj ? rk_ok : rk_nok;
 }

@@ -25,6 +25,8 @@
 #include "mpp_mem_pool.h"
 #include "mpp_compat_impl.h"
 
+#include "kmpp_obj.h"
+
 #define SYS_CFG_DBG_FUNC                (0x00000001)
 #define SYS_CFG_DBG_INFO                (0x00000002)
 #define SYS_CFG_DBG_SET                 (0x00000004)
@@ -63,11 +65,11 @@ static RK_U32 mpp_sys_cfg_debug = 0;
 
 #define EXPAND_AS_TRIE(base, name, cfg_type, in_type, flag, field_change, field_data) \
     do { \
-        MppCfgInfo tmp = { \
-            CFG_FUNC_TYPE_##cfg_type, \
-            (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.change)), \
-            (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.field_data)), \
-            sizeof((((MppSysCfgSet *)0)->field_change.field_data)), \
+        KmppEntry tmp = { \
+            .tbl.elem_type = ELEM_TYPE_##cfg_type, \
+            .tbl.flag_offset = (RK_U32)flag, \
+            .tbl.elem_offset = (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.field_data)), \
+            .tbl.elem_size = sizeof((((MppSysCfgSet *)0)->field_change.field_data)), \
         }; \
         mpp_trie_add_info(srv->trie, #base":"#name, &tmp, sizeof(tmp)); \
     } while (0);
@@ -633,7 +635,7 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
         MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
         MppSysCfgSet *p; \
         MppTrieInfo *node; \
-        MppCfgInfo *info; \
+        KmppEntry *entry; \
         if (!srv) \
             return MPP_NOK; \
         if (!cfg || !name) { \
@@ -642,17 +644,17 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
         } \
         p = (MppSysCfgSet *)cfg; \
         node = mpp_trie_get_info(srv->trie, name); \
-        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
+        entry = (KmppEntry *)mpp_trie_info_ctx(node); \
+        if (CHECK_CFG_ENTRY(entry, name, ELEM_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
-        if (!info->flag_offset) { \
+        if (!entry->tbl.flag_offset) { \
             mpp_log_f("can not set readonly cfg %s\n", mpp_trie_info_name(node)); \
             return MPP_NOK; \
         } \
         sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
-                        strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_SET_##cfg_type(info, p, val); \
+                        strof_elem_type(entry->tbl.elem_type)); \
+        MPP_RET ret = MPP_CFG_SET_##cfg_type(entry, p, val); \
         return ret; \
     }
 
@@ -669,7 +671,7 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, st);
         MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
         MppSysCfgSet *p; \
         MppTrieInfo *node; \
-        MppCfgInfo *info; \
+        KmppEntry *entry; \
         if (!srv) \
             return MPP_NOK; \
         if (!cfg || !name) { \
@@ -678,13 +680,13 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, st);
         } \
         p = (MppSysCfgSet *)cfg; \
         node = mpp_trie_get_info(srv->trie, name); \
-        info = (MppCfgInfo *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_INFO(info, name, CFG_FUNC_TYPE_##cfg_type)) { \
+        entry = (KmppEntry *)mpp_trie_info_ctx(node); \
+        if (CHECK_CFG_ENTRY(entry, name, ELEM_TYPE_##cfg_type)) { \
             return MPP_NOK; \
         } \
         sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
-                            strof_cfg_type(info->data_type)); \
-        MPP_RET ret = MPP_CFG_GET_##cfg_type(info, p, val); \
+                            strof_elem_type(entry->tbl.elem_type)); \
+        MPP_RET ret = MPP_CFG_GET_##cfg_type(entry, p, val); \
         return ret; \
     }
 
@@ -717,11 +719,11 @@ void mpp_sys_cfg_show(void)
             if (mpp_trie_info_is_self(node))
                 continue;
 
-            if (node->ctx_len == sizeof(MppCfgInfo)) {
-                MppCfgInfo *info = (MppCfgInfo *)mpp_trie_info_ctx(node);
+            if (node->ctx_len == sizeof(KmppEntry)) {
+                KmppEntry *entry = (KmppEntry *)mpp_trie_info_ctx(node);
 
                 mpp_log("%-*s type %s - %d:%d\n", len, mpp_trie_info_name(node),
-                        strof_cfg_type(info->data_type), info->data_offset, info->data_size);
+                        strof_elem_type(entry->tbl.elem_type), entry->tbl.elem_offset, entry->tbl.elem_size);
             } else {
                 mpp_log("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
             }

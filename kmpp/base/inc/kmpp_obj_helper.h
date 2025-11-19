@@ -70,16 +70,10 @@
                 .tbl.elem_type = ELEM_TYPE_##ftype, \
                 .tbl.flag_offset = FLAG_TYPE_TO_OFFSET(name, flag, #flag), \
             }; \
-            MppCfgInfo info = { \
-                .data_type = CFG_FUNC_TYPE_##ftype, \
-                .flag_offset = tbl.tbl.flag_offset, \
-                .data_offset = tbl.tbl.elem_offset, \
-                .data_size = tbl.tbl.elem_size, \
-            }; \
             MppCfgObj CONCAT_US(obj, name) = NULL; \
             kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
             mpp_cfg_get_object(&CONCAT_US(obj, name), TO_STR(name), MPP_CFG_TYPE_##ftype, NULL); \
-            mpp_cfg_set_info(CONCAT_US(obj, name), &info); \
+            mpp_cfg_set_entry(CONCAT_US(obj, name), &tbl); \
             mpp_cfg_add(__parent, CONCAT_US(obj, name)); \
             ENTRY_TO_NAME_END(name); \
     } while (0);
