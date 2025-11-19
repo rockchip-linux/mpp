@@ -33,8 +33,8 @@
 #define H264E_DBG_LIST              (0x00000200)
 #define H264E_DBG_MMCO              (0x00000400)
 
-#define h264e_dbg(flag, fmt, ...)   _mpp_dbg(h264e_debug, flag, fmt, ## __VA_ARGS__)
-#define h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define h264e_dbg(flag, fmt, ...)   mpp_dbg(h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define h264e_dbg_f(flag, fmt, ...) mpp_dbg_f(h264e_debug, flag, fmt, ## __VA_ARGS__)
 
 #define h264e_dbg_func(fmt, ...)    h264e_dbg_f(H264E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define h264e_dbg_flow(fmt, ...)    h264e_dbg_f(H264E_DBG_FLOW, fmt, ## __VA_ARGS__)

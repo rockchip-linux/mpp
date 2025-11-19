@@ -31,8 +31,8 @@
 #define HAL_H264E_DBG_RC                (0x00000100)
 #define HAL_H264E_DBG_SMART_V3          (0x00000200)
 
-#define hal_h264e_dbg(flag, fmt, ...)   _mpp_dbg(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
-#define hal_h264e_dbg_f(flag, fmt, ...) _mpp_dbg_f(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_h264e_dbg(flag, fmt, ...)   mpp_dbg(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_h264e_dbg_f(flag, fmt, ...) mpp_dbg_f(hal_h264e_debug, flag, fmt, ## __VA_ARGS__)
 
 #define hal_h264e_dbg_func(fmt, ...)    hal_h264e_dbg_f(HAL_H264E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define hal_h264e_dbg_flow(fmt, ...)    hal_h264e_dbg_f(HAL_H264E_DBG_FLOW, fmt, ## __VA_ARGS__)

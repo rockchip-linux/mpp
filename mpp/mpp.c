@@ -741,7 +741,7 @@ MPP_RET mpp_put_frame(Mpp *mpp, MppFrame frame)
     if (!mpp->mInitDone)
         return MPP_ERR_INIT;
 
-    mpp_dbg_pts("%p input frame pts %lld\n", mpp, mpp_frame_get_pts(frame));
+    sys_dbg_pts("%p input frame pts %lld\n", mpp, mpp_frame_get_pts(frame));
 
     if (mpp->mKmpp && mpp->mKmpp->mApi && mpp->mKmpp->mApi->put_frame)
         return mpp->mKmpp->mApi->put_frame(mpp->mKmpp, frame);
@@ -915,7 +915,7 @@ MPP_RET mpp_get_packet(Mpp *mpp, MppPacket *packet)
             mpp_buffer_sync_ro_partial_begin(buf, offset, impl->length);
         }
 
-        mpp_dbg_pts("%p output packet pts %lld\n", mpp, impl->pts);
+        sys_dbg_pts("%p output packet pts %lld\n", mpp, impl->pts);
     }
 
     // dump output
@@ -1426,7 +1426,7 @@ MPP_RET mpp_control_dec(Mpp *mpp, MpiCmd cmd, MppParam param)
                     mpp_buffer_group_clear(mpp->mFrameGroup);
             }
 
-            mpp_dbg_info("using internal buffer group %p\n", mpp->mFrameGroup);
+            sys_dbg_info("using internal buffer group %p\n", mpp->mFrameGroup);
             mpp->mExternalBufferMode = 0;
         } else {
             /* set to external mode */
@@ -1446,7 +1446,7 @@ MPP_RET mpp_control_dec(Mpp *mpp, MpiCmd cmd, MppParam param)
                     mpp_buffer_group_put(mpp->mFrameGroup);
             }
 
-            mpp_dbg_info("using external buffer group %p\n", mpp->mFrameGroup);
+            sys_dbg_info("using external buffer group %p\n", mpp->mFrameGroup);
 
             mpp->mFrameGroup = (MppBufferGroup)param;
             mpp_buffer_group_set_callback((MppBufferGroupImpl *)mpp->mFrameGroup,
@@ -1456,7 +1456,7 @@ MPP_RET mpp_control_dec(Mpp *mpp, MpiCmd cmd, MppParam param)
         }
     } break;
     case MPP_DEC_SET_INFO_CHANGE_READY: {
-        mpp_dbg_info("set info change ready\n");
+        sys_dbg_info("set info change ready\n");
 
         ret = mpp_dec_control(mpp->mDec, cmd, param);
         mpp_notify_flag(mpp, MPP_DEC_NOTIFY_INFO_CHG_DONE | MPP_DEC_NOTIFY_BUFFER_MATCH);

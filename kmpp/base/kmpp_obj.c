@@ -43,7 +43,7 @@
 #define OBJ_DBG_SET                     (0x00000040)
 #define OBJ_DBG_GET                     (0x00000080)
 
-#define obj_dbg(flag, fmt, ...)         _mpp_dbg(kmpp_obj_debug, flag, fmt, ## __VA_ARGS__)
+#define obj_dbg(flag, fmt, ...)         mpp_dbg(kmpp_obj_debug, flag, fmt, ## __VA_ARGS__)
 
 #define obj_dbg_flow(fmt, ...)          obj_dbg(OBJ_DBG_FLOW, fmt, ## __VA_ARGS__)
 #define obj_dbg_share(fmt, ...)         obj_dbg(OBJ_DBG_SHARE, fmt, ## __VA_ARGS__)

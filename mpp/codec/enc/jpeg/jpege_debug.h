@@ -24,8 +24,8 @@
 #define JPEGE_DBG_OUTPUT            (0x00000020)
 #define JPEGE_DBG_CTRL              (0x00000040)
 
-#define jpege_dbg(flag, fmt, ...)   _mpp_dbg(jpege_debug, flag, fmt, ## __VA_ARGS__)
-#define jpege_dbg_f(flag, fmt, ...) _mpp_dbg_f(jpege_debug, flag, fmt, ## __VA_ARGS__)
+#define jpege_dbg(flag, fmt, ...)   mpp_dbg(jpege_debug, flag, fmt, ## __VA_ARGS__)
+#define jpege_dbg_f(flag, fmt, ...) mpp_dbg_f(jpege_debug, flag, fmt, ## __VA_ARGS__)
 
 #define jpege_dbg_func(fmt, ...)    jpege_dbg_f(JPEGE_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define jpege_dbg_input(fmt, ...)   jpege_dbg(JPEGE_DBG_INPUT, fmt, ## __VA_ARGS__)

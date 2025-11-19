@@ -21,8 +21,8 @@
 #define MPP_CLUSTER_DBG_FLOW            (0x00000001)
 #define MPP_CLUSTER_DBG_LOCK            (0x00000002)
 
-#define cluster_dbg(flag, fmt, ...)     _mpp_dbg(mpp_cluster_debug, flag, fmt, ## __VA_ARGS__)
-#define cluster_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_cluster_debug, flag, fmt, ## __VA_ARGS__)
+#define cluster_dbg(flag, fmt, ...)     mpp_dbg(mpp_cluster_debug, flag, fmt, ## __VA_ARGS__)
+#define cluster_dbg_f(flag, fmt, ...)   mpp_dbg_f(mpp_cluster_debug, flag, fmt, ## __VA_ARGS__)
 
 #define cluster_dbg_flow(fmt, ...)      cluster_dbg(MPP_CLUSTER_DBG_FLOW, fmt, ## __VA_ARGS__)
 #define cluster_dbg_lock(fmt, ...)      cluster_dbg(MPP_CLUSTER_DBG_LOCK, fmt, ## __VA_ARGS__)

@@ -22,8 +22,8 @@
 #define MPP_RC_DBG_RECORD            (0x00001000)
 #define MPP_RC_DBG_VBV               (0x00002000)
 
-#define mpp_rc_dbg(flag, fmt, ...)   _mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_rc_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_rc_dbg(flag, fmt, ...)   mpp_dbg(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_rc_dbg_f(flag, fmt, ...) mpp_dbg_f(mpp_rc_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_rc_dbg_func(fmt, ...)    mpp_rc_dbg_f(MPP_RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpp_rc_dbg_bps(fmt, ...)     mpp_rc_dbg(MPP_RC_DBG_BPS, fmt, ## __VA_ARGS__)

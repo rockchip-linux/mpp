@@ -131,7 +131,7 @@ static void mpp_plat_srv_init()
     if (mpp_get_mpp_service_name()) {
         srv->ioctl_version = IOCTL_MPP_SERVICE_V1;
         check_mpp_service_cap(&srv->vcodec_type, srv->hw_ids, cap);
-        mpp_dbg_platform("vcodec_type from kernel 0x%08x, vs from soc info 0x%08x\n",
+        sys_dbg_platform("vcodec_type from kernel 0x%08x, vs from soc info 0x%08x\n",
                          srv->vcodec_type, srv->soc_info->vcodec_type);
     }
     srv->kernel_version = check_kernel_version();
@@ -148,19 +148,19 @@ static void mpp_plat_srv_init()
             if (diff_type & mask) {
                 MppClientType client_type = (MppClientType) i;
 
-                mpp_dbg_platform("confliction found at client_type %d\n", client_type);
+                sys_dbg_platform("confliction found at client_type %d\n", client_type);
 
                 if (srv->soc_info->vcodec_type & mask) {
                     mpp_err("client %d driver is not ready!\n", client_type);
                 } else {
-                    mpp_dbg_platform("client %d driver is ready but not declared!\n", client_type);
+                    sys_dbg_platform("client %d driver is ready but not declared!\n", client_type);
                     if (client_type == VPU_CLIENT_VDPU2_PP)
                         srv->vcodec_type &= ~mask;
                 }
             }
         }
 
-        mpp_dbg_platform("vcode_type 0x%08x\n", srv->vcodec_type);
+        sys_dbg_platform("vcode_type 0x%08x\n", srv->vcodec_type);
     }
 
     return;

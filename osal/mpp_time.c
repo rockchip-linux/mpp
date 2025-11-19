@@ -30,7 +30,7 @@ void mpp_time_diff(rk_s64 start, rk_s64 end, rk_s64 limit, const char *fmt)
     rk_s64 diff = end - start;
 
     if (diff >= limit)
-        mpp_dbg(MPP_DBG_TIMING, "%s timing %lld us\n", fmt, diff);
+        sys_dbg(MPP_DBG_TIMING, "%s timing %lld us\n", fmt, diff);
 }
 
 typedef struct MppClockImpl_t {

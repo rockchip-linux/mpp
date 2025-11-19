@@ -32,8 +32,8 @@
 #define CFG_IO_DBG_SHOW                 (0x00000040)
 #define CFG_IO_DBG_INFO                 (0x00000080)
 
-#define cfg_io_dbg(flag, fmt, ...)      _mpp_dbg(mpp_cfg_io_debug, flag, fmt, ## __VA_ARGS__)
-#define cfg_io_dbg_f(flag, fmt, ...)    _mpp_dbg_f(mpp_cfg_io_debug, flag, fmt, ## __VA_ARGS__)
+#define cfg_io_dbg(flag, fmt, ...)      mpp_dbg(mpp_cfg_io_debug, flag, fmt, ## __VA_ARGS__)
+#define cfg_io_dbg_f(flag, fmt, ...)    mpp_dbg_f(mpp_cfg_io_debug, flag, fmt, ## __VA_ARGS__)
 
 #define cfg_io_dbg_flow(fmt, ...)       cfg_io_dbg(CFG_IO_DBG_FLOW, fmt, ## __VA_ARGS__)
 #define cfg_io_dbg_byte(fmt, ...)       cfg_io_dbg(CFG_IO_DBG_BYTE, fmt, ## __VA_ARGS__)

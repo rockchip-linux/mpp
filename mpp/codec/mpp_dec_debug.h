@@ -26,8 +26,8 @@
 #define MPP_DEC_DBG_RESET               (0x00000040)
 #define MPP_DEC_DBG_NOTIFY              (0x00000080)
 
-#define mpp_dec_dbg(flag, fmt, ...)     _mpp_dbg(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_dec_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_dec_dbg(flag, fmt, ...)     mpp_dbg(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_dec_dbg_f(flag, fmt, ...)   mpp_dbg_f(mpp_dec_debug, flag, fmt, ## __VA_ARGS__)
 
 #define dec_dbg_func(fmt, ...)          mpp_dec_dbg_f(MPP_DEC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define dec_dbg_status(fmt, ...)        mpp_dec_dbg_f(MPP_DEC_DBG_STATUS, fmt, ## __VA_ARGS__)

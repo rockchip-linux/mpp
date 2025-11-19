@@ -1050,7 +1050,7 @@ static void read_soc_name(char *name, rk_s32 size)
                 *ptr = ' ';
             }
 
-            mpp_dbg_platform("chip name: %s\n", name);
+            sys_dbg_platform("chip name: %s\n", name);
         }
 
         close(fd);
@@ -1065,7 +1065,7 @@ static const MppSocInfo *check_soc_info(const char *soc_name)
         const char *compatible = mpp_soc_infos[i].compatible;
 
         if (strstr(soc_name, compatible)) {
-            mpp_dbg_platform("match chip name: %s\n", compatible);
+            sys_dbg_platform("match chip name: %s\n", compatible);
             return &mpp_soc_infos[i];
         }
     }
@@ -1104,7 +1104,7 @@ static void mpp_soc_srv_init()
     read_soc_name(srv->soc_name, sizeof(srv->soc_name));
     srv->soc_info = check_soc_info(srv->soc_name);
     if (NULL == srv->soc_info) {
-        mpp_dbg_platform("use default chip info\n");
+        sys_dbg_platform("use default chip info\n");
         srv->soc_info = &mpp_soc_default;
     }
 
@@ -1126,9 +1126,9 @@ static void mpp_soc_srv_init()
         }
     }
 
-    mpp_dbg_platform("coding caps: dec %08x enc %08x\n",
+    sys_dbg_platform("coding caps: dec %08x enc %08x\n",
                      srv->dec_coding_cap, srv->enc_coding_cap);
-    mpp_dbg_platform("vcodec type from cap: %08x, from soc_info %08x\n",
+    sys_dbg_platform("vcodec type from cap: %08x, from soc_info %08x\n",
                      vcodec_type, srv->soc_info->vcodec_type);
     mpp_assert(srv->soc_info->vcodec_type == vcodec_type);
 }

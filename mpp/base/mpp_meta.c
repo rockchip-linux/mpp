@@ -20,8 +20,8 @@
 #define META_DBG_FLOW               (0x00000001)
 #define META_DBG_KEYS               (0x00000002)
 
-#define meta_dbg(flag, fmt, ...)    _mpp_dbg(mpp_meta_debug, flag, fmt, ## __VA_ARGS__)
-#define meta_dbg_f(flag, fmt, ...)  _mpp_dbg_f(mpp_meta_debug, flag, fmt, ## __VA_ARGS__)
+#define meta_dbg(flag, fmt, ...)    mpp_dbg(mpp_meta_debug, flag, fmt, ## __VA_ARGS__)
+#define meta_dbg_f(flag, fmt, ...)  mpp_dbg_f(mpp_meta_debug, flag, fmt, ## __VA_ARGS__)
 
 #define meta_dbg_flow(fmt, ...)     meta_dbg(META_DBG_FLOW, fmt, ## __VA_ARGS__)
 

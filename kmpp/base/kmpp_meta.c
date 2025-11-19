@@ -23,7 +23,7 @@
 #define KMETA_DBG_SET               (0x00000004)
 #define KMETA_DBG_GET               (0x00000008)
 
-#define kmeta_dbg(flag, fmt, ...)   _mpp_dbg_f(kmpp_meta_debug, flag, fmt, ## __VA_ARGS__)
+#define kmeta_dbg(flag, fmt, ...)   mpp_dbg_f(kmpp_meta_debug, flag, fmt, ## __VA_ARGS__)
 
 #define kmeta_dbg_func(fmt, ...)    kmeta_dbg(KMETA_DBG_FUNC, fmt, ## __VA_ARGS__)
 #define kmeta_dbg_size(fmt, ...)    kmeta_dbg(KMETA_DBG_SIZE, fmt, ## __VA_ARGS__)

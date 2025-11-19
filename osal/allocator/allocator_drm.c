@@ -27,7 +27,7 @@
 #define DRM_DEVICE                  (0x00000002)
 #define DRM_IOCTL                   (0x00000004)
 
-#define drm_dbg(flag, fmt, ...)     _mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
+#define drm_dbg(flag, fmt, ...)     mpp_dbg_f(drm_debug, flag, fmt, ## __VA_ARGS__)
 #define drm_dbg_func(fmt, ...)      drm_dbg(DRM_FUNCTION, fmt, ## __VA_ARGS__)
 #define drm_dbg_dev(fmt, ...)       drm_dbg(DRM_DEVICE, fmt, ## __VA_ARGS__)
 #define drm_dbg_ioctl(fmt, ...)     drm_dbg(DRM_IOCTL, fmt, ## __VA_ARGS__)

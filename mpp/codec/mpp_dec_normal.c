@@ -369,7 +369,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
      *
      */
     if (!task->status.curr_task_rdy) {
-        mpp_dbg_pts("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
+        sys_dbg_pts("input packet pts %lld\n", mpp_packet_get_pts(dec->mpp_pkt_in));
 
         mpp_clock_start(dec->clocks[DEC_PRS_PREPARE]);
         mpp_parser_prepare(dec->parser, dec->mpp_pkt_in, task_dec);
@@ -754,7 +754,7 @@ void *mpp_dec_parser_thread(void *data)
 
     mpp_clock_pause(dec->clocks[DEC_PRS_TOTAL]);
 
-    mpp_dbg_info("mpp_dec_parser_thread is going to exit\n");
+    sys_dbg_info("mpp_dec_parser_thread is going to exit\n");
     if (task.hnd && task_dec->valid) {
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
@@ -762,7 +762,7 @@ void *mpp_dec_parser_thread(void *data)
     }
     mpp_buffer_group_clear(mpp->mPacketGroup);
     dec_release_task_in_port(mpp->mMppInPort);
-    mpp_dbg_info("mpp_dec_parser_thread exited\n");
+    sys_dbg_info("mpp_dec_parser_thread exited\n");
     return NULL;
 }
 
@@ -904,7 +904,7 @@ void *mpp_dec_hal_thread(void *data)
     mpp_clock_pause(dec->clocks[DEC_HAL_TOTAL]);
 
     mpp_assert(mpp->mTaskPutCount == mpp->mTaskGetCount);
-    mpp_dbg_info("mpp_dec_hal_thread exited\n");
+    sys_dbg_info("mpp_dec_hal_thread exited\n");
     return NULL;
 }
 
@@ -1098,7 +1098,7 @@ void *mpp_dec_advanced_thread(void *data)
             if (meta)
                 mpp_meta_set_packet(meta, KEY_INPUT_PACKET, packet);
 
-            mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(frame));
+            sys_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(frame));
 
             mpp_mutex_cond_lock(&list->cond_lock);
             mpp_list_add_at_tail(list, &frame, sizeof(frame));

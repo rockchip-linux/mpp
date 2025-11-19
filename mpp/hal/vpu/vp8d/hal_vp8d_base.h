@@ -35,7 +35,7 @@
 extern RK_U32 hal_vp8d_debug;
 
 #define vp8h_dbg(flag, fmt, ...) \
-     _mpp_dbg_f(hal_vp8d_debug, flag, fmt, ## __VA_ARGS__)
+     mpp_dbg_f(hal_vp8d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define FUN_T(tag) \
     do {\

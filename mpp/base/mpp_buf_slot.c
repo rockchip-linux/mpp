@@ -29,7 +29,7 @@
 #define BUF_SLOT_DBG_OPS_HISTORY        (0x10000000)
 #define BUF_SLOT_DBG_ALL                (0x10000011)
 
-#define buf_slot_dbg(flag, fmt, ...)    _mpp_dbg(buf_slot_debug, flag, fmt, ## __VA_ARGS__)
+#define buf_slot_dbg(flag, fmt, ...)    mpp_dbg(buf_slot_debug, flag, fmt, ## __VA_ARGS__)
 
 static RK_U32 buf_slot_debug = 0;
 static RK_U32 buf_slot_idx = 0;
@@ -1228,12 +1228,12 @@ MPP_RET mpp_buf_slot_set_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
                 impl->align_chk_log_en = impl->align_chk_log_env;
 
             if (old->width || old->height) {
-                mpp_dbg_info("info change found\n");
-                mpp_dbg_info("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+                sys_dbg_info("info change found\n");
+                sys_dbg_info("old width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
                              old->width, old->height, old->hor_stride,
                              old->ver_stride, old->fmt);
             }
-            mpp_dbg_info("new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
+            sys_dbg_info("new width %4d height %4d stride hor %4d ver %4d fmt %4d\n",
                          dst->width, dst->height, dst->hor_stride, dst->ver_stride,
                          dst->fmt);
             // info change found here

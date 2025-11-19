@@ -42,8 +42,8 @@ static RK_U32 dma_heap_debug = 0;
 #define DMA_HEAP_IOCTL                  (0x00000004)
 #define DMA_HEAP_CHECK                  (0x00000008)
 
-#define dma_heap_dbg(flag, fmt, ...)    _mpp_dbg(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
-#define dma_heap_dbg_f(flag, fmt, ...)  _mpp_dbg_f(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
+#define dma_heap_dbg(flag, fmt, ...)    mpp_dbg(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
+#define dma_heap_dbg_f(flag, fmt, ...)  mpp_dbg_f(dma_heap_debug, flag, fmt, ## __VA_ARGS__)
 
 #define dma_heap_dbg_ops(fmt, ...)      dma_heap_dbg(DMA_HEAP_OPS, fmt, ## __VA_ARGS__)
 #define dma_heap_dbg_dev(fmt, ...)      dma_heap_dbg(DMA_HEAP_DEVICE, fmt, ## __VA_ARGS__)

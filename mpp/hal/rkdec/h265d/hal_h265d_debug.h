@@ -27,7 +27,7 @@
 #define H265H_DBG_FAST_ERR          (0x00000010)
 #define H265H_DBG_TASK_ERR          (0x00000020)
 
-#define h265h_dbg(flag, fmt, ...) _mpp_dbg(hal_h265d_debug, flag, fmt, ## __VA_ARGS__)
+#define h265h_dbg(flag, fmt, ...) mpp_dbg(hal_h265d_debug, flag, fmt, ## __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {

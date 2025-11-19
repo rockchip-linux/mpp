@@ -31,8 +31,8 @@
 #define VP8E_DBG_FUNCTION            (0x00000001)
 #define VP8E_DBG_CFG                 (0x00000002)
 
-#define vp8e_dbg_cfg(fmt, ...)    _mpp_dbg_f(vp8e_debug, VP8E_DBG_CFG, fmt, ## __VA_ARGS__)
-#define vp8e_dbg_fun(fmt, ...)    _mpp_dbg_f(vp8e_debug, VP8E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define vp8e_dbg_cfg(fmt, ...)    mpp_dbg_f(vp8e_debug, VP8E_DBG_CFG, fmt, ## __VA_ARGS__)
+#define vp8e_dbg_fun(fmt, ...)    mpp_dbg_f(vp8e_debug, VP8E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 RK_U32 vp8e_debug = 0;
 #define VP8E_SYN_BUTT 2

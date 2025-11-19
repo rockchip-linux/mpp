@@ -32,8 +32,8 @@
 #define VPU_API_DBG_OUTPUT              (0x00000020)
 #define VPU_API_DBG_CONTROL             (0x00000040)
 
-#define vpu_api_dbg(flag, fmt, ...)     _mpp_dbg(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
-#define vpu_api_dbg_f(flag, fmt, ...)   _mpp_dbg_f(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg(flag, fmt, ...)     mpp_dbg(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
+#define vpu_api_dbg_f(flag, fmt, ...)   mpp_dbg_f(vpu_api_debug, flag, fmt, ## __VA_ARGS__)
 
 #define vpu_api_dbg_func(fmt, ...)      vpu_api_dbg_f(VPU_API_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define vpu_api_dbg_input(fmt, ...)     vpu_api_dbg_f(VPU_API_DBG_INPUT, fmt, ## __VA_ARGS__)

@@ -31,7 +31,7 @@
 #define SYS_CFG_DBG_GET                 (0x00000008)
 #define SYS_CFG_DBG_DEC_BUF             (0x00000010)
 
-#define sys_cfg_dbg(flag, fmt, ...)     _mpp_dbg_f(mpp_sys_cfg_debug, flag, fmt, ## __VA_ARGS__)
+#define sys_cfg_dbg(flag, fmt, ...)     mpp_dbg_f(mpp_sys_cfg_debug, flag, fmt, ## __VA_ARGS__)
 
 #define sys_cfg_dbg_func(fmt, ...)      sys_cfg_dbg(SYS_CFG_DBG_FUNC, fmt, ## __VA_ARGS__)
 #define sys_cfg_dbg_info(fmt, ...)      sys_cfg_dbg(SYS_CFG_DBG_INFO, fmt, ## __VA_ARGS__)

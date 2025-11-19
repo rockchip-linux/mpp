@@ -30,8 +30,8 @@
 #define RC_DBG_RECORD               (0x00001000)
 #define RC_DBG_VBV                  (0x00002000)
 
-#define rc_dbg(flag, fmt, ...)      _mpp_dbg(rc_debug, flag, fmt, ## __VA_ARGS__)
-#define rc_dbg_f(flag, fmt, ...)    _mpp_dbg_f(rc_debug, flag, fmt, ## __VA_ARGS__)
+#define rc_dbg(flag, fmt, ...)      mpp_dbg(rc_debug, flag, fmt, ## __VA_ARGS__)
+#define rc_dbg_f(flag, fmt, ...)    mpp_dbg_f(rc_debug, flag, fmt, ## __VA_ARGS__)
 
 #define rc_dbg_func(fmt, ...)       rc_dbg_f(RC_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define rc_dbg_impl(fmt, ...)       rc_dbg(RC_DBG_API_IMPL, fmt, ## __VA_ARGS__)

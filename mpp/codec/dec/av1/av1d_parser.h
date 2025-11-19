@@ -40,7 +40,7 @@ extern RK_U32 av1d_debug;
 #define AV1D_DBG_STRMIN   (0x00000008)
 #define AV1D_DBG_DUMP_RPU (0x10000000)
 
-#define av1d_dbg(flag, fmt, ...) _mpp_dbg_f(av1d_debug, flag, fmt, ##__VA_ARGS__)
+#define av1d_dbg(flag, fmt, ...) mpp_dbg_f(av1d_debug, flag, fmt, ##__VA_ARGS__)
 #define av1d_dbg_func(fmt, ...)  av1d_dbg(AV1D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 
 typedef struct AV1RefInfo {
@@ -195,4 +195,4 @@ void Av1StoreCDFs(AV1Context *ctx, RK_U32 refresh_frame_flags);
 }
 #endif
 
-#endif // AV1D_PARSER_H 
+#endif // AV1D_PARSER_H

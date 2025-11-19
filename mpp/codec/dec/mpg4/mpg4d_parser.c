@@ -29,8 +29,8 @@
 
 RK_U32 mpg4d_debug = 0;
 
-#define mpg4d_dbg(flag, fmt, ...)   _mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
-#define mpg4d_dbg_f(flag, fmt, ...) _mpp_dbg_f(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
+#define mpg4d_dbg(flag, fmt, ...)   mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
+#define mpg4d_dbg_f(flag, fmt, ...) mpp_dbg_f(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpg4d_dbg_func(fmt, ...)    mpg4d_dbg_f(MPG4D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_bit(fmt, ...)     mpg4d_dbg(MPG4D_DBG_BITS, fmt, ## __VA_ARGS__)

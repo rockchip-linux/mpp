@@ -23,7 +23,7 @@
 #define MPP_TRIE_DBG_LAST_CHECK         (0x00000080)
 #define MPP_TRIE_DBG_IMPORT             (0x00000100)
 
-#define trie_dbg(flag, fmt, ...)        _mpp_dbg_f(mpp_trie_debug, flag, fmt, ## __VA_ARGS__)
+#define trie_dbg(flag, fmt, ...)        mpp_dbg_f(mpp_trie_debug, flag, fmt, ## __VA_ARGS__)
 #define trie_dbg_pave(fmt, ...)         trie_dbg(MPP_TRIE_DBG_PAVE, fmt, ## __VA_ARGS__)
 #define trie_dbg_set(fmt, ...)          trie_dbg(MPP_TRIE_DBG_SET, fmt, ## __VA_ARGS__)
 #define trie_dbg_get(fmt, ...)          trie_dbg(MPP_TRIE_DBG_GET, fmt, ## __VA_ARGS__)

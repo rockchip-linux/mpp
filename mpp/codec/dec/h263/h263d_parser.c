@@ -27,8 +27,8 @@
 
 RK_U32 h263d_debug = 0;
 
-#define h263d_dbg(flag, fmt, ...)   _mpp_dbg(h263d_debug, flag, fmt, ## __VA_ARGS__)
-#define h263d_dbg_f(flag, fmt, ...) _mpp_dbg_f(h263d_debug, flag, fmt, ## __VA_ARGS__)
+#define h263d_dbg(flag, fmt, ...)   mpp_dbg(h263d_debug, flag, fmt, ## __VA_ARGS__)
+#define h263d_dbg_f(flag, fmt, ...) mpp_dbg_f(h263d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define h263d_dbg_func(fmt, ...)    h263d_dbg_f(H263D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define h263d_dbg_bit(fmt, ...)     h263d_dbg(H263D_DBG_BITS, fmt, ## __VA_ARGS__)

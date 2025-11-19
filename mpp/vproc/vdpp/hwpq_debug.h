@@ -14,8 +14,8 @@
 #define HWPQ_VDPP_DUMP_IN         (0x00000010)
 #define HWPQ_VDPP_DUMP_OUT        (0x00000020)
 
-#define HWPQ_VDPP_DBG(flag, fmt, ...)    _mpp_dbg(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
-#define HWPQ_VDPP_DBG_F(flag, fmt, ...)  _mpp_dbg_f(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
+#define HWPQ_VDPP_DBG(flag, fmt, ...)    mpp_dbg(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
+#define HWPQ_VDPP_DBG_F(flag, fmt, ...)  mpp_dbg_f(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
 
 #define hwpq_vdpp_dbg(type, fmt, ...) \
     do {\

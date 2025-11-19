@@ -36,8 +36,8 @@
 
 extern RK_U32 h265e_debug;
 
-#define h265e_dbg(flag, fmt, ...)   _mpp_dbg(h265e_debug, flag, fmt, ## __VA_ARGS__)
-#define h265e_dbg_f(flag, fmt, ...) _mpp_dbg_f(h265e_debug, flag, fmt, ## __VA_ARGS__)
+#define h265e_dbg(flag, fmt, ...)   mpp_dbg(h265e_debug, flag, fmt, ## __VA_ARGS__)
+#define h265e_dbg_f(flag, fmt, ...) mpp_dbg_f(h265e_debug, flag, fmt, ## __VA_ARGS__)
 
 #define h265e_dbg_func(fmt, ...)    h265e_dbg_f(H265E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define h265e_dbg_input(fmt, ...)   h265e_dbg(H265E_DBG_INPUT, fmt, ## __VA_ARGS__)

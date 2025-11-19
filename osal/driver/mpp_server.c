@@ -30,8 +30,8 @@
 
 #define MPP_SERVER_DBG_FLOW             (0x00000001)
 
-#define mpp_serv_dbg(flag, fmt, ...)    _mpp_dbg(mpp_server_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_serv_dbg_f(flag, fmt, ...)  _mpp_dbg_f(mpp_server_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_serv_dbg(flag, fmt, ...)    mpp_dbg(mpp_server_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_serv_dbg_f(flag, fmt, ...)  mpp_dbg_f(mpp_server_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_serv_dbg_flow(fmt, ...)     mpp_serv_dbg(MPP_SERVER_DBG_FLOW, fmt, ## __VA_ARGS__)
 

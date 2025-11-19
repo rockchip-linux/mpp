@@ -25,8 +25,8 @@
 #define VP8E_DBG_HAL_IRQ                (0x00000008)
 #define VP8E_DBG_HAL_DUMP_IVF           (0x00000010)
 
-#define VP8E_DBG(flag, fmt, ...)    _mpp_dbg(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
-#define VP8E_DBG_F(flag, fmt, ...)  _mpp_dbg_f(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG(flag, fmt, ...)    mpp_dbg(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG_F(flag, fmt, ...)  mpp_dbg_f(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
 
 #define vp8e_hal_err(fmt, ...) \
     do {\

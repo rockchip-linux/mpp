@@ -24,8 +24,8 @@
 #define VP8E_DBG_RC                     (0x00040000)
 #define VP8E_DBG_RC_CFG                 (0x00080000)
 
-#define VP8E_DBG(flag, fmt, ...)    _mpp_dbg(vp8e_rc_debug, flag, fmt, ## __VA_ARGS__)
-#define VP8E_DBG_F(flag, fmt, ...)  _mpp_dbg_f(vp8e_rc_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG(flag, fmt, ...)    mpp_dbg(vp8e_rc_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG_F(flag, fmt, ...)  mpp_dbg_f(vp8e_rc_debug, flag, fmt, ## __VA_ARGS__)
 
 
 #define vp8e_rc_dbg_func(fmt, ...)    VP8E_DBG_F(VP8E_DBG_RC_FUNCTION, fmt, ## __VA_ARGS__)
@@ -35,4 +35,4 @@
 
 extern RK_U32 vp8e_rc_debug;
 
-#endif // VP8E_DEBUG_H 
+#endif // VP8E_DEBUG_H

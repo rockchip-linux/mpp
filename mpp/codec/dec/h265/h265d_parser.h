@@ -55,7 +55,7 @@ extern RK_U32 h265d_debug;
 #define H265D_DBG_TIME              (0x00000100)
 
 
-#define h265d_dbg(flag, fmt, ...) _mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
+#define h265d_dbg(flag, fmt, ...) mpp_dbg(h265d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define MAX_FRAME_SIZE 2048000
 

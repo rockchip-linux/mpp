@@ -19,8 +19,8 @@
 #define MPP_TASK_DBG_FUNCTION       (0x00000001)
 #define MPP_TASK_DBG_FLOW           (0x00000002)
 
-#define mpp_task_dbg(flag, fmt, ...)     _mpp_dbg(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_task_dbg_f(flag, fmt, ...)   _mpp_dbg_f(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_task_dbg(flag, fmt, ...)     mpp_dbg(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_task_dbg_f(flag, fmt, ...)   mpp_dbg_f(mpp_task_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_task_dbg_func(fmt, ...)      mpp_task_dbg_f(MPP_TASK_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpp_task_dbg_flow(fmt, ...)      mpp_task_dbg(MPP_TASK_DBG_FLOW, fmt, ## __VA_ARGS__)

@@ -37,8 +37,8 @@
 #define HAL_H265E_DBG_WRITE_IN_STREAM   (0x00080000)
 #define HAL_H265E_DBG_WRITE_OUT_STREAM  (0x00100000)
 
-#define hal_h265e_dbg(flag, fmt, ...)   _mpp_dbg(hal_h265e_debug, flag, fmt, ## __VA_ARGS__)
-#define hal_h265e_dbg_f(flag, fmt, ...) _mpp_dbg_f(hal_h265e_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_h265e_dbg(flag, fmt, ...)   mpp_dbg(hal_h265e_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_h265e_dbg_f(flag, fmt, ...) mpp_dbg_f(hal_h265e_debug, flag, fmt, ## __VA_ARGS__)
 
 #define hal_h265e_dbg_func(fmt, ...)    hal_h265e_dbg_f(HAL_H265E_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define hal_h265e_dbg_simple(fmt, ...)  hal_h265e_dbg_f(HAL_H265E_DBG_SIMPLE, fmt, ## __VA_ARGS__)

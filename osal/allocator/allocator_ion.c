@@ -39,8 +39,8 @@ static pthread_mutex_t scandir_lock;
 #define ION_DETECT_IOMMU_ENABLE     (0x1)   /* use ION_HEAP_TYPE_SYSTEM */
 #define ION_DETECT_NO_DTS           (0x2)   /* use ION_HEAP_TYPE_CARVEOUT */
 
-#define ion_dbg(flag, fmt, ...)     _mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
-#define ion_dbg_f(flag, fmt, ...)   _mpp_dbg_f(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg(flag, fmt, ...)     mpp_dbg(ion_debug, flag, fmt, ## __VA_ARGS__)
+#define ion_dbg_f(flag, fmt, ...)   mpp_dbg_f(ion_debug, flag, fmt, ## __VA_ARGS__)
 #define ion_dbg_func(fmt, ...)      ion_dbg_f(ION_FUNCTION, fmt, ## __VA_ARGS__)
 
 static int ion_ioctl(int fd, int req, void *arg)

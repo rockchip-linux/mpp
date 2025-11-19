@@ -26,10 +26,10 @@
 #define MPP_ENC_REFS_DBG_FRM        (0x00000004)
 #define MPP_ENC_REFS_DBG_SIZE       (0x00000008)
 
-#define enc_refs_dbg_func(fmt, ...) _mpp_dbg_f(enc_refs_debug, MPP_ENC_REFS_DBG_FUNC, fmt, ## __VA_ARGS__)
-#define enc_refs_dbg_flow(fmt, ...) _mpp_dbg_f(enc_refs_debug, MPP_ENC_REFS_DBG_FLOW, fmt, ## __VA_ARGS__)
-#define enc_refs_dbg_frm(fmt, ...)  _mpp_dbg(enc_refs_debug, MPP_ENC_REFS_DBG_FRM, fmt, ## __VA_ARGS__)
-#define enc_refs_dbg_size(fmt, ...) _mpp_dbg(enc_refs_debug, MPP_ENC_REFS_DBG_SIZE, fmt, ## __VA_ARGS__)
+#define enc_refs_dbg_func(fmt, ...) mpp_dbg_f(enc_refs_debug, MPP_ENC_REFS_DBG_FUNC, fmt, ## __VA_ARGS__)
+#define enc_refs_dbg_flow(fmt, ...) mpp_dbg_f(enc_refs_debug, MPP_ENC_REFS_DBG_FLOW, fmt, ## __VA_ARGS__)
+#define enc_refs_dbg_frm(fmt, ...)  mpp_dbg(enc_refs_debug, MPP_ENC_REFS_DBG_FRM, fmt, ## __VA_ARGS__)
+#define enc_refs_dbg_size(fmt, ...) mpp_dbg(enc_refs_debug, MPP_ENC_REFS_DBG_SIZE, fmt, ## __VA_ARGS__)
 
 #define ENC_REFS_REF_CFG_CHANGED    (0x00000001)
 #define ENC_REFS_USR_CFG_CHANGED    (0x00000002)

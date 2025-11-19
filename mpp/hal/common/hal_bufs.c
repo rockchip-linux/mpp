@@ -26,8 +26,8 @@
 
 #define HAL_BUFS_DBG_FUNCTION           (0x00000001)
 
-#define hal_bufs_dbg(flag, fmt, ...)    _mpp_dbg(hal_bufs_debug, flag, fmt, ## __VA_ARGS__)
-#define hal_bufs_dbg_f(flag, fmt, ...)  _mpp_dbg_f(hal_bufs_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_bufs_dbg(flag, fmt, ...)    mpp_dbg(hal_bufs_debug, flag, fmt, ## __VA_ARGS__)
+#define hal_bufs_dbg_f(flag, fmt, ...)  mpp_dbg_f(hal_bufs_debug, flag, fmt, ## __VA_ARGS__)
 
 #define hal_bufs_dbg_func(fmt, ...)     hal_bufs_dbg_f(HAL_BUFS_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 

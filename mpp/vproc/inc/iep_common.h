@@ -23,8 +23,8 @@
 #define IEP_DBG_TRACE               (0x00000002)
 #define IEP_DBG_IMAGE               (0x00000010)
 
-#define iep_dbg(flag, fmt, ...)     _mpp_dbg(iep_debug, flag, "iep:" fmt, ## __VA_ARGS__)
-#define iep_dbg_f(flag, fmt, ...)   _mpp_dbg_f(iep_debug, flag, fmt, ## __VA_ARGS__)
+#define iep_dbg(flag, fmt, ...)     mpp_dbg(iep_debug, flag, "iep:" fmt, ## __VA_ARGS__)
+#define iep_dbg_f(flag, fmt, ...)   mpp_dbg_f(iep_debug, flag, fmt, ## __VA_ARGS__)
 #define iep_dbg_func(fmt, ...)      iep_dbg(IEP_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define iep_dbg_trace(fmt, ...)     iep_dbg(IEP_DBG_TRACE, fmt, ## __VA_ARGS__)
 

@@ -22,7 +22,7 @@
 #define VENC_KCFG_DBG_SET               (0x00000004)
 #define VENC_KCFG_DBG_GET               (0x00000008)
 
-#define venc_kcfg_dbg(flag, fmt, ...)   _mpp_dbg_f(venc_kcfg_debug, flag, fmt, ## __VA_ARGS__)
+#define venc_kcfg_dbg(flag, fmt, ...)   mpp_dbg_f(venc_kcfg_debug, flag, fmt, ## __VA_ARGS__)
 
 #define venc_kcfg_dbg_func(fmt, ...)    venc_kcfg_dbg(VENC_KCFG_DBG_FUNC, fmt, ## __VA_ARGS__)
 #define venc_kcfg_dbg_info(fmt, ...)    venc_kcfg_dbg(VENC_KCFG_DBG_INFO, fmt, ## __VA_ARGS__)

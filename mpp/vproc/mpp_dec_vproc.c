@@ -23,12 +23,12 @@
 
 #define dec_vproc_dbg(flag, fmt, ...) \
     do { \
-        _mpp_dbg(vproc_debug, flag, fmt, ## __VA_ARGS__); \
+        mpp_dbg(vproc_debug, flag, fmt, ## __VA_ARGS__); \
     } while (0)
 
 #define vproc_dbg_f(flag, fmt, ...) \
     do { \
-        _mpp_dbg_f(vproc_debug, flag, fmt, ## __VA_ARGS__); \
+        mpp_dbg_f(vproc_debug, flag, fmt, ## __VA_ARGS__); \
     } while (0)
 
 #define VPROC_DBG_FUNCTION      (0x00000001)
@@ -846,7 +846,7 @@ static void *dec_vproc_thread(void *data)
     HalTaskInfo task_info;
     HalDecVprocTask *task_vproc = &task_info.dec_vproc;
 
-    mpp_dbg_info("mpp_dec_post_proc_thread started\n");
+    sys_dbg_info("mpp_dec_post_proc_thread started\n");
 
     while (1) {
         MPP_RET ret = MPP_OK;
@@ -972,7 +972,7 @@ static void *dec_vproc_thread(void *data)
             vproc_dbg_status("vproc task done");
         }
     }
-    mpp_dbg_info("mpp_dec_post_proc_thread exited\n");
+    sys_dbg_info("mpp_dec_post_proc_thread exited\n");
 
     return NULL;
 }

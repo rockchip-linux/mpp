@@ -28,7 +28,7 @@
 #define ENC_CFG_DBG_SET             (0x00000004)
 #define ENC_CFG_DBG_GET             (0x00000008)
 
-#define enc_cfg_dbg(flag, fmt, ...) _mpp_dbg_f(mpp_enc_cfg_debug, flag, fmt, ## __VA_ARGS__)
+#define enc_cfg_dbg(flag, fmt, ...) mpp_dbg_f(mpp_enc_cfg_debug, flag, fmt, ## __VA_ARGS__)
 
 #define enc_cfg_dbg_func(fmt, ...)  enc_cfg_dbg(ENC_CFG_DBG_FUNC, fmt, ## __VA_ARGS__)
 #define enc_cfg_dbg_info(fmt, ...)  enc_cfg_dbg(ENC_CFG_DBG_INFO, fmt, ## __VA_ARGS__)

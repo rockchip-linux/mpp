@@ -364,7 +364,7 @@ void mpp_dec_put_frame(Mpp *mpp, RK_S32 index, HalDecTaskFlag flags)
         mpp_frame_init(&out);
         mpp_frame_copy(out, frame);
 
-        mpp_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(out));
+        sys_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(out));
 
         mpp_mutex_cond_lock(&list->cond_lock);
         mpp_list_add_at_tail(list, &out, sizeof(out));

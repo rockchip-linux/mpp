@@ -38,7 +38,7 @@ extern RK_U32 vp9d_debug;
 
 
 
-#define vp9d_dbg(flag, fmt, ...) _mpp_dbg(vp9d_debug, flag, fmt, ##__VA_ARGS__)
+#define vp9d_dbg(flag, fmt, ...) mpp_dbg(vp9d_debug, flag, fmt, ##__VA_ARGS__)
 
 enum CompPredMode {
     PRED_SINGLEREF,

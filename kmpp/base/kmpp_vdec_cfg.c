@@ -22,7 +22,7 @@
 #define VDEC_KCFG_DBG_SET               (0x00000004)
 #define VDEC_KCFG_DBG_GET               (0x00000008)
 
-#define vdec_kcfg_dbg(flag, fmt, ...)   _mpp_dbg_f(vdec_kcfg_debug, flag, fmt, ## __VA_ARGS__)
+#define vdec_kcfg_dbg(flag, fmt, ...)   mpp_dbg_f(vdec_kcfg_debug, flag, fmt, ## __VA_ARGS__)
 
 #define vdec_kcfg_dbg_func(fmt, ...)    vdec_kcfg_dbg(VDEC_KCFG_DBG_FUNC, fmt, ## __VA_ARGS__)
 #define vdec_kcfg_dbg_info(fmt, ...)    vdec_kcfg_dbg(VDEC_KCFG_DBG_INFO, fmt, ## __VA_ARGS__)

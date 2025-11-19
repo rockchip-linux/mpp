@@ -17,7 +17,7 @@
 
 static rk_u32 thread_debug = 0;
 
-#define thread_dbg(flag, fmt, ...)  _mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
+#define thread_dbg(flag, fmt, ...)  mpp_dbg(thread_debug, flag, fmt, ## __VA_ARGS__)
 
 MppThread *mpp_thread_create(MppThreadFunc func, void *ctx, const char *name)
 {

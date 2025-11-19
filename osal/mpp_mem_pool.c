@@ -18,8 +18,8 @@
 #define MEM_POOL_DBG_FLOW               (0x00000001)
 #define MEM_POOL_DBG_EXIT               (0x00000002)
 
-#define mem_pool_dbg(flag, fmt, ...)    _mpp_dbg(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
-#define mem_pool_dbg_f(flag, fmt, ...)  _mpp_dbg_f(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
+#define mem_pool_dbg(flag, fmt, ...)    mpp_dbg(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
+#define mem_pool_dbg_f(flag, fmt, ...)  mpp_dbg_f(mpp_mem_pool_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mem_pool_dbg_flow(fmt, ...)     mem_pool_dbg(MEM_POOL_DBG_FLOW, fmt, ## __VA_ARGS__)
 #define mem_pool_dbg_exit(fmt, ...)     mem_pool_dbg(MEM_POOL_DBG_EXIT, fmt, ## __VA_ARGS__)

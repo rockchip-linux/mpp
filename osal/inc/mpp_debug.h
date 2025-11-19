@@ -22,15 +22,15 @@
 #define MPP_DBG_DUMP_OUT                (0x00000400)
 #define MPP_DBG_DUMP_CFG                (0x00000800)
 
-#define _mpp_dbg(debug, flag, fmt, ...)     mpp_log_c((debug) & (flag), fmt, ## __VA_ARGS__)
-#define _mpp_dbg_f(debug, flag, fmt, ...)   mpp_log_cf((debug) & (flag), fmt, ## __VA_ARGS__)
+#define mpp_dbg(debug, flag, fmt, ...)     mpp_log_c((debug) & (flag), fmt, ## __VA_ARGS__)
+#define mpp_dbg_f(debug, flag, fmt, ...)   mpp_log_cf((debug) & (flag), fmt, ## __VA_ARGS__)
 
-#define mpp_dbg(flag, fmt, ...)         _mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
-#define mpp_dbg_f(flag, fmt, ...)       _mpp_dbg_f(mpp_debug, flag, fmt, ## __VA_ARGS__)
+#define sys_dbg(flag, fmt, ...)         mpp_dbg(mpp_debug, flag, fmt, ## __VA_ARGS__)
+#define sys_dbg_f(flag, fmt, ...)       mpp_dbg_f(mpp_debug, flag, fmt, ## __VA_ARGS__)
 
-#define mpp_dbg_pts(fmt, ...)           mpp_dbg(MPP_DBG_PTS, fmt, ## __VA_ARGS__)
-#define mpp_dbg_info(fmt, ...)          mpp_dbg(MPP_DBG_INFO, fmt, ## __VA_ARGS__)
-#define mpp_dbg_platform(fmt, ...)      mpp_dbg(MPP_DBG_PLATFORM, fmt, ## __VA_ARGS__)
+#define sys_dbg_pts(fmt, ...)           sys_dbg(MPP_DBG_PTS, fmt, ## __VA_ARGS__)
+#define sys_dbg_info(fmt, ...)          sys_dbg(MPP_DBG_INFO, fmt, ## __VA_ARGS__)
+#define sys_dbg_platform(fmt, ...)      sys_dbg(MPP_DBG_PLATFORM, fmt, ## __VA_ARGS__)
 
 #define MPP_ABORT                       (0x10000000)
 

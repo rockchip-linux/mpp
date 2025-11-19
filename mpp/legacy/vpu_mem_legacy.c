@@ -28,8 +28,8 @@
 
 static RK_U32 vpu_mem_debug = 0;
 
-#define vpu_mem_dbg(flag, fmt, ...)     _mpp_dbg(vpu_mem_debug, flag, fmt, ## __VA_ARGS__)
-#define vpu_mem_dbg_f(flag, fmt, ...)   _mpp_dbg_f(vpu_mem_debug, flag, fmt, ## __VA_ARGS__)
+#define vpu_mem_dbg(flag, fmt, ...)     mpp_dbg(vpu_mem_debug, flag, fmt, ## __VA_ARGS__)
+#define vpu_mem_dbg_f(flag, fmt, ...)   mpp_dbg_f(vpu_mem_debug, flag, fmt, ## __VA_ARGS__)
 
 #define vpu_mem_dbg_func(fmt, ...)      vpu_mem_dbg_f(VPU_MEM_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 

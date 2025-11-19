@@ -23,10 +23,10 @@ static RK_U32 rga_debug = 0;
 #define RGB_DBG_COPY        (0x00000002)
 #define RGB_DBG_DUP_FIELD   (0x00000004)
 
-#define rga_dbg(flag, fmt, ...) _mpp_dbg(rga_debug, flag, fmt, ## __VA_ARGS__)
-#define rga_dbg_func(fmt, ...)  _mpp_dbg_f(rga_debug, RGB_DBG_FUNCTION, fmt, ## __VA_ARGS__)
-#define rga_dbg_copy(fmt, ...)  _mpp_dbg(rga_debug, RGB_DBG_COPY, fmt, ## __VA_ARGS__)
-#define rga_dbg_dup(fmt, ...)   _mpp_dbg(rga_debug, RGB_DBG_COPY, fmt, ## __VA_ARGS__)
+#define rga_dbg(flag, fmt, ...) mpp_dbg(rga_debug, flag, fmt, ## __VA_ARGS__)
+#define rga_dbg_func(fmt, ...)  mpp_dbg_f(rga_debug, RGB_DBG_FUNCTION, fmt, ## __VA_ARGS__)
+#define rga_dbg_copy(fmt, ...)  mpp_dbg(rga_debug, RGB_DBG_COPY, fmt, ## __VA_ARGS__)
+#define rga_dbg_dup(fmt, ...)   mpp_dbg(rga_debug, RGB_DBG_COPY, fmt, ## __VA_ARGS__)
 
 #define DEFAULT_RGA_DEV     "/dev/rga"
 

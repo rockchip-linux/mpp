@@ -21,7 +21,7 @@
 #define MAX_LOCK_LOOP       10000
 
 static RK_S32 thread_debug = 0;
-#define thread_dbg(fmt, ...)    _mpp_dbg(thread_debug, 1, fmt, ## __VA_ARGS__)
+#define thread_dbg(fmt, ...)    mpp_dbg(thread_debug, 1, fmt, ## __VA_ARGS__)
 
 static pthread_mutex_t mutex_0;
 static pthread_mutex_t mutex_1;

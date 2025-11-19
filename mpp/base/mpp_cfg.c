@@ -14,7 +14,7 @@
 #define MPP_CFG_DBG_SET             (0x00000001)
 #define MPP_CFG_DBG_GET             (0x00000002)
 
-#define mpp_cfg_dbg(flag, fmt, ...) _mpp_dbg(mpp_cfg_debug, flag, fmt, ## __VA_ARGS__)
+#define mpp_cfg_dbg(flag, fmt, ...) mpp_dbg(mpp_cfg_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpp_cfg_dbg_set(fmt, ...)   mpp_cfg_dbg(MPP_CFG_DBG_SET, fmt, ## __VA_ARGS__)
 #define mpp_cfg_dbg_get(fmt, ...)   mpp_cfg_dbg(MPP_CFG_DBG_GET, fmt, ## __VA_ARGS__)
