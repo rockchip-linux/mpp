@@ -175,9 +175,9 @@ typedef struct DXVA_PicParams_HEVC_t {
     CHAR    pps_tc_offset_div2;
     UCHAR   log2_parallel_merge_level_minus2;
     INT     CurrPicOrderCntVal;
-    DXVA_PicEntry_HEVC  RefPicList[15];
+    DXVA_PicEntry_HEVC  RefPicList[16];
     UCHAR   ReservedBits5;
-    INT     PicOrderCntValList[15];
+    INT     PicOrderCntValList[16];
     UCHAR   RefPicSetStCurrBefore[8];
     UCHAR   RefPicSetStCurrAfter[8];
     UCHAR   RefPicSetLtCurr[8];
