@@ -43,4 +43,5 @@ target_link_libraries(mpp_codec
                       codec_dummy_enc
                       codec_dummy_dec
                       mpp_vproc
-                      mpp_base)
+                      mpp_base
+                      hal_common)

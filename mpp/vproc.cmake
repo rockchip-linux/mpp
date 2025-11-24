@@ -2,6 +2,21 @@ option(ENABLE_VPROC "Enable video process" ON)
 if( ENABLE_VPROC )
     set(HAVE_VPROC true)
     add_definitions(-DHAVE_VPROC)
+
+    set(HAVE_VPROC_IEP true)
+    set(VPROC_IEP vproc_iep)
+    add_definitions(-DHAVE_VPROC_IEP)
+
+    set(HAVE_VPROC_IEP2 true)
+    set(VPROC_IEP2 vproc_iep2)
+    add_definitions(-DHAVE_VPROC_IEP2)
+endif()
+
+option(ENABLE_VPROC_RGA "Enable rga processor" ON)
+if( ENABLE_VPROC_RGA )
+    set(HAVE_VPROC_RGA true)
+    set(VPROC_RGA vproc_rga)
+    add_definitions(-DHAVE_VPROC_RGA)
 endif()
 
 option(ENABLE_VPROC_VDPP "Enable video display post processor" OFF)

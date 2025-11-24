@@ -17,6 +17,6 @@ add_library(hal_av1d_rkv STATIC
             )
 
 set_target_properties(hal_av1d_rkv PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(hal_av1d_rkv mpp_base)
+target_link_libraries(hal_av1d_rkv mpp_base vdpu383_com)
 
 #add_subdirectory(test)

@@ -12,18 +12,22 @@
 #include "iep2_api.h"
 
 struct dev_compatible dev_comp[] = {
+#ifdef HAVE_VPROC_IEP
     {
         .compatible = "/dev/iep",
         .get = rockchip_iep_api_alloc_ctx,
         .put = rockchip_iep_api_release_ctx,
         .ver = 1,
     },
+#endif
+#ifdef HAVE_VPROC_IEP2
     {
         .compatible = "/dev/mpp_service",
         .get = rockchip_iep2_api_alloc_ctx,
         .put = rockchip_iep2_api_release_ctx,
         .ver = 2,
     },
+#endif
 };
 
 iep_com_ctx* get_iep_ctx(void)

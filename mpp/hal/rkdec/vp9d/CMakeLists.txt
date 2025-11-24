@@ -12,6 +12,6 @@ set(HAL_VP9D_SRC
 
 add_library(hal_vp9d STATIC ${HAL_VP9D_SRC})
 
-target_link_libraries(hal_vp9d mpp_base vdpu383_com)
+target_link_libraries(hal_vp9d mpp_base vdpu383_com vdpu34x_com)
 set_target_properties(hal_vp9d PROPERTIES FOLDER "mpp/hal")
 

@@ -1,5 +1,14 @@
 # vim: syntax=cmake
 add_subdirectory(common)
-add_subdirectory(h264e)
-add_subdirectory(h265e)
-add_subdirectory(jpege)
+
+if( HAVE_H264E )
+    add_subdirectory(h264e)
+endif()
+
+if( HAVE_H265E )
+    add_subdirectory(h265e)
+endif()
+
+if( HAVE_JPEGE )
+    add_subdirectory(jpege)
+endif()

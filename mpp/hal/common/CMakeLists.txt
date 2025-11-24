@@ -12,7 +12,18 @@ add_library(hal_common STATIC
 target_link_libraries(hal_common mpp_base)
 set_target_properties(hal_common PROPERTIES FOLDER "mpp/hal/common")
 
-add_subdirectory(h264)
-add_subdirectory(h265)
-add_subdirectory(jpeg)
-add_subdirectory(av1)
+if( HAVE_H264E )
+    add_subdirectory(h264)
+endif()
+
+if( HAVE_H265E )
+    add_subdirectory(h265)
+endif()
+
+if( HAVE_JPEGE )
+    add_subdirectory(jpeg)
+endif()
+
+if( HAVE_AV1D )
+    add_subdirectory(av1)
+endif()
