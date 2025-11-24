@@ -7,6 +7,7 @@
 #define MPP_HASH_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "rk_type.h"
 
@@ -14,8 +15,8 @@
 extern "C" {
 #endif
 
-#define GOLDEN_RATIO_32 0x61C88647
-#define GOLDEN_RATIO_64 0x61C8864680B583EBull
+#define GOLDEN_RATIO_32 0x61C88647U
+#define GOLDEN_RATIO_64 0x61C8864680B583EBULL
 
 #if __SIZEOF_POINTER__ == 4
 #define GOLDEN_RATIO_PRIME GOLDEN_RATIO_32
@@ -39,8 +40,8 @@ struct hlist_head {
 #define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
 #define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
 
-#define LIST_POISON1  ((void *) 0x100)
-#define LIST_POISON2  ((void *) 0x200)
+#define LIST_POISON1  ((struct hlist_node*) 0x100)
+#define LIST_POISON2  ((struct hlist_node**) 0x200)
 
 #define WRITE_ONCE(var, val) \
     (*((volatile typeof(val) *)(&(var))) = (val))
@@ -55,15 +56,15 @@ static inline void INIT_HLIST_NODE(struct hlist_node *h)
 
 static inline int hlist_unhashed(const struct hlist_node *h)
 {
-    return !h->pprev;
+    return (h->pprev == NULL) ? 1 : 0;
 }
 
 static inline int hlist_empty(const struct hlist_head *h)
 {
-    return !READ_ONCE(h->first);
+    return (READ_ONCE(h->first) == NULL) ? 1 : 0;
 }
 
-static inline void __hlist_del(struct hlist_node *n)
+static inline void hlist_del_(struct hlist_node *n)
 {
     struct hlist_node *next = n->next;
     struct hlist_node **pprev = n->pprev;
@@ -75,15 +76,15 @@ static inline void __hlist_del(struct hlist_node *n)
 
 static inline void hlist_del(struct hlist_node *n)
 {
-    __hlist_del(n);
-    n->next = (struct hlist_node*)LIST_POISON1;
-    n->pprev = (struct hlist_node**)LIST_POISON2;
+    hlist_del_(n);
+    n->next = LIST_POISON1;
+    n->pprev = LIST_POISON2;
 }
 
 static inline void hlist_del_init(struct hlist_node *n)
 {
-    if (!hlist_unhashed(n)) {
-        __hlist_del(n);
+    if (hlist_unhashed(n) == 0) {
+        hlist_del_(n);
         INIT_HLIST_NODE(n);
     }
 }
@@ -123,13 +124,13 @@ static inline void hlist_add_fake(struct hlist_node *n)
 
 static inline int hlist_fake(struct hlist_node *h)
 {
-    return h->pprev == &h->next;
+    return (h->pprev == &h->next) ? 1 : 0;
 }
 
 static inline int
 hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
 {
-    return !n->next && n->pprev == &h->first;
+    return (!n->next && n->pprev == &h->first) ? 1 : 0;
 }
 
 static inline void hlist_move_list(struct hlist_head *old,
@@ -267,7 +268,7 @@ static inline void hlist_move_list(struct hlist_head *old,
  * This has to be a macro since HASH_BITS() will not work on pointers since
  * it calculates the size during preprocessing.
  */
-#define hash_empty(hashtable) __hash_empty(hashtable, HASH_SIZE(hashtable))
+#define hash_empty(hashtable) hash_empty_(hashtable, HASH_SIZE(hashtable))
 
 /**
  * hash_for_each - iterate over a hashtable
@@ -304,10 +305,10 @@ static inline RK_U32 hash_32(RK_U32 val, unsigned int bits)
     RK_U32 hash = val * GOLDEN_RATIO_32;
 
     /* High bits are more random, so use them. */
-    return hash >> (32 - bits);
+    return hash >> (32U - bits);
 }
 
-static inline RK_U32 __hash_32(RK_U32 val)
+static inline RK_U32 hash_32_(RK_U32 val)
 {
     return val * GOLDEN_RATIO_32;
 }
@@ -316,22 +317,25 @@ static inline RK_U32 hash_64(RK_U64 val, unsigned int bits)
 {
 #if __SIZEOF_POINTER__ == 8
     /* 64x64-bit multiply is efficient on all 64-bit processors */
-    return val * GOLDEN_RATIO_64 >> (64 - bits);
+    return (RK_U32)(val * GOLDEN_RATIO_64 >> (64U - bits));
 #else
     /* Hash 64 bits using only 32x32-bit multiply. */
-    return hash_32((RK_U32)val ^ ((val >> 32) * GOLDEN_RATIO_32), bits);
+    RK_U32 val_low32 = (RK_U32)(val & 0xFFFFFFFFU);
+    RK_U32 val_high32 = (RK_U32)(val >> 32);
+
+    return hash_32(val_low32 ^ (val_high32 * GOLDEN_RATIO_32), bits);
 #endif
 }
 
 static inline RK_U32 hash_ptr(const void *ptr, unsigned int bits)
 {
-    return hash_long((unsigned long)ptr, bits);
+    return hash_long((unsigned long)(uintptr_t)ptr, bits);
 }
 
 /* This really should be called fold32_ptr; it does no hashing to speak of. */
 static inline RK_U32 hash32_ptr(const void *ptr)
 {
-    unsigned long val = (unsigned long)ptr;
+    unsigned long val = (unsigned long)(uintptr_t)ptr;
 
 #if __SIZEOF_POINTER__ == 8
     val ^= (val >> 32);
@@ -345,15 +349,15 @@ static inline RK_U32 hash32_ptr(const void *ptr)
  */
 static inline bool hash_hashed(struct hlist_node *node)
 {
-    return !hlist_unhashed(node);
+    return hlist_unhashed(node) == 0;
 }
 
-static inline bool __hash_empty(struct hlist_head *ht, unsigned int sz)
+static inline bool hash_empty_(struct hlist_head *ht, unsigned int sz)
 {
     unsigned int i;
 
     for (i = 0; i < sz; i++)
-        if (!hlist_empty(&ht[i]))
+        if (hlist_empty(&ht[i]) == 0)
             return false;
 
     return true;
