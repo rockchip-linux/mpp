@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#ifndef VERSION_H
+#define VERSION_H
 
 #define	MPP_VERSION             @VERSION_INFO@
 #define	MPP_VER_HIST_CNT        @VERSION_CNT@
