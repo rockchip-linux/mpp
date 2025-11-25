@@ -33,7 +33,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
 {
     MPP_RET ret = MPP_OK;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+    RK_U32 max_cnt = (p_hal->fast_mode != 0) ? VDPU_FAST_REG_SET_CNT : 1;
     RK_U32 i = 0;
     void *cdf_ptr;
     INP_CHECK(ret, NULL == p_hal);
@@ -174,7 +174,7 @@ static MPP_RET vdpu383_av1d_rcb_calc(void *context, RK_U32 *total_size)
     if (ctx->tile_dir == 0)
         cur_bit_size = MPP_ROUNDUP(64, on_tl_col) * (1.6 * bit_depth + 0.5) *
                        (14 + 7 * cur_uv_para + (14 + 12.5 * cur_uv_para) * ctx->lr_en +
-                        ( ctx->upsc_en ? (8.5 + 7 * cur_uv_para) : (5 + 1 * cur_uv_para)));
+                        ((ctx->upsc_en != 0) ? (8.5 + 7 * cur_uv_para) : (5 + 1 * cur_uv_para)));
     vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_COL, 158, cur_bit_size);
 
     /* RCB_FLTD_UPSC_ON_COL */
@@ -471,7 +471,7 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
     }
 
     Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    Vdpu383RegSet *regs = p_hal->fast_mode ?
+    Vdpu383RegSet *regs = (p_hal->fast_mode != 0) ?
                           reg_ctx->reg_buf[task->dec.reg_index].regs :
                           reg_ctx->regs;
     MppDev dev = p_hal->dev;
@@ -537,7 +537,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    Vdpu383RegSet *p_regs = p_hal->fast_mode ?
+    Vdpu383RegSet *p_regs = (p_hal->fast_mode != 0) ?
                             reg_ctx->reg_buf[task->dec.reg_index].regs :
                             reg_ctx->regs;
 #ifdef DUMP_VDPU38X_DATAS

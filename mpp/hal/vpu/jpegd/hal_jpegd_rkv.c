@@ -225,7 +225,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     RK_U32 out_height = s->height;
     out_width = out_width >> regs->reg2_sys.scaledown_mode;
     out_width = MPP_ALIGN(out_width, 16);
-    out_height = regs->reg2_sys.fill_down_e ? MPP_ALIGN(out_height, 16) : MPP_ALIGN(out_height, 8);
+    out_height = (regs->reg2_sys.fill_down_e != 0) ? MPP_ALIGN(out_height, 16) : MPP_ALIGN(out_height, 8);
     out_height = out_height >> regs->reg2_sys.scaledown_mode;
     jpegd_dbg_hal("output scale %d, width %d, height %d\n", regs->reg2_sys.scaledown_mode, out_width, out_height);
 
@@ -316,7 +316,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         regs->reg7_tbl_len.qtbl_len = 0;
 
     // 8 bit precision 12, 12 bit precision 16;
-    regs->reg7_tbl_len.htbl_value_len = regs->reg4_pic_fmt.htables_sel * (regs->reg4_pic_fmt.pixel_depth ? 16 : 12) - 1;
+    regs->reg7_tbl_len.htbl_value_len = regs->reg4_pic_fmt.htables_sel * ((regs->reg4_pic_fmt.pixel_depth != 0) ? 16 : 12) - 1;
 
     switch (regs->reg4_pic_fmt.htables_sel) {
     case TBL_ENTRY_0 :

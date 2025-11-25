@@ -298,7 +298,7 @@ MPP_RET hal_avs2d_vdpu383_init(void *hal, MppHalCfg *cfg)
     //!< malloc buffers
     reg_ctx->shph_dat = mpp_calloc(RK_U8, AVS2_383_SHPH_SIZE);
     reg_ctx->scalist_dat = mpp_calloc(RK_U8, AVS2_383_SCALIST_SIZE);
-    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, AVS2_ALL_TBL_BUF_SIZE(loop)));
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
@@ -424,7 +424,7 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
     }
 
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
     dev = p_hal->dev;
 
     p_hal->frame_no++;
@@ -503,7 +503,7 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
 
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
         !p_hal->cfg->base.disable_error) {

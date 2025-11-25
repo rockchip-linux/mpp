@@ -247,7 +247,7 @@ static void avs2d_refine_rcb_size(VdpuRcbInfo *rcb_info,
     rcb_info[RCB_INTER_COL].size = 0;
 
     /* RCB_INTRA_ROW */
-    rcb_bits = width * ((chroma_fmt_idc ? 1 : 0) + 1) * 11;
+    rcb_bits = width * (((chroma_fmt_idc != 0) ? 1 : 0) + 1) * 11;
     rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
 
     /* RCB_DBLK_ROW */
@@ -288,7 +288,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu382Avs2dRegSet *hw_regs)
     RK_S32 width = p_hal->syntax.pp.pic_width_in_luma_samples;
     RK_S32 height = p_hal->syntax.pp.pic_height_in_luma_samples;
     RK_S32 i = 0;
-    RK_S32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_S32 loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
     reg_ctx->rcb_buf_size = vdpu382_get_rcb_buf_size(reg_ctx->rcb_info, width, height);
     avs2d_refine_rcb_size(reg_ctx->rcb_info, hw_regs, width, height, (void *)&p_hal->syntax);
@@ -483,7 +483,7 @@ MPP_RET hal_avs2d_vdpu382_init(void *hal, MppHalCfg *cfg)
     //!< malloc buffers
     reg_ctx->shph_dat = mpp_calloc(RK_U8, AVS2_RKV_SHPH_SIZE);
     reg_ctx->scalist_dat = mpp_calloc(RK_U8, AVS2_RKV_SCALIST_SIZE);
-    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, AVS2_ALL_TBL_BUF_SIZE(loop)));
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
@@ -650,7 +650,7 @@ MPP_RET hal_avs2d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     // set rcb
     {
         hal_avs2d_rcb_info_update(p_hal, regs);
-        vdpu382_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
+        vdpu382_setup_rcb(&regs->common_addr, p_hal->dev, (p_hal->fast_mode != 0) ?
                           reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0],
                           reg_ctx->rcb_info);
 
@@ -774,7 +774,7 @@ MPP_RET hal_avs2d_vdpu382_start(void *hal, HalTaskInfo *task)
     }
 
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
     dev = p_hal->dev;
 
     p_hal->frame_no++;
@@ -907,7 +907,7 @@ MPP_RET hal_avs2d_vdpu382_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    p_regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    p_regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
 
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
         !p_hal->cfg->base.disable_error) {

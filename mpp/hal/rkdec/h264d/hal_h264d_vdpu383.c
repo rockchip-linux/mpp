@@ -88,9 +88,9 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     for (i = 0; i < 32; i++) {
         tmp = 0;
         dpb_valid = (p_hal->slice_long[0].RefPicList[0][i].bPicEntry == 0xff) ? 0 : 1;
-        dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].Index7Bits : 0;
-        bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].AssociatedFlag : 0;
-        voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
+        dpb_idx = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[0][i].Index7Bits : 0;
+        bottom_flag = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[0][i].AssociatedFlag : 0;
+        voidx = (dpb_valid != 0) ? pp->RefPicLayerIdList[dpb_idx] : 0;
 
         tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
         tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
@@ -103,9 +103,9 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
         for (i = 0; i < 32; i++) {
             tmp = 0;
             dpb_valid = (p_hal->slice_long[0].RefPicList[j][i].bPicEntry == 0xff) ? 0 : 1;
-            dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
-            bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
-            voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
+            dpb_idx = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
+            bottom_flag = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
+            voidx = (dpb_valid != 0) ? pp->RefPicLayerIdList[dpb_idx] : 0;
             tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
             tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
             if (dpb_valid)
@@ -310,7 +310,7 @@ MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
 
     MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(Vdpu3xxH264dRegCtx)));
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+    RK_U32 max_cnt = (p_hal->fast_mode != 0) ? VDPU_FAST_REG_SET_CNT : 1;
     RK_U32 i = 0;
 
     //!< malloc buffers
@@ -578,7 +578,7 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu383RegSet *regs = p_hal->fast_mode ?
+    Vdpu383RegSet *regs = (p_hal->fast_mode != 0) ?
                           reg_ctx->reg_buf[task->dec.reg_index].regs :
                           reg_ctx->regs;
     MppDev dev = p_hal->dev;
@@ -645,7 +645,7 @@ MPP_RET vdpu383_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu383RegSet *p_regs = p_hal->fast_mode ?
+    Vdpu383RegSet *p_regs = (p_hal->fast_mode != 0) ?
                             reg_ctx->reg_buf[task->dec.reg_index].regs :
                             reg_ctx->regs;
 

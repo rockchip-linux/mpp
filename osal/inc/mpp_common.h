@@ -20,7 +20,7 @@
 #define MPP_MIN3(a,b,c)         MPP_MIN(MPP_MIN(a,b),c)
 #define MPP_MIN4(a, b, c, d)    MPP_MIN((a), MPP_MIN3((b), (c), (d)))
 
-#define MPP_DIV(a, b)           ((b) ? (a) / (b) : (a))
+#define MPP_DIV(a, b)           (((b) != 0) ? (a) / (b) : (a))
 
 #define MPP_CLIP3(l, h, v)      ((v) < (l) ? (l) : ((v) > (h) ? (h) : (v)))
 #define MPP_SIGN(a)             ((a) < (0) ? (-1) : (1))

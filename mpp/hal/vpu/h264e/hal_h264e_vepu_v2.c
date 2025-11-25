@@ -592,7 +592,7 @@ MPP_RET h264e_vepu_mbrc_prepare(HalH264eVepuMbRcCtx ctx, HalH264eVepuMbRc *mbrc,
         return MPP_OK;
 
     p->pre_frame_type = p->frame_type;
-    p->frame_type = (frm->is_intra) ? INTRA_FRAME : INTER_P_FRAME;
+    p->frame_type = (frm->is_intra != 0) ? INTRA_FRAME : INTER_P_FRAME;
 
     if (mbrc->rlc_count == 0) {
         mbrc->rlc_count = 1;

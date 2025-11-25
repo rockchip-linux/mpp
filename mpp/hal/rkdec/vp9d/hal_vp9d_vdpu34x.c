@@ -515,7 +515,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         }
         // colref poc
         vp9_hw_regs->vp9d_param.reg98.col_ref_poc =
-            hw_ctx->col_ref_poc ? hw_ctx->col_ref_poc : vp9_hw_regs->vp9d_param.reg65.cur_poc;
+            (hw_ctx->col_ref_poc != 0) ? hw_ctx->col_ref_poc : vp9_hw_regs->vp9d_param.reg65.cur_poc;
         if (pic_param->show_frame && !pic_param->show_existing_frame)
             hw_ctx->col_ref_poc = vp9_hw_regs->vp9d_param.reg65.cur_poc;
         // segment id ref poc
@@ -835,7 +835,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     {
         MppBuffer rcb_buf = NULL;
 
-        rcb_buf = p_hal->fast_mode ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf : hw_ctx->rcb_buf;
+        rcb_buf = (p_hal->fast_mode != 0) ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf : hw_ctx->rcb_buf;
         vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, rcb_buf, hw_ctx->rcb_info);
     }
     vdpu34x_setup_statistic(&vp9_hw_regs->common, &vp9_hw_regs->statistic);

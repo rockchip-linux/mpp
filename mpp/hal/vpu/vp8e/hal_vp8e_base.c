@@ -269,10 +269,10 @@ static void set_hdr_segmentation(Vp8ePutBitBuf *bitbuf, Vp8ePps *ppss,
         tmp = 255 * sum1 / (sum1 + sum2);
         entropy->segment_prob[0] = MPP_CLIP3(1, 255, tmp);
 
-        tmp = sum1 ? 255 * sgm->id_cnt[0] / sum1 : 255;
+        tmp = (sum1 != 0) ? 255 * sgm->id_cnt[0] / sum1 : 255;
         entropy->segment_prob[1] = MPP_CLIP3(1, 255, tmp);
 
-        tmp = sum2 ? 255 * sgm->id_cnt[2] / sum2 : 255;
+        tmp = (sum2 != 0) ? 255 * sgm->id_cnt[2] / sum2 : 255;
         entropy->segment_prob[2] = MPP_CLIP3(1, 255, tmp);
 
         for (i = 0; i < 3; i++) {
@@ -872,9 +872,9 @@ static MPP_RET set_frame_tag(void *hal)
     RK_S32 v_scaling;
 
     tmp = ((ctx->bitbuf[1].byte_cnt) << 5) |
-          ((cur_pic->show ? 1 : 0) << 4) |
+          (((cur_pic->show != 0) ? 1 : 0) << 4) |
           (ctx->sps.profile << 1) |
-          (cur_pic->i_frame ? 0 : 1);
+          ((cur_pic->i_frame != 0) ? 0 : 1);
 
     vp8e_put_byte(bitbuf, tmp & 0xff);
 

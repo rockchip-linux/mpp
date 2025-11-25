@@ -242,7 +242,7 @@ MPP_RET vdpu384a_h264d_init(void *hal, MppHalCfg *cfg)
 
     MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(Vdpu3xxH264dRegCtx)));
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+    RK_U32 max_cnt = (p_hal->fast_mode != 0) ? VDPU_FAST_REG_SET_CNT : 1;
     RK_U32 i = 0;
 
     //!< malloc buffers
@@ -494,7 +494,7 @@ MPP_RET vdpu384a_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu384aRegSet *regs = p_hal->fast_mode ?
+    Vdpu384aRegSet *regs = (p_hal->fast_mode != 0) ?
                            reg_ctx->reg_buf[task->dec.reg_index].regs :
                            reg_ctx->regs;
     MppDev dev = p_hal->dev;
@@ -561,7 +561,7 @@ MPP_RET vdpu384a_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu384aRegSet *p_regs = p_hal->fast_mode ?
+    Vdpu384aRegSet *p_regs = (p_hal->fast_mode != 0) ?
                              reg_ctx->reg_buf[task->dec.reg_index].regs :
                              reg_ctx->regs;
 

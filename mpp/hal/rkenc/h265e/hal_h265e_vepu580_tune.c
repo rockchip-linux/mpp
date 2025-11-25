@@ -237,7 +237,7 @@ static void vepu580_h265e_tune_atf(H265eV580HalContext *ctx, RK_U32 sm_flag)
     vepu580_rdo_cfg  *reg_rdo = &regs->reg_rdo;
     RdoAtfSkipCfg *s;
     RdoAtfCfg* p;
-    RK_U32 atf_idx = ctx->cfg->tune.vmaf_opt ? 3 : sm_flag;
+    RK_U32 atf_idx = (ctx->cfg->tune.vmaf_opt != 0) ? 3 : sm_flag;
 
     s = &reg_rdo->rdo_b64_skip_atf;
     s->rdo_b_cime_thd0.cu_rdo_cime_thd0 = 1;
@@ -388,7 +388,7 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     RK_U32 scene_motion_flag = tune->ap_motion_flag * 2 + tune->curr_scene_motion_flag;
     MppEncHwCfg *hw = &ctx->cfg->hw;
     RK_S32 vmaf_opt = ctx->cfg->tune.vmaf_opt;
-    RK_U32 pre_intra_idx = vmaf_opt ? 3 : scene_motion_flag;
+    RK_U32 pre_intra_idx = (vmaf_opt != 0) ? 3 : scene_motion_flag;
 
     if (scene_motion_flag > 3) {
         mpp_err_f("scene_motion_flag is a wrong value %d\n", scene_motion_flag);
@@ -430,8 +430,8 @@ static void vepu580_h265e_tune_reg_patch(void *p)
         reg_wgt->fme_sqi_thd1.move_lambda = 8;
     }
 
-    reg_rdo->rdo_sqi_cfg.rdo_segment_en = vmaf_opt ? 0 : !tune->curr_scene_motion_flag;
-    reg_rdo->rdo_sqi_cfg.rdo_smear_en = vmaf_opt ? 0 : !tune->curr_scene_motion_flag;
+    reg_rdo->rdo_sqi_cfg.rdo_segment_en = (vmaf_opt != 0) ? 0 : !tune->curr_scene_motion_flag;
+    reg_rdo->rdo_sqi_cfg.rdo_smear_en = (vmaf_opt != 0) ? 0 : !tune->curr_scene_motion_flag;
 
     reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp0 = intra_lvl16_sobel_a[scene_motion_flag][0];
     reg_wgt->i16_sobel_a_00.intra_l16_sobel_a0_qp1 = intra_lvl16_sobel_a[scene_motion_flag][1];
@@ -472,8 +472,8 @@ static void vepu580_h265e_tune_reg_patch(void *p)
     reg_wgt->i32_sobel_c.intra_l32_sobel_c1_qp4 = intra_lvl32_sobel_c[scene_motion_flag][4];
 
     if (hw->qbias_en) {
-        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = hw->qbias_i ? hw->qbias_i : 171;
-        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = hw->qbias_p ? hw->qbias_p : 85;
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = (hw->qbias_i != 0) ? hw->qbias_i : 171;
+        reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = (hw->qbias_p != 0) ? hw->qbias_p : 85;
     } else {
         reg_wgt->reg1484_qnt_bias_comb.qnt_bias_i = qnt_bias_i[scene_motion_flag];
         reg_wgt->reg1484_qnt_bias_comb.qnt_bias_p = qnt_bias_p[scene_motion_flag];
@@ -517,7 +517,7 @@ static void vepu580_h265e_tune_stat_update(void *p, EncRcTaskInfo *rc_info)
         fb->st_madi_b16num3 += elem->st.madi_b16num3;
     }
 
-    RK_S32 mb_num = fb->st_mb_num ? fb->st_mb_num : 1;
+    RK_S32 mb_num = (fb->st_mb_num != 0) ? fb->st_mb_num : 1;
     RK_S32 madp = 0;
     RK_S32 md_flag = 0;
     RK_S32 nScore = 0;

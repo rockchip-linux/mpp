@@ -207,13 +207,13 @@ static MPP_RET get_info_input(H264dVdpuPriv_t *priv,
                     priv->new_dpb[i].frame_num = pp->FrameNumList[i];
                 }
                 priv->new_dpb[i].long_term_pic_num = pp->LongTermPicNumList[i];
-                priv->new_dpb[i].top_used = ((pp->UsedForReferenceFlags
-                                              >> (2 * i + 0)) & 0x1) ? 1 : 0;
-                priv->new_dpb[i].bot_used = ((pp->UsedForReferenceFlags
-                                              >> (2 * i + 1)) & 0x1) ? 1 : 0;
-                priv->new_dpb[i].colmv_is_used = ((pp->RefPicColmvUsedFlags >> i) & 0x1) ? 1 : 0;
-                priv->new_dpb[i].field_flag = ((pp->RefPicFiledFlags >> i) & 0x1) ? 1 : 0;
-                priv->new_dpb[i].is_ilt_flag = ((pp->UsedForInTerviewflags >> i) & 0x1) ? 1 : 0;
+                priv->new_dpb[i].top_used = (((pp->UsedForReferenceFlags
+                                               >> (2 * i + 0)) & 0x1) != 0) ? 1 : 0;
+                priv->new_dpb[i].bot_used = (((pp->UsedForReferenceFlags
+                                               >> (2 * i + 1)) & 0x1) != 0) ? 1 : 0;
+                priv->new_dpb[i].colmv_is_used = (((pp->RefPicColmvUsedFlags >> i) & 0x1) != 0) ? 1 : 0;
+                priv->new_dpb[i].field_flag = (((pp->RefPicFiledFlags >> i) & 0x1) != 0) ? 1 : 0;
+                priv->new_dpb[i].is_ilt_flag = (((pp->UsedForInTerviewflags >> i) & 0x1) != 0) ? 1 : 0;
             }
         }
         for (i = 0; i < MPP_ARRAY_ELEMS(pp->ViewIDList); i++) {
@@ -270,7 +270,7 @@ static MPP_RET refill_info_input(H264dVdpuPriv_t *priv,
                                    old_dpb[i].is_long_term);
                 pp->FieldOrderCntList[i][0] = old_dpb[i].top_poc;
                 pp->FieldOrderCntList[i][1] = old_dpb[i].bot_poc;
-                pp->FrameNumList[i] = old_dpb[i].is_long_term ?
+                pp->FrameNumList[i] = (old_dpb[i].is_long_term != 0) ?
                                       old_dpb[i].long_term_frame_idx : old_dpb[i].frame_num;
                 pp->LongTermPicNumList[i] = old_dpb[i].long_term_pic_num;
                 if (old_dpb[i].top_used) { //!< top_field

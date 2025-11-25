@@ -1135,7 +1135,7 @@ static void setup_vepu510_rdo_pred(HalH264eVepu510Ctx *ctx, H264eSps *sps,
     if (slice->slice_type == H264_I_SLICE) {
         regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
     } else {
-        regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
+        regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = (is_ipc_scene != 0) ? 9 : 6;
     }
 
     reg_frm->rdo_cfg.rect_size      = (sps->profile_idc == H264_PROFILE_BASELINE &&
@@ -1567,7 +1567,7 @@ static void setup_vepu510_split(HalVepu510RegSet *regs, MppEncCfgSet *enc_cfg)
         reg_frm->common.sli_cnum.sli_splt_cnum_m1 = 0;
 
         reg_frm->common.sli_byte.sli_splt_byte    = cfg->split_arg;
-        reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
+        reg_frm->common.enc_pic.slen_fifo         = (cfg->split_out != 0) ? 1 : 0;
         regs->reg_ctl.int_en.vslc_done_en         = reg_frm->common.enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
@@ -1583,7 +1583,7 @@ static void setup_vepu510_split(HalVepu510RegSet *regs, MppEncCfgSet *enc_cfg)
         reg_frm->common.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
         reg_frm->common.sli_byte.sli_splt_byte    = 0;
-        reg_frm->common.enc_pic.slen_fifo         = cfg->split_out ? 1 : 0;
+        reg_frm->common.enc_pic.slen_fifo         = (cfg->split_out != 0) ? 1 : 0;
         if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
             (regs->reg_frm.common.enc_pic.slen_fifo && (slice_num > VEPU510_SLICE_FIFO_LEN)))
             regs->reg_ctl.int_en.vslc_done_en = 1;
@@ -1865,16 +1865,16 @@ static void setup_vepu510_anti_stripe(HalH264eVepu510Ctx *ctx)
     if (ctx->cfg->tune.scene_mode != MPP_ENC_SCENE_MODE_IPC)
         s->iprd_tthd_ul.iprd_tthd_ul = 4095; /* disable anti-stripe */
     else
-        s->iprd_tthd_ul.iprd_tthd_ul = str ? 4 : 255;
+        s->iprd_tthd_ul.iprd_tthd_ul = (str != 0) ? 4 : 255;
 
-    s->iprd_wgty8.iprd_wgty8_0 = str ? 22 : 16;
-    s->iprd_wgty8.iprd_wgty8_1 = str ? 23 : 16;
-    s->iprd_wgty8.iprd_wgty8_2 = str ? 20 : 16;
-    s->iprd_wgty8.iprd_wgty8_3 = str ? 22 : 16;
-    s->iprd_wgty4.iprd_wgty4_0 = str ? 22 : 16;
-    s->iprd_wgty4.iprd_wgty4_1 = str ? 26 : 16;
-    s->iprd_wgty4.iprd_wgty4_2 = str ? 20 : 16;
-    s->iprd_wgty4.iprd_wgty4_3 = str ? 22 : 16;
+    s->iprd_wgty8.iprd_wgty8_0 = (str != 0) ? 22 : 16;
+    s->iprd_wgty8.iprd_wgty8_1 = (str != 0) ? 23 : 16;
+    s->iprd_wgty8.iprd_wgty8_2 = (str != 0) ? 20 : 16;
+    s->iprd_wgty8.iprd_wgty8_3 = (str != 0) ? 22 : 16;
+    s->iprd_wgty4.iprd_wgty4_0 = (str != 0) ? 22 : 16;
+    s->iprd_wgty4.iprd_wgty4_1 = (str != 0) ? 26 : 16;
+    s->iprd_wgty4.iprd_wgty4_2 = (str != 0) ? 20 : 16;
+    s->iprd_wgty4.iprd_wgty4_3 = (str != 0) ? 22 : 16;
     s->iprd_wgty16.iprd_wgty16_0 = 22;
     s->iprd_wgty16.iprd_wgty16_1 = 26;
     s->iprd_wgty16.iprd_wgty16_2 = 20;
@@ -2034,7 +2034,7 @@ static void setup_vepu510_anti_smear(HalH264eVepu510Ctx *ctx)
         if (ctx->qpmap_en && deblur_str > 3)
             reg->smear_opt_cfg.rdo_smear_lvl16_multi = smear_multi[flg3];
         else
-            reg->smear_opt_cfg.rdo_smear_lvl16_multi = flg0 ? 9 : 12;
+            reg->smear_opt_cfg.rdo_smear_lvl16_multi = (flg0 != 0) ? 9 : 12;
     } else {
         reg->smear_opt_cfg.rdo_smear_en = 0;
         reg->smear_opt_cfg.rdo_smear_lvl16_multi = 16;
@@ -2076,20 +2076,20 @@ static void setup_vepu510_anti_smear(HalH264eVepu510Ctx *ctx)
         reg->smear_opt_cfg.stated_mode = 2;
 
     reg->smear_madp_thd0.madp_cur_thd0 = 0;
-    reg->smear_madp_thd0.madp_cur_thd1 = flg2 ? 48 : 24;
-    reg->smear_madp_thd1.madp_cur_thd2 = flg2 ? 64 : 48;
-    reg->smear_madp_thd1.madp_cur_thd3 = flg2 ? 72 : 64;
-    reg->smear_madp_thd2.madp_around_thd0 = flg2 ? 4095 : 16;
+    reg->smear_madp_thd0.madp_cur_thd1 = (flg2 != 0) ? 48 : 24;
+    reg->smear_madp_thd1.madp_cur_thd2 = (flg2 != 0) ? 64 : 48;
+    reg->smear_madp_thd1.madp_cur_thd3 = (flg2 != 0) ? 72 : 64;
+    reg->smear_madp_thd2.madp_around_thd0 = (flg2 != 0) ? 4095 : 16;
     reg->smear_madp_thd2.madp_around_thd1 = 32;
     reg->smear_madp_thd3.madp_around_thd2 = 48;
-    reg->smear_madp_thd3.madp_around_thd3 = flg2 ? 0 : 96;
+    reg->smear_madp_thd3.madp_around_thd3 = (flg2 != 0) ? 0 : 96;
     reg->smear_madp_thd4.madp_around_thd4 = 48;
     reg->smear_madp_thd4.madp_around_thd5 = 24;
-    reg->smear_madp_thd5.madp_ref_thd0 = flg2 ? 64 : 96;
+    reg->smear_madp_thd5.madp_ref_thd0 = (flg2 != 0) ? 64 : 96;
     reg->smear_madp_thd5.madp_ref_thd1 = 48;
 
-    reg->smear_cnt_thd0.cnt_cur_thd0 = flg2 ?  2 : 1;
-    reg->smear_cnt_thd0.cnt_cur_thd1 = flg2 ?  5 : 3;
+    reg->smear_cnt_thd0.cnt_cur_thd0 = (flg2 != 0) ?  2 : 1;
+    reg->smear_cnt_thd0.cnt_cur_thd1 = (flg2 != 0) ?  5 : 3;
     reg->smear_cnt_thd0.cnt_cur_thd2 = 1;
     reg->smear_cnt_thd0.cnt_cur_thd3 = 3;
     reg->smear_cnt_thd1.cnt_around_thd0 = 1;
@@ -2117,13 +2117,13 @@ static void setup_vepu510_anti_smear(HalH264eVepu510Ctx *ctx)
     reg->smear_resi_thd2.resi_big_around_th3 = 20;
     reg->smear_resi_thd3.resi_small_ref_th0 = 7;
     reg->smear_resi_thd3.resi_big_ref_th0 = 16;
-    reg->smear_resi_thd4.resi_th0 = flg2 ? 0 : 10;
-    reg->smear_resi_thd4.resi_th1 = flg2 ? 0 : 6;
+    reg->smear_resi_thd4.resi_th0 = (flg2 != 0) ? 0 : 10;
+    reg->smear_resi_thd4.resi_th1 = (flg2 != 0) ? 0 : 6;
 
-    reg->smear_st_thd.madp_cnt_th0 = flg2 ? 0 : 1;
-    reg->smear_st_thd.madp_cnt_th1 = flg2 ? 0 : 5;
-    reg->smear_st_thd.madp_cnt_th2 = flg2 ? 0 : 1;
-    reg->smear_st_thd.madp_cnt_th3 = flg2 ? 0 : 3;
+    reg->smear_st_thd.madp_cnt_th0 = (flg2 != 0) ? 0 : 1;
+    reg->smear_st_thd.madp_cnt_th1 = (flg2 != 0) ? 0 : 5;
+    reg->smear_st_thd.madp_cnt_th2 = (flg2 != 0) ? 0 : 1;
+    reg->smear_st_thd.madp_cnt_th3 = (flg2 != 0) ? 0 : 3;
 
     hal_h264e_dbg_func("leave\n");
 }
@@ -2393,7 +2393,7 @@ static MPP_RET hal_h264e_vepu510_wait(void *hal, HalEncTask *task)
     RK_U32 split_out = ctx->cfg->split.split_out;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
-    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    H264NaluType type = (task->rc_task->frm.is_idr != 0) ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     MppEncH264HwCfg *hw_cfg = &ctx->cfg->h264.hw_cfg;
     RK_S32 i;
 

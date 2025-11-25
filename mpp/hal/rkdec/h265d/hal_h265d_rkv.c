@@ -308,11 +308,11 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.sample_adaptive_offset_enabled_flag        , 1);
     ///<-zrh comment ^  68 bit above
     mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag                           , 1);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0  , 4);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0 , 4);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0  , 4);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0 , 4);
     mpp_put_bits(&bp, dxva_cxt->pp.pcm_loop_filter_disabled_flag                                               , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.log2_diff_max_min_pcm_luma_coding_block_size                                , 3);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
 
     mpp_put_bits(&bp, dxva_cxt->pp.num_short_term_ref_pic_sets             , 7);
     mpp_put_bits(&bp, dxva_cxt->pp.long_term_ref_pics_present_flag         , 1);
@@ -367,8 +367,8 @@ static RK_S32 hal_h265d_v345_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.log2_parallel_merge_level_minus2 + 2        , 3);
     mpp_put_bits(&bp, dxva_cxt->pp.slice_segment_header_extension_present_flag , 1);
     mpp_put_bits(&bp, 0                                                        , 3);
-    mpp_put_bits(&bp, dxva_cxt->pp.tiles_enabled_flag ? dxva_cxt->pp.num_tile_columns_minus1 + 1 : 0, 5);
-    mpp_put_bits(&bp, dxva_cxt->pp.tiles_enabled_flag ? dxva_cxt->pp.num_tile_rows_minus1 + 1 : 0 , 5 );
+    mpp_put_bits(&bp, (dxva_cxt->pp.tiles_enabled_flag != 0) ? dxva_cxt->pp.num_tile_columns_minus1 + 1 : 0, 5);
+    mpp_put_bits(&bp, (dxva_cxt->pp.tiles_enabled_flag != 0) ? dxva_cxt->pp.num_tile_rows_minus1 + 1 : 0 , 5 );
     mpp_put_bits(&bp, 0, 4); //mSps_Pps[i]->mMode
     mpp_put_align(&bp, 64, 0xf);
     {
@@ -522,11 +522,11 @@ static RK_S32 hal_h265d_output_pps_packet(void *hal, void *dxva)
     mpp_put_bits(&bp, dxva_cxt->pp.sample_adaptive_offset_enabled_flag        , 1);
     ///<-zrh comment ^  68 bit above
     mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag                           , 1);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0  , 4);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0 , 4);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0  , 4);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0 , 4);
     mpp_put_bits(&bp, dxva_cxt->pp.pcm_loop_filter_disabled_flag                                               , 1);
     mpp_put_bits(&bp, dxva_cxt->pp.log2_diff_max_min_pcm_luma_coding_block_size                                , 3);
-    mpp_put_bits(&bp, dxva_cxt->pp.pcm_enabled_flag ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
+    mpp_put_bits(&bp, (dxva_cxt->pp.pcm_enabled_flag != 0) ? (dxva_cxt->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
 
     mpp_put_bits(&bp, dxva_cxt->pp.num_short_term_ref_pic_sets             , 7);
     mpp_put_bits(&bp, dxva_cxt->pp.long_term_ref_pics_present_flag         , 1);
@@ -864,7 +864,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     }
     hw_regs->sw_interrupt.sw_dec_e         = 1;
     hw_regs->sw_interrupt.sw_dec_timeout_e = 1;
-    hw_regs->sw_interrupt.sw_wr_ddr_align_en = dxva_cxt->pp.tiles_enabled_flag
+    hw_regs->sw_interrupt.sw_wr_ddr_align_en = (dxva_cxt->pp.tiles_enabled_flag != 0)
                                                ? 0 : 1;
 
     ///find s->rps_model[i] position, and set register

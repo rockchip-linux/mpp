@@ -478,8 +478,8 @@ static MPP_RET setup_vepu540c_prep(HalVepu540cRegSet *regs, MppEncPrepCfg *prep)
     regs->reg_base.src_fmt.rbuv_swap  = cfg.rbuv_swap;
     regs->reg_base.src_fmt.out_fmt    = (fmt == MPP_FMT_YUV400) ? 0 : 1;
 
-    y_stride = (MPP_FRAME_FMT_IS_FBC(fmt)) ? (MPP_ALIGN(prep->width, 16)) :
-               (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
+    y_stride = (MPP_FRAME_FMT_IS_FBC(fmt) != 0) ? (MPP_ALIGN(prep->width, 16)) :
+               (prep->hor_stride != 0) ? (prep->hor_stride) : (prep->width);
 
     c_stride = (hw_fmt == VEPU5xx_FMT_YUV422SP || hw_fmt == VEPU5xx_FMT_YUV420SP) ?
                y_stride : y_stride / 2;
@@ -1128,7 +1128,7 @@ static void setup_vepu540c_split(HalVepu540cRegSet *regs, MppEncCfgSet *cfg)
 
         regs->reg_base.sli_byte.sli_splt_byte = cfg->split.split_arg;
         regs->reg_base.enc_pic.slen_fifo = 0;
-        regs->reg_base.enc_pic.slen_fifo = cfg->split.split_out ? 1 : 0;
+        regs->reg_base.enc_pic.slen_fifo = (cfg->split.split_out != 0) ? 1 : 0;
         regs->reg_ctl.int_en.vslc_done_en = regs->reg_base.enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
@@ -1144,7 +1144,7 @@ static void setup_vepu540c_split(HalVepu540cRegSet *regs, MppEncCfgSet *cfg)
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = cfg->split.split_arg - 1;
 
         regs->reg_base.sli_byte.sli_splt_byte = 0;
-        regs->reg_base.enc_pic.slen_fifo = cfg->split.split_out ? 1 : 0;
+        regs->reg_base.enc_pic.slen_fifo = (cfg->split.split_out != 0) ? 1 : 0;
         if ((cfg->split.split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
             (regs->reg_base.enc_pic.slen_fifo && (slice_num > VEPU540C_SLICE_FIFO_LEN)))
             regs->reg_ctl.int_en.vslc_done_en = 1;
@@ -1647,7 +1647,7 @@ static MPP_RET hal_h264e_vepu540c_wait(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     HalH264eVepu540cCtx *ctx = (HalH264eVepu540cCtx *)hal;
     HalVepu540cRegSet *regs_set = ctx->regs_set;
-    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    H264NaluType type = (task->rc_task->frm.is_idr != 0) ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
 

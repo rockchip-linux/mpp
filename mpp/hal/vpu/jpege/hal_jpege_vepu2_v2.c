@@ -69,7 +69,7 @@ MPP_RET hal_jpege_vepu2_init(void *hal, MppEncHalCfg *cfg)
     hal_jpege_dbg_func("enter hal %p cfg %p\n", hal, cfg);
 
     /* update output to MppEnc */
-    type = (vcodec_type & HAVE_VEPU2_JPEG) ?
+    type = ((vcodec_type & HAVE_VEPU2_JPEG) != 0) ?
            VPU_CLIENT_VEPU2_JPEG : VPU_CLIENT_VEPU2;
 
     cfg->type = type;

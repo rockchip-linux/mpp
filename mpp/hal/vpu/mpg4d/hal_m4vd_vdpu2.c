@@ -71,12 +71,12 @@ static void vdpu2_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax
     // copy qp table to buffer
     {
         RK_U8 *dst = (RK_U8 *)mpp_buffer_get_ptr(ctx->qp_table);
-        RK_U8 *src = (qm->bNewQmatrix[0]) ? (qm->Qmatrix[0]) : (default_intra_matrix);
+        RK_U8 *src = (qm->bNewQmatrix[0] != 0) ? (qm->Qmatrix[0]) : (default_intra_matrix);
 
         memcpy(dst, src, 64);
         dst += 64;
 
-        src = (qm->bNewQmatrix[1]) ? (qm->Qmatrix[1]) : (default_inter_matrix);
+        src = (qm->bNewQmatrix[1] != 0) ? (qm->Qmatrix[1]) : (default_inter_matrix);
         memcpy(dst, src, 64);
     }
 

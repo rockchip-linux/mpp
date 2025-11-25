@@ -43,7 +43,7 @@ static MPP_RET vp8e_vpu_frame_start(void *hal)
 
     memset(regs, 0, sizeof(Vp8eVepu2Reg_t));
 
-    regs->sw109.val = hw_cfg->irq_disable ? (regs->sw109.val | 0x0100) :
+    regs->sw109.val = (hw_cfg->irq_disable != 0) ? (regs->sw109.val | 0x0100) :
                       (regs->sw109.val & 0xfeff);
 
     //((0 & (255)) << 24) | ((0 & (255)) << 16) | ((16 & (63)) << 8) | ((0 & (1)) << 2) | ((0 & (1)) << 1);
@@ -495,7 +495,7 @@ static MPP_RET hal_vp8e_vepu2_get_task_v2(void *hal, HalEncTask *task)
         }
     }
 
-    ctx->frame_type = task->rc_task->frm.is_intra ? VP8E_FRM_KEY : VP8E_FRM_P;
+    ctx->frame_type = (task->rc_task->frm.is_intra != 0) ? VP8E_FRM_KEY : VP8E_FRM_P;
 
     if (!ctx->cfg->vp8.disable_ivf && !ctx->ivf_hdr_rdy) {
         RK_U8 *p_out = mpp_buffer_get_ptr(task->output);

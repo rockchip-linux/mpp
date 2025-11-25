@@ -112,7 +112,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
 {
     MPP_RET ret = MPP_OK;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+    RK_U32 max_cnt = (p_hal->fast_mode != 0) ? VDPU_FAST_REG_SET_CNT : 1;
     RK_U32 i = 0;
     INP_CHECK(ret, NULL == p_hal);
 
@@ -214,7 +214,7 @@ static void hal_av1d_release_res(void *hal)
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
     RK_U32 i = 0;
-    RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_U32 loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_ctx->reg_buf[i].regs);
@@ -1480,7 +1480,7 @@ static int check_tile_width(DXVA_PicParams_AV1 *dxva, RK_S32 width, RK_S32 leftm
         valid = 0;
     }
 
-    const RK_S32 sb_size_log2 = dxva->coding.use_128x128_superblock ? 7 : 6;
+    const RK_S32 sb_size_log2 = (dxva->coding.use_128x128_superblock != 0) ? 7 : 6;
     RK_S32 tile_width_pixels = (width << sb_size_log2);
     if (dxva->coding.superres) {
         tile_width_pixels =
@@ -1504,8 +1504,8 @@ static void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
     RK_S32 tmp = dxva->frame_tag_size + dxva->offset_to_dct_parts;
     RK_U32 stream_len =  p_hal->strm_len - tmp;
     RK_U8  *p1 = (RK_U8*)mpp_buffer_get_ptr(ctx->tile_info);
-    RK_S32 size0 = transpose ?  dxva->tiles.cols : dxva->tiles.rows;
-    RK_S32 size1 = transpose ? dxva->tiles.rows  :  dxva->tiles.cols;
+    RK_S32 size0 = (transpose != 0) ? dxva->tiles.cols : dxva->tiles.rows;
+    RK_S32 size1 = (transpose != 0) ? dxva->tiles.rows  :  dxva->tiles.cols;
     RK_S32 tile0, tile1;
     RK_U32 not_valid_tile_dimension = 0;
     RK_U32 tiles[2][64];
@@ -1531,9 +1531,9 @@ static void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
     // Write tile dimensions
     for (tile0 = 0; tile0 < size0; tile0++) {
         for (tile1 = 0; tile1 < size1; tile1++) {
-            RK_S32 tile_y = transpose ? tile1 : tile0;
-            RK_S32 tile_x = transpose ? tile0 : tile1;
-            RK_S32 tile_id = transpose ? tile1 * size0 + tile0 : tile0 * size1 + tile1;
+            RK_S32 tile_y = (transpose != 0) ? tile1 : tile0;
+            RK_S32 tile_x = (transpose != 0) ? tile0 : tile1;
+            RK_S32 tile_id = (transpose != 0) ? tile1 * size0 + tile0 : tile0 * size1 + tile1;
             RK_U32 start, end;
 
             RK_U32 y0 = tiles[1][tile_y];
@@ -1544,8 +1544,8 @@ static void vdpu_av1d_set_tile_info_mem(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *d
             RK_U8 leftmost = (tile_x == dxva->tiles.cols - 1);
             if (!not_valid_tile_dimension)
                 not_valid_tile_dimension = !check_tile_width(dxva, x1 - x0, leftmost);
-            if ((x0 << (dxva->coding.use_128x128_superblock ? 7 : 6)) >= dxva->width ||
-                (y0 << (dxva->coding.use_128x128_superblock ? 7 : 6)) >= dxva->height)
+            if ((x0 << ((dxva->coding.use_128x128_superblock != 0) ? 7 : 6)) >= dxva->width ||
+                (y0 << ((dxva->coding.use_128x128_superblock != 0) ? 7 : 6)) >= dxva->height)
                 not_valid_tile_dimension = 1;
 
             // tile size in SB units (width,height)
@@ -1654,7 +1654,7 @@ static void init_scaling_function(RK_U8 scaling_points[][2], RK_U8 num_points,
         RK_S32 delta_y = scaling_points[point + 1][1] - scaling_points[point][1];
         RK_S32 delta_x = scaling_points[point + 1][0] - scaling_points[point][0];
         RK_S64 delta =
-            delta_x ? delta_y * ((65536 + (delta_x >> 1)) / delta_x) : 0;
+            (delta_x != 0) ? delta_y * ((65536 + (delta_x >> 1)) / delta_x) : 0;
         for (x = 0; x < delta_x; x++) {
             scaling_lut[scaling_points[point][0] + x] =
                 scaling_points[point][1] + (RK_S32)((x * delta + 32768) >> 16);
@@ -2045,9 +2045,9 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
     regs->swreg11.sw_mcomp_filt_type    = dxva->interp_filter;
     regs->swreg11.sw_high_prec_mv_e     = dxva->coding.high_precision_mv;
-    regs->swreg11.sw_comp_pred_mode     = dxva->coding.reference_mode ? 2 : 0;
-    regs->swreg11.sw_transform_mode     = dxva->coding.tx_mode ? (dxva->coding.tx_mode + 2) : 0;
-    regs->swreg12.sw_max_cb_size        = dxva->coding.use_128x128_superblock ? 7 : 6;;
+    regs->swreg11.sw_comp_pred_mode     = (dxva->coding.reference_mode != 0) ? 2 : 0;
+    regs->swreg11.sw_transform_mode     = (dxva->coding.tx_mode != 0) ? (dxva->coding.tx_mode + 2) : 0;
+    regs->swreg12.sw_max_cb_size        = (dxva->coding.use_128x128_superblock != 0) ? 7 : 6;
     regs->swreg12.sw_min_cb_size        = 3;
 
     /* unused in comdel */
@@ -2075,8 +2075,8 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     regs->swreg28.sw_quant_delta_v_dc           = dxva->quantization.v_dc_delta_q;
     regs->swreg29.sw_quant_delta_v_ac           = dxva->quantization.v_ac_delta_q;
 
-    regs->swreg31.sw_skip_ref0              = dxva->skip_ref0 ? dxva->skip_ref0 : 1;
-    regs->swreg32.sw_skip_ref1              = dxva->skip_ref1 ? dxva->skip_ref1 : 1;
+    regs->swreg31.sw_skip_ref0              = (dxva->skip_ref0 != 0) ? dxva->skip_ref0 : 1;
+    regs->swreg32.sw_skip_ref1              = (dxva->skip_ref1 != 0) ? dxva->skip_ref1 : 1;
 
     /*input out put buf cfg*/
     {
@@ -2224,7 +2224,7 @@ MPP_RET vdpu_av1d_start(void *hal, HalTaskInfo *task)
     }
 
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
-    VdpuAv1dRegSet *regs = p_hal->fast_mode ?
+    VdpuAv1dRegSet *regs = (p_hal->fast_mode != 0) ?
                            reg_ctx->reg_buf[task->dec.reg_index].regs :
                            reg_ctx->regs;
     MppDev dev = p_hal->dev;
@@ -2286,7 +2286,7 @@ MPP_RET vdpu_av1d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
-    VdpuAv1dRegSet *p_regs = p_hal->fast_mode ?
+    VdpuAv1dRegSet *p_regs = (p_hal->fast_mode != 0) ?
                              reg_ctx->reg_buf[task->dec.reg_index].regs :
                              reg_ctx->regs;
 

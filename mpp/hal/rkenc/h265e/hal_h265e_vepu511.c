@@ -607,7 +607,7 @@ static MPP_RET
 vepu511_h265_set_patch_info(H265eSyntax_new *syn, VepuFmt input_fmt, MppDevRegOffCfgs *offsets, HalEncTask *task)
 {
     RK_U32 hor_stride = syn->pp.hor_stride;
-    RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
+    RK_U32 ver_stride = (syn->pp.ver_stride != 0) ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
     MPP_RET ret = MPP_OK;
@@ -993,8 +993,8 @@ static void vepu511_h265_set_split(H265eV511RegSet *regs, MppEncCfgSet *enc_cfg)
         regs->reg_frm.reg0218_sli_cnum.sli_splt_cnum_m1 = 0;
 
         regs->reg_frm.reg0217_sli_byte.sli_splt_byte  = cfg->split_arg;
-        regs->reg_frm.reg0192_enc_pic.slen_fifo       = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en             = cfg->split_out ? 1 : 0;
+        regs->reg_frm.reg0192_enc_pic.slen_fifo       = (cfg->split_out != 0) ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en             = (cfg->split_out != 0) ? 1 : 0;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
         regs->reg_frm.reg0216_sli_splt.sli_splt         = 1;
@@ -1005,8 +1005,8 @@ static void vepu511_h265_set_split(H265eV511RegSet *regs, MppEncCfgSet *enc_cfg)
         regs->reg_frm.reg0218_sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
         regs->reg_frm.reg0217_sli_byte.sli_splt_byte = 0;
-        regs->reg_frm.reg0192_enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
-        regs->reg_ctl.int_en.vslc_done_en = cfg->split_out ? 1 : 0;
+        regs->reg_frm.reg0192_enc_pic.slen_fifo = (cfg->split_out != 0) ? 1 : 0;
+        regs->reg_ctl.int_en.vslc_done_en = (cfg->split_out != 0) ? 1 : 0;
     } break;
     default : {
         mpp_log_f("invalide slice split mode %d\n", cfg->split_mode);
@@ -2020,7 +2020,7 @@ static void vepu511_h265_set_slice_regs(H265eV511HalContext *ctx, H265eSyntax_ne
     regs->reg0240_synt_sli1.sli_lp_fltr_acrs_sli  = syn->sp.sli_lp_fltr_acrs_sli;
     regs->reg0240_synt_sli1.sp_dblk_fltr_dis      = syn->sp.sli_dblk_fltr_dis;
     regs->reg0240_synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
-    regs->reg0240_synt_sli1.sli_cb_qp_ofst = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
+    regs->reg0240_synt_sli1.sli_cb_qp_ofst = (syn->pp.pps_slice_chroma_qp_offsets_present_flag != 0) ?
                                              syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
 
     if (ctx->cfg->tune.speed == 0) // 0.63ppc
@@ -2740,7 +2740,7 @@ static void vepu511_h265e_update_tune_stat(H265eV511HalContext *ctx, HalEncTask 
         fb->st_madp = fb->st_madp / madp_cnt;
 
     fb->st_mb_num += st->st_bnum_b16.num_b16;
-    fb->frame_type = task->rc_task->frm.is_intra ? INTRA_FRAME : INTER_P_FRAME;
+    fb->frame_type = (task->rc_task->frm.is_intra != 0) ? INTRA_FRAME : INTER_P_FRAME;
     info->bit_real = fb->out_strm_size * 8;
     info->madi = fb->st_madi;
     info->madp = fb->st_madp;

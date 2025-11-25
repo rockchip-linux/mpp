@@ -804,7 +804,7 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep,
         regs->reg_base.src_udfo.csc_ofst_v  = cfg.offset[2];
     }
 
-    regs->reg_base.src_proc.afbcd_en   = MPP_FRAME_FMT_IS_FBC(fmt) ? 1 : 0;
+    regs->reg_base.src_proc.afbcd_en   = (MPP_FRAME_FMT_IS_FBC(fmt) != 0) ? 1 : 0;
     regs->reg_base.src_strd0.src_strd0 = y_stride;
     regs->reg_base.src_strd1.src_strd1 = c_stride;
 
@@ -1693,7 +1693,7 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncCfgSet *enc_cfg)
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = 0;
 
         regs->reg_base.sli_byte.sli_splt_byte = cfg->split_arg;
-        regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_base.enc_pic.slen_fifo = (cfg->split_out != 0) ? 1 : 0;
         regs->reg_ctl.int_en.slc_done_en = regs->reg_base.enc_pic.slen_fifo;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
@@ -1709,7 +1709,7 @@ static void setup_vepu580_split(HalVepu580RegSet *regs, MppEncCfgSet *enc_cfg)
         regs->reg_base.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
         regs->reg_base.sli_byte.sli_splt_byte = 0;
-        regs->reg_base.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_base.enc_pic.slen_fifo = (cfg->split_out != 0) ? 1 : 0;
 
         if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
             (regs->reg_base.enc_pic.slen_fifo && (slice_num > VEPU580_SLICE_FIFO_LEN)))
@@ -1751,7 +1751,7 @@ static void calc_cime_parameter(HalVepu580RegSet *regs, H264eSps *sps)
         frm_end = mpp_clip(frm_end, 0, pic_wd64 - 1);
 
         pic_w = (frm_end - frm_sta + 1) * 64;
-        base_regs->me_cach.cme_linebuf_w = (pic_w ? pic_w : 64) / 64;
+        base_regs->me_cach.cme_linebuf_w = ((pic_w != 0) ? pic_w : 64) / 64;
     }
 
     // calc cime_cacha_h and cime_cacha_max
@@ -2365,7 +2365,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
     RK_U32 split_out = ctx->cfg->split.split_out;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
-    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    H264NaluType type = (task->rc_task->frm.is_idr != 0) ? H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     MppEncH264HwCfg *hw_cfg = &ctx->cfg->h264.hw_cfg;
     RK_S32 i;
 
@@ -2390,7 +2390,7 @@ static MPP_RET hal_h264e_vepu580_wait(void *hal, HalEncTask *task)
         do {
             poll_cfg->poll_type = 0;
             poll_cfg->poll_ret  = 0;
-            poll_cfg->count_max = split_out & MPP_ENC_SPLIT_OUT_LOWDELAY ? 1 : ctx->poll_slice_max;
+            poll_cfg->count_max = ((split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) != 0) ? 1 : ctx->poll_slice_max;
             poll_cfg->count_ret = 0;
 
             ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, poll_cfg);
@@ -2469,9 +2469,9 @@ static MPP_RET hal_h264e_vepu580_ret_task(void * hal, HalEncTask * task)
     // setup bit length for rate control
     rc_info->bit_real = task->hw_length * 8;
     rc_info->quality_real = regs->reg_st.qp_sum / mbs;
-    rc_info->madi = (!regs->reg_st.st_bnum_b16.num_b16) ? 0 :
+    rc_info->madi = (regs->reg_st.st_bnum_b16.num_b16 == 0) ? 0 :
                     regs->reg_st.madi /  regs->reg_st.st_bnum_b16.num_b16;
-    rc_info->madp = (!regs->reg_st.st_bnum_cme.num_ctu) ? 0 :
+    rc_info->madp = (regs->reg_st.st_bnum_cme.num_ctu == 0) ? 0 :
                     regs->reg_st.madp / regs->reg_st.st_bnum_cme.num_ctu;
     rc_info->iblk4_prop = (regs->reg_st.st_pnum_i4.pnum_i4 +
                            regs->reg_st.st_pnum_i8.pnum_i8 +

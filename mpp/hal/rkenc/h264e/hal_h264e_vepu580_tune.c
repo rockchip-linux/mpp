@@ -217,8 +217,8 @@ static void vepu580_h264e_tune_reg_patch(void *p)
     regs->reg_s3.rime_sqi_multi.rime_multi2 = rime_multi[scene_motion_flag][2];
 
     if (hw->qbias_en) {
-        regs->reg_s3.RDO_QUANT.quant_f_bias_I = hw->qbias_i ? hw->qbias_i : 683;
-        regs->reg_s3.RDO_QUANT.quant_f_bias_P = hw->qbias_p ? hw->qbias_p : 341;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_I = (hw->qbias_i != 0) ? hw->qbias_i : 683;
+        regs->reg_s3.RDO_QUANT.quant_f_bias_P = (hw->qbias_p != 0) ? hw->qbias_p : 341;
     }
 }
 
@@ -255,15 +255,15 @@ static void vepu580_h264e_tune_stat_update(void *p, HalEncTask *task)
     }
 
     rc_info->madi =
-        tune->pre_madi[0] = (!regs->reg_st.st_bnum_b16.num_b16) ? 0 :
+        tune->pre_madi[0] = (regs->reg_st.st_bnum_b16.num_b16 == 0) ? 0 :
                             regs->reg_st.madi /  regs->reg_st.st_bnum_b16.num_b16;
     rc_info->madp =
-        tune->pre_madp[0] = (!regs->reg_st.st_bnum_cme.num_ctu) ? 0 :
+        tune->pre_madp[0] = (regs->reg_st.st_bnum_cme.num_ctu == 0) ? 0 :
                             regs->reg_st.madp / regs->reg_st.st_bnum_cme.num_ctu;
 
     mb_num = regs->reg_st.madi_b16num0 + regs->reg_st.madi_b16num1 +
              regs->reg_st.madi_b16num2 + regs->reg_st.madi_b16num3;
-    mb_num = mb_num ? mb_num : 1;
+    mb_num = (mb_num != 0) ? mb_num : 1;
     if (0 != tune->ap_motion_flag)
         mvbit = 15;
 

@@ -198,9 +198,9 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     }
     for (i = 0; i < 32; i++) {
         dpb_valid = (p_hal->slice_long[0].RefPicList[0][i].bPicEntry == 0xff) ? 0 : 1;
-        dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].Index7Bits : 0;
-        bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[0][i].AssociatedFlag : 0;
-        voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
+        dpb_idx = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[0][i].Index7Bits : 0;
+        bottom_flag = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[0][i].AssociatedFlag : 0;
+        voidx = (dpb_valid != 0) ? pp->RefPicLayerIdList[dpb_idx] : 0;
         mpp_put_bits(&bp, dpb_idx | (dpb_valid << 4), 5); //!< dpb_idx
         mpp_put_bits(&bp, bottom_flag, 1);
         mpp_put_bits(&bp, voidx, 1);
@@ -208,9 +208,9 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     for (j = 1; j < 3; j++) {
         for (i = 0; i < 32; i++) {
             dpb_valid = (p_hal->slice_long[0].RefPicList[j][i].bPicEntry == 0xff) ? 0 : 1;
-            dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
-            bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
-            voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
+            dpb_idx = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
+            bottom_flag = (dpb_valid != 0) ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
+            voidx = (dpb_valid != 0) ? pp->RefPicLayerIdList[dpb_idx] : 0;
             mpp_put_bits(&bp, dpb_idx | (dpb_valid << 4), 5); //!< dpb_idx
             mpp_put_bits(&bp, bottom_flag, 1);
             mpp_put_bits(&bp, voidx, 1);
@@ -306,9 +306,9 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, H264dRkvRegs_t *p_regs, HalTa
         MppBuffer mbuffer = NULL;
 
         for (i = 0; i < 15; i++) {
-            p_regs->sw25_39[i].ref0_14_poc = (i & 1)
+            p_regs->sw25_39[i].ref0_14_poc = ((i & 1) != 0)
                                              ? pp->FieldOrderCntList[i / 2][1] : pp->FieldOrderCntList[i / 2][0];
-            p_regs->sw49_63[i].ref15_29_poc = (i & 1)
+            p_regs->sw49_63[i].ref15_29_poc = ((i & 1) != 0)
                                               ? pp->FieldOrderCntList[(i + 15) / 2][0] : pp->FieldOrderCntList[(i + 15) / 2][1];
             sw10_24_offset = ((pp->RefPicFiledFlags >> i) & 0x01) |
                              ((pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01) << 0x01 |
@@ -374,7 +374,7 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
                                    &reg_ctx->errinfo_buf, RKV_ERROR_INFO_SIZE));
     // malloc buffers
     RK_U32 i = 0;
-    RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_U32 loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     for (i = 0; i < loop; i++) {
         reg_ctx->reg_buf[i].regs = mpp_calloc(H264dRkvRegs_t, 1);
         FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group,
@@ -422,7 +422,7 @@ MPP_RET rkv_h264d_deinit(void *hal)
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
 
     RK_U32 i = 0;
-    RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_U32 loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     for (i = 0; i < loop; i++) {
         MPP_FREE(reg_ctx->reg_buf[i].regs);
         mpp_buffer_put(reg_ctx->reg_buf[i].spspps);
@@ -517,7 +517,7 @@ MPP_RET rkv_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
-    RK_U32 *p_regs = p_hal->fast_mode ?
+    RK_U32 *p_regs = (p_hal->fast_mode != 0) ?
                      (RK_U32 *)reg_ctx->reg_buf[task->dec.reg_index].regs :
                      (RK_U32 *)reg_ctx->regs;
 
@@ -580,7 +580,7 @@ MPP_RET rkv_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     H264dRkvRegCtx_t *reg_ctx = (H264dRkvRegCtx_t *)p_hal->reg_ctx;
-    H264dRkvRegs_t *p_regs = p_hal->fast_mode ?
+    H264dRkvRegs_t *p_regs = (p_hal->fast_mode != 0) ?
                              reg_ctx->reg_buf[task->dec.reg_index].regs :
                              reg_ctx->regs;
 

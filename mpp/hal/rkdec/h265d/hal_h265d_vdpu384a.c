@@ -75,7 +75,7 @@ static MPP_RET hal_h265d_vdpu384a_init(void *hal, MppHalCfg *cfg)
 
     {
         RK_U32 i = 0;
-        RK_U32 max_cnt = reg_ctx->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+        RK_U32 max_cnt = (reg_ctx->fast_mode != 0) ? VDPU_FAST_REG_SET_CNT : 1;
 
         //!< malloc buffers
         ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->bufs, ALL_BUFFER_SIZE(max_cnt));

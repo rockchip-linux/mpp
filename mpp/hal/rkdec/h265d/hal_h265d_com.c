@@ -257,8 +257,8 @@ int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *ref)
          * ST_CURR_BEF - ST_CURR_AFT - LT_CURR for the L0 and
          * ST_CURR_AFT - ST_CURR_BEF - LT_CURR for the L1 */
 
-        cand_lists[0] = list_idx ? ST_CURR_AFT : ST_CURR_BEF;
-        cand_lists[1] = list_idx ? ST_CURR_BEF : ST_CURR_AFT;
+        cand_lists[0] = (list_idx != 0) ? ST_CURR_AFT : ST_CURR_BEF;
+        cand_lists[1] = (list_idx != 0) ? ST_CURR_BEF : ST_CURR_AFT;
         cand_lists[2] = LT_CURR;
         /* concatenate the candidate lists for the current frame */
         while ((RK_U32)rpl_tmp.nb_refs < sh->nb_refs[list_idx]) {

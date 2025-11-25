@@ -489,8 +489,8 @@ MPP_RET vepu540_set_osd(Vepu5xxOsdCfg *cfg)
 
     for (k = 0; k < num; k++, tmp++) {
         regs->reg112.osd_e          |= tmp->enable << k;
-        regs->reg112.osd_lu_inv_en  |= (tmp->inverse) ? (1 << k) : 0;
-        regs->reg094.osd_ch_inv_en  |= (tmp->inverse) ? (1 << k) : 0;
+        regs->reg112.osd_lu_inv_en  |= (tmp->inverse != 0) ? (1 << k) : 0;
+        regs->reg094.osd_ch_inv_en  |= (tmp->inverse != 0) ? (1 << k) : 0;
 
         if (tmp->enable && tmp->num_mb_x && tmp->num_mb_y) {
             Vepu541OsdPos *pos = &regs->osd_pos[k];

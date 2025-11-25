@@ -724,7 +724,7 @@ static MPP_RET
 vepu541_h265_set_patch_info(MppDev dev, H265eSyntax_new *syn, VepuFmt input_fmt, HalEncTask *task)
 {
     RK_U32 hor_stride = syn->pp.hor_stride;
-    RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
+    RK_U32 ver_stride = (syn->pp.ver_stride != 0) ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
     MPP_RET ret = MPP_OK;
@@ -1182,7 +1182,7 @@ static void vepu541_h265_set_slice_regs(H265eSyntax_new *syn, H265eV541RegSet *r
     regs->synt_sli1.sli_lp_fltr_acrs_sli  = syn->sp.sli_lp_fltr_acrs_sli;
     regs->synt_sli1.sli_dblk_fltr_dis     = syn->sp.sli_dblk_fltr_dis;
     regs->synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
-    regs->synt_sli1.sli_cb_qp_ofst        = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
+    regs->synt_sli1.sli_cb_qp_ofst        = (syn->pp.pps_slice_chroma_qp_offsets_present_flag != 0) ?
                                             syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
     regs->synt_sli1.max_mrg_cnd           = syn->sp.max_mrg_cnd;
 
@@ -1536,10 +1536,10 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->int_en.wdg_en         = 0;
 
     regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
-    regs->enc_rsl.pic_wfill     = (syn->pp.pic_width & 0x7)
+    regs->enc_rsl.pic_wfill     = ((syn->pp.pic_width & 0x7) != 0)
                                   ? (8 - (syn->pp.pic_width & 0x7)) : 0;
     regs->enc_rsl.pic_hd8_m1    = pic_height_align8 / 8 - 1;
-    regs->enc_rsl.pic_hfill     = (syn->pp.pic_height & 0x7)
+    regs->enc_rsl.pic_hfill     = ((syn->pp.pic_height & 0x7) != 0)
                                   ? (8 - (syn->pp.pic_height & 0x7)) : 0;
 
     regs->enc_pic.enc_stnd      = 1; //H265
@@ -1577,7 +1577,7 @@ MPP_RET hal_h265e_v541_gen_regs(void *hal, HalEncTask *task)
     regs->src_proc.src_mirr = 0;
     regs->src_proc.src_rot  = 0;
     regs->src_proc.txa_en   = 1;
-    regs->src_proc.afbcd_en = (MPP_FRAME_FMT_IS_FBC(syn->pp.mpp_format)) ? 1 : 0;
+    regs->src_proc.afbcd_en = (MPP_FRAME_FMT_IS_FBC(syn->pp.mpp_format) != 0) ? 1 : 0;
 
     if (!ctx->is_vepu540)
         vepu541_h265_set_patch_info(ctx->dev, syn, (VepuFmt)fmt->format, task);

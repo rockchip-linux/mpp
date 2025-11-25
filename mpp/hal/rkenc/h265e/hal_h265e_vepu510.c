@@ -1205,7 +1205,7 @@ static MPP_RET
 vepu510_h265_set_patch_info(H265eSyntax_new *syn, VepuFmt input_fmt, MppDevRegOffCfgs *offsets, HalEncTask *task)
 {
     RK_U32 hor_stride = syn->pp.hor_stride;
-    RK_U32 ver_stride = syn->pp.ver_stride ? syn->pp.ver_stride : syn->pp.pic_height;
+    RK_U32 ver_stride = (syn->pp.ver_stride != 0) ? syn->pp.ver_stride : syn->pp.pic_height;
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
     MPP_RET ret = MPP_OK;
@@ -1838,7 +1838,7 @@ static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK
         regs->reg_frm.common.sli_cnum.sli_splt_cnum_m1 = 0;
 
         regs->reg_frm.common.sli_byte.sli_splt_byte = cfg->split_arg;
-        regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_frm.common.enc_pic.slen_fifo = (cfg->split_out != 0) ? 1 : 0;
         regs->reg_ctl.int_en.vslc_done_en = regs->reg_frm.common.enc_pic.slen_fifo ;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
@@ -1859,7 +1859,7 @@ static void setup_vepu510_split(H265eV510RegSet *regs, MppEncCfgSet *enc_cfg, RK
         regs->reg_frm.common.sli_cnum.sli_splt_cnum_m1 = cfg->split_arg - 1;
 
         regs->reg_frm.common.sli_byte.sli_splt_byte = 0;
-        regs->reg_frm.common.enc_pic.slen_fifo = cfg->split_out ? 1 : 0;
+        regs->reg_frm.common.enc_pic.slen_fifo = (cfg->split_out != 0) ? 1 : 0;
         if ((cfg->split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) ||
             (regs->reg_frm.common.enc_pic.slen_fifo && (slice_num > VEPU510_SLICE_FIFO_LEN)))
             regs->reg_ctl.int_en.vslc_done_en = 1;
@@ -1993,10 +1993,10 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     reg_ctl->opt_strg.rfpr_err_e         = 1;
 
     reg_frm->common.enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
-    reg_frm->common.src_fill.pic_wfill    = (syn->pp.pic_width & 0x7)
+    reg_frm->common.src_fill.pic_wfill    = ((syn->pp.pic_width & 0x7) != 0)
                                             ? (8 - (syn->pp.pic_width & 0x7)) : 0;
     reg_frm->common.enc_rsl.pic_hd8_m1    = pic_height_align8 / 8 - 1;
-    reg_frm->common.src_fill.pic_hfill    = (syn->pp.pic_height & 0x7)
+    reg_frm->common.src_fill.pic_hfill    = ((syn->pp.pic_height & 0x7) != 0)
                                             ? (8 - (syn->pp.pic_height & 0x7)) : 0;
 
     reg_frm->common.enc_pic.enc_stnd            = 1; //H265

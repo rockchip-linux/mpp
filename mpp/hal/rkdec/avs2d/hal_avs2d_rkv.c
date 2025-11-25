@@ -231,7 +231,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu34xAvs2dRegSet *hw_regs)
     RK_S32 width = p_hal->syntax.pp.pic_width_in_luma_samples;
     RK_S32 height = p_hal->syntax.pp.pic_height_in_luma_samples;
     RK_S32 i = 0;
-    RK_S32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_S32 loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
     (void) hw_regs;
 
@@ -413,7 +413,7 @@ MPP_RET hal_avs2d_rkv_deinit(void *hal)
     INP_CHECK(ret, NULL == reg_ctx);
 
     //!< malloc buffers
-    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     for (i = 0; i < loop; i++) {
         if (reg_ctx->rcb_buf[i]) {
             mpp_buffer_put(reg_ctx->rcb_buf[i]);
@@ -460,7 +460,7 @@ MPP_RET hal_avs2d_rkv_init(void *hal, MppHalCfg *cfg)
     //!< malloc buffers
     reg_ctx->shph_dat = mpp_calloc(RK_U8, AVS2_RKV_SHPH_SIZE);
     reg_ctx->scalist_dat = mpp_calloc(RK_U8, AVS2_RKV_SCALIST_SIZE);
-    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    loop = (p_hal->fast_mode != 0) ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
     FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, AVS2_ALL_TBL_BUF_SIZE(loop)));
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
@@ -626,7 +626,7 @@ MPP_RET hal_avs2d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     // set rcb
     {
         hal_avs2d_rcb_info_update(p_hal, regs);
-        vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
+        vdpu34x_setup_rcb(&regs->common_addr, p_hal->dev, (p_hal->fast_mode != 0) ?
                           reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0],
                           reg_ctx->rcb_info);
 
@@ -751,7 +751,7 @@ MPP_RET hal_avs2d_rkv_start(void *hal, HalTaskInfo *task)
     }
 
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
     dev = p_hal->dev;
 
     p_hal->frame_no++;
@@ -884,7 +884,7 @@ MPP_RET hal_avs2d_rkv_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    p_regs = p_hal->fast_mode ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
+    p_regs = (p_hal->fast_mode != 0) ? reg_ctx->reg_buf[task->dec.reg_index].regs : reg_ctx->regs;
 
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
         !p_hal->cfg->base.disable_error) {

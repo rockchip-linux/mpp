@@ -415,10 +415,10 @@ static MPP_RET hal_h264e_vepu2_gen_regs_v2(void *hal, HalEncTask *task)
 
     RK_U32 skip_penalty = MPP_MIN(255, h264_skip_sad_penalty[hw_mbrc->qp_init] * scaler);
 
-    RK_U32 overfill_r = (hw_prep->src_w & 0x0f) ?
+    RK_U32 overfill_r = ((hw_prep->src_w & 0x0f) != 0) ?
                         ((16 - (hw_prep->src_w & 0x0f)) / 4) : 0;
 
-    RK_U32 overfill_b = (hw_prep->src_h & 0x0f) ?
+    RK_U32 overfill_b = ((hw_prep->src_h & 0x0f) != 0) ?
                         (16 - (hw_prep->src_h & 0x0f)) : 0;
 
     val = VEPU_REG_STREAM_START_OFFSET(first_free_bit) |
@@ -720,7 +720,7 @@ static MPP_RET hal_h264e_vepu2_wait_v2(void *hal, HalEncTask *task)
 {
     HalH264eVepu2Ctx *ctx = (HalH264eVepu2Ctx *)hal;
     HalH264eVepuMbRc *hw_mbrc = &ctx->hw_mbrc;
-    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    H264NaluType type = (task->rc_task->frm.is_idr != 0) ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
     MPP_RET ret = MPP_NOK;

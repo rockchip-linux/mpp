@@ -127,7 +127,7 @@ static MPP_RET vepu511_jpeg_set_patch_info(MppDev dev, JpegeSyntax *syn,
                                            HalEncTask *task)
 {
     RK_U32 hor_stride = syn->hor_stride;
-    RK_U32 ver_stride = syn->ver_stride ? syn->ver_stride : syn->height;
+    RK_U32 ver_stride = (syn->ver_stride != 0) ? syn->ver_stride : syn->height;
     RK_U32 frame_size = hor_stride * ver_stride;
     RK_U32 u_offset = 0, v_offset = 0;
     MPP_RET ret = MPP_OK;
@@ -217,10 +217,10 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     mpp_dev_set_reg_offset(cfg->dev, 256, mpp_buffer_get_size(task->output));
 
     regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
-    regs->src_fill.pic_wfill    = (syn->width & 0x7)
+    regs->src_fill.pic_wfill    = ((syn->width & 0x7) != 0)
                                   ? (8 - (syn->width & 0x7)) : 0;
     regs->enc_rsl.pic_hd8_m1    = pic_height_align8 / 8 - 1;
-    regs->src_fill.pic_hfill    = (syn->height & 0x7)
+    regs->src_fill.pic_hfill    = ((syn->height & 0x7) != 0)
                                   ? (8 - (syn->height & 0x7)) : 0;
 
     regs->src_fmt.src_cfmt = fmt->format;

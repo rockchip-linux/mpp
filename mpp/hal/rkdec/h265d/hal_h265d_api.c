@@ -49,7 +49,7 @@ MPP_RET hal_h265d_init(void *ctx, MppHalCfg *cfg)
         return ret;
     }
 
-    client_type = (vcodec_type & HAVE_HEVC_DEC) ?
+    client_type = ((vcodec_type & HAVE_HEVC_DEC) != 0) ?
                   VPU_CLIENT_HEVC_DEC : VPU_CLIENT_RKVDEC;
 
     ret = mpp_dev_init(&cfg->dev, client_type);

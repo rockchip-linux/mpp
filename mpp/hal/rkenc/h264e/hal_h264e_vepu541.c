@@ -486,7 +486,7 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *
         if (!y_stride)
             y_stride = MPP_ALIGN(prep->hor_stride, 16);
     } else
-        y_stride = (prep->hor_stride) ? (prep->hor_stride) : (prep->width);
+        y_stride = (prep->hor_stride != 0) ? (prep->hor_stride) : (prep->width);
 
 
     c_stride = (hw_fmt == VEPU5xx_FMT_YUV422SP || hw_fmt == VEPU5xx_FMT_YUV420SP) ?
@@ -532,7 +532,7 @@ static MPP_RET setup_vepu541_prep(Vepu541H264eRegSet *regs, HalH264eVepu541Ctx *
         regs->reg021.csc_ofst_v  = cfg.offset[2];
     }
 
-    regs->reg022.afbcd_en   = MPP_FRAME_FMT_IS_FBC(fmt) ? 1 : 0;
+    regs->reg022.afbcd_en   = (MPP_FRAME_FMT_IS_FBC(fmt) != 0) ? 1 : 0;
     regs->reg069.src_strd0  = y_stride;
     regs->reg069.src_strd1  = c_stride;
 
@@ -1764,7 +1764,7 @@ static MPP_RET hal_h264e_vepu541_wait(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalH264eVepu541Ctx *ctx = (HalH264eVepu541Ctx *)hal;
-    H264NaluType type = task->rc_task->frm.is_idr ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
+    H264NaluType type = (task->rc_task->frm.is_idr != 0) ?  H264_NALU_TYPE_IDR : H264_NALU_TYPE_SLICE;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
 
@@ -1816,9 +1816,9 @@ static MPP_RET hal_h264e_vepu541_ret_task(void *hal, HalEncTask *task)
     // setup bit length for rate control
     rc_info->bit_real = task->hw_length * 8;
     rc_info->quality_real = ctx->regs_ret.st_sse_qp.qp_sum / mbs;
-    rc_info->madi = (!ctx->regs_ret.st_mb_num) ? 0 :
+    rc_info->madi = (ctx->regs_ret.st_mb_num == 0) ? 0 :
                     ctx->regs_ret.st_madi /  ctx->regs_ret.st_mb_num;
-    rc_info->madp = (!ctx->regs_ret.st_ctu_num) ? 0 :
+    rc_info->madp = (ctx->regs_ret.st_ctu_num == 0) ? 0 :
                     ctx->regs_ret.st_madp / ctx->regs_ret.st_ctu_num;
     rc_info->iblk4_prop = (ctx->regs_ret.st_lvl4_intra_num +
                            ctx->regs_ret.st_lvl8_intra_num +

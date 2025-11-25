@@ -329,7 +329,7 @@ static void vepu510_h265e_tune_stat_update(void *p, HalEncTask *task)
         fb->st_madp =  fb->st_madp  / madp_cnt;
 
     fb->st_mb_num += elem->st.st_bnum_b16.num_b16;
-    fb->frame_type = task->rc_task->frm.is_intra ? INTRA_FRAME : INTER_P_FRAME;
+    fb->frame_type = (task->rc_task->frm.is_intra != 0) ? INTRA_FRAME : INTER_P_FRAME;
     hal_rc_ret->bit_real += fb->out_strm_size * 8;
 
     hal_rc_ret->madi = elem->st.madi16_sum / fb->st_mb_num;
