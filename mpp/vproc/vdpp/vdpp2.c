@@ -1628,14 +1628,14 @@ static MPP_RET vdpp2_set_param(struct vdpp2_api_ctx *ctx,
         ctx->params.dst_c_height = param->com2.dst_c_height;
         ctx->params.dst_c_width_vir = param->com2.dst_c_width_vir;
         ctx->params.dst_c_height_vir = param->com2.dst_c_height_vir;
-        ctx->params.working_mode = param->com2.hist_mode_en ?
+        ctx->params.working_mode = (param->com2.hist_mode_en != 0) ?
                                    VDPP_WORK_MODE_DCI : VDPP_WORK_MODE_VEP;
         if (mask & VDPP_DMSR_EN)
-            ctx->params.dmsr_params.dmsr_enable = (cfg_set & VDPP_DMSR_EN) ? 1 : 0;
+            ctx->params.dmsr_params.dmsr_enable = ((cfg_set & VDPP_DMSR_EN) != 0) ? 1 : 0;
         if (mask & VDPP_ES_EN)
-            ctx->params.es_params.es_bEnabledES = (cfg_set & VDPP_ES_EN) ? 1 : 0;
+            ctx->params.es_params.es_bEnabledES = ((cfg_set & VDPP_ES_EN) != 0) ? 1 : 0;
         if (mask & VDPP_SHARP_EN)
-            ctx->params.shp_params.sharp_enable = (cfg_set & VDPP_SHARP_EN) ? 1 : 0;
+            ctx->params.shp_params.sharp_enable = ((cfg_set & VDPP_SHARP_EN) != 0) ? 1 : 0;
         update_dci_ctl(&ctx->params);
         break;
     case VDPP_PARAM_TYPE_ES:

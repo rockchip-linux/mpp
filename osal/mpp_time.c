@@ -85,7 +85,7 @@ void mpp_clock_enable(MppClock clk, rk_u32 enable)
     } else {
         MppClockImpl *p = (MppClockImpl *)clk;
 
-        p->enable = (enable) ? (1) : (0);
+        p->enable = (enable != 0) ? (1) : (0);
     }
 }
 
@@ -157,7 +157,7 @@ rk_s64 mpp_clock_get_sum(MppClock clk)
         return 0;
     }
 
-    return (p->enable) ? (p->sum) : (0);
+    return (p->enable != 0) ? (p->sum) : (0);
 }
 
 rk_s64 mpp_clock_get_count(MppClock clk)
@@ -169,7 +169,7 @@ rk_s64 mpp_clock_get_count(MppClock clk)
         return 0;
     }
 
-    return (p->enable) ? (p->count) : (0);
+    return (p->enable != 0) ? (p->count) : (0);
 }
 
 const char *mpp_clock_get_name(MppClock clk)

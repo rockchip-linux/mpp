@@ -439,7 +439,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
 
                     log_len += snprintf(log_buf + log_len, log_size - log_len,
                                         " pkt %d", p->frm_pkt_cnt);
-                    p->frm_pkt_cnt = (eoi) ? (0) : (p->frm_pkt_cnt + 1);
+                    p->frm_pkt_cnt = (eoi != 0) ? (0) : (p->frm_pkt_cnt + 1);
                 }
 
                 log_len += snprintf(log_buf + log_len, log_size - log_len,

@@ -148,24 +148,24 @@ MPP_RET mpp_allocator_get(MppAllocator *allocator, MppAllocatorApi **api,
             p->os_api = allocator_std;
         } break;
         case MPP_BUFFER_TYPE_ION : {
-            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
+            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP) != 0) ? allocator_dma_heap :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION) != 0) ? allocator_ion :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM) != 0) ? allocator_drm :
                         allocator_std;
         } break;
         case MPP_BUFFER_TYPE_EXT_DMA: {
             p->os_api = allocator_ext_dma;
         } break;
         case MPP_BUFFER_TYPE_DRM : {
-            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP) != 0) ? allocator_dma_heap :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM) != 0) ? allocator_drm :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION) != 0) ? allocator_ion :
                         allocator_std;
         } break;
         case MPP_BUFFER_TYPE_DMA_HEAP: {
-            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP)) ? allocator_dma_heap :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM)) ? allocator_drm :
-                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION)) ? allocator_ion :
+            p->os_api = (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DMA_HEAP) != 0) ? allocator_dma_heap :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_DRM) != 0) ? allocator_drm :
+                        (mpp_rt_allcator_is_valid(MPP_BUFFER_TYPE_ION) != 0) ? allocator_ion :
                         allocator_std;
         } break;
         default : {

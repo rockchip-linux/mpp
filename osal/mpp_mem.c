@@ -29,7 +29,7 @@
 #define MEM_ALIGN               32
 #define MEM_ALIGN_MASK          (MEM_ALIGN - 1)
 #define MEM_ALIGNED(x)          (((x) + MEM_ALIGN_MASK) & (~MEM_ALIGN_MASK))
-#define MEM_HEAD_ROOM(debug)    ((debug & MEM_EXT_ROOM) ? (MEM_ALIGN) : (0))
+#define MEM_HEAD_ROOM(debug)    (((debug & MEM_EXT_ROOM) != 0) ? (MEM_ALIGN) : (0))
 #define MEM_NODE_MAX            (1024)
 #define MEM_FREE_MAX            (512)
 #define MEM_LOG_MAX             (1024)
@@ -642,7 +642,7 @@ void *mpp_osal_malloc(const char *caller, size_t size)
     MppMemSrv *srv = get_srv_mem(caller);
     rk_u32 debug = srv->debug;
     size_t size_align = MEM_ALIGNED(size);
-    size_t size_real = (debug & MEM_EXT_ROOM) ? (size_align + 2 * MEM_ALIGN) : (size_align);
+    size_t size_real = ((debug & MEM_EXT_ROOM) != 0) ? (size_align + 2 * MEM_ALIGN) : (size_align);
     void *ptr;
 
     os_malloc(&ptr, MEM_ALIGN, size_real);
@@ -695,7 +695,7 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
     }
 
     size_align = MEM_ALIGNED(size);
-    size_real = (debug & MEM_EXT_ROOM) ? (size_align + 2 * MEM_ALIGN) : (size_align);
+    size_real = ((debug & MEM_EXT_ROOM) != 0) ? (size_align + 2 * MEM_ALIGN) : (size_align);
     ptr_real = (rk_u8 *)ptr - MEM_HEAD_ROOM(debug);
 
     os_realloc(ptr_real, &ret, MEM_ALIGN, size_align);
@@ -708,7 +708,7 @@ void *mpp_osal_realloc(const char *caller, void *ptr, size_t size)
 
         // if realloc success reset the node and record
         if (debug) {
-            void *ret_ptr = (debug & MEM_EXT_ROOM) ?
+            void *ret_ptr = ((debug & MEM_EXT_ROOM) != 0) ?
                             ((rk_u8 *)ret + MEM_ALIGN) : (ret);
 
             reset_node(srv, ptr, ret_ptr, size, caller);

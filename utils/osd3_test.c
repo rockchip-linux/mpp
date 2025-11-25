@@ -270,7 +270,7 @@ static MPP_RET translate_argb(RK_U8 *src, RK_U8 *dst, RK_U32 width, RK_U32 heigh
         for (j = 0; j < height; j++) {
             RK_U32 is_black;
 
-            is_black = (j / SMPTE_BAR_CNT) % 2 ? 1 : 0;
+            is_black = ((j / SMPTE_BAR_CNT) % 2 != 0) ? 1 : 0;
             for (i = 0; i < width; i++) {
                 if (is_black)
                     dst[j * width / 4 + i / 4] = (dst[j * width / 4 + i / 4] << 2) | 0;
@@ -286,7 +286,7 @@ static MPP_RET translate_argb(RK_U8 *src, RK_U8 *dst, RK_U32 width, RK_U32 heigh
         for (j = 0; j < height; j++) {
             RK_U32 is_black;
 
-            is_black = (j / SMPTE_BAR_CNT) % 2 ? 1 : 0;
+            is_black = ((j / SMPTE_BAR_CNT) % 2 != 0) ? 1 : 0;
             for (i = 0; i < width; i++) {
                 if (is_black)
                     dst[j * width / 8 + i / 8] = (dst[j * width / 8 + i / 8] << 1) | 0;

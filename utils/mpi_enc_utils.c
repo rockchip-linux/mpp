@@ -1871,19 +1871,19 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
     } break;
     case MPP_ENC_RC_MODE_CBR : {
         /* CBR mode has narrow bound */
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", cmd->bps_max ? cmd->bps_max : cmd->bps_target * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", cmd->bps_min ? cmd->bps_min : cmd->bps_target * 15 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", (cmd->bps_max != 0) ? cmd->bps_max : cmd->bps_target * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", (cmd->bps_min != 0) ? cmd->bps_min : cmd->bps_target * 15 / 16);
     } break;
     case MPP_ENC_RC_MODE_VBR :
     case MPP_ENC_RC_MODE_AVBR : {
         /* VBR mode has wide bound */
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", cmd->bps_max ? cmd->bps_max : cmd->bps_target * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", cmd->bps_min ? cmd->bps_min : cmd->bps_target * 1 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", (cmd->bps_max != 0) ? cmd->bps_max : cmd->bps_target * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", (cmd->bps_min != 0) ? cmd->bps_min : cmd->bps_target * 1 / 16);
     } break;
     default : {
         /* default use CBR mode */
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", cmd->bps_max ? cmd->bps_max : cmd->bps_target * 17 / 16);
-        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", cmd->bps_min ? cmd->bps_min : cmd->bps_target * 15 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", (cmd->bps_max != 0) ? cmd->bps_max : cmd->bps_target * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", (cmd->bps_min != 0) ? cmd->bps_min : cmd->bps_target * 15 / 16);
     } break;
     }
 
@@ -1910,16 +1910,16 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         case MPP_ENC_RC_MODE_VBR :
         case MPP_ENC_RC_MODE_AVBR :
         case MPP_ENC_RC_MODE_SMTRC : {
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", cmd->qp_init ? cmd->qp_init : -1);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", cmd->qp_max ? cmd->qp_max : 51);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", cmd->qp_min ? cmd->qp_min : 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", cmd->qp_max_i ? cmd->qp_max_i : 51);
-            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", cmd->qp_min_i ? cmd->qp_min_i : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", (cmd->qp_init != 0) ? cmd->qp_init : -1);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", (cmd->qp_max != 0) ? cmd->qp_max : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", (cmd->qp_min != 0) ? cmd->qp_min : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", (cmd->qp_max_i != 0) ? cmd->qp_max_i : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", (cmd->qp_min_i != 0) ? cmd->qp_min_i : 10);
             mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", cmd->fqp_min_i ? cmd->fqp_min_i : 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", cmd->fqp_max_i ? cmd->fqp_max_i : 45);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", cmd->fqp_min_p ? cmd->fqp_min_p : 10);
-            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", cmd->fqp_max_p ? cmd->fqp_max_p : 45);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", (cmd->fqp_min_i != 0) ? cmd->fqp_min_i : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", (cmd->fqp_max_i != 0) ? cmd->fqp_max_i : 45);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", (cmd->fqp_min_p != 0) ? cmd->fqp_min_p : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", (cmd->fqp_max_p != 0) ? cmd->fqp_max_p : 45);
         } break;
         default : {
             mpp_err_f("unsupport encoder rc mode %d\n", cmd->rc_mode);
@@ -1928,18 +1928,18 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
     } break;
     case MPP_VIDEO_CodingVP8 : {
         /* vp8 only setup base qp range */
-        mpp_enc_cfg_set_s32(cfg, "rc:qp_init", cmd->qp_init ? cmd->qp_init : 40);
-        mpp_enc_cfg_set_s32(cfg, "rc:qp_max",  cmd->qp_max ? cmd->qp_max : 127);
-        mpp_enc_cfg_set_s32(cfg, "rc:qp_min",  cmd->qp_min ? cmd->qp_min : 0);
-        mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", cmd->qp_max_i ? cmd->qp_max_i : 127);
-        mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", cmd->qp_min_i ? cmd->qp_min_i : 0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_init", (cmd->qp_init != 0) ? cmd->qp_init : 40);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max",  (cmd->qp_max != 0) ? cmd->qp_max : 127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min",  (cmd->qp_min != 0) ? cmd->qp_min : 0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", (cmd->qp_max_i != 0) ? cmd->qp_max_i : 127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", (cmd->qp_min_i != 0) ? cmd->qp_min_i : 0);
         mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 6);
     } break;
     case MPP_VIDEO_CodingMJPEG : {
         /* jpeg use special codec config to control qtable */
-        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", cmd->qp_init ? cmd->qp_init : 80);
-        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", cmd->qp_max ? cmd->qp_max : 99);
-        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", cmd->qp_min ? cmd->qp_min : 1);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", (cmd->qp_init != 0) ? cmd->qp_init : 80);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", (cmd->qp_max != 0) ? cmd->qp_max : 99);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", (cmd->qp_min != 0) ? cmd->qp_min : 1);
     } break;
     default : {
     } break;
@@ -1982,7 +1982,7 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
     }
 
     // config gop_len and ref cfg
-    mpp_enc_cfg_set_s32(cfg, "rc:gop", cmd->gop_len ? cmd->gop_len : cmd->fps_out_num * 2);
+    mpp_enc_cfg_set_s32(cfg, "rc:gop", (cmd->gop_len != 0) ? cmd->gop_len : cmd->fps_out_num * 2);
 
     if (cmd->gop_mode) {
         mpp_enc_ref_cfg_init(&ref);

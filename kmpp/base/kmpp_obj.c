@@ -79,7 +79,7 @@
     *ENTRY_TO_FLAG_PTR(e, entry) &= ~(1ul << (ELEM_FLAG_BIT_POS(e->tbl.flag_offset)))
 
 #define ENTRY_TEST_FLAG(e, entry) \
-    (*ENTRY_TO_FLAG_PTR(e, entry) & 1ul << (ELEM_FLAG_BIT_POS(e->tbl.flag_offset))) ? 1 : 0
+    ((*ENTRY_TO_FLAG_PTR(e, entry) & 1ul << (ELEM_FLAG_BIT_POS(e->tbl.flag_offset))) != 0) ? 1 : 0
 
 typedef struct KmppShmReq_t {
     /* shm_name     - NULL name addresss for shm direct allocation */
@@ -786,7 +786,7 @@ rk_s32 kmpp_objdef_set_prop(KmppObjDef def, const char *op, rk_s32 value)
         KmppObjDefImpl *impl = (KmppObjDefImpl *)def;
 
         if (!strcmp(op, "disable_mismatch_log")) {
-            impl->disable_mismatch_log = value ? 1 : 0;
+            impl->disable_mismatch_log = (value != 0) ? 1 : 0;
         } else {
             mpp_loge_f("unknown property %s value %d\n", op, value);
             return rk_nok;
@@ -2017,7 +2017,7 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
         }
     }
 
-    return ret ? rk_nok : rk_ok;
+    return (ret != rk_ok) ? rk_nok : rk_ok;
 }
 
 rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller)
@@ -2038,7 +2038,7 @@ rk_s32 kmpp_obj_kdump_f(KmppObj obj, const char *caller)
     if (ret)
         mpp_err("ioctl KMPP_SHM_IOC_DUMP failed ret %d\n", ret);
 
-    return ret ? rk_nok : rk_ok;
+    return (ret != rk_ok) ? rk_nok : rk_ok;
 }
 
 rk_s32 kmpp_shm_get(KmppShm *shm, rk_s32 size, const char *caller)

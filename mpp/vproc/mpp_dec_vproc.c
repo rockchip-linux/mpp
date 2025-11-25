@@ -236,7 +236,7 @@ static MPP_RET dec_vproc_start_dei_v1(MppDecVprocCtx *vproc_ctx, RK_U32 mode)
 {
     MPP_RET ret = MPP_OK;
     MppDecVprocCtxImpl *impl = (MppDecVprocCtxImpl *) vproc_ctx;
-    impl->dei_cfg.dei_field_order = (mode & MPP_FRAME_FLAG_TOP_FIRST) ?
+    impl->dei_cfg.dei_field_order = ((mode & MPP_FRAME_FLAG_TOP_FIRST) != 0) ?
                                     (IEP_DEI_FLD_ORDER_TOP_FIRST) :
                                     (IEP_DEI_FLD_ORDER_BOT_FIRST);
     ret = impl->com_ctx->ops->control(impl->iep_ctx,
@@ -473,7 +473,7 @@ static MPP_RET dec_vproc_config_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm,
     params.param.mode.out_mode = IEP2_OUT_MODE_LINE;
     {
         RK_U32 mode = mpp_frame_get_mode(frm);
-        RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
+        RK_U32 fo_from_syntax = ((mode & MPP_FRAME_FLAG_TOP_FIRST) != 0) ? 1 : 0;
 
         /* refer to syntax */
         if ((mode & MPP_FRAME_FLAG_TOP_FIRST) && (mode & MPP_FRAME_FLAG_BOT_FIRST))
@@ -569,7 +569,7 @@ MPP_RET dec_vproc_output_dei_v2(MppDecVprocCtxImpl *ctx, MppFrame frm, RK_U32 is
                 ctx->out_buf0 = NULL;
             }
         } else {
-            RK_U32 fo_from_syntax = (mode & MPP_FRAME_FLAG_TOP_FIRST) ? 1 : 0;
+            RK_U32 fo_from_syntax = ((mode & MPP_FRAME_FLAG_TOP_FIRST) != 0) ? 1 : 0;
             RK_U32 fo_from_iep = (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_UND) ?
                                  fo_from_syntax : (ctx->dei_info.dil_order == IEP2_FIELD_ORDER_TFF);
             RK_U32 is_tff = 0;

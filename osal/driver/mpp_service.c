@@ -93,7 +93,7 @@ MPP_RET mpp_service_check_cmd_valid(RK_U32 cmd, const MppServiceCmdCap *cap)
         found = (cmd >= MPP_CMD_CONTROL_BASE && cmd <= MPP_CMD_RELEASE_FD)       ? 1 : found;
     }
 
-    return found ? MPP_OK : MPP_NOK;
+    return (found != 0) ? MPP_OK : MPP_NOK;
 }
 
 void check_mpp_service_cap(RK_U32 *codec_type, RK_U32 *hw_ids, MppServiceCmdCap *cap)
