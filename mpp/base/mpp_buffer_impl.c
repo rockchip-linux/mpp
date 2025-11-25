@@ -482,7 +482,7 @@ MPP_RET mpp_buffer_create(const char *tag, const char *caller,
     p->group_id = group->group_id;
     p->mode = group->mode;
     p->type = group->type;
-    p->uncached = (group->flags & MPP_ALLOC_FLAG_CACHABLE) ? 0 : 1;
+    p->uncached = ((group->flags & MPP_ALLOC_FLAG_CACHABLE) != 0) ? 0 : 1;
     p->logs = group->logs;
     p->info = *info;
 
@@ -1172,15 +1172,15 @@ static MppBufferGroupImpl *service_get_group(const char *tag, const char *caller
     INIT_LIST_HEAD(&p->list_unused);
     INIT_HLIST_NODE(&p->hlist);
 
-    p->log_runtime_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) ? (1) : (0);
-    p->log_history_en   = (mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) ? (1) : (0);
+    p->log_runtime_en   = ((mpp_buffer_debug & MPP_BUF_DBG_OPS_RUNTIME) != 0) ? (1) : (0);
+    p->log_history_en   = ((mpp_buffer_debug & MPP_BUF_DBG_OPS_HISTORY) != 0) ? (1) : (0);
 
     p->caller   = caller;
     p->mode     = mode;
     p->type     = buffer_type;
     p->limit    = BUFFER_GROUP_SIZE_DEFAULT;
-    p->clear_on_exit = (mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) ? (1) : (0);
-    p->dump_on_exit  = (mpp_buffer_debug & MPP_BUF_DBG_DUMP_ON_EXIT) ? (1) : (0);
+    p->clear_on_exit = ((mpp_buffer_debug & MPP_BUF_DBG_CLR_ON_EXIT) != 0) ? (1) : (0);
+    p->dump_on_exit  = ((mpp_buffer_debug & MPP_BUF_DBG_DUMP_ON_EXIT) != 0) ? (1) : (0);
 
     {
         pthread_mutexattr_t attr;

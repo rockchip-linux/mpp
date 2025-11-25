@@ -206,22 +206,22 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         case MPP_VIDEO_CodingHEVC :
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingAVC :
         case MPP_VIDEO_CodingAVSPLUS :
         case MPP_VIDEO_CodingAVS :
         case MPP_VIDEO_CodingAVS2 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 64);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 64);
         } break;
         default : {
             aligned_pixel = MPP_ALIGN(cfg->width, 16);
-            aligned_height = MPP_ALIGN(aligned_height ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
         } break;
         }
         sys_cfg_dbg_dec_buf("spec aligned pixel wxh: [%d %d]\n", aligned_pixel, aligned_height);
@@ -336,9 +336,9 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
         }
         sys_cfg_dbg_dec_buf("spec aligned pixel wxh: [%d %d]\n", aligned_pixel, aligned_height);
 
-        aligned_pixel_byte = cfg->h_stride_by_byte ? cfg->h_stride_by_byte :
+        aligned_pixel_byte = (cfg->h_stride_by_byte != 0) ? cfg->h_stride_by_byte :
                              aligned_pixel * depth / 8;
-        aligned_height = cfg->v_stride ? cfg->v_stride : aligned_height;
+        aligned_height = (cfg->v_stride != 0) ? cfg->v_stride : aligned_height;
 
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {

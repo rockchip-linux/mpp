@@ -363,7 +363,7 @@ static rk_s32 mpp_trie_walk(MppTrieWalk *p, rk_s32 idx, rk_u32 key, rk_u32 keyx,
     char log_buf[128];
     rk_u32 log_size = sizeof(log_buf) - 1;
     rk_u32 log_len = 0;
-    rk_u32 log_en = (mpp_trie_debug & MPP_TRIE_DBG_WALK) ? 1 : 0;
+    rk_u32 log_en = ((mpp_trie_debug & MPP_TRIE_DBG_WALK) != 0) ? 1 : 0;
     rk_s32 next = -1;
 
     if (log_en)
@@ -378,7 +378,7 @@ static rk_s32 mpp_trie_walk(MppTrieWalk *p, rk_s32 idx, rk_u32 key, rk_u32 keyx,
         if (log_en)
             log_len += snprintf(log_buf + log_len, log_size - log_len,
                                 "tag %s -> ",
-                                !node->tag_len ? "n/a" : "match");
+                                (node->tag_len == 0) ? "n/a" : "match");
         p->tag = 0;
         p->len = 0;
         p->match = -1;

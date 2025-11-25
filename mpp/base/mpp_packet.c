@@ -280,7 +280,7 @@ RK_U32 mpp_packet_get_eos(MppPacket packet)
     if (check_is_mpp_packet(p))
         return 0;
 
-    return (p->flag & MPP_PACKET_FLAG_EOS) ? (1) : (0);
+    return ((p->flag & MPP_PACKET_FLAG_EOS) != 0) ? (1) : (0);
 }
 
 MPP_RET mpp_packet_set_extra_data(MppPacket packet)

@@ -111,18 +111,18 @@ void _dump_frm(EncFrmStatus *frm, const char *func, RK_S32 line)
     if (frm->is_non_ref) {
         mpp_log("%s:%d valid %d frm %d %s tid %d non-ref -> [%x:%d]\n",
                 func, line, frm->valid, frm->seq_idx,
-                frm->is_intra ? "intra" : "inter",
+                (frm->is_intra != 0) ? "intra" : "inter",
                 frm->temporal_id, frm->ref_mode, frm->ref_arg);
     } else if (frm->is_lt_ref) {
         mpp_log("%s:%d valid %d frm %d %s tid %d lt-ref  -> [%x:%d] lt_idx %d\n",
                 func, line, frm->valid, frm->seq_idx,
-                frm->is_intra ? "intra" : "inter",
+                (frm->is_intra != 0) ? "intra" : "inter",
                 frm->temporal_id, frm->ref_mode, frm->ref_arg,
                 frm->lt_idx);
     } else {
         mpp_log("%s:%d valid %d frm %d %s tid %d st-ref  -> [%x:%d]\n",
                 func, line, frm->valid, frm->seq_idx,
-                frm->is_intra ? "intra" : "inter",
+                (frm->is_intra != 0) ? "intra" : "inter",
                 frm->temporal_id, frm->ref_mode, frm->ref_arg);
     }
 }
@@ -377,8 +377,8 @@ static EncFrmStatus *get_ref_from_cpb(EncVirtualCpb *cpb, EncFrmStatus *frm)
         if (ref->valid)
             enc_refs_dbg_flow("frm %d ref mode %d arg %d -> seq %d %s idx %d\n",
                               frm->seq_idx, ref_mode, ref_arg, ref->seq_idx,
-                              ref->is_lt_ref ? "lt" : "st",
-                              ref->is_lt_ref ? ref->lt_idx : 0);
+                              (ref->is_lt_ref != 0) ? "lt" : "st",
+                              (ref->is_lt_ref != 0) ? ref->lt_idx : 0);
         else
             mpp_err_f("frm %d found mode %d arg %d -> ref %d but it is invalid\n",
                       frm->seq_idx, ref_mode, ref_arg, ref->seq_idx);
@@ -597,7 +597,7 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
     for (st_idx = 0; st_idx < walk_len; st_idx++) {
         st_cfg = &cfg->st_cfg[st_idx % st_cfg_cnt];
         EncFrmStatus frm;
-        RK_S32 repeat = (st_cfg->repeat) ? st_cfg->repeat : 1;
+        RK_S32 repeat = (st_cfg->repeat != 0) ? st_cfg->repeat : 1;
 
         while (repeat-- > 0) {
             /* step 1. updated by st_cfg */
@@ -656,7 +656,7 @@ MPP_RET mpp_enc_refs_dryrun(MppEncRefs refs)
     }
 
     cleanup_cpb_refs(cpb);
-    info->max_st_cnt = cpb_st_used_size ? cpb_st_used_size : 1;
+    info->max_st_cnt = (cpb_st_used_size != 0) ? cpb_st_used_size : 1;
 
 DONE:
     info->dpb_size = info->max_lt_cnt + info->max_st_cnt;
@@ -881,7 +881,7 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         if (usr_cfg->force_temporal_id >= cfg->max_tlayers ||
             frm->is_idr || frm->is_lt_ref)
             mpp_err_f("Invalid temporal_id %d, frm is %s\n", usr_cfg->force_temporal_id,
-                      frm->is_idr ? "IDR" : (frm->is_lt_ref ? "LTR" : "st"));
+                      (frm->is_idr != 0) ? "IDR" : ((frm->is_lt_ref != 0) ? "LTR" : "st"));
         else
             frm->temporal_id = usr_cfg->force_temporal_id;
 

@@ -294,10 +294,10 @@ static void prepare_info_set_legacy(MppBufSlotsImpl *impl, MppFrame frame,
     RK_U32 coded_width = (impl->hal_width_align) ?
                          (impl->hal_width_align(width)) : width;
 
-    RK_U32 hal_hor_stride = (codec_hor_stride) ?
+    RK_U32 hal_hor_stride = (codec_hor_stride != 0) ?
                             (impl->hal_hor_align(codec_hor_stride)) :
                             (impl->hal_hor_align(coded_width * depth >> 3));
-    RK_U32 hal_ver_stride = (codec_ver_stride) ?
+    RK_U32 hal_ver_stride = (codec_ver_stride != 0) ?
                             (impl->hal_ver_align(codec_ver_stride)) :
                             (impl->hal_ver_align(height));
     RK_U32 hor_stride_pixel;
@@ -424,7 +424,7 @@ static void generate_info_set(MppBufSlotsImpl *impl, MppFrame frame, RK_U32 forc
     mpp_frame_set_width(impl->info_set, width);
     mpp_frame_set_height(impl->info_set, height);
     mpp_frame_set_fmt(impl->info_set, fmt);
-    info_set_ptr = use_legacy_align ? &legacy_info_set : &sys_cfg_info_set;
+    info_set_ptr = (use_legacy_align != 0) ? &legacy_info_set : &sys_cfg_info_set;
     mpp_frame_set_hor_stride(impl->info_set, info_set_ptr->h_stride_by_byte);
     mpp_frame_set_ver_stride(impl->info_set, info_set_ptr->v_stride);
     mpp_frame_set_hor_stride_pixel(impl->info_set, info_set_ptr->h_stride_by_pixel);
@@ -854,7 +854,7 @@ MPP_RET mpp_buf_slot_init(MppBufSlots *slots)
         impl->denominator   = 5;
         impl->slots_idx     = buf_slot_idx++;
         impl->info_change_slot_idx = -1;
-        impl->align_chk_log_env = (buf_slot_debug & BUF_SLOT_DBG_INFO_SET) ? 1 : 0;
+        impl->align_chk_log_env = ((buf_slot_debug & BUF_SLOT_DBG_INFO_SET) != 0) ? 1 : 0;
         impl->align_chk_log_en = impl->align_chk_log_env;
 
         *slots = impl;
@@ -1298,12 +1298,12 @@ MPP_RET mpp_buf_slot_get_prop(MppBufSlots slots, RK_S32 index, SlotPropType type
         MppFrame *frame = (MppFrame *)val;
 
         mpp_assert(slot->status.has_frame);
-        *frame = (slot->status.has_frame) ? (slot->frame) : (NULL);
+        *frame = (slot->status.has_frame != 0) ? (slot->frame) : (NULL);
     } break;
     case SLOT_BUFFER: {
         MppBuffer *buffer = (MppBuffer *)val;
 
-        *buffer = (slot->status.has_buffer) ? (slot->buffer) : (NULL);
+        *buffer = (slot->status.has_buffer != 0) ? (slot->buffer) : (NULL);
     } break;
     default : {
     } break;
@@ -1383,7 +1383,7 @@ RK_U32 mpp_slots_is_empty(MppBufSlots slots, SlotQueueType type)
 
     MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
     mpp_mutex_lock(&impl->lock);
-    is_empty = list_empty(&impl->queue[type]) ? 1 : 0;
+    is_empty = (list_empty(&impl->queue[type]) != 0) ? 1 : 0;
     mpp_mutex_unlock(&impl->lock);
 
     return is_empty;

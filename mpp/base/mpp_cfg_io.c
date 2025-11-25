@@ -1235,7 +1235,7 @@ static rk_s32 parse_log_string(MppCfgStrBuf *str, char **name, rk_s32 *len, rk_u
     char *buf = NULL;
     char *start = NULL;
     rk_s32 name_len = 0;
-    char terminator = type ? '\"' : ' ';
+    char terminator = (type != 0) ? '\"' : ' ';
 
     *name = NULL;
     *len = 0;
