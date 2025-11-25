@@ -1,7 +1,7 @@
 # This file setup the enable flag of all supported codecs
 
 # AVS decoder
-option(ENABLE_AVSD   "Enable avs decoder" ON)
+option(ENABLE_AVSD   "Enable avs decoder" ${ENABLE_AVSD_DEFAULT})
 if( ENABLE_AVSD AND
     EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/codec/dec/avs" )
     set(HAVE_AVSD true)
@@ -11,7 +11,7 @@ if( ENABLE_AVSD AND
 endif()
 
 # AVS2 decoder
-option(ENABLE_AVS2D   "Enable avs2 decoder" ON)
+option(ENABLE_AVS2D   "Enable avs2 decoder" ${ENABLE_AVS2D_DEFAULT})
 if( ENABLE_AVS2D AND
     EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/codec/dec/avs2" )
     set(HAVE_AVS2D true)
@@ -21,7 +21,7 @@ if( ENABLE_AVS2D AND
 endif()
 
 # H.263 decoder
-option(ENABLE_H263D  "Enable h.263 decoder" ON)
+option(ENABLE_H263D  "Enable h.263 decoder" ${ENABLE_H263D_DEFAULT})
 if( ENABLE_H263D )
     set(HAVE_H263D true)
     set(CODEC_H263D codec_h263d)
@@ -30,7 +30,7 @@ if( ENABLE_H263D )
 endif()
 
 # H.264 decoder
-option(ENABLE_H264D  "Enable h.264 decoder" ON)
+option(ENABLE_H264D  "Enable h.264 decoder" ${ENABLE_H264D_DEFAULT})
 if( ENABLE_H264D )
     set(HAVE_H264D true)
     set(CODEC_H264D codec_h264d)
@@ -43,7 +43,7 @@ if( ENABLE_FASTPLAY_ONCE OR ANDROID)
 endif()
 
 # H.265 decoder
-option(ENABLE_H265D  "Enable h.265 decoder" ON)
+option(ENABLE_H265D  "Enable h.265 decoder" ${ENABLE_H265D_DEFAULT})
 if( ENABLE_H265D )
     set(HAVE_H265D true)
     set(CODEC_H265D codec_h265d)
@@ -52,7 +52,7 @@ if( ENABLE_H265D )
 endif()
 
 # mpeg2 decoder
-option(ENABLE_MPEG2D "Enable mpeg2 decoder" ON)
+option(ENABLE_MPEG2D "Enable mpeg2 decoder" ${ENABLE_MPEG2D_DEFAULT})
 if( ENABLE_MPEG2D )
     set(HAVE_MPEG2D true)
     set(CODEC_MPEG2D codec_mpeg2d)
@@ -61,7 +61,7 @@ if( ENABLE_MPEG2D )
 endif()
 
 # mpeg4 decoder
-option(ENABLE_MPEG4D "Enable mpeg4 decoder" ON)
+option(ENABLE_MPEG4D "Enable mpeg4 decoder" ${ENABLE_MPEG4D_DEFAULT})
 if( ENABLE_MPEG4D )
     set(HAVE_MPEG4D true)
     set(CODEC_MPEG4D codec_mpeg4d)
@@ -70,7 +70,7 @@ if( ENABLE_MPEG4D )
 endif()
 
 # VP8 decoder
-option(ENABLE_VP8D   "Enable vp8 decoder" ON)
+option(ENABLE_VP8D   "Enable vp8 decoder" ${ENABLE_VP8D_DEFAULT})
 if( ENABLE_VP8D )
     set(HAVE_VP8D true)
     set(CODEC_VP8D codec_vp8d)
@@ -79,7 +79,7 @@ if( ENABLE_VP8D )
 endif()
 
 # VP9 decoder
-option(ENABLE_VP9D   "Enable vp9 decoder" ON)
+option(ENABLE_VP9D   "Enable vp9 decoder" ${ENABLE_VP9D_DEFAULT})
 if( ENABLE_VP9D )
     set(HAVE_VP9D true)
     set(CODEC_VP9D codec_vp9d)
@@ -88,7 +88,7 @@ if( ENABLE_VP9D )
 endif()
 
 # jpeg decoder
-option(ENABLE_JPEGD  "Enable jpeg decoder" ON)
+option(ENABLE_JPEGD  "Enable jpeg decoder" ${ENABLE_JPEGD_DEFAULT})
 if( ENABLE_JPEGD )
     set(HAVE_JPEGD true)
     set(CODEC_JPEGD codec_jpegd)
@@ -97,7 +97,7 @@ if( ENABLE_JPEGD )
 endif()
 
 # AV1 decoder
-option(ENABLE_AV1D   "Enable av1 decoder" ON)
+option(ENABLE_AV1D   "Enable av1 decoder" ${ENABLE_AV1D_DEFAULT})
 if( ENABLE_AV1D )
     set(HAVE_AV1D true)
     set(CODEC_AV1D codec_av1d)
@@ -106,7 +106,7 @@ if( ENABLE_AV1D )
 endif()
 
 # H.264 encoder
-option(ENABLE_H264E  "Enable h.264 encoder" ON)
+option(ENABLE_H264E  "Enable h.264 encoder" ${ENABLE_H264E_DEFAULT})
 if( ENABLE_H264E )
     set(HAVE_H264E true)
     set(CODEC_H264E codec_h264e)
@@ -115,7 +115,7 @@ if( ENABLE_H264E )
 endif()
 
 # jpeg encoder
-option(ENABLE_JPEGE  "Enable jpeg encoder" ON)
+option(ENABLE_JPEGE  "Enable jpeg encoder" ${ENABLE_JPEGE_DEFAULT})
 if( ENABLE_JPEGE )
     set(HAVE_JPEGE true)
     set(CODEC_JPEGE codec_jpege)
@@ -124,7 +124,7 @@ if( ENABLE_JPEGE )
 endif()
 
 # h265 encoder
-option(ENABLE_H265E  "Enable h265 encoder" ON)
+option(ENABLE_H265E  "Enable h265 encoder" ${ENABLE_H265E_DEFAULT})
 if( ENABLE_H265E )
     set(HAVE_H265E true)
     set(CODEC_H265E codec_h265e)
@@ -133,7 +133,7 @@ if( ENABLE_H265E )
 endif()
 
 # vp8 encoder
-option(ENABLE_VP8E "Enable vp8 encoder" ON)
+option(ENABLE_VP8E "Enable vp8 encoder" ${ENABLE_VP8E_DEFAULT})
 if( ENABLE_VP8E )
     set(HAVE_VP8E true)
     set(CODEC_VP8E codec_vp8e)
