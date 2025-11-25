@@ -468,7 +468,7 @@ static MPP_RET parse_pic_alf_params(BitReadCtx_t *bitctx, Avs2dPicHeader_t *ph)
         //!< @see avs2 9.12.2 eg: 0000111222223333
         ph->alf_coeff_idx_tab[0] = 0;
         for (i = 1; i < ALF_MAX_FILTERS; i++) {
-            ph->alf_coeff_idx_tab[i] = (ph->alf_filter_pattern[i]) ?
+            ph->alf_coeff_idx_tab[i] = (ph->alf_filter_pattern[i] != 0) ?
                                        (ph->alf_coeff_idx_tab[i - 1] + 1) : ph->alf_coeff_idx_tab[i - 1];
         }
     }
@@ -718,7 +718,7 @@ static MPP_RET parse_picture_header_inter(Avs2dCtx_t *p_dec)
     }
 
     if (ph->picture_coding_type == 1) {
-        ph->picture_type = ph->background_pred_flag ? S_PICTURE : P_PICTURE;
+        ph->picture_type = (ph->background_pred_flag != 0) ? S_PICTURE : P_PICTURE;
     } else if (ph->picture_coding_type == 2) {
         ph->picture_type = B_PICTURE;
     } else if (ph->picture_coding_type == 3) {

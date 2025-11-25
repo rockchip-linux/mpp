@@ -247,7 +247,7 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
     currSlice->nal_reference_idc = cur_nalu->nal_reference_idc;
     //!< set ref flag and dpb error flag
     {
-        p_Vid->p_Dec->errctx.used_ref_flag = currSlice->nal_reference_idc ? 1 : 0;
+        p_Vid->p_Dec->errctx.used_ref_flag = (currSlice->nal_reference_idc != 0) ? 1 : 0;
         if (currSlice->slice_type == H264_I_SLICE) {
             p_Vid->p_Dec->errctx.dpb_err_flag = 0;
         }
@@ -257,7 +257,7 @@ static void init_slice_parmeters(H264_SLICE_t *currSlice)
         currSlice->inter_view_flag = currSlice->mvcExt.inter_view_flag;
         currSlice->anchor_pic_flag = currSlice->mvcExt.anchor_pic_flag;
     } else if (currSlice->svc_extension_flag == -1) { // normal AVC
-        currSlice->view_id = currSlice->mvcExt.valid ? p_Vid->active_subsps->view_id[0] : 0;
+        currSlice->view_id = (currSlice->mvcExt.valid != 0) ? p_Vid->active_subsps->view_id[0] : 0;
         currSlice->inter_view_flag = 1;
         currSlice->anchor_pic_flag = currSlice->idr_flag;
     }
@@ -510,7 +510,7 @@ MPP_RET process_slice(H264_SLICE_t *currSlice)
             READ_ONEBIT(p_bitctx, &currSlice->field_pic_flag);
             if (currSlice->field_pic_flag) {
                 READ_ONEBIT(p_bitctx, &currSlice->bottom_field_flag);
-                p_Vid->structure = currSlice->bottom_field_flag ? BOTTOM_FIELD : TOP_FIELD;
+                p_Vid->structure = (currSlice->bottom_field_flag != 0) ? BOTTOM_FIELD : TOP_FIELD;
             } else {
                 p_Vid->structure = FRAME;
                 currSlice->bottom_field_flag = 0;

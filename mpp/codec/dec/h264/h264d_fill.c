@@ -113,7 +113,7 @@ void fill_picparams(H264dVideoCtx_t *p_Vid, DXVA_PicParams_H264_MVC *pp)
             fill_picture_entry(&pp->RefFrameList[i], dpb_info[i].slot_index, dpb_info[i].is_long_term);
             pp->FieldOrderCntList[i][0] = dpb_info[i].TOP_POC;
             pp->FieldOrderCntList[i][1] = dpb_info[i].BOT_POC;
-            pp->FrameNumList[i] = dpb_info[i].is_long_term ? dpb_info[i].long_term_frame_idx : dpb_info[i].frame_num;
+            pp->FrameNumList[i] = (dpb_info[i].is_long_term != 0) ? dpb_info[i].long_term_frame_idx : dpb_info[i].frame_num;
             pp->LongTermPicNumList[i] = dpb_info[i].long_term_pic_num;
             if (dpb_info[i].is_used & 0x01) { //!< top_field
                 pp->UsedForReferenceFlags |= 1 << (2 * i + 0);

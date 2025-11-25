@@ -659,7 +659,7 @@ MPP_RET parse_prepare(H264dInputCtx_t *p_Inp, H264dCurCtx_t *p_Cur)
     if (p_Inp->pkt_eos && !p_Inp->in_length) {
         FUN_CHECK(ret = store_cur_nalu(p_Cur, p_strm, p_Dec->dxva_ctx));
         FUN_CHECK(ret = add_empty_nalu(p_strm));
-        p_Dec->p_Inp->task_valid = p_Dec->p_Inp->task_eos ? 0 : 1;
+        p_Dec->p_Inp->task_valid = (p_Dec->p_Inp->task_eos != 0) ? 0 : 1;
         p_Dec->p_Inp->task_eos = 1;
         H264D_LOG("----- end of stream ----");
         goto __RETURN;

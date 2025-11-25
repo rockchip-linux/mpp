@@ -101,7 +101,7 @@ void h265e_dpb_set_ref_list(H265eDpb *dpb, H265eSlice *slice, RK_S32 delta_poc)
                     lt_cnt++;
                 else
                     st_cnt++;
-                h265e_dbg_dpb("get %s ref ref_idx %d delta_poc %d", st_cnt ? "st" : "lt", ref_idx, delta_poc);
+                h265e_dbg_dpb("get %s ref ref_idx %d delta_poc %d", (st_cnt != 0) ? "st" : "lt", ref_idx, delta_poc);
             }
         }
         if (lt_cnt != 1 && st_cnt == 0) {
@@ -461,7 +461,7 @@ void h265e_dpb_arrange_lt_rps(H265eDpb *dpb, H265eSlice *slice)
     // tempArray for usedByCurr flag
     memset(tempArray, 0, sizeof(tempArray));
     for (i = 0; i < numLongPics; i++) {
-        tempArray[i] = rps->m_used[indices[i]] ? 1 : 0;
+        tempArray[i] = (rps->m_used[indices[i]] != 0) ? 1 : 0;
     }
 
     // Now write the final values;

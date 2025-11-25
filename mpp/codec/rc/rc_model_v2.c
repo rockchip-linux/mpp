@@ -148,7 +148,7 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
     RcFpsCfg *fps = &ctx->usr_cfg.fps;
     RK_S32 mad_len = 10;
     RK_U32 stat_len = fps->fps_out_num * ctx->usr_cfg.stats_time / fps->fps_out_denom;
-    stat_len = stat_len ? stat_len : 1;
+    stat_len = (stat_len != 0) ? stat_len : 1;
 
     bits_model_param_deinit(ctx);
     mpp_data_init_v2(&ctx->i_bit, I_WINDOW_LEN, 0);
@@ -1431,7 +1431,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
         fps_chg_update_mode(ctx);
     }
 
-    info->frame_type = (frm->is_intra) ? (INTRA_FRAME) : (INTER_P_FRAME);
+    info->frame_type = (frm->is_intra != 0) ? (INTRA_FRAME) : (INTER_P_FRAME);
 
     if (frm->ref_mode == REF_TO_PREV_INTRA)
         info->frame_type = INTER_VI_FRAME;
@@ -1531,7 +1531,7 @@ static RK_S32 derive_min_qp_from_complexity(RcModelV2Ctx *ctx, EncRcTaskInfo *in
 
     if (RC_AVBR == rc_mode || RC_VBR == rc_mode || RC_CBR == rc_mode) {
         if (md >= 700) {
-            qp_min = is_intra ? fqp_min_i : fqp_min_p;
+            qp_min = (is_intra != 0) ? fqp_min_i : fqp_min_p;
             if (md >= 1400)
                 qp_min += md3 > 300 ? 3 : 2;
             else
@@ -1542,11 +1542,11 @@ static RK_S32 derive_min_qp_from_complexity(RcModelV2Ctx *ctx, EncRcTaskInfo *in
         } else if (RC_CBR != rc_mode) {
             if (md > 100) {
                 if (cplx >= 16)
-                    qp_min = (is_intra ? fqp_min_i : fqp_min_p) + 1;
+                    qp_min = ((is_intra != 0) ? fqp_min_i : fqp_min_p) + 1;
                 else if (cplx >= 10)
-                    qp_min = (is_intra ? fqp_min_i : fqp_min_p) + 0;
+                    qp_min = ((is_intra != 0) ? fqp_min_i : fqp_min_p) + 0;
             } else {
-                qp_min = (is_intra ? fqp_min_i : fqp_min_p);
+                qp_min = ((is_intra != 0) ? fqp_min_i : fqp_min_p);
                 qp_min += (cplx >= 15) ? 3 : (cplx >= 10) ? 2 : (cplx >= 5) ? 1 : 0;
             }
         }

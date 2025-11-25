@@ -54,18 +54,18 @@ RK_S32 h264e_slice_update(H264eSlice *slice, MppEncCfgSet *cfg,
     slice->pic_order_cnt_type = sps->pic_order_cnt_type;
     slice->qp_init = pps->pic_init_qp;
 
-    slice->nal_reference_idc = (frm->status.is_non_ref) ? (H264_NALU_PRIORITY_DISPOSABLE) :
-                               (is_idr) ? (H264_NALU_PRIORITY_HIGHEST) :
+    slice->nal_reference_idc = (frm->status.is_non_ref != 0) ? (H264_NALU_PRIORITY_DISPOSABLE) :
+                               (is_idr != 0) ? (H264_NALU_PRIORITY_HIGHEST) :
                                (H264_NALU_PRIORITY_HIGH);
-    slice->nalu_type = (is_idr) ? (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
+    slice->nalu_type = (is_idr != 0) ? (H264_NALU_TYPE_IDR) : (H264_NALU_TYPE_SLICE);
 
     slice->first_mb_in_slice = 0;
-    slice->slice_type = (is_idr) ? (H264_I_SLICE) : (H264_P_SLICE);
+    slice->slice_type = (is_idr != 0) ? (H264_I_SLICE) : (H264_P_SLICE);
     slice->pic_parameter_set_id = 0;
     slice->frame_num = frm->frame_num;
     slice->num_ref_idx_override = 0;
     slice->qp_delta = 0;
-    slice->cabac_init_idc = h264->entropy_coding_mode ? h264->cabac_init_idc : -1;
+    slice->cabac_init_idc = (h264->entropy_coding_mode != 0) ? h264->cabac_init_idc : -1;
     slice->disable_deblocking_filter_idc = h264->deblock_disable;
     slice->slice_alpha_c0_offset_div2 = h264->deblock_offset_alpha;
     slice->slice_beta_offset_div2 = h264->deblock_offset_beta;

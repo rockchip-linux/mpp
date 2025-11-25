@@ -480,7 +480,7 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
     dec_dbg_detail("detail: %p check mframes pass\n", dec);
 
     /* 7.3 wait for a unused slot index for decoder parse operation */
-    task->wait.dec_slot_idx = (mpp_slots_get_unused_count(frame_slots)) ? (0) : (1);
+    task->wait.dec_slot_idx = (mpp_slots_get_unused_count(frame_slots) != 0) ? (0) : (1);
     if (task->wait.dec_slot_idx)
         return MPP_ERR_BUFFER_FULL;
 
@@ -874,7 +874,7 @@ void *mpp_dec_hal_thread(void *data)
             mpp_buf_slot_clr_flag(packet_slots, task_dec->input,
                                   SLOT_HAL_INPUT);
 
-            hal_task_hnd_set_status(task, (dec->parser_fast_mode) ?
+            hal_task_hnd_set_status(task, (dec->parser_fast_mode != 0) ?
                                     (TASK_IDLE) : (TASK_PROC_DONE));
 
             if (dec->parser_fast_mode)

@@ -90,9 +90,9 @@ static MPP_RET get_pixel_format(Av1CodecContext *ctx)
     MppFrameFormat pix_fmt = MPP_FMT_BUTT;
 
     if (seq->seq_profile == 2 && seq->color_config.high_bitdepth)
-        bit_depth = seq->color_config.twelve_bit ? 12 : 10;
+        bit_depth = (seq->color_config.twelve_bit != 0) ? 12 : 10;
     else if (seq->seq_profile <= 2)
-        bit_depth = seq->color_config.high_bitdepth ? 10 : 8;
+        bit_depth = (seq->color_config.high_bitdepth != 0) ? 10 : 8;
     else {
         mpp_err_f("Unknown AV1 profile %d.\n", seq->seq_profile);
         return -1;
@@ -313,7 +313,7 @@ static void global_motion_params(AV1Context *s)
             if (header->is_rot_zoom[ref]) {
                 type = AV1_WARP_MODEL_ROTZOOM;
             } else {
-                type = header->is_translation[ref] ? AV1_WARP_MODEL_TRANSLATION
+                type = (header->is_translation[ref] != 0) ? AV1_WARP_MODEL_TRANSLATION
                        : AV1_WARP_MODEL_AFFINE;
             }
         } else {
@@ -1238,7 +1238,7 @@ static inline RK_S32 parse_obu_header(uint8_t *buf, RK_S32 buf_size,
         *temporal_id = *spatial_id = 0;
     }
 
-    *obu_size  = has_size_flag ? leb128(&gb)
+    *obu_size  = (has_size_flag != 0) ? leb128(&gb)
                  : buf_size - 1 - extension_flag;
 
     if (mpp_get_bits_left(&gb) < 0)

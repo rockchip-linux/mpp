@@ -57,10 +57,10 @@ void h264e_dpb_dump_frm(H264eDpb *dpb, const char *caller, RK_S32 line)
 
         mpp_log_f("frm %5d %5d %5d %5s %5d %5s %5d %5x %5d\n",
                   i, frm->on_used, status->seq_idx,
-                  (status->is_intra) ? (status->is_idr ? "I" : "i" ) :
-                      status->is_non_ref ? "p" : "P",
+                  (status->is_intra != 0) ? ((status->is_idr != 0) ? "I" : "i" ) :
+                      (status->is_non_ref != 0) ? "p" : "P",
                       status->temporal_id,
-                      status->is_non_ref ? "non" : status->is_lt_ref ? "lt" : "st",
+                      (status->is_non_ref != 0) ? "non" : (status->is_lt_ref != 0) ? "lt" : "st",
                       status->lt_idx,
                       status->ref_mode,
                       status->ref_arg);
@@ -77,10 +77,10 @@ void h264e_dpb_dump_listX(H264eDpbFrm **list, RK_S32 count)
 
         mpp_log_f("frm  %2d   %d  %-3d %s    %-3d %-3s %-3d %-4x %-3d\n",
                   i, frm->on_used, status->seq_idx,
-                  (status->is_intra) ? (status->is_idr ? "I" : "i" ) :
-                      status->is_non_ref ? "p" : "P",
+                  (status->is_intra != 0) ? ((status->is_idr != 0) ? "I" : "i" ) :
+                      (status->is_non_ref != 0) ? "p" : "P",
                       status->temporal_id,
-                      status->is_non_ref ? "non" : status->is_lt_ref ? "lt" : "st",
+                      (status->is_non_ref != 0) ? "non" : (status->is_lt_ref != 0) ? "lt" : "st",
                       status->lt_idx,
                       status->ref_mode,
                       status->ref_arg);
@@ -338,7 +338,7 @@ void h264e_dpb_build_list(H264eDpb *dpb, EncCpbStatus *cpb)
 
             mpp_assert(!refr->status.is_non_ref);
 
-            op.modification_of_pic_nums_idc = (refr->status.is_lt_ref) ? (2) : (0);
+            op.modification_of_pic_nums_idc = (refr->status.is_lt_ref != 0) ? (2) : (0);
             if (refr->status.is_lt_ref) {
                 op.modification_of_pic_nums_idc = 2;
                 op.long_term_pic_idx = refr->status.lt_idx;
@@ -616,7 +616,7 @@ void h264e_dpb_check(H264eDpb *dpb, EncCpbStatus *cpb)
         RK_S32 dpb_size = dpb->dpb_size;
 
         h264e_dbg_dpb("frm %d %s insert dpb used %d max %d\n",
-                      curr->seq_idx, curr->status.is_lt_ref ? "lt" : "st",
+                      curr->seq_idx, (curr->status.is_lt_ref != 0) ? "lt" : "st",
                       used_size, dpb_size);
 
         used_size++;

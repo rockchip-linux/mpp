@@ -274,7 +274,7 @@ MPP_RET avs2d_callback(void *decoder, void *info)
     RK_U32 i = 0;
     RK_U32 error = 0;
     RK_U32 discard = 0;
-    RK_U32 ref_used = task_dec->flags.ref_info_valid ? task_dec->flags.ref_used : 0xff;
+    RK_U32 ref_used = (task_dec->flags.ref_info_valid != 0) ? task_dec->flags.ref_used : 0xff;
     RK_U32 ref_used_flag = 0;
 
     AVS2D_PARSE_TRACE("In.");

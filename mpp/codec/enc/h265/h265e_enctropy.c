@@ -121,7 +121,7 @@ RK_U8 sbacInit(RK_S32 qp, RK_S32 initValue)
     RK_S32  offset     = ((initValue & 15) << 3) - 16;
     RK_S32  initState  =  MPP_MIN(MPP_MAX(1, (((slope * qp) >> 4) + offset)), 126);
     RK_U32  mpState = (initState >= 64);
-    RK_U8   m_state = ((mpState ? (initState - 64) : (63 - initState)) << 1) + mpState;
+    RK_U8   m_state = (((mpState != 0) ? (initState - 64) : (63 - initState)) << 1) + mpState;
 
     return m_state;
 }
@@ -134,9 +134,9 @@ static void initBuffer(H265eContextModel_t* contextModel, SliceType sliceType, R
     if (sliceType == I_SLICE)
         initType = 0;
     else if (sliceType == P_SLICE)
-        initType = cabacIntFlag ? 2 : 1;
+        initType = (cabacIntFlag != 0) ? 2 : 1;
     else
-        initType = cabacIntFlag ? 1 : 2;
+        initType = (cabacIntFlag != 0) ? 1 : 2;
 
     ctxModel += (2 - initType) * size;
 

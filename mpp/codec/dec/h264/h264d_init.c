@@ -332,7 +332,7 @@ static MPP_RET init_mvc_picture(H264_SLICE_t *currSlice)
         for (i = 0; i < p_Dpb->used_size; i++) {
             fs = p_Dpb->fs[i];
             if (fs->frame) {
-                poc = fs->frame->is_mmco_5 ? fs->frame->poc_mmco5 : fs->frame->poc;
+                poc = (fs->frame->is_mmco_5 != 0) ? fs->frame->poc_mmco5 : fs->frame->poc;
             }
             if (fs->frame && (fs->frame->layer_id == 0) && (poc == currSlice->framepoc)) {
                 p_pic = fs->frame;
@@ -345,7 +345,7 @@ static MPP_RET init_mvc_picture(H264_SLICE_t *currSlice)
         for (i = 0; i < p_Dpb->used_size; i++) {
             fs = p_Dpb->fs[i];
             if (fs->top_field) {
-                poc = fs->top_field->is_mmco_5 ? fs->top_field->top_poc_mmco5 : fs->top_field->top_poc;
+                poc = (fs->top_field->is_mmco_5 != 0) ? fs->top_field->top_poc_mmco5 : fs->top_field->top_poc;
             }
             if (fs->top_field && (fs->top_field->layer_id == 0) && (poc == currSlice->toppoc)) {
                 p_pic = fs->top_field;
@@ -358,7 +358,7 @@ static MPP_RET init_mvc_picture(H264_SLICE_t *currSlice)
         for (i = 0; i < p_Dpb->used_size; i++) {
             fs = p_Dpb->fs[i];
             if (fs->bottom_field) {
-                poc = fs->bottom_field->is_mmco_5 ? fs->bottom_field->bot_poc_mmco5 : fs->bottom_field->bottom_poc;
+                poc = (fs->bottom_field->is_mmco_5 != 0) ? fs->bottom_field->bot_poc_mmco5 : fs->bottom_field->bottom_poc;
             }
             if (fs->bottom_field && (fs->bottom_field->layer_id == 0) && (poc == currSlice->bottompoc)) {
                 p_pic = fs->bottom_field;
@@ -615,8 +615,8 @@ static MPP_RET check_dpb_discontinuous(H264_StorePic_t *p_last, H264_StorePic_t 
                 error_flag = 1;
         }
 
-        currSlice->p_Dec->errctx.cur_err_flag |= error_flag ? 1 : 0;
-        currSlice->p_Dec->errctx.dpb_err_flag |= error_flag ? 1 : 0;
+        currSlice->p_Dec->errctx.cur_err_flag |= (error_flag != 0) ? 1 : 0;
+        currSlice->p_Dec->errctx.dpb_err_flag |= (error_flag != 0) ? 1 : 0;
 
         H264D_DBG(H264D_DBG_DISCONTINUOUS, "[discontinuous] last_slice=%d, cur_slice=%d, last_fnum=%d, cur_fnum=%d, last_poc=%d, cur_poc=%d",
                   p_last->slice_type, dec_pic->slice_type, p_last->frame_num, dec_pic->frame_num, p_last->poc, dec_pic->poc);
@@ -873,7 +873,7 @@ static void gen_pic_list_from_frame_list(RK_S32 currStructure, H264_FrameStore_t
     RK_S32 top_idx = 0;
     RK_S32 bot_idx = 0;
 
-    RK_U32(*is_ref)(H264_StorePic_t * s) = (long_term) ? is_long_ref : is_short_ref;
+    RK_U32(*is_ref)(H264_StorePic_t * s) = (long_term != 0) ? is_long_ref : is_short_ref;
 
     if (currStructure == TOP_FIELD) {
         while ((top_idx < list_idx) || (bot_idx < list_idx)) {
@@ -956,11 +956,11 @@ static MPP_RET append_interview_list(H264_DpbBuf_t *p_Dpb,
 
     VAL_CHECK(ret, iVOIdx >= 0); //!< Error: iVOIdx: %d is not less than 0
     if (anchor_pic_flag) {
-        num_ref_views = list_idx ? p_Vid->active_subsps->num_anchor_refs_l1[iVOIdx] : p_Vid->active_subsps->num_anchor_refs_l0[iVOIdx];
-        ref_view_id = list_idx ? p_Vid->active_subsps->anchor_ref_l1[iVOIdx] : p_Vid->active_subsps->anchor_ref_l0[iVOIdx];
+        num_ref_views = (list_idx != 0) ? p_Vid->active_subsps->num_anchor_refs_l1[iVOIdx] : p_Vid->active_subsps->num_anchor_refs_l0[iVOIdx];
+        ref_view_id = (list_idx != 0) ? p_Vid->active_subsps->anchor_ref_l1[iVOIdx] : p_Vid->active_subsps->anchor_ref_l0[iVOIdx];
     } else {
-        num_ref_views = list_idx ? p_Vid->active_subsps->num_non_anchor_refs_l1[iVOIdx] : p_Vid->active_subsps->num_non_anchor_refs_l0[iVOIdx];
-        ref_view_id = list_idx ? p_Vid->active_subsps->non_anchor_ref_l1[iVOIdx] : p_Vid->active_subsps->non_anchor_ref_l0[iVOIdx];
+        num_ref_views = (list_idx != 0) ? p_Vid->active_subsps->num_non_anchor_refs_l1[iVOIdx] : p_Vid->active_subsps->num_non_anchor_refs_l0[iVOIdx];
+        ref_view_id = (list_idx != 0) ? p_Vid->active_subsps->non_anchor_ref_l1[iVOIdx] : p_Vid->active_subsps->non_anchor_ref_l0[iVOIdx];
     }
 
     if (currPicStructure == BOTTOM_FIELD)
@@ -971,17 +971,17 @@ static MPP_RET append_interview_list(H264_DpbBuf_t *p_Dpb,
     if (currPicStructure == FRAME) {
         pic_avail = (fs->is_used == 3);
         if (pic_avail) {
-            poc = fs->frame->is_mmco_5 ? fs->frame->poc_mmco5 : fs->frame->poc;
+            poc = (fs->frame->is_mmco_5 != 0) ? fs->frame->poc_mmco5 : fs->frame->poc;
         }
     } else if (currPicStructure == TOP_FIELD) {
         pic_avail = fs->is_used & 1;
         if (pic_avail) {
-            poc = fs->top_field->is_mmco_5 ? fs->top_field->top_poc_mmco5 : fs->top_field->poc;
+            poc = (fs->top_field->is_mmco_5 != 0) ? fs->top_field->top_poc_mmco5 : fs->top_field->poc;
         }
     } else if (currPicStructure == BOTTOM_FIELD) {
         pic_avail = fs->is_used & 2;
         if (pic_avail) {
-            poc = fs->bottom_field->is_mmco_5 ? fs->bottom_field->bot_poc_mmco5 : fs->bottom_field->poc;
+            poc = (fs->bottom_field->is_mmco_5 != 0) ? fs->bottom_field->bot_poc_mmco5 : fs->bottom_field->poc;
         }
     } else {
         pic_avail = 0;
@@ -1527,27 +1527,27 @@ static void check_refer_picture_lists(H264_SLICE_t *currSlice)
     if ((currSlice->slice_type % 5) != H264_I_SLICE
         && (currSlice->slice_type % 5) != H264_SI_SLICE) {
         if (currSlice->ref_pic_list_reordering_flag[LIST_0]) {
-            p_err->cur_err_flag |= check_ref_pic_list(currSlice, 0) ? 1 : 0;
+            p_err->cur_err_flag |= (check_ref_pic_list(currSlice, 0) != 0) ? 1 : 0;
         } else {
             RK_S32 pps_refs = currSlice->active_pps->num_ref_idx_l0_default_active_minus1 + 1;
             RK_S32 over_flag = currSlice->num_ref_idx_override_flag;
-            RK_S32 active_l0 = over_flag ? currSlice->num_ref_idx_active[LIST_0] : pps_refs;
+            RK_S32 active_l0 = (over_flag != 0) ? currSlice->num_ref_idx_active[LIST_0] : pps_refs;
             if (currSlice->slice_type % 5 == H264_B_SLICE)
-                p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0], active_l0) ? 1 : 0;
+                p_err->cur_err_flag |= (check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[0], active_l0) != 0) ? 1 : 0;
             else
-                p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_p, active_l0) ? 1 : 0;
+                p_err->cur_err_flag |= (check_ref_dbp_err(p_Dec, p_Dec->refpic_info_p, active_l0) != 0) ? 1 : 0;
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list0 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l0=%d\n",
                       p_err->cur_err_flag, pps_refs, over_flag, active_l0);
         }
     }
     if (currSlice->slice_type % 5 == H264_B_SLICE) {
         if (currSlice->ref_pic_list_reordering_flag[LIST_1]) {
-            p_err->cur_err_flag |= check_ref_pic_list(currSlice, 1) ? 1 : 0;
+            p_err->cur_err_flag |= (check_ref_pic_list(currSlice, 1) != 0) ? 1 : 0;
         } else {
             RK_S32 pps_refs = currSlice->active_pps->num_ref_idx_l1_default_active_minus1 + 1;
             RK_S32 over_flag = currSlice->num_ref_idx_override_flag;
-            RK_S32 active_l1 = over_flag ? currSlice->num_ref_idx_active[LIST_1] : pps_refs;
-            p_err->cur_err_flag |= check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1], active_l1) ? 1 : 0;
+            RK_S32 active_l1 = (over_flag != 0) ? currSlice->num_ref_idx_active[LIST_1] : pps_refs;
+            p_err->cur_err_flag |= (check_ref_dbp_err(p_Dec, p_Dec->refpic_info_b[1], active_l1) != 0) ? 1 : 0;
             H264D_DBG(H264D_DBG_DPB_REF_ERR, "list1 dpb: cur_err_flag=%d, pps_refs=%d, over_flag=%d, num_ref_l1=%d\n",
                       p_err->cur_err_flag, pps_refs, over_flag, active_l1);
         }
@@ -1602,7 +1602,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
             }
             p_Dec->dpb_info[i].field_flag = p_Dpb->fs_ref[j]->frame->iCodingType == FIELD_CODING;
             p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ref[j]->frame->mem_mark->slot_idx;
-            p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ref[j]->frame->colmv_no_used_flag ? 0 : 1);
+            p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ref[j]->frame->colmv_no_used_flag != 0) ? 0 : 1);
         } else if (p_Dpb->fs_ref[j]->is_used) {
             if (p_Dpb->fs_ref[j]->is_used & 0x1) { // top
                 p_Dec->dpb_info[i].refpic = p_Dpb->fs_ref[j]->top_field;
@@ -1611,14 +1611,14 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].BOT_POC = 0;
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ref[j]->top_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ref[j]->top_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ref[j]->top_field->colmv_no_used_flag != 0) ? 0 : 1);
             } else { // if(p_Dpb->fs_ref[j]->is_used & 0x2) // bottom
                 p_Dec->dpb_info[i].refpic = p_Dpb->fs_ref[j]->bottom_field;
                 p_Dec->dpb_info[i].TOP_POC = 0;
                 p_Dec->dpb_info[i].BOT_POC = p_Dpb->fs_ref[j]->bottom_field->poc;
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ref[j]->bottom_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ref[j]->bottom_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ref[j]->bottom_field->colmv_no_used_flag != 0) ? 0 : 1);
             }
         }
         p_Dec->dpb_info[i].frame_num = p_Dpb->fs_ref[j]->frame_num;
@@ -1651,7 +1651,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
             }
             p_Dec->dpb_info[i].field_flag = p_Dpb->fs_ltref[j]->frame->iCodingType == FIELD_CODING;
             p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ltref[j]->frame->mem_mark->slot_idx;
-            p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->frame->colmv_no_used_flag ? 0 : 1);
+            p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ltref[j]->frame->colmv_no_used_flag != 0) ? 0 : 1);
             p_Dec->dpb_info[i].long_term_pic_num = p_Dpb->fs_ltref[j]->frame->long_term_pic_num;
         } else if (p_Dpb->fs_ltref[j]->is_used) {
             if (p_Dpb->fs_ltref[j]->is_used & 0x1) {
@@ -1660,7 +1660,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].BOT_POC = 0;
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ltref[j]->top_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->top_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ltref[j]->top_field->colmv_no_used_flag != 0) ? 0 : 1);
                 p_Dec->dpb_info[i].long_term_pic_num = p_Dpb->fs_ltref[j]->top_field->long_term_pic_num;
             } else { // if(p_Dpb->fs_ref[j]->is_used & 0x2)
                 p_Dec->dpb_info[i].refpic = p_Dpb->fs_ltref[j]->bottom_field;
@@ -1668,7 +1668,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].BOT_POC = p_Dpb->fs_ltref[j]->bottom_field->poc;
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ltref[j]->bottom_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ltref[j]->bottom_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ltref[j]->bottom_field->colmv_no_used_flag != 0) ? 0 : 1);
                 p_Dec->dpb_info[i].long_term_pic_num = p_Dpb->fs_ltref[j]->bottom_field->long_term_pic_num;
             }
         }
@@ -1697,7 +1697,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
             }
             p_Dec->dpb_info[i].field_flag = p_Dpb->fs_ilref[j]->frame->iCodingType == FIELD_CODING;
             p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ilref[j]->frame->mem_mark->slot_idx;
-            p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ilref[j]->frame->colmv_no_used_flag ? 0 : 1);
+            p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ilref[j]->frame->colmv_no_used_flag != 0) ? 0 : 1);
         } else if (currSlice->structure != FRAME && p_Dpb->fs_ilref[j]->is_used) {
             if (p_Dpb->fs_ilref[j]->is_used == 0x3) {
                 if (p_Dpb->fs_ilref[j]->inter_view_flag[currSlice->structure == BOTTOM_FIELD] == 0)
@@ -1716,7 +1716,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 }
                 p_Dec->dpb_info[i].field_flag = p_Dpb->fs_ilref[j]->frame->iCodingType == FIELD_CODING;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ilref[j]->frame->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ilref[j]->frame->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ilref[j]->frame->colmv_no_used_flag != 0) ? 0 : 1);
             }
             if (p_Dpb->fs_ilref[j]->is_used & 0x1) {
                 if (p_Dpb->fs_ilref[j]->inter_view_flag[0] == 0)
@@ -1731,7 +1731,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 p_Dec->dpb_info[i].BOT_POC = 0;
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ilref[j]->top_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ilref[j]->top_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ilref[j]->top_field->colmv_no_used_flag != 0) ? 0 : 1);
             } else { // if(p_Dpb->fs_ref[j]->is_used & 0x2)
                 if (p_Dpb->fs_ilref[j]->inter_view_flag[1] == 0)
                     break;
@@ -1745,7 +1745,7 @@ static MPP_RET prepare_init_dpb_info(H264_SLICE_t *currSlice)
                 }
                 p_Dec->dpb_info[i].field_flag = 1;
                 p_Dec->dpb_info[i].slot_index = p_Dpb->fs_ilref[j]->bottom_field->mem_mark->slot_idx;
-                p_Dec->dpb_info[i].colmv_is_used = (p_Dpb->fs_ilref[j]->bottom_field->colmv_no_used_flag ? 0 : 1);
+                p_Dec->dpb_info[i].colmv_is_used = ((p_Dpb->fs_ilref[j]->bottom_field->colmv_no_used_flag != 0) ? 0 : 1);
             }
         }
         p_Dec->dpb_info[i].frame_num = p_Dpb->fs_ilref[j]->frame_num;
@@ -1788,11 +1788,11 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
         layer_id = currSlice->listP[0][j]->layer_id;
         mmco5_flag = (currSlice->listP[0][j]->is_mmco_5 && currSlice->layer_id && !currSlice->listP[0][j]->layer_id) ? 1 : 0;
         if (currSlice->listP[0][j]->structure == FRAME) {
-            poc = mmco5_flag ? currSlice->listP[0][j]->poc_mmco5 : currSlice->listP[0][j]->poc;
+            poc = (mmco5_flag != 0) ? currSlice->listP[0][j]->poc_mmco5 : currSlice->listP[0][j]->poc;
         } else if (currSlice->listP[0][j]->structure == TOP_FIELD) {
-            poc = mmco5_flag ? currSlice->listP[0][j]->top_poc_mmco5 : currSlice->listP[0][j]->top_poc;
+            poc = (mmco5_flag != 0) ? currSlice->listP[0][j]->top_poc_mmco5 : currSlice->listP[0][j]->top_poc;
         } else {
-            poc = mmco5_flag ? currSlice->listP[0][j]->bot_poc_mmco5 : currSlice->listP[0][j]->bottom_poc;
+            poc = (mmco5_flag != 0) ? currSlice->listP[0][j]->bot_poc_mmco5 : currSlice->listP[0][j]->bottom_poc;
         }
         for (i = 0; i < 16; i++) {
             refpic = p_Dec->dpb_info[i].refpic;
@@ -1846,11 +1846,11 @@ static MPP_RET prepare_init_ref_info(H264_SLICE_t *currSlice)
             layer_id = currSlice->listB[k][j]->layer_id;
             mmco5_flag = (currSlice->listB[k][j]->is_mmco_5 && currSlice->layer_id && !currSlice->listB[k][j]->layer_id) ? 1 : 0;
             if (currSlice->listB[k][j]->structure == FRAME) {
-                poc = mmco5_flag ? currSlice->listB[k][j]->poc_mmco5 : currSlice->listB[k][j]->poc;
+                poc = (mmco5_flag != 0) ? currSlice->listB[k][j]->poc_mmco5 : currSlice->listB[k][j]->poc;
             } else if (currSlice->listB[k][j]->structure == TOP_FIELD) {
-                poc = mmco5_flag ? currSlice->listB[k][j]->top_poc_mmco5 : currSlice->listB[k][j]->top_poc;
+                poc = (mmco5_flag != 0) ? currSlice->listB[k][j]->top_poc_mmco5 : currSlice->listB[k][j]->top_poc;
             } else {
-                poc = mmco5_flag ? currSlice->listB[k][j]->bot_poc_mmco5 : currSlice->listB[k][j]->bottom_poc;
+                poc = (mmco5_flag != 0) ? currSlice->listB[k][j]->bot_poc_mmco5 : currSlice->listB[k][j]->bottom_poc;
             }
 
             min_poc = MPP_MIN(min_poc, poc);

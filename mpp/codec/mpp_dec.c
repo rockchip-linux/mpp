@@ -589,7 +589,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         support_fast_mode = hal_cfg.support_fast_mode;
 
         if (dec_cfg->base.fast_parse && support_fast_mode) {
-            hal_task_count = dec_cfg->status.hal_task_count ?
+            hal_task_count = (dec_cfg->status.hal_task_count != 0) ?
                              dec_cfg->status.hal_task_count : 3;
         } else {
             dec_cfg->base.fast_parse = 0;
@@ -636,7 +636,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         }
 
         p->coding = coding;
-        p->statistics_en = (mpp_dec_debug & MPP_DEC_DBG_TIMING) ? 1 : 0;
+        p->statistics_en = ((mpp_dec_debug & MPP_DEC_DBG_TIMING) != 0) ? 1 : 0;
 
         for (i = 0; i < DEC_TIMING_BUTT; i++) {
             p->clocks[i] = mpp_clock_get(timing_str[i]);

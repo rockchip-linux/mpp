@@ -107,10 +107,10 @@ static void fill_picture_parameters(const HEVCContext *h,
                                  (sps->amp_enabled_flag                          <<  1) |
                                  (sps->sao_enabled                               <<  2) |
                                  (sps->pcm_enabled_flag                          <<  3) |
-                                 ((sps->pcm_enabled_flag ? (sps->pcm.bit_depth - 1) : 0)            <<  4) |
-                                 ((sps->pcm_enabled_flag ? (sps->pcm.bit_depth_chroma - 1) : 0)     <<  8) |
-                                 ((sps->pcm_enabled_flag ? (sps->pcm.log2_min_pcm_cb_size - 3) : 0) << 12) |
-                                 ((sps->pcm_enabled_flag ? (sps->pcm.log2_max_pcm_cb_size - sps->pcm.log2_min_pcm_cb_size) : 0) << 14) |
+                                 (((sps->pcm_enabled_flag != 0) ? (sps->pcm.bit_depth - 1) : 0)            <<  4) |
+                                 (((sps->pcm_enabled_flag != 0) ? (sps->pcm.bit_depth_chroma - 1) : 0)     <<  8) |
+                                 (((sps->pcm_enabled_flag != 0) ? (sps->pcm.log2_min_pcm_cb_size - 3) : 0) << 12) |
+                                 (((sps->pcm_enabled_flag != 0) ? (sps->pcm.log2_max_pcm_cb_size - sps->pcm.log2_min_pcm_cb_size) : 0) << 14) |
                                  (sps->pcm.loop_filter_disable_flag              << 16) |
                                  (sps->long_term_ref_pics_present_flag           << 17) |
                                  (sps->sps_temporal_mvp_enabled_flag             << 18) |
@@ -301,7 +301,7 @@ static void fill_scaling_lists(const HEVCContext *h, DXVA_Qmatrix_HEVC *qm)
     RK_U32 i, j, pos;
     const HEVCPPS *pps = (HEVCPPS *)h->pps_list[h->sh.pps_id];
     const HEVCSPS *sps = (HEVCSPS *)h->sps_list[pps->sps_id];
-    const ScalingList *sl = pps->scaling_list_data_present_flag ?
+    const ScalingList *sl = (pps->scaling_list_data_present_flag != 0) ?
                             &pps->scaling_list : &sps->scaling_list;
     if (!sps->scaling_list_enable_flag) {
         return;

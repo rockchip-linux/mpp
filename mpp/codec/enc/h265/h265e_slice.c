@@ -167,7 +167,7 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice)
     memset(slice->m_bIsUsedAsLongTerm, 0, sizeof(slice->m_bIsUsedAsLongTerm));
 
     for ( rIdx = 0; rIdx < slice->m_numRefIdx[0]; rIdx++) {
-        cIdx = slice->m_RefPicListModification.m_refPicListModificationFlagL0 ? slice->m_RefPicListModification.m_RefPicSetIdxL0[rIdx] : (RK_U32)rIdx % numPocTotalCurr;
+        cIdx = (slice->m_RefPicListModification.m_refPicListModificationFlagL0 != 0) ? slice->m_RefPicListModification.m_RefPicSetIdxL0[rIdx] : (RK_U32)rIdx % numPocTotalCurr;
         mpp_assert(cIdx >= 0 && cIdx < numPocTotalCurr);
         slice->m_refPicList[0][rIdx] = rpsCurrList0[cIdx];
         slice->m_bIsUsedAsLongTerm[0][rIdx] = (cIdx >= numPocStCurr0 + numPocStCurr1);
@@ -178,7 +178,7 @@ void h265e_slice_set_ref_list(H265eDpbFrm *frame_list, H265eSlice *slice)
         memset(slice->m_refPicList[1], 0, sizeof(slice->m_refPicList[1]));
     } else {
         for (rIdx = 0; rIdx < slice->m_numRefIdx[1]; rIdx++) {
-            cIdx = slice->m_RefPicListModification.m_refPicListModificationFlagL1 ? slice->m_RefPicListModification.m_RefPicSetIdxL1[rIdx] : (RK_U32)rIdx % numPocTotalCurr;
+            cIdx = (slice->m_RefPicListModification.m_refPicListModificationFlagL1 != 0) ? slice->m_RefPicListModification.m_RefPicSetIdxL1[rIdx] : (RK_U32)rIdx % numPocTotalCurr;
             mpp_assert(cIdx >= 0 && cIdx < numPocTotalCurr);
             slice->m_refPicList[1][rIdx] = rpsCurrList1[cIdx];
             slice->m_bIsUsedAsLongTerm[1][rIdx] = (cIdx >= numPocStCurr0 + numPocStCurr1);
@@ -384,7 +384,7 @@ void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf,
         mpp_writer_put_ue(bitIf, slice->m_sliceType);
 
         if (slice->m_pps->m_outputFlagPresentFlag) {
-            mpp_writer_put_bits(bitIf, slice->m_picOutputFlag ? 1 : 0, 1);
+            mpp_writer_put_bits(bitIf, (slice->m_picOutputFlag != 0) ? 1 : 0, 1);
         }
 
         if (slice->m_sliceType != I_SLICE) { // skip frame can't iDR
@@ -463,7 +463,7 @@ void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf,
                 }
             }
             if (slice->m_sps->m_TMVPFlagsPresent) {
-                mpp_writer_put_bits(bitIf, slice->m_enableTMVPFlag ? 1 : 0, 1);
+                mpp_writer_put_bits(bitIf, (slice->m_enableTMVPFlag != 0) ? 1 : 0, 1);
             }
         }
 
@@ -476,7 +476,7 @@ void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf,
 
         if (slice->m_sliceType != I_SLICE) {
             RK_U32 overrideFlag = (slice->m_numRefIdx[0] != (RK_S32)slice->m_pps->m_numRefIdxL0DefaultActive);
-            mpp_writer_put_bits(bitIf, overrideFlag ? 1 : 0, 1);
+            mpp_writer_put_bits(bitIf, (overrideFlag != 0) ? 1 : 0, 1);
             if (overrideFlag) {
                 mpp_writer_put_ue(bitIf, slice->m_numRefIdx[0] - 1);
                 slice->m_numRefIdx[1] = 0;
@@ -485,7 +485,7 @@ void h265e_code_slice_header(H265eSlice *slice, MppWriteCtx *bitIf,
 
         if (slice->m_pps->m_listsModificationPresentFlag && get_num_rps_cur_templist(rps) > 1) {
             H265eRefPicListModification* refPicListModification = &slice->m_RefPicListModification;
-            mpp_writer_put_bits(bitIf, refPicListModification->m_refPicListModificationFlagL0 ? 1 : 0, 1);
+            mpp_writer_put_bits(bitIf, (refPicListModification->m_refPicListModificationFlagL0 != 0) ? 1 : 0, 1);
             if (refPicListModification->m_refPicListModificationFlagL0) {
                 RK_S32 numRpsCurrTempList0 = get_num_rps_cur_templist(rps);
                 if (numRpsCurrTempList0 > 1) {

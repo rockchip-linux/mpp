@@ -344,7 +344,7 @@ static MPP_RET jpegd_decode_dqt(JpegdCtx *ctx)
 
         /* read quant table */
         for (i = 0; i < QUANTIZE_TABLE_LENGTH; i++) {
-            READ_BITS(gb, pr ? 16 : 8, &value);
+            READ_BITS(gb, (pr != 0) ? 16 : 8, &value);
             syntax->quant_matrixes[index][i] = value;
         }
         syntax->qtbl_entry++;
@@ -970,7 +970,7 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     void *base = mpp_packet_get_pos(pkt);
     RK_U8 *pos = base;
     RK_U32 pkt_length = (RK_U32)mpp_packet_get_length(pkt);
-    RK_U32 eos = (pkt_length) ? (mpp_packet_get_eos(pkt)) : (1);
+    RK_U32 eos = (pkt_length != 0) ? (mpp_packet_get_eos(pkt)) : (1);
 
     JpegCtx->pts = mpp_packet_get_pts(pkt);
 

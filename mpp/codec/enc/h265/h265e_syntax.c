@@ -28,11 +28,11 @@ RK_S32 h265e_get_nal_type(H265eSlicParams* sp, RK_S32 frame_type)
     RK_U32 nal_type = 0;
 
     if (sp->temporal_id > 0) {
-        nal_type = sp->non_reference_flag ? NAL_TSA_N : NAL_TSA_R;
+        nal_type = (sp->non_reference_flag != 0) ? NAL_TSA_N : NAL_TSA_R;
     } else if (frame_type == INTRA_FRAME) {
         nal_type = NAL_IDR_W_RADL;
     } else {
-        nal_type = sp->non_reference_flag ? NAL_TRAIL_N : NAL_TRAIL_R;
+        nal_type = (sp->non_reference_flag != 0) ? NAL_TRAIL_N : NAL_TRAIL_R;
     }
 
     return nal_type;
@@ -89,10 +89,10 @@ static void fill_picture_parameters(const H265eCtx *h,
                                (sps->m_useAMP                                                 <<  1) |
                                (sps->m_bUseSAO                                                <<  2) |
                                (sps->m_usePCM                                                 <<  3) |
-                               ((sps->m_usePCM ? (sps->m_pcmBitDepthLuma - 1) : 0)            <<  4) |
-                               ((sps->m_usePCM ? (sps->m_pcmBitDepthChroma - 1) : 0)          <<  8) |
-                               ((sps->m_usePCM ? (sps->m_pcmLog2MinSize - 3) : 0)             << 12) |
-                               ((sps->m_usePCM ? (sps->m_pcmLog2MaxSize - sps->m_pcmLog2MinSize) : 0) << 14) |
+                               (((sps->m_usePCM != 0) ? (sps->m_pcmBitDepthLuma - 1) : 0)            <<  4) |
+                               (((sps->m_usePCM != 0) ? (sps->m_pcmBitDepthChroma - 1) : 0)          <<  8) |
+                               (((sps->m_usePCM != 0) ? (sps->m_pcmLog2MinSize - 3) : 0)             << 12) |
+                               (((sps->m_usePCM != 0) ? (sps->m_pcmLog2MaxSize - sps->m_pcmLog2MinSize) : 0) << 14) |
                                (sps->m_bPCMFilterDisableFlag                   << 16) |
                                (sps->m_bLongTermRefsPresent                    << 17) |
                                (sps->m_TMVPFlagsPresent                        << 18) |
@@ -346,7 +346,7 @@ RK_S32 fill_ref_parameters(const H265eCtx *h, H265eSlicParams *sp)
     if (slice->m_pps->m_listsModificationPresentFlag && numRpsCurrTempList > 1) {
         H265eRefPicListModification* refPicListModification = &slice->m_RefPicListModification;
         if (slice->m_sliceType != I_SLICE) {
-            sp->ref_pic_lst_mdf_l0 = refPicListModification->m_refPicListModificationFlagL0 ? 1 : 0;
+            sp->ref_pic_lst_mdf_l0 = (refPicListModification->m_refPicListModificationFlagL0 != 0) ? 1 : 0;
             if (sp->ref_pic_lst_mdf_l0) {
                 sp->lst_entry_l0 = refPicListModification->m_RefPicSetIdxL0[0];
             }

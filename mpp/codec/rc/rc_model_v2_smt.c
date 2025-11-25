@@ -148,7 +148,7 @@ MPP_RET bits_model_smt_init(RcModelV2SmtCtx *ctx)
     RK_S32 win_len = mpp_clip(MPP_MAX3(gop_len, nfps, 10), 1, nfps);
     RK_S32 rt_stat_len = fps->fps_out_num / fps->fps_out_denom; /* real time stat len */
     RK_S32 stat_len = fps->fps_out_num * ctx->usr_cfg.stats_time / fps->fps_out_denom;
-    stat_len = stat_len ? stat_len : (fps->fps_out_num * 8 / fps->fps_out_denom);
+    stat_len = (stat_len != 0) ? stat_len : (fps->fps_out_num * 8 / fps->fps_out_denom);
 
     rc_dbg_func("enter %p\n", ctx);
     ctx->frm_num = 0;
@@ -545,7 +545,7 @@ static MPP_RET smt_start_prepare(void *ctx, EncRcTask *task)
     RK_S32 b_max = p->usr_cfg.bps_max;
     RK_S32 bits_lower, bits_upper;
 
-    p->frame_type = frm->is_intra ? INTRA_FRAME : INTER_P_FRAME;
+    p->frame_type = (frm->is_intra != 0) ? INTRA_FRAME : INTER_P_FRAME;
     if (frm->ref_mode == REF_TO_PREV_INTRA)
         p->frame_type = info->frame_type = INTER_VI_FRAME;
 

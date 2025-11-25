@@ -660,7 +660,7 @@ MPP_RET h264d_parse(void *decoder, HalDecTask *in_task)
         in_task->syntax.number = p_Dec->dxva_ctx->syn.num;
         in_task->syntax.data   = (void *)p_Dec->dxva_ctx->syn.buf;
         in_task->flags.used_for_ref = p_err->used_ref_flag;
-        in_task->flags.ref_err |= (p_err->dpb_err_flag | p_err->cur_err_flag) ? 1 : 0;
+        in_task->flags.ref_err |= ((p_err->dpb_err_flag | p_err->cur_err_flag) != 0) ? 1 : 0;
     }
 
     return ret;
@@ -679,7 +679,7 @@ MPP_RET h264d_callback(void *decoder, void *errinfo)
     DecCbHalDone *ctx = (DecCbHalDone *)errinfo;
     HalDecTask *task_dec = (HalDecTask *)ctx->task;
     RK_U32 task_err = task_dec->flags.parse_err || task_dec->flags.ref_err;
-    RK_U32 ref_used = task_dec->flags.ref_info_valid ? task_dec->flags.ref_used : 0;
+    RK_U32 ref_used = (task_dec->flags.ref_info_valid != 0) ? task_dec->flags.ref_used : 0;
     RK_U32 hw_dec_err = ctx->hard_err;
     RK_S32 output = task_dec->output;
     RK_U32 err_mark = 0;

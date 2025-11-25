@@ -331,7 +331,7 @@ static MPP_RET h265e_vps_write(H265eVps *vps, H265eStream *s)
         for (i = 0; i <= vps->m_maxNuhReservedZeroLayerId; i++) {
             // Only applicable for version 1
             vps->m_layerIdIncludedFlag[opsIdx][i] = 1;
-            h265e_stream_write1_with_log(s, vps->m_layerIdIncludedFlag[opsIdx][i] ? 1 : 0, "layer_id_included_flag[opsIdx][i]");
+            h265e_stream_write1_with_log(s, (vps->m_layerIdIncludedFlag[opsIdx][i] != 0) ? 1 : 0, "layer_id_included_flag[opsIdx][i]");
         }
     }
 
@@ -455,7 +455,7 @@ static MPP_RET h265e_sps_write(H265eSps *sps, H265eStream *s)
 
     h265e_stream_write_with_log(s, sps->m_VPSId,          4,       "sps_video_parameter_set_id");
     h265e_stream_write_with_log(s, sps->m_maxTLayers - 1,  3,       "sps_max_sub_layers_minus1");
-    h265e_stream_write1_with_log(s, sps->m_bTemporalIdNestingFlag ? 1 : 0, "sps_temporal_id_nesting_flag");
+    h265e_stream_write1_with_log(s, (sps->m_bTemporalIdNestingFlag != 0) ? 1 : 0, "sps_temporal_id_nesting_flag");
     codePTL(s, sps->m_ptl, 1, sps->m_maxTLayers - 1);
     h265e_stream_write_ue_with_log(s, sps->m_SPSId,                   "sps_seq_parameter_set_id");
     h265e_stream_write_ue_with_log(s, sps->m_chromaFormatIdc,         "chroma_format_idc");
@@ -493,23 +493,23 @@ static MPP_RET h265e_sps_write(H265eSps *sps, H265eStream *s)
     h265e_stream_write_ue_with_log(s, sps->m_quadtreeTULog2MaxSize - sps->m_quadtreeTULog2MinSize, "log2_diff_max_min_transform_block_size");
     h265e_stream_write_ue_with_log(s, sps->m_quadtreeTUMaxDepthInter - 1,   "max_transform_hierarchy_depth_inter");
     h265e_stream_write_ue_with_log(s, sps->m_quadtreeTUMaxDepthIntra - 1,   "max_transform_hierarchy_depth_intra");
-    h265e_stream_write1_with_log(s, sps->m_scalingListEnabledFlag ? 1 : 0,       "scaling_list_enabled_flag");
+    h265e_stream_write1_with_log(s, (sps->m_scalingListEnabledFlag != 0) ? 1 : 0,       "scaling_list_enabled_flag");
     if (sps->m_scalingListEnabledFlag == 1)
         h265e_stream_write1_with_log(s, 0, "sps_scaling_list_data_present_flag");
     else if (sps->m_scalingListEnabledFlag == 2) {
         //TODO:
         mpp_err_f("m_scalingListEnabledFlag == 2 not supported yet\n");
     }
-    h265e_stream_write1_with_log(s, sps->m_useAMP ? 1 : 0, "amp_enabled_flag");
-    h265e_stream_write1_with_log(s, sps->m_bUseSAO ? 1 : 0, "sample_adaptive_offset_enabled_flag");
+    h265e_stream_write1_with_log(s, (sps->m_useAMP != 0) ? 1 : 0, "amp_enabled_flag");
+    h265e_stream_write1_with_log(s, (sps->m_bUseSAO != 0) ? 1 : 0, "sample_adaptive_offset_enabled_flag");
 
-    h265e_stream_write1_with_log(s, sps->m_usePCM ? 1 : 0, "pcm_enabled_flag");
+    h265e_stream_write1_with_log(s, (sps->m_usePCM != 0) ? 1 : 0, "pcm_enabled_flag");
     if (sps->m_usePCM) {
         h265e_stream_write_with_log(s, sps->m_pcmBitDepthLuma - 1, 4,                     "pcm_sample_bit_depth_luma_minus1");
         h265e_stream_write_with_log(s, sps->m_pcmBitDepthChroma - 1, 4,                   "pcm_sample_bit_depth_chroma_minus1");
         h265e_stream_write_ue_with_log(s, sps->m_pcmLog2MinSize - 3,                         "log2_min_pcm_luma_coding_block_size_minus3");
         h265e_stream_write_ue_with_log(s, sps->m_pcmLog2MaxSize - sps->m_pcmLog2MinSize,  "log2_diff_max_min_pcm_luma_coding_block_size");
-        h265e_stream_write1_with_log(s, sps->m_bPCMFilterDisableFlag ? 1 : 0,               "pcm_loop_filter_disable_flag");
+        h265e_stream_write1_with_log(s, (sps->m_bPCMFilterDisableFlag != 0) ? 1 : 0,               "pcm_loop_filter_disable_flag");
     }
 
     mpp_assert(sps->m_maxTLayers > 0);
@@ -523,7 +523,7 @@ static MPP_RET h265e_sps_write(H265eSps *sps, H265eStream *s)
         //rps = &rpsList->m_referencePictureSets[i];
         // codeShortTermRefPicSet(rps, false, i); //todo no support
     }
-    h265e_stream_write1_with_log(s, sps->m_bLongTermRefsPresent ? 1 : 0,      "long_term_ref_pics_present_flag");
+    h265e_stream_write1_with_log(s, (sps->m_bLongTermRefsPresent != 0) ? 1 : 0,      "long_term_ref_pics_present_flag");
     if (sps->m_bLongTermRefsPresent) {
         h265e_stream_write_ue_with_log(s, sps->m_numLongTermRefPicSPS, "num_long_term_ref_pic_sps");
         for (k = 0; k < sps->m_numLongTermRefPicSPS; k++) {
@@ -531,7 +531,7 @@ static MPP_RET h265e_sps_write(H265eSps *sps, H265eStream *s)
             h265e_stream_write1_with_log(s, sps->m_usedByCurrPicLtSPSFlag[k], "used_by_curr_pic_lt_sps_flag");
         }
     }
-    h265e_stream_write1_with_log(s, sps->m_TMVPFlagsPresent ? 1 : 0,        "sps_temporal_mvp_enable_flag");
+    h265e_stream_write1_with_log(s, (sps->m_TMVPFlagsPresent != 0) ? 1 : 0,        "sps_temporal_mvp_enable_flag");
 
     h265e_stream_write1_with_log(s, sps->m_useStrongIntraSmoothing,          "sps_strong_intra_smoothing_enable_flag");
 
@@ -568,29 +568,29 @@ static MPP_RET h265e_pps_write(H265ePps *pps, H265eSps *sps, H265eStream *s)
     h265e_stream_write_ue_with_log(s, pps->m_PPSId,                            "pps_pic_parameter_set_id");
     h265e_stream_write_ue_with_log(s, pps->m_SPSId,                            "pps_seq_parameter_set_id");
     h265e_stream_write1_with_log(s, 0,                                          "dependent_slice_segments_enabled_flag");
-    h265e_stream_write1_with_log(s, pps->m_outputFlagPresentFlag ? 1 : 0,    "output_flag_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_outputFlagPresentFlag != 0) ? 1 : 0,    "output_flag_present_flag");
     h265e_stream_write_with_log(s, pps->m_numExtraSliceHeaderBits, 3,       "num_extra_slice_header_bits");
     h265e_stream_write1_with_log(s, pps->m_signHideFlag,                     "sign_data_hiding_flag");
-    h265e_stream_write1_with_log(s, pps->m_cabacInitPresentFlag ? 1 : 0,     "cabac_init_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_cabacInitPresentFlag != 0) ? 1 : 0,     "cabac_init_present_flag");
     h265e_stream_write_ue_with_log(s, pps->m_numRefIdxL0DefaultActive - 1,     "num_ref_idx_l0_default_active_minus1");
     h265e_stream_write_ue_with_log(s, pps->m_numRefIdxL1DefaultActive - 1,     "num_ref_idx_l1_default_active_minus1");
 
     h265e_stream_write_se_with_log(s, pps->m_picInitQPMinus26,                 "init_qp_minus26");
-    h265e_stream_write1_with_log(s, pps->m_bConstrainedIntraPred ? 1 : 0,     "constrained_intra_pred_flag");
-    h265e_stream_write1_with_log(s, pps->m_useTransformSkip ? 1 : 0,         "transform_skip_enabled_flag");
-    h265e_stream_write1_with_log(s, pps->m_useDQP ? 1 : 0,                   "cu_qp_delta_enabled_flag");
+    h265e_stream_write1_with_log(s, (pps->m_bConstrainedIntraPred != 0) ? 1 : 0,     "constrained_intra_pred_flag");
+    h265e_stream_write1_with_log(s, (pps->m_useTransformSkip != 0) ? 1 : 0,         "transform_skip_enabled_flag");
+    h265e_stream_write1_with_log(s, (pps->m_useDQP != 0) ? 1 : 0,                   "cu_qp_delta_enabled_flag");
     if (pps->m_useDQP) {
         h265e_stream_write_ue_with_log(s, pps->m_maxCuDQPDepth,                "diff_cu_qp_delta_depth");
     }
     h265e_stream_write_se_with_log(s, pps->m_chromaCbQpOffset,                 "pps_cb_qp_offset");
     h265e_stream_write_se_with_log(s, pps->m_chromaCrQpOffset,                 "pps_cr_qp_offset");
-    h265e_stream_write1_with_log(s, pps->m_bSliceChromaQpFlag ? 1 : 0,        "pps_slice_chroma_qp_offsets_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_bSliceChromaQpFlag != 0) ? 1 : 0,        "pps_slice_chroma_qp_offsets_present_flag");
 
-    h265e_stream_write1_with_log(s, pps->m_bUseWeightPred ? 1 : 0,                    "weighted_pred_flag");  // Use of Weighting Prediction (P_SLICE)
-    h265e_stream_write1_with_log(s, pps->m_useWeightedBiPred ? 1 : 0,                 "weighted_bipred_flag"); // Use of Weighting Bi-Prediction (B_SLICE)
-    h265e_stream_write1_with_log(s, pps->m_transquantBypassEnableFlag ? 1 : 0, "transquant_bypass_enable_flag");
+    h265e_stream_write1_with_log(s, (pps->m_bUseWeightPred != 0) ? 1 : 0,                    "weighted_pred_flag");  // Use of Weighting Prediction (P_SLICE)
+    h265e_stream_write1_with_log(s, (pps->m_useWeightedBiPred != 0) ? 1 : 0,                 "weighted_bipred_flag"); // Use of Weighting Bi-Prediction (B_SLICE)
+    h265e_stream_write1_with_log(s, (pps->m_transquantBypassEnableFlag != 0) ? 1 : 0, "transquant_bypass_enable_flag");
     h265e_stream_write1_with_log(s, pps->m_tiles_enabled_flag,                  "tiles_enabled_flag");
-    h265e_stream_write1_with_log(s, pps->m_entropyCodingSyncEnabledFlag ? 1 : 0, "entropy_coding_sync_enabled_flag");
+    h265e_stream_write1_with_log(s, (pps->m_entropyCodingSyncEnabledFlag != 0) ? 1 : 0, "entropy_coding_sync_enabled_flag");
     if (pps->m_tiles_enabled_flag) {
         h265e_stream_write_ue_with_log(s, pps->m_nNumTileColumnsMinus1, "num_tile_columns_minus1");
         h265e_stream_write_ue_with_log(s, pps->m_nNumTileRowsMinus1, "num_tile_rows_minus1");
@@ -604,27 +604,27 @@ static MPP_RET h265e_pps_write(H265ePps *pps, H265eSps *sps, H265eStream *s)
             }
         }
         mpp_assert((pps->m_nNumTileColumnsMinus1 + pps->m_nNumTileRowsMinus1) != 0);
-        h265e_stream_write1_with_log(s, pps->m_loopFilterAcrossTilesEnabledFlag ? 1 : 0, "loop_filter_across_tiles_enabled_flag");
+        h265e_stream_write1_with_log(s, (pps->m_loopFilterAcrossTilesEnabledFlag != 0) ? 1 : 0, "loop_filter_across_tiles_enabled_flag");
     }
-    h265e_stream_write1_with_log(s, pps->m_LFCrossSliceBoundaryFlag ? 1 : 0, "loop_filter_across_slices_enabled_flag");
+    h265e_stream_write1_with_log(s, (pps->m_LFCrossSliceBoundaryFlag != 0) ? 1 : 0, "loop_filter_across_slices_enabled_flag");
 
     // TODO: Here have some time sequence problem, we set below field in initEncSlice(), but use them in getStreamHeaders() early
-    h265e_stream_write1_with_log(s, pps->m_deblockingFilterControlPresentFlag ? 1 : 0, "deblocking_filter_control_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_deblockingFilterControlPresentFlag != 0) ? 1 : 0, "deblocking_filter_control_present_flag");
     if (pps->m_deblockingFilterControlPresentFlag) {
-        h265e_stream_write1_with_log(s, pps->m_deblockingFilterOverrideEnabledFlag ? 1 : 0,  "deblocking_filter_override_enabled_flag");
-        h265e_stream_write1_with_log(s, pps->m_picDisableDeblockingFilterFlag ? 1 : 0,       "pps_disable_deblocking_filter_flag");
+        h265e_stream_write1_with_log(s, (pps->m_deblockingFilterOverrideEnabledFlag != 0) ? 1 : 0,  "deblocking_filter_override_enabled_flag");
+        h265e_stream_write1_with_log(s, (pps->m_picDisableDeblockingFilterFlag != 0) ? 1 : 0,       "pps_disable_deblocking_filter_flag");
         if (!pps->m_picDisableDeblockingFilterFlag) {
             h265e_stream_write_se_with_log(s, pps->m_deblockingFilterBetaOffsetDiv2, "pps_beta_offset_div2");
             h265e_stream_write_se_with_log(s, pps->m_deblockingFilterTcOffsetDiv2,   "pps_tc_offset_div2");
         }
     }
-    h265e_stream_write1_with_log(s, pps->m_scalingListPresentFlag ? 1 : 0,         "pps_scaling_list_data_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_scalingListPresentFlag != 0) ? 1 : 0,         "pps_scaling_list_data_present_flag");
     if (pps->m_scalingListPresentFlag) {
         ;//codeScalingList(m_slice->getScalingList()); //todo
     }
     h265e_stream_write1_with_log(s, pps->m_listsModificationPresentFlag, "lists_modification_present_flag");
     h265e_stream_write_ue_with_log(s, pps->m_log2ParallelMergeLevelMinus2, "log2_parallel_merge_level_minus2");
-    h265e_stream_write1_with_log(s, pps->m_sliceHeaderExtensionPresentFlag ? 1 : 0, "slice_segment_header_extension_present_flag");
+    h265e_stream_write1_with_log(s, (pps->m_sliceHeaderExtensionPresentFlag != 0) ? 1 : 0, "slice_segment_header_extension_present_flag");
     h265e_stream_write1_with_log(s, 0, "pps_extension_flag");
 
     h265e_stream_rbsp_trailing( s );
