@@ -21,7 +21,7 @@
 #include "film_grain_noise_table.h"
 #include "av1d_syntax.h"
 
-#define VDPU383_UNCMPS_HEADER_SIZE            (MPP_ALIGN(5159, 128) / 8) // byte, 5159 bit
+#define VDPU383_UNCMPS_HEADER_SIZE            (MPP_ALIGN(5160, 128) / 8 + 16) // byte, 5160 bit, reverse 128 bits
 
 // bits len
 #define VDPU383_RCB_STRMD_ROW_LEN             (MPP_ALIGN(dxva->width, 8) / 8 * 100)
