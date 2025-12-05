@@ -236,6 +236,7 @@ typedef enum {
  * For MPP_FRAME_FBC_AFBC_V1 the 16byte aligned stride is used.
  */
 #define MPP_FRAME_FMT_IS_FBC(fmt)   (fmt & MPP_FRAME_FBC_MASK)
+#define MPP_FRAME_FMT_IS_AFBC(fmt)  (fmt & (MPP_FRAME_FBC_AFBC_V1 | MPP_FRAME_FBC_AFBC_V2))
 #define MPP_FRAME_FMT_IS_RKFBC(fmt) (fmt & MPP_FRAME_FBC_RKFBC)
 
 #define MPP_FRAME_FMT_IS_HDR(fmt)   (fmt & MPP_FRAME_HDR_MASK)
