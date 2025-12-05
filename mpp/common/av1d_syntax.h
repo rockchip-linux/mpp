@@ -53,6 +53,7 @@ typedef struct DXVA_PicParams_AV1_t {
     USHORT max_width           ;
     USHORT max_height          ;
     USHORT CurrPicTextureIndex ;
+    USHORT use_superres        ;
     USHORT superres_denom      ;
     USHORT bitdepth            ;
     USHORT seq_profile         ;
