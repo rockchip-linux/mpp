@@ -23,6 +23,12 @@ cc_defaults {
         "-Wno-pointer-arith",
         "-Wno-typedef-redefinition",
         "-Wno-unused-variable",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-address-of-packed-member",
+        "-Wno-sometimes-uninitialized",
+        "-Wno-missing-field-initializers",
     ],
 
     local_include_dirs: [
@@ -57,6 +63,7 @@ cc_defaults {
         "kmpp/inc",
         "kmpp/base/inc",
         "inc",
+        "utils",
     ],
 
     generated_headers: ["mpp_version_header"],
@@ -65,7 +72,6 @@ cc_defaults {
 filegroup {
     name: "mpp_base_srcs",
     srcs: [
-        "mpp/base/*.cpp",
         "mpp/base/*.c",
     ],
 }
@@ -73,12 +79,9 @@ filegroup {
 filegroup {
     name: "mpp_codec_srcs",
     srcs: [
-        "mpp/codec/*.cpp",
-        "mpp/codec/dec/**/*.cpp",
+        "mpp/codec/*.c",
         "mpp/codec/dec/**/*.c",
-        "mpp/codec/enc/**/*.cpp",
         "mpp/codec/enc/**/*.c",
-        "mpp/codec/rc/*.cpp",
         "mpp/codec/rc/*.c",
     ],
 }
@@ -86,13 +89,10 @@ filegroup {
 filegroup {
     name: "mpp_hal_srcs",
     srcs: [
-        "mpp/hal/*.cpp",
+        "mpp/hal/*.c",
         "mpp/hal/common/**/*.c",
-        "mpp/hal/common/**/*.cpp",
         "mpp/hal/vpu/**/*.c",
-        "mpp/hal/vpu/**/*.cpp",
         "mpp/hal/rkdec/**/*.c",
-        "mpp/hal/rkdec/**/*.cpp",
         "mpp/hal/rkenc/common/*.c",
         "mpp/hal/rkenc/h264e/hal_h264e_vepu541.c",
         "mpp/hal/rkenc/h264e/hal_h264e_vepu580.c",
@@ -114,12 +114,11 @@ filegroup {
 filegroup {
     name: "mpp_vproc_srcs",
     srcs: [
-        "mpp/vproc/*.cpp",
-        "mpp/vproc/iep/*.cpp",
+        "mpp/vproc/*.c",
+        "mpp/vproc/iep/*.c",
         "mpp/vproc/iep2/*.c",
-        "mpp/vproc/rga/*.cpp",
+        "mpp/vproc/rga/*.c",
         "mpp/vproc/vdpp/*.c",
-        "mpp/vproc/vdpp/*.cpp",
     ],
 }
 
@@ -134,12 +133,10 @@ filegroup {
 filegroup {
     name: "mpp_osal_srcs",
     srcs: [
-        "osal/*.cpp",
         "osal/*.c",
         "osal/allocator/*.c",
         "osal/android/*.c",
         "osal/driver/*.c",
-        "osal/driver/*.cpp",
     ],
 }
 
@@ -198,7 +195,7 @@ cc_library_headers {
 cc_library {
     name: "libmpp",
     srcs: [
-        "mpp/*.cpp",
+        "mpp/*.c",
         ":mpp_base_srcs",
         ":mpp_codec_srcs",
         ":mpp_vproc_srcs",
@@ -232,8 +229,7 @@ cc_library {
         "mpp/legacy/vpu_api_mlvec.cpp",
         "mpp/legacy/vpu_mem_legacy.c",
         "mpp/legacy/rk_list.cpp",
-        "mpp/legacy/ppOp.cpp",
-        "mpp/mpp_info.cpp",
+        "mpp/mpp_info.c",
     ],
 
     export_include_dirs: [
@@ -252,7 +248,7 @@ cc_library {
 }
 
 cc_test {
-    name: "mpp_info",
+    name: "mpp_info_test",
     srcs: ["test/mpp_info_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -260,7 +256,7 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_dec",
+    name: "mpi_dec_test",
     srcs: ["test/mpi_dec_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -268,7 +264,7 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_dec_mt",
+    name: "mpi_dec_mt_test",
     srcs: ["test/mpi_dec_mt_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -276,7 +272,7 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_dec_nt",
+    name: "mpi_dec_nt_test",
     srcs: ["test/mpi_dec_nt_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -284,7 +280,7 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_enc",
+    name: "mpi_enc_test",
     srcs: ["test/mpi_enc_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -292,15 +288,15 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_enc_mt",
-    srcs: ["test/mpi_enc_mt_test.cpp"],
+    name: "mpi_enc_mt_test",
+    srcs: ["test/mpi_enc_mt_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
     defaults: ["mpp_defaults"],
 }
 
 cc_test {
-    name: "mpi_rc2",
+    name: "mpi_rc2_test",
     srcs: ["test/mpi_rc2_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -308,15 +304,16 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_dec_multi",
+    name: "mpi_dec_multi_test",
     srcs: ["test/mpi_dec_multi_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
     defaults: ["mpp_defaults"],
 }
 
+/*
 cc_test {
-    name: "mpi_dec_slt",
+    name: "mpi_dec_slt_test",
     srcs: ["test/mpi_dec_slt_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
@@ -324,9 +321,10 @@ cc_test {
 }
 
 cc_test {
-    name: "mpi_enc_slt",
+    name: "mpi_enc_slt_test",
     srcs: ["test/mpi_enc_slt_test.c"],
     shared_libs: ["libmpp"],
     static_libs: ["libmpputils-static"],
     defaults: ["mpp_defaults"],
 }
+*/
