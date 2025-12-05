@@ -33,6 +33,9 @@
 #define MPP_ALIGN_GEN(x, a)     (((x)+(a)-1)/(a)*(a))
 #define MPP_VSWAP(a, b)         { a ^= b; b ^= a; a ^= b; }
 
+#define MPP_ROUNDUP(N, M)       MPP_ALIGN(M, N)
+#define MPP_DIVUP(N, M)         (MPP_ROUNDUP(N, M) / N)
+
 #define MPP_GENMASK(h, l) (((1ULL << ((h) + 1)) - 1) & ~((1ULL << (l)) - 1))
 
 #define MPP_RB16(x)  ((((const RK_U8*)(x))[0] << 8) | ((const RK_U8*)(x))[1])
