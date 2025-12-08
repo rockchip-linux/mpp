@@ -1321,7 +1321,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
         reg_ctx->offset_uncomps = reg_ctx->uncmps_offset[0];
     }
 
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->cdf_rd_def_base, 200 * MPP_ALIGN(sizeof(g_default_prob), 2048)));
+    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->cdf_rd_def_base, MPP_ALIGN(sizeof(g_default_prob), 2048)));
     mpp_buffer_attach_dev(reg_ctx->cdf_rd_def_base, p_hal->dev);
     cdf_ptr = mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base);
     memcpy(cdf_ptr, g_default_prob, sizeof(g_default_prob));
