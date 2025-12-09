@@ -18,6 +18,8 @@
 
 #include "rk_type.h"
 
+#include "mpp_hal.h"
+
 MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg);
 MPP_RET hal_jpegd_rkv_deinit(void *hal);
 MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn);

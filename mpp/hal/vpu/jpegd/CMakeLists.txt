@@ -3,6 +3,8 @@
 
 set(HAL_JPEGD_HDR
     hal_jpegd_common.h
+    hal_jpegd_base.h
+    hal_jpegd_vpu7xx_com.h
     )
 
 set(HAL_JPEGD_SRC
@@ -10,6 +12,7 @@ set(HAL_JPEGD_SRC
     hal_jpegd_common.c
     hal_jpegd_vdpu2.c
     hal_jpegd_vdpu1.c
+    hal_jpegd_vpu7xx_com.c
     hal_jpegd_rkv.c
     )
 
