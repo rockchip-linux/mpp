@@ -68,6 +68,7 @@
 #define CAP_CODING_VDPU382      (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
 #define CAP_CODING_VDPU383      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
 #define CAP_CODING_VDPU384A     (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VDPU384B     (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
 
 #define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
 #define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
@@ -441,6 +442,24 @@ static const MppDecHwCap vdpu384a = {
     .cap_coding         = CAP_CODING_VDPU384A,
     .type               = VPU_CLIENT_RKVDEC,
     .cap_fbc            = 0,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_compress = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 0,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
+static const MppDecHwCap vdpu384b = {
+    .cap_coding         = CAP_CODING_VDPU384B,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 1,
     .cap_4k             = 1,
     .cap_8k             = 1,
     .cap_colmv_compress = 1,
@@ -1016,6 +1035,29 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC,
         {   &vdpu384a, &rkjpegd, NULL, NULL, NULL, NULL},
         {   &vepu511, NULL, NULL, NULL},
+    },
+    {   /*
+         * RK3538 has codec:
+         * 1 - RK H.264/H.265/VP9/AV1 8K decoder
+         * 2 - RK jpeg decoder
+         */
+        "rk3538",
+        ROCKCHIP_SOC_RK3538,
+        HAVE_RKVDEC | HAVE_JPEG_DEC,
+        {   &vdpu384b, &rkjpegd, NULL, NULL, NULL, NULL},
+        {   NULL, NULL, NULL, NULL},
+    },
+    {   /*
+         * RK3572 has codec:
+         * 1 - RK H.264/H.265/VP9/AVS2/AV1 8K decoder
+         * 2 - RK H.264/H.265/jpeg 4K encoder
+         * 3 - RK jpeg decoder
+         */
+        "rk3572",
+        ROCKCHIP_SOC_RK3572,
+        HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_JPEG_ENC,
+        {   &vdpu384b, &rkjpegd, NULL, NULL, NULL, NULL},
+        {   &vepu511, &rkjpege_vpu720, NULL, NULL},
     },
 };
 
