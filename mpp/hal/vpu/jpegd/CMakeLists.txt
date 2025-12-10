@@ -14,6 +14,7 @@ set(HAL_JPEGD_SRC
     hal_jpegd_vdpu1.c
     hal_jpegd_vpu7xx_com.c
     hal_jpegd_rkv.c
+    hal_jpegd_vpu730.c
     )
 
 add_library(hal_jpegd STATIC

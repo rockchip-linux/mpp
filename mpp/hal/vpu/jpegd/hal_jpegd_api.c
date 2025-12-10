@@ -29,6 +29,8 @@
 #include "hal_jpegd_vdpu2.h"
 #include "hal_jpegd_vdpu1.h"
 #include "hal_jpegd_rkv.h"
+#include "hal_jpegd_vpu730.h"
+#include "hal_jpegd_vpu7xx_com.h"
 
 static MPP_RET hal_jpegd_reg_gen(void *hal, HalTaskInfo *task)
 {
@@ -126,12 +128,23 @@ static MPP_RET hal_jpegd_init(void *hal, MppHalCfg *cfg)
         p_api->control = hal_jpegd_vdpu1_control;
     } break;
     case VPU_CLIENT_JPEG_DEC : {
-        p_api->init = hal_jpegd_rkv_init;
-        p_api->deinit = hal_jpegd_rkv_deinit;
-        p_api->reg_gen = hal_jpegd_rkv_gen_regs;
-        p_api->start = hal_jpegd_rkv_start;
-        p_api->wait = hal_jpegd_rkv_wait;
-        p_api->control = hal_jpegd_rkv_control;
+        RockchipSocType soc = mpp_get_soc_type();
+
+        if (soc >= ROCKCHIP_SOC_RK3538) {
+            p_api->init = hal_jpegd_vpu730_init;
+            p_api->deinit = hal_jpegd_vpu730_deinit;
+            p_api->reg_gen = hal_jpegd_vpu730_gen_regs;
+            p_api->start = hal_jpegd_vpu730_start;
+            p_api->wait = hal_jpegd_vpu730_wait;
+            p_api->control = hal_jpegd_vpu730_control;
+        } else {
+            p_api->init = hal_jpegd_rkv_init;
+            p_api->deinit = hal_jpegd_rkv_deinit;
+            p_api->reg_gen = hal_jpegd_rkv_gen_regs;
+            p_api->start = hal_jpegd_rkv_start;
+            p_api->wait = hal_jpegd_rkv_wait;
+            p_api->control = hal_jpegd_rkv_control;
+        }
     } break;
     default : {
         return MPP_ERR_INIT;
