@@ -542,13 +542,51 @@ typedef struct JpegeVpu720StatusReg_t {
     RK_U32 st_lkt_waddr;
 } JpegeVpu720StatusReg;
 
-
 #define JPEGE_VPU720_REG_BASE_INT_STATE (0x1c)
 #define JPEGE_VPU720_REG_STATUS_OFFSET (0xc0)
+
+#define JPEGE_VPU730_REG_ROI_OFFSET 0x0300
+#define JPEGE_VPU730_REG_ROI_NUM 16
+
+#define HWID_JPEGE_VPU730 0x73010000
+
+typedef struct JpegeVpu730FrmRdoqCfg_t {
+    rk_u32 en                   : 1;
+    rk_u32 level                : 6;
+    rk_u32                      : 25;
+} JpegeVpu730FrmRdoCfg;
+
+typedef struct JpegeVpu730RoiReg_t {
+    struct {
+        rk_u32 en               : 1;
+        rk_u32 level            : 6;
+        rk_u32                  : 25;
+    } rdoq_cfg;
+
+    struct {
+        rk_u32 start_x_in16     : 12;
+        rk_u32                  : 4;
+        rk_u32 start_y_in16     : 12;
+        rk_u32                  : 4;
+    } rdoq_pos;
+
+    struct {
+        rk_u32 width_in16_m1    : 12;
+        rk_u32                  : 4;
+        rk_u32 height_in16_m1   : 12;
+        rk_u32                  : 4;
+    } rdoq_size;
+} JpegeVpu730RoiReg;
+
+typedef struct JpegeVpu730RdoReg_t {
+    JpegeVpu730FrmRdoCfg reg_frm_rdoq_cfg;
+    JpegeVpu730RoiReg reg_roi[JPEGE_VPU730_REG_ROI_NUM];
+} JpegeVpu730RdoReg;
 
 typedef struct JpegeVpu720RegSet_t {
     JpegeVpu720BaseReg reg_base;
     JpegeVpu720StatusReg reg_st;
+    JpegeVpu730RdoReg reg_rdo;
     RK_U32 int_state;
 } JpegeVpu720Reg;
 

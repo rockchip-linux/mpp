@@ -10,6 +10,7 @@
 #include "mpp_mem.h"
 #include "mpp_env.h"
 #include "mpp_common.h"
+#include "mpp_platform.h"
 #include "mpp_buffer_impl.h"
 #include "mpp_enc_hal.h"
 
@@ -110,6 +111,9 @@ typedef struct JpegeVpu720HalCtx_t {
     MppBuffer           qtbl_buffer;
     RK_U16              *qtbl_sw_buf;
     HalJpegeRc          hal_rc;
+
+    RK_U32              is_vpu730;
+    void                *roi_data;
 } JpegeVpu720HalCtx;
 
 #define JPEGE_VPU720_QTABLE_SIZE (64 * 3)
@@ -129,7 +133,10 @@ static MPP_RET hal_jpege_vpu720_init(void *hal, MppEncHalCfg *cfg)
     ctx->frame_cnt = 0;
     ctx->enc_mode = JPEG_VPU720_ENC_MODE_ONE_FRAME;
     cfg->type = VPU_CLIENT_JPEG_ENC;
+    ctx->is_vpu730 = (HWID_JPEGE_VPU730 == mpp_get_client_hw_id(cfg->type) ? 1 : 0);
+
     ret = mpp_dev_init(&cfg->dev, cfg->type);
+
     if (ret) {
         mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
         return ret;
@@ -368,6 +375,61 @@ static MPP_RET jpege_vpu720_setup_format(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 
+#define JPEGE_VPU730_ROI_LEVEL_MAX 63
+
+static MPP_RET hal_jpege_vpu730_set_roi(JpegeVpu720HalCtx *ctx)
+{
+    MPP_RET ret = MPP_OK;
+    MppJpegROICfg *roi_cfg = (MppJpegROICfg *) ctx->roi_data;
+    rk_u32 frame_width = ctx->cfg->prep.width;
+    rk_u32 frame_height = ctx->cfg->prep.height;
+    JpegeVpu720Reg *regs = (JpegeVpu720Reg *)ctx->regs;
+    JpegeVpu730RoiReg *roi_reg = regs->reg_rdo.reg_roi;
+    MppJpegROIRegion *region;
+    rk_u32 i;
+
+    if (!roi_cfg)
+        return ret;
+
+    if (roi_cfg->non_roi_en) {
+        if (roi_cfg->non_roi_level <= JPEGE_VPU730_ROI_LEVEL_MAX) {
+            regs->reg_rdo.reg_frm_rdoq_cfg.en = 1;
+            regs->reg_rdo.reg_frm_rdoq_cfg.level = roi_cfg->non_roi_level;
+        } else {
+            mpp_err_f("invalid roi level %d for none-roi reigon\n", roi_cfg->non_roi_level);
+        }
+    }
+
+    for (i = 0; i < JPEGE_VPU730_REG_ROI_NUM; i++) {
+        region = &roi_cfg->regions[i];
+
+        if (!region || !region->roi_en)
+            continue;
+
+        if (region->w == 0 || region->h == 0 || region->x + region->w > frame_width ||
+            region->y + region->h > frame_height) {
+            mpp_err_f("region[%d]: x[%d] y[%d] w[%d] h[%d] is out of image, frame width[%d] height[%d]\n",
+                      i, region->x, region->y, region->w,
+                      region->h, frame_width, frame_height);
+            continue;
+        }
+
+        if (region->level > JPEGE_VPU730_ROI_LEVEL_MAX) {
+            mpp_err_f("region[%d]: roi level %d is invlaid\n", i, region->level);
+            continue;
+        }
+
+        roi_reg[i].rdoq_cfg.en = 1;
+        roi_reg[i].rdoq_cfg.level = region->level;
+        roi_reg[i].rdoq_pos.start_x_in16 = MPP_ALIGN(region->x, 16) >> 4;
+        roi_reg[i].rdoq_pos.start_y_in16 = MPP_ALIGN(region->y, 16) >> 4;
+        roi_reg[i].rdoq_size.width_in16_m1 = (MPP_ALIGN(region->w, 16) >> 4) - 1;
+        roi_reg[i].rdoq_size.height_in16_m1 = (MPP_ALIGN(region->h, 16) >> 4) - 1;
+    }
+
+    return ret;
+}
+
 MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
@@ -517,6 +579,9 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
 
     ctx->frame_num++;
 
+    if (ctx->is_vpu730)
+        hal_jpege_vpu730_set_roi(ctx);
+
     hal_jpege_leave();
     return ret;
 }
@@ -553,6 +618,19 @@ MPP_RET hal_jpege_vpu720_start(void *hal, HalEncTask *task)
     if (ret) {
         mpp_err_f("set register write failed %d\n", ret);
         return ret;
+    }
+
+    if (ctx->is_vpu730) {
+        cfg_base.reg = &regs->reg_rdo;
+        cfg_base.size = sizeof(JpegeVpu730RdoReg);
+        cfg_base.offset = JPEGE_VPU730_REG_ROI_OFFSET;
+
+        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &cfg_base);
+
+        if (ret) {
+            mpp_err_f("set RDO register write failed %d\n", ret);
+            return ret;
+        }
     }
 
     cfg_st.reg = &regs->int_state;
@@ -623,6 +701,12 @@ MPP_RET hal_jpege_vpu720_get_task(void *hal, HalEncTask *task)
 
     hal_jpege_enter();
     memcpy(&ctx->syntax, syntax, sizeof(ctx->syntax));
+
+    if (mpp_frame_has_meta(task->frame)) {
+        MppMeta meta = mpp_frame_get_meta(task->frame);
+
+        mpp_meta_get_ptr(meta, KEY_JPEG_ROI_DATA, (void **)&ctx->roi_data);
+    }
 
     if (ctx->cfg->jpeg.update) {
         hal_jpege_rc_update(&ctx->hal_rc, syntax);
