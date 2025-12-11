@@ -8,15 +8,16 @@ set(HAL_AV1D_HDR
     )
 
 set(HAL_AV1D_SRC
+    hal_av1d_com.c
     hal_av1d_vdpu383.c
     )
 
-add_library(hal_av1d_rkv STATIC
+add_library(hal_av1d_rkv OBJECT
             ${HAL_AV1D_SRC}
             ${HAL_AV1D_HDR}
             )
 
+target_link_libraries(hal_av1d_rkv)
 set_target_properties(hal_av1d_rkv PROPERTIES FOLDER "mpp/hal")
-target_link_libraries(hal_av1d_rkv mpp_base vdpu383_com)
 
 #add_subdirectory(test)

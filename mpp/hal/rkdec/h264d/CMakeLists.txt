@@ -3,6 +3,7 @@
 # hal h264 decoder sourse
 set(HAL_H264D_SRC
     hal_h264d_api.c
+    hal_h264d_com.c
     hal_h264d_vdpu34x.c
     hal_h264d_vdpu382.c
     hal_h264d_vdpu383.c
@@ -13,8 +14,8 @@ set(HAL_H264D_SRC
     hal_h264d_vdpu_com.c
     )
 
-add_library(hal_h264d STATIC ${HAL_H264D_SRC})
+add_library(${HAL_H264D} OBJECT ${HAL_H264D_SRC})
 
-target_link_libraries(hal_h264d vdpu34x_com vdpu383_com vdpu384a_com mpp_base mpp_hal)
-set_target_properties(hal_h264d PROPERTIES FOLDER "mpp/hal")
+target_link_libraries(${HAL_H264D})
+set_target_properties(${HAL_H264D} PROPERTIES FOLDER "mpp/hal")
 

@@ -38,5 +38,6 @@ target_link_libraries(mpp_hal
                       ${HAL_JPEGE}
                       ${HAL_H265E}
                       ${HAL_VP8E}
+                      hal_rkvdec_com
                       hal_dummy
                       )
