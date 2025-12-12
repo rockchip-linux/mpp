@@ -10,8 +10,10 @@
 
 #include "rk_type.h"
 
-#define RCB_ALLINE_SIZE      (64)
-#define MPP_RCB_BYTES(bits)  ((RK_U32)(MPP_ALIGN(((RK_U32)ceilf(bits) + 7) / 8, RCB_ALLINE_SIZE)))
+#define VDPU_FAST_REG_SET_CNT  3
+
+#define RCB_ALLINE_SIZE        (64)
+#define MPP_RCB_BYTES(bits)    ((RK_U32)(MPP_ALIGN(((RK_U32)ceilf(bits) + 7) / 8, RCB_ALLINE_SIZE)))
 
 typedef enum VdpuRcbSetMode_e {
     RCB_SET_BY_SIZE_SORT_MODE,

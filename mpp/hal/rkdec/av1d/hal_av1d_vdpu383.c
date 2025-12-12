@@ -14,6 +14,7 @@
 
 #include "vdpu_com.h"
 #include "hal_av1d_common.h"
+#include "hal_av1d_ctx.h"
 #include "hal_av1d_com.h"
 #include "vdpu383_av1d.h"
 #include "vdpu383_com.h"
@@ -119,96 +120,12 @@
         default: break;}\
     }while(0)
 
-#define VDPU_FAST_REG_SET_CNT    3
-
 #define OFFSET_CTRL_REGS          (8 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS   (128 * sizeof(RK_U32))
 #define OFFSET_RCB_PARAS_REGS     (140 * sizeof(RK_U32))
 #define OFFSET_AV1D_PARAS_REGS    (64 * sizeof(RK_U32))
 #define OFFSET_AV1D_ADDR_REGS     (168 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS     (15 * sizeof(RK_U32))
-
-typedef struct av1d_rkv_buf_t {
-    RK_U32              valid;
-    Vdpu383Av1dRegSet  *regs;
-} av1dVdpu383Buf;
-
-typedef struct vdpu383_ref_info_t {
-    RK_U32 dpb_idx;
-    RK_U32 seg_idx;
-    RK_U32 colmv_exist_flag;
-    RK_U32 cdf_valid;
-    RK_U32 coeff_idx;
-    RK_U32 mi_rows;
-    RK_U32 mi_cols;
-    RK_U32 seg_en;
-    RK_U32 seg_up_map;
-    RK_U32 cdf_update_flag;
-} vdpu383RefInfo;
-
-typedef struct Vdpu383Av1dRegCtx_t {
-    Vdpu383Av1dRegSet  *regs;
-    RK_U32             offset_uncomps;
-
-    av1dVdpu383Buf     reg_buf[VDPU_FAST_REG_SET_CNT];
-    MppBuffer          bufs;
-    RK_S32             bufs_fd;
-    void               *bufs_ptr;
-    RK_U32             uncmps_offset[VDPU_FAST_REG_SET_CNT];
-
-    VdpuRcbInfo        rcb_buf_info[RCB_BUF_CNT];
-    RK_U32             rcb_buf_size;
-    MppBuffer          rcb_bufs[VDPU_FAST_REG_SET_CNT];
-
-    HalBufs            colmv_bufs;
-    RK_U32             colmv_count;
-    RK_U32             colmv_size;
-
-    vdpu383RefInfo     ref_info_tbl[NUM_REF_FRAMES];
-
-    MppBuffer          cdf_rd_def_base;
-    HalBufs            cdf_segid_bufs;
-    RK_U32             cdf_segid_count;
-    RK_U32             cdf_segid_size;
-    RK_U32             cdf_coeff_cdf_idxs[NUM_REF_FRAMES];
-
-    MppBuffer          tile_info;
-    MppBuffer          film_grain_mem;
-    MppBuffer          global_model;
-    MppBuffer          filter_mem;
-    MppBuffer          tile_buf;
-
-    AV1CDFs            *cdfs;
-    MvCDFs             *cdfs_ndvc;
-    AV1CDFs            default_cdfs;
-    MvCDFs             default_cdfs_ndvc;
-    AV1CDFs            cdfs_last[NUM_REF_FRAMES];
-    MvCDFs             cdfs_last_ndvc[NUM_REF_FRAMES];
-    RK_U32             refresh_frame_flags;
-
-    RK_U32             width;
-    RK_U32             height;
-    RK_S32             hor_stride;
-    RK_S32             ver_stride;
-    RK_U32             luma_size ;
-    RK_U32             chroma_size;
-
-    AV1FilmGrainMemory fgsmem;
-
-    RK_S8              prev_out_buffer_i;
-    RK_U8              fbc_en;
-    RK_U8              resolution_change;
-    RK_U8              tile_transpose;
-    RK_U32             ref_frame_sign_bias[AV1_REF_LIST_SIZE];
-
-    RK_U32             tile_out_count;
-    size_t             tile_out_size;
-
-    RK_U32             num_tile_cols;
-    /* uncompress header data */
-    RK_U8              header_data[VDPU383_UNCMPS_HEADER_SIZE];
-    HalBufs            origin_bufs;
-} Vdpu383Av1dRegCtx;
 
 // #define DUMP_AV1D_VDPU383_DATAS
 
@@ -337,7 +254,7 @@ static RK_U32 rkv_len_align_422(RK_U32 val)
 
 static MPP_RET vdpu383_setup_scale_origin_bufs(Av1dHalCtx *p_hal, MppFrame mframe)
 {
-    Vdpu383Av1dRegCtx *ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     /* for 8K FrameBuf scale mode */
     size_t origin_buf_size = 0;
 
@@ -371,8 +288,8 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
     void *cdf_ptr;
     INP_CHECK(ret, NULL == p_hal);
 
-    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(Vdpu383Av1dRegCtx)));
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, p_hal->api->ctx_size));
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
 
     //!< malloc buffers
     BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, MPP_ALIGN(VDPU383_INFO_BUF_SIZE(max_cnt), SZ_2K)));
@@ -405,15 +322,11 @@ __FAILED:
     return ret;
 }
 
-static void vdpu_av1d_filtermem_release(Vdpu383Av1dRegCtx *ctx)
-{
-    BUF_PUT(ctx->filter_mem);
-}
 
 static void hal_av1d_release_res(void *hal)
 {
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     RK_U32 i = 0;
     RK_U32 max_cnt = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
 
@@ -425,7 +338,8 @@ static void hal_av1d_release_res(void *hal)
     for (i = 0; i < max_cnt; i++)
         BUF_PUT(reg_ctx->rcb_bufs[i]);
 
-    vdpu_av1d_filtermem_release(reg_ctx);
+    BUF_PUT(reg_ctx->filter_mem);
+
     if (reg_ctx->cdf_segid_bufs) {
         hal_bufs_deinit(reg_ctx->cdf_segid_bufs);
         reg_ctx->cdf_segid_bufs = NULL;
@@ -895,7 +809,7 @@ do { \
 } while (0)
 
 #if 0
-static void rcb_buf_set_edge(Vdpu383Av1dRegCtx *reg_ctx, MppBuffer buf)
+static void rcb_buf_set_edge(Vdpu38xAv1dRegCtx *reg_ctx, MppBuffer buf)
 {
     RK_U32 loop;
     RK_U8 *buf_p = mpp_buffer_get_ptr(buf);
@@ -906,7 +820,7 @@ static void rcb_buf_set_edge(Vdpu383Av1dRegCtx *reg_ctx, MppBuffer buf)
     }
 }
 
-static void rcb_buf_dump_edge(Vdpu383Av1dRegCtx *reg_ctx, MppBuffer buf)
+static void rcb_buf_dump_edge(Vdpu38xAv1dRegCtx *reg_ctx, MppBuffer buf)
 {
     RK_U8 *buf_p = mpp_buffer_get_ptr(buf);
     RK_U32 loop;
@@ -986,7 +900,7 @@ static void av1d_refine_rcb_size(VdpuRcbInfo *rcb_info,
 
 static void vdpu383_av1d_rcb_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     RK_U32 offset = 0;
     RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
     RK_U32 i;
@@ -1025,7 +939,7 @@ static void vdpu383_av1d_rcb_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 
 static void vdpu383_av1d_rcb_reg_cfg(Av1dHalCtx *p_hal, MppBuffer buf)
 {
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     Vdpu383Av1dRegSet *regs = reg_ctx->regs;
     RK_U32 fd = mpp_buffer_get_fd(buf);
     RK_U32 i;
@@ -1061,7 +975,7 @@ static void vdpu383_av1d_rcb_reg_cfg(Av1dHalCtx *p_hal, MppBuffer buf)
 static MPP_RET vdpu383_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     size_t mv_size;
 
     /* the worst case is the frame is error with whole frame */
@@ -1089,7 +1003,7 @@ __RETURN:
 static MPP_RET vdpu383_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     size_t size = 0;
     size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
                         (MPP_ALIGN(dxva->height, 128) / 128) * \
@@ -1142,7 +1056,7 @@ __RETURN:
 
 static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     Vdpu383Av1dRegSet *regs = reg_ctx->regs;
     RK_U32 coeff_cdf_idx = 0;
     RK_U32 mapped_idx = 0;
@@ -1167,7 +1081,7 @@ static void vdpu383_av1d_set_cdf(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
                     dxva->quantization.base_qindex <= 120 ? 2 : 3;
 
     if (dxva->format.frame_type == AV1_FRAME_KEY ||
-        dxva->primary_ref_frame == 7) { /* AV1_PRIMARY_REF_NONE */
+        dxva->primary_ref_frame == AV1_PRIMARY_REF_NONE) {
         regs->av1d_addrs.reg184_av1_noncoef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
         regs->av1d_addrs.reg178_av1_coef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
 #ifdef DUMP_AV1D_VDPU383_DATAS
@@ -1248,7 +1162,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
-    Vdpu383Av1dRegCtx *ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     Vdpu383Av1dRegSet *regs;
     DXVA_PicParams_AV1 *dxva = (DXVA_PicParams_AV1*)task->dec.syntax.data;
     RK_U32 i = 0;
@@ -1347,8 +1261,8 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         MppBuffer mbuffer = NULL;
 
         /* uncompress header data */
-        prepare_uncompress_header(p_hal, dxva, (RK_U64 *)ctx->header_data, sizeof(ctx->header_data) / 8);
-        memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, sizeof(ctx->header_data));
+        prepare_uncompress_header(p_hal, dxva, (RK_U64 *)ctx->header_data, VDPU383_UNCMPS_HEADER_SIZE / 8);
+        memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, VDPU383_UNCMPS_HEADER_SIZE);
         regs->av1d_paras.reg67_global_len = VDPU383_UNCMPS_HEADER_SIZE / 16; // 128 bit as unit
         regs->common_addr.reg131_gbl_base = ctx->bufs_fd;
         // mpp_dev_set_reg_offset(p_hal->dev, 131, ctx->offset_uncomps);
@@ -1559,7 +1473,7 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
         goto __RETURN;
     }
 
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     Vdpu383Av1dRegSet *regs = p_hal->fast_mode ?
                               reg_ctx->reg_buf[task->dec.reg_index].regs :
                               reg_ctx->regs;
@@ -1634,7 +1548,7 @@ MPP_RET vdpu383_av1d_wait(void *hal, HalTaskInfo *task)
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
 
     INP_CHECK(ret, NULL == p_hal);
-    Vdpu383Av1dRegCtx *reg_ctx = (Vdpu383Av1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     Vdpu383Av1dRegSet *p_regs = p_hal->fast_mode ?
                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
                                 reg_ctx->regs;
@@ -1776,7 +1690,7 @@ const MppHalApi hal_av1d_vdpu383 = {
     .name       = "av1d_vdpu383",
     .type       = MPP_CTX_DEC,
     .coding     = MPP_VIDEO_CodingAV1,
-    .ctx_size   = sizeof(Vdpu383Av1dRegCtx),
+    .ctx_size   = sizeof(Vdpu38xAv1dRegCtx) + VDPU383_UNCMPS_HEADER_SIZE,
     .flag       = 0,
     .init       = vdpu383_av1d_init,
     .deinit     = vdpu383_av1d_deinit,
