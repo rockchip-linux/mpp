@@ -17,6 +17,7 @@
 #include "hal_h264d_vdpu383.h"
 #include "vdpu383_h264d.h"
 #include "mpp_dec_cb_param.h"
+#include "vdpu_com.h"
 
 /* Number registers for the decoder */
 #define DEC_VDPU383_REGISTERS       276
@@ -104,7 +105,7 @@ typedef struct Vdpu383H264dRegCtx_t {
     RK_U32              chroma_format_idc;
 
     RK_S32              rcb_buf_size;
-    Vdpu383RcbInfo      rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo         rcb_info[RCB_BUF_CNT];
     MppBuffer           rcb_buf[VDPU383_FAST_REG_SET_CNT];
 
     Vdpu383H264dRegSet  *regs;
@@ -723,7 +724,7 @@ MPP_RET vdpu383_h264d_deinit(void *hal)
     return MPP_OK;
 }
 
-static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu383RcbInfo *rcb_info,
+static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, VdpuRcbInfo *rcb_info,
                                   RK_S32 width, RK_S32 height)
 {
     RK_U32 rcb_bits = 0;
@@ -739,35 +740,35 @@ static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu383RcbInfo *rcb_info
 
     width = MPP_ALIGN(width, H264_CTU_SIZE);
     height = MPP_ALIGN(height, H264_CTU_SIZE);
-    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
+    /* RCB_STRMD_IN_ROW && RCB_STRMD_ON_ROW*/
     if (width > 4096)
         rcb_bits = ((width + 15) / 16) * 154 * (mbaff ? 2 : 1);
     else
         rcb_bits = 0;
-    rcb_info[RCB_STRMD_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_STRMD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    rcb_info[RCB_STRMD_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_STRMD_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTER_IN_ROW && RCB_INTER_ON_ROW*/
     rcb_bits = ((width + 3) / 4) * 92 * (mbaff ? 2 : 1);
-    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTER_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    rcb_info[RCB_INTER_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTER_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    /* RCB_INTRA_IN_ROW && RCB_INTRA_ON_ROW*/
     rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2) * (mbaff ? 2 : 1);
     if (chroma_format_idc == 1 || chroma_format_idc == 2)
         rcb_bits = rcb_bits * 5 / 2; //TODO:
 
-    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTRA_TILE_ROW].size = 0;
-    /* RCB_FILTERD_ROW && RCB_FILTERD_PROTECT_ROW*/
-    // save space mode : half for RCB_FILTERD_ROW, half for RCB_FILTERD_PROTECT_ROW
+    rcb_info[RCB_INTRA_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTRA_ON_ROW].size = 0;
+    /* RCB_FLTD_IN_ROW && RCB_FLTD_PROT_IN_ROW*/
+    // save space mode : half for RCB_FLTD_IN_ROW, half for RCB_FLTD_PROT_IN_ROW
     rcb_bits = width * 17 * ((6 + 3 * row_uv_para) * (mbaff ? 2 : 1) + 2 * row_uv_para + 1.5);
     if (width > 4096)
         filterd_row_append = 27648;
-    rcb_info[RCB_FILTERD_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FLTD_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FLTD_PROT_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
 
-    rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
-    /* RCB_FILTERD_TILE_COL */
-    rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+    rcb_info[RCB_FLTD_ON_ROW].size = 0;
+    /* RCB_FLTD_ON_COL */
+    rcb_info[RCB_FLTD_ON_COL].size = 0;
 
 }
 
@@ -985,7 +986,7 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu383_set_rcbinfo(dev, (Vdpu383RcbInfo*)reg_ctx->rcb_info);
+        vdpu383_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
 
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);

@@ -21,6 +21,7 @@
 #include "hal_vp9d_ctx.h"
 #include "vdpu383_vp9d.h"
 #include "vp9d_syntax.h"
+#include "vdpu_com.h"
 
 #define HW_PROB         1
 #define VP9_CONTEXT     4
@@ -59,7 +60,7 @@ typedef struct Vdpu383Vp9dCtx_t {
     RK_S32          height;
     /* rcb buffers info */
     RK_S32          rcb_buf_size;
-    Vdpu383RcbInfo  rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo     rcb_info[RCB_BUF_CNT];
     MppBuffer       rcb_buf;
     RK_U32          num_row_tiles;
     RK_U32          bit_depth;
@@ -376,7 +377,7 @@ __FAILED:
     return ret;
 }
 
-static void vp9d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
+static void vp9d_refine_rcb_size(VdpuRcbInfo *rcb_info,
                                  RK_S32 width, RK_S32 height, void* data)
 {
     RK_U32 rcb_bits = 0;
@@ -390,52 +391,52 @@ static void vp9d_refine_rcb_size(Vdpu383RcbInfo *rcb_info,
 
     width = MPP_ALIGN(width, VP9_CTU_SIZE);
     height = MPP_ALIGN(height, VP9_CTU_SIZE);
-    /* RCB_STRMD_ROW && RCB_STRMD_TILE_ROW*/
+    /* RCB_STRMD_IN_ROW && RCB_STRMD_ON_ROW*/
     if (width > 4096)
         rcb_bits = ((width + 63) / 64) * 250;
     else
         rcb_bits = 0;
-    rcb_info[RCB_STRMD_ROW].size = 0;
-    rcb_info[RCB_STRMD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_STRMD_IN_ROW].size = 0;
+    rcb_info[RCB_STRMD_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
 
-    /* RCB_INTER_ROW && RCB_INTER_TILE_ROW*/
+    /* RCB_INTER_IN_ROW && RCB_INTER_ON_ROW*/
     rcb_bits = ((width + 63) / 64) * 2368;
-    rcb_info[RCB_INTER_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTER_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
     rcb_bits += ext_row_align_size;
     if (tile_row_num > 1)
-        rcb_info[RCB_INTER_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+        rcb_info[RCB_INTER_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
     else
-        rcb_info[RCB_INTER_TILE_ROW].size = 0;
+        rcb_info[RCB_INTER_ON_ROW].size = 0;
 
-    /* RCB_INTRA_ROW && RCB_INTRA_TILE_ROW*/
+    /* RCB_INTRA_IN_ROW && RCB_INTRA_ON_ROW*/
     rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
     rcb_bits = rcb_bits * 3; //TODO:
-    rcb_info[RCB_INTRA_ROW].size = MPP_RCB_BYTES(rcb_bits);
+    rcb_info[RCB_INTRA_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
     rcb_bits += ext_row_align_size;
     if (tile_row_num > 1)
-        rcb_info[RCB_INTRA_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+        rcb_info[RCB_INTRA_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
     else
-        rcb_info[RCB_INTRA_TILE_ROW].size = 0;
+        rcb_info[RCB_INTRA_ON_ROW].size = 0;
 
-    /* RCB_FILTERD_ROW && RCB_FILTERD_TILE_ROW*/
-    // save space mode : half for RCB_FILTERD_ROW, half for RCB_FILTERD_PROTECT_ROW
+    /* RCB_FLTD_IN_ROW && RCB_FLTD_ON_ROW*/
+    // save space mode : half for RCB_FLTD_IN_ROW, half for RCB_FLTD_PROT_IN_ROW
     if (width > 4096)
         filterd_row_append = 27648;
     rcb_bits = (RK_U32)(MPP_ALIGN(width, 64) * (41 * bit_depth + 13));
-    rcb_info[RCB_FILTERD_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FILTERD_PROTECT_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FLTD_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    rcb_info[RCB_FLTD_PROT_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
     rcb_bits += ext_row_align_size;
     if (tile_row_num > 1)
-        rcb_info[RCB_FILTERD_TILE_ROW].size = MPP_RCB_BYTES(rcb_bits);
+        rcb_info[RCB_FLTD_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
     else
-        rcb_info[RCB_FILTERD_TILE_ROW].size = 0;
+        rcb_info[RCB_FLTD_ON_ROW].size = 0;
 
-    /* RCB_FILTERD_TILE_COL */
+    /* RCB_FLTD_ON_COL */
     if (tile_col_num > 1) {
         rcb_bits = (RK_U32)(MPP_ALIGN(height, 64) * (42 * bit_depth + 13)) + ext_col_align_size;
-        rcb_info[RCB_FILTERD_TILE_COL].size = MPP_RCB_BYTES(rcb_bits);
+        rcb_info[RCB_FLTD_ON_COL].size = MPP_RCB_BYTES(rcb_bits);
     } else {
-        rcb_info[RCB_FILTERD_TILE_COL].size = 0;
+        rcb_info[RCB_FLTD_ON_COL].size = 0;
     }
 
 }

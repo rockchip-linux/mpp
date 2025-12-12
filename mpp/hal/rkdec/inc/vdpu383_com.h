@@ -8,6 +8,7 @@
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
+#include "vdpu_com.h"
 
 #define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
@@ -16,32 +17,7 @@
 #define OFFSET_CODEC_ADDR_REGS      (168 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (15 * sizeof(RK_U32))
 
-#define RCB_ALLINE_SIZE             (64)
-
-#define MPP_RCB_BYTES(bits)  MPP_ALIGN((bits + 7) / 8, RCB_ALLINE_SIZE)
-
 // #define DUMP_VDPU383_DATAS
-
-typedef enum Vdpu383RcbType_e {
-    RCB_STRMD_ROW,
-    RCB_STRMD_TILE_ROW,
-    RCB_INTER_ROW,
-    RCB_INTER_TILE_ROW,
-    RCB_INTRA_ROW,
-    RCB_INTRA_TILE_ROW,
-    RCB_FILTERD_ROW,
-    RCB_FILTERD_PROTECT_ROW,
-    RCB_FILTERD_TILE_ROW,
-    RCB_FILTERD_TILE_COL,
-    RCB_FILTERD_AV1_UP_TILE_COL,
-
-    RCB_BUF_COUNT,
-} Vdpu383RcbType;
-
-typedef enum Vdpu383_RCB_SET_MODE_E {
-    RCB_SET_BY_SIZE_SORT_MODE,
-    RCB_SET_BY_PRIORITY_MODE,
-} Vdpu383RcbSetMode_e;
 
 typedef struct Vdpu383RegVersion_t {
     struct {
@@ -632,22 +608,15 @@ typedef struct Vdpu383RegLlp_t {
 
 } Vdpu383RegLlp;
 
-typedef struct Vdpu383RcbInfo_t {
-    RK_U32              reg_idx;
-    RK_S32              size;
-    RK_S32              offset;
-} Vdpu383RcbInfo;
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-RK_S32 vdpu383_get_rcb_buf_size(Vdpu383RcbInfo *info, RK_S32 width, RK_S32 height);
-void vdpu383_setup_rcb(Vdpu383RegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu383RcbInfo *info);
-RK_S32 vdpu383_compare_rcb_size(const void *a, const void *b);
+RK_S32 vdpu383_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
+void vdpu383_setup_rcb(Vdpu383RegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
 void vdpu383_setup_statistic(Vdpu383CtrlReg *com);
 void vdpu383_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
-RK_S32 vdpu383_set_rcbinfo(MppDev dev, Vdpu383RcbInfo *rcb_info);
+RK_S32 vdpu383_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
 void vdpu383_setup_down_scale(MppFrame frame, MppDev dev, Vdpu383CtrlReg *com, void* comParas);
 void vdpu383_update_thumbnail_frame_info(MppFrame frame);
 

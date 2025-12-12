@@ -73,7 +73,7 @@ typedef struct avs2d_reg_ctx_t {
 
     MppBuffer               rcb_buf[VDPU34X_FAST_REG_SET_CNT];
     RK_S32                  rcb_buf_size;
-    Vdpu34xRcbInfo          rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo             rcb_info[RCB_BUF_COUNT];
     RK_U32                  reg_out[VDPU34x_TOTAL_REG_CNT];
 
 } Avs2dRkvRegCtx_t;
@@ -280,7 +280,7 @@ static MPP_RET init_common_regs(Vdpu34xAvs2dRegSet *regs)
 
 //TODO calc rcb buffer size;
 /*
-static void avs2d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
+static void avs2d_refine_rcb_size(VdpuRcbInfo *rcb_info,
                                   Vdpu34xAvs2dRegSet *hw_regs,
                                   RK_S32 width, RK_S32 height, void *dxva)
 {

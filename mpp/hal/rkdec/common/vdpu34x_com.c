@@ -25,6 +25,7 @@
 #include "mpp_compat_impl.h"
 #include "mpp_env.h"
 
+#include "vdpu_com.h"
 #include "vdpu34x_com.h"
 
 static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
@@ -40,20 +41,20 @@ static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
     [RCB_FILT_COL]      = 67,  /* RCB_FILT_COL_COEF */
 };
 
-static RK_S32 update_size_offset(Vdpu34xRcbInfo *info, RK_U32 reg,
+static RK_S32 update_size_offset(VdpuRcbInfo *info, RK_U32 reg,
                                  RK_S32 offset, RK_S32 len, RK_S32 idx)
 {
     RK_S32 buf_size = 0;
 
     buf_size = MPP_ALIGN(len * rcb_coeff[idx], RCB_ALLINE_SIZE);
-    info[idx].reg = reg;
+    info[idx].reg_idx = reg;
     info[idx].offset = offset;
     info[idx].size = buf_size;
 
     return buf_size;
 }
 
-RK_S32 vdpu34x_get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 height)
+RK_S32 vdpu34x_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height)
 {
     RK_S32 offset = 0;
 
@@ -72,7 +73,7 @@ RK_S32 vdpu34x_get_rcb_buf_size(Vdpu34xRcbInfo *info, RK_S32 width, RK_S32 heigh
     return offset;
 }
 
-void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu34xRcbInfo *info)
+void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info)
 {
     RK_S32 fd = mpp_buffer_get_fd(buf);
 
@@ -109,24 +110,12 @@ void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdp
         mpp_dev_set_reg_offset(dev, 142, info[RCB_FILT_COL].offset);
 }
 
-static RK_S32 vdpu34x_compare_rcb_size(const void *a, const void *b)
-{
-    Vdpu34xRcbInfo *p0 = (Vdpu34xRcbInfo *)a;
-    Vdpu34xRcbInfo *p1 = (Vdpu34xRcbInfo *)b;
-
-    return (p0->size > p1->size) ? -1 : 1;
-}
-
-RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
+RK_S32 vdpu34x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info)
 {
     MppDevRcbInfoCfg rcb_cfg;
     RK_U32 i;
-    /*
-     * RCB_SET_BY_SIZE_SORT_MODE: by size sort
-     * RCB_SET_BY_PRIORITY_MODE: by priority
-     */
-    Vdpu34xRcbSetMode_e set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
-    RK_U32 rcb_priority[RCB_BUF_COUNT] = {
+    VdpuRcbSetMode set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
+    static const RK_U32 rcb_priority[RCB_BUF_COUNT] = {
         RCB_DBLK_ROW,
         RCB_INTRA_ROW,
         RCB_SAO_ROW,
@@ -141,14 +130,14 @@ RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
 
     switch (set_rcb_mode) {
     case RCB_SET_BY_SIZE_SORT_MODE : {
-        Vdpu34xRcbInfo info[RCB_BUF_COUNT];
+        VdpuRcbInfo info[RCB_BUF_COUNT];
 
         memcpy(info, rcb_info, sizeof(info));
         qsort(info, MPP_ARRAY_ELEMS(info),
-              sizeof(info[0]), vdpu34x_compare_rcb_size);
+              sizeof(info[0]), vdpu_compare_rcb_size);
 
         for (i = 0; i < MPP_ARRAY_ELEMS(info); i++) {
-            rcb_cfg.reg_idx = info[i].reg;
+            rcb_cfg.reg_idx = info[i].reg_idx;
             rcb_cfg.size = info[i].size;
             if (rcb_cfg.size > 0) {
                 mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);
@@ -157,7 +146,7 @@ RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
         }
     } break;
     case RCB_SET_BY_PRIORITY_MODE : {
-        Vdpu34xRcbInfo *info = rcb_info;
+        VdpuRcbInfo *info = rcb_info;
         RK_U32 index = 0;
 
         for (i = 0; i < MPP_ARRAY_ELEMS(rcb_priority); i ++) {
@@ -171,7 +160,7 @@ RK_S32 vdpu34x_set_rcbinfo(MppDev dev, Vdpu34xRcbInfo *rcb_info)
             if (index == RCB_INTER_ROW)
                 continue;
 
-            rcb_cfg.reg_idx = info[index].reg;
+            rcb_cfg.reg_idx = info[index].reg_idx;
             rcb_cfg.size = info[index].size;
             if (rcb_cfg.size > 0) {
                 mpp_dev_ioctl(dev, MPP_DEV_RCB_INFO, &rcb_cfg);

@@ -20,6 +20,7 @@
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
 #include "vdpu382.h"
+#include "vdpu_com.h"
 
 #define OFFSET_COMMON_REGS          (8 * sizeof(RK_U32))
 #define OFFSET_CODEC_PARAMS_REGS    (64 * sizeof(RK_U32))
@@ -28,10 +29,6 @@
 #define OFFSET_POC_HIGHBIT_REGS     (200 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (224 * sizeof(RK_U32))
 #define OFFSET_STATISTIC_REGS       (256 * sizeof(RK_U32))
-
-#define RCB_ALLINE_SIZE             (64)
-
-#define MPP_RCB_BYTES(bits)  MPP_ALIGN((bits + 7) / 8, RCB_ALLINE_SIZE)
 
 typedef enum Vdpu382_RCB_TYPE_E {
     RCB_DBLK_ROW,
@@ -47,11 +44,6 @@ typedef enum Vdpu382_RCB_TYPE_E {
 
     RCB_BUF_COUNT,
 } Vdpu382RcbType_e;
-
-typedef enum Vdpu382_RCB_SET_MODE_E {
-    RCB_SET_BY_SIZE_SORT_MODE,
-    RCB_SET_BY_PRIORITY_MODE,
-} Vdpu382RcbSetMode_e;
 
 /* base: OFFSET_COMMON_REGS */
 typedef struct Vdpu382RegCommon_t {
@@ -551,20 +543,13 @@ typedef struct Vdpu382RegStatistic_t {
 
 } Vdpu382RegStatistic;
 
-typedef struct vdpu382_rcb_info_t {
-    RK_S32              reg;
-    RK_S32              size;
-    RK_S32              offset;
-} Vdpu382RcbInfo;
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-RK_S32 vdpu382_get_rcb_buf_size(Vdpu382RcbInfo *info, RK_S32 width, RK_S32 height);
-void vdpu382_setup_rcb(Vdpu382RegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu382RcbInfo *info);
-RK_S32 vdpu382_compare_rcb_size(const void *a, const void *b);
-RK_S32 vdpu382_set_rcbinfo(MppDev dev, Vdpu382RcbInfo *rcb_info);
+RK_S32 vdpu382_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
+void vdpu382_setup_rcb(Vdpu382RegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
+RK_S32 vdpu382_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
 void vdpu382_setup_statistic(Vdpu382RegCommon *com, Vdpu382RegStatistic *sta);
 void vdpu382_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu382_setup_down_scale(MppFrame frame, MppDev dev, Vdpu382RegCommon *com);

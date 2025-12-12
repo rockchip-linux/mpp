@@ -14,23 +14,24 @@
 #include "mpp_frame_impl.h"
 #include "mpp_debug.h"
 
+#include "vdpu_com.h"
 #include "vdpu384a_com.h"
 
-static RK_U32 rcb_coeff[RCB_BUF_COUNT] = {
-    [RCB_STRMD_ROW]                 = 3,
-    [RCB_STRMD_TILE_ROW]            = 3,
-    [RCB_INTER_ROW]                 = 6,
-    [RCB_INTER_TILE_ROW]            = 6,
-    [RCB_INTRA_ROW]                 = 5,
-    [RCB_INTRA_TILE_ROW]            = 5,
-    [RCB_FILTERD_ROW]               = 90,
-    [RCB_FILTERD_PROTECT_ROW]       = 90,
-    [RCB_FILTERD_TILE_ROW]          = 90,
-    [RCB_FILTERD_TILE_COL]          = 260,
-    [RCB_FILTERD_AV1_UP_TILE_COL]   = 0,
+static RK_U32 rcb_coeff[RCB_BUF_CNT] = {
+    [RCB_STRMD_IN_ROW]            = 3,
+    [RCB_STRMD_ON_ROW]            = 3,
+    [RCB_INTER_IN_ROW]            = 6,
+    [RCB_INTER_ON_ROW]            = 6,
+    [RCB_INTRA_IN_ROW]            = 5,
+    [RCB_INTRA_ON_ROW]            = 5,
+    [RCB_FLTD_IN_ROW]             = 90,
+    [RCB_FLTD_PROT_IN_ROW]        = 90,
+    [RCB_FLTD_ON_ROW]             = 90,
+    [RCB_FLTD_ON_COL]             = 260,
+    [RCB_FLTD_UPSC_ON_COL]        = 0,
 };
 
-static RK_S32 update_size_offset(Vdpu384aRcbInfo *info, RK_U32 reg_idx,
+static RK_S32 update_size_offset(VdpuRcbInfo *info, RK_U32 reg_idx,
                                  RK_S32 offset, RK_S32 len, RK_S32 idx)
 {
     RK_S32 buf_size = 0;
@@ -43,40 +44,40 @@ static RK_S32 update_size_offset(Vdpu384aRcbInfo *info, RK_U32 reg_idx,
     return buf_size;
 }
 
-RK_S32 vdpu384a_get_rcb_buf_size(Vdpu384aRcbInfo *info, RK_S32 width, RK_S32 height)
+RK_S32 vdpu384a_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height)
 {
     RK_S32 offset = 0;
 
-    offset += update_size_offset(info, 140, offset, width, RCB_STRMD_ROW);
-    offset += update_size_offset(info, 142, offset, width, RCB_STRMD_TILE_ROW);
-    offset += update_size_offset(info, 144, offset, width, RCB_INTER_ROW);
-    offset += update_size_offset(info, 146, offset, width, RCB_INTER_TILE_ROW);
-    offset += update_size_offset(info, 148, offset, width, RCB_INTRA_ROW);
-    offset += update_size_offset(info, 150, offset, width, RCB_INTRA_TILE_ROW);
-    offset += update_size_offset(info, 152, offset, width, RCB_FILTERD_ROW);
-    offset += update_size_offset(info, 154, offset, width, RCB_FILTERD_PROTECT_ROW);
-    offset += update_size_offset(info, 156, offset, width, RCB_FILTERD_TILE_ROW);
-    offset += update_size_offset(info, 158, offset, height, RCB_FILTERD_TILE_COL);
-    offset += update_size_offset(info, 160, offset, height, RCB_FILTERD_AV1_UP_TILE_COL);
+    offset += update_size_offset(info, 140, offset, width, RCB_STRMD_IN_ROW);
+    offset += update_size_offset(info, 142, offset, width, RCB_STRMD_ON_ROW);
+    offset += update_size_offset(info, 144, offset, width, RCB_INTER_IN_ROW);
+    offset += update_size_offset(info, 146, offset, width, RCB_INTER_ON_ROW);
+    offset += update_size_offset(info, 148, offset, width, RCB_INTRA_IN_ROW);
+    offset += update_size_offset(info, 150, offset, width, RCB_INTRA_ON_ROW);
+    offset += update_size_offset(info, 152, offset, width, RCB_FLTD_IN_ROW);
+    offset += update_size_offset(info, 154, offset, width, RCB_FLTD_PROT_IN_ROW);
+    offset += update_size_offset(info, 156, offset, width, RCB_FLTD_ON_ROW);
+    offset += update_size_offset(info, 158, offset, height, RCB_FLTD_ON_COL);
+    offset += update_size_offset(info, 160, offset, height, RCB_FLTD_UPSC_ON_COL);
 
     return offset;
 }
 
-RK_RET vdpu384a_check_rcb_buf_size(Vdpu384aRcbInfo *info, RK_S32 width, RK_S32 height)
+RK_RET vdpu384a_check_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height)
 {
     RK_U32 i;
 
-    for (i = 0; i < RCB_FILTERD_TILE_COL; i++)
+    for (i = 0; i < RCB_FLTD_ON_COL; i++)
         mpp_assert(info[i].size < (RK_S32)MPP_ALIGN(width * rcb_coeff[i], RCB_ALLINE_SIZE));
 
-    for (i = RCB_FILTERD_TILE_COL; i < RCB_BUF_COUNT; i++)
+    for (i = RCB_FLTD_ON_COL; i < RCB_BUF_CNT; i++)
         mpp_assert(info[i].size < (RK_S32)MPP_ALIGN(height * rcb_coeff[i], RCB_ALLINE_SIZE));
 
     return MPP_OK;
 }
 
 void vdpu384a_setup_rcb(Vdpu384aRegCommonAddr *reg, MppDev dev,
-                        MppBuffer buf, Vdpu384aRcbInfo *info)
+                        MppBuffer buf, VdpuRcbInfo *info)
 {
     RK_U32 i;
 
@@ -91,32 +92,21 @@ void vdpu384a_setup_rcb(Vdpu384aRegCommonAddr *reg, MppDev dev,
     reg->reg158_rcb_filterd_tile_col_offset    = mpp_buffer_get_fd(buf);
     reg->reg160_rcb_filterd_av1_upscale_tile_col_offset = mpp_buffer_get_fd(buf);
 
-    reg->reg141_rcb_strmd_row_len            =  info[RCB_STRMD_ROW].size          ;
-    reg->reg143_rcb_strmd_tile_row_len       =  info[RCB_STRMD_TILE_ROW].size     ;
-    reg->reg145_rcb_inter_row_len            =  info[RCB_INTER_ROW].size          ;
-    reg->reg147_rcb_inter_tile_row_len       =  info[RCB_INTER_TILE_ROW].size     ;
-    reg->reg149_rcb_intra_row_len            =  info[RCB_INTRA_ROW].size          ;
-    reg->reg151_rcb_intra_tile_row_len       =  info[RCB_INTRA_TILE_ROW].size     ;
-    reg->reg153_rcb_filterd_row_len          =  info[RCB_FILTERD_ROW].size        ;
-    reg->reg157_rcb_filterd_tile_row_len     =  info[RCB_FILTERD_TILE_ROW].size   ;
-    reg->reg159_rcb_filterd_tile_col_len     =  info[RCB_FILTERD_TILE_COL].size   ;
-    reg->reg161_rcb_filterd_av1_upscale_tile_col_len = info[RCB_FILTERD_AV1_UP_TILE_COL].size;
+    reg->reg141_rcb_strmd_row_len            =  info[RCB_STRMD_IN_ROW].size;
+    reg->reg143_rcb_strmd_tile_row_len       =  info[RCB_STRMD_ON_ROW].size;
+    reg->reg145_rcb_inter_row_len            =  info[RCB_INTER_IN_ROW].size;
+    reg->reg147_rcb_inter_tile_row_len       =  info[RCB_INTER_ON_ROW].size;
+    reg->reg149_rcb_intra_row_len            =  info[RCB_INTRA_IN_ROW].size;
+    reg->reg151_rcb_intra_tile_row_len       =  info[RCB_INTRA_ON_ROW].size;
+    reg->reg153_rcb_filterd_row_len          =  info[RCB_FLTD_IN_ROW].size;
+    reg->reg157_rcb_filterd_tile_row_len     =  info[RCB_FLTD_ON_ROW].size;
+    reg->reg159_rcb_filterd_tile_col_len     =  info[RCB_FLTD_ON_COL].size;
+    reg->reg161_rcb_filterd_av1_upscale_tile_col_len = info[RCB_FLTD_UPSC_ON_COL].size;
 
-    for (i = 0; i < RCB_BUF_COUNT; i++) {
+    for (i = 0; i < RCB_BUF_CNT; i++) {
         if (info[i].offset)
             mpp_dev_set_reg_offset(dev, info[i].reg_idx, info[i].offset);
     }
-}
-
-RK_S32 vdpu384a_compare_rcb_size(const void *a, const void *b)
-{
-    RK_S32 val = 0;
-    Vdpu384aRcbInfo *p0 = (Vdpu384aRcbInfo *)a;
-    Vdpu384aRcbInfo *p1 = (Vdpu384aRcbInfo *)b;
-
-    val = (p0->size > p1->size) ? -1 : 1;
-
-    return val;
 }
 
 void vdpu384a_setup_statistic(Vdpu384aCtrlReg *ctrl_regs)
@@ -158,38 +148,34 @@ void vdpu384a_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand)
     mpp_frame_set_ver_stride(frame, ver_stride);
 }
 
-RK_S32 vdpu384a_set_rcbinfo(MppDev dev, Vdpu384aRcbInfo *rcb_info)
+RK_S32 vdpu384a_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info)
 {
     MppDevRcbInfoCfg rcb_cfg;
     RK_U32 i;
 
-    Vdpu384aRcbSetMode_e set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
+    VdpuRcbSetMode set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
 
-    RK_U32 rcb_priority[RCB_BUF_COUNT] = {
-        RCB_FILTERD_ROW,
-        RCB_INTER_ROW,
-        RCB_INTRA_ROW,
-        RCB_STRMD_ROW,
-        RCB_INTER_TILE_ROW,
-        RCB_INTRA_TILE_ROW,
-        RCB_STRMD_TILE_ROW,
-        RCB_FILTERD_TILE_ROW,
-        RCB_FILTERD_TILE_COL,
-        RCB_FILTERD_AV1_UP_TILE_COL,
-        RCB_FILTERD_PROTECT_ROW,
+    static const RK_U32 rcb_priority[RCB_BUF_CNT] = {
+        RCB_FLTD_IN_ROW,
+        RCB_INTER_IN_ROW,
+        RCB_INTRA_IN_ROW,
+        RCB_STRMD_IN_ROW,
+        RCB_INTER_ON_ROW,
+        RCB_INTRA_ON_ROW,
+        RCB_STRMD_ON_ROW,
+        RCB_FLTD_ON_ROW,
+        RCB_FLTD_ON_COL,
+        RCB_FLTD_UPSC_ON_COL,
+        RCB_FLTD_PROT_IN_ROW,
     };
-    /*
-     * RCB_SET_BY_SIZE_SORT_MODE: by size sort
-     * RCB_SET_BY_PRIORITY_MODE: by priority
-     */
 
     switch (set_rcb_mode) {
     case RCB_SET_BY_SIZE_SORT_MODE : {
-        Vdpu384aRcbInfo info[RCB_BUF_COUNT];
+        VdpuRcbInfo info[RCB_BUF_CNT];
 
         memcpy(info, rcb_info, sizeof(info));
         qsort(info, MPP_ARRAY_ELEMS(info),
-              sizeof(info[0]), vdpu384a_compare_rcb_size);
+              sizeof(info[0]), vdpu_compare_rcb_size);
 
         for (i = 0; i < MPP_ARRAY_ELEMS(info); i++) {
             rcb_cfg.reg_idx = info[i].reg_idx;
@@ -201,7 +187,7 @@ RK_S32 vdpu384a_set_rcbinfo(MppDev dev, Vdpu384aRcbInfo *rcb_info)
         }
     } break;
     case RCB_SET_BY_PRIORITY_MODE : {
-        Vdpu384aRcbInfo *info = rcb_info;
+        VdpuRcbInfo *info = rcb_info;
         RK_U32 index = 0;
 
         for (i = 0; i < MPP_ARRAY_ELEMS(rcb_priority); i ++) {

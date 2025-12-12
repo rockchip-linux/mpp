@@ -4,6 +4,7 @@ include_directories(.)
 # add rkvdec common file
 # ----------------------------------------------------------------------------
 set(HAL_RKVDEC_SRC
+    vdpu_com.c
     vdpu34x_com.c
     vdpu382_com.c
     vdpu383_com.c

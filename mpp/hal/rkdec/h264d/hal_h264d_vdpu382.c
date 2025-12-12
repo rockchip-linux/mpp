@@ -34,6 +34,7 @@
 #include "hal_h264d_vdpu382.h"
 #include "vdpu382_h264d.h"
 #include "mpp_dec_cb_param.h"
+#include "vdpu_com.h"
 
 /* Number registers for the decoder */
 #define DEC_VDPU382_REGISTERS       276
@@ -161,7 +162,7 @@ typedef struct Vdpu382H264dRegCtx_t {
     RK_U32              chroma_format_idc;
 
     RK_S32              rcb_buf_size;
-    Vdpu382RcbInfo      rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo         rcb_info[RCB_BUF_COUNT];
     MppBuffer           rcb_buf[VDPU382_FAST_REG_SET_CNT];
 
     RK_U32              err_ref_hack;
@@ -820,7 +821,7 @@ MPP_RET vdpu382_h264d_deinit(void *hal)
     return MPP_OK;
 }
 
-static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu382RcbInfo *rcb_info,
+static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, VdpuRcbInfo *rcb_info,
                                   Vdpu382H264dRegSet *regs,
                                   RK_S32 width, RK_S32 height)
 {

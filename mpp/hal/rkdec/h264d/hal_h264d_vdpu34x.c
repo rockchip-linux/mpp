@@ -32,6 +32,7 @@
 #include "hal_h264d_vdpu34x.h"
 #include "vdpu34x_h264d.h"
 #include "mpp_dec_cb_param.h"
+#include "vdpu_com.h"
 
 /* Number registers for the decoder */
 #define DEC_VDPU34X_REGISTERS       276
@@ -157,7 +158,7 @@ typedef struct Vdpu34xH264dRegCtx_t {
     RK_U32              chroma_format_idc;
 
     RK_S32              rcb_buf_size;
-    Vdpu34xRcbInfo      rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo         rcb_info[RCB_BUF_COUNT];
     MppBuffer           rcb_buf[VDPU34X_FAST_REG_SET_CNT];
 
     Vdpu34xH264dRegSet  *regs;
@@ -791,7 +792,7 @@ MPP_RET vdpu34x_h264d_deinit(void *hal)
     return MPP_OK;
 }
 
-static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, Vdpu34xRcbInfo *rcb_info,
+static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, VdpuRcbInfo *rcb_info,
                                   Vdpu34xH264dRegSet *regs,
                                   RK_S32 width, RK_S32 height)
 {

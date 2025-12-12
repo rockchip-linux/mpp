@@ -8,6 +8,7 @@
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
+#include "vdpu_com.h"
 
 #define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
 #define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
@@ -16,32 +17,7 @@
 #define OFFSET_CODEC_ADDR_REGS      (168 * sizeof(RK_U32))
 #define OFFSET_INTERRUPT_REGS       (15 * sizeof(RK_U32))
 
-#define RCB_ALLINE_SIZE             (64)
-
-#define MPP_RCB_BYTES(bits)  MPP_ALIGN((bits + 7) / 8, RCB_ALLINE_SIZE)
-
 // #define DUMP_VDPU384A_DATAS
-
-typedef enum Vdpu384aRcbType_e {
-    RCB_STRMD_ROW,
-    RCB_STRMD_TILE_ROW,
-    RCB_INTER_ROW,
-    RCB_INTER_TILE_ROW,
-    RCB_INTRA_ROW,
-    RCB_INTRA_TILE_ROW,
-    RCB_FILTERD_ROW,
-    RCB_FILTERD_PROTECT_ROW,
-    RCB_FILTERD_TILE_ROW,
-    RCB_FILTERD_TILE_COL,
-    RCB_FILTERD_AV1_UP_TILE_COL,
-
-    RCB_BUF_COUNT,
-} Vdpu384aRcbType;
-
-typedef enum Vdpu384a_RCB_SET_MODE_E {
-    RCB_SET_BY_SIZE_SORT_MODE,
-    RCB_SET_BY_PRIORITY_MODE,
-} Vdpu384aRcbSetMode_e;
 
 typedef struct Vdpu384aRegVersion_t {
     struct SWREG0_ID {
@@ -658,23 +634,16 @@ typedef struct Vdpu384aRegLlp_t {
 
 } Vdpu384aRegLlp;
 
-typedef struct Vdpu384aRcbInfo_t {
-    RK_U32              reg_idx;
-    RK_S32              size;
-    RK_S32              offset;
-} Vdpu384aRcbInfo;
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-RK_S32 vdpu384a_get_rcb_buf_size(Vdpu384aRcbInfo *info, RK_S32 width, RK_S32 height);
-RK_RET vdpu384a_check_rcb_buf_size(Vdpu384aRcbInfo *info, RK_S32 width, RK_S32 height);
-void vdpu384a_setup_rcb(Vdpu384aRegCommonAddr *reg, MppDev dev, MppBuffer buf, Vdpu384aRcbInfo *info);
-RK_S32 vdpu384a_compare_rcb_size(const void *a, const void *b);
+RK_S32 vdpu384a_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
+RK_RET vdpu384a_check_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
+void vdpu384a_setup_rcb(Vdpu384aRegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
 void vdpu384a_setup_statistic(Vdpu384aCtrlReg *com);
 void vdpu384a_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
-RK_S32 vdpu384a_set_rcbinfo(MppDev dev, Vdpu384aRcbInfo *rcb_info);
+RK_S32 vdpu384a_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
 void vdpu384a_setup_down_scale(MppFrame frame, MppDev dev, Vdpu384aCtrlReg *com, void* comParas);
 void vdpu384a_update_thumbnail_frame_info(MppFrame frame);
 

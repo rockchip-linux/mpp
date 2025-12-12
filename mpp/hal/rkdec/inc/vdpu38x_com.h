@@ -11,6 +11,8 @@
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
 
+#include "vdpu_com.h"
+
 // #define DUMP_VDPU38X_DATAS
 
 #define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
@@ -27,22 +29,6 @@ typedef enum Vdpu38xFmt_e {
     MPP_HAL_FMT_BUTT,
 } Vdpu38xFmt;
 
-/* IN/ON_TILE */
-typedef enum Vdpu383RcbType_e {
-    RCB_STRMD_IN_ROW,
-    RCB_STRMD_ON_ROW,
-    RCB_INTER_IN_ROW,
-    RCB_INTER_ON_ROW,
-    RCB_INTRA_IN_ROW,
-    RCB_INTRA_ON_ROW,
-    RCB_FLTD_IN_ROW,
-    RCB_FLTD_PROT_IN_ROW,
-    RCB_FLTD_ON_ROW,
-    RCB_FLTD_ON_COL,
-    RCB_FLTD_UPSC_ON_COL,
-    RCB_BUF_CNT,
-} Vdpu38xRcbType;
-
 extern RK_U32 vdpu38x_rcb_type2loc_map[RCB_BUF_CNT];
 extern RK_U32 vdpu38x_intra_uv_coef_map[MPP_HAL_FMT_BUTT];
 extern RK_U32 vdpu38x_filter_row_uv_coef_map[MPP_HAL_FMT_BUTT];
@@ -55,15 +41,6 @@ typedef struct RcbTileInfo_t {
     RK_U32 w;
     RK_U32 h;
 } RcbTileInfo;
-
-typedef struct Vdpu38xRcbBufInfo_t {
-    RK_U32              reg_idx;
-    RK_S32              size;
-    RK_S32              offset;
-} Vdpu38xRcbBufInfo;
-
-#define RCB_ALLINE_SIZE      (64)
-#define MPP_RCB_BYTES(bits)  ((RK_U32)(MPP_ALIGN(((RK_U32)ceilf(bits) + 7) / 8, RCB_ALLINE_SIZE)))
 
 typedef MPP_RET (*Vdpu38xRcbCalc_f)(void *ctx, RK_U32 *total_sz);
 
@@ -89,14 +66,9 @@ typedef struct Vdpu38xRcbCtx_t {
     RK_U32              lr_en;
     RK_U32              upsc_en;
 
-    Vdpu38xRcbBufInfo   buf_info[RCB_BUF_CNT];
+    VdpuRcbInfo   buf_info[RCB_BUF_CNT];
     Vdpu38xRcbCalc_f    calc_func;
 } Vdpu38xRcbCtx;
-
-typedef enum Vdpu38x_RCB_SET_MODE_e {
-    RCB_SET_BY_SIZE_SORT_MODE,
-    RCB_SET_BY_PRIORITY_MODE,
-} Vdpu38xRcbSetMode;
 
 typedef struct Vdpu38xRegVersion_t {
     struct SWREG0_ID {
@@ -915,7 +887,7 @@ RK_U32 vdpu38x_rcb_reg_info_update(Vdpu38xRcbCtx *ctx, Vdpu38xRcbType type, RK_U
 RK_U32 vdpu38x_rcb_get_total_size(Vdpu38xRcbCtx *ctx);
 MPP_RET vdpu38x_rcb_register_calc_handle(Vdpu38xRcbCtx *ctx, Vdpu38xRcbCalc_f func);
 MPP_RET vdpu38x_rcb_calc_exec(Vdpu38xRcbCtx *ctx, RK_U32 *total_sz);
-RK_S32 vdpu38x_set_rcbinfo(MppDev dev, Vdpu38xRcbBufInfo *rcb_info);
+RK_S32 vdpu38x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
 MPP_RET vdpu38x_rcb_dump_rcb_result(Vdpu38xRcbCtx *ctx);
 MPP_RET vdpu38x_get_fbc_off(MppFrame mframe, RK_U32 *head_stride, RK_U32 *pld_stride, RK_U32 *pld_offset);
 MPP_RET vdpu38x_get_tile4x4_h_stride_coeff(MppFrameFormat fmt, RK_U32 *coeff);

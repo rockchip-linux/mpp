@@ -32,6 +32,7 @@
 #include "hal_vp9d_ctx.h"
 #include "vdpu34x_vp9d.h"
 #include "vp9d_syntax.h"
+#include "vdpu_com.h"
 
 #define HW_PROB 1
 #define VP9_CONTEXT 4
@@ -65,7 +66,7 @@ typedef struct Vdpu34xVp9dCtx_t {
     RK_S32          height;
     /* rcb buffers info */
     RK_S32          rcb_buf_size;
-    Vdpu34xRcbInfo  rcb_info[RCB_BUF_COUNT];
+    VdpuRcbInfo     rcb_info[RCB_BUF_COUNT];
     MppBuffer       rcb_buf;
     RK_U32          num_row_tiles;
     RK_U32          bit_depth;
@@ -270,7 +271,7 @@ __FAILED:
     return ret;
 }
 
-static void vp9d_refine_rcb_size(Vdpu34xRcbInfo *rcb_info,
+static void vp9d_refine_rcb_size(VdpuRcbInfo *rcb_info,
                                  Vdpu34xVp9dRegSet *vp9_hw_regs,
                                  RK_S32 width, RK_S32 height, void* data)
 {

@@ -30,6 +30,7 @@
 #include "hal_h265d_com.h"
 #include "hal_h265d_vdpu382.h"
 #include "vdpu382_h265d.h"
+#include "vdpu_com.h"
 
 /* #define dump */
 #ifdef dump
@@ -435,7 +436,7 @@ static RK_S32 hal_h265d_v382_output_pps_packet(void *hal, void *dxva)
     return 0;
 }
 
-static void h265d_refine_rcb_size(Vdpu382RcbInfo *rcb_info,
+static void h265d_refine_rcb_size(VdpuRcbInfo *rcb_info,
                                   Vdpu382H265dRegSet *hw_regs,
                                   RK_S32 width, RK_S32 height, void *dxva)
 {
@@ -559,8 +560,8 @@ static void hal_h265d_rcb_info_update(void *hal,  void *dxva,
         RK_U32 i = 0;
         RK_U32 loop = reg_ctx->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->g_buf) : 1;
 
-        reg_ctx->rcb_buf_size = vdpu382_get_rcb_buf_size((Vdpu382RcbInfo*)reg_ctx->rcb_info, width, height);
-        h265d_refine_rcb_size((Vdpu382RcbInfo*)reg_ctx->rcb_info, hw_regs, width, height, dxva_cxt);
+        reg_ctx->rcb_buf_size = vdpu382_get_rcb_buf_size((VdpuRcbInfo*)reg_ctx->rcb_info, width, height);
+        h265d_refine_rcb_size((VdpuRcbInfo*)reg_ctx->rcb_info, hw_regs, width, height, dxva_cxt);
 
         for (i = 0; i < loop; i++) {
             MppBuffer rcb_buf;
@@ -918,7 +919,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     hal_h265d_rcb_info_update(hal, dxva_cxt, hw_regs, width, height);
     vdpu382_setup_rcb(&hw_regs->common_addr, reg_ctx->dev, reg_ctx->fast_mode ?
                       reg_ctx->rcb_buf[syn->dec.reg_index] : reg_ctx->rcb_buf[0],
-                      (Vdpu382RcbInfo*)reg_ctx->rcb_info);
+                      (VdpuRcbInfo*)reg_ctx->rcb_info);
     {
         MppFrame mframe = NULL;
 
@@ -1052,7 +1053,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
             break;
         }
         /* rcb info for sram */
-        vdpu382_set_rcbinfo(reg_ctx->dev, (Vdpu382RcbInfo*)reg_ctx->rcb_info);
+        vdpu382_set_rcbinfo(reg_ctx->dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
