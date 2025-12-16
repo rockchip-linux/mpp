@@ -128,7 +128,7 @@ static MPP_RET hal_h265d_vdpu382_init(void *hal, MppHalCfg *cfg)
 
     {
         RK_U32 i = 0;
-        RK_U32 max_cnt = reg_ctx->fast_mode ? MAX_GEN_REG : 1;
+        RK_U32 max_cnt = reg_ctx->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
 
         //!< malloc buffers
         ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->bufs, ALL_BUFFER_SIZE(max_cnt));
@@ -674,7 +674,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if (reg_ctx ->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (!reg_ctx->g_buf[i].use_flag) {
                 syn->dec.reg_index = i;
 
@@ -687,7 +687,7 @@ static MPP_RET hal_h265d_vdpu382_gen_regs(void *hal,  HalTaskInfo *syn)
                 break;
             }
         }
-        if (i == MAX_GEN_REG) {
+        if (i == VDPU_FAST_REG_SET_CNT) {
             mpp_err("hevc rps buf all used");
             return MPP_ERR_NOMEM;
         }

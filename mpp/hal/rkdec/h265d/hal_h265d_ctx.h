@@ -9,8 +9,8 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 #include "hal_bufs.h"
+#include "vdpu_com.h"
 
-#define MAX_GEN_REG 3
 /* before vdpu383 10 buf */
 #define H265D_RCB_BUF_COUNT 11
 
@@ -51,10 +51,10 @@ typedef struct HalH265dCtx_t {
     RK_S32          height;
     RK_S32          rcb_buf_size;
     H265dRcbInfo    rcb_info[H265D_RCB_BUF_COUNT];
-    MppBuffer       rcb_buf[MAX_GEN_REG];
+    MppBuffer       rcb_buf[VDPU_FAST_REG_SET_CNT];
 
     void*           hw_regs;
-    H265dRegBuf     g_buf[MAX_GEN_REG];
+    H265dRegBuf     g_buf[VDPU_FAST_REG_SET_CNT];
     RK_U32          fast_mode;
     MppCbCtx        *dec_cb;
     RK_U32          fast_mode_err_found;
@@ -76,14 +76,14 @@ typedef struct HalH265dCtx_t {
     RK_U8           ctu_size;
     RK_U8           num_row_tiles;
     RK_U8           bit_depth;
-    RK_U8           error_index[MAX_GEN_REG];
+    RK_U8           error_index[VDPU_FAST_REG_SET_CNT];
     /* for vdpu34x */
     MppBuffer       bufs;
     RK_S32          bufs_fd;
     RK_U32          offset_cabac;
-    RK_U32          offset_spspps[MAX_GEN_REG];
-    RK_U32          offset_rps[MAX_GEN_REG];
-    RK_U32          offset_sclst[MAX_GEN_REG];
+    RK_U32          offset_spspps[VDPU_FAST_REG_SET_CNT];
+    RK_U32          offset_rps[VDPU_FAST_REG_SET_CNT];
+    RK_U32          offset_sclst[VDPU_FAST_REG_SET_CNT];
     RK_U32          spspps_offset;
     RK_U32          rps_offset;
     RK_U32          sclst_offset;
