@@ -25,6 +25,8 @@
 #include "mpp_mem_pool.h"
 #include "mpp_compat_impl.h"
 
+#include "mpp_cfg.h"
+#include "mpp_cfg_io.h"
 #include "kmpp_obj.h"
 
 #define SYS_CFG_DBG_FUNC                (0x00000001)
@@ -41,176 +43,46 @@
 #define sys_cfg_dbg_get(fmt, ...)       sys_cfg_dbg(SYS_CFG_DBG_GET, fmt, ## __VA_ARGS__)
 #define sys_cfg_dbg_dec_buf(fmt, ...)   sys_cfg_dbg(SYS_CFG_DBG_DEC_BUF, fmt, ## __VA_ARGS__)
 
-#define get_srv_sys_cfg_f() \
-    ({ \
-        MppSysCfgSrv *__tmp; \
-        if (srv_sys_cfg) { \
-            __tmp = srv_sys_cfg; \
-        } else { \
-            mpp_sys_cfg_srv_init(); \
-            __tmp = srv_sys_cfg; \
-            if (!__tmp) \
-                mpp_err("mpp sys cfg srv not init at %s\n", __FUNCTION__); \
-        } \
-        __tmp; \
-    })
-
-typedef struct MppSysCfgSrv_t {
-    MppTrie trie;
-    MppMemPool pool;
-} MppSysCfgSrv;
-
-static MppSysCfgSrv *srv_sys_cfg = NULL;
-static RK_U32 mpp_sys_cfg_debug = 0;
-
-#define EXPAND_AS_TRIE(base, name, cfg_type, in_type, flag, field_change, field_data) \
-    do { \
-        KmppEntry tmp = { \
-            .tbl.elem_type = ELEM_TYPE_##cfg_type, \
-            .tbl.flag_offset = (RK_U32)flag, \
-            .tbl.elem_offset = (RK_U32)((long)&(((MppSysCfgSet *)0)->field_change.field_data)), \
-            .tbl.elem_size = sizeof((((MppSysCfgSet *)0)->field_change.field_data)), \
-        }; \
-        mpp_trie_add_info(srv->trie, #base":"#name, &tmp, sizeof(tmp)); \
-    } while (0);
-
-#define ENTRY_TABLE(ENTRY)  \
-    ENTRY(dec_buf_chk, enable,      u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_ENABLE,          dec_buf_chk, enable) \
-    ENTRY(dec_buf_chk, type,        u32, MppCodingType,     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_TYPE,            dec_buf_chk, type) \
-    ENTRY(dec_buf_chk, fmt_codec,   u32, MppFrameFormat,    MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_CODEC,       dec_buf_chk, fmt_codec) \
-    ENTRY(dec_buf_chk, fmt_fbc,     u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_FBC,         dec_buf_chk, fmt_fbc) \
-    ENTRY(dec_buf_chk, fmt_hdr,     u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FMT_HDR,         dec_buf_chk, fmt_hdr) \
-    ENTRY(dec_buf_chk, width,       u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_WIDTH,           dec_buf_chk, width) \
-    ENTRY(dec_buf_chk, height,      u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_HEIGHT,          dec_buf_chk, height) \
-    ENTRY(dec_buf_chk, crop_top,    u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_TOP,        dec_buf_chk, crop_top) \
-    ENTRY(dec_buf_chk, crop_bottom, u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_BOTTOM,     dec_buf_chk, crop_bottom) \
-    ENTRY(dec_buf_chk, crop_left,   u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_LEFT,       dec_buf_chk, crop_left) \
-    ENTRY(dec_buf_chk, crop_right,  u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, crop_right) \
-    ENTRY(dec_buf_chk, unit_size,   u32, RK_U32,            MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_CROP_RIGHT,      dec_buf_chk, unit_size) \
-    ENTRY(dec_buf_chk, has_metadata,    u32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_METADATA,   dec_buf_chk, has_metadata) \
-    ENTRY(dec_buf_chk, has_thumbnail,   u32, RK_U32,        MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_FLAG_THUMBNAIL,  dec_buf_chk, has_thumbnail) \
-    ENTRY(dec_buf_chk, h_stride_by_byte,  u32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_H_STRIDE_BYTE,   dec_buf_chk, h_stride_by_byte) \
-    ENTRY(dec_buf_chk, v_stride,          u32, RK_U32,      MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_V_STRIDE,        dec_buf_chk, v_stride) \
+#define MPP_SYS_CFG_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
+    CFG_DEF_START() \
+    STRUCT_START(dec_buf_chk) \
+    ENTRY(prefix, u32, RK_U32,          enable,             FLAG_BASE(0),   dec_buf_chk, enable) \
+    ENTRY(prefix, u32, MppCodingType,   type,               FLAG_INCR,      dec_buf_chk, type) \
+    ENTRY(prefix, u32, MppFrameFormat,  fmt_codec,          FLAG_INCR,      dec_buf_chk, fmt_codec) \
+    ENTRY(prefix, u32, RK_U32,          fmt_fbc,            FLAG_INCR,      dec_buf_chk, fmt_fbc) \
+    ENTRY(prefix, u32, RK_U32,          fmt_hdr,            FLAG_INCR,      dec_buf_chk, fmt_hdr) \
+    ENTRY(prefix, u32, RK_U32,          width,              FLAG_INCR,      dec_buf_chk, width) \
+    ENTRY(prefix, u32, RK_U32,          height,             FLAG_INCR,      dec_buf_chk, height) \
+    ENTRY(prefix, u32, RK_U32,          crop_top,           FLAG_INCR,      dec_buf_chk, crop_top) \
+    ENTRY(prefix, u32, RK_U32,          crop_bottom,        FLAG_INCR,      dec_buf_chk, crop_bottom) \
+    ENTRY(prefix, u32, RK_U32,          crop_left,          FLAG_INCR,      dec_buf_chk, crop_left) \
+    ENTRY(prefix, u32, RK_U32,          crop_right,         FLAG_INCR,      dec_buf_chk, crop_right) \
+    ENTRY(prefix, u32, RK_U32,          unit_size,          FLAG_INCR,      dec_buf_chk, unit_size) \
+    ENTRY(prefix, u32, RK_U32,          has_metadata,       FLAG_INCR,      dec_buf_chk, has_metadata) \
+    ENTRY(prefix, u32, RK_U32,          has_thumbnail,      FLAG_INCR,      dec_buf_chk, has_thumbnail) \
+    ENTRY(prefix, u32, RK_U32,          h_stride_by_byte,   FLAG_INCR,      dec_buf_chk, h_stride_by_byte) \
+    ENTRY(prefix, u32, RK_U32,          v_stride,           FLAG_INCR,      dec_buf_chk, v_stride) \
     /* read-only config */ \
-    ENTRY(dec_buf_chk, cap_fbc,     u32, RK_U32,            0,                                              dec_buf_chk, cap_fbc) \
-    ENTRY(dec_buf_chk, cap_tile,    u32, RK_U32,            0,                                              dec_buf_chk, cap_tile) \
-    ENTRY(dec_buf_chk, h_stride_by_pixel,   u32, RK_U32,    0,                                              dec_buf_chk, h_stride_by_pixel) \
-    ENTRY(dec_buf_chk, offset_y,    u32, RK_U32,            0,                                              dec_buf_chk, offset_y) \
-    ENTRY(dec_buf_chk, size_total,  u32, RK_U32,            0,                                              dec_buf_chk, size_total) \
-    ENTRY(dec_buf_chk, size_fbc_hdr, u32, RK_U32,           0,                                              dec_buf_chk, size_fbc_hdr) \
-    ENTRY(dec_buf_chk, size_fbc_bdy, u32, RK_U32,           0,                                              dec_buf_chk, size_fbc_bdy) \
-    ENTRY(dec_buf_chk, size_metadata,   u32, RK_U32,        0,                                              dec_buf_chk, size_metadata) \
-    ENTRY(dec_buf_chk, size_thumbnail,  u32, RK_U32,        0,                                              dec_buf_chk, size_thumbnail)
+    ENTRY(prefix, u32, RK_U32,          cap_fbc,            FLAG_NONE,      dec_buf_chk, cap_fbc) \
+    ENTRY(prefix, u32, RK_U32,          cap_tile,           FLAG_NONE,      dec_buf_chk, cap_tile) \
+    ENTRY(prefix, u32, RK_U32,          h_stride_by_pixel,  FLAG_NONE,      dec_buf_chk, h_stride_by_pixel) \
+    ENTRY(prefix, u32, RK_U32,          offset_y,           FLAG_NONE,      dec_buf_chk, offset_y) \
+    ENTRY(prefix, u32, RK_U32,          size_total,         FLAG_NONE,      dec_buf_chk, size_total) \
+    ENTRY(prefix, u32, RK_U32,          size_fbc_hdr,       FLAG_NONE,      dec_buf_chk, size_fbc_hdr) \
+    ENTRY(prefix, u32, RK_U32,          size_fbc_bdy,       FLAG_NONE,      dec_buf_chk, size_fbc_bdy) \
+    ENTRY(prefix, u32, RK_U32,          size_metadata,      FLAG_NONE,      dec_buf_chk, size_metadata) \
+    ENTRY(prefix, u32, RK_U32,          size_thumbnail,     FLAG_NONE,      dec_buf_chk, size_thumbnail) \
+    STRUCT_END(dec_buf_chk) \
+    CFG_DEF_END()
 
-static void mpp_sys_cfg_srv_init()
-{
-    MppSysCfgSrv *srv = srv_sys_cfg;
-
-    mpp_env_get_u32("mpp_sys_cfg_debug", &mpp_sys_cfg_debug, mpp_sys_cfg_debug);
-
-    if (srv)
-        return ;
-
-    srv = mpp_calloc(MppSysCfgSrv, 1);
-    if (!srv) {
-        mpp_err_f("failed to allocate sys cfg set service\n");
-        return ;
-    }
-
-    mpp_trie_init(&srv->trie, "MppSysCfg");
-    srv->pool = mpp_mem_pool_init_f(MODULE_TAG, sizeof(MppSysCfgSet));
-    if (!srv->trie || !srv->pool) {
-        mpp_err_f("failed to init sys cfg set service\n");
-        if (srv->trie) {
-            mpp_trie_deinit(srv->trie);
-            srv->trie = NULL;
-        }
-        if (srv->pool) {
-            mpp_mem_pool_deinit_f(srv->pool);
-            srv->pool = NULL;
-        }
-        MPP_FREE(srv);
-        return ;
-    }
-
-    srv_sys_cfg = srv;
-
-    ENTRY_TABLE(EXPAND_AS_TRIE)
-    mpp_trie_add_info(srv->trie, NULL, NULL, 0);
-
-    sys_cfg_dbg_func("info cnt %d node cnt %d size %d\n",
-                     mpp_trie_get_info_count(srv->trie),
-                     mpp_trie_get_node_count(srv->trie),
-                     mpp_trie_get_buf_size(srv->trie));
-}
-
-static void mpp_sys_cfg_srv_deinit()
-{
-    MppSysCfgSrv *srv = srv_sys_cfg;
-
-    if (!srv)
-        return ;
-
-    if (srv->trie) {
-        mpp_trie_deinit(srv->trie);
-        srv->trie = NULL;
-    }
-    if (srv->pool) {
-        mpp_mem_pool_deinit_f(srv->pool);
-        srv->pool = NULL;
-    }
-
-    MPP_FREE(srv_sys_cfg);
-}
-
-MPP_SINGLETON(MPP_SGLN_SYS_CFG, mpp_sys_cfg, mpp_sys_cfg_srv_init, mpp_sys_cfg_srv_deinit)
-
-static MppSysCfgSet *srv_get_cfg(MppSysCfgSrv *srv)
-{
-    MppSysCfgSet *node = (MppSysCfgSet*)mpp_mem_pool_get_f(srv->pool);
-
-    node->dec_buf_chk.type = MPP_VIDEO_CodingUnused;
-
-    return node;
-}
-
-static MPP_RET srv_put_cfg(MppSysCfgSrv *srv, MppSysCfgSet *node)
-{
-    mpp_mem_pool_put_f(srv->pool, node);
-
-    return MPP_OK;
-}
-
-MPP_RET mpp_sys_cfg_get(MppSysCfg *cfg)
-{
-    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
-
-    if (!cfg) {
-        mpp_err_f("invalid NULL input config\n");
-        return MPP_ERR_NULL_PTR;
-    }
-
-    *cfg = NULL;
-
-    if (!srv)
-        return MPP_NOK;
-
-    mpp_env_get_u32("mpp_sys_cfg_debug", &mpp_sys_cfg_debug, mpp_sys_cfg_debug);
-
-    *cfg = srv_get_cfg(srv);
-
-    return *cfg ? MPP_OK : MPP_NOK;
-}
-
-MPP_RET mpp_sys_cfg_put(MppSysCfg cfg)
-{
-    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
-
-    if (!srv)
-        return MPP_NOK;
-
-    return srv_put_cfg(srv, (MppSysCfgSet *)cfg);
-}
+#define KMPP_OBJ_NAME               mpp_sys_cfg
+#define KMPP_OBJ_INTF_TYPE          MppSysCfg
+#define KMPP_OBJ_IMPL_TYPE          MppSysCfgSet
+#define KMPP_OBJ_SGLN_ID            MPP_SGLN_SYS_CFG
+#define KMPP_OBJ_ENTRY_TABLE        MPP_SYS_CFG_ENTRY_TABLE
+#define KMPP_OBJ_ACCESS_DISABLE
+#define KMPP_OBJ_HIERARCHY_ENABLE
+#include "kmpp_obj_helper.h"
 
 typedef enum SysCfgAlignType_e {
     SYS_CFG_ALIGN_8,
@@ -614,10 +486,10 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
 
 MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
 {
-    MppSysCfgSet *p = (MppSysCfgSet *)cfg;
+    MppSysCfgSet *p = (MppSysCfgSet *)kmpp_obj_to_entry(cfg);
 
-    if (!cfg) {
-        mpp_err_f("invalid NULL input config\n");
+    if (!p) {
+        mpp_loge_f("invalid NULL input config\n");
         return MPP_ERR_NULL_PTR;
     }
 
@@ -632,30 +504,19 @@ MPP_RET mpp_sys_cfg_ioctl(MppSysCfg cfg)
 #define MPP_CFG_SET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppSysCfg cfg, const char *name, in_type val) \
     { \
-        MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
-        MppSysCfgSet *p; \
-        MppTrieInfo *node; \
-        KmppEntry *entry; \
-        if (!srv) \
-            return MPP_NOK; \
-        if (!cfg || !name) { \
-            mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
-            return MPP_ERR_NULL_PTR; \
+        KmppEntry *entry = NULL; \
+        if (NULL == cfg || NULL == name) { \
+            mpp_loge_f("invalid input cfg %p name %p\n", cfg, name); \
+            return rk_nok; \
         } \
-        p = (MppSysCfgSet *)cfg; \
-        node = mpp_trie_get_info(srv->trie, name); \
-        entry = (KmppEntry *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_ENTRY(entry, name, ELEM_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
-        } \
+        kmpp_objdef_get_entry(mpp_sys_cfg_def, name, &entry); \
+        if (!entry) \
+            return rk_nok; \
         if (!entry->tbl.flag_offset) { \
-            mpp_log_f("can not set readonly cfg %s\n", mpp_trie_info_name(node)); \
-            return MPP_NOK; \
+            mpp_loge_f("can not set readonly cfg %s\n", name); \
+            return rk_nok; \
         } \
-        sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
-                        strof_elem_type(entry->tbl.elem_type)); \
-        MPP_RET ret = MPP_CFG_SET_##cfg_type(entry, p, val); \
-        return ret; \
+        return kmpp_obj_tbl_set_##cfg_type(cfg, entry, val); \
     }
 
 MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_s32, RK_S32, s32);
@@ -668,26 +529,11 @@ MPP_CFG_SET_ACCESS(mpp_sys_cfg_set_st,  void *, st);
 #define MPP_CFG_GET_ACCESS(func_name, in_type, cfg_type) \
     MPP_RET func_name(MppSysCfg cfg, const char *name, in_type *val) \
     { \
-        MppSysCfgSrv *srv = get_srv_sys_cfg_f(); \
-        MppSysCfgSet *p; \
-        MppTrieInfo *node; \
-        KmppEntry *entry; \
-        if (!srv) \
-            return MPP_NOK; \
-        if (!cfg || !name) { \
-            mpp_err_f("invalid input cfg %p name %p\n", cfg, name); \
-            return MPP_ERR_NULL_PTR; \
+        if (NULL == cfg || NULL == name) { \
+            mpp_loge_f("invalid input cfg %p name %p\n", cfg, name); \
+            return rk_nok; \
         } \
-        p = (MppSysCfgSet *)cfg; \
-        node = mpp_trie_get_info(srv->trie, name); \
-        entry = (KmppEntry *)mpp_trie_info_ctx(node); \
-        if (CHECK_CFG_ENTRY(entry, name, ELEM_TYPE_##cfg_type)) { \
-            return MPP_NOK; \
-        } \
-        sys_cfg_dbg_set("name %s type %s\n", mpp_trie_info_name(node), \
-                            strof_elem_type(entry->tbl.elem_type)); \
-        MPP_RET ret = MPP_CFG_GET_##cfg_type(entry, p, val); \
-        return ret; \
+        return kmpp_obj_get_##cfg_type(cfg, name, val); \
     }
 
 MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_s32, RK_S32, s32);
@@ -699,21 +545,21 @@ MPP_CFG_GET_ACCESS(mpp_sys_cfg_get_st,  void  , st);
 
 void mpp_sys_cfg_show(void)
 {
-    MppSysCfgSrv *srv = get_srv_sys_cfg_f();
+    MppTrie *trie = kmpp_objdef_get_trie(mpp_sys_cfg_def);
     MppTrieInfo *root;
-    MppTrie trie;
 
-    if (!srv)
+    if (!trie)
         return ;
 
-    trie = srv->trie;
     root = mpp_trie_get_info_first(trie);
 
-    mpp_log("dumping valid configure string start\n");
+    mpp_logi("dumping valid configure string start\n");
 
     if (root) {
         MppTrieInfo *node = root;
         rk_s32 len = mpp_trie_get_name_max(trie);
+
+        mpp_logi("%-*s %-6s | %6s | %4s | %4s\n", len, "name", "type", "offset", "size", "flag (hex)");
 
         do {
             if (mpp_trie_info_is_self(node))
@@ -722,16 +568,19 @@ void mpp_sys_cfg_show(void)
             if (node->ctx_len == sizeof(KmppEntry)) {
                 KmppEntry *entry = (KmppEntry *)mpp_trie_info_ctx(node);
 
-                mpp_log("%-*s type %s - %d:%d\n", len, mpp_trie_info_name(node),
-                        strof_elem_type(entry->tbl.elem_type), entry->tbl.elem_offset, entry->tbl.elem_size);
+                mpp_logi("%-*s %-6s | %-6d | %-4d | %-4x %s\n", len, mpp_trie_info_name(node),
+                         strof_elem_type(entry->tbl.elem_type), entry->tbl.elem_offset,
+                         entry->tbl.elem_size, entry->tbl.flag_offset,
+                         entry->tbl.flag_offset ? "wr" : "ro");
             } else {
-                mpp_log("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
+                mpp_logi("%-*s size - %d\n", len, mpp_trie_info_name(node), node->ctx_len);
             }
         } while ((node = mpp_trie_get_info_next(trie, node)));
     }
-    mpp_log("dumping valid configure string done\n");
 
-    mpp_log("sys cfg size %d count %d with trie node %d size %d\n",
-            sizeof(MppSysCfgSet), mpp_trie_get_info_count(trie),
-            mpp_trie_get_node_count(trie), mpp_trie_get_buf_size(trie));
+    mpp_logi("dumping valid configure string done\n");
+
+    mpp_logi("sys cfg size %d count %d with trie node %d size %d\n",
+             sizeof(MppSysCfgSet), mpp_trie_get_info_count(trie),
+             mpp_trie_get_node_count(trie), mpp_trie_get_buf_size(trie));
 }
