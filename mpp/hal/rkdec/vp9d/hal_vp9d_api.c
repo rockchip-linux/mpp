@@ -23,6 +23,7 @@
 #include "hal_vp9d_debug.h"
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_ctx.h"
+#include "vdpu_com.h"
 #include "hal_vp9d_rkv.h"
 #include "hal_vp9d_vdpu34x.h"
 #include "hal_vp9d_vdpu382.h"

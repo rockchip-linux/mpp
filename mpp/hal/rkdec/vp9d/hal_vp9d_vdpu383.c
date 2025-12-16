@@ -24,7 +24,6 @@
 #include "vdpu_com.h"
 
 #define HW_PROB         1
-#define VP9_CONTEXT     4
 #define VP9_CTU_SIZE    64
 
 #define GBL_SIZE        2 * (MPP_ALIGN(1299, 128) / 8)
@@ -38,49 +37,12 @@ const RK_U8 literal_to_filter[] = { EIGHTTAP_SMOOTH, EIGHTTAP,
                                     EIGHTTAP_SHARP, BILINEAR
                                   };
 
-typedef struct Vdpu383Vp9dCtx_t {
-    Vp9dRegBuf      g_buf[MAX_GEN_REG];
-    MppBuffer       global_base;
-    MppBuffer       probe_base;
-    MppBuffer       count_base;
-    MppBuffer       segid_cur_base;
-    MppBuffer       segid_last_base;
-    MppBuffer       prob_default_base;
-    void*           hw_regs;
-    RK_S32          mv_base_addr;
-    RK_S32          pre_mv_base_addr;
-    Vp9dLastInfo    ls_info;
-    /*
-     * swap between segid_cur_base & segid_last_base
-     * 0  used segid_cur_base as last
-     * 1  used segid_last_base as
-     */
-    RK_U32          last_segid_flag;
-    RK_S32          width;
-    RK_S32          height;
-    /* rcb buffers info */
-    RK_S32          rcb_buf_size;
-    VdpuRcbInfo     rcb_info[RCB_BUF_CNT];
-    MppBuffer       rcb_buf;
-    RK_U32          num_row_tiles;
-    RK_U32          bit_depth;
-    /* colmv buffers info */
-    HalBufs         cmv_bufs;
-    RK_S32          mv_size;
-    RK_S32          mv_count;
-    HalBufs         origin_bufs;
-    RK_U32          prob_ctx_valid[VP9_CONTEXT];
-    MppBuffer       prob_loop_base[VP9_CONTEXT];
-    /* uncompress header data */
-    RK_U8           header_data[168];
-} Vdpu383Vp9dCtx;
-
 #ifdef DUMP_VDPU383_DATAS
 static RK_U32 cur_last_segid_flag;
 static MppBuffer cur_last_prob_base;
 #endif
 
-static MPP_RET vdpu383_setup_scale_origin_bufs(Vdpu383Vp9dCtx *ctx, MppFrame mframe)
+static MPP_RET vdpu383_setup_scale_origin_bufs(Vdpu38xVp9dCtx *ctx, MppFrame mframe)
 {
     /* for 8K FrameBuf scale mode */
     size_t origin_buf_size = 0;
@@ -107,7 +69,7 @@ static MPP_RET vdpu383_setup_scale_origin_bufs(Vdpu383Vp9dCtx *ctx, MppFrame mfr
 static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     RK_S32 ret = 0;
     RK_S32 i = 0;
 
@@ -142,7 +104,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
 
     /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].global_base, GBL_SIZE);
@@ -189,13 +151,14 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
         }
         mpp_buffer_attach_dev(hw_ctx->count_base, p_hal->dev);
     }
+
     return MPP_OK;
 }
 
 static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     RK_S32 ret = 0;
     RK_S32 i = 0;
 
@@ -230,7 +193,7 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
         }
     }
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (hw_ctx->g_buf[i].global_base) {
                 ret = mpp_buffer_put(hw_ctx->g_buf[i].global_base);
                 if (ret) {
@@ -341,8 +304,8 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    MEM_CHECK(ret, p_hal->hw_ctx = mpp_calloc_size(void, sizeof(Vdpu383Vp9dCtx)));
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    MEM_CHECK(ret, p_hal->hw_ctx = mpp_calloc_size(void, p_hal->api->ctx_size));
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     (void) cfg;
 
     hw_ctx->mv_base_addr = -1;
@@ -444,7 +407,7 @@ static void vp9d_refine_rcb_size(VdpuRcbInfo *rcb_info,
 static void hal_vp9d_rcb_info_update(void *hal, Vdpu383Vp9dRegSet *hw_regs, void *data)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)data;
     RK_U32 num_tiles = pic_param->log2_tile_rows;
     RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
@@ -505,7 +468,7 @@ set_tile_offset(RK_S32 *start, RK_S32 *end, RK_S32 idx, RK_S32 log2_n, RK_S32 n)
 static MPP_RET prepare_uncompress_header(HalVp9dCtx *p_hal, DXVA_PicParams_VP9 *pp,
                                          RK_U64 *data, RK_U32 len)
 {
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     BitputCtx_t bp;
     RK_S32 i, j;
 
@@ -706,7 +669,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     HalBuf *origin_buf = NULL;
 
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
     Vdpu383Vp9dRegSet *vp9_hw_regs = NULL;
     RK_S32 mv_size = pic_param->width * pic_param->height / 2;
@@ -715,7 +678,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     MppFrame ref_frame = NULL;
 
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (!hw_ctx->g_buf[i].use_flag) {
                 task->dec.reg_index = i;
                 hw_ctx->global_base = hw_ctx->g_buf[i].global_base;
@@ -726,7 +689,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
                 break;
             }
         }
-        if (i == MAX_GEN_REG) {
+        if (i == VDPU_FAST_REG_SET_CNT) {
             mpp_err("vp9 fast mode buf all used\n");
             return MPP_ERR_NOMEM;
         }
@@ -747,8 +710,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 #endif
 
     /* uncompress header data */
-    prepare_uncompress_header(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, sizeof(hw_ctx->header_data) / 8);
-    memcpy(mpp_buffer_get_ptr(hw_ctx->global_base), hw_ctx->header_data, sizeof(hw_ctx->header_data));
+    prepare_uncompress_header(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, GBL_SIZE / 8);
+    memcpy(mpp_buffer_get_ptr(hw_ctx->global_base), hw_ctx->header_data, GBL_SIZE);
     mpp_buffer_sync_end(hw_ctx->global_base);
     vp9_hw_regs->vp9d_paras.reg67_global_len = GBL_SIZE / 16;
     vp9_hw_regs->common_addr.reg131_gbl_base = mpp_buffer_get_fd(hw_ctx->global_base);
@@ -1130,7 +1093,7 @@ static MPP_RET hal_vp9d_vdpu383_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     Vdpu383Vp9dRegSet *hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->hw_regs;
     MppDev dev = p_hal->dev;
 
@@ -1208,7 +1171,7 @@ static MPP_RET hal_vp9d_vdpu383_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     Vdpu383Vp9dRegSet *hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->hw_regs;
 
     if (p_hal->fast_mode)
@@ -1299,7 +1262,7 @@ static MPP_RET hal_vp9d_vdpu383_wait(void *hal, HalTaskInfo *task)
 static MPP_RET hal_vp9d_vdpu383_reset(void *hal)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
 
     hal_vp9d_enter();
 
@@ -1316,7 +1279,7 @@ static MPP_RET hal_vp9d_vdpu383_reset(void *hal)
 static MPP_RET hal_vp9d_vdpu383_flush(void *hal)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu383Vp9dCtx *hw_ctx = (Vdpu383Vp9dCtx*)p_hal->hw_ctx;
+    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
 
     hal_vp9d_enter();
 
@@ -1356,7 +1319,7 @@ const MppHalApi hal_vp9d_vdpu383 = {
     .name = "vp9d_vdpu383",
     .type = MPP_CTX_DEC,
     .coding = MPP_VIDEO_CodingVP9,
-    .ctx_size = sizeof(Vdpu383Vp9dCtx),
+    .ctx_size = sizeof(Vdpu38xVp9dCtx) + GBL_SIZE,
     .flag = 0,
     .init = hal_vp9d_vdpu383_init,
     .deinit = hal_vp9d_vdpu383_deinit,

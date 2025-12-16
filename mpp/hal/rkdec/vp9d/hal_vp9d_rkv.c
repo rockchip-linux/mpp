@@ -32,7 +32,7 @@
 
 
 typedef struct Vp9dRkvCtx_t {
-    Vp9dRegBuf      g_buf[MAX_GEN_REG];
+    Vp9dRegBuf      g_buf[VDPU_FAST_REG_SET_CNT];
     MppBuffer       probe_base;
     MppBuffer       count_base;
     MppBuffer       segid_cur_base;
@@ -59,7 +59,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     Vp9dRkvCtx *hw_ctx = (Vp9dRkvCtx*)p_hal->hw_ctx;
 
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(VP9_REGS));
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].probe_base, PROB_SIZE);
@@ -120,7 +120,7 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
     Vp9dRkvCtx *hw_ctx = (Vp9dRkvCtx*)p_hal->hw_ctx;
 
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (hw_ctx->g_buf[i].probe_base) {
                 ret = mpp_buffer_put(hw_ctx->g_buf[i].probe_base);
                 if (ret) {
@@ -272,7 +272,7 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
 
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (!hw_ctx->g_buf[i].use_flag) {
                 task->dec.reg_index = i;
                 hw_ctx->probe_base = hw_ctx->g_buf[i].probe_base;
@@ -284,7 +284,7 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
                 break;
             }
         }
-        if (i == MAX_GEN_REG) {
+        if (i == VDPU_FAST_REG_SET_CNT) {
             mpp_err("vp9 fast mode buf all used\n");
             return MPP_ERR_NOMEM;
         }

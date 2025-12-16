@@ -35,7 +35,6 @@
 #include "vdpu_com.h"
 
 #define HW_PROB 1
-#define VP9_CONTEXT 4
 #define VP9_CTU_SIZE 64
 #define PROB_SIZE_ALIGN_TO_4K MPP_ALIGN(PROB_SIZE, SZ_4K)
 #define COUNT_SIZE_ALIGN_TO_4K MPP_ALIGN(COUNT_SIZE, SZ_4K)
@@ -45,7 +44,7 @@
 #define VDPU382_PROBE_BUFFER_SIZE (PROB_SIZE_ALIGN_TO_4K + COUNT_SIZE_ALIGN_TO_4K)
 
 typedef struct Vdpu382Vp9dCtx_t {
-    Vp9dRegBuf      g_buf[MAX_GEN_REG];
+    Vp9dRegBuf      g_buf[VDPU_FAST_REG_SET_CNT];
     MppBuffer       probe_base;
     MppBuffer       seg_base;
     RK_U32          offset_count;
@@ -105,7 +104,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     }
     /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu382Vp9dRegSet));
             ret = mpp_buffer_get(p_hal->group, &hw_ctx->g_buf[i].probe_base, VDPU382_PROBE_BUFFER_SIZE);
             if (ret) {
@@ -154,7 +153,7 @@ static MPP_RET hal_vp9d_release_res(HalVp9dCtx *hal)
         }
     }
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (hw_ctx->g_buf[i].probe_base) {
                 ret = mpp_buffer_put(hw_ctx->g_buf[i].probe_base);
                 if (ret) {
@@ -450,7 +449,7 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
 
     if (p_hal->fast_mode) {
-        for (i = 0; i < MAX_GEN_REG; i++) {
+        for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             if (!hw_ctx->g_buf[i].use_flag) {
                 task->dec.reg_index = i;
                 hw_ctx->probe_base = hw_ctx->g_buf[i].probe_base;
@@ -460,7 +459,7 @@ static MPP_RET hal_vp9d_vdpu382_gen_regs(void *hal, HalTaskInfo *task)
                 break;
             }
         }
-        if (i == MAX_GEN_REG) {
+        if (i == VDPU_FAST_REG_SET_CNT) {
             mpp_err("vp9 fast mode buf all used\n");
             return MPP_ERR_NOMEM;
         }

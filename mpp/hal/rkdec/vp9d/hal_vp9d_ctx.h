@@ -20,8 +20,9 @@
 #include "mpp_device.h"
 #include "mpp_hal.h"
 #include "hal_bufs.h"
+#include "vdpu_com.h"
 
-#define MAX_GEN_REG 3
+#define VP9_CONTEXT 4
 
 typedef struct Vp9dLastInfo_t {
     RK_S32      abs_delta_last;
@@ -68,4 +69,43 @@ typedef struct HalVp9dCtx_t {
     const MppDecHwCap   *hw_info;
 } HalVp9dCtx;
 
+typedef struct Vdpu38xVp9dCtx_t {
+    Vp9dRegBuf      g_buf[VDPU_FAST_REG_SET_CNT];
+    MppBuffer       global_base;
+    MppBuffer       probe_base;
+    MppBuffer       count_base;
+    MppBuffer       segid_cur_base;
+    MppBuffer       segid_last_base;
+    MppBuffer       prob_default_base;
+    void*           hw_regs;
+    RK_S32          mv_base_addr;
+    RK_S32          pre_mv_base_addr;
+    Vp9dLastInfo    ls_info;
+    /*
+     * swap between segid_cur_base & segid_last_base
+     * 0  used segid_cur_base as last
+     * 1  used segid_last_base as
+     */
+    RK_U32          last_segid_flag;
+    RK_S32          width;
+    RK_S32          height;
+    /* rcb buffers info */
+    void            *rcb_ctx;
+    RK_U32          rcb_buf_size;
+    VdpuRcbInfo     rcb_info[RCB_BUF_CNT];
+    MppBuffer       rcb_buf;
+    RK_U32          num_row_tiles;
+    RK_U32          bit_depth;
+    /* colmv buffers info */
+    HalBufs         cmv_bufs;
+    RK_S32          mv_size;
+    RK_S32          mv_count;
+    HalBufs         origin_bufs;
+    RK_U32          prob_ctx_valid[VP9_CONTEXT];
+    MppBuffer       prob_loop_base[VP9_CONTEXT];
+    /* uncompress header data */
+    RK_U8           header_data[0];
+} Vdpu38xVp9dCtx;
+
 #endif /* HAL_VP9D_CTX_H */
+
