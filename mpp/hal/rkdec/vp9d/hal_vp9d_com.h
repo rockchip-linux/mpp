@@ -17,8 +17,9 @@
 #ifndef HAL_VP9D_COM_H
 #define HAL_VP9D_COM_H
 
-#include "rk_type.h"
-#include "mpp_err.h"
+#include "rk_mpi_cmd.h"
+#include "hal_vp9d_ctx.h"
+#include "vp9d_syntax.h"
 
 typedef RK_U8 vp9_prob;
 
@@ -56,6 +57,8 @@ typedef RK_U8 vp9_prob;
 #define PROB_KF_SIZE                    (82 * 16)
 #define COUNT_SIZE                      13208
 
+#define VP9_CTU_SIZE 64
+
 /*
  * MAX_SEGMAP_SIZE calculate(e.g. 4096x2304):
  *      nCtuX*nCtuY*8*8/2
@@ -80,6 +83,7 @@ do{\
 extern const vp9_prob vp9_kf_y_mode_prob[INTRA_MODES][INTRA_MODES][INTRA_MODES - 1];
 extern const vp9_prob vp9_kf_uv_mode_prob[INTRA_MODES][INTRA_MODES - 1];
 extern const vp9_prob vp9_kf_partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1];
+extern const RK_U8 literal_to_filter[];
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,6 +94,14 @@ MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva);
 void hal_vp9d_update_counts(void *buf, void *dxva);
 MPP_RET hal_vp9d_prob_default(void *buf, void *dxva);
 MPP_RET hal_vp9d_prob_kf(void *buf);
+void set_tile_offset(RK_S32 *start, RK_S32 *end, RK_S32 idx, RK_S32 log2_n, RK_S32 n);
+MPP_RET vdpu38x_vp9d_uncomp_hdr(HalVp9dCtx *p_hal, DXVA_PicParams_VP9 *pp,
+                                RK_U64 *data, RK_U32 len);
+
+MPP_RET hal_vp9d_vdpu38x_deinit(void *hal);
+MPP_RET hal_vp9d_vdpu38x_reset(void *hal);
+MPP_RET hal_vp9d_vdpu38x_flush(void *hal);
+MPP_RET hal_vp9d_vdpu38x_control(void *hal, MpiCmd cmd_type, void *param);
 
 #ifdef __cplusplus
 }
