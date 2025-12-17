@@ -35,6 +35,7 @@ typedef struct Vdpu3xxH264dRegCtx_t {
     RK_U32              offset_rps[VDPU_FAST_REG_SET_CNT];
     RK_U32              offset_sclst[VDPU_FAST_REG_SET_CNT];
 
+    RK_U8               vdpu382_is_used;
     union {
         H264dVdpu3xxBuf reg_buf[VDPU_FAST_REG_SET_CNT];
         H264dVdpu382Buf reg_382_buf[VDPU_FAST_REG_SET_CNT];

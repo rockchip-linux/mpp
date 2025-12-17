@@ -20,14 +20,14 @@
 #include "vdpu_com.h"
 #include "vdpu38x_com.h"
 #include "hal_h264d_ctx.h"
+#include "hal_h264d_com.h"
 
 /* Number registers for the decoder */
-#define DEC_VDPU384A_REGISTERS       276
+#define DEC_VDPU384A_REGISTERS               276
 
-#define VDPU384A_SPSPPS_SIZE         (MPP_ALIGN(2266 + 64, 128) / 8) /* byte, 2266 bit + Reserve 64 */
-#define VDPU384A_SCALING_LIST_SIZE   (6*16+2*64 + 128)   /* bytes */
-#define VDPU384A_ERROR_INFO_SIZE     (256*144*4)         /* bytes */
-#define H264_CTU_SIZE               16
+#define VDPU384A_SPSPPS_SIZE                 (MPP_ALIGN(2266 + 64, 128) / 8) /* byte, 2266 bit + Reserve 64 */
+#define VDPU384A_SCALING_LIST_SIZE           (6*16+2*64 + 128)   /* bytes */
+#define VDPU384A_ERROR_INFO_SIZE             (256*144*4)         /* bytes */
 
 #define VDPU384A_ERROR_INFO_ALIGNED_SIZE     (0)
 #define VDPU384A_SPSPPS_ALIGNED_SIZE         (MPP_ALIGN(VDPU384A_SPSPPS_SIZE, SZ_4K))
@@ -40,242 +40,6 @@
 #define VDPU384A_SPSPPS_OFFSET(pos)          (VDPU384A_STREAM_INFO_OFFSET_BASE + (VDPU384A_STREAM_INFO_SET_SIZE * pos))
 #define VDPU384A_SCALING_LIST_OFFSET(pos)    (VDPU384A_SPSPPS_OFFSET(pos) + VDPU384A_SPSPPS_ALIGNED_SIZE)
 #define VDPU384A_INFO_BUFFER_SIZE(cnt)       (VDPU384A_STREAM_INFO_OFFSET_BASE + (VDPU384A_STREAM_INFO_SET_SIZE * cnt))
-
-MPP_RET vdpu384a_h264d_deinit(void *hal);
-
-static MPP_RET vdpu384a_setup_scale_origin_bufs(H264dHalCtx_t *p_hal, MppFrame mframe)
-{
-    Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    /* for 8K FrameBuf scale mode */
-    size_t origin_buf_size = 0;
-
-    origin_buf_size = mpp_frame_get_buf_size(mframe);
-
-    if (!origin_buf_size) {
-        mpp_err_f("origin_bufs get buf size failed\n");
-        return MPP_NOK;
-    }
-    if (ctx->origin_bufs) {
-        hal_bufs_deinit(ctx->origin_bufs);
-        ctx->origin_bufs = NULL;
-    }
-    hal_bufs_init(&ctx->origin_bufs);
-    if (!ctx->origin_bufs) {
-        mpp_err_f("origin_bufs init fail\n");
-        return MPP_ERR_NOMEM;
-    }
-    hal_bufs_setup(ctx->origin_bufs, 16, 1, &origin_buf_size);
-
-    return MPP_OK;
-}
-
-static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
-{
-    RK_S32 i = 0, j = 0;
-    RK_S32 is_long_term = 0, voidx = 0;
-    DXVA_PicParams_H264_MVC *pp = p_hal->pp;
-    RK_U32 tmp = 0;
-    BitputCtx_t bp;
-
-    mpp_set_bitput_ctx(&bp, data, len);
-
-    if (!p_hal->fast_mode && !pp->spspps_update) {
-        bp.index = 2;
-        bp.bitpos = 24;
-        bp.bvalue = bp.pbuf[bp.index] & 0xFFFFFF;
-    } else {
-        RK_U32 pic_width, pic_height;
-
-        //!< sps syntax
-        pic_width   = 16 * (pp->wFrameWidthInMbsMinus1 + 1);
-        pic_height  = 16 * (pp->wFrameHeightInMbsMinus1 + 1);
-        pic_height *= (2 - pp->frame_mbs_only_flag);
-        pic_height /= (1 + pp->field_pic_flag);
-        mpp_put_bits(&bp, pp->seq_parameter_set_id, 4);
-        mpp_put_bits(&bp, pp->profile_idc, 8);
-        mpp_put_bits(&bp, pp->constraint_set3_flag, 1);
-        mpp_put_bits(&bp, pp->chroma_format_idc, 2);
-        mpp_put_bits(&bp, pp->bit_depth_luma_minus8, 3);
-        mpp_put_bits(&bp, pp->bit_depth_chroma_minus8, 3);
-        mpp_put_bits(&bp, 0, 1); // set 0
-        mpp_put_bits(&bp, pp->log2_max_frame_num_minus4, 4);
-        mpp_put_bits(&bp, pp->num_ref_frames, 5);
-        mpp_put_bits(&bp, pp->pic_order_cnt_type, 2);
-        mpp_put_bits(&bp, pp->log2_max_pic_order_cnt_lsb_minus4, 4);
-        mpp_put_bits(&bp, pp->delta_pic_order_always_zero_flag, 1);
-        mpp_put_bits(&bp, pic_width, 16);
-        mpp_put_bits(&bp, pic_height, 16);
-        mpp_put_bits(&bp, pp->frame_mbs_only_flag, 1);
-        mpp_put_bits(&bp, pp->MbaffFrameFlag, 1);
-        mpp_put_bits(&bp, pp->direct_8x8_inference_flag, 1);
-        /* multi-view */
-        mpp_put_bits(&bp, pp->mvc_extension_enable, 1);
-        if (pp->mvc_extension_enable) {
-            mpp_put_bits(&bp, (pp->num_views_minus1 + 1), 2);
-            mpp_put_bits(&bp, pp->view_id[0], 10);
-            mpp_put_bits(&bp, pp->view_id[1], 10);
-        } else {
-            mpp_put_bits(&bp, 0, 22);
-        }
-        // hw_fifo_align_bits(&bp, 128);
-        //!< pps syntax
-        mpp_put_bits(&bp, pp->pps_pic_parameter_set_id, 8);
-        mpp_put_bits(&bp, pp->pps_seq_parameter_set_id, 5);
-        mpp_put_bits(&bp, pp->entropy_coding_mode_flag, 1);
-        mpp_put_bits(&bp, pp->pic_order_present_flag, 1);
-
-        mpp_put_bits(&bp, pp->num_ref_idx_l0_active_minus1, 5);
-        mpp_put_bits(&bp, pp->num_ref_idx_l1_active_minus1, 5);
-        mpp_put_bits(&bp, pp->weighted_pred_flag, 1);
-        mpp_put_bits(&bp, pp->weighted_bipred_idc, 2);
-        mpp_put_bits(&bp, pp->pic_init_qp_minus26, 7);
-        mpp_put_bits(&bp, pp->pic_init_qs_minus26, 6);
-        mpp_put_bits(&bp, pp->chroma_qp_index_offset, 5);
-        mpp_put_bits(&bp, pp->deblocking_filter_control_present_flag, 1);
-        mpp_put_bits(&bp, pp->constrained_intra_pred_flag, 1);
-        mpp_put_bits(&bp, pp->redundant_pic_cnt_present_flag, 1);
-        mpp_put_bits(&bp, pp->transform_8x8_mode_flag, 1);
-        mpp_put_bits(&bp, pp->second_chroma_qp_index_offset, 5);
-        mpp_put_bits(&bp, pp->scaleing_list_enable_flag, 1);
-    }
-
-    //!< set dpb
-    for (i = 0; i < 16; i++) {
-        is_long_term = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefFrameList[i].AssociatedFlag : 0;
-        tmp |= (RK_U32)(is_long_term & 0x1) << i;
-    }
-    for (i = 0; i < 16; i++) {
-        voidx = (pp->RefFrameList[i].bPicEntry != 0xff) ? pp->RefPicLayerIdList[i] : 0;
-        tmp |= (RK_U32)(voidx & 0x1) << (i + 16);
-    }
-    mpp_put_bits(&bp, tmp, 32);
-    /* set current frame */
-    mpp_put_bits(&bp, pp->field_pic_flag, 1);
-    mpp_put_bits(&bp, (pp->field_pic_flag && pp->CurrPic.AssociatedFlag), 1);
-
-    mpp_put_bits(&bp, pp->CurrFieldOrderCnt[0], 32);
-    mpp_put_bits(&bp, pp->CurrFieldOrderCnt[1], 32);
-
-    /* refer poc */
-    for (i = 0; i < 16; i++) {
-        mpp_put_bits(&bp, pp->FieldOrderCntList[i][0], 32);
-        mpp_put_bits(&bp, pp->FieldOrderCntList[i][1], 32);
-    }
-
-    tmp = 0;
-    for (i = 0; i < 16; i++)
-        tmp |= ((pp->RefPicFiledFlags >> i) & 0x01) << i;
-    for (i = 0; i < 16; i++)
-        tmp |= ((pp->UsedForReferenceFlags >> (2 * i + 0)) & 0x01) << (i + 16);
-    mpp_put_bits(&bp, tmp, 32);
-
-    tmp = 0;
-    for (i = 0; i < 16; i++)
-        tmp |= ((pp->UsedForReferenceFlags >> (2 * i + 1)) & 0x01) << i;
-    for (i = 0; i < 16; i++)
-        tmp |= ((pp->RefPicColmvUsedFlags >> i) & 0x01) << (i + 16);
-    mpp_put_bits(&bp, tmp, 32);
-
-    /* rps */
-    {
-        RK_S32 dpb_idx = 0;
-        RK_S32 dpb_valid = 0, bottom_flag = 0;
-        RK_U32 max_frame_num = 0;
-        RK_U16 frame_num_wrap = 0;
-
-        max_frame_num = 1 << (pp->log2_max_frame_num_minus4 + 4);
-        for (i = 0; i < 16; i++) {
-            if ((pp->NonExistingFrameFlags >> i) & 0x01) {
-                frame_num_wrap = 0;
-            } else {
-                if (pp->RefFrameList[i].AssociatedFlag) {
-                    frame_num_wrap = pp->FrameNumList[i];
-                } else {
-                    frame_num_wrap = (pp->FrameNumList[i] > pp->frame_num) ?
-                                     (pp->FrameNumList[i] - max_frame_num) : pp->FrameNumList[i];
-                }
-            }
-            mpp_put_bits(&bp, frame_num_wrap, 16);
-        }
-
-        /* dbp_idx_p_l0_32x7bit + dbp_idx_b_l0_32x7bit + dbp_idx_b_l1_32x7bit */
-        for (j = 0; j < 3; j++) {
-            for (i = 0; i < 32; i++) {
-                tmp = 0;
-                dpb_valid = (p_hal->slice_long[0].RefPicList[j][i].bPicEntry == 0xff) ? 0 : 1;
-                dpb_idx = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].Index7Bits : 0;
-                bottom_flag = dpb_valid ? p_hal->slice_long[0].RefPicList[j][i].AssociatedFlag : 0;
-                voidx = dpb_valid ? pp->RefPicLayerIdList[dpb_idx] : 0;
-                tmp |= (RK_U32)(dpb_idx | (dpb_valid << 4)) & 0x1f;
-                tmp |= (RK_U32)(bottom_flag & 0x1) << 5;
-                if (dpb_valid)
-                    tmp |= (RK_U32)(voidx & 0x1) << 6;
-                mpp_put_bits(&bp, tmp, 7);
-            }
-        }
-    }
-    mpp_put_align(&bp, 64, 0);//128
-
-#ifdef DUMP_VDPU384A_DATAS
-    {
-        char *cur_fname = "global_cfg.dat";
-        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
-        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data_to_file(dump_cur_fname_path, (void *)bp.pbuf, 64 * bp.index + bp.bitpos, 128, 0);
-    }
-#endif
-
-    return MPP_OK;
-}
-
-static MPP_RET prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
-{
-    RK_U32 i = 0, j = 0, n = 0;
-
-    if (!p_hal->pp->scaleing_list_enable_flag)
-        return MPP_OK;
-
-    for (i = 0; i < 6; i++) { //4x4, 6 lists
-        /* dump by block4x4, vectial direction */
-        for (j = 0; j < 4; j++) {
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 0];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 1];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 2];
-            data[n++] = p_hal->qm->bScalingLists4x4[i][j * 4 + 3];
-        }
-    }
-
-    for (i = 0; i < 2; i++) { //8x8, 2 lists
-        RK_U32 blk4_x = 0, blk4_y = 0;
-
-        /* dump by block4x4, vectial direction */
-        for (blk4_y = 0; blk4_y < 8; blk4_y += 4) {
-            for (blk4_x = 0; blk4_x < 8; blk4_x += 4) {
-                RK_U32 pos = blk4_y * 8 + blk4_x;
-
-                for (j = 0; j < 4; j++) {
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 0];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 1];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 2];
-                    data[n++] = p_hal->qm->bScalingLists8x8[i][pos + j * 8 + 3];
-                }
-            }
-        }
-    }
-
-    mpp_assert(n <= len);
-
-#ifdef DUMP_VDPU384A_DATAS
-    {
-        char *cur_fname = "scanlist.dat";
-        memset(dump_cur_fname_path, 0, sizeof(dump_cur_fname_path));
-        sprintf(dump_cur_fname_path, "%s/%s", dump_cur_dir, cur_fname);
-        dump_data_to_file(dump_cur_fname_path, (void *)data, 8 * n, 128, 0);
-    }
-#endif
-
-    return MPP_OK;
-}
 
 static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu384aH264dRegSet *regs, HalTaskInfo *task)
 {
@@ -561,51 +325,9 @@ MPP_RET vdpu384a_h264d_init(void *hal, MppHalCfg *cfg)
 __RETURN:
     return MPP_OK;
 __FAILED:
-    vdpu384a_h264d_deinit(hal);
+    vdpu3xx_h264d_deinit(hal);
 
     return ret;
-}
-
-MPP_RET vdpu384a_h264d_deinit(void *hal)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-    Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-
-    RK_U32 i = 0;
-    RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
-
-    if (reg_ctx->bufs) {
-        mpp_buffer_put(reg_ctx->bufs);
-        reg_ctx->bufs = NULL;
-    }
-
-    for (i = 0; i < loop; i++)
-        MPP_FREE(reg_ctx->reg_buf[i].regs);
-
-    loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->rcb_buf) : 1;
-    for (i = 0; i < loop; i++) {
-        if (reg_ctx->rcb_buf[i]) {
-            mpp_buffer_put(reg_ctx->rcb_buf[i]);
-            reg_ctx->rcb_buf[i] = NULL;
-        }
-    }
-
-    if (p_hal->cmv_bufs) {
-        hal_bufs_deinit(p_hal->cmv_bufs);
-        p_hal->cmv_bufs = NULL;
-    }
-
-    if (reg_ctx->origin_bufs) {
-        hal_bufs_deinit(reg_ctx->origin_bufs);
-        reg_ctx->origin_bufs = NULL;
-    }
-
-    MPP_FREE(reg_ctx->spspps);
-    MPP_FREE(reg_ctx->sclst);
-
-    MPP_FREE(p_hal->reg_ctx);
-
-    return MPP_OK;
 }
 
 static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, VdpuRcbInfo *rcb_info,
@@ -738,7 +460,7 @@ MPP_RET vdpu384a_h264d_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(p_hal->frame_slots, p_hal->pp->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
     if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
         ctx->origin_bufs == NULL) {
-        vdpu384a_setup_scale_origin_bufs(p_hal, mframe);
+        vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs);
     }
 
     if (p_hal->fast_mode) {
@@ -768,8 +490,8 @@ MPP_RET vdpu384a_h264d_gen_regs(void *hal, HalTaskInfo *task)
     }
 #endif
 
-    prepare_spspps(p_hal, (RK_U64 *)ctx->spspps, VDPU384A_SPSPPS_SIZE / 8);
-    prepare_scanlist(p_hal, ctx->sclst, VDPU384A_SCALING_LIST_SIZE);
+    vdpu38x_h264d_prepare_spspps(p_hal, (RK_U64 *)ctx->spspps, VDPU384A_SPSPPS_SIZE / 8);
+    vdpu38x_h264d_prepare_scanlist(p_hal, ctx->sclst, VDPU384A_SCALING_LIST_SIZE);
     set_registers(p_hal, regs, task);
 
     //!< copy spspps datas
@@ -929,65 +651,6 @@ __RETURN:
     return ret = MPP_OK;
 }
 
-MPP_RET vdpu384a_h264d_reset(void *hal)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    INP_CHECK(ret, NULL == p_hal);
-
-
-__RETURN:
-    return ret = MPP_OK;
-}
-
-MPP_RET vdpu384a_h264d_flush(void *hal)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    INP_CHECK(ret, NULL == p_hal);
-
-__RETURN:
-    return ret = MPP_OK;
-}
-
-MPP_RET vdpu384a_h264d_control(void *hal, MpiCmd cmd_type, void *param)
-{
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
-
-    INP_CHECK(ret, NULL == p_hal);
-
-    switch ((MpiCmd)cmd_type) {
-    case MPP_DEC_SET_FRAME_INFO: {
-        MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
-        RK_U32 imgwidth = mpp_frame_get_width((MppFrame)param);
-        RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
-
-        mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
-        if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
-        }
-        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu384a_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);
-        } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-        }
-    } break;
-    case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
-        vdpu384a_update_thumbnail_frame_info((MppFrame)param);
-    } break;
-    case MPP_DEC_SET_OUTPUT_FORMAT: {
-    } break;
-    default : {
-    } break;
-    }
-
-__RETURN:
-    return ret = MPP_OK;
-}
-
 const MppHalApi hal_h264d_vdpu384a = {
     .name     = "h264d_vdpu384a",
     .type     = MPP_CTX_DEC,
@@ -995,11 +658,11 @@ const MppHalApi hal_h264d_vdpu384a = {
     .ctx_size = sizeof(Vdpu3xxH264dRegCtx),
     .flag     = 0,
     .init     = vdpu384a_h264d_init,
-    .deinit   = vdpu384a_h264d_deinit,
+    .deinit   = vdpu3xx_h264d_deinit,
     .reg_gen  = vdpu384a_h264d_gen_regs,
     .start    = vdpu384a_h264d_start,
     .wait     = vdpu384a_h264d_wait,
-    .reset    = vdpu384a_h264d_reset,
-    .flush    = vdpu384a_h264d_flush,
-    .control  = vdpu384a_h264d_control,
+    .reset    = vdpu_h264d_reset,
+    .flush    = vdpu_h264d_flush,
+    .control  = vdpu38x_h264d_control,
 };
