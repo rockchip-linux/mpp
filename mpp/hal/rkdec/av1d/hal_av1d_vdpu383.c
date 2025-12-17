@@ -237,21 +237,6 @@ static MPP_RET dump_reg(RK_U32 *reg_s, RK_U32 count, RK_U32 log_start_idx)
 }
 #endif
 
-static RK_U32 rkv_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 8);
-}
-
-static RK_U32 rkv_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 128));
-}
-
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 64)) / 2);
-}
-
 static MPP_RET vdpu383_setup_scale_origin_bufs(Av1dHalCtx *p_hal, MppFrame mframe)
 {
     Vdpu38xAv1dRegCtx *ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
@@ -373,8 +358,8 @@ MPP_RET vdpu383_av1d_init(void *hal, MppHalCfg *cfg)
     FUN_CHECK(hal_av1d_alloc_res(hal));
 
     mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, rkv_ver_align);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
 __RETURN:
     return MPP_OK;
@@ -1664,7 +1649,7 @@ MPP_RET vdpu383_av1d_control(void *hal, MpiCmd cmd_type, void *param)
 
         AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->slots, (MppFrame)param, 16);

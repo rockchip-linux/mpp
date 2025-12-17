@@ -108,26 +108,6 @@ typedef struct VdpuAv1dRegCtx_t {
     RK_U32          num_tile_cols;
 } VdpuAv1dRegCtx;
 
-static RK_U32 rkv_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 8);
-}
-
-static RK_U32 rkv_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 128));
-}
-
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 64)) / 2);
-}
-
 static MPP_RET hal_av1d_alloc_res(void *hal)
 {
     MPP_RET ret = MPP_OK;
@@ -274,9 +254,9 @@ MPP_RET vdpu_av1d_init(void *hal, MppHalCfg *cfg)
         reg_ctx->tile_transpose = 1;
     }
 
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, rkv_hor_align);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, rkv_ver_align);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     (void)cfg;
 __RETURN:
@@ -2398,7 +2378,7 @@ MPP_RET vdpu_av1d_control(void *hal, MpiCmd cmd_type, void *param)
 
         AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         break;
     }

@@ -740,11 +740,6 @@ static MPP_RET update_reference_list(Av1CodecContext *ctx)
     return ret;
 }
 
-static RK_U32 hor_align_16(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
 static MPP_RET get_current_frame(Av1CodecContext *ctx)
 {
     AV1Context *s = ctx->priv_data;
@@ -786,7 +781,7 @@ static MPP_RET get_current_frame(Av1CodecContext *ctx)
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
         RK_U32 fbc_hdr_stride = MPP_ALIGN(ctx->width, 64);
 
-        mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, hor_align_16);
+        mpp_slots_set_prop(s->slots, SLOTS_HOR_ALIGN, mpp_align_16);
         if (s->bit_depth == 10) {
             if ((ctx->pix_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP ||
                 (ctx->pix_fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV420SP_10BIT)
