@@ -51,26 +51,6 @@
 
 
 MPP_RET hal_avs2d_vdpu382_deinit(void *hal);
-static RK_U32 avs2d_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 avs2d_hor_align(RK_U32 val)
-{
-
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 avs2d_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 16));
-}
-
-static RK_U32 avs2d_hor_align_64(RK_U32 val)
-{
-    return MPP_ALIGN(val, 64);
-}
 
 static MPP_RET prepare_header(Avs2dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len)
 {
@@ -587,13 +567,13 @@ MPP_RET hal_avs2d_vdpu382_init(void *hal, MppHalCfg *cfg)
     }
 
     if (MPP_FRAME_FMT_IS_FBC(cfg->cfg->base.out_fmt))
-        mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avs2d_hor_align_64);
+        mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_64);
     else
-        mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avs2d_hor_align);
+        mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avs2d_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avs2d_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avs2d_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
 __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
