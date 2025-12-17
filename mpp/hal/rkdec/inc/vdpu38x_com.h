@@ -901,6 +901,7 @@ void vdpu38x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, void* comParas);
 void vdpu38x_update_thumbnail_frame_info(MppFrame frame);
 MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs);
+RK_S32 hal_h265d_avs2d_calc_mv_size(RK_S32 pic_w, RK_S32 pic_h, RK_S32 ctu_w);
 
 #ifdef DUMP_VDPU38X_DATAS
 extern RK_U32 vdpu38x_dump_cur_frm;

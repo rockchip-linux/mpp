@@ -49,7 +49,8 @@ typedef struct HalH265dCtx_t {
 
     RK_S32          width;
     RK_S32          height;
-    RK_S32          rcb_buf_size;
+    void            *rcb_ctx;
+    RK_U32          rcb_buf_size;
     H265dRcbInfo    rcb_info[H265D_RCB_BUF_COUNT];
     MppBuffer       rcb_buf[VDPU_FAST_REG_SET_CNT];
 
@@ -88,6 +89,7 @@ typedef struct HalH265dCtx_t {
     RK_U32          rps_offset;
     RK_U32          sclst_offset;
     void            *pps_buf;
+    RK_U32          pps_buf_sz;
     void            *sw_rps_buf;
     HalBufs         origin_bufs;
     MppBuffer       missing_ref_buf;

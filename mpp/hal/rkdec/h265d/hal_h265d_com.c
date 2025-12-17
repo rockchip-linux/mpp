@@ -27,6 +27,7 @@
 #include "hal_h265d_ctx.h"
 #include "hal_h265d_com.h"
 #include "h265d_syntax.h"
+#include "vdpu38x_com.h"
 
 RK_U8 hal_hevc_diag_scan4x4_x[16] = {
     0, 0, 1, 0,
@@ -82,12 +83,12 @@ RK_U8 hal_hevc_diag_scan8x8_y[64] = {
 
 void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
 {
-    RK_S32 i;
     RK_U32 g_scalingListNum_model[SCALING_LIST_SIZE_NUM] = {6, 6, 6, 2}; // from C Model
     RK_U32 nIndex = 0;
     RK_U32 sizeId, matrixId, listId;
     RK_U8 *p = pScalingFactor_out->scalingfactor0;
     RK_U8 tmpBuf[8 * 8];
+    RK_S32 i;
 
     //output non-default scalingFactor Table (1248 BYTES)
     for (sizeId = 0; sizeId < SCALING_LIST_SIZE_NUM; sizeId++) {
@@ -219,10 +220,10 @@ int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *ref)
 {
     RK_U8 nb_list = sh->slice_type == B_SLICE ? 2 : 1;
     RK_U8 list_idx;
-    RK_U32 i, j;
     RK_U8 bef_nb_refs = 0, aft_nb_refs = 0, lt_cur_nb_refs = 0;
     h265d_dxva2_picture_context_t *dxva_cxt = NULL;
     RK_S32 cand_lists[3];
+    RK_U32 i, j;
 
     memset(ref, 0, sizeof(RefPicListTab_t));
     dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
@@ -300,8 +301,8 @@ RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf, void* sw_rps_buf, RK_U3
 {
     BitputCtx_t bp;
     RK_S32 fifo_len = 400;
-    RK_S32 i = 0, j = 0;
     h265d_dxva2_picture_context_t *dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
+    RK_S32 i = 0, j = 0;
 
     if (!dxva_cxt->pp.rps_update_flag) {
         if (fast_mode) {
@@ -359,20 +360,20 @@ RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf, void* sw_rps_buf, RK_U3
 
 RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 {
-    RK_U32 i, j, k;
     RK_S32 value;
     RK_U32 nal_type;
     RK_S32 slice_idx = 0;
     BitReadCtx_t gb_cxt, *gb;
     SliceHeader_t sh;
-    RK_U8     rps_bit_offset[600];
-    RK_U8     rps_bit_offset_st[600];
-    RK_U8     slice_nb_rps_poc[600];
-    RK_U8     lowdelay_flag[600];
+    RK_U8 rps_bit_offset[600];
+    RK_U8 rps_bit_offset_st[600];
+    RK_U8 slice_nb_rps_poc[600];
+    RK_U8 lowdelay_flag[600];
     slice_ref_map_t rps_pic_info[600][2][15];
-    RK_U32    nb_refs = 0;
-    RK_S32    bit_begin;
+    RK_U32 nb_refs = 0;
+    RK_S32 bit_begin;
     h265d_dxva2_picture_context_t *dxva_cxt = NULL;
+    RK_U32 i, j, k;
 
     memset(&rps_pic_info,   0, sizeof(rps_pic_info));
     memset(&slice_nb_rps_poc, 0, sizeof(slice_nb_rps_poc));
@@ -2434,3 +2435,547 @@ RK_U8 cabac_table[27456] = {
     0x47, 0x10, 0x10, 0x08, 0x40, 0x0f, 0x08, 0x00, 0x27, 0x08, 0x37, 0x27, 0x27, 0x08, 0x40, 0x40,
     0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
+
+MPP_RET hal_h265d_vdpu38x_deinit(void *hal)
+{
+    HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    RK_U32 loop = reg_ctx->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->g_buf) : 1;
+    RK_U32 i;
+
+    if (reg_ctx->bufs) {
+        mpp_buffer_put(reg_ctx->bufs);
+        reg_ctx->bufs = NULL;
+    }
+
+    loop = reg_ctx->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->rcb_buf) : 1;
+    for (i = 0; i < loop; i++) {
+        if (reg_ctx->rcb_buf[i]) {
+            mpp_buffer_put(reg_ctx->rcb_buf[i]);
+            reg_ctx->rcb_buf[i] = NULL;
+        }
+    }
+    vdpu38x_rcb_calc_deinit((Vdpu38xRcbCtx *)reg_ctx->rcb_ctx);
+
+    if (reg_ctx->group) {
+        mpp_buffer_group_put(reg_ctx->group);
+        reg_ctx->group = NULL;
+    }
+
+    for (i = 0; i < loop; i++)
+        MPP_FREE(reg_ctx->g_buf[i].hw_regs);
+
+    MPP_FREE(reg_ctx->scaling_qm);
+    MPP_FREE(reg_ctx->scaling_rk);
+    MPP_FREE(reg_ctx->pps_buf);
+    MPP_FREE(reg_ctx->sw_rps_buf);
+
+    if (reg_ctx->cmv_bufs) {
+        hal_bufs_deinit(reg_ctx->cmv_bufs);
+        reg_ctx->cmv_bufs = NULL;
+    }
+
+    if (reg_ctx->origin_bufs) {
+        hal_bufs_deinit(reg_ctx->origin_bufs);
+        reg_ctx->origin_bufs = NULL;
+    }
+
+    return MPP_OK;
+}
+
+MPP_RET hal_h265d_vdpu_reset(void *hal)
+{
+    HalH265dCtx *p_hal = (HalH265dCtx *)hal;
+    MPP_RET ret = MPP_OK;
+
+    p_hal->fast_mode_err_found = 0;
+
+    return ret;
+}
+
+MPP_RET hal_h265d_vdpu_flush(void *hal)
+{
+    (void)hal;
+
+    return MPP_OK;
+}
+
+MPP_RET hal_h265d_vdpu38x_control(void *hal, MpiCmd cmd_type, void *param)
+{
+    MPP_RET ret = MPP_OK;
+    HalH265dCtx *p_hal = (HalH265dCtx *)hal;
+
+    switch ((MpiCmd)cmd_type) {
+    case MPP_DEC_SET_FRAME_INFO: {
+        MppFrame frame = (MppFrame)param;
+        MppFrameFormat fmt = mpp_frame_get_fmt(frame);
+        RK_U32 imgwidth = mpp_frame_get_width((MppFrame)param);
+        RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
+
+        if (fmt == MPP_FMT_YUV422SP) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+        } else if (fmt == MPP_FMT_YUV444SP || fmt == MPP_FMT_YUV444SP_10BIT) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv444);
+        }
+        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+            vdpu38x_afbc_align_calc(p_hal->slots, frame, 16);
+        } else if (imgwidth > 1920 || imgheight > 1088) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+        }
+        break;
+    }
+    case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
+        vdpu38x_update_thumbnail_frame_info((MppFrame)param);
+    } break;
+    case MPP_DEC_SET_OUTPUT_FORMAT: {
+    } break;
+    default: {
+    } break;
+    }
+    return  ret;
+}
+
+#define SCALING_LIST_NUM 6
+void hal_vdpu38x_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
+{
+    BitputCtx_t bp;
+    RK_U32 listId;
+    RK_S32 i;
+
+    mpp_set_bitput_ctx(&bp, (RK_U64 *)pScalingFactor_out, 170); // 170*64bits
+
+    //-------- following make it by hardware needed --------
+    //sizeId == 0, block4x4
+    for (listId = 0; listId < SCALING_LIST_NUM; listId++) {
+        RK_U8 *p_data = pScalingList->sl[0][listId];
+        /* dump by block4x4, vectial direction */
+        for (i = 0; i < 4; i++) {
+            mpp_put_bits(&bp, p_data[i + 0], 8);
+            mpp_put_bits(&bp, p_data[i + 4], 8);
+            mpp_put_bits(&bp, p_data[i + 8], 8);
+            mpp_put_bits(&bp, p_data[i + 12], 8);
+        }
+    }
+    //sizeId == 1, block8x8
+    for (listId = 0; listId < SCALING_LIST_NUM; listId++) {
+        RK_S32 blk4_x = 0, blk4_y = 0;
+        RK_U8 *p_data = pScalingList->sl[1][listId];
+
+        /* dump by block4x4, vectial direction */
+        for (blk4_x = 0; blk4_x < 8; blk4_x += 4) {
+            for (blk4_y = 0; blk4_y < 8; blk4_y += 4) {
+                RK_S32 pos = blk4_y * 8 + blk4_x;
+
+                for (i = 0; i < 4; i++) {
+                    mpp_put_bits(&bp, p_data[pos + i + 0], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 8], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 16], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 24], 8);
+                }
+            }
+        }
+    }
+    //sizeId == 2, block16x16
+    for (listId = 0; listId < SCALING_LIST_NUM; listId++) {
+        RK_S32 blk4_x = 0, blk4_y = 0;
+        RK_U8 *p_data = pScalingList->sl[2][listId];
+
+        /* dump by block4x4, vectial direction */
+        for (blk4_x = 0; blk4_x < 8; blk4_x += 4) {
+            for (blk4_y = 0; blk4_y < 8; blk4_y += 4) {
+                RK_S32 pos = blk4_y * 8 + blk4_x;
+
+                for (i = 0; i < 4; i++) {
+                    mpp_put_bits(&bp, p_data[pos + i + 0], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 8], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 16], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 24], 8);
+                }
+            }
+        }
+    }
+    //sizeId == 3, blcok32x32
+    for (listId = 0; listId < 6; listId++) {
+        RK_S32 blk4_x = 0, blk4_y = 0;
+        RK_U8 *p_data = pScalingList->sl[3][listId];
+
+        /* dump by block4x4, vectial direction */
+        for (blk4_x = 0; blk4_x < 8; blk4_x += 4) {
+            for (blk4_y = 0; blk4_y < 8; blk4_y += 4) {
+                RK_S32 pos = blk4_y * 8 + blk4_x;
+
+                for (i = 0; i < 4; i++) {
+                    mpp_put_bits(&bp, p_data[pos + i + 0], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 8], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 16], 8);
+                    mpp_put_bits(&bp, p_data[pos + i + 24], 8);
+                }
+            }
+        }
+    }
+    //sizeId == 0, block4x4, horiztion direction */
+    for (listId = 0; listId < SCALING_LIST_NUM; listId++) {
+        RK_U8 *p_data = pScalingList->sl[0][listId];
+
+        for (i = 0; i < 16; i++)
+            mpp_put_bits(&bp, p_data[i], 8);
+    }
+
+    // dump dc value
+    for (i = 0; i < SCALING_LIST_NUM; i++)//sizeId = 2, 16x16
+        mpp_put_bits(&bp, pScalingList->sl_dc[0][i], 8);
+    for (i = 0; i < SCALING_LIST_NUM; i++) //sizeId = 3, 32x32
+        mpp_put_bits(&bp, pScalingList->sl_dc[1][i], 8);
+
+    mpp_put_align(&bp, 128, 0);
+}
+
+MPP_RET hal_h265d_vdpu38x_scalinglist_packet(void *hal, void *ptr, void *dxva)
+{
+    scalingList_t sl;
+    h265d_dxva2_picture_context_t *dxva_ctx = (h265d_dxva2_picture_context_t*)dxva;
+    HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
+    RK_U32 i, j, pos;
+
+    if (!dxva_ctx->pp.scaling_list_enabled_flag) {
+        return MPP_OK;
+    }
+
+    if (memcmp((void*)&dxva_ctx->qm, reg_ctx->scaling_qm, sizeof(DXVA_Qmatrix_HEVC))) {
+        memset(&sl, 0, sizeof(scalingList_t));
+
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 16; j++) {
+                pos = 4 * hal_hevc_diag_scan4x4_y[j] + hal_hevc_diag_scan4x4_x[j];
+                sl.sl[0][i][pos] = dxva_ctx->qm.ucScalingLists0[i][j];
+            }
+
+            for (j = 0; j < 64; j++) {
+                pos = 8 * hal_hevc_diag_scan8x8_y[j] + hal_hevc_diag_scan8x8_x[j];
+                sl.sl[1][i][pos] =  dxva_ctx->qm.ucScalingLists1[i][j];
+                sl.sl[2][i][pos] =  dxva_ctx->qm.ucScalingLists2[i][j];
+
+                if (i == 0)
+                    sl.sl[3][i][pos] =  dxva_ctx->qm.ucScalingLists3[0][j];
+                else if (i == 3)
+                    sl.sl[3][i][pos] =  dxva_ctx->qm.ucScalingLists3[1][j];
+                else
+                    sl.sl[3][i][pos] =  dxva_ctx->qm.ucScalingLists2[i][j];
+            }
+
+            sl.sl_dc[0][i] =  dxva_ctx->qm.ucScalingListDCCoefSizeID2[i];
+            if (i == 0)
+                sl.sl_dc[1][i] =  dxva_ctx->qm.ucScalingListDCCoefSizeID3[0];
+            else if (i == 3)
+                sl.sl_dc[1][i] =  dxva_ctx->qm.ucScalingListDCCoefSizeID3[1];
+            else
+                sl.sl_dc[1][i] =  dxva_ctx->qm.ucScalingListDCCoefSizeID2[i];
+        }
+        hal_vdpu38x_record_scaling_list((scalingFactor_t *)reg_ctx->scaling_rk, &sl);
+    }
+
+    memcpy(ptr, reg_ctx->scaling_rk, sizeof(scalingFactor_t));
+
+    return MPP_OK;
+}
+
+RK_S32 hal_h265d_vdpu38x_output_pps_packet(void *hal, void *dxva, RK_U32 *scanlist_addr)
+{
+    HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
+    h265d_dxva2_picture_context_t *dxva_ctx = (h265d_dxva2_picture_context_t*)dxva;
+    RK_U32 log2_min_cb_size;
+    RK_S32 width, height;
+    BitputCtx_t bp;
+    RockchipSocType soc_type = mpp_get_soc_type();
+    RK_S32 i;
+
+    if (NULL == reg_ctx || NULL == dxva_ctx) {
+        mpp_err("%s:%s:%d reg_ctx or dxva_ctx is NULL",
+                __FILE__, __FUNCTION__, __LINE__);
+        return MPP_ERR_NULL_PTR;
+    }
+
+    // SPS
+    {
+        void *pps_ptr = mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->spspps_offset;
+        RK_U64 *pps_packet = reg_ctx->pps_buf;
+
+        if (NULL == pps_ptr) {
+            mpp_err("pps_data get ptr error");
+            return MPP_ERR_NOMEM;
+        }
+
+        log2_min_cb_size = dxva_ctx->pp.log2_min_luma_coding_block_size_minus3 + 3;
+        width = (dxva_ctx->pp.PicWidthInMinCbsY << log2_min_cb_size);
+        height = (dxva_ctx->pp.PicHeightInMinCbsY << log2_min_cb_size);
+
+        mpp_set_bitput_ctx(&bp, pps_packet, reg_ctx->pps_buf_sz / 8);
+
+        if (dxva_ctx->pp.ps_update_flag) {
+            mpp_put_bits(&bp, dxva_ctx->pp.vps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_format_idc, 2);
+
+            mpp_put_bits(&bp, width, 16);
+            mpp_put_bits(&bp, height, 16);
+            mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_luma_minus8, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.bit_depth_chroma_minus8, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_max_pic_order_cnt_lsb_minus4 + 4, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size, 2);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_min_luma_coding_block_size_minus3 + 3, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_min_transform_block_size_minus2 + 2, 3);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_transform_block_size, 2);
+            mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_inter, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.max_transform_hierarchy_depth_intra, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.scaling_list_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.amp_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.sample_adaptive_offset_enabled_flag, 1);
+            ///<-zrh comment ^  68 bit above
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_luma_minus1 + 1) : 0, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.pcm_sample_bit_depth_chroma_minus1 + 1) : 0, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_loop_filter_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_diff_max_min_pcm_luma_coding_block_size, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.pcm_enabled_flag ? (dxva_ctx->pp.log2_min_pcm_luma_coding_block_size_minus3 + 3) : 0, 3);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.num_short_term_ref_pic_sets, 7);
+            mpp_put_bits(&bp, dxva_ctx->pp.long_term_ref_pics_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_long_term_ref_pics_sps, 6);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_temporal_mvp_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
+            // SPS extenstion
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_rotation_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_context_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.strong_intra_smoothing_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.implicit_rdpcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.explicit_rdpcm_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.extended_precision_processing_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.intra_smoothing_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_max_dec_pic_buffering_minus1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.separate_colour_plane_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.high_precision_offsets_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.persistent_rice_adaptation_enabled_flag, 1);
+
+            /* PPS */
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_id, 6);
+            mpp_put_bits(&bp, dxva_ctx->pp.sps_id, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.dependent_slice_segments_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.output_flag_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_extra_slice_header_bits, 13);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.sign_data_hiding_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.cabac_init_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l0_default_active_minus1 + 1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.num_ref_idx_l1_default_active_minus1 + 1, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.init_qp_minus26, 7);
+            mpp_put_bits(&bp, dxva_ctx->pp.constrained_intra_pred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transform_skip_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.cu_qp_delta_enabled_flag, 1);
+            mpp_put_bits(&bp, log2_min_cb_size + dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size - dxva_ctx->pp.diff_cu_qp_delta_depth, 3);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_cb_qp_offset, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_cr_qp_offset, 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_slice_chroma_qp_offsets_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.weighted_pred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.weighted_bipred_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.transquant_bypass_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.tiles_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.entropy_coding_sync_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_loop_filter_across_slices_enabled_flag, 1);
+
+            mpp_put_bits(&bp, dxva_ctx->pp.loop_filter_across_tiles_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.deblocking_filter_override_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_deblocking_filter_disabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_beta_offset_div2, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.pps_tc_offset_div2, 4);
+            mpp_put_bits(&bp, dxva_ctx->pp.lists_modification_present_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.log2_parallel_merge_level_minus2 + 2, 3);
+            mpp_put_bits(&bp, dxva_ctx->pp.slice_segment_header_extension_present_flag, 1);
+            mpp_put_bits(&bp, 0, 3);
+
+            // PPS externsion
+            if (dxva_ctx->pp.log2_max_transform_skip_block_size > 2) {
+                mpp_put_bits(&bp, dxva_ctx->pp.log2_max_transform_skip_block_size - 2, 2);
+            } else {
+                mpp_put_bits(&bp, 0, 2);
+            }
+            mpp_put_bits(&bp, dxva_ctx->pp.cross_component_prediction_enabled_flag, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_enabled_flag, 1);
+
+            RK_S32 log2_min_cu_chroma_qp_delta_size = log2_min_cb_size +
+                                                      dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size -
+                                                      dxva_ctx->pp.diff_cu_chroma_qp_offset_depth;
+            mpp_put_bits(&bp, log2_min_cu_chroma_qp_delta_size, 3);
+            for (i = 0; i < 6; i++)
+                mpp_put_bits(&bp, dxva_ctx->pp.cb_qp_offset_list[i], 5);
+            for (i = 0; i < 6; i++)
+                mpp_put_bits(&bp, dxva_ctx->pp.cr_qp_offset_list[i], 5);
+            mpp_put_bits(&bp, dxva_ctx->pp.chroma_qp_offset_list_len_minus1, 3);
+
+            /* mvc0 && mvc1 */
+            mpp_put_bits(&bp, 0xffff, 16);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 6);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 1);
+        } else {
+            bp.index = 4;
+            bp.bitpos = 41;
+            bp.bvalue = bp.pbuf[bp.index] & MPP_GENMASK(bp.bitpos - 1, 0);
+        }
+        /* poc info */
+        {
+            RK_S32 dpb_valid[15] = {0}, refpic_poc[15] = {0};
+
+            for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_ctx->pp.RefPicList); i++) {
+                if (dxva_ctx->pp.RefPicList[i].bPicEntry != 0xff &&
+                    dxva_ctx->pp.RefPicList[i].bPicEntry != 0x7f) {
+                    dpb_valid[i] = 1;
+                    refpic_poc[i] = dxva_ctx->pp.PicOrderCntValList[i];
+                }
+            }
+
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, 0, 1);
+            mpp_put_bits(&bp, dxva_ctx->pp.current_poc, 32);
+
+            for (i = 0; i < 15; i++)
+                mpp_put_bits(&bp, refpic_poc[i], 32);
+            mpp_put_bits(&bp, 0, 32);
+            for (i = 0; i < 15; i++)
+                mpp_put_bits(&bp, dpb_valid[i], 1);
+            mpp_put_bits(&bp, 0, 1);
+        }
+
+        /* tile info */
+        mpp_put_bits(&bp, dxva_ctx->pp.tiles_enabled_flag ? (dxva_ctx->pp.num_tile_columns_minus1 + 1) : 1, 5);
+        mpp_put_bits(&bp, dxva_ctx->pp.tiles_enabled_flag ? (dxva_ctx->pp.num_tile_rows_minus1 + 1) : 1, 5);
+        {
+            /// tiles info begin
+            RK_U16 column_width[20];
+            RK_U16 row_height[22];
+
+            memset(column_width, 0, sizeof(column_width));
+            memset(row_height, 0, sizeof(row_height));
+
+            if (dxva_ctx->pp.tiles_enabled_flag) {
+                if (dxva_ctx->pp.uniform_spacing_flag == 0) {
+                    RK_S32 maxcuwidth = dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size + log2_min_cb_size;
+                    RK_S32 ctu_width_in_pic = (width +
+                                               (1 << maxcuwidth) - 1) / (1 << maxcuwidth) ;
+                    RK_S32 ctu_height_in_pic = (height +
+                                                (1 << maxcuwidth) - 1) / (1 << maxcuwidth) ;
+                    RK_S32 sum = 0;
+                    for (i = 0; i < dxva_ctx->pp.num_tile_columns_minus1; i++) {
+                        column_width[i] = dxva_ctx->pp.column_width_minus1[i] + 1;
+                        sum += column_width[i]  ;
+                    }
+                    column_width[i] = ctu_width_in_pic - sum;
+
+                    sum = 0;
+                    for (i = 0; i < dxva_ctx->pp.num_tile_rows_minus1; i++) {
+                        row_height[i] = dxva_ctx->pp.row_height_minus1[i] + 1;
+                        sum += row_height[i];
+                    }
+                    row_height[i] = ctu_height_in_pic - sum;
+                }  else {
+                    RK_S32 pic_in_cts_width = (width + (1 << (log2_min_cb_size +
+                                                              dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size)) - 1)
+                                              / (1 << (log2_min_cb_size +
+                                                       dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size));
+                    RK_S32 pic_in_cts_height = (height + (1 << (log2_min_cb_size +
+                                                                dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size)) - 1)
+                                               / (1 << (log2_min_cb_size +
+                                                        dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size));
+
+                    for (i = 0; i < dxva_ctx->pp.num_tile_columns_minus1 + 1; i++)
+                        column_width[i] = ((i + 1) * pic_in_cts_width) / (dxva_ctx->pp.num_tile_columns_minus1 + 1) -
+                                          (i * pic_in_cts_width) / (dxva_ctx->pp.num_tile_columns_minus1 + 1);
+
+                    for (i = 0; i < dxva_ctx->pp.num_tile_rows_minus1 + 1; i++)
+                        row_height[i] = ((i + 1) * pic_in_cts_height) / (dxva_ctx->pp.num_tile_rows_minus1 + 1) -
+                                        (i * pic_in_cts_height) / (dxva_ctx->pp.num_tile_rows_minus1 + 1);
+                }
+            } else {
+                RK_S32 MaxCUWidth = (1 << (dxva_ctx->pp.log2_diff_max_min_luma_coding_block_size + log2_min_cb_size));
+                column_width[0] = (width  + MaxCUWidth - 1) / MaxCUWidth;
+                row_height[0]   = (height + MaxCUWidth - 1) / MaxCUWidth;
+            }
+
+            for (i = 0; i < 20; i++)
+                mpp_put_bits(&bp, column_width[i], 12);
+
+            for (i = 0; i < 22; i++)
+                mpp_put_bits(&bp, row_height[i], 12);
+        }
+        /* update rps */
+        if ((soc_type == ROCKCHIP_SOC_RK3538 ||
+             soc_type == ROCKCHIP_SOC_RK3572) &&
+            dxva_ctx->pp.rps_update_flag) {
+            Short_SPS_RPS_HEVC *cur_st_rps_ptr = &dxva_ctx->pp.cur_st_rps;
+
+            for (i = 0; i < 32; i ++) {
+                mpp_put_bits(&bp, dxva_ctx->pp.sps_lt_rps[i].lt_ref_pic_poc_lsb, 16);
+                mpp_put_bits(&bp, dxva_ctx->pp.sps_lt_rps[i].used_by_curr_pic_lt_flag, 1);
+            }
+
+            mpp_put_bits(&bp, cur_st_rps_ptr->num_negative_pics, 4);
+            mpp_put_bits(&bp, cur_st_rps_ptr->num_positive_pics, 4);
+
+            for (i = 0; i <  cur_st_rps_ptr->num_negative_pics; i++) {
+                mpp_put_bits(&bp, cur_st_rps_ptr->delta_poc_s0[i], 16);
+                mpp_put_bits(&bp, cur_st_rps_ptr->s0_used_flag[i], 1);
+            }
+
+            for (i = 0; i <  cur_st_rps_ptr->num_positive_pics; i++) {
+                mpp_put_bits(&bp, cur_st_rps_ptr->delta_poc_s1[i], 16);
+                mpp_put_bits(&bp, cur_st_rps_ptr->s1_used_flag[i], 1);
+            }
+
+            for ( i = cur_st_rps_ptr->num_negative_pics + cur_st_rps_ptr->num_positive_pics; i < 15; i++) {
+                mpp_put_bits(&bp, 0, 16);
+                mpp_put_bits(&bp, 0, 1);
+            }
+        }
+        mpp_put_align(&bp, 64, 0);//128
+        memcpy(pps_ptr, reg_ctx->pps_buf, reg_ctx->pps_buf_sz);
+    } /* --- end spspps data ------*/
+
+    if (dxva_ctx->pp.scaling_list_enabled_flag) {
+        RK_U32 addr;
+        RK_U8 *ptr_scaling = (RK_U8 *)mpp_buffer_get_ptr(reg_ctx->bufs) + reg_ctx->sclst_offset;
+
+        if (dxva_ctx->pp.scaling_list_data_present_flag) {
+            addr = (dxva_ctx->pp.pps_id + 16) * 1360;
+        } else if (dxva_ctx->pp.scaling_list_enabled_flag) {
+            addr = dxva_ctx->pp.sps_id * 1360;
+        } else {
+            addr = 80 * 1360;
+        }
+
+        hal_h265d_vdpu38x_scalinglist_packet(hal, ptr_scaling + addr, dxva);
+
+        *scanlist_addr = reg_ctx->bufs_fd;
+        mpp_dev_set_reg_offset(reg_ctx->dev, 132, addr + reg_ctx->sclst_offset);
+    }
+
+#ifdef dump
+    fwrite(pps_ptr, 1, 80 * 64, fp);
+    RK_U32 *tmp = (RK_U32 *)pps_ptr;
+    for (i = 0; i < 112 / 4; i++) {
+        mpp_log("pps[%3d] = 0x%08x\n", i, tmp[i]);
+    }
+#endif
+#ifdef DUMP_VDPU38X_DATAS
+    {
+        char *cur_fname = "global_cfg.dat";
+        memset(vdpu38x_dump_cur_fname_path, 0, sizeof(vdpu38x_dump_cur_fname_path));
+        sprintf(vdpu38x_dump_cur_fname_path, "%s/%s", vdpu38x_dump_cur_dir, cur_fname);
+        vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)bp.pbuf,
+                                  64 * bp.index + bp.bitpos, 128, 0, 0);
+    }
+#endif
+
+    return 0;
+}

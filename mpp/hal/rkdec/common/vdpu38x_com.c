@@ -657,6 +657,16 @@ MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs)
     return MPP_OK;
 }
 
+RK_S32 hal_h265d_avs2d_calc_mv_size(RK_S32 pic_w, RK_S32 pic_h, RK_S32 ctu_w)
+{
+    RK_S32 seg_w = 64 * 16 * 16 / ctu_w; // colmv_block_size = 16, colmv_per_bytes = 16
+    RK_S32 seg_cnt_w = MPP_ALIGN(pic_w, seg_w) / seg_w;
+    RK_S32 seg_cnt_h = MPP_ALIGN(pic_h, ctu_w) / ctu_w;
+    RK_S32 mv_size   = seg_cnt_w * seg_cnt_h * 64 * 16;
+
+    return mv_size;
+}
+
 #ifdef DUMP_VDPU38X_DATAS
 RK_U32 vdpu38x_dump_cur_frm = 0;
 char vdpu38x_dump_cur_dir[128];
