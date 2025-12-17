@@ -10,13 +10,6 @@
 #include "mpp_buf_slot.h"
 #include "vdpu_com.h"
 
-#define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
-#define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
-#define OFFSET_COM_NEW_REGS         (320 * sizeof(RK_U32))
-#define OFFSET_CODEC_PARAS_REGS     (64 * sizeof(RK_U32))
-#define OFFSET_CODEC_ADDR_REGS      (168 * sizeof(RK_U32))
-#define OFFSET_INTERRUPT_REGS       (15 * sizeof(RK_U32))
-
 // #define DUMP_VDPU383_DATAS
 
 typedef struct Vdpu383RegVersion_t {

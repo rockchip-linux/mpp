@@ -653,7 +653,6 @@ static void set_ref_sign_bias(VdpuAv1dRegSet *regs, RK_S32 i, RK_S32 val)
 }
 
 #define MAX_FRAME_DISTANCE 31
-#define MAX_ACTIVE_REFS AV1_ACTIVE_REFS_EX
 
 static RK_S32 GetRelativeDist(DXVA_PicParams_AV1 *dxva, RK_S32 a, RK_S32 b)
 {

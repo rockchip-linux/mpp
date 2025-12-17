@@ -8,6 +8,7 @@
 
 #include "av1d_common.h"
 #include "vdpu_com.h"
+#include "hal_bufs.h"
 
 typedef struct Av1dVdpu38xBuf_t {
     RK_U32              valid;

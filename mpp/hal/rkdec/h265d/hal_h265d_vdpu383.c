@@ -28,6 +28,7 @@
 #include "vdpu383_h265d.h"
 #include "vdpu383_com.h"
 #include "vdpu_com.h"
+#include "vdpu38x_com.h"
 
 #define HW_RPS
 #define PPS_SIZE                (112 * 64)//(96x64)

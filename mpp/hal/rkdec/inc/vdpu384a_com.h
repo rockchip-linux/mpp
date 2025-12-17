@@ -10,17 +10,11 @@
 #include "mpp_buf_slot.h"
 #include "vdpu_com.h"
 
-#define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
-#define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
-#define OFFSET_COM_NEW_REGS         (320 * sizeof(RK_U32))
-#define OFFSET_CODEC_PARAS_REGS     (64 * sizeof(RK_U32))
-#define OFFSET_CODEC_ADDR_REGS      (168 * sizeof(RK_U32))
-#define OFFSET_INTERRUPT_REGS       (15 * sizeof(RK_U32))
-
 // #define DUMP_VDPU384A_DATAS
 
 typedef struct Vdpu384aRegVersion_t {
-    struct SWREG0_ID {
+    /* SWREG0_ID */
+    struct {
         RK_U32 minor_ver                      : 8;
         RK_U32 major_ver                      : 8;
         RK_U32 prod_num                       : 16;
@@ -32,7 +26,8 @@ typedef struct Vdpu384aCtrlReg_t {
     /* SWREG8_DEC_MODE */
     RK_U32 reg8_dec_mode;
 
-    struct SWREG9_IMPORTANT_EN {
+    /* SWREG9_IMPORTANT_EN */
+    struct {
         RK_U32 dpb_output_dis                 : 1;
         /*
          * 0: dpb data use rkfbc64x4 channel
@@ -67,7 +62,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve4                       : 6;
     } reg9;
 
-    struct SWREG10_BLOCK_GATING_EN {
+    /* SWREG10_BLOCK_GATING_EN */
+    struct {
         RK_U32 strmd_auto_gating_e            : 1;
         RK_U32 inter_auto_gating_e            : 1;
         RK_U32 intra_auto_gating_e            : 1;
@@ -81,7 +77,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve0                       : 22;
     } reg10;
 
-    struct SWREG11_CFG_PARA {
+    /* SWREG11_CFG_PARA */
+    struct {
         RK_U32 frame_irq_dis                  : 1;
         RK_U32 reserve0                       : 8;
         RK_U32 dec_timeout_dis                : 1;
@@ -90,7 +87,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 wr_outstanding                 : 8;
     } reg11;
 
-    struct SWREG12_CACHE_HASH_MASK {
+    /* SWREG12_CACHE_HASH_MASK */
+    struct {
         RK_U32 reserve0                       : 7;
         RK_U32 cache_hash_mask                : 25;
     } reg12;
@@ -98,13 +96,15 @@ typedef struct Vdpu384aCtrlReg_t {
     /* SWREG13_CORE_TIMEOUT_THRESHOLD */
     RK_U32 reg13_core_timeout_threshold;
 
-    struct SWREG14_LINE_IRQ_CTRL {
+    /* SWREG14_LINE_IRQ_CTRL */
+    struct {
         RK_U32 dec_line_irq_step              : 16;
         RK_U32 dec_line_offset_y_st           : 16;
     } reg14;
 
     /* copy from llp, media group add */
-    struct SWREG15_IRQ_STA {
+    /* SWREG15_IRQ_STA */
+    struct {
         RK_U32 rkvdec_frame_rdy_sta           : 1;
         RK_U32 rkvdec_strm_error_sta          : 1;
         RK_U32 rkvdec_core_timeout_sta        : 1;
@@ -125,7 +125,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve0                       : 1;
     } reg15;
 
-    struct SWREG16_ERROR_CTRL_SET {
+    /* SWREG16_ERROR_CTRL_SET */
+    struct {
         RK_U32 error_proc_disable             : 1;
         RK_U32 reserve0                       : 3;
         RK_U32 error_proc_mode                : 1;
@@ -137,21 +138,24 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve3                       : 7;
     } reg16;
 
-    struct SWREG17_ERR_ROI_CTU_OFFSET_START {
+    /* SWREG17_ERR_ROI_CTU_OFFSET_START */
+    struct {
         RK_U32 roi_x_ctu_offset_st            : 12;
         RK_U32 reserve0                       : 4;
         RK_U32 roi_y_ctu_offset_st            : 12;
         RK_U32 reserve1                       : 4;
     } reg17;
 
-    struct SWREG18_ERR_ROI_CTU_OFFSET_END {
+    /* SWREG18_ERR_ROI_CTU_OFFSET_END */
+    struct {
         RK_U32 roi_x_ctu_offset_end           : 12;
         RK_U32 reserve0                       : 4;
         RK_U32 roi_y_ctu_offset_end           : 12;
         RK_U32 reserve1                       : 4;
     } reg18;
 
-    struct SWREG19_ERROR_REF_INFO {
+    /* SWREG19_ERROR_REF_INFO */
+    struct {
         RK_U32 avs2_ref_error_field           : 1;
         RK_U32 avs2_ref_error_topfield        : 1;
         RK_U32 ref_error_topfield_used        : 1;
@@ -167,7 +171,8 @@ typedef struct Vdpu384aCtrlReg_t {
 
     RK_U32 reserve_reg22;
 
-    struct SWREG23_INVALID_PIXEL_FILL {
+    /* SWREG23_INVALID_PIXEL_FILL */
+    struct {
         RK_U32 fill_y                         : 10;
         RK_U32 fill_u                         : 10;
         RK_U32 fill_v                         : 10;
@@ -176,7 +181,8 @@ typedef struct Vdpu384aCtrlReg_t {
 
     RK_U32 reserve_reg24_27[4];
 
-    struct SWREG28_DEBUG_PERF_LATENCY_CTRL0 {
+    /* SWREG28_DEBUG_PERF_LATENCY_CTRL0 */
+    struct {
         RK_U32 axi_perf_work_e                : 1;
         RK_U32 reserve0                       : 2;
         RK_U32 axi_cnt_type                   : 1;
@@ -186,7 +192,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve2                       : 4;
     } reg28;
 
-    struct SWREG29_DEBUG_PERF_LATENCY_CTRL1 {
+    /* SWREG29_DEBUG_PERF_LATENCY_CTRL1 */
+    struct {
         RK_U32 addr_align_type                : 2;
         RK_U32 ar_cnt_id_type                 : 1;
         RK_U32 aw_cnt_id_type                 : 1;
@@ -197,7 +204,8 @@ typedef struct Vdpu384aCtrlReg_t {
         RK_U32 reserve1                       : 7;
     } reg29;
 
-    struct SWREG30_QOS_CTRL {
+    /* SWREG30_QOS_CTRL */
+    struct {
         RK_U32 axi_wr_qos_level               : 4;
         RK_U32 reserve0                       : 4;
         RK_U32 axi_wr_qos                     : 4;
@@ -429,7 +437,8 @@ typedef struct Vdpu384aRegCommParas_t {
 } Vdpu384aRegCommParas;
 
 typedef struct Vdpu384aRegStatistic_t {
-    struct SWREG256_IDLE_FLAG {
+    /* SWREG256_IDLE_FLAG */
+    struct {
         RK_U32 reserve0                       : 24;
         RK_U32 rkvdec_bus_idle_flag           : 1;
         RK_U32 reserve1                       : 7;
@@ -465,19 +474,22 @@ typedef struct Vdpu384aRegStatistic_t {
     /* SWREG285_PAYLOAD_CNT */
     RK_U32 reg285_filterd_payload_total_cnt;
 
-    struct SWREG286_WR_OFFSET {
+    /* SWREG286_WR_OFFSET */
+    struct {
         RK_U32 filterd_report_offsety         : 16;
         RK_U32 filterd_report_offsetx         : 16;
     } reg286;
 
-    struct SWREG287_MAX_PIX {
+    /* SWREG287_MAX_PIX */
+    struct {
         RK_U32 filterd_max_y                  : 10;
         RK_U32 filterd_max_u                  : 10;
         RK_U32 filterd_max_v                  : 10;
         RK_U32 reserve0                       : 2;
     } reg287;
 
-    struct SWREG288_MIN_PIX {
+    /* SWREG288_MIN_PIX */
+    struct {
         RK_U32 filterd_min_y                  : 10;
         RK_U32 filterd_min_u                  : 10;
         RK_U32 filterd_min_v                  : 10;
@@ -489,7 +501,8 @@ typedef struct Vdpu384aRegStatistic_t {
 
     RK_U32 reserve_reg290_291[2];
 
-    struct SWREG292_RCB_RW_SUM {
+    /* SWREG292_RCB_RW_SUM */
+    struct {
         RK_U32 rcb_rd_sum_chk                 : 8;
         RK_U32 rcb_wr_sum_chk                 : 8;
         RK_U32 reserve0                       : 16;
@@ -497,7 +510,8 @@ typedef struct Vdpu384aRegStatistic_t {
 
     RK_U32 reserve_reg293;
 
-    struct SWREG294_ERR_CTU_NUM0 {
+    /* SWREG294_ERR_CTU_NUM0 */
+    struct {
         RK_U32 error_ctu_num                  : 24;
         RK_U32 roi_error_ctu_num_lowbit       : 8;
     } reg294;
@@ -508,7 +522,8 @@ typedef struct Vdpu384aRegStatistic_t {
 } Vdpu384aRegStatistic;
 
 typedef struct Vdpu384aRegLlp_t {
-    struct SWREG0_LINK_MODE {
+    /* SWREG0_LINK_MODE */
+    struct {
         RK_U32 llp_mmu_zap_cache_dis          : 1;
         RK_U32 reserve0                       : 15;
         RK_U32 core_work_mode                 : 1;
@@ -518,12 +533,14 @@ typedef struct Vdpu384aRegLlp_t {
         RK_U32 reserve2                       : 10;
     } reg0;
 
-    struct SWREG1_CFG_START_ADDR {
+    /* SWREG1_CFG_START_ADDR */
+    struct {
         RK_U32 reserve0                       : 4;
         RK_U32 reg_cfg_addr                   : 28;
     } reg1;
 
-    struct SWREG2_LINK_MODE {
+    /* SWREG2_LINK_MODE */
+    struct {
         RK_U32 pre_frame_num                  : 30;
         RK_U32 reserve0                       : 1;
         RK_U32 link_mode                      : 1;
@@ -555,7 +572,8 @@ typedef struct Vdpu384aRegLlp_t {
     /* SWREG17_SOFT_RST */
     RK_U32 reg17_rkvdec_ip_rst_p;
 
-    struct SWREG18_IRQ {
+    /* SWREG18_IRQ */
+    struct {
         RK_U32 rkvdec_irq                     : 1;
         RK_U32 rkvdec_line_irq                : 1;
         RK_U32 reserve0                       : 14;
@@ -563,7 +581,8 @@ typedef struct Vdpu384aRegLlp_t {
         RK_U32 reserve1                       : 14;
     } reg18;
 
-    struct SWREG19_STA {
+    /* SWREG19_STA */
+    struct {
         RK_U32 rkvdec_frame_rdy_sta           : 1;
         RK_U32 rkvdec_strm_error_sta          : 1;
         RK_U32 rkvdec_core_timeout_sta        : 1;
@@ -589,7 +608,8 @@ typedef struct Vdpu384aRegLlp_t {
     /* SWREG21_IP_TIMEOUT_THRESHOD */
     RK_U32 reg21_ip_timeout_threshold;
 
-    struct SWREG22_IP_EN {
+    /* SWREG22_IP_EN */
+    struct {
         RK_U32 ip_timeout_pause_flag          : 1;
         RK_U32 reserve0                       : 3;
         RK_U32 abnormal_auto_reset_dis        : 1;
@@ -607,7 +627,8 @@ typedef struct Vdpu384aRegLlp_t {
         RK_U32 mmu_sel                        : 1;
     } reg22;
 
-    struct SWREG23_IN_OUT {
+    /* SWREG23_IN_OUT */
+    struct {
         RK_U32 endian                         : 1;
         RK_U32 swap32_e                       : 1;
         RK_U32 swap64_e                       : 1;

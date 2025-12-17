@@ -5,7 +5,11 @@
 
 #define MODULE_TAG "hal_av1d_com"
 
+#include "mpp_bitput.h"
+
+#include "hal_av1d_ctx.h"
 #include "hal_av1d_com.h"
+#include "vdpu38x_com.h"
 
 const RK_U32 g_av1d_default_prob[7400] = {
     0x000052ce, 0x90000000, 0x000003e2, 0x3b000000, 0x0013e5db, 0x00000000, 0x00000000, 0x20000000,
@@ -934,3 +938,669 @@ const RK_U32 g_av1d_default_prob[7400] = {
     0x20006000, 0x0c000800, 0x01000400, 0x00800180, 0x00300020, 0x00040010, 0x80020006, 0x80000000,
     0x20006000, 0x0c000800, 0x01000400, 0x00800180, 0x00300020, 0x00040010, 0x80020006, 0x80000000,
 };
+
+static void hal_av1d_release_res(void *hal)
+{
+    Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    RK_U32 max_cnt = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    RK_U32 i = 0;
+
+    for (i = 0; i < max_cnt; i++)
+        MPP_FREE(reg_ctx->reg_buf[i].regs);
+
+    BUF_PUT(reg_ctx->cdf_rd_def_base);
+    BUF_PUT(reg_ctx->bufs);
+    for (i = 0; i < max_cnt; i++)
+        BUF_PUT(reg_ctx->rcb_bufs[i]);
+    vdpu38x_rcb_calc_deinit(reg_ctx->rcb_ctx);
+
+    BUF_PUT(reg_ctx->filter_mem);
+
+    if (reg_ctx->cdf_segid_bufs) {
+        hal_bufs_deinit(reg_ctx->cdf_segid_bufs);
+        reg_ctx->cdf_segid_bufs = NULL;
+    }
+    if (reg_ctx->colmv_bufs) {
+        hal_bufs_deinit(reg_ctx->colmv_bufs);
+        reg_ctx->colmv_bufs = NULL;
+    }
+    if (reg_ctx->origin_bufs) {
+        hal_bufs_deinit(reg_ctx->origin_bufs);
+        reg_ctx->origin_bufs = NULL;
+    }
+
+    MPP_FREE(p_hal->reg_ctx);
+}
+
+MPP_RET vdpu38x_av1d_deinit(void *hal)
+{
+    hal_av1d_release_res(hal);
+
+    return MPP_OK;
+}
+
+MPP_RET vdpu38x_av1d_reset(void *hal)
+{
+    (void)hal;
+
+    return MPP_OK;
+}
+
+MPP_RET vdpu38x_av1d_flush(void *hal)
+{
+    (void)hal;
+
+    return MPP_OK;
+}
+
+MPP_RET vdpu38x_av1d_control(void *hal, MpiCmd cmd_type, void *param)
+{
+    Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    INP_CHECK(ret, NULL == p_hal);
+
+    switch ((MpiCmd)cmd_type) {
+    case MPP_DEC_SET_FRAME_INFO : {
+        MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
+        RK_U32 imgwidth = mpp_frame_get_width((MppFrame)param);
+        RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
+
+        AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
+        if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+        }
+        if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+            vdpu38x_afbc_align_calc(p_hal->slots, (MppFrame)param, 16);
+        } else if (imgwidth > 1920 || imgheight > 1088) {
+            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+        }
+        break;
+    }
+    case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
+        vdpu38x_update_thumbnail_frame_info((MppFrame)param);
+    } break;
+    case MPP_DEC_SET_OUTPUT_FORMAT : {
+    } break;
+    default : {
+    } break;
+    }
+
+__RETURN:
+    return ret = MPP_OK;
+}
+
+static RK_S32 GetRelativeDist(DXVA_PicParams_AV1 *dxva, RK_S32 a, RK_S32 b)
+{
+    if (!dxva->order_hint_bits) return 0;
+    const RK_S32 bits = dxva->order_hint_bits - 1;
+
+    RK_S32 diff = a - b;
+    RK_S32 m = 1 << bits;
+    diff = (diff & (m - 1)) - (diff & m);
+    return diff;
+}
+
+static RK_U32 mpp_clip_uintp2(RK_S32 a, RK_S32 p)
+{
+    if (a & ~((1 << p) - 1))
+        return -a >> 31 & ((1 << p) - 1);
+    else
+        return a;
+}
+
+MPP_RET vdpu38x_av1d_uncomp_hdr(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
+                                RK_U64 *data, RK_U32 len)
+{
+    RockchipSocType soc_type;
+    BitputCtx_t bp;
+    RK_S32 i, j;
+    (void) p_hal;
+
+    soc_type = mpp_get_soc_type();
+
+    mpp_set_bitput_ctx(&bp, data, len);
+
+    /* sequence header */
+    mpp_put_bits(&bp, dxva->coding.current_operating_point, 12);
+    mpp_put_bits(&bp, dxva->coding.use_128x128_superblock, 1);
+    mpp_put_bits(&bp, dxva->coding.filter_intra, 1);
+    mpp_put_bits(&bp, dxva->coding.intra_edge_filter, 1);
+    mpp_put_bits(&bp, dxva->coding.interintra_compound, 1);
+    mpp_put_bits(&bp, dxva->coding.masked_compound, 1);
+    mpp_put_bits(&bp, dxva->coding.dual_filter, 1);
+    mpp_put_bits(&bp, dxva->enable_order_hint, 1);
+    mpp_put_bits(&bp, dxva->coding.jnt_comp, 1);
+    mpp_put_bits(&bp, dxva->coding.enable_ref_frame_mvs, 1);
+    {
+        RK_S32 order_hint_bits_minus_1 = dxva->order_hint_bits ? (dxva->order_hint_bits - 1) : 0;
+
+        mpp_put_bits(&bp, order_hint_bits_minus_1, 3);
+    }
+    {
+        RK_U32 skip_loop_filter = 0; // TODO: control by user
+        RK_U32 enable_cdef = !skip_loop_filter && !dxva->coded_lossless;
+        RK_U32 enable_cdef_y = dxva->cdef.y_strengths[0].primary || dxva->cdef.y_strengths[0].secondary;
+        RK_U32 enable_cdef_uv = dxva->cdef.uv_strengths[0].primary || dxva->cdef.uv_strengths[0].secondary;
+
+        enable_cdef = enable_cdef && (dxva->cdef.bits || enable_cdef_y || enable_cdef_uv);
+        mpp_put_bits(&bp, enable_cdef, 1);
+    }
+    mpp_put_bits(&bp, (dxva->bitdepth > 8) ? (dxva->bitdepth - 8) : 0, 3);
+    {
+        RK_U32 yuv_format = 0;
+
+        if (dxva->format.mono_chrome)
+            yuv_format = 0;  // 400
+        else if (dxva->format.subsampling_y == 1 && dxva->format.subsampling_y == 1)
+            yuv_format = 1;  // 420
+        else if (dxva->format.subsampling_x == 1)
+            yuv_format = 2;  // 422
+        else
+            yuv_format = 3;  // 444
+
+        mpp_put_bits(&bp, yuv_format, 2);
+    }
+
+    mpp_put_bits(&bp, dxva->film_grain.matrix_coefficients, 8);
+    mpp_put_bits(&bp, dxva->coding.film_grain_en, 1);
+
+    /* frame uncompresss header */
+    {
+        RK_U32 frame_is_intra = dxva->format.frame_type == KEY_FRAME ||
+                                dxva->format.frame_type == INTRA_ONLY_FRAME;
+
+        mpp_put_bits(&bp, frame_is_intra, 1);
+        mpp_put_bits(&bp, dxva->coding.disable_cdf_update, 1);
+        mpp_put_bits(&bp, dxva->coding.screen_content_tools, 1);
+        mpp_put_bits(&bp, dxva->coding.integer_mv || frame_is_intra, 1);
+        mpp_put_bits(&bp, dxva->order_hint, 8);
+        if (soc_type == ROCKCHIP_SOC_RK3538 || soc_type == ROCKCHIP_SOC_RK3572)
+            mpp_put_bits(&bp, dxva->primary_ref_frame == AV1_PRIMARY_REF_NONE, 1);
+        mpp_put_bits(&bp, dxva->width, 16);
+        mpp_put_bits(&bp, dxva->height, 16);
+        mpp_put_bits(&bp, dxva->coding.superres, 1);
+        mpp_put_bits(&bp, dxva->superres_denom, 5);
+        mpp_put_bits(&bp, dxva->upscaled_width, 16);
+        mpp_put_bits(&bp, dxva->coding.high_precision_mv, 1);
+        mpp_put_bits(&bp, dxva->coding.intrabc, 1);
+    }
+
+    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++)
+        mpp_put_bits(&bp, dxva->ref_frame_valued ? dxva->ref_frame_idx[i] : (RK_U32) - 1, 3);
+
+    mpp_put_bits(&bp, dxva->interp_filter, 3);
+    mpp_put_bits(&bp, dxva->coding.switchable_motion_mode, 1);
+    mpp_put_bits(&bp, dxva->coding.use_ref_frame_mvs, 1);
+
+    {
+        RK_U32 mapped_idx = 0;
+
+        for (i = 0; i < NUM_REF_FRAMES; i++) {
+            mpp_put_bits(&bp, dxva->frame_refs[i].order_hint, 8);
+        }
+        for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
+            mapped_idx = dxva->ref_frame_idx[i];
+            mpp_put_bits(&bp, dxva->ref_order_hint[mapped_idx], 8);
+        }
+    }
+
+    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i) {
+        if (!dxva->order_hint_bits) {
+            dxva->ref_frame_sign_bias[i] = 0;
+        } else {
+            if (dxva->frame_refs[i].Index >= 0) {
+                RK_S32 ref_frame_offset = dxva->frame_refs[dxva->ref_frame_idx[i]].order_hint;
+                RK_S32 rel_off = GetRelativeDist(dxva, ref_frame_offset, dxva->order_hint);
+
+                dxva->ref_frame_sign_bias[i] = (rel_off <= 0) ? 0 : 1;
+            }
+        }
+        mpp_put_bits(&bp, dxva->ref_frame_sign_bias[i], 1);
+    }
+
+    mpp_put_bits(&bp, dxva->coding.disable_frame_end_update_cdf, 1);
+
+    /* quantization params */
+    mpp_put_bits(&bp, dxva->quantization.base_qindex, 8);
+    mpp_put_bits(&bp, dxva->quantization.y_dc_delta_q, 7);
+    mpp_put_bits(&bp, dxva->quantization.u_dc_delta_q, 7);
+    mpp_put_bits(&bp, dxva->quantization.u_ac_delta_q, 7);
+    mpp_put_bits(&bp, dxva->quantization.v_dc_delta_q, 7);
+    mpp_put_bits(&bp, dxva->quantization.v_ac_delta_q, 7);
+    mpp_put_bits(&bp, dxva->quantization.using_qmatrix, 1);
+
+    /* segmentation params */
+    mpp_put_bits(&bp, dxva->segmentation.enabled, 1);
+    mpp_put_bits(&bp, dxva->segmentation.update_map, 1);
+    mpp_put_bits(&bp, dxva->segmentation.temporal_update, 1);
+
+    {
+        RK_U32 mi_rows = MPP_ALIGN(dxva->width, 8) >> MI_SIZE_LOG2;
+        RK_U32 mi_cols = MPP_ALIGN(dxva->height, 8) >> MI_SIZE_LOG2;
+        /* index 0: AV1_REF_FRAME_LAST - AV1_REF_FRAME_LAST */
+        RK_U32 prev_mi_rows = MPP_ALIGN(dxva->frame_refs[0].width, 8) >> MI_SIZE_LOG2;
+        RK_U32 prev_mi_cols = MPP_ALIGN(dxva->frame_refs[0].height, 8) >> MI_SIZE_LOG2;
+        RK_U32 use_prev_segmentation_ids  = dxva->segmentation.enabled && dxva->primary_ref_frame &&
+                                            (mi_rows == prev_mi_rows) &&
+                                            (mi_cols == prev_mi_cols);
+
+        mpp_put_bits(&bp, use_prev_segmentation_ids, 1);
+    }
+
+    /* Segmentation data update */
+    for (i = 0; i < MAX_SEGMENTS; i++)
+        mpp_put_bits(&bp, dxva->segmentation.feature_mask[i], 8);
+
+    for (i = 0; i < MAX_SEGMENTS; i++) {
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][0], 9);
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][1], 7);
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][2], 7);
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][3], 7);
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][4], 7);
+        mpp_put_bits(&bp, dxva->segmentation.feature_data[i][5], 3);
+    }
+    mpp_put_bits(&bp, dxva->segmentation.last_active, 3);
+    mpp_put_bits(&bp, dxva->segmentation.preskip, 1);
+    mpp_put_bits(&bp, dxva->quantization.delta_q_present, 1);
+    if (dxva->quantization.delta_q_present)
+        mpp_put_bits(&bp, dxva->quantization.delta_q_res, 2);
+    else
+        mpp_put_bits(&bp, 1 << dxva->quantization.delta_q_res, 2);
+
+    /* delta lf params */
+    mpp_put_bits(&bp, dxva->loop_filter.delta_lf_present, 1);
+    mpp_put_bits(&bp, 1 << dxva->loop_filter.delta_lf_res, 2);
+    mpp_put_bits(&bp, dxva->loop_filter.delta_lf_multi, 1);
+    mpp_put_bits(&bp, dxva->coded_lossless, 1);
+    for (i = 0; i < MAX_SEGMENTS; ++i) {
+        RK_S32 qindex, lossless;
+
+        if (dxva->segmentation.feature_mask[i] & 0x1) {
+            qindex = (dxva->quantization.base_qindex + dxva->segmentation.feature_data[i][SEG_LVL_ALT_Q]);
+        } else {
+            qindex = dxva->quantization.base_qindex;
+        }
+        qindex = mpp_clip_uintp2(qindex, 8);
+        lossless = qindex == 0 && dxva->quantization.y_dc_delta_q == 0 &&
+                   dxva->quantization.u_dc_delta_q == 0 &&
+                   dxva->quantization.v_dc_delta_q == 0 &&
+                   dxva->quantization.u_ac_delta_q == 0 &&
+                   dxva->quantization.v_ac_delta_q == 0;
+
+        mpp_put_bits(&bp, lossless, 1);
+    }
+    mpp_put_bits(&bp, dxva->all_lossless, 1);
+
+    /* segmentation dequant */
+    mpp_put_bits(&bp, dxva->quantization.qm_y, 4);
+    mpp_put_bits(&bp, dxva->quantization.qm_u, 4);
+    mpp_put_bits(&bp, dxva->quantization.qm_v, 4);
+    mpp_put_bits(&bp, dxva->loop_filter.filter_level[0], 6);
+    mpp_put_bits(&bp, dxva->loop_filter.filter_level[1], 6);
+    mpp_put_bits(&bp, dxva->loop_filter.filter_level_u, 6);
+    mpp_put_bits(&bp, dxva->loop_filter.filter_level_v, 6);
+    mpp_put_bits(&bp, dxva->loop_filter.sharpness_level, 3);
+    mpp_put_bits(&bp, dxva->loop_filter.mode_ref_delta_enabled, 1);
+
+    for (i = 0; i < NUM_REF_FRAMES; i++)
+        mpp_put_bits(&bp, dxva->loop_filter.ref_deltas[i], 7);
+
+    for (i = 0; i < MAX_MODE_LF_DELTAS; i++)
+        mpp_put_bits(&bp, dxva->loop_filter.mode_deltas[i], 7);
+
+    /* cdef params */
+    mpp_put_bits(&bp, dxva->cdef.damping + 3, 3);
+    mpp_put_bits(&bp, dxva->cdef.bits, 2);
+
+    for (i = 0; i < 8; i++)
+        mpp_put_bits(&bp, dxva->cdef.y_strengths[i].primary, 4);
+
+    for (i = 0; i < 8; i++)
+        mpp_put_bits(&bp, dxva->cdef.uv_strengths[i].primary, 4);
+
+    for (i = 0; i < 8; i++)
+        mpp_put_bits(&bp, dxva->cdef.y_strengths[i].secondary, 2);
+
+    for (i = 0; i < 8; i++)
+        mpp_put_bits(&bp, dxva->cdef.uv_strengths[i].secondary, 2);
+
+    {
+        RK_U32 uses_lr = 0;
+
+        for (i = 0; i < (dxva->format.mono_chrome ? 1 : 3); i++)
+            uses_lr |= (dxva->loop_filter.frame_restoration_type[i] != AV1_RESTORE_NONE) ? 1 : 0;
+        mpp_put_bits(&bp, uses_lr, 1);
+    }
+    for (i = 0; i < 3; ++i)
+        mpp_put_bits(&bp, dxva->loop_filter.frame_restoration_type[i], 2);
+    for (i = 0; i < 2; ++i) // 0:32x32, 1:64x64, 2:128x128, 3:256x256
+        mpp_put_bits(&bp, dxva->loop_filter.log2_restoration_unit_size[i], 2);
+
+    mpp_put_bits(&bp, dxva->coding.tx_mode, 2);
+    mpp_put_bits(&bp, dxva->coding.reference_mode, 1);
+    mpp_put_bits(&bp, dxva->skip_ref0, 3);
+    mpp_put_bits(&bp, dxva->skip_ref1, 3);
+    mpp_put_bits(&bp, dxva->coding.skip_mode, 1);
+    mpp_put_bits(&bp, dxva->coding.warped_motion, 1);
+    mpp_put_bits(&bp, dxva->coding.reduced_tx_set, 1);
+
+    /* gm_type and gm_params */
+    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i)
+        mpp_put_bits(&bp, dxva->frame_refs[i].wmtype, 2);
+
+    for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i)
+        for (j = 0; j < 6; j++)
+            mpp_put_bits(&bp, dxva->frame_refs[i].wmmat_val[j], 17);
+
+    /* film_grain_params */
+    {
+        mpp_put_bits(&bp, dxva->film_grain.apply_grain, 1);
+        mpp_put_bits(&bp, dxva->film_grain.grain_seed, 16);
+        mpp_put_bits(&bp, dxva->film_grain.update_grain, 1);
+        mpp_put_bits(&bp, dxva->film_grain.num_y_points, 4);
+
+        for (i = 0; i < 14; i++)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_y[i][0], 8);
+
+        for (i = 0; i < 14; i++)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_y[i][1], 8);
+
+        mpp_put_bits(&bp, dxva->film_grain.chroma_scaling_from_luma, 1);
+        mpp_put_bits(&bp, dxva->film_grain.num_cb_points, 4);
+
+        for (i = 0; i < 10; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_cb[i][0], 8);
+
+        for (i = 0; i < 10; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_cb[i][1], 8);
+
+        mpp_put_bits(&bp, dxva->film_grain.num_cr_points, 4);
+        for (i = 0; i < 10; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_cr[i][0], 8);
+
+        for (i = 0; i < 10; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.scaling_points_cr[i][1], 8);
+
+        mpp_put_bits(&bp, dxva->film_grain.scaling_shift_minus8, 2);
+        mpp_put_bits(&bp, dxva->film_grain.ar_coeff_lag, 2);
+        for (i = 0; i < 24; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_y[i], 8);
+
+        for (i = 0; i < 25; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cb[i], 8);
+
+        for (i = 0; i < 25; ++i)
+            mpp_put_bits(&bp, dxva->film_grain.ar_coeffs_cr[i], 8);
+
+        mpp_put_bits(&bp, dxva->film_grain.ar_coeff_shift_minus6, 2);
+        mpp_put_bits(&bp, dxva->film_grain.grain_scale_shift, 2);
+        mpp_put_bits(&bp, dxva->film_grain.cb_mult, 8);
+        mpp_put_bits(&bp, dxva->film_grain.cb_luma_mult, 8);
+        mpp_put_bits(&bp, dxva->film_grain.cb_offset, 9);
+        mpp_put_bits(&bp, dxva->film_grain.cr_mult, 8);
+        mpp_put_bits(&bp, dxva->film_grain.cr_luma_mult, 8);
+        mpp_put_bits(&bp, dxva->film_grain.cr_offset, 9);
+        mpp_put_bits(&bp, dxva->film_grain.overlap_flag, 1);
+        mpp_put_bits(&bp, dxva->film_grain.clip_to_restricted_range, 1);
+    }
+
+    /* ref frame info */
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
+        mpp_put_bits(&bp, dxva->frame_ref_state[i].upscaled_width, 16);
+
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
+        mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_height, 16);
+
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
+        mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_width, 16);
+
+    for (i = 0; i < NUM_REF_FRAMES; ++i)
+        mpp_put_bits(&bp, dxva->frame_ref_state[i].frame_type, 2);
+
+    for (i = 0; i < NUM_REF_FRAMES; ++i) {
+        mpp_put_bits(&bp, dxva->frame_refs[i].lst_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].lst2_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].lst3_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].gld_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].bwd_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].alt2_frame_offset, 8);
+        mpp_put_bits(&bp, dxva->frame_refs[i].alt_frame_offset, 8);
+    }
+
+    {
+        RK_U32 mapped_idx = 0;
+        RK_U32 mapped_frame_width[8] = {0};
+        RK_U32 mapped_frame_height[8] = {0};
+
+        for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
+            mapped_idx = dxva->ref_frame_idx[i];
+            mapped_frame_width[mapped_idx] = dxva->frame_ref_state[mapped_idx].frame_width;
+            mapped_frame_height[mapped_idx] = dxva->frame_ref_state[mapped_idx].frame_height;
+        }
+        for (i = 0; i <= ALLOWED_REFS_PER_FRAME_EX; ++i) {
+            RK_U32 hor_scale, ver_scale;
+
+            if (dxva->coding.intrabc) {
+                hor_scale = dxva->width;
+                ver_scale = dxva->height;
+            } else {
+                hor_scale = mapped_frame_width[i];
+                ver_scale = mapped_frame_height[i];
+            }
+            hor_scale = ((hor_scale << AV1_REF_SCALE_SHIFT) + dxva->width / 2) / dxva->width;
+            ver_scale = ((ver_scale << AV1_REF_SCALE_SHIFT) + dxva->height / 2) / dxva->height;
+
+            mpp_put_bits(&bp, hor_scale, 16);
+            mpp_put_bits(&bp, ver_scale, 16);
+        }
+    }
+
+    mpp_put_bits(&bp, (dxva->frame_header_size + 7) >> 3, 10);
+    /* tile info */
+    mpp_put_bits(&bp, dxva->tiles.cols, 7);
+    mpp_put_bits(&bp, dxva->tiles.rows, 7);
+    mpp_put_bits(&bp, dxva->tiles.context_update_id, 12);
+    mpp_put_bits(&bp, dxva->tiles.tile_sz_mag + 1, 3);
+    mpp_put_bits(&bp, dxva->tiles.cols * dxva->tiles.rows, 13);
+    mpp_put_bits(&bp, dxva->tile_cols_log2 + dxva->tile_rows_log2, 12);
+
+    for (i = 0; i < 64; i++)
+        mpp_put_bits(&bp, dxva->tiles.widths[i], 7);
+
+    for (i = 0; i < 64; i++)
+        mpp_put_bits(&bp, dxva->tiles.heights[i], 10);
+
+    mpp_put_align(&bp, 128, 0);
+
+    return MPP_OK;
+}
+
+MPP_RET vdpu38x_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
+{
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
+                        (MPP_ALIGN(dxva->height, 128) / 128) * \
+                        32 * 16;
+    size_t size = ALL_CDF_SIZE + segid_size;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    /* the worst case is the frame is error with whole frame */
+    if (reg_ctx->cdf_segid_size < size) {
+        if (reg_ctx->cdf_segid_bufs) {
+            hal_bufs_deinit(reg_ctx->cdf_segid_bufs);
+            reg_ctx->cdf_segid_bufs = NULL;
+        }
+
+        hal_bufs_init(&reg_ctx->cdf_segid_bufs);
+        if (reg_ctx->cdf_segid_bufs == NULL) {
+            mpp_err_f("cdf bufs init fail");
+            goto __RETURN;
+        }
+
+        reg_ctx->cdf_segid_size = size;
+        reg_ctx->cdf_segid_count = mpp_buf_slot_get_count(p_hal->slots);
+        hal_bufs_setup(reg_ctx->cdf_segid_bufs, reg_ctx->cdf_segid_count, 1, &size);
+    }
+
+__RETURN:
+    return ret;
+}
+
+/*
+ * cdf buf structure:
+ *
+ *      base_addr0 +--------------------------+
+ *      434x128bit |   def_non_coeff_cdf      |
+ *  base_addr0+433 +--------------------------+
+ *
+ *      base_addr1 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_0      |
+ *                 |   (base_q_idx <= 20)     |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_1      |
+ *                 | (20 < base_q_idx <= 60)  |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_2      |
+ *                 | (60 < base_q_idx <= 120) |
+ *                 +--------------------------+
+ *      354x128bit |     def_coeff_cdf_3      |
+ *                 |   (base_q_idx > 120)     |
+ * base_addr1+1415 +--------------------------+
+ */
+void vdpu38x_av1d_set_cdf_segid(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
+                                RK_U32 *coef_rd_base, RK_U32 *coef_wr_base,
+                                RK_U32 *segid_last_base, RK_U32 *segid_cur_base,
+                                RK_U32 *noncoef_rd_base, RK_U32 *noncoef_wr_base)
+{
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    Vdpu38xRegSet *regs = reg_ctx->regs;
+    RK_U32 coeff_cdf_idx = 0;
+    RK_U32 mapped_idx = 0;
+    HalBuf *cdf_buf = NULL;
+    MppBuffer buf_tmp = NULL;
+    RK_U32 i = 0;
+
+    /* use para in decoder */
+#ifdef DUMP_VDPU38X_DATAS
+    {
+        char *cur_fname = "cabac_cdf_in.dat";
+
+        memset(vdpu38x_dump_cur_fname_path, 0, sizeof(vdpu38x_dump_cur_fname_path));
+        sprintf(vdpu38x_dump_cur_fname_path, "%s/%s", vdpu38x_dump_cur_dir, cur_fname);
+    }
+#endif
+    if (dxva->format.frame_type == AV1_FRAME_KEY)
+        for (i = 0; i < NUM_REF_FRAMES; i++)
+            reg_ctx->ref_info_tbl[i].cdf_valid = 0;
+    /* def coeff cdf idx */
+    coeff_cdf_idx = dxva->quantization.base_qindex <= 20 ? 0 :
+                    dxva->quantization.base_qindex <= 60  ? 1 :
+                    dxva->quantization.base_qindex <= 120 ? 2 : 3;
+
+    if (dxva->format.frame_type == AV1_FRAME_KEY ||
+        dxva->primary_ref_frame == AV1_PRIMARY_REF_NONE) {
+        *noncoef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
+        *coef_rd_base = mpp_buffer_get_fd(reg_ctx->cdf_rd_def_base);
+#ifdef DUMP_VDPU38X_DATAS
+        {
+            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base),
+                                      8 * NON_COEF_CDF_SIZE, 128, 0, 0);
+            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base)
+                                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx,
+                                      8 * COEF_CDF_SIZE, 128, 0, 1);
+        }
+#endif
+    } else {
+        mapped_idx = dxva->ref_frame_idx[dxva->primary_ref_frame];
+
+        coeff_cdf_idx = reg_ctx->ref_info_tbl[mapped_idx].coeff_idx;
+        if (!dxva->coding.disable_frame_end_update_cdf &&
+            reg_ctx->ref_info_tbl[mapped_idx].cdf_valid &&
+            dxva->frame_refs[mapped_idx].Index != (CHAR)0xff &&
+            dxva->frame_refs[mapped_idx].Index != 0x7f) {
+            cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->frame_refs[mapped_idx].Index);
+            buf_tmp = cdf_buf->buf[0];
+        } else {
+            buf_tmp = reg_ctx->cdf_rd_def_base;
+        }
+        *noncoef_rd_base = mpp_buffer_get_fd(buf_tmp);
+        *coef_rd_base = mpp_buffer_get_fd(buf_tmp);
+        *segid_last_base = mpp_buffer_get_fd(buf_tmp);
+#ifdef DUMP_VDPU38X_DATAS
+        {
+            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(buf_tmp),
+                                      8 * NON_COEF_CDF_SIZE, 128, 0, 0);
+            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (RK_U8 *)mpp_buffer_get_ptr(buf_tmp)
+                                      + NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx,
+                                      8 * COEF_CDF_SIZE, 128, 0, 1);
+        }
+#endif
+    }
+    cdf_buf = hal_bufs_get_buf(reg_ctx->cdf_segid_bufs, dxva->CurrPic.Index7Bits);
+    *noncoef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
+    *coef_wr_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
+    *segid_cur_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
+
+    /* byte, 434 x 128 bit = 434 x 16 byte */
+    mpp_dev_set_reg_offset(p_hal->dev, 178, NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx);
+    mpp_dev_set_reg_offset(p_hal->dev, 179, NON_COEF_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->dev, 181, ALL_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->dev, 182, ALL_CDF_SIZE);
+
+    /* update params sync with "update buffer" */
+    for (i = 0; i < NUM_REF_FRAMES; i++) {
+        if (dxva->refresh_frame_flags & (1 << i)) {
+            if (dxva->coding.disable_frame_end_update_cdf) {
+                if (dxva->show_existing_frame && dxva->format.frame_type == AV1_FRAME_KEY)
+                    reg_ctx->ref_info_tbl[i].coeff_idx
+                        = reg_ctx->ref_info_tbl[dxva->frame_to_show_map_idx].coeff_idx;
+                else
+                    reg_ctx->ref_info_tbl[i].coeff_idx = coeff_cdf_idx;
+            } else {
+                reg_ctx->ref_info_tbl[i].cdf_valid = 1;
+                reg_ctx->ref_info_tbl[i].coeff_idx = 0;
+            }
+        }
+    }
+
+#ifdef DUMP_VDPU38X_DATAS
+    {
+        char *cur_fname = "cdf_rd_def.dat";
+        memset(vdpu38x_dump_cur_fname_path, 0, sizeof(vdpu38x_dump_cur_fname_path));
+        sprintf(vdpu38x_dump_cur_fname_path, "%s/%s", vdpu38x_dump_cur_dir, cur_fname);
+        vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base),
+                                  (NON_COEF_CDF_SIZE + COEF_CDF_SIZE * 4) * 8, 128, 0, 0);
+    }
+#endif
+
+}
+
+MPP_RET vdpu38x_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
+{
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    size_t mv_size;
+    MPP_RET ret = MPP_ERR_UNKNOW;
+
+    /* the worst case is the frame is error with whole frame */
+    mv_size = MPP_ALIGN(dxva->width, 64) / 64 * MPP_ALIGN(dxva->height, 64) / 64 * 1024;
+    if (reg_ctx->colmv_bufs == NULL || reg_ctx->colmv_size < mv_size) {
+        if (reg_ctx->colmv_bufs) {
+            hal_bufs_deinit(reg_ctx->colmv_bufs);
+            reg_ctx->colmv_bufs = NULL;
+        }
+
+        hal_bufs_init(&reg_ctx->colmv_bufs);
+        if (reg_ctx->colmv_bufs == NULL) {
+            mpp_err_f("colmv bufs init fail");
+            goto __RETURN;
+        }
+        reg_ctx->colmv_size = mv_size;
+        reg_ctx->colmv_count = mpp_buf_slot_get_count(p_hal->slots);
+        hal_bufs_setup(reg_ctx->colmv_bufs, reg_ctx->colmv_count, 1, &mv_size);
+    }
+
+__RETURN:
+    return ret;
+}

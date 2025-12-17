@@ -632,6 +632,31 @@ void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, v
     }
 }
 
+MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs)
+{
+    /* for 8K FrameBuf scale mode */
+    size_t origin_buf_size = 0;
+
+    origin_buf_size = mpp_frame_get_buf_size(mframe);
+
+    if (!origin_buf_size) {
+        mpp_err_f("origin_bufs get buf size failed\n");
+        return MPP_NOK;
+    }
+    if (*org_bufs) {
+        hal_bufs_deinit(*org_bufs);
+        *org_bufs = NULL;
+    }
+    hal_bufs_init(org_bufs);
+    if (!(*org_bufs)) {
+        mpp_err_f("org_bufs init fail\n");
+        return MPP_ERR_NOMEM;
+    }
+    hal_bufs_setup(*org_bufs, 16, 1, &origin_buf_size);
+
+    return MPP_OK;
+}
+
 #ifdef DUMP_VDPU38X_DATAS
 RK_U32 vdpu38x_dump_cur_frm = 0;
 char vdpu38x_dump_cur_dir[128];

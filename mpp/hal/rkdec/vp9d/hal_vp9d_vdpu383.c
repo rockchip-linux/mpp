@@ -22,6 +22,7 @@
 #include "vdpu383_vp9d.h"
 #include "vp9d_syntax.h"
 #include "vdpu_com.h"
+#include "vdpu38x_com.h"
 
 #define HW_PROB         1
 #define VP9_CTU_SIZE    64

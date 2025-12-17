@@ -12,14 +12,18 @@
 #include "mpp_buf_slot.h"
 
 #include "vdpu_com.h"
+#include "hal_bufs.h"
 
 // #define DUMP_VDPU38X_DATAS
 
-#define OFFSET_CTRL_REGS            (8 * sizeof(RK_U32))
-#define OFFSET_INTERRUPT_REGS       (15 * sizeof(RK_U32))
-#define OFFSET_CODEC_PARAS_REGS     (64 * sizeof(RK_U32))
-#define OFFSET_COMMON_ADDR_REGS     (128 * sizeof(RK_U32))
-#define OFFSET_COM_STATISTIC_REGS   (256 * sizeof(RK_U32))
+#define OFFSET_CTRL_REGS                     (8 * sizeof(RK_U32))
+#define OFFSET_INTERRUPT_REGS                (15 * sizeof(RK_U32))
+#define OFFSET_CODEC_PARAS_REGS              (64 * sizeof(RK_U32))
+#define OFFSET_COMMON_ADDR_REGS              (128 * sizeof(RK_U32))
+#define OFFSET_CODEC_ADDR_REGS               (168 * sizeof(RK_U32))
+#define OFFSET_COM_STATISTIC_REGS_VDPU383    (320 * sizeof(RK_U32))
+#define OFFSET_COM_STATISTIC_REGS_VDPU384A   (320 * sizeof(RK_U32))
+#define OFFSET_COM_STATISTIC_REGS_VDPU384B   (256 * sizeof(RK_U32))
 
 typedef enum Vdpu38xFmt_e {
     MPP_HAL_FMT_YUV400 = 0,
@@ -896,6 +900,7 @@ void vdpu38x_setup_statistic(Vdpu38xCtrlReg *com);
 void vdpu38x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, void* comParas);
 void vdpu38x_update_thumbnail_frame_info(MppFrame frame);
+MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs);
 
 #ifdef DUMP_VDPU38X_DATAS
 extern RK_U32 vdpu38x_dump_cur_frm;

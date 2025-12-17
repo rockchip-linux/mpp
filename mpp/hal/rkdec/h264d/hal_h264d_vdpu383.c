@@ -18,6 +18,7 @@
 #include "vdpu383_h264d.h"
 #include "mpp_dec_cb_param.h"
 #include "vdpu_com.h"
+#include "vdpu38x_com.h"
 #include "hal_h264d_ctx.h"
 
 /* Number registers for the decoder */

@@ -23,6 +23,7 @@
 #include "hal_avs2d_vdpu383.h"
 #include "mpp_dec_cb_param.h"
 #include "vdpu_com.h"
+#include "vdpu38x_com.h"
 #include "hal_avs2d_ctx.h"
 
 #define MAX_REF_NUM                 (8)
