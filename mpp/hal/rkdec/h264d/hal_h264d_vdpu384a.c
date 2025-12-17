@@ -40,43 +40,7 @@
 #define VDPU384A_SCALING_LIST_OFFSET(pos)    (VDPU384A_SPSPPS_OFFSET(pos) + VDPU384A_SPSPPS_ALIGNED_SIZE)
 #define VDPU384A_INFO_BUFFER_SIZE(cnt)       (VDPU384A_STREAM_INFO_OFFSET_BASE + (VDPU384A_STREAM_INFO_SET_SIZE * cnt))
 
-#define SET_REF_INFO(regs, index, field, value)\
-    do{ \
-        switch(index){\
-        case 0: regs.reg99.ref0_##field = value; break;\
-        case 1: regs.reg99.ref1_##field = value; break;\
-        case 2: regs.reg99.ref2_##field = value; break;\
-        case 3: regs.reg99.ref3_##field = value; break;\
-        case 4: regs.reg100.ref4_##field = value; break;\
-        case 5: regs.reg100.ref5_##field = value; break;\
-        case 6: regs.reg100.ref6_##field = value; break;\
-        case 7: regs.reg100.ref7_##field = value; break;\
-        case 8: regs.reg101.ref8_##field = value; break;\
-        case 9: regs.reg101.ref9_##field = value; break;\
-        case 10: regs.reg101.ref10_##field = value; break;\
-        case 11: regs.reg101.ref11_##field = value; break;\
-        case 12: regs.reg102.ref12_##field = value; break;\
-        case 13: regs.reg102.ref13_##field = value; break;\
-        case 14: regs.reg102.ref14_##field = value; break;\
-        case 15: regs.reg102.ref15_##field = value; break;\
-        default: break;}\
-    }while(0)
-
 MPP_RET vdpu384a_h264d_deinit(void *hal);
-static RK_U32 rkv_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_len_align(RK_U32 val)
-{
-    return (MPP_ALIGN(val, 16) * 3 / 2);
-}
-
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 16)) / 2);
-}
 
 static MPP_RET vdpu384a_setup_scale_origin_bufs(H264dHalCtx_t *p_hal, MppFrame mframe)
 {
@@ -585,8 +549,8 @@ MPP_RET vdpu384a_h264d_init(void *hal, MppHalCfg *cfg)
     }
 
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv420);
 
     if (cfg->hal_fbc_adj_cfg) {
         cfg->hal_fbc_adj_cfg->func = vdpu384a_afbc_align_calc;
@@ -1002,7 +966,7 @@ MPP_RET vdpu384a_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 
         mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu384a_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);

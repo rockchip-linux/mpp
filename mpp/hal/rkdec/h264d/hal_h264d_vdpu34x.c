@@ -284,30 +284,6 @@ const RK_U32 rkv_cabac_table_v34x[928] = {
 };
 
 MPP_RET vdpu34x_h264d_deinit(void *hal);
-static RK_U32 rkv_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_hor_align_256_odds(RK_U32 val)
-{
-    return (MPP_ALIGN(val, 256) | 256);
-}
-
-static RK_U32 rkv_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 16));
-}
-
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 16)) / 2);
-}
 
 static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 {
@@ -708,9 +684,9 @@ MPP_RET vdpu34x_h264d_init(void *hal, MppHalCfg *cfg)
     memcpy((char *)reg_ctx->bufs_ptr + reg_ctx->offset_cabac,
            (void *)rkv_cabac_table_v34x, sizeof(rkv_cabac_table_v34x));
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     if (cfg->hal_fbc_adj_cfg) {
         cfg->hal_fbc_adj_cfg->func = vdpu34x_afbc_align_calc;
@@ -1164,12 +1140,12 @@ MPP_RET vdpu34x_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 
         mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu34x_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align_256_odds);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         }
         break;
     }

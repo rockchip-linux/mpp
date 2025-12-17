@@ -222,31 +222,6 @@ const RK_U32 rkv_cabac_table[928] = {
 };
 
 MPP_RET rkv_h264d_deinit(void *hal);
-static RK_U32 rkv_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-static RK_U32 rkv_hor_align_256_odds(RK_U32 val)
-{
-    return (MPP_ALIGN(val, 256) | 256);
-}
-
-static RK_U32 rkv_len_align(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 16));
-}
-
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 16)) / 2);
-}
-
 
 static MPP_RET prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
 {
@@ -579,9 +554,9 @@ MPP_RET rkv_h264d_init(void *hal, MppHalCfg *cfg)
                                      (void *)rkv_cabac_table, sizeof(rkv_cabac_table)));
     mpp_buffer_sync_end(reg_ctx->cabac_buf);
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, rkv_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     (void)cfg;
 __RETURN:
@@ -860,10 +835,10 @@ MPP_RET rkv_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 
         mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, rkv_hor_align_256_odds);
+            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         }
         break;
     }

@@ -833,8 +833,8 @@ MPP_RET vdpu2_h264d_init(void *hal, MppHalCfg *cfg)
         reg_ctx->regs = reg_ctx->reg_buf[0].regs;
     }
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, vdpu_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, vdpu_ver_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
 
 __RETURN:
     return MPP_OK;

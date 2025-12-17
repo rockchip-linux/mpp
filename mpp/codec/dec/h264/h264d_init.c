@@ -24,6 +24,7 @@
 #include "mpp_mem.h"
 #include "mpp_compat_impl.h"
 #include "mpp_frame_impl.h"
+#include "mpp_common.h"
 
 #include "h264d_global.h"
 #include "h264d_init.h"
@@ -378,16 +379,6 @@ __FAILED:
     return ret;
 }
 
-static inline RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return ((5 * MPP_ALIGN(val, 16)) / 2);
-}
-
-static RK_U32 hor_align_64(RK_U32 val)
-{
-    return MPP_ALIGN(val, 64);
-}
-
 static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -428,10 +419,10 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                 fmt = MPP_FMT_YUV420SP_10BIT;
             } else if ((H264_CHROMA_422 == p_Vid->yuv_format) && (8 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV422SP;
-                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
             } else if ((H264_CHROMA_422 == p_Vid->yuv_format) && (10 == p_Vid->bit_depth_luma)) {
                 fmt = MPP_FMT_YUV422SP_10BIT;
-                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+                mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
             }
 
             if (MPP_FRAME_FMT_IS_FBC(out_fmt)) {
@@ -450,7 +441,7 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
                         p_Vid->width <= 1920 && p_Vid->height <= 1088 && p_Vid->bit_depth_luma == 8)
                         break;
 
-                    mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, hor_align_64);
+                    mpp_slots_set_prop(p_Dec->frame_slots, SLOTS_HOR_ALIGN, mpp_align_64);
                     fmt |= (out_fmt & MPP_FRAME_FBC_MASK);
                 } while (0);
 

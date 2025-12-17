@@ -102,9 +102,6 @@ typedef struct h264d_vdpu_reg_ctx_t {
 extern "C" {
 #endif
 
-RK_U32 vdpu_ver_align(RK_U32 val);
-RK_U32 vdpu_hor_align(RK_U32 val);
-
 MPP_RET adjust_input(H264dVdpuPriv_t *priv,
                      DXVA_Slice_H264_Long *p_long,
                      DXVA_PicParams_H264_MVC  *pp);

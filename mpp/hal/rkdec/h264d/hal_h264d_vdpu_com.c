@@ -183,16 +183,6 @@ const RK_U32 vdpu_value_list[34] = {
     17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33
 };
 
-RK_U32 vdpu_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
-RK_U32 vdpu_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 16);
-}
-
 static MPP_RET get_info_input(H264dVdpuPriv_t *priv,
                               DXVA_Slice_H264_Long *p_long,
                               DXVA_PicParams_H264_MVC  *pp)
