@@ -80,16 +80,6 @@ RK_U8 hal_hevc_diag_scan8x8_y[64] = {
     5, 7, 6, 7,
 };
 
-RK_U32 hevc_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 8);
-}
-
-RK_U32 hevc_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
-
 void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList)
 {
     RK_S32 i;

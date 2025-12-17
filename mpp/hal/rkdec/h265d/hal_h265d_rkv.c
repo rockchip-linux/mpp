@@ -166,8 +166,8 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_NOK;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
 
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_HOR_ALIGN, hevc_hor_align);
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, hevc_ver_align);
+    mpp_slots_set_prop(reg_ctx->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
+    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, mpp_align_8);
 
     reg_ctx->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     reg_ctx->sw_rps_buf = mpp_calloc(RK_U64, 400);

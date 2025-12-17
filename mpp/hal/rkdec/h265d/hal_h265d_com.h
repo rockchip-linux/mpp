@@ -146,8 +146,6 @@ extern RK_U8 cabac_table[27456];
 extern "C" {
 #endif
 
-RK_U32 hevc_ver_align(RK_U32 val);
-RK_U32 hevc_hor_align(RK_U32 val);
 void hal_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList);
 RK_S32 hal_h265d_slice_hw_rps(void *dxva, void *rps_buf, void* sw_rps_buf, RK_U32 fast_mode);
 RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf);

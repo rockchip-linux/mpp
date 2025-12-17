@@ -70,16 +70,6 @@ static const FilterdColBufRatio filterd_fbc_off[CTU][FMT] = {
 
 #define pocdistance(a, b)               (((a) > (b)) ? ((a) - (b)) : ((b) - (a)))
 
-static RK_U32 rkv_len_align_422(RK_U32 val)
-{
-    return (2 * MPP_ALIGN(val, 16));
-}
-
-static RK_U32 rkv_len_align_444(RK_U32 val)
-{
-    return (3 * MPP_ALIGN(val, 16));
-}
-
 static MPP_RET vdpu383_setup_scale_origin_bufs(HalH265dCtx *ctx, MppFrame mframe)
 {
     /* for 8K FrameBuf scale mode */
@@ -113,7 +103,7 @@ static MPP_RET hal_h265d_vdpu383_init(void *hal, MppHalCfg *cfg)
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
 
     mpp_slots_set_prop(reg_ctx->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, hevc_ver_align);
+    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, mpp_align_8);
 
     reg_ctx->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     if (reg_ctx->scaling_qm == NULL) {
@@ -1452,9 +1442,9 @@ static MPP_RET hal_h265d_vdpu383_control(void *hal, MpiCmd cmd_type, void *param
         RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
 
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_422);
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         } else if (fmt == MPP_FMT_YUV444SP || fmt == MPP_FMT_YUV444SP_10BIT) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, rkv_len_align_444);
+            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv444);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
             vdpu383_afbc_align_calc(p_hal->slots, frame, 16);
