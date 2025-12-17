@@ -311,7 +311,7 @@ static MPP_RET hal_vp9d_vdpu383_init(void *hal, MppHalCfg *cfg)
     hw_ctx->mv_base_addr = -1;
     hw_ctx->pre_mv_base_addr = -1;
     mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, vp9_ver_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_64);
 
     if (p_hal->group == NULL) {
         ret = mpp_buffer_group_get_internal(&p_hal->group, MPP_BUFFER_TYPE_ION);
@@ -411,8 +411,8 @@ static void hal_vp9d_rcb_info_update(void *hal, Vdpu383Vp9dRegSet *hw_regs, void
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)data;
     RK_U32 num_tiles = pic_param->log2_tile_rows;
     RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
-    RK_S32 height = vp9_ver_align(pic_param->height);
-    RK_S32 width  = vp9_ver_align(pic_param->width);
+    RK_S32 height = mpp_align_64(pic_param->height);
+    RK_S32 width  = mpp_align_64(pic_param->width);
     (void) hw_regs;
 
     if (hw_ctx->num_row_tiles != num_tiles ||
@@ -933,7 +933,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         if (ref_frame)
             y_virstride = y_hor_virstride * mpp_frame_get_ver_stride(ref_frame);
         else
-            y_virstride = y_hor_virstride * vp9_ver_align(ref_frame_height_y);
+            y_virstride = y_hor_virstride * mpp_align_64(ref_frame_height_y);
 
         if (ref_frame_idx < 0x7f) {
             mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_BUFFER, &framebuf);

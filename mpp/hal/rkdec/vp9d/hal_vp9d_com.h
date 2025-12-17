@@ -85,9 +85,6 @@ extern const vp9_prob vp9_kf_partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES
 extern "C" {
 #endif
 
-RK_U32 vp9_ver_align(RK_U32 val);
-RK_U32 vp9_hor_align(RK_U32 val);
-
 MPP_RET hal_vp9d_output_probe(void *buf, void *dxva);
 MPP_RET hal_vp9d_prob_flag_delta(void *buf, void *dxva);
 void hal_vp9d_update_counts(void *buf, void *dxva);

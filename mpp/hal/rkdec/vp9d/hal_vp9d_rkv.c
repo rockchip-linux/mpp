@@ -201,8 +201,8 @@ MPP_RET hal_vp9d_rkv_init(void *hal, MppHalCfg *cfg)
     mpp_log("hal_vp9d_rkv_init in");
     ctx->mv_base_addr = -1;
     ctx->pre_mv_base_addr = -1;
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, vp9_hor_align);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, vp9_ver_align);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
+    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_64);
 
     if (p_hal->group == NULL) {
         ret = mpp_buffer_group_get_internal(&p_hal->group, MPP_BUFFER_TYPE_ION);
@@ -369,10 +369,10 @@ MPP_RET hal_vp9d_rkv_gen_regs(void *hal, HalTaskInfo *task)
             y_virstride = y_hor_virstride * mpp_frame_get_ver_stride(mframe);
             uv_virstride = uv_hor_virstride * mpp_frame_get_ver_stride(mframe) / 2;
         } else {
-            y_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
-            uv_hor_virstride = (vp9_hor_align((ref_frame_width_y * bit_depth) >> 3) >> 4);
-            y_virstride = y_hor_virstride * vp9_ver_align(ref_frame_height_y);
-            uv_virstride = uv_hor_virstride * vp9_ver_align(ref_frame_height_y) / 2;
+            y_hor_virstride = (mpp_align_256_odd((ref_frame_width_y * bit_depth) >> 3) >> 4);
+            uv_hor_virstride = (mpp_align_256_odd((ref_frame_width_y * bit_depth) >> 3) >> 4);
+            y_virstride = y_hor_virstride * mpp_align_64(ref_frame_height_y);
+            uv_virstride = uv_hor_virstride * mpp_align_64(ref_frame_height_y) / 2;
         }
         yuv_virstride = y_virstride + uv_virstride;
 
@@ -669,8 +669,8 @@ MPP_RET hal_vp9d_rkv_control(void *hal, MpiCmd cmd_type, void *param)
         RK_U32 width = mpp_frame_get_width((MppFrame)param);
         RK_U32 height = mpp_frame_get_height((MppFrame)param);
 
-        mpp_frame_set_hor_stride((MppFrame)param, vp9_hor_align(width));
-        mpp_frame_set_ver_stride((MppFrame)param, vp9_ver_align(height));
+        mpp_frame_set_hor_stride((MppFrame)param, mpp_align_256_odd(width));
+        mpp_frame_set_ver_stride((MppFrame)param, mpp_align_64(height));
     } break;
     default: {
     } break;

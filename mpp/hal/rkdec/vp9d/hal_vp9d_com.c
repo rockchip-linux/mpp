@@ -989,16 +989,6 @@ const vp9_prob vp9_kf_partition_probs[PARTITION_CONTEXTS][PARTITION_TYPES - 1] =
     {  12,   3,   3 },  // a/l both split
 };
 
-RK_U32 vp9_ver_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 64);
-}
-
-RK_U32 vp9_hor_align(RK_U32 val)
-{
-    return MPP_ALIGN(val, 256) | 256;
-}
-
 MPP_RET hal_vp9d_output_probe(void *buf, void *dxva)
 {
     RK_S32 i, j, k, m, n;
