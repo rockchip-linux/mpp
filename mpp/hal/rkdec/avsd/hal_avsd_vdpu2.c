@@ -485,9 +485,9 @@ MPP_RET hal_avsd_vdpu2_init(void *decoder, MppHalCfg *cfg)
     p_hal->p_regs = mpp_calloc_size(RK_U32, sizeof(AvsdVdpu2Regs_t));
     MEM_CHECK(ret, p_hal->p_regs);
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, avsd_hor_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, avsd_ver_align);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, avsd_len_align);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     p_hal->regs_num = 159;
     //!< initial for control

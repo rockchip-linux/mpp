@@ -134,9 +134,6 @@ typedef struct avsd_hal_ctx_t {
 extern "C" {
 #endif
 
-RK_U32 avsd_ver_align(RK_U32 val);
-RK_U32 avsd_hor_align(RK_U32 val);
-RK_U32 avsd_len_align(RK_U32 val);
 RK_S32 get_queue_pic(AvsdHalCtx_t *p_hal);
 RK_S32 get_packet_fd(AvsdHalCtx_t *p_hal, RK_S32 idx);
 RK_S32 get_frame_fd(AvsdHalCtx_t *p_hal, RK_S32 idx);
