@@ -12,12 +12,26 @@
 #include "mpp_common.h"
 #include "mpp_dmabuf.h"
 #include "mpp_singleton.h"
-#include "linux/dma-buf.h"
+#include <linux/dma-buf.h>
 
 #define MPP_NO_PARTIAL_SUPPORT  25  /* ENOTTY */
 #define CACHE_LINE_SIZE  64
 
 static RK_U32 has_partial_ops = 0;
+
+#ifndef DMA_BUF_IOCTL_SYNC_PARTIAL
+
+#define DMA_BUF_SET_NAME        _IOW(DMA_BUF_BASE, 1, const char *)
+
+struct dma_buf_sync_partial {
+    __u64 flags;
+    __u32 offset;
+    __u32 len;
+};
+
+#define DMA_BUF_IOCTL_SYNC_PARTIAL  _IOW(DMA_BUF_BASE, 2, struct dma_buf_sync_partial)
+
+#endif
 
 static void mpp_dmabuf_init(void)
 {
