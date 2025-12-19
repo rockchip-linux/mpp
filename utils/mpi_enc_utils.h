@@ -21,8 +21,14 @@
 #include "iniparser.h"
 #include "utils.h"
 
-#include "rk_venc_cmd.h"
-#include "rk_venc_ref.h"
+#include "rk_mpi.h"
+#include "rk_venc_kcfg.h"
+#include "mpp_enc_args.h"
+
+#include "camera_source.h"
+#include "mpp_enc_roi_utils.h"
+
+#define MPI_ENC_MAX_CHN 30
 
 typedef struct MpiEncTestArgs_t {
     char                *file_input;
@@ -112,6 +118,127 @@ typedef struct MpiEncTestArgs_t {
     RK_U32              kmpp_en;
 } MpiEncTestArgs;
 
+typedef struct MppEncTestObjSet_t {
+    MppEncArgs          cmd_obj;
+    MpiEncTestArgs      *cmd;
+    MppEncCfg           cfg_obj;
+} MppEncTestObjSet;
+
+typedef struct {
+    // base flow context
+    MppCtx              ctx;
+    MppApi              *mpi;
+    RK_S32              chn;
+
+    // global flow control flag
+    RK_U32              frm_eos;
+    RK_U32              pkt_eos;
+    RK_U32              frm_pkt_cnt;
+    RK_S32              frame_num;
+    RK_S32              frm_cnt_in;
+    RK_S32              frm_cnt_out;
+    RK_S32              frm_step;
+
+    RK_U64              stream_size;
+    /* end of encoding flag when set quit the loop */
+    volatile RK_U32     loop_end;
+
+    // src and dst
+    FILE                *fp_input;
+    FILE                *fp_output[MPI_ENC_MAX_CHN];
+    FILE                *fp_verify;
+
+    /* encoder config set */
+    MppEncCfg           cfg;
+    MppEncPrepCfg       prep_cfg;
+    MppEncRcCfg         rc_cfg;
+    MppEncOSDPltCfg     osd_plt_cfg;
+    MppEncOSDPlt        osd_plt;
+    MppEncOSDData       osd_data;
+    RoiRegionCfg        roi_region;
+    MppEncROICfg        roi_cfg;
+    MppJpegROICfg       roi_jpeg_cfg;
+
+    // input / output
+    MppBufferGroup      buf_grp;
+    MppEncSeiMode       sei_mode;
+    MppEncHeaderMode    header_mode;
+
+    // paramter for resource malloc
+    RK_U32              width;
+    RK_U32              height;
+    RK_U32              hor_stride;
+    RK_U32              ver_stride;
+    MppFrameFormat      fmt;
+    MppCodingType       type;
+    RK_S32              loop_times;
+    CamSource           *cam_ctx;
+    MppEncRoiCtx        roi_ctx;
+
+    MppVencKcfg         init_kcfg;
+
+    // resources
+    size_t              header_size;
+    size_t              frame_size;
+    /* NOTE: packet buffer may overflow */
+    size_t              packet_size;
+
+    RK_U32              osd_enable;
+    RK_U32              osd_mode;
+    RK_U32              split_mode;
+    RK_U32              split_arg;
+    RK_U32              split_out;
+
+    RK_U32              user_data_enable;
+    RK_U32              roi_enable;
+    RK_U32              roi_jpeg_enable;
+
+    /* -qc */
+    RK_S32              qp_init;
+    RK_S32              qp_min;
+    RK_S32              qp_max;
+    RK_S32              qp_min_i;
+    RK_S32              qp_max_i;
+
+    /* -fqc */
+    RK_S32              fqp_min_i;
+    RK_S32              fqp_min_p;
+    RK_S32              fqp_max_i;
+    RK_S32              fqp_max_p;
+    // rate control runtime parameter
+    RK_S32              fps_in_flex;
+    RK_S32              fps_in_den;
+    RK_S32              fps_in_num;
+    RK_S32              fps_out_flex;
+    RK_S32              fps_out_den;
+    RK_S32              fps_out_num;
+    RK_S32              bps;
+    RK_S32              bps_max;
+    RK_S32              bps_min;
+    RK_S32              rc_mode;
+    RK_S32              gop_mode;
+    RK_S32              gop_len;
+    RK_S32              vi_len;
+    RK_S32              scene_mode;
+    RK_S32              deblur_en;
+
+    RK_S32              cu_qp_delta_depth;
+    RK_S32              anti_flicker_str;
+    RK_S32              atr_str_i;
+    RK_S32              atr_str_p;
+    RK_S32              atl_str;
+    RK_S32              sao_str_i;
+    RK_S32              sao_str_p;
+    RK_S64              first_frm;
+    RK_S64              first_pkt;
+    RK_S64              last_pkt;
+
+    MppEncOSDData3      osd_data3;
+    KmppBuffer          osd_buffer;
+    RK_U8               *osd_pattern;
+    RK_U32              jpeg_osd_case;
+} MpiEncTestData;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -130,11 +257,12 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
                              RK_U32 width, RK_U32 height, RK_U32 frame_cnt);
 MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 frame_cnt);
 
-MpiEncTestArgs *mpi_enc_test_cmd_get(void);
-MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **argv);
-MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd);
+MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv);
+MPP_RET mpi_enc_test_cmd_put(MppEncTestObjSet* obj_set);
 
-MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd);
+MPP_RET mpi_enc_ctx_init(MpiEncTestData *p, MpiEncTestArgs *cmd, RK_S32 chn);
+MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p);
+MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_obj);
 
 #ifdef __cplusplus
 }

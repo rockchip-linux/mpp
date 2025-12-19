@@ -16,7 +16,9 @@
 
 #define MODULE_TAG "mpi_enc_utils"
 
+#include <errno.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "mpp_mem.h"
 #include "mpp_debug.h"
@@ -24,11 +26,58 @@
 
 #include "rk_mpi.h"
 #include "mpp_common.h"
+#include "mpp_rc_api.h"
 
 #include "mpp_opt.h"
 #include "mpi_enc_utils.h"
 
 #define MAX_FILE_NAME_LENGTH        256
+
+static RK_S32 qbias_arr_hevc[18] = {
+    3, 6, 13, 171, 171, 171, 171,
+    3, 6, 13, 171, 171, 220, 171, 85, 85, 85, 85
+};
+
+static RK_S32 qbias_arr_avc[18] = {
+    3, 6, 13, 683, 683, 683, 683,
+    3, 6, 13, 683, 683, 683, 683, 341, 341, 341, 341
+};
+
+static RK_S32 aq_rnge_arr[10] = {
+    5, 5, 10, 12, 12,
+    5, 5, 10, 12, 12
+};
+
+static RK_S32 aq_thd_smart[16] = {
+    1,  3,  3,  3,  3,  3,  5,  5,
+    8,  8,  8, 15, 15, 20, 25, 28
+};
+
+static RK_S32 aq_step_smart[16] = {
+    -8, -7, -6, -5, -4, -3, -2, -1,
+    0,  1,  2,  3,  4,  6,  8, 10
+};
+
+static RK_S32 aq_thd[16] = {
+    0,  0,  0,  0,
+    3,  3,  5,  5,
+    8,  8,  8,  15,
+    15, 20, 25, 25
+};
+
+static RK_S32 aq_step_i_ipc[16] = {
+    -8, -7, -6, -5,
+    -4, -3, -2, -1,
+    0,  1,  2,  3,
+    5,  7,  7,  8,
+};
+
+static RK_S32 aq_step_p_ipc[16] = {
+    -8, -7, -6, -5,
+    -4, -2, -1, -1,
+    0,  2,  3,  4,
+    6,  8,  9,  10,
+};
 
 RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
 {
@@ -89,21 +138,117 @@ RK_S32 mpi_enc_width_default_stride(RK_S32 width, MppFrameFormat fmt)
     return stride;
 }
 
-MpiEncTestArgs *mpi_enc_test_cmd_get(void)
+static RK_S32 mpi_enc_utils_load_file(MppEncTestObjSet *obj_set)
 {
-    MpiEncTestArgs *args = mpp_calloc(MpiEncTestArgs, 1);
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
+    MppEncArgs cmd_obj = obj_set->cmd_obj;
+    char *name = cmd->file_cfg;
+    char *enc_cfg_pos = NULL;
+    char *enc_args_pos = NULL;
+    const char str_enc_cfg[] = "\"enc_cfg\" :";
+    const char str_enc_args[] = "\"enc_args\" :";
+    RK_S32 ret = MPP_NOK;
+    RK_S32 fd = -1;
+    RK_S32 size = 0;
+    void *buf = NULL;
 
-    if (args) {
-        args->nthreads = 1;
-        args->frm_step = 1;
+    fd = open(name, O_RDWR);
+    if (fd < 0) {
+        mpp_err_f("cfg file %s open failed for %s\n", name, strerror(errno));
+        goto error;
     }
 
-    return args;
+    size = lseek(fd, 0, SEEK_END);
+    if (size < 0) {
+        mpp_err_f("lseek %s failed for %s\n", name, strerror(errno));
+        goto error;
+    }
+
+    lseek(fd, 0, SEEK_SET);
+    mpp_logi("load cfg file %s size %d\n", name, size);
+
+    buf = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+    if (!buf) {
+        mpp_err_f("mmap fd %d size %d failed\n", fd, size);
+        goto error;
+    }
+
+    enc_cfg_pos = strstr(buf, str_enc_cfg);
+    if (!enc_cfg_pos) {
+        mpp_err_f("enc cfg %s not found in %s\n", str_enc_cfg, name);
+        goto error;
+    }
+    enc_cfg_pos += strlen(str_enc_cfg);
+
+    mpp_enc_cfg_apply(cfg_obj, MPP_CFG_STR_FMT_JSON, enc_cfg_pos);
+
+    enc_args_pos = strstr(buf, str_enc_args);
+    if (!enc_args_pos) {
+        mpp_err_f("enc args %s not found in %s\n", str_enc_args, name);
+        goto error;
+    }
+    enc_args_pos += strlen(str_enc_args);
+
+    mpp_enc_args_apply(cmd_obj, MPP_CFG_STR_FMT_JSON, enc_args_pos);
+    ret = MPP_OK;
+
+error:
+    if (buf) {
+        munmap(buf, size);
+        buf = NULL;
+    }
+    if (fd >= 0) {
+        close(fd);
+        fd = -1;
+    }
+
+    return ret;
+}
+
+static void mpi_enc_sync_cmd(MpiEncTestArgs *cmd, MppEncCfg cfg)
+{
+    mpp_enc_cfg_get_s32(cfg, "prep:width", &cmd->width);
+    mpp_enc_cfg_get_s32(cfg, "prep:height", &cmd->height);
+    mpp_enc_cfg_get_s32(cfg, "prep:hor_stride", &cmd->hor_stride);
+    mpp_enc_cfg_get_s32(cfg, "prep:ver_stride", &cmd->ver_stride);
+    mpp_enc_cfg_get_s32(cfg, "codec:type", (RK_S32 *)&cmd->type);
+    mpp_enc_cfg_get_s32(cfg, "prep:format", (RK_S32 *)&cmd->format);
+    mpp_enc_cfg_get_s32(cfg, "rc:mode", &cmd->rc_mode);
+    mpp_enc_cfg_get_s32(cfg, "rc:gop", &cmd->gop_len);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_in_flex", &cmd->fps_in_flex);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_in_num", &cmd->fps_in_num);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_in_denom", &cmd->fps_in_den);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_out_flex", &cmd->fps_out_flex);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_out_num", &cmd->fps_out_num);
+    mpp_enc_cfg_get_s32(cfg, "rc:fps_out_denom", &cmd->fps_out_den);
+    mpp_enc_cfg_get_s32(cfg, "rc:qp_init", &cmd->qp_init);
+    mpp_enc_cfg_get_s32(cfg, "rc:qp_min", &cmd->qp_min);
+    mpp_enc_cfg_get_s32(cfg, "rc:qp_max", &cmd->qp_max);
+    mpp_enc_cfg_get_s32(cfg, "rc:qp_min_i", &cmd->qp_min_i);
+    mpp_enc_cfg_get_s32(cfg, "rc:qp_max_i", &cmd->qp_max_i);
+    mpp_enc_cfg_get_s32(cfg, "rc:fqp_min_i", &cmd->fqp_min_i);
+    mpp_enc_cfg_get_s32(cfg, "rc:fqp_max_i", &cmd->fqp_max_i);
+    mpp_enc_cfg_get_s32(cfg, "rc:fqp_min_p", &cmd->fqp_min_p);
+    mpp_enc_cfg_get_s32(cfg, "rc:fqp_max_p", &cmd->fqp_max_p);
+    mpp_enc_cfg_get_s32(cfg, "rc:bps_target", &cmd->bps_target);
+    mpp_enc_cfg_get_s32(cfg, "rc:bps_max", &cmd->bps_max);
+    mpp_enc_cfg_get_s32(cfg, "rc:bps_min", &cmd->bps_min);
+    mpp_enc_cfg_get_s32(cfg, "tune:scene_mode", &cmd->scene_mode);
+    mpp_enc_cfg_get_s32(cfg, "tune:deblur_en", &cmd->deblur_en);
+    mpp_enc_cfg_get_s32(cfg, "tune:anti_flicker_str", &cmd->anti_flicker_str);
+    mpp_enc_cfg_get_s32(cfg, "tune:atr_str_i", &cmd->atr_str_i);
+    mpp_enc_cfg_get_s32(cfg, "tune:atr_str_p", &cmd->atr_str_p);
+    mpp_enc_cfg_get_s32(cfg, "tune:atl_str", &cmd->atl_str);
+    mpp_enc_cfg_get_s32(cfg, "tune:sao_str_i", &cmd->sao_str_i);
+    mpp_enc_cfg_get_s32(cfg, "tune:sao_str_p", &cmd->sao_str_p);
+    mpp_enc_cfg_get_s32(cfg, "h265:diff_cu_qp_delta_depth", &cmd->cu_qp_delta_depth);
 }
 
 RK_S32 mpi_enc_opt_i(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
 
     if (next) {
         size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
@@ -125,7 +270,8 @@ RK_S32 mpi_enc_opt_i(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_o(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
 
     if (next) {
         size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
@@ -144,10 +290,14 @@ RK_S32 mpi_enc_opt_o(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_w(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->width = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "prep:width", cmd->width);
         return 1;
     }
 
@@ -157,10 +307,14 @@ RK_S32 mpi_enc_opt_w(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_h(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->height = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "prep:height", cmd->height);
         return 1;
     }
 
@@ -170,10 +324,14 @@ RK_S32 mpi_enc_opt_h(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_hstride(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->hor_stride = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "prep:hor_stride", cmd->hor_stride);
         return 1;
     }
 
@@ -183,10 +341,14 @@ RK_S32 mpi_enc_opt_hstride(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_vstride(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->ver_stride = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "prep:ver_stride", cmd->ver_stride);
         return 1;
     }
 
@@ -196,7 +358,9 @@ RK_S32 mpi_enc_opt_vstride(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_f(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         long number = 0;
@@ -208,6 +372,8 @@ RK_S32 mpi_enc_opt_f(void *ctx, const char *next)
             if (MPP_FRAME_FMT_IS_BE(format) &&
                 (MPP_FRAME_FMT_IS_YUV(format) || MPP_FRAME_FMT_IS_RGB(format))) {
                 cmd->format = format;
+                if (cfg_obj)
+                    mpp_enc_cfg_set_s32(cfg_obj, "prep:format", (RK_S32)cmd->format);
                 return 1;
             }
 
@@ -216,18 +382,26 @@ RK_S32 mpi_enc_opt_f(void *ctx, const char *next)
     }
 
     cmd->format = MPP_FMT_YUV420SP;
+    if (cfg_obj)
+        mpp_enc_cfg_set_s32(cfg_obj, "prep:format", (RK_S32)cmd->format);
+
     return 0;
 }
 
 RK_S32 mpi_enc_opt_t(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     MppCodingType type = MPP_VIDEO_CodingUnused;
 
     if (next) {
         type = (MppCodingType)atoi(next);
-        if (!mpp_check_support_format(MPP_CTX_ENC, type))
+        if (!mpp_check_support_format(MPP_CTX_ENC, type)) {
             cmd->type = type;
+            if (cfg_obj)
+                mpp_enc_cfg_set_s32(cfg_obj, "prep:type", (RK_S32)type);
+        }
         return 1;
     }
 
@@ -237,7 +411,8 @@ RK_S32 mpi_enc_opt_t(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_tsrc(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
     MppCodingType type = MPP_VIDEO_CodingUnused;
 
     if (next) {
@@ -254,7 +429,8 @@ RK_S32 mpi_enc_opt_tsrc(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_n(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
 
     if (next) {
         cmd->frame_num = atoi(next);
@@ -267,14 +443,22 @@ RK_S32 mpi_enc_opt_n(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_g(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     RK_S32 cnt = 0;
 
     if (next) {
         cnt = sscanf(next, "%d:%d:%d",
                      &cmd->gop_mode, &cmd->gop_len, &cmd->vi_len);
-        if (cnt)
+        if (cnt) {
+            if (cmd->gop_len) {
+                if (cfg_obj)
+                    mpp_enc_cfg_set_s32(cfg_obj, "rc:gop", cmd->gop_len);
+            }
+
             return 1;
+        }
     }
 
     mpp_err("invalid gop mode use -g gop_mode:gop_len:vi_len\n");
@@ -283,13 +467,18 @@ RK_S32 mpi_enc_opt_g(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_rc(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     RK_S32 cnt = 0;
 
     if (next) {
         cnt = sscanf(next, "%d", &cmd->rc_mode);
-        if (cnt)
+        if (cnt) {
+            if (cfg_obj)
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:rc_mode", cmd->rc_mode);
             return 1;
+        }
     }
 
     mpp_err("invalid rate control usage -rc rc_mode\n");
@@ -299,14 +488,22 @@ RK_S32 mpi_enc_opt_rc(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_bps(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     RK_S32 cnt = 0;
 
     if (next) {
         cnt = sscanf(next, "%d:%d:%d",
                      &cmd->bps_target, &cmd->bps_min, &cmd->bps_max);
-        if (cnt)
+        if (cnt) {
+            if (cfg_obj) {
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:bps_target", cmd->bps_target);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:bps_min", cmd->bps_min);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:bps_max", cmd->bps_max);
+            }
             return 1;
+        }
     }
 
     mpp_err("invalid bit rate usage -bps bps_target:bps_min:bps_max\n");
@@ -315,7 +512,10 @@ RK_S32 mpi_enc_opt_bps(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
+    RK_S32 ret;
 
     if (next) {
         RK_U32 num = sscanf(next, "%d:%d:%d/%d:%d:%d",
@@ -354,8 +554,18 @@ RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
                     " for set input and output separately, such as 40:1:1/30:1:0\n");
         } break;
         }
+        ret = (num > 0 && num <= 6) ? 1 : 0;
 
-        return (num && num <= 6);
+        if (cfg_obj && ret != 0) {
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_num", cmd->fps_in_num);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_den", cmd->fps_in_den);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_flex", cmd->fps_in_flex);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_num", cmd->fps_out_num);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_den", cmd->fps_out_den);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_flex", cmd->fps_out_flex);
+        }
+
+        return ret;
     }
 
     mpp_err("invalid output frame rate\n");
@@ -364,14 +574,25 @@ RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_qc(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     RK_S32 cnt = 0;
 
     if (next) {
         cnt = sscanf(next, "%d:%d:%d:%d:%d", &cmd->qp_init,
                      &cmd->qp_min, &cmd->qp_max, &cmd->qp_min_i, &cmd->qp_max_i);
-        if (cnt)
+        if (cnt) {
+            if (cfg_obj) {
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:qp_init", cmd->qp_init);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:qp_min", cmd->qp_min);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:qp_max", cmd->qp_max);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:qp_min_i", cmd->qp_min_i);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:qp_max_i", cmd->qp_max_i);
+            }
+
             return 1;
+        }
     }
 
     mpp_err("invalid quality control usage -qc qp_init:min:max:min_i:max_i\n");
@@ -380,14 +601,24 @@ RK_S32 mpi_enc_opt_qc(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_fqc(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
     RK_S32 cnt = 0;
 
     if (next) {
         cnt = sscanf(next, "%d:%d:%d:%d", &cmd->fqp_min_i, &cmd->fqp_max_i,
                      &cmd->fqp_min_p, &cmd->fqp_max_p);
-        if (cnt)
+        if (cnt) {
+            if (cfg_obj) {
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:fqp_min_i", cmd->fqp_min_i);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:fqp_max_i", cmd->fqp_max_i);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:fqp_min_p", cmd->fqp_min_p);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:fqp_max_p", cmd->fqp_max_p);
+            }
+
             return 1;
+        }
     }
 
     mpp_err("invalid frame quality control usage -fqc min_i:max_i:min_p:max_p\n");
@@ -396,7 +627,8 @@ RK_S32 mpi_enc_opt_fqc(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_s(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     cmd->nthreads = -1;
     if (next) {
@@ -412,7 +644,8 @@ RK_S32 mpi_enc_opt_s(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_l(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     if (next) {
         cmd->loop_cnt = atoi(next);
@@ -425,7 +658,8 @@ RK_S32 mpi_enc_opt_l(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_v(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     if (next) {
         if (strstr(next, "q"))
@@ -439,28 +673,40 @@ RK_S32 mpi_enc_opt_v(void *ctx, const char *next)
     return 0;
 }
 
-RK_S32 mpi_enc_opt_ini(void *ctx, const char *next)
+RK_S32 mpi_enc_opt_cfg(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = NULL;
+    RK_S32 ret;
 
     if (next) {
         size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
         if (len) {
             cmd->file_cfg = mpp_calloc(char, len + 1);
             strncpy(cmd->file_cfg, next, len);
-            cmd->cfg_ini = iniparser_load(cmd->file_cfg);
+
+            mpp_enc_cfg_init(&cfg_obj);
+            obj_set->cfg_obj = cfg_obj;
+            ret = mpi_enc_utils_load_file(obj_set);
+            if (ret)
+                return -1;
+
+            mpi_enc_sync_cmd(cmd, obj_set->cfg_obj);
 
             return 1;
         }
     }
 
-    mpp_err("input ini file is invalid\n");
+    mpp_err("invalid encoder cfg file\n");
+
     return 0;
 }
 
 RK_S32 mpi_enc_opt_slt(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     if (next) {
         size_t len = strnlen(next, MAX_FILE_NAME_LENGTH);
@@ -478,7 +724,8 @@ RK_S32 mpi_enc_opt_slt(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_step(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     if (next) {
         cmd->frm_step = atoi(next);
@@ -491,10 +738,14 @@ RK_S32 mpi_enc_opt_step(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_sm(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->scene_mode = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:scene_mode", cmd->scene_mode);
         return 1;
     }
 
@@ -504,10 +755,14 @@ RK_S32 mpi_enc_opt_sm(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_qpdd(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->cu_qp_delta_depth = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "h265:diff_cu_qp_delta_depth", cmd->cu_qp_delta_depth);
         return 1;
     }
 
@@ -517,10 +772,14 @@ RK_S32 mpi_enc_opt_qpdd(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_dbe(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->deblur_en = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:deblur_en", cmd->deblur_en);
         return 1;
     }
 
@@ -530,10 +789,14 @@ RK_S32 mpi_enc_opt_dbe(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_dbs(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->deblur_str = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:deblur_str", cmd->deblur_str);
         return 1;
     }
 
@@ -551,7 +814,9 @@ RK_S32 mpi_enc_opt_help(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         RK_S32 val = atoi(next);
@@ -564,6 +829,11 @@ RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
             cmd->atf_str = 0;
             mpp_err("invalid atf_str %d set to default 0\n", val);
         }
+        if (cfg_obj) {
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:atf_str", cmd->atf_str);
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:anti_flicker_str", cmd->anti_flicker_str);
+        }
+
         return 1;
     }
 
@@ -573,10 +843,14 @@ RK_S32 mpi_enc_opt_atf(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_atl(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->atl_str = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:atl_str", cmd->atl_str);
         return 1;
     }
 
@@ -586,10 +860,14 @@ RK_S32 mpi_enc_opt_atl(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_atr_i(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->atr_str_i = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:atr_str_i", cmd->atr_str_i);
         return 1;
     }
 
@@ -599,10 +877,14 @@ RK_S32 mpi_enc_opt_atr_i(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_atr_p(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->atr_str_p = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:atr_str_p", cmd->atr_str_p);
         return 1;
     }
 
@@ -612,10 +894,14 @@ RK_S32 mpi_enc_opt_atr_p(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_sao_i(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->sao_str_i = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:sao_str_i", cmd->sao_str_i);
         return 1;
     }
 
@@ -625,10 +911,14 @@ RK_S32 mpi_enc_opt_sao_i(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_sao_p(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->sao_str_p = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:sao_str_p", cmd->sao_str_p);
         return 1;
     }
 
@@ -638,10 +928,14 @@ RK_S32 mpi_enc_opt_sao_p(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_bc(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->rc_container = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:rc_container", cmd->rc_container);
         return 1;
     }
 
@@ -651,10 +945,14 @@ RK_S32 mpi_enc_opt_bc(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_bias_i(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->bias_i = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "hw:qbias_i", cmd->bias_i);
         return 1;
     }
 
@@ -664,10 +962,14 @@ RK_S32 mpi_enc_opt_bias_i(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_bias_p(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->bias_p = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "hw:qbias_p", cmd->bias_p);
         return 1;
     }
 
@@ -677,10 +979,14 @@ RK_S32 mpi_enc_opt_bias_p(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_lmd(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->lambda_idx_p = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:lambda_idx_p", cmd->lambda_idx_p);
         return 1;
     }
 
@@ -690,10 +996,14 @@ RK_S32 mpi_enc_opt_lmd(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_lmdi(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->lambda_idx_i = atoi(next);
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:lambda_idx_i", cmd->lambda_idx_i);
         return 1;
     }
 
@@ -703,7 +1013,9 @@ RK_S32 mpi_enc_opt_lmdi(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_speed(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
+    MppEncCfg cfg_obj = obj_set->cfg_obj;
 
     if (next) {
         cmd->speed = atoi(next);
@@ -711,6 +1023,8 @@ RK_S32 mpi_enc_opt_speed(void *ctx, const char *next)
             cmd->speed = 0;
             mpp_err("invalid speed %d set to default 0\n", cmd->speed);
         }
+        if (cfg_obj)
+            mpp_enc_cfg_set_s32(cfg_obj, "tune:speed", cmd->speed);
         return 1;
     }
 
@@ -720,7 +1034,8 @@ RK_S32 mpi_enc_opt_speed(void *ctx, const char *next)
 
 RK_S32 mpi_enc_opt_kmpp(void *ctx, const char *next)
 {
-    MpiEncTestArgs *cmd = (MpiEncTestArgs *)ctx;
+    MppEncTestObjSet* obj_set = (MppEncTestObjSet *)ctx;
+    MpiEncTestArgs *cmd = (MpiEncTestArgs *)obj_set->cmd;
 
     if (next) {
         cmd->kmpp_en = atoi(next);
@@ -757,7 +1072,7 @@ static MppOptInfo enc_opts[] = {
     {"s",       "instance_nb",          "number of instances",                      mpi_enc_opt_s},
     {"v",       "trace option",         "q - quiet f - show fps",                   mpi_enc_opt_v},
     {"l",       "loop count",           "loop encoding times for each frame",       mpi_enc_opt_l},
-    {"ini",     "ini file",             "encoder extra ini config file",            mpi_enc_opt_ini},
+    {"cfg",     "cfg_file",             "enc cfg file",                             mpi_enc_opt_cfg},
     {"slt",     "slt file",             "slt verify data file",                     mpi_enc_opt_slt},
     {"step",    "frame step",           "frame step, only for NV12 in slt test",    mpi_enc_opt_step},
     {"sm",      "scene mode",           "scene_mode, 0:default 1:ipc",              mpi_enc_opt_sm},
@@ -836,19 +1151,27 @@ void show_enc_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S6
             total_count, avg_fps, ins_fps);
 }
 
-MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **argv)
+MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv)
 {
+    MpiEncTestArgs *cmd = NULL;
+    MppEncCfg cfg_obj = NULL;
+    MppEncArgs cmd_obj = NULL;
     MppOpt opts = NULL;
     RK_S32 ret = -1;
     RK_U32 i;
 
-    if ((argc < 2) || NULL == cmd || NULL == argv)
+    if ((argc < 2) || NULL == argv)
         goto done;
 
-    cmd->rc_mode = MPP_ENC_RC_MODE_BUTT;
+    mpp_enc_args_get(&cmd_obj);
+    cmd = kmpp_obj_to_entry(cmd_obj);
+    obj_set->cmd_obj = cmd_obj;
+    obj_set->cmd = cmd;
+    if (cmd == NULL)
+        goto done;
 
     mpp_opt_init(&opts);
-    mpp_opt_setup(opts, cmd);
+    mpp_opt_setup(opts, obj_set);
 
     for (i = 0; i < enc_opt_cnt; i++)
         mpp_opt_add(opts, &enc_opts[i]);
@@ -856,7 +1179,20 @@ MPP_RET mpi_enc_test_cmd_update_by_args(MpiEncTestArgs* cmd, int argc, char **ar
     /* mark option end */
     mpp_opt_add(opts, NULL);
     ret = mpp_opt_parse(opts, argc, argv);
-    /* check essential parameter */
+    if (ret)
+        goto done;
+
+    if (cmd->file_cfg) {
+        if (cmd->kmpp_en) {
+            mpp_err("file_cfg and kmpp_en can not be set at the same time\n");
+            ret = MPP_NOK;
+            goto done;
+        } else {
+            ret = MPP_OK;
+            goto done;
+        }
+    }
+
     if (cmd->type <= MPP_VIDEO_CodingAutoDetect) {
         mpp_err("invalid type %d\n", cmd->type);
         ret = MPP_NOK;
@@ -905,10 +1241,9 @@ done:
     return ret;
 }
 
-MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
+MPP_RET mpi_enc_test_cmd_put(MppEncTestObjSet* obj_set)
 {
-    if (NULL == cmd)
-        return MPP_OK;
+    MpiEncTestArgs *cmd = obj_set->cmd;
 
     if (cmd->cfg_ini) {
         iniparser_freedict(cmd->cfg_ini);
@@ -920,11 +1255,7 @@ MPP_RET mpi_enc_test_cmd_put(MpiEncTestArgs* cmd)
         cmd->fps = NULL;
     }
 
-    MPP_FREE(cmd->file_input);
-    MPP_FREE(cmd->file_output);
-    MPP_FREE(cmd->file_cfg);
-    MPP_FREE(cmd->file_slt);
-    MPP_FREE(cmd);
+    mpp_enc_args_put(obj_set->cmd_obj);
 
     return MPP_OK;
 }
@@ -1266,19 +1597,493 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
     return MPP_OK;
 }
 
-MPP_RET mpi_enc_test_cmd_show_opt(MpiEncTestArgs* cmd)
+MPP_RET mpi_enc_ctx_init(MpiEncTestData *p, MpiEncTestArgs *cmd, RK_S32 chn)
 {
-    mpp_log("cmd parse result:\n");
-    mpp_log("input  file name: %s\n", cmd->file_input);
-    mpp_log("output file name: %s\n", cmd->file_output);
-    mpp_log("width      : %d\n", cmd->width);
-    mpp_log("height     : %d\n", cmd->height);
-    mpp_log("format     : %d\n", cmd->format);
-    mpp_log("type       : %d\n", cmd->type);
-    if (cmd->file_slt) {
-        mpp_log("verify     : %s\n", cmd->file_slt);
-        mpp_log("frame step : %d\n", cmd->frm_step);
+    MPP_RET ret = MPP_OK;
+
+    // get paramter from cmd
+    p->type              = cmd->type;
+    p->width             = cmd->width;
+    p->height            = cmd->height;
+    p->hor_stride        = (cmd->hor_stride) ? (cmd->hor_stride) :
+                           (MPP_ALIGN(cmd->width, 16));
+    p->ver_stride        = (cmd->ver_stride) ? (cmd->ver_stride) :
+                           (MPP_ALIGN(cmd->height, 16));
+    p->fmt               = cmd->format;
+    p->rc_mode           = cmd->rc_mode;
+    p->gop_len           = cmd->gop_len;
+    p->fps_in_flex       = cmd->fps_in_flex;
+    p->fps_in_den        = cmd->fps_in_den;
+    p->fps_in_num        = cmd->fps_in_num;
+    p->fps_out_flex      = cmd->fps_out_flex;
+    p->fps_out_den       = cmd->fps_out_den;
+    p->fps_out_num       = cmd->fps_out_num;
+    p->bps               = cmd->bps_target;
+    p->bps_max           = cmd->bps_max;
+    p->bps_min           = cmd->bps_min;
+    p->scene_mode        = cmd->scene_mode;
+    p->deblur_en         = cmd->deblur_en;
+    p->cu_qp_delta_depth = cmd->cu_qp_delta_depth;
+    p->anti_flicker_str  = cmd->anti_flicker_str;
+    p->atr_str_i         = cmd->atr_str_i;
+    p->atr_str_p         = cmd->atr_str_p;
+    p->atl_str           = cmd->atl_str;
+    p->sao_str_i         = cmd->sao_str_i;
+    p->sao_str_p         = cmd->sao_str_p;
+    p->qp_init           = cmd->qp_init;
+    p->qp_min            = cmd->qp_min;
+    p->qp_max            = cmd->qp_max;
+    p->qp_min_i          = cmd->qp_min_i;
+    p->qp_max_i          = cmd->qp_max_i;
+    p->fqp_min_i         = cmd->fqp_min_i;
+    p->fqp_min_p         = cmd->fqp_min_p;
+    p->fqp_max_i         = cmd->fqp_max_i;
+    p->fqp_max_p         = cmd->fqp_max_p;
+
+    p->frame_num         = cmd->frame_num;
+    p->frm_step          = cmd->frm_step;
+    p->gop_mode          = cmd->gop_mode;
+    p->vi_len            = cmd->vi_len;
+    if (p->type == MPP_VIDEO_CodingMJPEG && p->frame_num == 0) {
+        mpp_log("jpege default encode only one frame. Use -n [num] for rc case\n");
+        p->frame_num = 1;
     }
 
+    if (cmd->file_input) {
+        if (!strncmp(cmd->file_input, "/dev/video", 10)) {
+            mpp_log("open camera device");
+            p->cam_ctx = camera_source_init(cmd->file_input, 4, p->width, p->height, p->fmt);
+            mpp_log("new framecap ok");
+            if (p->cam_ctx == NULL)
+                mpp_err("open %s fail", cmd->file_input);
+        } else {
+            p->fp_input = fopen(cmd->file_input, "rb");
+            if (NULL == p->fp_input) {
+                mpp_err("failed to open input file %s\n", cmd->file_input);
+                mpp_err("create default yuv image for test\n");
+            }
+        }
+    }
+
+    if (cmd->file_output) {
+        char temp[256];
+        char output_name[256];
+        char *path = NULL;
+        char *filename = NULL;
+
+        if (cmd->nthreads > 1) {
+            strcpy(temp, cmd->file_output);
+            split_path_file_inplace(temp, &path, &filename);
+            sprintf(output_name, "%s/chn%d_%s", path, chn, filename);
+            p->fp_output[chn] = fopen(output_name, "w+b");
+        } else if (cmd->nthreads == 1) {
+            p->fp_output[chn] = fopen(cmd->file_output, "w+b");
+        }
+
+        if (NULL == p->fp_output[chn]) {
+            mpp_err("failed to open output file, chn %d\n", chn);
+            ret = MPP_ERR_OPEN_FILE;
+        }
+    }
+
+    if (cmd->file_slt) {
+        p->fp_verify = fopen(cmd->file_slt, "wt");
+        if (!p->fp_verify)
+            mpp_err("failed to open verify file %s\n", cmd->file_slt);
+    }
+
+    // update resource parameter
+    switch (p->fmt & MPP_FRAME_FMT_MASK) {
+    case MPP_FMT_YUV420SP:
+    case MPP_FMT_YUV420P: {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 3 / 2;
+    } break;
+
+    case MPP_FMT_YUV422_YUYV :
+    case MPP_FMT_YUV422_YVYU :
+    case MPP_FMT_YUV422_UYVY :
+    case MPP_FMT_YUV422_VYUY :
+    case MPP_FMT_YUV422P :
+    case MPP_FMT_YUV422SP : {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 2;
+    } break;
+    case MPP_FMT_YUV400:
+    case MPP_FMT_RGB444 :
+    case MPP_FMT_BGR444 :
+    case MPP_FMT_RGB555 :
+    case MPP_FMT_BGR555 :
+    case MPP_FMT_RGB565 :
+    case MPP_FMT_BGR565 :
+    case MPP_FMT_RGB888 :
+    case MPP_FMT_BGR888 :
+    case MPP_FMT_RGB101010 :
+    case MPP_FMT_BGR101010 :
+    case MPP_FMT_ARGB8888 :
+    case MPP_FMT_ABGR8888 :
+    case MPP_FMT_BGRA8888 :
+    case MPP_FMT_RGBA8888 : {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64);
+    } break;
+
+    default: {
+        p->frame_size = MPP_ALIGN(p->hor_stride, 64) * MPP_ALIGN(p->ver_stride, 64) * 4;
+    } break;
+    }
+
+    if (MPP_FRAME_FMT_IS_FBC(p->fmt)) {
+        if ((p->fmt & MPP_FRAME_FBC_MASK) == MPP_FRAME_FBC_AFBC_V1)
+            p->header_size = MPP_ALIGN(MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16, SZ_4K);
+        else
+            p->header_size = MPP_ALIGN(p->width, 16) * MPP_ALIGN(p->height, 16) / 16;
+    } else {
+        p->header_size = 0;
+    }
+
+    return ret;
+}
+
+MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p)
+{
+    if (p) {
+        if (p->cam_ctx) {
+            camera_source_deinit(p->cam_ctx);
+            p->cam_ctx = NULL;
+        }
+        if (p->fp_input) {
+            fclose(p->fp_input);
+            p->fp_input = NULL;
+        }
+        for (RK_S32 i = 0; i < MPI_ENC_MAX_CHN; i++) {
+            if (p->fp_output[i]) {
+                fclose(p->fp_output[i]);
+                p->fp_output[i] = NULL;
+            }
+        }
+        if (p->fp_verify) {
+            fclose(p->fp_verify);
+            p->fp_verify = NULL;
+        }
+    }
     return MPP_OK;
+}
+
+MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_obj)
+{
+    MppApi *mpi = p->mpi;
+    MppCtx ctx = p->ctx;
+    MppEncCfg cfg = p->cfg;
+    MPP_RET ret;
+    RK_U32 rotation;
+    RK_U32 mirroring;
+    RK_U32 flip;
+    RK_U32 gop_mode = p->gop_mode;
+    MppEncRefCfg ref = NULL;
+
+    /* setup default parameter */
+    if (p->fps_in_den == 0)
+        p->fps_in_den = 1;
+    if (p->fps_in_num == 0)
+        p->fps_in_num = 30;
+    if (p->fps_out_den == 0)
+        p->fps_out_den = 1;
+    if (p->fps_out_num == 0)
+        p->fps_out_num = 30;
+
+    if (!p->bps)
+        p->bps = p->width * p->height / 8 * (p->fps_out_num / p->fps_out_den);
+
+    if (cfg_obj) {
+        kmpp_obj_copy(p->cfg, cfg_obj);
+    } else {
+        mpp_enc_cfg_set_s32(cfg, "codec:type", p->type);
+
+        /* setup preprocess parameters */
+        mpp_enc_cfg_set_s32(cfg, "prep:width", p->width);
+        mpp_enc_cfg_set_s32(cfg, "prep:height", p->height);
+        mpp_enc_cfg_set_s32(cfg, "prep:hor_stride", p->hor_stride);
+        mpp_enc_cfg_set_s32(cfg, "prep:ver_stride", p->ver_stride);
+        mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
+        mpp_enc_cfg_set_s32(cfg, "prep:range", MPP_FRAME_RANGE_JPEG);
+
+        mpp_env_get_u32("mirroring", &mirroring, 0);
+        mpp_env_get_u32("rotation", &rotation, 0);
+        mpp_env_get_u32("flip", &flip, 0);
+
+        mpp_enc_cfg_set_s32(cfg, "prep:mirroring", mirroring);
+        mpp_enc_cfg_set_s32(cfg, "prep:rotation", rotation);
+        mpp_enc_cfg_set_s32(cfg, "prep:flip", flip);
+
+        /* setup rate control parameters */
+        mpp_enc_cfg_set_s32(cfg, "rc:mode", p->rc_mode);
+        mpp_enc_cfg_set_u32(cfg, "rc:max_reenc_times", 0);
+        mpp_enc_cfg_set_u32(cfg, "rc:super_mode", 0);
+
+        /* drop frame or not when bitrate overflow */
+        mpp_enc_cfg_set_u32(cfg, "rc:drop_mode", MPP_ENC_RC_DROP_FRM_DISABLED);
+        mpp_enc_cfg_set_u32(cfg, "rc:drop_thd", 20);        /* 20% of max bps */
+        mpp_enc_cfg_set_u32(cfg, "rc:drop_gap", 1);         /* Do not continuous drop frame */
+
+        p->split_mode = 0;
+        p->split_arg = 0;
+        p->split_out = 0;
+
+        mpp_env_get_u32("split_mode", &p->split_mode, MPP_ENC_SPLIT_NONE);
+        mpp_env_get_u32("split_arg", &p->split_arg, 0);
+        mpp_env_get_u32("split_out", &p->split_out, 0);
+
+        if (p->split_mode) {
+            mpp_enc_cfg_set_s32(cfg, "split:mode", p->split_mode);
+            mpp_enc_cfg_set_s32(cfg, "split:arg", p->split_arg);
+            mpp_enc_cfg_set_s32(cfg, "split:out", p->split_out);
+        }
+
+        /* setup fine tuning paramters */
+        mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", p->anti_flicker_str);
+        mpp_enc_cfg_set_s32(cfg, "tune:atf_str", cmd->atf_str);
+        mpp_enc_cfg_set_s32(cfg, "tune:atr_str_i", p->atr_str_i);
+        mpp_enc_cfg_set_s32(cfg, "tune:atr_str_p", p->atr_str_p);
+        mpp_enc_cfg_set_s32(cfg, "tune:atl_str", p->atl_str);
+        mpp_enc_cfg_set_s32(cfg, "tune:deblur_en", p->deblur_en);
+        mpp_enc_cfg_set_s32(cfg, "tune:deblur_str", cmd->deblur_str);
+        mpp_enc_cfg_set_s32(cfg, "tune:sao_str_i", p->sao_str_i);
+        mpp_enc_cfg_set_s32(cfg, "tune:sao_str_p", p->sao_str_p);
+        mpp_enc_cfg_set_s32(cfg, "tune:lambda_idx_p", cmd->lambda_idx_p);
+        mpp_enc_cfg_set_s32(cfg, "tune:lambda_idx_i", cmd->lambda_idx_i);
+        mpp_enc_cfg_set_s32(cfg, "tune:rc_container", cmd->rc_container);
+        mpp_enc_cfg_set_s32(cfg, "tune:scene_mode", p->scene_mode);
+        mpp_enc_cfg_set_s32(cfg, "tune:speed", cmd->speed);
+        mpp_enc_cfg_set_s32(cfg, "tune:vmaf_opt", 0);
+
+        mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);
+        mpp_enc_cfg_set_s32(cfg, "hw:qbias_i", cmd->bias_i);
+        mpp_enc_cfg_set_s32(cfg, "hw:qbias_p", cmd->bias_p);
+
+        mpp_enc_cfg_set_s32(cfg, "hw:skip_bias_en", 0);
+        mpp_enc_cfg_set_s32(cfg, "hw:skip_bias", 4);
+        mpp_enc_cfg_set_s32(cfg, "hw:skip_sad", 8);
+    }
+
+    /* fix input / output frame rate */
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_flex", p->fps_in_flex);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_num", p->fps_in_num);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_in_denom", p->fps_in_den);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_flex", p->fps_out_flex);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_num", p->fps_out_num);
+    mpp_enc_cfg_set_s32(cfg, "rc:fps_out_denom", p->fps_out_den);
+
+    /* setup bitrate for different rc_mode */
+    mpp_enc_cfg_set_s32(cfg, "rc:bps_target", p->bps);
+    switch (p->rc_mode) {
+    case MPP_ENC_RC_MODE_FIXQP : {
+        /* do not setup bitrate on FIXQP mode */
+    } break;
+    case MPP_ENC_RC_MODE_CBR : {
+        /* CBR mode has narrow bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
+    } break;
+    case MPP_ENC_RC_MODE_VBR :
+    case MPP_ENC_RC_MODE_AVBR : {
+        /* VBR mode has wide bound */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 1 / 16);
+    } break;
+    default : {
+        /* default use CBR mode */
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_max", p->bps_max ? p->bps_max : p->bps * 17 / 16);
+        mpp_enc_cfg_set_s32(cfg, "rc:bps_min", p->bps_min ? p->bps_min : p->bps * 15 / 16);
+    } break;
+    }
+
+    /* setup qp for different codec and rc_mode */
+    switch (p->type) {
+    case MPP_VIDEO_CodingAVC :
+    case MPP_VIDEO_CodingHEVC : {
+        switch (p->rc_mode) {
+        case MPP_ENC_RC_MODE_FIXQP : {
+            RK_S32 fix_qp = p->qp_init;
+
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 0);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", fix_qp);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", fix_qp);
+        } break;
+        case MPP_ENC_RC_MODE_CBR :
+        case MPP_ENC_RC_MODE_VBR :
+        case MPP_ENC_RC_MODE_AVBR :
+        case MPP_ENC_RC_MODE_SMTRC : {
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_init", p->qp_init ? p->qp_init : -1);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max", p->qp_max ? p->qp_max : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min", p->qp_min ? p->qp_min : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", p->qp_max_i ? p->qp_max_i : 51);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", p->qp_min_i ? p->qp_min_i : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 2);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_i", p->fqp_min_i ? p->fqp_min_i : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_i", p->fqp_max_i ? p->fqp_max_i : 45);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_min_p", p->fqp_min_p ? p->fqp_min_p : 10);
+            mpp_enc_cfg_set_s32(cfg, "rc:fqp_max_p", p->fqp_max_p ? p->fqp_max_p : 45);
+        } break;
+        default : {
+            mpp_err_f("unsupport encoder rc mode %d\n", p->rc_mode);
+        } break;
+        }
+    } break;
+    case MPP_VIDEO_CodingVP8 : {
+        /* vp8 only setup base qp range */
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_init", p->qp_init ? p->qp_init : 40);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max",  p->qp_max ? p->qp_max : 127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min",  p->qp_min ? p->qp_min : 0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_max_i", p->qp_max_i ? p->qp_max_i : 127);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_min_i", p->qp_min_i ? p->qp_min_i : 0);
+        mpp_enc_cfg_set_s32(cfg, "rc:qp_ip", 6);
+    } break;
+    case MPP_VIDEO_CodingMJPEG : {
+        /* jpeg use special codec config to control qtable */
+        mpp_enc_cfg_set_s32(cfg, "jpeg:q_factor", p->qp_init ? p->qp_init : 80);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_max", p->qp_max ? p->qp_max : 99);
+        mpp_enc_cfg_set_s32(cfg, "jpeg:qf_min", p->qp_min ? p->qp_min : 1);
+    } break;
+    default : {
+    } break;
+    }
+
+    switch (p->type) {
+    case MPP_VIDEO_CodingAVC : {
+        RK_U32 constraint_set;
+
+        /*
+         * H.264 profile_idc parameter
+         * 66  - Baseline profile
+         * 77  - Main profile
+         * 100 - High profile
+         */
+        mpp_enc_cfg_set_s32(cfg, "h264:profile", 100);
+        /*
+         * H.264 level_idc parameter
+         * 10 / 11 / 12 / 13    - qcif@15fps / cif@7.5fps / cif@15fps / cif@30fps
+         * 20 / 21 / 22         - cif@30fps / half-D1@@25fps / D1@12.5fps
+         * 30 / 31 / 32         - D1@25fps / 720p@30fps / 720p@60fps
+         * 40 / 41 / 42         - 1080p@30fps / 1080p@30fps / 1080p@60fps
+         * 50 / 51 / 52         - 4K@30fps
+         */
+        mpp_enc_cfg_set_s32(cfg, "h264:level", 40);
+        mpp_enc_cfg_set_s32(cfg, "h264:cabac_en", 1);
+        mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
+        mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
+
+        mpp_env_get_u32("constraint_set", &constraint_set, 0);
+        if (constraint_set & 0x3f0000)
+            mpp_enc_cfg_set_s32(cfg, "h264:constraint_set", constraint_set);
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        mpp_enc_cfg_set_s32(cfg, "h265:diff_cu_qp_delta_depth", p->cu_qp_delta_depth);
+    } break;
+    case MPP_VIDEO_CodingMJPEG :
+    case MPP_VIDEO_CodingVP8 : {
+    } break;
+    default : {
+        mpp_err_f("unsupport encoder coding type %d\n", p->type);
+    } break;
+    }
+
+    // config gop_len and ref cfg
+    mpp_enc_cfg_set_s32(cfg, "rc:gop", p->gop_len ? p->gop_len : p->fps_out_num * 2);
+
+    mpp_env_get_u32("gop_mode", &gop_mode, gop_mode);
+    if (gop_mode) {
+        mpp_enc_ref_cfg_init(&ref);
+
+        if (p->gop_mode < 4)
+            mpi_enc_gen_ref_cfg(ref, gop_mode);
+        else
+            mpi_enc_gen_smart_gop_ref_cfg(ref, p->gop_len, p->vi_len);
+
+        mpp_enc_cfg_set_ptr(cfg, "rc:ref_cfg", ref);
+    }
+
+    /* setup hardware specified parameters */
+    if (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) {
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_smart);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_smart);
+    } else {
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_i", aq_thd);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_thrd_p", aq_thd);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_i", aq_step_i_ipc);
+        mpp_enc_cfg_set_st(cfg, "hw:aq_step_p", aq_step_p_ipc);
+    }
+    mpp_enc_cfg_set_st(cfg, "hw:aq_rnge_arr", aq_rnge_arr);
+
+    if (p->type == MPP_VIDEO_CodingAVC) {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_avc);
+    } else if (p->type == MPP_VIDEO_CodingHEVC) {
+        mpp_enc_cfg_set_st(cfg, "hw:qbias_arr", qbias_arr_hevc);
+    }
+
+    ret = mpi->control(ctx, MPP_ENC_SET_CFG, cfg);
+    if (ret) {
+        mpp_err("mpi control enc set cfg failed ret %d\n", ret);
+        goto RET;
+    }
+
+    if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
+        RcApiBrief rc_api_brief;
+        rc_api_brief.type = p->type;
+        rc_api_brief.name = (cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC) ?
+                            "smart" : "default";
+
+        ret = mpi->control(ctx, MPP_ENC_SET_RC_API_CURRENT, &rc_api_brief);
+        if (ret) {
+            mpp_err("mpi control enc set rc api failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    if (ref)
+        mpp_enc_ref_cfg_deinit(&ref);
+
+    /* optional */
+    {
+        RK_U32 sei_mode;
+
+        mpp_env_get_u32("sei_mode", &sei_mode, MPP_ENC_SEI_MODE_DISABLE);
+        p->sei_mode = sei_mode;
+        ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
+        if (ret) {
+            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
+        p->header_mode = MPP_ENC_HEADER_MODE_EACH_IDR;
+        ret = mpi->control(ctx, MPP_ENC_SET_HEADER_MODE, &p->header_mode);
+        if (ret) {
+            mpp_err("mpi control enc set header mode failed ret %d\n", ret);
+            goto RET;
+        }
+    }
+
+    /* setup test mode by env */
+    mpp_env_get_u32("osd_enable", &p->osd_enable, 0);
+    mpp_env_get_u32("roi_jpeg_enable", &p->roi_jpeg_enable, 0);
+    mpp_env_get_u32("jpeg_osd_case", &p->jpeg_osd_case, 0);
+    mpp_env_get_u32("osd_mode", &p->osd_mode, MPP_ENC_OSD_PLT_TYPE_DEFAULT);
+    mpp_env_get_u32("roi_enable", &p->roi_enable, 0);
+    mpp_env_get_u32("user_data_enable", &p->user_data_enable, 0);
+
+    if (p->roi_enable) {
+        mpp_enc_roi_init(&p->roi_ctx, p->width, p->height, p->type, 4);
+        mpp_assert(p->roi_ctx);
+    }
+
+RET:
+    return ret;
 }
