@@ -151,10 +151,15 @@ rk_s32 kmpp_obj_get_shm_obj(KmppObj obj, const char *name, KmppObj *val);
 /* update flag check function */
 rk_s32 kmpp_obj_test(KmppObj obj, const char *name);
 rk_s32 kmpp_obj_tbl_test(KmppObj obj, KmppEntry *tbl);
+
+/* update entry value marked by update flag from src to dst (clear src flag) */
 rk_s32 kmpp_obj_update(KmppObj dst, KmppObj src);
+/* update entry value marked by update flag from src to dst (keep src flag) */
 rk_s32 kmpp_obj_update_entry(void *entry, KmppObj src);
 
-/* copy entry value from src to dst */
+/* copy entry value and update flag from src to dst (keep src flag) */
+rk_s32 kmpp_obj_copy(KmppObj dst, KmppObj src);
+/* copy entry value from src to dst only (keep src flag) */
 rk_s32 kmpp_obj_copy_entry(KmppObj dst, KmppObj src);
 
 /* run a callback function */

@@ -1753,6 +1753,27 @@ rk_s32 kmpp_obj_update_entry(void *entry, KmppObj src)
     return rk_ok;
 }
 
+rk_s32 kmpp_obj_copy(KmppObj dst, KmppObj src)
+{
+    KmppObjImpl *dst_impl = (KmppObjImpl *)dst;
+    KmppObjImpl *src_impl = (KmppObjImpl *)src;
+
+    if (kmpp_obj_check_f(src) || kmpp_obj_check_f(dst) || src_impl->def != dst_impl->def) {
+        mpp_loge_f("obj %p copy to %p failed invalid param\n", src, dst);
+        return rk_nok;
+    }
+
+    memcpy(dst_impl->entry, src_impl->entry, src_impl->def->entry_size);
+    {
+        rk_s32 offset = src_impl->def->flag_offset;
+        rk_s32 size = kmpp_obj_to_flags_size(src);
+
+        memcpy(dst_impl->entry + offset, src_impl->entry + offset, size);
+    }
+
+    return rk_ok;
+}
+
 rk_s32 kmpp_obj_copy_entry(KmppObj dst, KmppObj src)
 {
     KmppObjImpl *dst_impl = (KmppObjImpl *)dst;
