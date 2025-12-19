@@ -27,6 +27,7 @@ add_library(mpp_base OBJECT
     mpp_cfg.c
     mpp_2str.c
     mpp_dec_hdr_meta.c
+    mpp_enc_args.c
     )
 
 set_target_properties(mpp_base PROPERTIES FOLDER "mpp/base")

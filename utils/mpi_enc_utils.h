@@ -18,9 +18,11 @@
 #define MPI_ENC_UTILS_H
 
 #include <stdio.h>
+#include "iniparser.h"
+#include "utils.h"
 
 #include "rk_venc_cmd.h"
-#include "iniparser.h"
+#include "rk_venc_ref.h"
 
 typedef struct MpiEncTestArgs_t {
     char                *file_input;
