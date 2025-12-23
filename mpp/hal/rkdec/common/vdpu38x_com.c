@@ -285,7 +285,7 @@ MPP_RET vdpu38x_rcb_register_calc_handle(Vdpu38xRcbCtx *ctx, Vdpu38xRcbCalc_f fu
 
 MPP_RET vdpu38x_rcb_calc_exec(Vdpu38xRcbCtx *ctx, RK_U32 *total_sz)
 {
-    if (ctx->calc_func) {
+    if (NULL == ctx->calc_func) {
         mpp_logi("error: The compute function is not registered\n");
         return MPP_NOK;
     }
