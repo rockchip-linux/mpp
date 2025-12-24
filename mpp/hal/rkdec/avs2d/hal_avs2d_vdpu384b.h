@@ -7,7 +7,6 @@
 #define HAL_AVS2D_VDPU384B_H
 
 #include "mpp_hal.h"
-#include "vdpu384b.h"
 
 #ifdef  __cplusplus
 extern "C" {

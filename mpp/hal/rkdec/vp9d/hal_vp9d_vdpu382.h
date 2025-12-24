@@ -18,7 +18,6 @@
 #define HAL_VP9D_VDPU382_H
 
 #include "mpp_hal.h"
-#include "vdpu382.h"
 
 #ifdef __cplusplus
 extern "C" {

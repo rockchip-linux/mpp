@@ -23,7 +23,6 @@
 #include "hal_avs2d_api.h"
 #include "hal_avs2d_global.h"
 #include "avs2d_syntax.h"
-#include "vdpu382.h"
 
 #define AVS2D_REGISTERS     (278)
 

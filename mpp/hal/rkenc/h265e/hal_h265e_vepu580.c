@@ -39,7 +39,6 @@
 #include "hal_h265e_vepu580.h"
 #include "hal_h265e_vepu580_reg.h"
 #include "mpp_enc_cb_param.h"
-#include "vepu5xx.h"
 
 #include "mpp_service.h"
 

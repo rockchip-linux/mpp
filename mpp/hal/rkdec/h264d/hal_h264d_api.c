@@ -33,6 +33,7 @@
 #include "dxva_syntax.h"
 #include "h264d_syntax.h"
 
+#include "hal_hw_id.h"
 #include "hal_h264d_global.h"
 #include "hal_h264d_api.h"
 

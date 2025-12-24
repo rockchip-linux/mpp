@@ -23,6 +23,7 @@
 #include "mpp_mem.h"
 #include "mpp_debug.h"
 
+#include "hal_hw_id.h"
 #include "hal_h265d_ctx.h"
 #include "hal_h265d_api.h"
 #include "hal_h265d_rkv.h"

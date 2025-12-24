@@ -18,7 +18,6 @@
 #define HAL_H265D_VDPU34X_H
 
 #include "mpp_hal.h"
-#include "vdpu34x.h"
 
 #ifdef __cplusplus
 extern "C" {

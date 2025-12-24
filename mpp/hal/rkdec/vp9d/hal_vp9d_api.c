@@ -20,6 +20,7 @@
 
 #include "mpp_env.h"
 
+#include "hal_hw_id.h"
 #include "hal_vp9d_debug.h"
 #include "hal_vp9d_api.h"
 #include "hal_vp9d_ctx.h"

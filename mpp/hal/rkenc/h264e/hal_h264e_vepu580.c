@@ -36,7 +36,6 @@
 #include "rkv_enc_def.h"
 #include "vepu5xx_common.h"
 #include "vepu580_common.h"
-#include "vepu5xx.h"
 #include "hal_h264e_vepu580_reg.h"
 #include "mpp_enc_cb_param.h"
 #include "hal_h264e_stream_amend.h"

@@ -29,6 +29,7 @@
 
 #include "dxva_syntax.h"
 
+#include "hal_hw_id.h"
 #include "hal_av1d_vdpu_reg.h"
 #include "hal_av1d_vdpu.h"
 #include "hal_av1d_vdpu383.h"

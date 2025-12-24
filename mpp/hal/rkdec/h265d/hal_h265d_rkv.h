@@ -20,8 +20,6 @@
 
 #include "mpp_hal.h"
 
-#define HWID_VDPU345    (0xdbdc0701)
-
 #ifdef __cplusplus
 extern "C" {
 #endif

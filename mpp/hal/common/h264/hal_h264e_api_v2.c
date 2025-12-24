@@ -24,9 +24,9 @@
 #include "mpp_mem.h"
 #include "mpp_platform.h"
 
+#include "hal_hw_id.h"
 #include "hal_h264e_debug.h"
 #include "h264e_syntax.h"
-#include "vepu5xx.h"
 #include "hal_h264e_api_v2.h"
 #include "hal_h264e_vepu1_v2.h"
 #include "hal_h264e_vepu2_v2.h"

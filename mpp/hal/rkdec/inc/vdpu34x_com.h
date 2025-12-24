@@ -19,7 +19,6 @@
 
 #include "mpp_device.h"
 #include "mpp_buf_slot.h"
-#include "vdpu34x.h"
 #include "vdpu_com.h"
 
 #define OFFSET_COMMON_REGS          (8 * sizeof(RK_U32))

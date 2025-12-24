@@ -15,6 +15,7 @@
 #include "mpp_enc_hal.h"
 
 #include "jpege_syntax.h"
+#include "hal_hw_id.h"
 #include "hal_jpege_hdr.h"
 #include "hal_jpege_debug.h"
 #include "hal_jpege_vpu720.h"

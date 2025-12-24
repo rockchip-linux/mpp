@@ -548,8 +548,6 @@ typedef struct JpegeVpu720StatusReg_t {
 #define JPEGE_VPU730_REG_ROI_OFFSET 0x0300
 #define JPEGE_VPU730_REG_ROI_NUM 16
 
-#define HWID_JPEGE_VPU730 0x73010000
-
 typedef struct JpegeVpu730FrmRdoqCfg_t {
     rk_u32 en                   : 1;
     rk_u32 level                : 6;

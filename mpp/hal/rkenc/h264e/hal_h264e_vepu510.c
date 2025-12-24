@@ -22,7 +22,6 @@
 #include "hal_h264e_stream_amend.h"
 #include "h264e_dpb.h"
 
-#include "vepu5xx.h"
 #include "vepu5xx_common.h"
 #include "vepu510_common.h"
 

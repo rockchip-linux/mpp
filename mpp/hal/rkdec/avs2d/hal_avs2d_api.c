@@ -29,6 +29,7 @@
 #include "mpp_env.h"
 #include "mpp_common.h"
 
+#include "hal_hw_id.h"
 #include "hal_avs2d_api.h"
 #include "hal_avs2d_rkv.h"
 #include "hal_avs2d_vdpu382.h"

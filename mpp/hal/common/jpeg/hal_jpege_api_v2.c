@@ -24,8 +24,8 @@
 #include "mpp_mem.h"
 #include "mpp_platform.h"
 
+#include "hal_hw_id.h"
 #include "mpp_enc_hal.h"
-#include "vepu5xx.h"
 #include "hal_jpege_debug.h"
 #include "hal_jpege_api_v2.h"
 #include "hal_jpege_vepu1_v2.h"
