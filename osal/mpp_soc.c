@@ -56,26 +56,27 @@
 #define HAVE_AVS2   ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAVS2))))
 #define HAVE_AV1    ((rk_u32)(1 << (CODING_TO_IDX(MPP_VIDEO_CodingAV1))))
 
-#define CAP_CODING_VDPU         (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8|HAVE_AVS)
-#define CAP_CODING_JPEGD_PP     (HAVE_MJPEG)
-#define CAP_CODING_AVSD         (HAVE_AVS)
-#define CAP_CODING_AVSPD        (HAVE_AVSP)
-#define CAP_CODING_AV1D         (HAVE_AV1)
-#define CAP_CODING_HEVC         (HAVE_HEVC)
-#define CAP_CODING_VDPU341      (HAVE_AVC|HAVE_HEVC|HAVE_VP9)
-#define CAP_CODING_VDPU341_LITE (HAVE_AVC|HAVE_HEVC)
-#define CAP_CODING_VDPU381      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
-#define CAP_CODING_VDPU382      (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
-#define CAP_CODING_VDPU383      (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
-#define CAP_CODING_VDPU384A     (HAVE_AVC|HAVE_HEVC)
-#define CAP_CODING_VDPU384B     (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
+#define CAP_CODING_VDPU               (HAVE_MPEG2|HAVE_H263|HAVE_MPEG4|HAVE_AVC|HAVE_MJPEG|HAVE_VP8|HAVE_AVS)
+#define CAP_CODING_JPEGD_PP           (HAVE_MJPEG)
+#define CAP_CODING_AVSD               (HAVE_AVS)
+#define CAP_CODING_AVSPD              (HAVE_AVSP)
+#define CAP_CODING_AV1D               (HAVE_AV1)
+#define CAP_CODING_HEVC               (HAVE_HEVC)
+#define CAP_CODING_VDPU341            (HAVE_AVC|HAVE_HEVC|HAVE_VP9)
+#define CAP_CODING_VDPU341_LITE       (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VDPU381            (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2)
+#define CAP_CODING_VDPU382            (HAVE_AVC|HAVE_HEVC|HAVE_AVS2)
+#define CAP_CODING_VDPU383            (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
+#define CAP_CODING_VDPU384A           (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VDPU384B           (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AVS2|HAVE_AV1)
+#define CAP_CODING_VDPU384B_NO_AVS2   (HAVE_AVC|HAVE_HEVC|HAVE_VP9|HAVE_AV1)
 
-#define CAP_CODING_VEPU1        (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
-#define CAP_CODING_VEPU_LITE    (HAVE_AVC|HAVE_MJPEG)
-#define CAP_CODING_VEPU22       (HAVE_HEVC)
-#define CAP_CODING_VEPU54X      (HAVE_AVC|HAVE_HEVC)
-#define CAP_CODING_VEPU540C     (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
-#define CAP_CODING_VEPU511      (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
+#define CAP_CODING_VEPU1              (HAVE_AVC|HAVE_MJPEG|HAVE_VP8)
+#define CAP_CODING_VEPU_LITE          (HAVE_AVC|HAVE_MJPEG)
+#define CAP_CODING_VEPU22             (HAVE_HEVC)
+#define CAP_CODING_VEPU54X            (HAVE_AVC|HAVE_HEVC)
+#define CAP_CODING_VEPU540C           (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
+#define CAP_CODING_VEPU511            (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
 
 static const MppDecHwCap vdpu1 = {
     .cap_coding         = CAP_CODING_VDPU,
@@ -458,6 +459,24 @@ static const MppDecHwCap vdpu384a = {
 
 static const MppDecHwCap vdpu384b = {
     .cap_coding         = CAP_CODING_VDPU384B,
+    .type               = VPU_CLIENT_RKVDEC,
+    .cap_fbc            = 1,
+    .cap_4k             = 1,
+    .cap_8k             = 1,
+    .cap_colmv_compress = 1,
+    .cap_hw_h265_rps    = 1,
+    .cap_hw_vp9_prob    = 0,
+    .cap_jpg_pp_out     = 0,
+    .cap_10bit          = 1,
+    .cap_down_scale     = 1,
+    .cap_lmt_linebuf    = 0,
+    .cap_core_num       = 1,
+    .cap_hw_jpg_fix     = 0,
+    .reserved           = 0,
+};
+
+static const MppDecHwCap vdpu384b_no_avs2 = {
+    .cap_coding         = CAP_CODING_VDPU384B_NO_AVS2,
     .type               = VPU_CLIENT_RKVDEC,
     .cap_fbc            = 1,
     .cap_4k             = 1,
@@ -1044,7 +1063,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         "rk3538",
         ROCKCHIP_SOC_RK3538,
         HAVE_RKVDEC | HAVE_JPEG_DEC | HAVE_VDPU2,
-        {   &vdpu384b, &rkjpegd, &vdpu2, NULL, NULL, NULL},
+        {   &vdpu384b_no_avs2, &rkjpegd, &vdpu2, NULL, NULL, NULL},
         {   NULL, NULL, NULL, NULL},
     },
     {   /*
