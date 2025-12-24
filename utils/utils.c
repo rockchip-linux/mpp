@@ -1611,3 +1611,31 @@ MPP_RET str_to_frm_fmt(const char *nptr, long *number)
 RET:
     return ret;
 }
+
+MPP_RET split_path_file_inplace(char *fullpath, char **path, char **filename)
+{
+    char *separator = NULL;
+    char *backslash = NULL;
+
+    if (fullpath == NULL)
+        return MPP_NOK;
+
+    // find last path separator
+    separator = strrchr(fullpath, '/');
+    backslash = strrchr(fullpath, '\\');
+
+    if (backslash && (!separator || backslash > separator)) {
+        separator = backslash;
+    }
+
+    if (separator) {
+        *separator = '\0';
+        *path = fullpath;
+        *filename = separator + 1;
+    } else {
+        *path = ".";
+        *filename = fullpath;
+    }
+
+    return MPP_OK;
+}

@@ -94,6 +94,8 @@ MPP_RET fps_calc_inc(FpsCalc ctx);
 
 MPP_RET str_to_frm_fmt(const char *nptr, long *number);
 
+MPP_RET split_path_file_inplace(char *fullpath, char **path, char **filename);
+
 #ifdef __cplusplus
 }
 #endif
