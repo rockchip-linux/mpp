@@ -632,7 +632,7 @@ void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, v
     }
 }
 
-MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs)
+MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs, RK_S32 max_cnt)
 {
     /* for 8K FrameBuf scale mode */
     size_t origin_buf_size = 0;
@@ -652,7 +652,7 @@ MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs)
         mpp_err_f("org_bufs init fail\n");
         return MPP_ERR_NOMEM;
     }
-    hal_bufs_setup(*org_bufs, 16, 1, &origin_buf_size);
+    hal_bufs_setup(*org_bufs, max_cnt > 0 ? max_cnt : 16, 1, &origin_buf_size);
 
     return MPP_OK;
 }

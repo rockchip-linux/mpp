@@ -341,7 +341,8 @@ static MPP_RET hal_h265d_vdpu384a_gen_regs(void *hal,  HalTaskInfo *syn)
         /* for 8K downscale mode*/
         if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
             reg_ctx->origin_bufs == NULL) {
-            vdpu38x_setup_scale_origin_bufs(mframe, &reg_ctx->origin_bufs);
+            vdpu38x_setup_scale_origin_bufs(mframe, &reg_ctx->origin_bufs,
+                                            mpp_buf_slot_get_count(reg_ctx->slots));
         }
 
         fmt = mpp_frame_get_fmt(mframe);

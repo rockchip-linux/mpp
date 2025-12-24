@@ -532,7 +532,8 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(p_hal->frame_slots, p_hal->pp->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
     if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
         ctx->origin_bufs == NULL) {
-        vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs);
+        vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs,
+                                        mpp_buf_slot_get_count(p_hal->frame_slots));
     }
 
     if (p_hal->fast_mode) {

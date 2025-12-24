@@ -370,7 +370,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
     if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
         hw_ctx->origin_bufs == NULL) {
-        vdpu38x_setup_scale_origin_bufs(mframe, &hw_ctx->origin_bufs);
+        vdpu38x_setup_scale_origin_bufs(mframe, &hw_ctx->origin_bufs,
+                                        mpp_buf_slot_get_count(p_hal->slots));
     }
 
     stream_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);

@@ -316,7 +316,8 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
     mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
     if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
         MPP_MAX(dxva->width, dxva->height) > 4096 && ctx->origin_bufs == NULL) {
-        vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs);
+        vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs,
+                                        mpp_buf_slot_get_count(p_hal->slots));
     }
 
     if (p_hal->fast_mode) {
