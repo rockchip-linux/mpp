@@ -49,9 +49,6 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_DEC_CFG,
     MPP_SGLN_ENC_RC_API,
     MPP_SGLN_ENC_ARGS,
-
-    /* max count for start init process */
-    MPP_SGLN_MAX_CNT,
 } MppSingletonId;
 
 typedef struct MppSingletonInfo_t {
@@ -71,6 +68,20 @@ typedef struct MppSingletonInfo_t {
     static void SNGL_TO_FUNC(name)(void) { \
         MppSingletonInfo info = { \
             id, \
+            SNGL_TO_STR(name), \
+            init, \
+            deinit, \
+        }; \
+        mpp_singleton_add(&info, __FUNCTION__); \
+    }
+
+/* add module without init order */
+#define MPP_MODULE_ADD(name, init, deinit) \
+    /* increase id from base id to avoid compiler warning */ \
+    __attribute__((constructor(SNGL_BASE_ID + 64))) \
+    static void SNGL_TO_FUNC(name)(void) { \
+        MppSingletonInfo info = { \
+            -1, \
             SNGL_TO_STR(name), \
             init, \
             deinit, \
