@@ -10,6 +10,18 @@ include(vproc.cmake)
 # add include directory
 # ----------------------------------------------------------------------------
 include_directories(inc)
+
+# ----------------------------------------------------------------------------
+# Set script suffix based on host OS
+# ----------------------------------------------------------------------------
+if(CMAKE_HOST_WIN32)
+    set(SCRIPT_SUFFIX ".bat")
+    set(CLEAN_OBJ_FILES cmd /c "if exist *.o del /F /Q *.o")
+else()
+    set(SCRIPT_SUFFIX ".sh")
+    set(CLEAN_OBJ_FILES rm *.o || true)
+endif()
+
 include_directories(common)
 include_directories(base/inc)
 include_directories(codec/inc)
@@ -76,10 +88,11 @@ target_link_libraries(${MPP_STATIC} mpp_codec mpp_hal mpp_vproc kmpp
 add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
     COMMAND ${CMAKE_AR} x $<TARGET_FILE:${MPP_STATIC}>
     COMMAND ${CMAKE_AR} rcs lib${MPP_SHARED}.a *.o
-    COMMAND ${CMAKE_SOURCE_DIR}/merge_static_lib.sh ${CMAKE_BINARY_DIR} ${MPP_SHARED}
+    COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK=${ANDROID_NDK} ${CMAKE_SOURCE_DIR}/merge_static_lib${SCRIPT_SUFFIX} ${CMAKE_BINARY_DIR} ${MPP_SHARED}
     COMMAND ${CMAKE_STRIP} --strip-debug lib${MPP_SHARED}.a
-    COMMAND pwd
-    COMMAND rm *.o
+    COMMAND ${CMAKE_COMMAND} -E echo "Current directory:"
+    COMMAND ${CMAKE_COMMAND} -E chdir .. pwd
+    COMMAND ${CLEAN_OBJ_FILES}
     )
 
 add_subdirectory(legacy)
