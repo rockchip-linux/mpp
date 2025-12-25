@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------------
 include_directories(${PROJECT_SOURCE_DIR}/mpp/base/inc)
 
-add_library(utils STATIC
+add_library(utils OBJECT
     mpp_enc_roi_utils.c
     mpi_enc_utils.c
     mpi_dec_utils.c
@@ -15,5 +15,3 @@ add_library(utils STATIC
     camera_source.c
     osd3_test.c
     )
-
-target_link_libraries(utils mpp_base)

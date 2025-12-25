@@ -4,13 +4,10 @@ include_directories(.)
 # ----------------------------------------------------------------------------
 # add hal common file
 # ----------------------------------------------------------------------------
-add_library(hal_common STATIC
+add_library(hal_common OBJECT
     hal_info.c
     hal_bufs.c
     )
-
-target_link_libraries(hal_common mpp_base)
-set_target_properties(hal_common PROPERTIES FOLDER "mpp/hal/common")
 
 if( HAVE_H264E )
     add_subdirectory(h264)

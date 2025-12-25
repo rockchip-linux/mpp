@@ -1,20 +1,6 @@
 include_directories(.)
 
-set(VP8E_API
+# vp8 encoder sourse
+add_library(vp8e_api OBJECT
+    vp8e_api_v2.c
     )
-set(VP8E_COMMON
-    )
-set(VP8E_HDR
-    vp8e_debug.h)
-set(VP8E_SRC
-    vp8e_api_v2.c)
-
-add_library(codec_vp8e STATIC
-            ${VP8E_API}
-            ${VP8E_COMMON}
-            ${VP8E_HDR}
-            ${VP8E_SRC}
-            )
-
-target_link_libraries(codec_vp8e mpp_base)
-set_target_properties(codec_vp8e PROPERTIES FOLDER "mpp/codec")

@@ -3,7 +3,8 @@
 # ----------------------------------------------------------------------------
 # add vidoe process IEP (Image Enhancement Processor) implement
 # ----------------------------------------------------------------------------
-add_library(vproc_iep STATIC iep.c)
-set_target_properties(vproc_iep PROPERTIES FOLDER "mpp/vproc/iep")
+add_library(vproc_iep OBJECT
+    iep.c
+    )
 
 add_subdirectory(test)

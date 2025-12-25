@@ -4,32 +4,12 @@ include_directories(../../rkenc/common/)
 include_directories(../../rkenc/jpege/)
 include_directories(../../vpu/jpege/)
 
-# hal h264 header
-set(HAL_JPEGE_HDR
-    )
-
-# hal h264 encoder common
-set(HAL_JPEGE_SRC
+# hal jpeg encoder common
+add_library(hal_jpege_com OBJECT
     hal_jpege_hdr.c
     )
 
-add_library(hal_jpege_com STATIC
-            ${HAL_JPEGE_HDR}
-            ${HAL_JPEGE_SRC}
-            )
-
-target_link_libraries(hal_jpege_com mpp_base)
-set_target_properties(hal_jpege_com PROPERTIES FOLDER "mpp/hal")
-
-# hal h264 encoder sourse
-set(HAL_JPEGE_SRC
+# hal jpeg encoder sourse
+add_library(hal_jpege_api OBJECT
     hal_jpege_api_v2.c
     )
-
-add_library(hal_jpege STATIC
-            ${HAL_JPEGE_HDR}
-            ${HAL_JPEGE_SRC}
-            )
-
-target_link_libraries(hal_jpege hal_jpege_rkv hal_jpege_vpu mpp_base)
-set_target_properties(hal_jpege PROPERTIES FOLDER "mpp/hal")

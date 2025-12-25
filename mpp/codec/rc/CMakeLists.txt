@@ -1,11 +1,10 @@
 # vim: syntax=cmake
-
 include_directories(.)
 
 # ----------------------------------------------------------------------------
 # add mpp rate control function
 # ----------------------------------------------------------------------------
-add_library(enc_rc STATIC
+add_library(enc_rc OBJECT
     h264e_rc.c
     h265e_rc.c
     jpege_rc.c
@@ -16,7 +15,5 @@ add_library(enc_rc STATIC
     rc.c
     rc_base.c
     )
-
-target_link_libraries(enc_rc mpp_rc)
 
 add_subdirectory(test)
