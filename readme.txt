@@ -119,9 +119,7 @@ More document can be found at http://opensource.rock-chips.com/wiki_Mpp
    |  |  |
    |  |  |----- pp               post-processor user library
    |  |  |
-   |  |  |----- rga              rga user library
-   |  |  |
-   |  |  |----- deinter          deinterlace function module including pp/iep/rga
+   |  |  |----- deinter          deinterlace function module including pp/iep
    |  |  |
    |  |  |----- rkdec            rockchip hardware decoder register generation
    |  |  |  |

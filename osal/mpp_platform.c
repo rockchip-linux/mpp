@@ -197,9 +197,6 @@ rk_u32 mpp_get_2d_hw_flag(void)
 {
     rk_u32 flag = 0;
 
-    if (!access("/dev/rga", F_OK))
-        flag |= HAVE_RGA;
-
     if (!access("/dev/iep", F_OK))
         flag |= HAVE_IEP;
 

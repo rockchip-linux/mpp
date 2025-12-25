@@ -12,13 +12,6 @@ if( ENABLE_VPROC )
     add_definitions(-DHAVE_VPROC_IEP2)
 endif()
 
-option(ENABLE_VPROC_RGA "Enable rga processor" ON)
-if( ENABLE_VPROC_RGA )
-    set(HAVE_VPROC_RGA true)
-    set(VPROC_RGA vproc_rga)
-    add_definitions(-DHAVE_VPROC_RGA)
-endif()
-
 option(ENABLE_VPROC_VDPP "Enable video display post processor" OFF)
 if( ENABLE_VPROC_VDPP )
     set(HAVE_VPROC_VDPP true)

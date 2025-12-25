@@ -67,7 +67,5 @@ typedef enum MppClientType_e {
 
 /* Platform image process hardware feature */
 #define HAVE_IPP            (0x00000001)
-#define HAVE_RGA            (0x00000002)
-#define HAVE_RGA2           (0x00000004)
 
 #endif /* MPP_DEV_DEFS_H */
