@@ -209,6 +209,21 @@ static VdppSrcFmtCfg vdpp_src_yuv_cfg[MPP_FMT_YUV_BUTT] = {
         .alpha_swap = 0,
         .rbuv_swap  = 1,
     },
+    {   /* MPP_FMT_YUV444SP_10BIT */
+        .format     = VDPP_DCI_FMT_Y_10bit_SP,
+        .alpha_swap = 0,
+        .rbuv_swap  = 0,
+    },
+    {   /* MPP_FMT_AYUV2BPP */
+        .format     = VDPP_DCI_FMT_BUTT,
+        .alpha_swap = 0,
+        .rbuv_swap  = 0,
+    },
+    {   /* MPP_FMT_AYUV1BPP */
+        .format     = VDPP_DCI_FMT_BUTT,
+        .alpha_swap = 0,
+        .rbuv_swap  = 0,
+    },
 };
 
 static VdppSrcFmtCfg vdpp_src_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
@@ -242,15 +257,15 @@ static VdppSrcFmtCfg vdpp_src_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
         .alpha_swap = 0,
         .rbuv_swap  = 0,
     },
-    {   /* MPP_FMT_RGB888 */
+    {   /* MPP_FMT_RGB888 (LSB order to MSB order) */
+        .format     = VDPP_DCI_FMT_RGB888, // MSB order: [23:0]=[R8:G8:B8]
+        .alpha_swap = 0,
+        .rbuv_swap  = 1, // need swap since the order is different
+    },
+    {   /* MPP_FMT_BGR888 (LSB order to MSB order) */
         .format     = VDPP_DCI_FMT_RGB888,
         .alpha_swap = 0,
         .rbuv_swap  = 0,
-    },
-    {   /* MPP_FMT_BGR888 */
-        .format     = VDPP_DCI_FMT_RGB888,
-        .alpha_swap = 0,
-        .rbuv_swap  = 1,
     },
     {   /* MPP_FMT_RGB101010 */
         .format     = VDPP_DCI_FMT_BUTT,
@@ -262,25 +277,35 @@ static VdppSrcFmtCfg vdpp_src_rgb_cfg[MPP_FMT_RGB_BUTT - MPP_FRAME_FMT_RGB] = {
         .alpha_swap = 0,
         .rbuv_swap  = 0,
     },
-    {   /* MPP_FMT_ARGB8888 */
-        .format     = VDPP_DCI_FMT_ARGB8888,
+    {   /* MPP_FMT_ARGB8888 (LSB order to MSB order) */
+        .format     = VDPP_DCI_FMT_ARGB8888, // MSB order: [31:0]=[A8:R8:G8:B8]
         .alpha_swap = 1,
         .rbuv_swap  = 1,
     },
-    {   /* MPP_FMT_ABGR8888 */
+    {   /* MPP_FMT_ABGR8888 (LSB order to MSB order) */
         .format     = VDPP_DCI_FMT_ARGB8888,
         .alpha_swap = 1,
         .rbuv_swap  = 0,
     },
-    {   /* MPP_FMT_BGRA8888 */
+    {   /* MPP_FMT_BGRA8888 (LSB order to MSB order) */
         .format     = VDPP_DCI_FMT_ARGB8888,
         .alpha_swap = 0,
         .rbuv_swap  = 0,
     },
-    {   /* MPP_FMT_RGBA8888 */
+    {   /* MPP_FMT_RGBA8888 (LSB order to MSB order) */
         .format     = VDPP_DCI_FMT_ARGB8888,
         .alpha_swap = 0,
         .rbuv_swap  = 1,
+    },
+    {   /* MPP_FMT_ARGB4444 */
+        .format     = VDPP_DCI_FMT_BUTT,
+        .alpha_swap = 0,
+        .rbuv_swap  = 0,
+    },
+    {   /* MPP_FMT_ARGB1555 */
+        .format     = VDPP_DCI_FMT_BUTT,
+        .alpha_swap = 0,
+        .rbuv_swap  = 0,
     },
 };
 
@@ -1086,7 +1111,7 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
     dst_reg->common.reg0.sw_vdpp_frm_en = 1;
 
     /* 0x0004(reg1), TODO: add debug function */
-    dst_reg->common.reg1.sw_vdpp_src_fmt = VDPP_FMT_YUV420;
+    dst_reg->common.reg1.sw_vdpp_src_fmt = MPP_FMT_YUV420SP;
     dst_reg->common.reg1.sw_vdpp_src_yuv_swap = src_params->src_yuv_swap;
 
     if (MPP_FMT_YUV420SP_VU == src_params->src_fmt)
@@ -1098,9 +1123,15 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
                                             ? 0
                                             : src_params->dmsr_params.dmsr_enable;
 
+
+    VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_src_fmt=%d(mppFmt: 0-420sp, 15-444sp), vdpp_src_yuv_swap=%d\n",
+              dst_reg->common.reg1.sw_vdpp_src_fmt, dst_reg->common.reg1.sw_vdpp_src_yuv_swap);
+    VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_dst_fmt=%d(vdppFmt: 0-444sp; 3-420sp), vdpp_dst_yuv_swap=%d\n",
+              dst_reg->common.reg1.sw_vdpp_dst_fmt, dst_reg->common.reg1.sw_vdpp_dst_yuv_swap);
+
     /* 0x0008(reg2) */
     dst_reg->common.reg2.sw_vdpp_working_mode = src_params->working_mode;
-    VDPP2_DBG(VDPP2_DBG_TRACE, "working_mode %d", src_params->working_mode);
+    VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_working_mode=%d\n", src_params->working_mode);
 
     /* 0x000C ~ 0x001C(reg3 ~ reg7), skip */
     dst_reg->common.reg4.sw_vdpp_clk_on = 1;
@@ -1161,17 +1192,34 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
     dst_reg->common.reg27.sw_vdpp_dst_addr_uv = src_params->dst.cbcr;
 
     if (src_params->yuv_out_diff) {
-        RK_U32 dst_right_redundant_c = src_params->dst_c_width % 16 == 0 ? 0 : 16 - src_params->dst_c_width % 16;
+        RK_U32 dst_c_width     = src_params->dst_c_width;
+        RK_U32 dst_c_height    = src_params->dst_c_height;
+        RK_U32 dst_c_width_vir = src_params->dst_c_width_vir;
+        RK_U32 dst_redundant_c = 0;
 
-        dst_reg->common.reg1.sw_vdpp_yuvout_diff_en = src_params->yuv_out_diff;
-        dst_reg->common.reg13.sw_vdpp_dst_vir_c_stride = src_params->dst_c_width_vir / 4;
+        /** @note: no need to half the chroma size for YUV420, since vdpp will do it according to the output format! */
+        if (dst_reg->common.reg1.sw_vdpp_dst_fmt == VDPP_FMT_YUV420) {
+            dst_c_width     *= 2;
+            dst_c_height    *= 2;
+            dst_c_width_vir *= 2;
+        }
+
+        dst_redundant_c = (16 - dst_c_width % 16) & 0xF;
+        dst_reg->common.reg1.sw_vdpp_yuvout_diff_en = 1;
+        dst_reg->common.reg13.sw_vdpp_dst_vir_c_stride = dst_c_width_vir / 4; // unit: dword
         /* 0x0040(reg16) */
-        dst_reg->common.reg16.sw_vdpp_dst_pic_width_c = src_params->dst_c_width + dst_right_redundant_c - 1;
-        dst_reg->common.reg16.sw_vdpp_dst_right_redundant_c = dst_right_redundant_c;
-        dst_reg->common.reg16.sw_vdpp_dst_pic_height_c = src_params->dst_c_height - 1;
-
+        dst_reg->common.reg16.sw_vdpp_dst_pic_width_c = dst_c_width + dst_redundant_c - 1;
+        dst_reg->common.reg16.sw_vdpp_dst_right_redundant_c = dst_redundant_c;
+        dst_reg->common.reg16.sw_vdpp_dst_pic_height_c = dst_c_height - 1;
         dst_reg->common.reg27.sw_vdpp_dst_addr_uv = src_params->dst_c.cbcr;
+
+        VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_yuvout_diff_en=%d [dword], vdpp_dst_right_redundant_c=%d [pixel]\n",
+                  dst_reg->common.reg13.sw_vdpp_dst_vir_c_stride, dst_reg->common.reg16.sw_vdpp_dst_right_redundant_c);
+        VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_dst_pic_width_c=%d [pixel], vdpp_dst_pic_height_c=%d [pixel]\n",
+                  dst_reg->common.reg16.sw_vdpp_dst_pic_width_c, dst_reg->common.reg16.sw_vdpp_dst_pic_height_c);
     }
+    VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_yuvout_diff_en=%d, vdpp_dst_addr_uv(fd)=%d\n",
+              dst_reg->common.reg1.sw_vdpp_yuvout_diff_en, dst_reg->common.reg27.sw_vdpp_dst_addr_uv);
 
     set_dmsr_to_vdpp_reg(&src_params->dmsr_params, &ctx->dmsr);
     set_hist_to_vdpp2_reg(src_params, dst_reg);
@@ -1408,7 +1456,7 @@ static void vdpp_set_default_shp_param(ShpParams* p_shp_param)
 
 static MPP_RET vdpp2_set_default_param(struct vdpp2_params *param)
 {
-    param->src_fmt = VDPP_FMT_YUV420;
+    param->src_fmt = MPP_FMT_YUV420SP;
     param->src_yuv_swap = VDPP_YUV_SWAP_SP_UV;
     param->dst_fmt = VDPP_FMT_YUV444;
     param->dst_yuv_swap = VDPP_YUV_SWAP_SP_UV;
@@ -1506,7 +1554,7 @@ static MPP_RET vdpp2_set_param(struct vdpp2_api_ctx *ctx,
     case VDPP_PARAM_TYPE_COM: // deprecated config
         ctx->params.hist_cnt_en = 0; // default disable
 
-        ctx->params.src_fmt = VDPP_FMT_YUV420; // default 420
+        ctx->params.src_fmt = MPP_FMT_YUV420SP; // default 420
         ctx->params.src_yuv_swap = param->com.sswap;
         ctx->params.dst_fmt = param->com.dfmt;
         ctx->params.dst_yuv_swap = param->com.dswap;
@@ -1876,6 +1924,9 @@ MPP_RET vdpp2_start(struct vdpp2_api_ctx *ctx)
         reg_off[1].offset = ctx->params.dst.cbcr_offset;
     else
         reg_off[1].offset = ctx->params.dst_c.cbcr_offset;
+
+    VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: cbcr_offset for src/dst=%d/%d\n", reg_off[0].offset, reg_off[1].offset);
+
     req_cnt++;
     mpp_req[req_cnt].cmd = MPP_CMD_SET_REG_ADDR_OFFSET;
     mpp_req[req_cnt].flag = MPP_FLAGS_MULTI_MSG | MPP_FLAGS_REG_OFFSET_ALONE;
@@ -1946,7 +1997,7 @@ static MPP_RET vdpp2_done(struct vdpp2_api_ctx *ctx)
     VDPP2_DBG(VDPP2_DBG_INT, "ro_osd_max_sts=%d\n", reg->common.reg10.ro_osd_max_sts);
     VDPP2_DBG(VDPP2_DBG_INT, "ro_bus_error_sts=%d\n", reg->common.reg10.ro_bus_error_sts);
     VDPP2_DBG(VDPP2_DBG_INT, "ro_timeout_sts=%d\n", reg->common.reg10.ro_timeout_sts);
-    VDPP2_DBG(VDPP2_DBG_INT, "ro_config_error_sts=%d\n", reg->common.reg10.ro_timeout_sts);
+    VDPP2_DBG(VDPP2_DBG_INT, "ro_config_error_sts=%d\n", reg->common.reg10.ro_config_error_sts);
 
     if (reg->common.reg8.sw_vdpp_frm_done_en &&
         !reg->common.reg10.ro_frm_done_sts) {

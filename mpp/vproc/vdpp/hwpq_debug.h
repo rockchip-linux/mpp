@@ -6,40 +6,35 @@
 #ifndef HWPQ_DEBUG_H
 #define HWPQ_DEBUG_H
 
-#include <stdio.h>
 #include "mpp_log.h"
 
-#define HWPQ_VDPP_TRACE           (0x00000001)
-#define HWPQ_VDPP_INFO            (0x00000002)
-#define HWPQ_VDPP_DUMP_IN         (0x00000010)
-#define HWPQ_VDPP_DUMP_OUT        (0x00000020)
+#define HWPQ_VDPP_FATAL           (0x00000001)
+#define HWPQ_VDPP_ERROR           (0x00000003)
+#define HWPQ_VDPP_WARNING         (0x00000007)
+#define HWPQ_VDPP_INFO            (0x0000000F)
+#define HWPQ_VDPP_DEBUG           (0x0000001F)
+#define HWPQ_VDPP_TRACE           (0x0000003F)
 
-#define HWPQ_VDPP_DBG(flag, fmt, ...)    mpp_dbg(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
-#define HWPQ_VDPP_DBG_F(flag, fmt, ...)  mpp_dbg_f(hwpq_vdpp_debug, flag, fmt, ## __VA_ARGS__)
+#define HWPQ_VDPP_DUMP_IN         (0x00000100)
+#define HWPQ_VDPP_DUMP_OUT        (0x00000200)
 
-#define hwpq_vdpp_dbg(type, fmt, ...) \
-    do {\
-        if (hwpq_vdpp_debug & type)\
-            mpp_log(fmt, ## __VA_ARGS__);\
+/* log macros */
+#define hwpq_log(log_lv, fmt, ...)          \
+    do {                                    \
+        if (hwpq_vdpp_debug & log_lv)       \
+            mpp_logi_f(fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define hwpq_vdpp_enter() \
-    do {\
-        if (hwpq_vdpp_debug & HWPQ_VDPP_TRACE)\
-            mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
-    } while (0)
+#define hwpq_logf(fmt, ...) hwpq_log(HWPQ_VDPP_FATAL, fmt, ##__VA_ARGS__)
+#define hwpq_loge(fmt, ...) hwpq_log(HWPQ_VDPP_ERROR, fmt, ##__VA_ARGS__)
+#define hwpq_logw(fmt, ...) hwpq_log(HWPQ_VDPP_WARNING, fmt, ##__VA_ARGS__)
+#define hwpq_logi(fmt, ...) hwpq_log(HWPQ_VDPP_INFO, fmt, ##__VA_ARGS__)
+#define hwpq_logd(fmt, ...) hwpq_log(HWPQ_VDPP_DEBUG, fmt, ##__VA_ARGS__)
+#define hwpq_logt(fmt, ...) hwpq_log(HWPQ_VDPP_TRACE, fmt, ##__VA_ARGS__)
+#define hwpq_logv(fmt, ...) hwpq_log(HWPQ_VDPP_TRACE, fmt, ##__VA_ARGS__)
 
-#define hwpq_vdpp_leave() \
-    do {\
-        if (hwpq_vdpp_debug & HWPQ_VDPP_TRACE)\
-            mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
-    } while (0)
-
-#define hwpq_vdpp_info(fmt, ...) \
-    do {\
-        if (hwpq_vdpp_debug & HWPQ_VDPP_INFO)\
-            mpp_log(fmt, ## __VA_ARGS__);\
-    } while (0)
+#define hwpq_enter()        hwpq_logv("--- enter ---");
+#define hwpq_leave()        hwpq_logv("--- leave ---");
 
 extern RK_U32 hwpq_vdpp_debug;
 

@@ -816,11 +816,13 @@ void set_zme_to_vdpp_reg(struct zme_params *zme_params, struct zme_reg *zme)
             cbcr_scl_info.dsp_width = zme_params->dst_width / 2;
             cbcr_scl_info.dsp_height = zme_params->dst_height / 2;
         } else {
-            cbcr_scl_info.dsp_width = zme_params->dst_c_width / 2;
-            cbcr_scl_info.dsp_height = zme_params->dst_c_height / 2;
+            /** @note: half the chroma size by user! */
+            cbcr_scl_info.dsp_width = zme_params->dst_c_width;
+            cbcr_scl_info.dsp_height = zme_params->dst_c_height;
         }
     } else {
         /* not supported */
+        mpp_loge_f("invalid output vdpp format %d!\n", zme_params->dst_fmt);
     }
     cbcr_scl_info.xscl_mode = SCL_MPH;
     cbcr_scl_info.yscl_mode = SCL_MPH;

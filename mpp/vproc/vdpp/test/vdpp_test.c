@@ -102,7 +102,7 @@ static OptionInfo vdpp_test_cmd[] = {
     {"cfg_set",   "cfg_set",          "high 16 bit: mask; low 3 bit: dmsr|es|sharp"},
     {"hist_l",    "local_hist",       "output local hist file name"},
     {"hist_g",    "global_hist",      "output global hist file name"},
-    {"slt",       "slt_file",         "slt verify data file"},
+    {"slt",       "slt_file",         "System Level Test verify data file"},
 };
 
 static void vdpp_test_help()
@@ -198,20 +198,22 @@ static inline size_t get_dst_frm_size(RK_S32 fmt, RK_U32 w, RK_U32 h)
         return w * h * 3;
     case VDPP_FMT_YUV420:
         return w * h * 3 / 2;
+    case VDPP_FMT_YUV444 + 10: // chroma of NV24
+    case VDPP_FMT_YUV420 + 10: // chroma of NV12
+        return w * h * 2;
     default:
-        mpp_err("warning: unsupported input format %d", fmt);
+        mpp_err("warning: unsupported output format %d!\n", fmt);
         return 0;
     }
 }
 
-static void vdpp_test_set_img(vdpp_com_ctx *ctx, RK_U32 w, RK_U32 h,
-                              VdppImg *img, RK_S32 fd, VdppCmd cmd)
+static void vdpp_test_set_img(vdpp_com_ctx *ctx, VdppImg *img, RK_S32 fd_y, RK_S32 fd_c,
+                              RK_U32 uv_offset, VdppCmd cmd)
 {
-    RK_S32 y_size = w * h;
-
-    img->mem_addr = fd;
-    img->uv_addr = fd;
-    img->uv_off = y_size;
+    img->mem_addr = fd_y;
+    img->uv_addr = fd_c;
+    img->uv_off = uv_offset;
+    mpp_log("set buf: type=%#x, yrgb_fd=%d, cbcr_fd=%d, chroma_offset=%d\n", cmd, fd_y, fd_c, uv_offset);
 
     MPP_RET ret = ctx->ops->control(ctx->priv, cmd, img);
     if (ret)
@@ -223,7 +225,8 @@ void vdpp_test(VdppTestCfg *cfg)
     vdpp_com_ctx* vdpp = rockchip_vdpp_api_alloc_ctx();
     size_t srcfrmsize = get_src_frm_size(cfg->src_format, cfg->src_width_vir, cfg->src_height_vir);
     size_t dstfrmsize = get_dst_frm_size(cfg->dst_fmt, cfg->dst_width_vir, cfg->dst_height_vir);
-    size_t dstfrmsize_c = cfg->dst_c_width_vir * cfg->dst_c_height_vir * 3;
+    size_t dstfrmsize_c = get_dst_frm_size(cfg->dst_fmt + 10, cfg->dst_c_width_vir, cfg->dst_c_height_vir); // +10 for chroma plane
+    size_t readsize = 0;
     MppBuffer srcbuf;
     MppBuffer dstbuf;
     MppBuffer dstbuf_c;
@@ -349,22 +352,21 @@ void vdpp_test(VdppTestCfg *cfg)
         mpp_log("vdpp cap %d\n", cap);
     }
 
+    /* run vdpp */
     while (1) {
-        if (srcfrmsize > fread(psrc, 1, srcfrmsize, cfg->fp_src)) {
-            mpp_log("source exhaused\n");
+        readsize = fread(psrc, 1, srcfrmsize, cfg->fp_src);
+        if (srcfrmsize > readsize) {
+            mpp_log("source exhaused since readsize=%d < srcfrmsize=%d. total frames processed: %d\n", readsize, srcfrmsize, cnt);
             break;
         }
         if (cnt >= cfg->frame_num)
             break;
 
         /* notice the order of the input frames */
-        vdpp_test_set_img(vdpp, cfg->src_width_vir, cfg->src_height_vir,
-                          &imgsrc, fdsrc, VDPP_CMD_SET_SRC);
-        vdpp_test_set_img(vdpp, cfg->dst_width_vir, cfg->dst_height_vir,
-                          &imgdst, fddst, VDPP_CMD_SET_DST);
+        vdpp_test_set_img(vdpp, &imgsrc, fdsrc, fdsrc, cfg->src_width_vir * cfg->src_height_vir, VDPP_CMD_SET_SRC);
+        vdpp_test_set_img(vdpp, &imgdst, fddst, fddst, cfg->dst_width_vir * cfg->dst_height_vir, VDPP_CMD_SET_DST);
         if (yuv_out_diff)
-            vdpp_test_set_img(vdpp, cfg->dst_c_width_vir, cfg->dst_c_height_vir,
-                              &imgdst_c, fddst_c, VDPP_CMD_SET_DST_C);
+            vdpp_test_set_img(vdpp, &imgdst_c, fddst, fddst_c, 0, VDPP_CMD_SET_DST_C);
 
         if (is_vdpp2)
             vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_HIST_FD, &fdhist);
@@ -379,11 +381,14 @@ void vdpp_test(VdppTestCfg *cfg)
 
         cnt++;
 
+        // write dst data
         if (cfg->fp_dst) {
-            if (dstfrmsize > fwrite(pdst, 1, dstfrmsize, cfg->fp_dst)) {
-                mpp_err("destination dump failed, errno %d %s\n", errno, strerror(errno));
-                break;
-            }
+            if (yuv_out_diff) {
+                fwrite(pdst, 1, cfg->dst_width_vir * cfg->dst_height_vir, cfg->fp_dst);
+                fwrite(pdst_c, 1, dstfrmsize_c, cfg->fp_dst); // write chroma data after dst luma
+            } else
+                fwrite(pdst, 1, dstfrmsize, cfg->fp_dst);
+            mpp_log("dst data dump to: %s\n", cfg->dst_url);
         }
 
         if (yuv_out_diff && cfg->fp_dst_c) {
@@ -391,6 +396,7 @@ void vdpp_test(VdppTestCfg *cfg)
                 mpp_err("chroma dump failed, errno %d %s\n", errno, strerror(errno));
                 break;
             }
+            mpp_log("dst chroma data dump to: %s\n", cfg->dst_c_url);
         }
 
         if (cfg->fp_hist) {
@@ -422,13 +428,11 @@ void vdpp_test(VdppTestCfg *cfg)
             if (pdst && !cfg->hist_mode_en) {
                 calc_data_crc(pdst, dstfrmsize, &checkcrc);
                 write_data_crc(cfg->fp_slt, &checkcrc);
-
             }
 
             if (pdst_c && yuv_out_diff && !cfg->hist_mode_en) {
                 calc_data_crc(pdst_c, dstfrmsize_c, &checkcrc);
                 write_data_crc(cfg->fp_slt, &checkcrc);
-
             }
 
             if (phist) {
@@ -546,7 +550,7 @@ int32_t main(int32_t argc, char **argv)
                 cfg.fp_hist_g = fopen(cfg.hist_g_url, "w+b");
             } break;
             case 12 : {
-                mpp_log("verify file: %s\n", optarg);
+                mpp_log("slt verify file: %s\n", optarg);
                 strncpy(cfg.slt_url, optarg, sizeof(cfg.slt_url) - 1);
                 cfg.fp_slt = fopen(cfg.slt_url, "w+b");
             } break;

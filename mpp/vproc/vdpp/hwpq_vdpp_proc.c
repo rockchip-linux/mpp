@@ -3,12 +3,15 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
+#define MODULE_TAG "hwpq_vdpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <errno.h>
 
 #include "mpp_mem.h"
 #include "mpp_env.h"
@@ -19,18 +22,19 @@
 #include "hwpq_vdpp_proc_api.h"
 #include "hwpq_debug.h"
 
-RK_U32 hwpq_vdpp_debug = 0;
-
 #define HWPQ_VDPP_MAX_FILE_NAME_LEN         (256)
 #define HWPQ_VDPP_GLOBAL_HIST_OFFSET        (16*16*16*18/8)
 #define HWPQ_VDPP_GLOBAL_HIST_SIZE          (256)
-#define HWPQ_VDPP_DEBUG_CFG_PROP            "vendor.vdpp.debug_cfg"
 
-static const char hwpq_vdpp_in_path[] = "/data/vendor/rkalgo/hwpq_vdpp_in.bin";
-static const char hwpq_vdpp_out_path[] = "/data/vendor/rkalgo/hwpq_vdpp_out.bin";
+/* macros for debug & log */
+#define HWPQ_VDPP_DEBUG_CFG_PROP  "hwpq_debug"
+#define HWPQ_VDPP_DEBUG_DUMP_PATH "/data/vendor/rkalgo/"
+
+RK_U32 hwpq_vdpp_debug = 0;
 
 typedef struct VdppCtxImpl_e {
-    vdpp_com_ctx* vdpp;
+    // vdpp api
+    vdpp_com_ctx *vdpp;
 
     MppBufferGroup memGroup;
     MppBuffer histbuf;
@@ -39,6 +43,8 @@ typedef struct VdppCtxImpl_e {
 static void set_dmsr_default_config(struct vdpp_api_params* p_api_params)
 {
     p_api_params->ptype = VDPP_PARAM_TYPE_DMSR;
+    memset(&p_api_params->param, 0, sizeof(union vdpp_api_content));
+
     p_api_params->param.dmsr.enable = 1;
     p_api_params->param.dmsr.str_pri_y = 10;
     p_api_params->param.dmsr.str_sec_y = 4;
@@ -74,6 +80,19 @@ static void set_dmsr_default_config(struct vdpp_api_params* p_api_params)
     p_api_params->param.dmsr.edge_th_high_arr[6] = 10;
 }
 
+static void set_zme_default_config(struct vdpp_api_params* p_api_params)
+{
+    p_api_params->ptype = VDPP_PARAM_TYPE_ZME_COM;
+    memset(&p_api_params->param, 0, sizeof(union vdpp_api_content));
+
+    p_api_params->param.zme.bypass_enable = 1;
+    p_api_params->param.zme.dering_enable = 1;
+    p_api_params->param.zme.dering_sen_0 = 16;
+    p_api_params->param.zme.dering_sen_1 = 4;
+    p_api_params->param.zme.dering_blend_alpha = 16;
+    p_api_params->param.zme.dering_blend_beta = 13;
+}
+
 static void set_es_default_config(struct vdpp_api_params* p_api_params)
 {
     static RK_S32 diff2conf_lut_x_tmp[9] = {
@@ -84,6 +103,8 @@ static void set_es_default_config(struct vdpp_api_params* p_api_params)
     };
 
     p_api_params->ptype = VDPP_PARAM_TYPE_ES;
+    memset(&p_api_params->param, 0, sizeof(union vdpp_api_content));
+
     p_api_params->param.es.es_bEnabledES          = 0;
     p_api_params->param.es.es_iAngleDelta         = 17;
     p_api_params->param.es.es_iAngleDeltaExtra    = 5;
@@ -108,12 +129,14 @@ static void set_es_default_config(struct vdpp_api_params* p_api_params)
 static void set_hist_cnt_default_config(struct vdpp_api_params* p_api_params)
 {
     p_api_params->ptype = VDPP_PARAM_TYPE_HIST;
+    memset(&p_api_params->param, 0, sizeof(union vdpp_api_content));
 
-    p_api_params->param.hist.hist_cnt_en   = 1;
-    p_api_params->param.hist.dci_hsd_mode  = 0;
-    p_api_params->param.hist.dci_vsd_mode  = 0;
-    p_api_params->param.hist.dci_yrgb_gather_num  = 0;
+    p_api_params->param.hist.hist_cnt_en         = 1;
+    p_api_params->param.hist.dci_hsd_mode        = VDPP_DCI_HSD_DISABLE;
+    p_api_params->param.hist.dci_vsd_mode        = VDPP_DCI_VSD_DISABLE;
+    p_api_params->param.hist.dci_yrgb_gather_num = 0;
     p_api_params->param.hist.dci_yrgb_gather_en  = 0;
+    p_api_params->param.hist.dci_csc_range       = VDPP_COLOR_SPACE_LIMIT_RANGE;
 }
 
 static void set_shp_default_config(struct vdpp_api_params* p_api_params)
@@ -192,6 +215,7 @@ static void set_shp_default_config(struct vdpp_api_params* p_api_params)
     };
 
     p_api_params->ptype = VDPP_PARAM_TYPE_SHARP;
+    memset(&p_api_params->param, 0, sizeof(union vdpp_api_content));
 
     p_api_params->param.sharp.sharp_enable               = 1;
     p_api_params->param.sharp.sharp_coloradj_bypass_en   = 1;
@@ -362,46 +386,66 @@ static void set_shp_default_config(struct vdpp_api_params* p_api_params)
     memcpy(p_api_params->param.sharp.tex_adj_val, tex_val_tmp, sizeof(tex_val_tmp));
 }
 
-static RK_S32 vdpp_set_user_cfg(vdpp_com_ctx* vdpp, vdpp_params* p_vdpp_params,
+static RK_S32 vdpp_set_user_cfg(vdpp_com_ctx* vdpp, HwpqVdppConfig* p_vdpp_params,
                                 RK_U32 cfg_update_flag)
 {
     struct vdpp_api_params params;
+    RK_U32 is_vdpp2 = (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576);
     RK_S32 ret = MPP_OK;
 
     if (cfg_update_flag == 0) {
-        hwpq_vdpp_info("vdpp config not changed\n");
+        hwpq_logw("vdpp config not update since cfg_update_flag==0.\n");
         return ret;
     }
 
-    hwpq_vdpp_info("update vdpp config\n");
+    hwpq_enter();
 
-    set_dmsr_default_config(&params);
-    params.param.dmsr.enable    = p_vdpp_params->dmsr_en;
-    params.param.dmsr.str_pri_y = p_vdpp_params->str_pri_y;
-    params.param.dmsr.str_sec_y = p_vdpp_params->str_sec_y;
-    params.param.dmsr.dumping_y = p_vdpp_params->dumping_y;
-    ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_DMSR_CFG, &params);
+    hwpq_logd("update vdpp config...\n");
 
-    set_es_default_config(&params);
-    params.param.es.es_bEnabledES   = p_vdpp_params->es_en;
-    params.param.es.es_iWgtGain     = p_vdpp_params->es_iWgtGain;
-    ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_ES, &params);
+    /* set vdpp1 configs */
+    {
+        set_dmsr_default_config(&params);
+        params.param.dmsr.enable    = p_vdpp_params->dmsr_en;
+        params.param.dmsr.str_pri_y = p_vdpp_params->str_pri_y;
+        params.param.dmsr.str_sec_y = p_vdpp_params->str_sec_y;
+        params.param.dmsr.dumping_y = p_vdpp_params->dumping_y;
+        ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_DMSR_CFG, &params);
+        hwpq_logv("set api param: dmsr.enable=%d\n", params.param.dmsr.enable);
 
-    set_hist_cnt_default_config(&params);
-    params.param.hist.hist_cnt_en   = p_vdpp_params->hist_cnt_en;
-    params.param.hist.dci_csc_range = p_vdpp_params->hist_csc_range;
-    ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_DCI_HIST, &params);
+        set_zme_default_config(&params);
+        params.param.zme.dering_enable = p_vdpp_params->zme_dering_en;
+        vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_ZME_COM_CFG, &params);
+        hwpq_logv("set api param: zme.bypass_enable=%d\n", params.param.zme.bypass_enable);
+    }
 
-    set_shp_default_config(&params);
-    params.param.sharp.sharp_enable                     = p_vdpp_params->shp_en;
-    params.param.sharp.peaking_gain                     = p_vdpp_params->peaking_gain;
-    params.param.sharp.shootctrl_enable                 = p_vdpp_params->shp_shoot_ctrl_en;
-    params.param.sharp.shootctrl_alpha_over             = p_vdpp_params->shp_shoot_ctrl_over;
-    params.param.sharp.shootctrl_alpha_over_unlimit     = p_vdpp_params->shp_shoot_ctrl_over;
-    params.param.sharp.shootctrl_alpha_under            = p_vdpp_params->shp_shoot_ctrl_under;
-    params.param.sharp.shootctrl_alpha_under_unlimit    = p_vdpp_params->shp_shoot_ctrl_under;
-    ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_SHARP, &params);
+    /* set vdpp2 configs */
+    if (is_vdpp2) {
+        set_es_default_config(&params);
+        params.param.es.es_bEnabledES = p_vdpp_params->es_en;
+        params.param.es.es_iWgtGain   = p_vdpp_params->es_iWgtGain;
+        ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_ES, &params);
+        hwpq_logv("set api param: es.es_en=%d\n", params.param.es.es_bEnabledES);
 
+        // set hist regs. NOTE that 'hist_fd' not set here!
+        set_hist_cnt_default_config(&params);
+        params.param.hist.hist_cnt_en   = p_vdpp_params->hist_cnt_en;
+        params.param.hist.dci_csc_range = p_vdpp_params->hist_csc_range;
+        ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_DCI_HIST, &params);
+        hwpq_logv("set api param: enable hist: %d\n", params.param.hist.hist_cnt_en);
+
+        set_shp_default_config(&params);
+        params.param.sharp.sharp_enable                  = p_vdpp_params->shp_en;
+        params.param.sharp.peaking_gain                  = p_vdpp_params->peaking_gain;
+        params.param.sharp.shootctrl_enable              = p_vdpp_params->shp_shoot_ctrl_en;
+        params.param.sharp.shootctrl_alpha_over          = p_vdpp_params->shp_shoot_ctrl_over;
+        params.param.sharp.shootctrl_alpha_over_unlimit  = p_vdpp_params->shp_shoot_ctrl_over;
+        params.param.sharp.shootctrl_alpha_under         = p_vdpp_params->shp_shoot_ctrl_under;
+        params.param.sharp.shootctrl_alpha_under_unlimit = p_vdpp_params->shp_shoot_ctrl_under;
+        ret |= vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_SHARP, &params);
+        hwpq_logv("set api param: sharp.shp_en=%d\n", params.param.sharp.sharp_enable);
+    }
+
+    hwpq_leave();
     return ret;
 }
 
@@ -410,10 +454,12 @@ static MPP_RET vdpp_set_img(vdpp_com_ctx *ctx, RK_S32 fd_yrgb, RK_S32 fd_cbcr,
 {
     VdppImg img;
 
-    hwpq_vdpp_info("yrgb_fd=%d, cbcr_fd=%d, cbcr_offset=%d\n", fd_yrgb, fd_cbcr, cbcr_offset);
     img.mem_addr = fd_yrgb;
     img.uv_addr = fd_cbcr;
     img.uv_off = cbcr_offset;
+
+    hwpq_logd("set buf: type=%#x, yrgb_fd=%d, cbcr_fd=%d, cbcr_offset=%d\n",
+              cmd, fd_yrgb, fd_cbcr, cbcr_offset);
 
     return ctx->ops->control(ctx->priv, cmd, &img);
 }
@@ -425,11 +471,11 @@ static void* vdpp_map_buffer_with_fd(int fd, size_t bufSize)
     if (fd > 0) {
         ptr = mmap(NULL, bufSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (ptr == MAP_FAILED) {
-            mpp_err_f("failed to mmap buffer, fd=%d, size=%zu\n", fd, bufSize);
+            hwpq_loge("failed to mmap buffer, fd=%d, size=%zu\n", fd, bufSize);
             return NULL;
         }
     } else {
-        mpp_err_f("failed to mmap buffer with fd! invalid fd value %d input!\n", fd);
+        hwpq_loge("failed to mmap buffer with invalid fd %d\n", fd);
     }
 
     return ptr;
@@ -455,61 +501,114 @@ static FILE *try_env_file(const char *env, const char *path, pid_t tid, int inde
     }
 
     fp = fopen(fname, "w+b");
-    hwpq_vdpp_info("open %s %p for dump\n", fname, fp);
+    hwpq_logi("open %s %p for dump\n", fname, fp);
 
     return fp;
 }
 
-static void vdpp_dump(rk_vdpp_proc_params *p_proc_param, int index)
+static void vdpp_dump_bufs(HwpqVdppParams *p_proc_param, int index)
 {
     FILE *fp_in = NULL;
     FILE *fp_out = NULL;
     pid_t tid = syscall(SYS_gettid);
+    char filename[256] = {0};
 
     if (NULL == p_proc_param) {
-        mpp_err_f("found NULL proc_param %p\n", p_proc_param);
+        hwpq_loge("found NULL proc_param %p!\n", p_proc_param);
         return;
     }
 
     if (hwpq_vdpp_debug & HWPQ_VDPP_DUMP_IN) {
-        fp_in = try_env_file("hwpq_vdpp_dump_in", hwpq_vdpp_in_path, tid, index);
-        if (NULL == fp_in) {
-            mpp_err_f("failed to open file %p\n", fp_in);
-        } else {
-            int fd = p_proc_param->src_img_info.img_yrgb.fd;
-            RK_U32 src_y_buf_len = p_proc_param->src_img_info.img_yrgb.w_vir *
-                                   p_proc_param->src_img_info.img_yrgb.h_vir;
-            RK_U8 *ptr = (RK_U8*)vdpp_map_buffer_with_fd(fd, src_y_buf_len);
+        int map_flag = 0;
+        const HwpqVdppImgInfo *src_info = &p_proc_param->src_img_info;
 
-            if (ptr == NULL) {
-                mpp_err_f("vdpp dump fd(%d) map error!\n", fd);
-            } else {
-                fwrite(ptr, 1, src_y_buf_len, fp_in);
-                fclose(fp_in);
+        snprintf(filename, 255, "%s/hwpq_vdpp_in_%dx%d_fmt%d.bin", HWPQ_VDPP_DEBUG_DUMP_PATH,
+                 src_info->img_yrgb.w_vir, src_info->img_yrgb.h_vir, src_info->img_fmt);
+
+        // fp_in = try_env_file("hwpq_vdpp_dump_in", filename, tid, index);
+        fp_in = fopen(filename, "w+b");
+        if (NULL == fp_in) {
+            hwpq_loge("failed to open file %s! %s\n", filename, strerror(errno));
+        } else {
+            int fd = src_info->img_yrgb.fd;
+            RK_U32 buf_size = src_info->img_yrgb.w_vir * src_info->img_yrgb.h_vir +
+                              src_info->img_cbcr.w_vir * src_info->img_cbcr.h_vir * 2;
+            void *ptr = src_info->img_yrgb.addr;
+
+            if (!ptr) {
+                vdpp_map_buffer_with_fd(fd, buf_size);
+                map_flag = 1;
             }
 
-            vdpp_unmap_buffer(ptr, src_y_buf_len);
+            if (ptr == NULL)
+                hwpq_loge("vdpp dump fd(%d) map error!\n", fd);
+            else
+                fwrite(ptr, 1, buf_size, fp_in);
+
+            fclose(fp_in);
+            if (map_flag)
+                vdpp_unmap_buffer(ptr, buf_size);
+
+            hwpq_logi("dump input buffer to: %s, fd=%d, addr=%p, size=%u\n",
+                      filename, fd, ptr, buf_size);
         }
     }
 
     if (hwpq_vdpp_debug & HWPQ_VDPP_DUMP_OUT) {
-        fp_out = try_env_file("hwpq_vdpp_dump_out", hwpq_vdpp_out_path, tid, index);
-        if (NULL == fp_out) {
-            mpp_err_f("failed to open file %p\n", fp_out);
-        } else {
-            int fd = p_proc_param->src_img_info.img_yrgb.fd;
-            RK_U32 dst_y_buf_len = p_proc_param->dst_img_info.img_yrgb.w_vir *
-                                   p_proc_param->dst_img_info.img_yrgb.h_vir;
-            RK_U8 *ptr = (RK_U8*)vdpp_map_buffer_with_fd(fd, dst_y_buf_len);
+        const HwpqVdppImgInfo *dst_info = &p_proc_param->dst_img_info;
 
-            if (ptr == NULL) {
-                mpp_err_f("vdpp dump fd(%d) map error!\n", fd);
-            } else {
-                fwrite(ptr, 1, dst_y_buf_len, fp_out);
-                fclose(fp_out);
+        snprintf(filename, 255, "%s/hwpq_vdpp_out_%dx%d_fmt%d.bin", HWPQ_VDPP_DEBUG_DUMP_PATH,
+                 dst_info->img_yrgb.w_vir, dst_info->img_yrgb.h_vir, dst_info->img_fmt);
+
+        // fp_out = try_env_file("hwpq_vdpp_dump_out", filename, tid, index);
+        fp_out = fopen(filename, "w+b");
+        if (NULL == fp_out) {
+            hwpq_loge("failed to open file %s! %s\n", filename, strerror(errno));
+        } else {
+            RK_U32 map_size_y = 0;
+            RK_U32 map_size_c = 0;
+            RK_U32 buf_size_y = dst_info->img_yrgb.w_vir * dst_info->img_yrgb.h_vir;
+            RK_U32 buf_size_c = dst_info->img_cbcr.w_vir * dst_info->img_cbcr.h_vir * 2;
+            void *ptr_y = dst_info->img_yrgb.addr;
+            void *ptr_c = dst_info->img_cbcr.addr
+                          ? (char *)dst_info->img_cbcr.addr + dst_info->img_cbcr.offset
+                          : NULL;
+
+            // map buffer first if needed
+            if (ptr_y == NULL) {
+                if (dst_info->img_yrgb.fd == dst_info->img_cbcr.fd) {
+                    ptr_y = vdpp_map_buffer_with_fd(dst_info->img_yrgb.fd, buf_size_y + buf_size_c);
+                    map_size_y = buf_size_y + buf_size_c;
+                    if (ptr_c == NULL)
+                        ptr_c = (char *)ptr_y + dst_info->img_cbcr.offset;
+                } else {
+                    ptr_y = vdpp_map_buffer_with_fd(dst_info->img_yrgb.fd, buf_size_y);
+                    map_size_y = buf_size_y;
+                }
+            }
+            if (ptr_c == NULL) {
+                if (dst_info->img_yrgb.fd == dst_info->img_cbcr.fd)
+                    ptr_c = (char *)ptr_y + dst_info->img_cbcr.offset;
+                else {
+                    ptr_c = (char *)vdpp_map_buffer_with_fd(dst_info->img_cbcr.fd, buf_size_c);
+                    map_size_c = buf_size_c;
+                }
             }
 
-            vdpp_unmap_buffer(ptr, dst_y_buf_len);
+            if (ptr_y)
+                fwrite(ptr_y, 1, buf_size_y, fp_out);
+            if (ptr_c)
+                fwrite(ptr_c, 1, buf_size_c, fp_out);
+
+            fclose(fp_out);
+            if (map_size_y > 0)
+                vdpp_unmap_buffer(ptr_y, map_size_y);
+            if (map_size_c > 0)
+                vdpp_unmap_buffer(ptr_c, map_size_c);
+
+            hwpq_logi("dump output buffer to: %s, y/c_fd=%d/%d, addr=%p/%p, size=%u/%u\n",
+                      filename, dst_info->img_yrgb.fd, dst_info->img_cbcr.fd,
+                      ptr_y, ptr_c, buf_size_y, buf_size_c);
         }
     }
 
@@ -517,62 +616,79 @@ static void vdpp_dump(rk_vdpp_proc_params *p_proc_param, int index)
     MPP_FCLOSE(fp_out);
 }
 
-static MppFrameFormat img_format_convert(vdpp_frame_format img_fmt_in)
+static MppFrameFormat img_format_convert(HwpqVdppFormat img_fmt_in)
 {
     MppFrameFormat img_fmt_out = MPP_FMT_YUV420SP;
 
     switch (img_fmt_in) {
-    case VDPP_FMT_NV24:
+    case VDPP_FMT_NV24: {
         img_fmt_out = MPP_FMT_YUV444SP;
-        break;
-    case VDPP_FMT_NV16:
+    } break;
+    case VDPP_FMT_NV16: {
         img_fmt_out = MPP_FMT_YUV422SP;
-        break;
-    case VDPP_FMT_NV12:
+    } break;
+    case VDPP_FMT_NV12: {
         img_fmt_out = MPP_FMT_YUV420SP;
-        break;
+    } break;
+    case VDPP_FMT_Y_ONLY_8BIT: {
+        img_fmt_out = MPP_FMT_YUV400;
+    } break;
     case VDPP_FMT_NV15:
-        img_fmt_out = MPP_FMT_YUV420SP_10BIT;
-        break;
     case VDPP_FMT_NV20:
+    case VDPP_FMT_NV30: {
         img_fmt_out = MPP_FMT_YUV420SP_10BIT;
-        break;
-    case VDPP_FMT_NV30:
-        img_fmt_out = MPP_FMT_YUV420SP_10BIT;
-        break;
-
-    case VDPP_FMT_RGBA:
+    } break;
+    case VDPP_FMT_RGBA: {
         img_fmt_out = MPP_FMT_RGBA8888;
-        break;
-    case VDPP_FMT_RG24:
+    } break;
+    case VDPP_FMT_RG24: {
         img_fmt_out = MPP_FMT_RGB888;
-        break;
-    case VDPP_FMT_BG24:
+    } break;
+    case VDPP_FMT_BG24: {
         img_fmt_out = MPP_FMT_BGR888;
-        break;
-
-    default:
-        mpp_err_f("unsupport input format(%x), set NV12!", img_fmt_in);
-        break;
+    } break;
+    default: {
+        hwpq_loge("unsupport input format(%x), set to NV12 !!", img_fmt_in);
+    } break;
     }
 
     return img_fmt_out;
 }
 
-static enum VDPP_YUV_SWAP get_img_format_swap(vdpp_frame_format img_fmt_in)
+static enum VDPP_FMT vdpp_format_convert(HwpqVdppFormat img_fmt_in)
+{
+    enum VDPP_FMT img_fmt_out = VDPP_FMT_YUV444;
+
+    switch (img_fmt_in) {
+    case VDPP_FMT_NV24:
+    case VDPP_FMT_NV24_VU: {
+        img_fmt_out = VDPP_FMT_YUV444;
+    } break;
+    case VDPP_FMT_NV12:
+    case VDPP_FMT_NV12_VU: {
+        img_fmt_out = VDPP_FMT_YUV420;
+    } break;
+    default: {
+        hwpq_loge("unsupport output format(%d), force set to NV24 !!", img_fmt_in);
+    } break;
+    }
+
+    return img_fmt_out;
+}
+
+static enum VDPP_YUV_SWAP get_img_format_swap(HwpqVdppFormat img_fmt_in)
 {
     enum VDPP_YUV_SWAP img_fmt_swap = VDPP_YUV_SWAP_SP_UV;
 
     switch (img_fmt_in) {
     case VDPP_FMT_NV24_VU:
     case VDPP_FMT_NV16_VU:
-    case VDPP_FMT_NV12_VU:
+    case VDPP_FMT_NV12_VU: {
         img_fmt_swap = VDPP_YUV_SWAP_SP_VU;
-        break;
-
-    default:
+    } break;
+    default: {
         img_fmt_swap = VDPP_YUV_SWAP_SP_UV;
-        break;
+    } break;
     }
 
     return img_fmt_swap;
@@ -580,111 +696,113 @@ static enum VDPP_YUV_SWAP get_img_format_swap(vdpp_frame_format img_fmt_in)
 
 int hwpq_vdpp_deinit(rk_vdpp_context ctx)
 {
-    VdppCtxImpl *p = (VdppCtxImpl*)ctx;
+    VdppCtxImpl *ctx_impl = (VdppCtxImpl*)ctx;
     vdpp_com_ctx* vdpp = NULL;
     MPP_RET ret = MPP_NOK;
 
-    hwpq_vdpp_enter();
-
     if (NULL == ctx) {
-        mpp_err_f("found NULL input ctx %p\n", ctx);
+        hwpq_loge("found NULL input ctx %p!\n", ctx);
         ret = MPP_ERR_NULL_PTR;
         goto __RET;
     }
 
-    vdpp = p->vdpp;
+    vdpp = ctx_impl->vdpp;
     if (NULL == vdpp || NULL == vdpp->ops) {
-        mpp_err_f("found NULL vdpp\n");
+        hwpq_loge("found NULL vdpp!\n");
         ret = MPP_ERR_NULL_PTR;
         goto __RET;
     }
+
+    hwpq_enter();
 
     if (vdpp->ops->deinit) {
         ret = vdpp->ops->deinit(vdpp->priv);
         if (ret) {
-            mpp_err_f("vdpp deinit failed! ret %d\n", ret);
+            hwpq_loge("vdpp deinit failed! ret %d\n", ret);
         }
     }
 
-    if (p->histbuf) {
-        mpp_buffer_put(p->histbuf);
-        p->histbuf = NULL;
+    if (ctx_impl->histbuf) {
+        mpp_buffer_put(ctx_impl->histbuf);
+        ctx_impl->histbuf = NULL;
     }
 
-    if (p->memGroup) {
-        mpp_buffer_group_put(p->memGroup);
-        p->memGroup = NULL;
+    if (ctx_impl->memGroup) {
+        mpp_buffer_group_put(ctx_impl->memGroup);
+        ctx_impl->memGroup = NULL;
     }
 
     rockchip_vdpp_api_release_ctx(vdpp);
-    MPP_FREE(p);
-    hwpq_vdpp_leave();
+    MPP_FREE(ctx_impl);
 
 __RET:
+    hwpq_leave();
     return ret;
 }
 
 int hwpq_vdpp_init(rk_vdpp_context *p_ctx_ptr)
 {
-    VdppCtxImpl *p = NULL;
+    VdppCtxImpl *ctx_impl = NULL;
     vdpp_com_ctx *vdpp = NULL;
     MppBufferGroup memGroup = NULL;
     MppBuffer histbuf = NULL;
     MPP_RET ret = MPP_NOK;
 
-    hwpq_vdpp_enter();
-
     if (NULL == p_ctx_ptr) {
-        mpp_err("found NULL vdpp ctx pointer\n");
+        hwpq_loge("found NULL vdpp ctx pointer\n");
         ret = MPP_ERR_NULL_PTR;
         goto __ERR;
     }
+
+    hwpq_enter();
+
     /* alloc vdpp ctx impl */
-    p = mpp_malloc(VdppCtxImpl, 1);
-    if (NULL == p) {
-        mpp_err("alloc vdpp ctx failed!");
+    ctx_impl = mpp_malloc(VdppCtxImpl, 1);
+    if (NULL == ctx_impl) {
+        hwpq_loge("alloc vdpp ctx failed!");
         ret = MPP_ERR_MALLOC;
         goto __ERR;
     }
     /* alloc vdpp */
     vdpp = rockchip_vdpp_api_alloc_ctx();
     if (NULL == vdpp || NULL == vdpp->ops) {
-        mpp_err("alloc vdpp ctx failed!");
+        hwpq_loge("alloc vdpp ctx failed!");
         ret = MPP_ERR_MALLOC;
         goto __ERR;
     }
     /* alloc buffer group */
     ret = mpp_buffer_group_get_internal(&memGroup, MPP_BUFFER_TYPE_DRM);
     if (ret) {
-        mpp_err("memGroup mpp_buffer_group_get failed\n");
+        hwpq_loge("memGroup mpp_buffer_group_get failed! %d\n", ret);
         ret = MPP_NOK;
         goto __ERR;
     }
 
-    mpp_buffer_get(memGroup, &histbuf, VDPP_HIST_LENGTH);
+    ret = mpp_buffer_get(memGroup, &histbuf, VDPP_HIST_LENGTH);
     if (ret) {
-        mpp_err("alloc histbuf failed\n");
+        hwpq_loge("alloc histbuf failed!\n", ret);
         ret = MPP_NOK;
         goto __ERR;
     }
 
     /* setup env prop */
     mpp_env_get_u32(HWPQ_VDPP_DEBUG_CFG_PROP, &hwpq_vdpp_debug, 0);
+    hwpq_logi("get env: %s=%#x", HWPQ_VDPP_DEBUG_CFG_PROP, hwpq_vdpp_debug);
 
     if (vdpp->ops->init) {
         ret = vdpp->ops->init(&vdpp->priv);
         if (ret) {
-            mpp_err_f("vdpp init failed! ret %d\n", ret);
+            hwpq_loge("vdpp init failed! ret %d\n", ret);
             goto __ERR;
         }
     }
 
-    p->vdpp = vdpp;
-    p->memGroup = memGroup;
-    p->histbuf = histbuf;
-    *p_ctx_ptr = (rk_vdpp_context)p;
+    ctx_impl->vdpp = vdpp;
+    ctx_impl->memGroup = memGroup;
+    ctx_impl->histbuf = histbuf;
+    *p_ctx_ptr = (rk_vdpp_context)ctx_impl;
 
-    hwpq_vdpp_leave();
+    hwpq_leave();
     return ret;
 
 __ERR:
@@ -699,33 +817,35 @@ __ERR:
     }
 
     rockchip_vdpp_api_release_ctx(vdpp);
-    MPP_FREE(p);
+    MPP_FREE(ctx_impl);
 
+    hwpq_leave();
     return ret;
 }
 
-static MPP_RET hwpq_vdpp_common_config(vdpp_com_ctx *vdpp, rk_vdpp_proc_params *p_proc_param)
+static MPP_RET hwpq_vdpp_common_config(vdpp_com_ctx *vdpp, const HwpqVdppParams *p_proc_param)
 {
-    struct vdpp_api_params params;
+    struct vdpp_api_params params = {0};
     RK_U32 is_vdpp2 = (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576);
-    RK_U32 yuv_out_diff;
+    RK_U32 hist_only_mode = p_proc_param->hist_mode_en;
+    RK_U32 yuv_out_diff = (p_proc_param->yuv_diff_flag && is_vdpp2);
     MPP_RET ret = MPP_NOK;
 
-    yuv_out_diff = (p_proc_param->yuv_diff_flag && is_vdpp2);
-    hwpq_vdpp_info("is_vdpp2: %d, yuv_diff: %d\n", is_vdpp2, yuv_out_diff);
+    hwpq_enter();
+    hwpq_logi("is_vdpp2: %d, yuv_diff: %d\n", is_vdpp2, yuv_out_diff);
 
+    /* set common params */
     if (is_vdpp2) {
-        RK_U32 hist_mode_en = p_proc_param->hist_mode_en;
-
         params.ptype = VDPP_PARAM_TYPE_COM2;
         memset(&params.param, 0, sizeof(union vdpp_api_content));
         params.param.com2.sfmt = img_format_convert(p_proc_param->src_img_info.img_fmt);
+        params.param.com2.sswap = get_img_format_swap(p_proc_param->src_img_info.img_fmt);
         params.param.com2.src_width = p_proc_param->src_img_info.img_yrgb.w_vld;
         params.param.com2.src_height = p_proc_param->src_img_info.img_yrgb.h_vld;
         params.param.com2.src_width_vir = p_proc_param->src_img_info.img_yrgb.w_vir;
         params.param.com2.src_height_vir = p_proc_param->src_img_info.img_yrgb.h_vir;
-        params.param.com2.sswap = get_img_format_swap(p_proc_param->src_img_info.img_fmt);
-        params.param.com2.dfmt = VDPP_FMT_YUV444; // TODO
+        params.param.com2.dfmt = vdpp_format_convert(p_proc_param->dst_img_info.img_fmt);
+        params.param.com2.dswap = get_img_format_swap(p_proc_param->dst_img_info.img_fmt);
         params.param.com2.dst_width = p_proc_param->dst_img_info.img_yrgb.w_vld;
         params.param.com2.dst_height = p_proc_param->dst_img_info.img_yrgb.h_vld;
         params.param.com2.dst_width_vir = p_proc_param->dst_img_info.img_yrgb.w_vir;
@@ -737,193 +857,250 @@ static MPP_RET hwpq_vdpp_common_config(vdpp_com_ctx *vdpp, rk_vdpp_proc_params *
             params.param.com2.dst_c_width_vir = p_proc_param->dst_img_info.img_cbcr.w_vir;
             params.param.com2.dst_c_height_vir = p_proc_param->dst_img_info.img_cbcr.h_vir;
         }
-        params.param.com2.dswap = get_img_format_swap(p_proc_param->dst_img_info.img_fmt);
-        params.param.com2.hist_mode_en = hist_mode_en;
-        hwpq_vdpp_info("hist_mode: %d\n", params.param.com2.hist_mode_en);
-        hwpq_vdpp_info("src-fmt: %d\n", p_proc_param->src_img_info.img_fmt);
-        hwpq_vdpp_info("dst-fmt: %d\n", p_proc_param->dst_img_info.img_fmt);
-        hwpq_vdpp_info("src-res: %d-%d  %d-%d\n", params.param.com2.src_width, params.param.com2.src_height,
-                       params.param.com2.src_width_vir, params.param.com2.src_height_vir);
-        hwpq_vdpp_info("dst-res: %d-%d  %d-%d\n", params.param.com2.dst_width, params.param.com2.dst_height,
-                       params.param.com2.dst_width_vir, params.param.com2.dst_height_vir);
+        params.param.com2.hist_mode_en = hist_only_mode;
         ret = vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_COM2_CFG, &params);
+
+        hwpq_logi("set api param: sfmt=%d, sswap=%d, src_range=TBD, size=%dx%d [%dx%d]\n",
+                  params.param.com2.sfmt, params.param.com2.sswap, params.param.com2.src_width,
+                  params.param.com2.src_height, params.param.com2.src_width_vir,
+                  params.param.com2.src_height_vir);
+        hwpq_logi("set api param: dfmt=%d, dswap=%d, size=%dx%d [%dx%d]\n", params.param.com2.dfmt,
+                  params.param.com2.dswap, params.param.com2.dst_width, params.param.com2.dst_height,
+                  params.param.com2.dst_width_vir, params.param.com2.dst_height_vir);
+        hwpq_logi("set api param: yuv_out_diff=%d, dst_c_size=%dx%d [%dx%d]\n",
+                  params.param.com2.yuv_out_diff, params.param.com2.dst_c_width,
+                  params.param.com2.dst_c_height, params.param.com2.dst_c_width_vir,
+                  params.param.com2.dst_c_height_vir);
+        hwpq_logi("set api param: hist_only_mode=%d, cfg_set=%d\n", params.param.com2.hist_mode_en,
+                  params.param.com2.cfg_set);
     } else {
         params.ptype = VDPP_PARAM_TYPE_COM;
         memset(&params.param, 0, sizeof(union vdpp_api_content));
         params.param.com.src_width = p_proc_param->src_img_info.img_yrgb.w_vld;
         params.param.com.src_height = p_proc_param->src_img_info.img_yrgb.h_vld;
         params.param.com.sswap = get_img_format_swap(p_proc_param->src_img_info.img_fmt);
-        params.param.com.dfmt = VDPP_FMT_YUV444; // TODO
+        params.param.com.dfmt = vdpp_format_convert(p_proc_param->dst_img_info.img_fmt);
         params.param.com.dst_width = p_proc_param->dst_img_info.img_yrgb.w_vld;
         params.param.com.dst_height = p_proc_param->dst_img_info.img_yrgb.h_vld;
         params.param.com.dswap = get_img_format_swap(p_proc_param->dst_img_info.img_fmt);
         ret = vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_COM_CFG, &params);
     }
 
+    hwpq_leave();
     return ret;
 }
 
-int hwpq_vdpp_proc(rk_vdpp_context ctx, rk_vdpp_proc_params *p_proc_param)
+int hwpq_vdpp_proc(rk_vdpp_context ctx, HwpqVdppParams *p_proc_param)
 {
-    VdppCtxImpl *p = (VdppCtxImpl*)ctx;
+    VdppCtxImpl *ctx_impl = (VdppCtxImpl*)ctx;
     vdpp_com_ctx* vdpp = NULL;
     RK_U32 is_vdpp2 = (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576);
     MppBuffer histbuf = NULL;
     MppBufferGroup memGroup = NULL;
     RK_S32 ret = MPP_OK;
-    void* phist;
-    RK_S32 fdhist;
-    static int frame_idx = 0;
-
-    hwpq_vdpp_enter();
+    void *phist_internal = NULL;
+    void *phist_target = NULL;
+    RK_S32 fdhist_internal = 0;
+    RK_S32 fdhist_target = 0;
+    RK_U32 update_flag = 0;
+    static int internal_frame_idx = 0;
 
     if (NULL == ctx || NULL == p_proc_param) {
-        mpp_err_f("found NULL input ctx %p proc_param %p\n", ctx, p_proc_param);
+        hwpq_loge("found NULL input ctx %p proc_param %p\n", ctx, p_proc_param);
         return MPP_ERR_NULL_PTR;
     }
 
-    vdpp = p->vdpp;
+    vdpp = ctx_impl->vdpp;
     if (NULL == vdpp || NULL == vdpp->ops || NULL == vdpp->ops->control) {
-        mpp_err_f("found NULL vdpp or vdpp ops\n");
+        hwpq_loge("found NULL vdpp or vdpp ops\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    memGroup = p->memGroup;
-    histbuf = p->histbuf;
-    if (NULL == memGroup || NULL == histbuf) {
-        mpp_err_f("found NULL memGroup %p or histbuf %p\n", memGroup, histbuf);
-        return MPP_ERR_NULL_PTR;
-    }
+    hwpq_enter();
 
     mpp_env_get_u32(HWPQ_VDPP_DEBUG_CFG_PROP, &hwpq_vdpp_debug, 0);
+    hwpq_logi("get env: %s=%#x", HWPQ_VDPP_DEBUG_CFG_PROP, hwpq_vdpp_debug);
 
-    hwpq_vdpp_info("proc frame_idx %d\n", p_proc_param->frame_idx);
+    memGroup = ctx_impl->memGroup;
+    histbuf = ctx_impl->histbuf;
+    if (NULL == memGroup || NULL == histbuf) {
+        hwpq_loge("found NULL memGroup %p or histbuf %p\n", memGroup, histbuf);
+        return MPP_ERR_NULL_PTR;
+    }
 
-    hwpq_vdpp_info("begin set image info\n");
-    hwpq_vdpp_info("set src img_info\n");
-    ret |= vdpp_set_img(vdpp, p_proc_param->src_img_info.img_yrgb.fd, p_proc_param->src_img_info.img_cbcr.fd,
+    hwpq_logi("proc frame_idx: %d, yuv_diff: %d, hist_en: %d\n", p_proc_param->frame_idx,
+              p_proc_param->yuv_diff_flag, p_proc_param->vdpp_config.hist_cnt_en);
+
+    ret |= vdpp_set_img(vdpp, p_proc_param->src_img_info.img_yrgb.fd,
+                        p_proc_param->src_img_info.img_cbcr.fd,
                         p_proc_param->src_img_info.img_cbcr.offset, VDPP_CMD_SET_SRC);
-    hwpq_vdpp_info("set dst img_info\n");
-    ret |= vdpp_set_img(vdpp, p_proc_param->dst_img_info.img_yrgb.fd, p_proc_param->dst_img_info.img_cbcr.fd,
+    ret |= vdpp_set_img(vdpp, p_proc_param->dst_img_info.img_yrgb.fd,
+                        p_proc_param->dst_img_info.img_cbcr.fd,
                         p_proc_param->dst_img_info.img_cbcr.offset, VDPP_CMD_SET_DST);
-    ret |= vdpp_set_img(vdpp, p_proc_param->dst_img_info.img_yrgb.fd, p_proc_param->dst_img_info.img_cbcr.fd,
-                        p_proc_param->dst_img_info.img_cbcr.offset, VDPP_CMD_SET_DST_C);
+    if (p_proc_param->yuv_diff_flag)
+        ret |= vdpp_set_img(vdpp, p_proc_param->dst_img_info.img_yrgb.fd,
+                            p_proc_param->dst_img_info.img_cbcr.fd,
+                            p_proc_param->dst_img_info.img_cbcr.offset, VDPP_CMD_SET_DST_C);
 
+    // call VDPP_CMD_SET_COM2_CFG
     ret |= hwpq_vdpp_common_config(vdpp, p_proc_param);
     if (ret) {
-        mpp_err("vdpp common config failed\n");
+        hwpq_loge("vdpp common config failed! %d\n", ret);
         return MPP_NOK;
     }
 
-    /* set params */
-    if (vdpp_set_user_cfg(vdpp, &p_proc_param->vdpp_config, p_proc_param->vdpp_config_update_flag))
-        mpp_err_f("warning: set user cfg failed");
+    /* update params */
+    update_flag = p_proc_param->vdpp_config_update_flag || (0 == p_proc_param->frame_idx) ||
+                  (0 == internal_frame_idx);
+    ret = vdpp_set_user_cfg(vdpp, &p_proc_param->vdpp_config, update_flag);
+    if (ret)
+        hwpq_logw("warning: set user cfg failed for some module! %d\n", ret);
 
-    phist   = mpp_buffer_get_ptr(histbuf);
-    fdhist  = mpp_buffer_get_fd(histbuf);
+    /* set hist fd */
+    if (is_vdpp2 && p_proc_param->vdpp_config.hist_cnt_en) {
+        phist_internal  = mpp_buffer_get_ptr(histbuf);
+        fdhist_internal = mpp_buffer_get_fd(histbuf);
+        // mpp_assert(phist_internal && fdhist_internal > 0);
 
-    if (is_vdpp2) {
-        ret = vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_HIST_FD, &fdhist);
+        // use internal hist buffer if user not provide hist fd
+        if (p_proc_param->hist_buf_fd > 0) {
+            fdhist_target = p_proc_param->hist_buf_fd;
+            hwpq_logi("set api param: set hist fd to user config: fd=%d, addr=%p\n", fdhist_target,
+                      p_proc_param->p_hist_buf);
+        } else {
+            fdhist_target = fdhist_internal;
+            hwpq_logi("set api param: set hist fd to internal(fd=%d) since the user not provide\n",
+                      fdhist_target);
+        }
+
+        ret = vdpp->ops->control(vdpp->priv, VDPP_CMD_SET_HIST_FD, &fdhist_target);
         if (ret) {
-            mpp_err("set hist fd failed\n");
+            hwpq_loge("set hist fd failed! %d\n", ret);
             return MPP_NOK;
         }
     }
 
+    /* run vdpp */
     ret = vdpp->ops->control(vdpp->priv, VDPP_CMD_RUN_SYNC, NULL);
     if (ret) {
-        mpp_err("run vdpp failed\n");
+        hwpq_loge("run vdpp failed!!! %d\n", ret);
         return MPP_NOK;
     }
 
-    vdpp_dump(p_proc_param, frame_idx);
-
-    frame_idx++;
-
-    if (is_vdpp2) {
-        memcpy(p_proc_param->p_hist_buf, phist, VDPP_HIST_LENGTH);
-    }
-
-    p_proc_param->dci_vdpp_info.p_hist_addr     = p_proc_param->p_hist_buf;
-    p_proc_param->dci_vdpp_info.hist_length     = VDPP_HIST_LENGTH;
-    p_proc_param->dci_vdpp_info.vdpp_img_w_in   = p_proc_param->src_img_info.img_yrgb.w_vld;
-    p_proc_param->dci_vdpp_info.vdpp_img_h_in   = p_proc_param->src_img_info.img_yrgb.h_vld;
-    p_proc_param->dci_vdpp_info.vdpp_img_w_out  = p_proc_param->dst_img_info.img_yrgb.w_vld;
-    p_proc_param->dci_vdpp_info.vdpp_img_h_out  = p_proc_param->dst_img_info.img_yrgb.h_vld;
-
-    p_proc_param->dci_vdpp_info.vdpp_blk_size_h = p_proc_param->src_img_info.img_yrgb.w_vld / 16;
-    p_proc_param->dci_vdpp_info.vdpp_blk_size_v = p_proc_param->src_img_info.img_yrgb.h_vld / 16;
-
+    /* post process */
     memset(&p_proc_param->output, 0, sizeof(p_proc_param->output));
-    p_proc_param->output.luma_avg = 0;
+    memset(&p_proc_param->dci_vdpp_info, 0, sizeof(p_proc_param->dci_vdpp_info));
+    p_proc_param->output.luma_avg = -1; // init to invalid value
 
-    {
-        // Calc avg luma
-        RK_U32 *p_global_hist = (RK_U32 *)phist + HWPQ_VDPP_GLOBAL_HIST_OFFSET / 4;
+    if (is_vdpp2 && p_proc_param->vdpp_config.hist_cnt_en) {
+        /* Calc avg luma */
+        RK_U32 *p_global_hist = NULL;
         RK_U64 luma_sum = 0;
         RK_U32 pixel_count = 0;
         RK_U32 i;
 
-        for (i = 0; i < HWPQ_VDPP_GLOBAL_HIST_SIZE; i++) {
-            /*
+        if (fdhist_target == fdhist_internal) {
+            phist_target = phist_internal;
+            hwpq_logi("count mean luma with internal hist: fd=%d, addr=%p\n", fdhist_internal, phist_target);
+        } else {
+            if (p_proc_param->p_hist_buf) {
+                phist_target = p_proc_param->p_hist_buf;
+                hwpq_logi("count mean luma with user hist: fd=%d, addr=%p\n",
+                          p_proc_param->hist_buf_fd, phist_target);
+            } else {
+                phist_target = vdpp_map_buffer_with_fd(p_proc_param->hist_buf_fd, VDPP_HIST_LENGTH);
+                hwpq_logi("count mean luma with user hist: fd=%d =map=> addr=%p\n",
+                          p_proc_param->hist_buf_fd, phist_target);
+            }
+        }
+        if (phist_target) {
+            p_global_hist = (RK_U32 *)phist_target + HWPQ_VDPP_GLOBAL_HIST_OFFSET / 4;
+            for (i = 0; i < HWPQ_VDPP_GLOBAL_HIST_SIZE; i++) {
+                /*
                 bin0 ---> 0,1,2,3 ---> avg_luma = 1.5 = 0*4+1.5
                 bin1 ---> 4,5,6,7 ---> avg_luma = 5.5 = 1*4+1.5
                 ...
                 bin255 ---> 1020,1021,1022,1023 ---> avg_luma = 1021.5 = 255*4+1.5
-            */
-            RK_U32 luma_val = i * 8 + 3;
+                */
+                RK_U32 luma_val = i * 8 + 3;
 
-            luma_sum += p_global_hist[i] * luma_val;
-            pixel_count += p_global_hist[i];
-        }
+                luma_sum += p_global_hist[i] * luma_val;
+                pixel_count += p_global_hist[i];
+            }
 
-        if (pixel_count > 0) {
-            p_proc_param->output.luma_avg = luma_sum / pixel_count / 2;
+            if (pixel_count > 0) {
+                p_proc_param->output.luma_avg = luma_sum / pixel_count / 2;
+                hwpq_logi("get luma_avg from hist: %d (in U10)\n", p_proc_param->output.luma_avg);
+            } else {
+                hwpq_loge("pixel_count is zero! the hist data is invalid! output.luma_avg will be set to -1!\n");
+                p_proc_param->output.luma_avg = -1;
+            }
         } else {
-            mpp_err("pixel_count is zero\n");
-            p_proc_param->output.luma_avg = 0;
+            hwpq_loge("hist buffer is invalid!! output.luma_avg will be set to -1!\n");
         }
+
+        /* update hwpq_vdpp_info_t */
+        if (fdhist_target == fdhist_internal && p_proc_param->p_hist_buf) {
+            hwpq_logi("copy internal hist[%p] to user hist[%p]...\n", phist_internal,
+                      p_proc_param->p_hist_buf);
+            memcpy(p_proc_param->p_hist_buf, phist_internal, VDPP_HIST_LENGTH);
+        }
+
+        p_proc_param->dci_vdpp_info.p_hist_addr     = phist_target;
+        p_proc_param->dci_vdpp_info.hist_length     = VDPP_HIST_LENGTH;
+        p_proc_param->dci_vdpp_info.vdpp_img_w_in   = p_proc_param->src_img_info.img_yrgb.w_vld;
+        p_proc_param->dci_vdpp_info.vdpp_img_h_in   = p_proc_param->src_img_info.img_yrgb.h_vld;
+        p_proc_param->dci_vdpp_info.vdpp_img_w_out  = p_proc_param->dst_img_info.img_yrgb.w_vld;
+        p_proc_param->dci_vdpp_info.vdpp_img_h_out  = p_proc_param->dst_img_info.img_yrgb.h_vld;
+        p_proc_param->dci_vdpp_info.vdpp_blk_size_h = p_proc_param->src_img_info.img_yrgb.w_vld / 16;
+        p_proc_param->dci_vdpp_info.vdpp_blk_size_v = p_proc_param->src_img_info.img_yrgb.h_vld / 16;
     }
 
-    hwpq_vdpp_leave();
+    vdpp_dump_bufs(p_proc_param, internal_frame_idx);
+    internal_frame_idx++;
 
+    hwpq_leave();
     return MPP_OK;
 }
 
-int hwpq_vdpp_check_work_mode(rk_vdpp_context ctx, rk_vdpp_proc_params *p_proc_param)
+int hwpq_vdpp_check_work_mode(rk_vdpp_context ctx, const HwpqVdppParams *p_proc_param)
 {
     RK_S32 cap_mode = VDPP_CAP_UNSUPPORTED;
-    VdppCtxImpl *p = (VdppCtxImpl*)ctx;
+    VdppCtxImpl *ctx_impl = (VdppCtxImpl*)ctx;
     vdpp_com_ctx* vdpp = NULL;
     int run_mode = VDPP_RUN_MODE_UNSUPPORTED;
     MPP_RET ret = MPP_NOK;
 
     if (NULL == ctx || NULL == p_proc_param) {
-        mpp_err_f("found NULL vdpp %p proc_param %p", ctx, p_proc_param);
+        hwpq_loge("found NULL vdpp %p proc_param %p!\n", ctx, p_proc_param);
         return VDPP_RUN_MODE_UNSUPPORTED;
     }
 
-    vdpp = p->vdpp;
+    vdpp = ctx_impl->vdpp;
     if (NULL == vdpp || NULL == vdpp->ops) {
-        mpp_err_f("found NULL vdpp or ops");
+        hwpq_loge("found NULL vdpp or ops!\n");
         return VDPP_RUN_MODE_UNSUPPORTED;
     }
+
+    hwpq_enter();
 
     ret = hwpq_vdpp_common_config(vdpp, p_proc_param);
     if (ret) {
-        mpp_err("vdpp common config failed\n");
+        hwpq_loge("vdpp common config failed! %d\n", ret);
         return VDPP_RUN_MODE_UNSUPPORTED;
     }
 
     if (vdpp->ops->check_cap)
         cap_mode = vdpp->ops->check_cap(vdpp->priv);
 
-    hwpq_vdpp_info("vdpp cap_mode %d", cap_mode);
+    hwpq_logi("vdpp cap_mode: %#x (1-VEP, 2-HIST)", cap_mode);
+
     /* vep first */
     if (VDPP_CAP_VEP & cap_mode)
         run_mode = VDPP_RUN_MODE_VEP;
     else if (VDPP_CAP_HIST & cap_mode)
         run_mode = VDPP_RUN_MODE_HIST;
 
+    hwpq_leave();
     return run_mode;
 }

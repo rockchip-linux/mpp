@@ -5,6 +5,8 @@
 # vdpp unit test
 option(VDPP_TEST "Build base vdpp unit test" ${BUILD_TEST})
 if (VDPP_TEST)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/../)
+
     add_executable(vdpp_test vdpp_test.c)
     target_link_libraries(vdpp_test ${MPP_SHARED} utils vproc_vdpp)
     set_target_properties(vdpp_test PROPERTIES FOLDER "mpp/vproc/vdpp")
