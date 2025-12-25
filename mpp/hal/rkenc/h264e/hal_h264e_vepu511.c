@@ -878,6 +878,7 @@ static MPP_RET vepu511_h264e_save_pass1_patch(HalVepu511RegSet *regs, HalH264eVe
     regs->reg_frm.rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
     regs->reg_frm.rfpw_b_addr = regs->reg_frm.rfpw_h_addr;
     regs->reg_frm.enc_pic.rec_fbc_dis = 1;
+    regs->reg_frm.me_ref_comb.rfpw_mode = 0;
 
     mpp_dev_multi_offset_update(ctx->offsets, 164, width_align * height_align);
 
@@ -908,6 +909,7 @@ static MPP_RET vepu511_h264e_use_pass1_patch(HalVepu511RegSet *regs, HalH264eVep
 
     regs->reg_frm.src_proc.src_mirr   = 0;
     regs->reg_frm.src_proc.src_rot    = 0;
+    regs->reg_frm.src_proc.rkfbcd_en  = 0;
 
     regs->reg_frm.pic_ofst.pic_ofst_y = 0;
     regs->reg_frm.pic_ofst.pic_ofst_x = 0;

@@ -682,8 +682,9 @@ static MPP_RET vepu511_h265e_save_pass1_patch(H265eV511RegSet *regs, H265eV511Ha
 
     regs->reg_frm.reg0192_enc_pic.cur_frm_ref = 1;
     regs->reg_frm.reg0163_rfpw_h_addr = mpp_buffer_get_fd(ctx->buf_pass1);
-    regs->reg_frm.reg0164_rfpw_b_addr = regs->reg_frm.reg0163_rfpw_h_addr + (width_align * height_align);
+    regs->reg_frm.reg0164_rfpw_b_addr = regs->reg_frm.reg0163_rfpw_h_addr;
     regs->reg_frm.reg0192_enc_pic.rec_fbc_dis = 1;
+    regs->reg_frm.reg0223_me_ref_comb.rfpw_mode = 0;
 
     if (tiles_enabled_flag)
         regs->reg_frm.reg0238_synt_pps.lp_fltr_acrs_sli = 0;
@@ -718,6 +719,7 @@ static MPP_RET vepu511_h265e_use_pass1_patch(H265eV511RegSet *regs, H265eV511Hal
     regs->reg_frm.reg0205_src_strd0.src_strd0 = y_stride;
     regs->reg_frm.reg0206_src_strd1.src_strd1 = y_stride;
 
+    regs->reg_frm.reg0203_src_proc.rkfbcd_en  = 0;
     regs->reg_frm.reg0203_src_proc.src_mirr   = 0;
     regs->reg_frm.reg0203_src_proc.src_rot    = 0;
 
