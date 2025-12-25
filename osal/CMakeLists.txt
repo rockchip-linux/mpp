@@ -1,7 +1,7 @@
 # vim: syntax=cmake
 cmake_minimum_required(VERSION 2.6.3)
-PROJECT(osal C CXX)
-INCLUDE(GNUInstallDirs)
+project(osal C CXX)
+include(GNUInstallDirs)
 
 find_package(Threads)
 

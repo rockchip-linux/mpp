@@ -35,6 +35,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
+include(${PROJECT_SOURCE_DIR}/build/cmake/merge_objects.cmake)
 
 # setup output library name
 # Linux   default name - rockchip_mpp and rockchip_vpu
@@ -266,7 +267,7 @@ configure_file(
 # Build options
 # ----------------------------------------------------------------------------
 find_package(PkgConfig)
-INCLUDE(GNUInstallDirs)
+include(GNUInstallDirs)
 pkg_search_module(PTHREAD pthread)
 
 # ----------------------------------------------------------------------------
