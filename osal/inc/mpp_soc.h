@@ -90,6 +90,8 @@ typedef struct {
 extern "C" {
 #endif
 
+RK_S32 mpp_coding_to_index(MppCodingType coding);
+
 const char *mpp_get_soc_name(void);
 RockchipSocType mpp_get_soc_type(void);
 

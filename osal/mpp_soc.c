@@ -1088,6 +1088,11 @@ static const MppSocInfo mpp_soc_default = {
     {   &vepu2, &vepu1, NULL, NULL, },
 };
 
+RK_S32 mpp_coding_to_index(MppCodingType coding)
+{
+    return (RK_S32)(CODING_TO_IDX(coding));
+}
+
 static void read_soc_name(char *name, rk_s32 size)
 {
     const char *path = "/proc/device-tree/compatible";
@@ -1235,6 +1240,7 @@ RockchipSocType mpp_get_soc_type(void)
 static rk_u32 is_valid_cap_coding(rk_u32 cap, MppCodingType coding)
 {
     rk_s32 index = CODING_TO_IDX(coding);
+
     if (index > 0 && index < 32 && (cap & (rk_u32)(1 << index)))
         return 1;
 
