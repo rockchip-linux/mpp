@@ -30,39 +30,53 @@ RK_U32 m2vh_debug = 0;
 static MPP_RET hal_m2vd_gen_regs(void *hal, HalTaskInfo *task)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
-    return self->hal_api.reg_gen (hal, task);
+
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->reg_gen)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->reg_gen(hal, task);
 }
 
 static MPP_RET hal_m2vd_start(void *hal, HalTaskInfo *task)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
-    return self->hal_api.start(hal, task);
+
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->start)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->start(hal, task);
 }
 
 static MPP_RET hal_m2vd_wait(void *hal, HalTaskInfo *task)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
-    return self->hal_api.wait(hal, task);
+
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->wait)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->wait(hal, task);
 }
 
 static MPP_RET hal_m2vd_deinit(void *hal)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
-    return self->hal_api.deinit(hal);
+
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->deinit)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->deinit(hal);
 }
 
-static MPP_RET hal_m2vd_init (void *hal, MppHalCfg *cfg)
+static MPP_RET hal_m2vd_init(void *hal, MppHalCfg *cfg)
 {
     M2vdHalCtx *self = (M2vdHalCtx *)hal;
-    MppHalApi *p_api = NULL;
     VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
-    if (self == NULL)
-        return MPP_ERR_VALUE;
-    memset(self, 0, sizeof(M2vdHalCtx));
+    if (NULL == self || NULL == cfg)
+        return MPP_ERR_NULL_PTR;
 
-    p_api = &self->hal_api;
+    memset(self, 0, sizeof(M2vdHalCtx));
 
     mpp_env_get_u32("m2vh_debug", &m2vh_debug, 0);
 
@@ -74,31 +88,20 @@ static MPP_RET hal_m2vd_init (void *hal, MppHalCfg *cfg)
 
     switch (hw_mode) {
     case VDPU2_MODE:
-        p_api->init = hal_m2vd_vdpu2_init;
-        p_api->deinit = hal_m2vd_vdpu2_deinit;
-        p_api->reg_gen = hal_m2vd_vdpu2_gen_regs;
-        p_api->start = hal_m2vd_vdpu2_start;
-        p_api->wait = hal_m2vd_vdpu2_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        self->hal_api = &hal_m2vd_vdpu2;
         break;
     case VDPU1_MODE:
-        p_api->init = hal_m2vd_vdpu1_init;
-        p_api->deinit = hal_m2vd_vdpu1_deinit;
-        p_api->reg_gen = hal_m2vd_vdpu1_gen_regs;
-        p_api->start = hal_m2vd_vdpu1_start;
-        p_api->wait = hal_m2vd_vdpu1_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        self->hal_api = &hal_m2vd_vdpu1;
         break;
     default:
         mpp_err("unknow vpu mode %d.", hw_mode);
         return MPP_ERR_INIT;
     }
 
-    return p_api->init(hal, cfg);;
+    if (NULL == self->hal_api || NULL == self->hal_api->init)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->init(hal, cfg);
 }
 
 const MppHalApi hal_api_m2vd = {

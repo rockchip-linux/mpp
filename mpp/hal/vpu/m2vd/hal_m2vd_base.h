@@ -62,7 +62,7 @@ typedef enum M2VDPicStruct_e {
 } M2VDPicStruct;
 
 typedef struct M2vdHalCtx_t {
-    MppHalApi       hal_api;
+    const MppHalApi *hal_api;
     MppBufSlots     packet_slots;
     MppBufSlots     frame_slots;
     void            *regs;
@@ -76,4 +76,4 @@ typedef struct M2vdHalCtx_t {
     RK_U32          reg_len;
 } M2vdHalCtx;
 
-#endif // HAL_M2VD_BASE_H 
+#endif // HAL_M2VD_BASE_H

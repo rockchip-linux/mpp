@@ -27,7 +27,8 @@
 #include "hal_m2vd_vpu2.h"
 #include "hal_m2vd_api.h"
 
-MPP_RET hal_m2vd_vdpu2_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_m2vd_vdpu2_deinit(void *hal);
+static MPP_RET hal_m2vd_vdpu2_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *p = (M2vdHalCtx *)hal;
@@ -102,7 +103,7 @@ __ERR_RET:
     return ret;
 }
 
-MPP_RET hal_m2vd_vdpu2_deinit(void *hal)
+static MPP_RET hal_m2vd_vdpu2_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *p = (M2vdHalCtx *)hal;
@@ -191,7 +192,7 @@ static MPP_RET hal_m2vd_vdpu2_init_hwcfg(M2vdHalCtx *ctx)
     return MPP_OK;
 }
 
-MPP_RET hal_m2vd_vdpu2_gen_regs(void *hal, HalTaskInfo *task)
+static MPP_RET hal_m2vd_vdpu2_gen_regs(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
 
@@ -327,7 +328,7 @@ MPP_RET hal_m2vd_vdpu2_gen_regs(void *hal, HalTaskInfo *task)
 
 }
 
-MPP_RET hal_m2vd_vdpu2_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_m2vd_vdpu2_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
@@ -372,7 +373,7 @@ MPP_RET hal_m2vd_vdpu2_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
@@ -404,3 +405,19 @@ MPP_RET hal_m2vd_vdpu2_wait(void *hal, HalTaskInfo *task)
     m2vh_dbg_func("leave\n");
     return ret;
 }
+
+const MppHalApi hal_m2vd_vdpu2 = {
+    .name     = "m2vd_vdpu2",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingMPEG2,
+    .ctx_size = sizeof(M2vdHalCtx),
+    .flag     = 0,
+    .init     = hal_m2vd_vdpu2_init,
+    .deinit   = hal_m2vd_vdpu2_deinit,
+    .reg_gen  = hal_m2vd_vdpu2_gen_regs,
+    .start    = hal_m2vd_vdpu2_start,
+    .wait     = hal_m2vd_vdpu2_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
+};
