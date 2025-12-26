@@ -99,7 +99,7 @@ typedef struct avsd_hal_picture_t {
 
 
 typedef struct avsd_hal_ctx_t {
-    MppHalApi                hal_api;
+    const MppHalApi          *hal_api;
     MppBufSlots              frame_slots;
     MppBufSlots              packet_slots;
     MppBufferGroup           buf_group;

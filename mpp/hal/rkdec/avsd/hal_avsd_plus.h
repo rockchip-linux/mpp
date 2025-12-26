@@ -21,14 +21,7 @@
 extern "C" {
 #endif
 
-MPP_RET hal_avsd_plus_init    (void *decoder, MppHalCfg *cfg);
-MPP_RET hal_avsd_plus_deinit  (void *decoder);
-MPP_RET hal_avsd_plus_gen_regs(void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_plus_start   (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_plus_wait    (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_plus_reset   (void *decoder);
-MPP_RET hal_avsd_plus_flush   (void *decoder);
-MPP_RET hal_avsd_plus_control (void *decoder, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_avsd_plus;
 
 #ifdef  __cplusplus
 }

@@ -23,14 +23,7 @@
 extern "C" {
 #endif
 
-MPP_RET hal_avsd_vdpu2_init    (void *decoder, MppHalCfg *cfg);
-MPP_RET hal_avsd_vdpu2_deinit  (void *decoder);
-MPP_RET hal_avsd_vdpu2_gen_regs(void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_vdpu2_start   (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_vdpu2_wait    (void *decoder, HalTaskInfo *task);
-MPP_RET hal_avsd_vdpu2_reset   (void *decoder);
-MPP_RET hal_avsd_vdpu2_flush   (void *decoder);
-MPP_RET hal_avsd_vdpu2_control (void *decoder, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_avsd_vdpu2;
 
 #ifdef  __cplusplus
 }

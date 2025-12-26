@@ -36,7 +36,7 @@
  ***********************************************************************
  */
 //extern "C"
-MPP_RET set_defalut_parameters(AvsdHalCtx_t *p_hal)
+static MPP_RET set_defalut_parameters(AvsdHalCtx_t *p_hal)
 {
     AvsdPlusRegs_t *p_regs = (AvsdPlusRegs_t *)p_hal->p_regs;
 
@@ -526,6 +526,8 @@ static MPP_RET update_parameters(AvsdHalCtx_t *p_hal)
     return MPP_OK;
 }
 
+static MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task);
+static MPP_RET hal_avsd_plus_wait(void *decoder, HalTaskInfo *task);
 static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
 {
     RK_U32 i = 0;
@@ -585,7 +587,7 @@ __FAILED:
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_init(void *decoder, MppHalCfg *cfg)
+static MPP_RET hal_avsd_plus_init(void *decoder, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     RK_U32 buf_size = 0;
@@ -626,7 +628,7 @@ __FAILED:
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_deinit(void *decoder)
+static MPP_RET hal_avsd_plus_deinit(void *decoder)
 {
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
@@ -647,7 +649,7 @@ MPP_RET hal_avsd_plus_deinit(void *decoder)
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_gen_regs(void *decoder, HalTaskInfo *task)
+static MPP_RET hal_avsd_plus_gen_regs(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
@@ -673,7 +675,7 @@ __FAILED:
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
+static MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
@@ -749,7 +751,7 @@ __RETURN:
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_wait(void *decoder, HalTaskInfo *task)
+static MPP_RET hal_avsd_plus_wait(void *decoder, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
@@ -807,7 +809,7 @@ __RETURN:
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_reset(void *decoder)
+static MPP_RET hal_avsd_plus_reset(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
@@ -833,7 +835,7 @@ MPP_RET hal_avsd_plus_reset(void *decoder)
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_flush(void *decoder)
+static MPP_RET hal_avsd_plus_flush(void *decoder)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -852,7 +854,7 @@ MPP_RET hal_avsd_plus_flush(void *decoder)
  ***********************************************************************
  */
 //extern "C"
-MPP_RET hal_avsd_plus_control(void *decoder, MpiCmd cmd_type, void *param)
+static MPP_RET hal_avsd_plus_control(void *decoder, MpiCmd cmd_type, void *param)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
 
@@ -866,3 +868,19 @@ MPP_RET hal_avsd_plus_control(void *decoder, MpiCmd cmd_type, void *param)
 
     return ret = MPP_OK;
 }
+
+const MppHalApi hal_avsd_plus = {
+    .name     = "avsd_plus",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingAVSPLUS,
+    .ctx_size = sizeof(AvsdHalCtx_t),
+    .flag     = 0,
+    .init     = hal_avsd_plus_init,
+    .deinit   = hal_avsd_plus_deinit,
+    .reg_gen  = hal_avsd_plus_gen_regs,
+    .start    = hal_avsd_plus_start,
+    .wait     = hal_avsd_plus_wait,
+    .reset    = hal_avsd_plus_reset,
+    .flush    = hal_avsd_plus_flush,
+    .control  = hal_avsd_plus_control,
+};
