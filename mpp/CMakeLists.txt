@@ -17,9 +17,11 @@ include_directories(inc)
 if(CMAKE_HOST_WIN32)
     set(SCRIPT_SUFFIX ".bat")
     set(CLEAN_OBJ_FILES cmd /c "if exist *.o del /F /Q *.o")
+    set(PRINT_CURRENT_DIR cmd /c cd)
 else()
     set(SCRIPT_SUFFIX ".sh")
     set(CLEAN_OBJ_FILES rm *.o || true)
+    set(PRINT_CURRENT_DIR pwd)
 endif()
 
 include_directories(common)
@@ -90,8 +92,7 @@ add_custom_command(TARGET ${MPP_STATIC} POST_BUILD
     COMMAND ${CMAKE_AR} rcs lib${MPP_SHARED}.a *.o
     COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK=${ANDROID_NDK} ${CMAKE_SOURCE_DIR}/merge_static_lib${SCRIPT_SUFFIX} ${CMAKE_BINARY_DIR} ${MPP_SHARED}
     COMMAND ${CMAKE_STRIP} --strip-debug lib${MPP_SHARED}.a
-    COMMAND ${CMAKE_COMMAND} -E echo "Current directory:"
-    COMMAND ${CMAKE_COMMAND} -E chdir .. pwd
+    COMMAND ${PRINT_CURRENT_DIR}
     COMMAND ${CLEAN_OBJ_FILES}
     )
 
