@@ -1057,7 +1057,7 @@ static const MppSocInfo mpp_soc_infos[] = {
     },
     {   /*
          * RK3538 has codec:
-         * 1 - RK H.264/H.265/VP9/AV1 8K decoder
+         * 1 - RK H.264/H.265/VP9/AV1 1080P decoder
          * 2 - RK jpeg decoder
          */
         "rk3538",
@@ -1077,6 +1077,17 @@ static const MppSocInfo mpp_soc_infos[] = {
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_JPEG_ENC,
         {   &vdpu384b, &rkjpegd, NULL, NULL, NULL, NULL},
         {   &vepu511, &rkjpege_vpu720, NULL, NULL},
+    },
+    {   /*
+         * RK3539 has codec:
+         * 1 - RK H.264/H.265/VP9/AV1 4K decoder
+         * 2 - RK jpeg decoder
+         */
+        "rk3539",
+        ROCKCHIP_SOC_RK3539,
+        HAVE_RKVDEC | HAVE_JPEG_DEC | HAVE_VDPU2,
+        {   &vdpu384b_no_avs2, &rkjpegd, &vdpu2, NULL, NULL, NULL},
+        {   NULL, NULL, NULL, NULL},
     },
 };
 

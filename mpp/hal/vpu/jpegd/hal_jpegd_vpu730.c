@@ -638,7 +638,7 @@ static MPP_RET hal_jpegd_vpu730_control(void *hal, MpiCmd cmd_type, void *param)
         if (MPP_FRAME_FMT_IS_RGB(output_fmt)) {
             if (soc_type == ROCKCHIP_SOC_RK3572) {
                 ret = MPP_ERR_VALUE;
-            } else if (soc_type == ROCKCHIP_SOC_RK3538) {
+            } else if (soc_type == ROCKCHIP_SOC_RK3538 || soc_type == ROCKCHIP_SOC_RK3539) {
                 if (output_fmt != MPP_FMT_BGR888 && output_fmt != MPP_FMT_RGB888 &&
                     output_fmt != MPP_FMT_RGB565 && output_fmt != MPP_FMT_BGR565) {
                     ret = MPP_ERR_VALUE;

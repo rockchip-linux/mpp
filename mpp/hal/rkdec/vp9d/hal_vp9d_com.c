@@ -2259,7 +2259,9 @@ MPP_RET vdpu38x_vp9d_uncomp_hdr(HalVp9dCtx *p_hal, DXVA_PicParams_VP9 *pp,
     }
     mpp_put_bits(&bp, pp->parallelmode, 1);
     mpp_put_bits(&bp, pp->refresh_frame_context, 1);
-    if (soc_type == ROCKCHIP_SOC_RK3538 || soc_type == ROCKCHIP_SOC_RK3572) {
+    if (soc_type == ROCKCHIP_SOC_RK3538 ||
+        soc_type == ROCKCHIP_SOC_RK3572 ||
+        soc_type == ROCKCHIP_SOC_RK3539) {
         if ((!pp->frame_type || pp->intra_only) || pp->error_resilient_mode ||
             pp->reset_frame_context == 3 || pp->reset_frame_context == 2)
             mpp_put_bits(&bp, 1, 1);
