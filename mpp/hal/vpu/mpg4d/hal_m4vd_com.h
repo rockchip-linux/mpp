@@ -46,7 +46,7 @@ typedef struct mpeg4d_reg_context {
     MppBuffer           qp_table;
 
     void*               regs;
-    MppHalApi           hal_api;
+    const MppHalApi      *hal_api;
 } hal_mpg4_ctx;
 
 extern RK_U8 default_inter_matrix[64];

@@ -222,7 +222,7 @@ static void vdpu1_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax
 
 }
 
-MPP_RET vdpu1_mpg4d_init(void *hal, MppHalCfg *cfg)
+static MPP_RET vdpu1_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     M4vdVdpu1Regs_t *regs = NULL;
@@ -300,7 +300,7 @@ ERR_RET:
     return ret;
 }
 
-MPP_RET vdpu1_mpg4d_deinit(void *hal)
+static MPP_RET vdpu1_mpg4d_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -335,7 +335,7 @@ MPP_RET vdpu1_mpg4d_deinit(void *hal)
     return ret;
 }
 
-MPP_RET vdpu1_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
+static MPP_RET vdpu1_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -397,7 +397,7 @@ MPP_RET vdpu1_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
     return ret;
 }
 
-MPP_RET vdpu1_mpg4d_start(void *hal, HalTaskInfo *task)
+static MPP_RET vdpu1_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -448,7 +448,7 @@ MPP_RET vdpu1_mpg4d_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
+static MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
@@ -481,3 +481,19 @@ MPP_RET vdpu1_mpg4d_wait(void *hal, HalTaskInfo *task)
     (void)task;
     return ret;
 }
+
+const MppHalApi vdpu1_mpg4d = {
+    .name     = "mpg4d_vdpu1",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingMPEG4,
+    .ctx_size = sizeof(hal_mpg4_ctx),
+    .flag     = 0,
+    .init     = vdpu1_mpg4d_init,
+    .deinit   = vdpu1_mpg4d_deinit,
+    .reg_gen  = vdpu1_mpg4d_gen_regs,
+    .start    = vdpu1_mpg4d_start,
+    .wait     = vdpu1_mpg4d_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
+};

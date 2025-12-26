@@ -46,15 +46,13 @@ RK_U32 hal_mpg4d_debug = 1;
 static MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
-    MppHalApi *p_api = NULL;
     VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
-    if (NULL == p_hal)
-        return MPP_ERR_VALUE;
+    if (NULL == p_hal || NULL == cfg)
+        return MPP_ERR_NULL_PTR;
 
     memset(p_hal, 0, sizeof(hal_mpg4_ctx));
-    p_api = &p_hal->hal_api;
 
     hw_flag = mpp_get_vcodec_type();
     mpp_assert(hw_flag & (HAVE_VDPU2 | HAVE_VDPU1));
@@ -66,31 +64,20 @@ static MPP_RET hal_vpu_mpg4d_init(void *hal, MppHalCfg *cfg)
 
     switch (hw_mode) {
     case VDPU2_MODE:
-        p_api->init = vdpu2_mpg4d_init;
-        p_api->deinit = vdpu2_mpg4d_deinit;
-        p_api->reg_gen = vdpu2_mpg4d_gen_regs;
-        p_api->start = vdpu2_mpg4d_start;
-        p_api->wait = vdpu2_mpg4d_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        p_hal->hal_api = &vdpu2_mpg4d;
         break;
     case VDPU1_MODE:
-        p_api->init = vdpu1_mpg4d_init;
-        p_api->deinit = vdpu1_mpg4d_deinit;
-        p_api->reg_gen = vdpu1_mpg4d_gen_regs;
-        p_api->start = vdpu1_mpg4d_start;
-        p_api->wait = vdpu1_mpg4d_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        p_hal->hal_api = &vdpu1_mpg4d;
         break;
     default:
         return MPP_ERR_INIT;
         break;
     }
 
-    return p_api->init (hal, cfg);
+    if (NULL == p_hal->hal_api || NULL == p_hal->hal_api->init)
+        return MPP_ERR_NULL_PTR;
+
+    return p_hal->hal_api->init(hal, cfg);
 }
 
 /*!
@@ -104,7 +91,10 @@ static MPP_RET hal_vpu_mpg4d_deinit(void *hal)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
-    return p_hal->hal_api.deinit(hal);
+    if (NULL == p_hal || NULL == p_hal->hal_api || NULL == p_hal->hal_api->deinit)
+        return MPP_ERR_NULL_PTR;
+
+    return p_hal->hal_api->deinit(hal);
 }
 
 /*!
@@ -118,7 +108,10 @@ static MPP_RET hal_vpu_mpg4d_gen_regs(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
-    return p_hal->hal_api.reg_gen(hal, task);
+    if (NULL == p_hal || NULL == p_hal->hal_api || NULL == p_hal->hal_api->reg_gen)
+        return MPP_ERR_NULL_PTR;
+
+    return p_hal->hal_api->reg_gen(hal, task);
 }
 
 /*!
@@ -132,7 +125,10 @@ static MPP_RET hal_vpu_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
-    return p_hal->hal_api.start(hal, task);
+    if (NULL == p_hal || NULL == p_hal->hal_api || NULL == p_hal->hal_api->start)
+        return MPP_ERR_NULL_PTR;
+
+    return p_hal->hal_api->start(hal, task);
 }
 
 /*!
@@ -146,7 +142,10 @@ static MPP_RET hal_vpu_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     hal_mpg4_ctx *p_hal = (hal_mpg4_ctx *)hal;
 
-    return p_hal->hal_api.wait(hal, task);
+    if (NULL == p_hal || NULL == p_hal->hal_api || NULL == p_hal->hal_api->wait)
+        return MPP_ERR_NULL_PTR;
+
+    return p_hal->hal_api->wait(hal, task);
 }
 
 const MppHalApi hal_api_mpg4d = {

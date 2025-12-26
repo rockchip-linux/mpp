@@ -23,11 +23,7 @@
 extern "C" {
 #endif
 
-MPP_RET vdpu1_mpg4d_init    (void *hal, MppHalCfg *cfg);
-MPP_RET vdpu1_mpg4d_deinit  (void *hal);
-MPP_RET vdpu1_mpg4d_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_mpg4d_start   (void *hal, HalTaskInfo *task);
-MPP_RET vdpu1_mpg4d_wait    (void *hal, HalTaskInfo *task);
+extern const MppHalApi vdpu1_mpg4d;
 
 #ifdef __cplusplus
 }
