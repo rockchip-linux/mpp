@@ -19,7 +19,7 @@
 #include "hal_jpegd_vpu730.h"
 #include "hal_jpegd_vpu730_reg.h"
 
-MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -70,7 +70,7 @@ MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg)
     return ret;
 }
 
-MPP_RET hal_jpegd_vpu730_deinit(void *hal)
+static MPP_RET hal_jpegd_vpu730_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
@@ -428,7 +428,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return ret;
 }
 
-MPP_RET hal_jpegd_vpu730_gen_regs(void *hal,  HalTaskInfo *syn)
+static MPP_RET hal_jpegd_vpu730_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -479,7 +479,7 @@ __RETURN:
     return ret;
 }
 
-MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx * ctx = (JpegdHalCtx *)hal;
@@ -538,7 +538,7 @@ __RETURN:
     return ret;
 }
 
-MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
@@ -609,7 +609,7 @@ __SKIP_HARD:
     return ret;
 }
 
-MPP_RET hal_jpegd_vpu730_control(void *hal, MpiCmd cmd_type, void *param)
+static MPP_RET hal_jpegd_vpu730_control(void *hal, MpiCmd cmd_type, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -661,3 +661,19 @@ MPP_RET hal_jpegd_vpu730_control(void *hal, MpiCmd cmd_type, void *param)
     jpegd_dbg_func("exit ret %d\n", ret);
     return ret;
 }
+
+const MppHalApi hal_jpegd_vpu730 = {
+    .name     = "jpegd_vpu730",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(JpegdHalCtx),
+    .flag     = 0,
+    .init     = hal_jpegd_vpu730_init,
+    .deinit   = hal_jpegd_vpu730_deinit,
+    .reg_gen  = hal_jpegd_vpu730_gen_regs,
+    .start    = hal_jpegd_vpu730_start,
+    .wait     = hal_jpegd_vpu730_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = hal_jpegd_vpu730_control,
+};

@@ -18,11 +18,6 @@
 #define HAL_JPEGD_VDPU2_H
 #include "rk_type.h"
 
-MPP_RET hal_jpegd_vdpu2_init(void *hal, MppHalCfg *cfg);
-MPP_RET hal_jpegd_vdpu2_deinit(void *hal);
-MPP_RET hal_jpegd_vdpu2_gen_regs(void *hal,  HalTaskInfo *syn);
-MPP_RET hal_jpegd_vdpu2_start(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_vdpu2_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_vdpu2_control(void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_jpegd_vdpu2;
 
 #endif /* HAL_JPEGD_VDPU2_H */

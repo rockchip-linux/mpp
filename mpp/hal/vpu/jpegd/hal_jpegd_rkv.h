@@ -20,11 +20,6 @@
 
 #include "mpp_hal.h"
 
-MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg);
-MPP_RET hal_jpegd_rkv_deinit(void *hal);
-MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn);
-MPP_RET hal_jpegd_rkv_start(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_jpegd_rkv;
 
 #endif /* HAL_JPEGD_RKV_H */

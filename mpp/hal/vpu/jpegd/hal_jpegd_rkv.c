@@ -33,7 +33,7 @@
 #include "hal_jpegd_rkv.h"
 #include "hal_jpegd_rkv_reg.h"
 
-MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_jpegd_rkv_init(void *hal, MppHalCfg *cfg)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -382,7 +382,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return ret;
 }
 
-MPP_RET hal_jpegd_rkv_deinit(void *hal)
+static MPP_RET hal_jpegd_rkv_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
@@ -425,7 +425,7 @@ MPP_RET hal_jpegd_rkv_deinit(void *hal)
     return ret;
 }
 
-MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
+static MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -476,7 +476,7 @@ __RETURN:
     return ret;
 }
 
-MPP_RET hal_jpegd_rkv_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_rkv_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx * ctx = (JpegdHalCtx *)hal;
@@ -535,7 +535,7 @@ __RETURN:
     return ret;
 }
 
-MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_rkv_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
@@ -606,7 +606,7 @@ __SKIP_HARD:
     return ret;
 }
 
-MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
+static MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -667,3 +667,19 @@ MPP_RET hal_jpegd_rkv_control(void *hal, MpiCmd cmd_type, void *param)
     jpegd_dbg_func("exit ret %d\n", ret);
     return ret;
 }
+
+const MppHalApi hal_jpegd_rkv = {
+    .name     = "jpegd_rkv",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(JpegdHalCtx),
+    .flag     = 0,
+    .init     = hal_jpegd_rkv_init,
+    .deinit   = hal_jpegd_rkv_deinit,
+    .reg_gen  = hal_jpegd_rkv_gen_regs,
+    .start    = hal_jpegd_rkv_start,
+    .wait     = hal_jpegd_rkv_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = hal_jpegd_rkv_control,
+};

@@ -41,7 +41,7 @@ typedef struct JpegdHalCtx {
     void                   *regs;
     MppBufferGroup         group;
     MppBuffer              pTableBase;
-    MppHalApi              hal_api;
+    const MppHalApi        *hal_api;
     MppCbCtx               *dec_cb;
 
     MppFrameFormat         output_fmt;

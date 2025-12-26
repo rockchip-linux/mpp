@@ -728,7 +728,7 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     return MPP_OK;
 }
 
-MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
@@ -790,7 +790,7 @@ MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     return MPP_OK;
 }
 
-MPP_RET hal_jpegd_vdpu1_deinit(void *hal)
+static MPP_RET hal_jpegd_vdpu1_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
@@ -833,7 +833,7 @@ MPP_RET hal_jpegd_vdpu1_deinit(void *hal)
     return MPP_OK;
 }
 
-MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
+static MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
 {
     jpegd_dbg_func("enter\n");
     if (NULL == hal || NULL == syn) {
@@ -902,7 +902,7 @@ RET:
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
@@ -963,7 +963,7 @@ __RETURN:
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
@@ -1043,7 +1043,7 @@ __SKIP_HARD:
     return ret;
 }
 
-MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
+static MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -1071,3 +1071,19 @@ MPP_RET hal_jpegd_vdpu1_control(void *hal, MpiCmd cmd_type, void *param)
     jpegd_dbg_func("exit ret %d\n", ret);
     return  ret;
 }
+
+const MppHalApi hal_jpegd_vdpu1 = {
+    .name     = "jpegd_vdpu1",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingMJPEG,
+    .ctx_size = sizeof(JpegdHalCtx),
+    .flag     = 0,
+    .init     = hal_jpegd_vdpu1_init,
+    .deinit   = hal_jpegd_vdpu1_deinit,
+    .reg_gen  = hal_jpegd_vdpu1_gen_regs,
+    .start    = hal_jpegd_vdpu1_start,
+    .wait     = hal_jpegd_vdpu1_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = hal_jpegd_vdpu1_control,
+};

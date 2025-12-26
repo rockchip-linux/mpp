@@ -10,11 +10,6 @@
 
 #include "mpp_hal.h"
 
-MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg);
-MPP_RET hal_jpegd_vpu730_deinit(void *hal);
-MPP_RET hal_jpegd_vpu730_gen_regs(void *hal,  HalTaskInfo *syn);
-MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task);
-MPP_RET hal_jpegd_vpu730_control(void *hal, MpiCmd cmd_type, void *param);
+extern const MppHalApi hal_jpegd_vpu730;
 
 #endif /* HAL_JPEGD_VPU730_H */
