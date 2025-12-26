@@ -38,7 +38,7 @@ static const RK_U32 mcFilter[8][6] = {
     { 0, -1,   12,  123,  -6,  0 }
 };
 
-MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
+static MPP_RET hal_vp8d_vdpu1_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
@@ -114,7 +114,7 @@ ERR_RET:
     return ret;
 }
 
-MPP_RET hal_vp8d_vdpu1_deinit(void *hal)
+static MPP_RET hal_vp8d_vdpu1_deinit(void *hal)
 {
     MPP_RET ret = MPP_OK;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
@@ -444,7 +444,7 @@ static void hal_vp8hw_asic_probe_update(DXVA_PicParams_VP8 *p, RK_U8 *probTbl)
     return ;
 }
 
-MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 mb_width = 0, mb_height = 0;
@@ -620,7 +620,7 @@ MPP_RET hal_vp8d_vdpu1_gen_regs(void* hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
@@ -674,7 +674,7 @@ MPP_RET hal_vp8d_vdpu1_start(void *hal, HalTaskInfo *task)
     return ret;
 }
 
-MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     VP8DHalContext_t *ctx = (VP8DHalContext_t *)hal;
@@ -689,3 +689,19 @@ MPP_RET hal_vp8d_vdpu1_wait(void *hal, HalTaskInfo *task)
     FUN_T("leave\n");
     return ret;
 }
+
+const MppHalApi hal_vp8d_vdpu1 = {
+    .name     = "vp8d_vdpu1",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingVP8,
+    .ctx_size = sizeof(VP8DHalContext_t),
+    .flag     = 0,
+    .init     = hal_vp8d_vdpu1_init,
+    .deinit   = hal_vp8d_vdpu1_deinit,
+    .reg_gen  = hal_vp8d_vdpu1_gen_regs,
+    .start    = hal_vp8d_vdpu1_start,
+    .wait     = hal_vp8d_vdpu1_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
+};

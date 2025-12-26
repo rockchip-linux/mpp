@@ -19,10 +19,6 @@
 
 #include "hal_vp8d_base.h"
 
-MPP_RET hal_vp8d_vdpu1_init    (void *hal, MppHalCfg *cfg);
-MPP_RET hal_vp8d_vdpu1_deinit  (void *hal);
-MPP_RET hal_vp8d_vdpu1_gen_regs(void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_vdpu1_start   (void *hal, HalTaskInfo *task);
-MPP_RET hal_vp8d_vdpu1_wait    (void *hal, HalTaskInfo *task);
+extern const MppHalApi hal_vp8d_vdpu1;
 
 #endif

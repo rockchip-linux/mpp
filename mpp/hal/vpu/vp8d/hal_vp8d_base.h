@@ -55,7 +55,7 @@ typedef struct VP8DHalContext {
     RK_U32          dec_frame_cnt;
     FILE            *fp_reg_in;
     FILE            *fp_reg_out;
-    MppHalApi       hal_api;
+    const MppHalApi *hal_api;
 } VP8DHalContext_t;
 
 #endif

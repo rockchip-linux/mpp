@@ -27,90 +27,88 @@
 
 RK_U32 hal_vp8d_debug = 0;
 
-static MPP_RET hal_vp8d_reg_gen (void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_reg_gen(void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.reg_gen)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->reg_gen)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.reg_gen(hal, task);
+    return self->hal_api->reg_gen(hal, task);
 }
 
-static MPP_RET hal_vp8d_start (void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_start(void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.start)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->start)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.start(hal, task);
+    return self->hal_api->start(hal, task);
 }
 
-static MPP_RET hal_vp8d_wait (void *hal, HalTaskInfo *task)
+static MPP_RET hal_vp8d_wait(void *hal, HalTaskInfo *task)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.wait)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->wait)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.wait(hal, task);
+    return self->hal_api->wait(hal, task);
 }
 
-static MPP_RET hal_vp8d_reset (void *hal)
+static MPP_RET hal_vp8d_reset(void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.reset)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->reset)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.reset(hal);;
+    return self->hal_api->reset(hal);
 }
 
-static MPP_RET hal_vp8d_flush (void *hal)
+static MPP_RET hal_vp8d_flush(void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.flush)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->flush)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.flush(hal);
+    return self->hal_api->flush(hal);
 }
 
-static MPP_RET hal_vp8d_control (void *hal, MpiCmd cmd_type, void *param)
+static MPP_RET hal_vp8d_control(void *hal, MpiCmd cmd_type, void *param)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.control)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->control)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.control(hal, cmd_type, param);
+    return self->hal_api->control(hal, cmd_type, param);
 }
 
-static MPP_RET hal_vp8d_deinit (void *hal)
+static MPP_RET hal_vp8d_deinit(void *hal)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
 
-    if (!self->hal_api.deinit)
-        return MPP_OK;
+    if (NULL == self || NULL == self->hal_api || NULL == self->hal_api->deinit)
+        return MPP_ERR_NULL_PTR;
 
-    return self->hal_api.deinit(hal);
+    return self->hal_api->deinit(hal);
 }
 
 static MPP_RET hal_vp8d_init(void *hal, MppHalCfg *cfg)
 {
     VP8DHalContext_t *self = (VP8DHalContext_t *)hal;
-    MppHalApi *p_api = NULL;
     VpuHwMode hw_mode = MODE_NULL;
     RK_U32 hw_flag = 0;
 
-    if (NULL == self)
-        return MPP_ERR_VALUE;
+    if (NULL == self || NULL == cfg)
+        return MPP_ERR_NULL_PTR;
 
     mpp_env_get_u32("hal_vp8d_debug", &hal_vp8d_debug, 0);
 
     memset(self, 0, sizeof(VP8DHalContext_t));
-    p_api = &self->hal_api;
 
     hw_flag = mpp_get_vcodec_type();
     if (hw_flag & HAVE_VDPU1)
@@ -120,31 +118,20 @@ static MPP_RET hal_vp8d_init(void *hal, MppHalCfg *cfg)
 
     switch (hw_mode) {
     case VDPU2_MODE:
-        p_api->init = hal_vp8d_vdpu2_init;
-        p_api->deinit = hal_vp8d_vdpu2_deinit;
-        p_api->reg_gen = hal_vp8d_vdpu2_gen_regs;
-        p_api->start = hal_vp8d_vdpu2_start;
-        p_api->wait = hal_vp8d_vdpu2_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        self->hal_api = &hal_vp8d_vdpu2;
         break;
     case VDPU1_MODE:
-        p_api->init = hal_vp8d_vdpu1_init;
-        p_api->deinit = hal_vp8d_vdpu1_deinit;
-        p_api->reg_gen = hal_vp8d_vdpu1_gen_regs;
-        p_api->start = hal_vp8d_vdpu1_start;
-        p_api->wait = hal_vp8d_vdpu1_wait;
-        p_api->reset = NULL;
-        p_api->flush = NULL;
-        p_api->control = NULL;
+        self->hal_api = &hal_vp8d_vdpu1;
         break;
     default:
         return MPP_ERR_INIT;
         break;
     }
 
-    return p_api->init (hal, cfg);
+    if (NULL == self->hal_api || NULL == self->hal_api->init)
+        return MPP_ERR_NULL_PTR;
+
+    return self->hal_api->init(hal, cfg);
 }
 
 
