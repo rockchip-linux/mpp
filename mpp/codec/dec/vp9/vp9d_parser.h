@@ -1,19 +1,8 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
+ */
+
 #ifndef VP9D_PARSER_H
 #define VP9D_PARSER_H
 
@@ -23,96 +12,41 @@
 #include "mpp_bitread.h"
 
 #include "parser_api.h"
-#include "vpx_rac.h"
-#include "vp9.h"
-#include "vp9data.h"
+#include "vp9d_codec.h"
 #include "vp9d_syntax.h"
 
 extern RK_U32 vp9d_debug;
 
-#define VP9D_DBG_FUNCTION (0x00000001)
-#define VP9D_DBG_HEADER   (0x00000002)
-#define VP9D_DBG_REF      (0x00000004)
-#define VP9D_DBG_PORBE    (0x00000008)
-#define VP9D_DBG_STRMIN   (0x00000010)
+#define VP9D_DBG_FUNCTION           (0x00000001)
+#define VP9D_DBG_HEADER             (0x00000002)
+#define VP9D_DBG_REF                (0x00000004)
+#define VP9D_DBG_PORBE              (0x00000008)
+#define VP9D_DBG_STRMIN             (0x00000010)
 
+#define vp9d_dbg(flag, fmt, ...)    mpp_dbg(vp9d_debug, flag, fmt, ##__VA_ARGS__)
 
-
-#define vp9d_dbg(flag, fmt, ...) mpp_dbg(vp9d_debug, flag, fmt, ##__VA_ARGS__)
-
-enum CompPredMode {
-    PRED_SINGLEREF,
-    PRED_COMPREF,
-    PRED_SWITCHABLE,
-};
-
-enum BlockLevel {
-    BL_64X64,
-    BL_32X32,
-    BL_16X16,
-    BL_8X8,
-};
-
-enum BlockSize {
-    BS_64x64,
-    BS_64x32,
-    BS_32x64,
-    BS_32x32,
-    BS_32x16,
-    BS_16x32,
-    BS_16x16,
-    BS_16x8,
-    BS_8x16,
-    BS_8x8,
-    BS_8x4,
-    BS_4x8,
-    BS_4x4,
-    N_BS_SIZES,
-};
-
-typedef struct VP9Block {
-    RK_U8 seg_id, intra, comp, ref[2], mode[4], uvmode, skip;
-    enum FilterMode filter;
-    Vpxmv mv[4 /* b_idx */][2 /* ref */];
-    enum BlockSize bs;
-    enum TxfmMode tx, uvtx;
-    enum BlockLevel bl;
-    enum BlockPartition bp;
-} VP9Block;
-
-struct VP9mvrefPair {
-    Vpxmv mv[2];
-    RK_S8 ref[2];
-};
-
-typedef struct VP9RefInfo {
+typedef struct VP9RefInfo_t {
     RK_S32 ref_count;
-    RK_U32 invisible;
+    RK_U32 show_frame_flag;
     RK_U32 segMapIndex;
     RK_U32 is_output;
-} RefInfo;
+} VP9RefInfo;
 
-typedef struct VP9Frame {
+typedef struct VP9Frame_t {
     MppFrame f;
     RK_S32 slot_index;
-    RefInfo *ref;
+    VP9RefInfo *ref;
 } VP9Frame;
 
-struct VP9Filter {
-    uint8_t level[8 * 8];
-    uint8_t /* bit=col */ mask[2 /* 0=y, 1=uv */][2 /* 0=col, 1=row */]
-    [8 /* rows */][4 /* 0=16, 1=8, 2=4, 3=inner4 */];
-};
-#define CUR_FRAME 0
-#define REF_FRAME_MVPAIR 1
-#define REF_FRAME_SEGMAP 2
+#define VP9_CUR_FRAME 0
+#define VP9_REF_FRAME_MVPAIR 1
 
-typedef struct VP9Context {
+#define MAX_SEGMENT 8
+typedef struct VP9Context_t {
     BitReadCtx_t gb;
-    VpxRangeCoder c;
-    VpxRangeCoder *c_b;
+    Vp9dReader c;
+    Vp9dReader *c_b;
     RK_U32 c_b_size;
-    VP9Block *b_base, *b;
     RK_S32 pass;
     RK_S32 row, row7, col, col7;
     RK_U8 *dst[3];
@@ -122,21 +56,22 @@ typedef struct VP9Context {
     RK_U8 show_existing_frame;
     RK_U8 keyframe, last_keyframe;
     RK_U8 last_bpp, bpp, bpp_index, bytesperpixel;
-    RK_U8 invisible;
+    RK_U8 show_frame_flag;
     RK_U8 use_last_frame_mvs;
-    RK_U8 errorres;
-    RK_U8 ss_h, ss_v;
+    RK_U8 error_res_mode;
+    RK_U8 subsampling_x;
+    RK_U8 subsampling_y;
     RK_U8 extra_plane;
     RK_U8 intraonly;
     RK_U8 resetctx;
-    RK_U8 refreshrefmask;
-    RK_U8 highprecisionmvs;
-    enum FilterMode filtermode;
+    RK_U8 refresh_frame_flags;
+    RK_U8 allow_high_precision_mv;
+    VP9FilterMode interp_filter;
     RK_U8 allowcompinter;
     RK_U8 fixcompref;
-    RK_U8 refreshctx;
-    RK_U8 parallelmode;
-    RK_U8 framectxid;
+    RK_U8 refresh_frame_context;
+    RK_U8 frame_parallel_mode;
+    RK_U8 frame_context_idx;
     RK_U8 refidx[3];
     RK_U8 signbias[3];
     RK_U8 varcompref[2];
@@ -156,10 +91,12 @@ typedef struct VP9Context {
         RK_S8 mode[2];
         RK_S8 ref[4];
     } lf_delta;
-    RK_U8 yac_qi;
-    RK_S8 ydc_qdelta, uvdc_qdelta, uvac_qdelta;
+    RK_U8 base_qindex;
+    RK_U8 y_dc_delta_q;
+    RK_U8 uv_dc_delta_q;
+    RK_U8 uv_ac_delta_q;
     RK_U8 lossless;
-#define MAX_SEGMENT 8
+
     struct {
         RK_U8 enabled;
         RK_U8 temporal;
@@ -179,24 +116,29 @@ typedef struct VP9Context {
         } feat[MAX_SEGMENT];
     } segmentation;
     struct {
-        RK_U32 log2_tile_cols, log2_tile_rows;
-        RK_U32 tile_cols, tile_rows;
-        RK_U32 tile_row_start, tile_row_end, tile_col_start, tile_col_end;
+        RK_U32 log2_tile_cols;
+        RK_U32 log2_tile_rows;
+        RK_U32 tile_cols;
+        RK_U32 tile_rows;
+        RK_U32 tile_row_start;
+        RK_U32 tile_row_end;
+        RK_U32 tile_col_start;
+        RK_U32 tile_col_end;
     } tiling;
     RK_U32 sb_cols, sb_rows, rows, cols;
     struct {
-        prob_context p;
+        Vp9ProbCtx p;
         RK_U8 coef[4][2][2][6][6][3];
     } prob_ctx[4];
     struct {
-        prob_context p;
+        Vp9ProbCtx p;
         RK_U8 coef[4][2][2][6][6][3];
         RK_U8 seg[7];
         RK_U8 segpred[3];
     } prob;
     struct {
-        prob_context p_flag;
-        prob_context p_delta;
+        Vp9ProbCtx p_flag;
+        Vp9ProbCtx p_delta;
         RK_U8 coef_flag[4][2][2][6][6][3];
         RK_U8 coef_delta[4][2][2][6][6][3];
     } prob_flag_delta;
@@ -226,28 +168,10 @@ typedef struct VP9Context {
         RK_U32 coef[4][2][2][6][6][3];
         RK_U32 eob[4][2][2][6][6][2];
     } counts;
-    enum TxfmMode txfmmode;
-    enum CompPredMode comppredmode;
-
-    // contextual (left/above) cache
-    RK_U8 left_y_nnz_ctx[16];
-    RK_U8 left_mode_ctx[16];
-    Vpxmv left_mv_ctx[16][2];
-    RK_U8 left_uv_nnz_ctx[2][16];
-    RK_U8 left_partition_ctx[8];
-    RK_U8 left_skip_ctx[8];
-    RK_U8 left_txfm_ctx[8];
-    RK_U8 left_segpred_ctx[8];
-    RK_U8 left_intra_ctx[8];
-    RK_U8 left_comp_ctx[8];
-    RK_U8 left_ref_ctx[8];
-    RK_U8 left_filter_ctx[8];
+    VP9TxfmMode txfmmode;
+    VP9CompPredMode comppredmode;
 
     // block reconstruction intermediates
-    RK_S32 block_alloc_using_2pass;
-    RK_S16  *block, *uvblock_base[2], *uvblock[2];
-    RK_U8 *eob_base, *uveob_base[2], *eob, *uveob[2];
-    struct { RK_S32 x, y; } min_mv, max_mv;
     RK_U16 mvscale[3][2];
     RK_U8 mvstep[3][2];
 
@@ -258,7 +182,7 @@ typedef struct VP9Context {
     MppDecCfgSet *cfg;
     const MppDecHwCap *hw_info;
     HalDecTask *task;
-    RK_S32 eos;       ///< current packet contains an EOS/EOB NAL
+    RK_S32 eos;
     RK_S64 pts;
     RK_S64 dts;
     RK_S32 upprobe_num;
@@ -266,33 +190,80 @@ typedef struct VP9Context {
     RK_U32 cur_poc;
 } VP9Context;
 
+typedef struct VP9ParseCtx_t {
+    RK_S32 n_frames; // 1-8
+    RK_S32 size[8];
+    RK_S64 pts;
+} VP9ParseCtx;
+
+#define MPP_PARSER_PTS_NB 4
+typedef struct VP9SplitCtx_t {
+    RK_U8 *buffer;
+    RK_U32 buffer_size;
+    RK_S32 index;
+    RK_S32 last_index;
+    RK_U32 state;
+    RK_S32 frame_start_found;
+    RK_S32 overread;
+    RK_S32 overread_index;
+    RK_U64 state64;
+    RK_S64 pts;                 // pts of the current frame
+    RK_S64 dts;                 // dts of the current frame
+    RK_S64 frame_offset;
+    RK_S64 cur_offset;
+    RK_S64 next_frame_offset;
+
+    /* private data */
+    void  *priv_data;
+    RK_S64 last_pts;
+    RK_S64 last_dts;
+    RK_S32 fetch_timestamp;
+
+    RK_S32 cur_frame_start_index;
+    RK_S64 cur_frame_offset[MPP_PARSER_PTS_NB];
+    RK_S64 cur_frame_pts[MPP_PARSER_PTS_NB];
+    RK_S64 cur_frame_dts[MPP_PARSER_PTS_NB];
+    RK_S64 offset;              // byte offset from starting packet start
+    RK_S64 cur_frame_end[MPP_PARSER_PTS_NB];
+
+    RK_S32 key_frame;
+    RK_S32 eos;
+} VP9SplitCtx;
+
+typedef struct Vp9DecCtx_t {
+    void *priv_data;           // VP9ParseCtx
+    void *priv_data2;          // VP9SplitCtx
+
+    RK_S32 pix_fmt;
+    RK_S32 profile;
+    RK_S32 level;
+    MppFrameColorSpace colorspace;
+    MppFrameColorRange color_range;
+    RK_S32 width, height;
+    MppPacket pkt;
+
+    DXVA_PicParams_VP9 pic_params;
+    RK_S32 eos;
+} Vp9DecCtx;
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-MPP_RET vp9d_parser_init(Vp9CodecContext *vp9_ctx, ParserCfg *init);
-
-MPP_RET vp9d_parser_deinit(Vp9CodecContext *vp9_ctx);
-
-RK_S32 vp9_parser_frame(Vp9CodecContext *ctx, HalDecTask *in_task);
-
-void vp9_parser_update(Vp9CodecContext *ctx, void *count_info);
-MPP_RET vp9d_paser_reset(Vp9CodecContext *ctx);
-RK_S32 vp9d_split_frame(SplitContext_t *ctx,
-                        RK_U8 **out_data, RK_S32 *out_size,
+MPP_RET vp9d_parser_init(Vp9DecCtx *vp9_ctx, ParserCfg *init);
+MPP_RET vp9d_parser_deinit(Vp9DecCtx *vp9_ctx);
+RK_S32 vp9_parser_frame(Vp9DecCtx *ctx, HalDecTask *in_task);
+MPP_RET vp9_parser_update(Vp9DecCtx *ctx, void *count_info);
+MPP_RET vp9d_paser_reset(Vp9DecCtx *ctx);
+RK_S32 vp9d_split_frame(VP9SplitCtx *ctx, RK_U8 **out_data, RK_S32 *out_size,
                         RK_U8 *data, RK_S32 size);
 
-MPP_RET vp9d_get_frame_stream(Vp9CodecContext *ctx, RK_U8 *buf, RK_S32 length);
-
-MPP_RET vp9d_split_deinit(Vp9CodecContext *vp9_ctx);
-
-MPP_RET vp9d_split_init(Vp9CodecContext *vp9_ctx);
-
-RK_S32 vp9d_parser2_syntax(Vp9CodecContext *ctx);
+MPP_RET vp9d_get_frame_stream(Vp9DecCtx *ctx, RK_U8 *buf, RK_S32 length);
+MPP_RET vp9d_split_init(Vp9DecCtx *vp9_ctx);
+MPP_RET vp9d_split_deinit(Vp9DecCtx *vp9_ctx);
 
 #ifdef  __cplusplus
 }
 #endif
-
 
 #endif /* VP9D_PARSER_H */
