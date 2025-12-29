@@ -12,9 +12,12 @@ function(merge_objects out_obj)
     set(obj_inputs)
     set(deps)
     foreach(lib IN LISTS ARGN)
+        # Skip if target doesn't exist
         if(NOT TARGET "${lib}")
             message(FATAL_ERROR "merge_objects: '${lib}' is not a target")
+            continue()
         endif()
+
         get_target_property(_type "${lib}" TYPE)
         if(NOT _type STREQUAL "OBJECT_LIBRARY")
             message(FATAL_ERROR "merge_objects: '${lib}' is not an OBJECT library")
@@ -22,6 +25,12 @@ function(merge_objects out_obj)
         list(APPEND obj_inputs "$<TARGET_OBJECTS:${lib}>")
         list(APPEND deps "${lib}")
     endforeach()
+
+    # If no valid targets to merge, skip merge
+    if(NOT obj_inputs)
+        message(STATUS "merge_objects: no valid targets to merge for '${out_obj}', skipping")
+        return()
+    endif()
 
     set(merged_o "${CMAKE_BINARY_DIR}/${out_obj}.o")
     set(rsp_file "${CMAKE_BINARY_DIR}/${out_obj}.rsp")
