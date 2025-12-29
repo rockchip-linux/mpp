@@ -86,7 +86,6 @@ typedef struct JpegeVpu720FmtCfg_t {
 } JpegeVpu720FmtCfg;
 
 typedef struct JpegeVpu720HalCtx_t {
-    MppEncHalApi        api;
     MppDev              dev;
     void                *regs;
 

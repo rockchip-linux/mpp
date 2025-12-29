@@ -96,7 +96,6 @@ typedef struct Vepu511H265eFrmCfg_t {
 } Vepu511H265eFrmCfg;
 
 typedef struct H265eV511HalContext_t {
-    MppEncHalApi        api;
     MppDev              dev;
     void                *regs;
     void                *reg_out;

@@ -67,7 +67,6 @@ typedef struct vepu540c_h265_fbk_t {
 } vepu540c_h265_fbk;
 
 typedef struct H265eV540cHalContext_t {
-    MppEncHalApi        api;
     MppDev              dev;
     void                *regs;
     void                *reg_out[MAX_TITLE_NUM];

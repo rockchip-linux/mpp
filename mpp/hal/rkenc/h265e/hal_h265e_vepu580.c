@@ -155,7 +155,6 @@ typedef struct Vepu580H265eFrmCfg_t {
 } Vepu580H265eFrmCfg;
 
 typedef struct H265eV580HalContext_t {
-    MppEncHalApi        api;
     MppDev              dev;
     Vepu580H265eFrmCfg  *frms[MAX_FRAME_TASK_NUM];
 

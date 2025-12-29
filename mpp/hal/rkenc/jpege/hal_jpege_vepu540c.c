@@ -39,7 +39,6 @@
 #include "hal_jpege_hdr.h"
 
 typedef struct jpegeV540cHalContext_t {
-    MppEncHalApi        api;
     MppDev              dev;
     void                *regs;
     void                *reg_out;

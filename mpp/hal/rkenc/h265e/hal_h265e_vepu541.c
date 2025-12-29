@@ -69,7 +69,6 @@ typedef struct vepu541_h265_fbk_t {
 } vepu541_h265_fbk;
 
 typedef struct H265eV541HalContext_t {
-    MppEncHalApi        api;
     MppDev              dev;
     void                *regs;
     void                *l2_regs;
