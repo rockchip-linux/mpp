@@ -3452,18 +3452,25 @@ MPP_RET hal_h265e_v580_ret_task(void *hal, HalEncTask *task)
 }
 
 const MppEncHalApi hal_h265e_vepu580 = {
-    "hal_h265e_v580",
-    MPP_VIDEO_CodingHEVC,
-    sizeof(H265eV580HalContext),
-    0,
-    hal_h265e_v580_init,
-    hal_h265e_v580_deinit,
-    hal_h265e_vepu580_prepare,
-    hal_h265e_v580_get_task,
-    hal_h265e_v580_gen_regs,
-    hal_h265e_v580_start,
-    hal_h265e_v580_wait,
-    NULL,
-    NULL,
-    hal_h265e_v580_ret_task,
+    .name       = "hal_h265e_v580",
+    .coding     = MPP_VIDEO_CodingHEVC,
+    .ctx_size   = sizeof(H265eV580HalContext),
+    .flag       = 0,
+    .init       = hal_h265e_v580_init,
+    .deinit     = hal_h265e_v580_deinit,
+    .prepare    = hal_h265e_vepu580_prepare,
+    .get_task   = hal_h265e_v580_get_task,
+    .gen_regs   = hal_h265e_v580_gen_regs,
+    .start      = hal_h265e_v580_start,
+    .wait       = hal_h265e_v580_wait,
+    .part_start = NULL,
+    .part_wait  = NULL,
+    .ret_task   = hal_h265e_v580_ret_task,
+    .client     = VPU_CLIENT_RKVENC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_h265e_vepu580)

@@ -738,18 +738,26 @@ MPP_RET hal_jpege_vpu720_ret_task(void *hal, HalEncTask *task)
     return MPP_OK;
 }
 const MppEncHalApi hal_jpege_vpu720 = {
-    .name = "hal_jpege_vpu720",
-    .coding = MPP_VIDEO_CodingMJPEG,
-    .ctx_size = sizeof(JpegeVpu720HalCtx),
-    .flag = 0,
-    .init = hal_jpege_vpu720_init,
-    .deinit = hal_jpege_vpu720_deinit,
-    .prepare = NULL,
-    .get_task = hal_jpege_vpu720_get_task,
-    .gen_regs = hal_jpege_vpu720_gen_regs,
-    .start = hal_jpege_vpu720_start,
-    .wait = hal_jpege_vpu720_wait,
+    .name       = "hal_jpege_vpu720",
+    .coding     = MPP_VIDEO_CodingMJPEG,
+    .ctx_size   = sizeof(JpegeVpu720HalCtx),
+    .flag       = 0,
+    .init       = hal_jpege_vpu720_init,
+    .deinit     = hal_jpege_vpu720_deinit,
+    .prepare    = NULL,
+    .get_task   = hal_jpege_vpu720_get_task,
+    .gen_regs   = hal_jpege_vpu720_gen_regs,
+    .start      = hal_jpege_vpu720_start,
+    .wait       = hal_jpege_vpu720_wait,
     .part_start = NULL,
-    .part_wait = NULL,
-    .ret_task = hal_jpege_vpu720_ret_task,
+    .part_wait  = NULL,
+    .ret_task   = hal_jpege_vpu720_ret_task,
+    .client     = VPU_CLIENT_JPEG_ENC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3576,
+        ROCKCHIP_SOC_RK3572,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_jpege_vpu720)

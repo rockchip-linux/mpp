@@ -2,7 +2,6 @@
 include_directories(../common/)
 
 set(HAL_VP8E_SRC
-    hal_vp8e_api_v2.c
     hal_vp8e_putbit.c
     hal_vp8e_table.c
     hal_vp8e_entropy.c

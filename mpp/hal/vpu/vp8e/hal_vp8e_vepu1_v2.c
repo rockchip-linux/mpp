@@ -374,7 +374,7 @@ static MPP_RET hal_vp8e_vepu1_start_v2(void *hal, HalEncTask *task)
     MPP_RET ret = MPP_OK;
     HalVp8eCtx *ctx = (HalVp8eCtx *)hal;
 
-    if (VP8E_DBG_HAL_DUMP_REG & vp8e_hal_debug) {
+    if (VP8E_DBG_HAL_DUMP_REG & hal_vp8e_debug) {
         RK_U32 i = 0;
         RK_U32 *tmp = (RK_U32 *)ctx->regs;
 
@@ -530,4 +530,15 @@ const MppEncHalApi hal_vp8e_vepu1 = {
     .part_start = NULL,
     .part_wait  = NULL,
     .ret_task   = hal_vp8e_vepu1_ret_task_v2,
+    .client     = VPU_CLIENT_VEPU1,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3066,
+        ROCKCHIP_SOC_RK3188,
+        ROCKCHIP_SOC_RK3288,
+        ROCKCHIP_SOC_RK312X,
+        ROCKCHIP_SOC_RK3368,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_vp8e_vepu1)

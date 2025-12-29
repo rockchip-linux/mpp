@@ -8,8 +8,3 @@ include_directories(../../vpu/jpege/)
 add_library(hal_jpege_com OBJECT
     hal_jpege_hdr.c
     )
-
-# hal jpeg encoder sourse
-add_library(hal_jpege_api OBJECT
-    hal_jpege_api_v2.c
-    )

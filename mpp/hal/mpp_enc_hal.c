@@ -5,33 +5,25 @@
 
 #define  MODULE_TAG "mpp_enc_hal"
 
+#include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_log.h"
 #include "mpp_common.h"
 
 #include "mpp.h"
+#include "mpp_soc.h"
+#include "mpp_platform.h"
 #include "mpp_enc_hal.h"
 #include "mpp_frame_impl.h"
 
-#include "hal_h264e_api_v2.h"
-#include "hal_h265e_api_v2.h"
-#include "hal_jpege_api_v2.h"
-#include "hal_vp8e_api_v2.h"
+#define ENC_HAL_DBG_FLOW                (0x00000001)
+#define ENC_HAL_DBG_API                 (0x00000002)
 
-static const MppEncHalApi *hw_enc_apis[] = {
-#if HAVE_H264E
-    &hal_api_h264e_v2,
-#endif
-#if HAVE_H265E
-    &hal_api_h265e_v2,
-#endif
-#if HAVE_JPEGE
-    &hal_api_jpege_v2,
-#endif
-#if HAVE_VP8E
-    &hal_api_vp8e_v2,
-#endif
-};
+#define enc_hal_dbg(flag, fmt, ...)     mpp_dbg(mpp_enc_hal_debug, flag, fmt, ## __VA_ARGS__)
+#define enc_hal_dbg_f(flag, fmt, ...)   mpp_dbg_f(mpp_enc_hal_debug, flag, fmt, ## __VA_ARGS__)
+
+#define enc_hal_dbg_flow(fmt, ...)      enc_hal_dbg_f(ENC_HAL_DBG_FLOW, fmt, ## __VA_ARGS__)
+#define enc_hal_dbg_api(fmt, ...)       enc_hal_dbg(ENC_HAL_DBG_API, fmt, ## __VA_ARGS__)
 
 typedef struct MppEncHalImpl_t {
     MppCodingType       coding;
@@ -42,66 +34,189 @@ typedef struct MppEncHalImpl_t {
     HalTaskGroup        tasks;
 } MppEncHalImpl;
 
+/* max 32 coding type and max 2 apis on each soc for each coding type hardware encoder */
+static const MppEncHalApi *venc_apis[32][2] = { 0 };
+
+static RK_U32 mpp_enc_hal_debug = 0;
+RK_U32 hal_h265e_debug = 0;
+RK_U32 hal_h264e_debug = 0;
+RK_U32 hal_jpege_debug = 0;
+RK_U32 hal_vp8e_debug = 0;
+
+MPP_RET mpp_enc_hal_api_register(const MppEncHalApi *api)
+{
+    RockchipSocType soc_type = mpp_get_soc_type();
+    const char *soc_name = mpp_get_soc_name();
+    RK_S32 soc_match = 0;
+    RK_S32 index;
+    RK_S32 i;
+
+    mpp_env_get_u32("mpp_enc_hal_debug", &mpp_enc_hal_debug, 0);
+
+    enc_hal_dbg_api("api %s adding coding %d client %d\n",
+                    api->name, api->coding, api->client);
+
+    for (i = 0; api->soc_type[i] != ROCKCHIP_SOC_BUTT; i++)
+        if (api->soc_type[i] == soc_type) {
+            enc_hal_dbg_api("api %s match soc %d %s success\n",
+                            api->name, soc_type, soc_name);
+            soc_match = 1;
+            break;
+        }
+
+    if (!soc_match) {
+        enc_hal_dbg_api("api %s match soc %d %s failed\n",
+                        api->name, soc_type, soc_name);
+        return MPP_NOK;
+    }
+
+    index = mpp_coding_to_index(api->coding);
+    if (index < 0 || index >= MPP_ARRAY_ELEMS(venc_apis))
+        return MPP_NOK;
+
+    if (NULL == venc_apis[index][0])
+        venc_apis[index][0] = api;
+    else if (NULL == venc_apis[index][1])
+        venc_apis[index][1] = api;
+    else
+        return MPP_NOK;
+
+    return MPP_OK;
+}
+
+const MppEncHalApi *mpp_enc_hal_api_get(MppCodingType coding, MppClientType type)
+{
+    RK_S32 index = mpp_coding_to_index(coding);
+    const MppEncHalApi *api;
+
+    if (index < 0 || index >= MPP_ARRAY_ELEMS(venc_apis))
+        return NULL;
+
+    api = venc_apis[index][0];
+    if (api && api->client == type) {
+        enc_hal_dbg_api("found api %s for coding %d client %d\n",
+                        api->name, coding, type);
+        return api;
+    }
+
+    api = venc_apis[index][1];
+    if (api && api->client == type) {
+        enc_hal_dbg_api("found api %s for coding %d client %d\n",
+                        api->name, coding, type);
+        return api;
+    }
+
+    return NULL;
+}
+
+static MPP_RET hal_impl_init(MppEncHalImpl *p, const MppEncHalApi *api, MppEncHalCfg *cfg)
+{
+    MPP_RET ret = MPP_OK;
+
+    p->coding = api->coding;
+    p->api = api;
+    p->ctx = mpp_calloc_size(void, p->api->ctx_size);
+
+    ret = p->api->init(p->ctx, cfg);
+    if (!ret) {
+        ret = hal_task_group_init(&p->tasks, TASK_BUTT, cfg->task_cnt,
+                                  sizeof(EncAsyncTaskInfo));
+        if (ret) {
+            mpp_err_f("hal_task_group_init failed ret %d\n", ret);
+            MPP_FREE(p->ctx);
+        }
+    } else {
+        mpp_err_f("hal %s init failed ret %d\n", api->name, ret);
+    }
+
+    return ret;
+}
+
 MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg)
 {
+    MppEncHalImpl *p;
+    const MppEncHalApi *api;
+    MppCodingType coding;
+    MPP_RET ret = MPP_NOK;
+    RK_U32 vcodec_type;
+    RK_U32 i;
+
     if (NULL == ctx || NULL == cfg) {
         mpp_err_f("found NULL input ctx %p cfg %p\n", ctx, cfg);
         return MPP_ERR_NULL_PTR;
     }
+
     *ctx = NULL;
 
-    MppEncHalImpl *p = mpp_calloc(MppEncHalImpl, 1);
+    p = mpp_calloc(MppEncHalImpl, 1);
     if (NULL == p) {
         mpp_err_f("malloc failed\n");
         return MPP_ERR_MALLOC;
     }
 
-    RK_U32 i;
-    for (i = 0; i < MPP_ARRAY_ELEMS(hw_enc_apis); i++) {
-        if (cfg->coding == hw_enc_apis[i]->coding) {
-            p->coding       = cfg->coding;
-            p->api          = hw_enc_apis[i];
-            p->ctx          = mpp_calloc_size(void, p->api->ctx_size);
+    enc_hal_dbg_flow("enter\n");
 
-            MPP_RET ret = p->api->init(p->ctx, cfg);
-            if (ret) {
-                mpp_err_f("hal %s init failed ret %d\n", hw_enc_apis[i]->name, ret);
+    vcodec_type = mpp_get_vcodec_type();
+    coding = cfg->coding;
+
+    do {
+        if (vcodec_type & HAVE_RKVENC) {
+            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_RKVENC);
+            if (api) {
+                ret = hal_impl_init(p, api, cfg);
                 break;
             }
-
-            ret = hal_task_group_init(&p->tasks, TASK_BUTT, cfg->task_cnt,
-                                      sizeof(EncAsyncTaskInfo));
-            if (ret) {
-                mpp_err_f("hal_task_group_init failed ret %d\n", ret);
-                break;
-            }
-
-            cfg->tasks = p->tasks;
-            *ctx = p;
-            return MPP_OK;
         }
+
+        if (vcodec_type & HAVE_VEPU2) {
+            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_VEPU2);
+            if (api) {
+                ret = hal_impl_init(p, api, cfg);
+                break;
+            }
+        }
+
+        if (vcodec_type & HAVE_VEPU1) {
+            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_VEPU1);
+            if (api) {
+                ret = hal_impl_init(p, api, cfg);
+                break;
+            }
+        }
+    } while (0);
+
+    if (ret) {
+        mpp_err_f("could not found coding type %d\n", coding);
+        MPP_FREE(p);
     }
 
-    mpp_err_f("could not found coding type %d\n", cfg->coding);
-    mpp_free(p->ctx);
-    mpp_free(p);
+    *ctx = p;
 
-    return MPP_NOK;
+    enc_hal_dbg_flow("leave ret %d\n", ret);
+
+    return ret;
 }
 
 MPP_RET mpp_enc_hal_deinit(MppEncHal ctx)
 {
+    MppEncHalImpl *p;
+
     if (NULL == ctx) {
         mpp_err_f("found NULL input\n");
         return MPP_ERR_NULL_PTR;
     }
 
-    MppEncHalImpl *p = (MppEncHalImpl*)ctx;
+    enc_hal_dbg_flow("enter\n");
+
+    p = (MppEncHalImpl*)ctx;
     p->api->deinit(p->ctx);
     mpp_free(p->ctx);
     if (p->tasks)
         hal_task_group_deinit(p->tasks);
     mpp_free(p);
+
+    enc_hal_dbg_flow("leave\n");
+
     return MPP_OK;
 }
 

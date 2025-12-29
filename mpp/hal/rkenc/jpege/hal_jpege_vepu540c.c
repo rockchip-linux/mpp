@@ -406,18 +406,26 @@ MPP_RET hal_jpege_v540c_ret_task(void *hal, HalEncTask *task)
 }
 
 const MppEncHalApi hal_jpege_vepu540c = {
-    "hal_jpege_v540c",
-    MPP_VIDEO_CodingMJPEG,
-    sizeof(jpegeV540cHalContext),
-    0,
-    hal_jpege_v540c_init,
-    hal_jpege_v540c_deinit,
-    hal_jpege_vepu540c_prepare,
-    hal_jpege_v540c_get_task,
-    hal_jpege_v540c_gen_regs,
-    hal_jpege_v540c_start,
-    hal_jpege_v540c_wait,
-    NULL,
-    NULL,
-    hal_jpege_v540c_ret_task,
+    .name       = "hal_jpege_v540c",
+    .coding     = MPP_VIDEO_CodingMJPEG,
+    .ctx_size   = sizeof(jpegeV540cHalContext),
+    .flag       = 0,
+    .init       = hal_jpege_v540c_init,
+    .deinit     = hal_jpege_v540c_deinit,
+    .prepare    = hal_jpege_vepu540c_prepare,
+    .get_task   = hal_jpege_v540c_get_task,
+    .gen_regs   = hal_jpege_v540c_gen_regs,
+    .start      = hal_jpege_v540c_start,
+    .wait       = hal_jpege_v540c_wait,
+    .part_start = NULL,
+    .part_wait  = NULL,
+    .ret_task   = hal_jpege_v540c_ret_task,
+    .client     = VPU_CLIENT_RKVENC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3528,
+        ROCKCHIP_SOC_RK3562,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_jpege_vepu540c)

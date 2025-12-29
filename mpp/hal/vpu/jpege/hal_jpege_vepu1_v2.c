@@ -27,7 +27,6 @@
 #include "vcodec_service.h"
 
 #include "hal_jpege_debug.h"
-#include "hal_jpege_api_v2.h"
 #include "hal_jpege_base.h"
 
 #define VEPU_JPEGE_VEPU1_NUM_REGS 164
@@ -624,4 +623,15 @@ const MppEncHalApi hal_jpege_vepu1 = {
     .part_start = hal_jpege_vepu1_part_start,
     .part_wait  = hal_jpege_vepu1_part_wait,
     .ret_task   = hal_jpege_vepu1_ret_task,
+    .client     = VPU_CLIENT_VEPU1,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3066,
+        ROCKCHIP_SOC_RK3188,
+        ROCKCHIP_SOC_RK3288,
+        ROCKCHIP_SOC_RK312X,
+        ROCKCHIP_SOC_RK3368,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_jpege_vepu1)

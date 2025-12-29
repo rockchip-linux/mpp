@@ -31,9 +31,9 @@ merge_objects("${HAL_AVS2D}"    hal_avs2d_api)
 merge_objects("${HAL_H264D}"    hal_h264d_api)
 merge_objects("${HAL_H265D}"    hal_h265d_api)
 
-merge_objects("${HAL_H264E}"    hal_h264e_api hal_h264e_com hal_h264e_vepu5xx hal_h264e_vpu)
-merge_objects("${HAL_H265E}"    hal_h265e_api hal_h265e_com hal_h265e_vepu5xx)
-merge_objects("${HAL_JPEGE}"    hal_jpege_api hal_jpege_com hal_jpege_rkv hal_jpege_vpu)
+merge_objects("${HAL_H264E}"    hal_h264e_com hal_h264e_vepu5xx hal_h264e_vpu)
+merge_objects("${HAL_H265E}"    hal_h265e_com hal_h265e_vepu5xx)
+merge_objects("${HAL_JPEGE}"    hal_jpege_com hal_jpege_rkv hal_jpege_vpu)
 merge_objects("${HAL_VP8E}"     hal_vp8e_api)
 
 # ----------------------------------------------------------------------------

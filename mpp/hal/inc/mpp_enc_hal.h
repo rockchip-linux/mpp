@@ -17,9 +17,11 @@
 #ifndef MPP_ENC_HAL_H
 #define MPP_ENC_HAL_H
 
+#include "mpp_soc.h"
+#include "mpp_device.h"
 #include "hal_enc_task.h"
 #include "mpp_enc_cfg.h"
-#include "mpp_device.h"
+#include "mpp_singleton.h"
 
 typedef struct MppEncHalCfg_t {
     // input for encoder
@@ -59,6 +61,9 @@ typedef struct MppEncHalApi_t {
 
     // return function
     MPP_RET (*ret_task)(void *ctx, HalEncTask *task);
+
+    MppClientType   client;
+    RockchipSocType soc_type[];
 } MppEncHalApi;
 
 typedef void* MppEncHal;
@@ -66,6 +71,8 @@ typedef void* MppEncHal;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+MPP_RET mpp_enc_hal_api_register(const MppEncHalApi *api);
 
 MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg);
 MPP_RET mpp_enc_hal_deinit(MppEncHal ctx);
@@ -89,5 +96,12 @@ MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx);
 #ifdef __cplusplus
 }
 #endif
+
+#define MPP_ENC_HAL_API_REGISTER(api) \
+    static void register_##api(void) \
+    { \
+        mpp_enc_hal_api_register(&api); \
+    } \
+    MPP_MODULE_ADD(api, register_##api, NULL);
 
 #endif /* MPP_ENC_HAL_H */

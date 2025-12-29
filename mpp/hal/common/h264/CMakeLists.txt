@@ -8,8 +8,3 @@ include_directories(../../../codec/enc/h264/)
 add_library(hal_h264e_com OBJECT
     hal_h264e_stream_amend.c
     )
-
-# hal h264 encoder sourse
-add_library(hal_h264e_api OBJECT
-    hal_h264e_api_v2.c
-    )

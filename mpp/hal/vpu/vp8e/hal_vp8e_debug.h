@@ -25,8 +25,8 @@
 #define VP8E_DBG_HAL_IRQ                (0x00000008)
 #define VP8E_DBG_HAL_DUMP_IVF           (0x00000010)
 
-#define VP8E_DBG(flag, fmt, ...)    mpp_dbg(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
-#define VP8E_DBG_F(flag, fmt, ...)  mpp_dbg_f(vp8e_hal_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG(flag, fmt, ...)    mpp_dbg(hal_vp8e_debug, flag, fmt, ## __VA_ARGS__)
+#define VP8E_DBG_F(flag, fmt, ...)  mpp_dbg_f(hal_vp8e_debug, flag, fmt, ## __VA_ARGS__)
 
 #define vp8e_hal_err(fmt, ...) \
     do {\
@@ -35,22 +35,22 @@
 
 #define vp8e_hal_dbg(type, fmt, ...) \
     do {\
-        if (vp8e_hal_debug & type)\
+        if (hal_vp8e_debug & type)\
             mpp_log(fmt, ## __VA_ARGS__);\
     } while (0)
 
 #define vp8e_hal_enter() \
     do {\
-        if (vp8e_hal_debug & VP8E_DBG_HAL_FUNCTION)\
+        if (hal_vp8e_debug & VP8E_DBG_HAL_FUNCTION)\
             mpp_log("line(%d), func(%s), enter", __LINE__, __FUNCTION__);\
     } while (0)
 
 #define vp8e_hal_leave() \
     do {\
-        if (vp8e_hal_debug & VP8E_DBG_HAL_FUNCTION)\
+        if (hal_vp8e_debug & VP8E_DBG_HAL_FUNCTION)\
             mpp_log("line(%d), func(%s), leave", __LINE__, __FUNCTION__);\
     } while (0)
 
-extern RK_U32 vp8e_hal_debug;
+extern RK_U32 hal_vp8e_debug;
 
 #endif /* HAL_VP8E_DEBUG_H */
