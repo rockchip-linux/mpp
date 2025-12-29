@@ -2,6 +2,14 @@
 include_directories(worker/inc)
 include_directories(common)
 
+# Macro to conditionally add source files
+# Usage: add_hal_source(SRC_LIST CONDITION SOURCE_FILE)
+macro(add_hal_source SRC_LIST CONDITION SOURCE_FILE)
+    if (${CONDITION})
+        list(APPEND ${SRC_LIST} ${SOURCE_FILE})
+    endif()
+endmacro()
+
 # ----------------------------------------------------------------------------
 # add hardware hal
 # ----------------------------------------------------------------------------
@@ -16,8 +24,12 @@ merge_objects("${HAL_JPEGD}"    hal_jpegd_api)
 merge_objects("${HAL_MPEG2D}"   hal_mpeg2d_api)
 merge_objects("${HAL_MPEG4D}"   hal_mpeg4d_api)
 merge_objects("${HAL_VP8D}"     hal_vp8d_api)
+merge_objects("${HAL_VP9D}"     hal_vp9d_api)
 merge_objects("${HAL_AV1D}"     hal_av1d_api hal_av1d_com hal_av1d_rkv hal_av1d_vpu)
 merge_objects("${HAL_AVSD}"     hal_avsd_api)
+merge_objects("${HAL_AVS2D}"    hal_avs2d_api)
+merge_objects("${HAL_H264D}"    hal_h264d_api)
+merge_objects("${HAL_H265D}"    hal_h265d_api)
 
 merge_objects("${HAL_H264E}"    hal_h264e_api hal_h264e_com hal_h264e_vepu5xx hal_h264e_vpu)
 merge_objects("${HAL_H265E}"    hal_h265e_api hal_h265e_com hal_h265e_vepu5xx)

@@ -14,7 +14,7 @@ function(merge_objects out_obj)
     foreach(lib IN LISTS ARGN)
         # Skip if target doesn't exist
         if(NOT TARGET "${lib}")
-            message(FATAL_ERROR "merge_objects: '${lib}' is not a target")
+            message("merge_objects: '${lib}' is not a target")
             continue()
         endif()
 

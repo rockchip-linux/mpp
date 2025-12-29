@@ -4,19 +4,18 @@
 set(HAL_H264D_SRC
     hal_h264d_api.c
     hal_h264d_com.c
-    hal_h264d_vdpu34x.c
-    hal_h264d_vdpu382.c
-    hal_h264d_vdpu383.c
-    hal_h264d_vdpu384a.c
-    hal_h264d_vdpu384b.c
-    hal_h264d_rkv_reg.c
-    hal_h264d_vdpu2.c
-    hal_h264d_vdpu1.c
     hal_h264d_vdpu_com.c
     )
 
-add_library(${HAL_H264D} OBJECT ${HAL_H264D_SRC})
+add_hal_source(HAL_H264D_SRC HAVE_VDPU2     hal_h264d_vdpu2.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU1     hal_h264d_vdpu1.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU341   hal_h264d_rkv_reg.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU34X   hal_h264d_vdpu34x.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU382   hal_h264d_vdpu382.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU383   hal_h264d_vdpu383.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU384A  hal_h264d_vdpu384a.c)
+add_hal_source(HAL_H264D_SRC HAVE_VDPU384B  hal_h264d_vdpu384b.c)
 
-target_link_libraries(${HAL_H264D})
-set_target_properties(${HAL_H264D} PROPERTIES FOLDER "mpp/hal")
-
+if (HAL_H264D_SRC)
+    add_library(hal_h264d_api OBJECT ${HAL_H264D_SRC})
+endif()

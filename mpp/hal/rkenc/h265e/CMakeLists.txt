@@ -6,10 +6,15 @@ include_directories(../common/)
 include_directories(../../../codec/enc/h265/)
 
 # hal h265 encoder sourse
-add_library(hal_h265e_vepu5xx OBJECT
-    hal_h265e_vepu541.c
-    hal_h265e_vepu580.c
-    hal_h265e_vepu540c.c
-    hal_h265e_vepu510.c
-    hal_h265e_vepu511.c
+set(HAL_H265E_SRC
     )
+
+add_hal_source(HAL_H265E_SRC HAVE_VEPU541 hal_h265e_vepu541.c)
+add_hal_source(HAL_H265E_SRC HAVE_VEPU580 hal_h265e_vepu580.c)
+add_hal_source(HAL_H265E_SRC HAVE_VEPU540C hal_h265e_vepu540c.c)
+add_hal_source(HAL_H265E_SRC HAVE_VEPU510 hal_h265e_vepu510.c)
+add_hal_source(HAL_H265E_SRC HAVE_VEPU511 hal_h265e_vepu511.c)
+
+if (HAL_H265E_SRC)
+    add_library(hal_h265e_vepu5xx OBJECT ${HAL_H265E_SRC})
+endif()

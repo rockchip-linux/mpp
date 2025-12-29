@@ -1,31 +1,16 @@
 # vim: syntax=cmake
 
-# hal avs2 decoder api
-set(HAL_AVS2D_API
-    )
-
-# hal avs2 header
-set(HAL_AVS2D_HDR
-    hal_avs2d_global.h
-    hal_avs2d_rkv.h
-    )
-
 # hal avs2 decoder sourse
 set(HAL_AVS2D_SRC
     hal_avs2d_com.c
-    hal_avs2d_rkv.c
-    hal_avs2d_vdpu382.c
-    hal_avs2d_vdpu383.c
-    hal_avs2d_vdpu384b.c
     hal_avs2d_api.c
     )
 
-add_library(${HAL_AVS2D} OBJECT
-            ${HAL_AVS2D_API}
-            ${HAL_AVS2D_HDR}
-            ${HAL_AVS2D_SRC}
-            )
+add_hal_source(HAL_AVS2D_SRC HAVE_VDPU381 hal_avs2d_rkv.c)
+add_hal_source(HAL_AVS2D_SRC HAVE_VDPU382 hal_avs2d_vdpu382.c)
+add_hal_source(HAL_AVS2D_SRC HAVE_VDPU383 hal_avs2d_vdpu383.c)
+add_hal_source(HAL_AVS2D_SRC HAVE_VDPU384B hal_avs2d_vdpu384b.c)
 
-target_link_libraries(${HAL_AVS2D})
-set_target_properties(${HAL_AVS2D} PROPERTIES FOLDER "mpp/hal")
-
+if (HAL_AVS2D_SRC)
+    add_library(hal_avs2d_api OBJECT ${HAL_AVS2D_SRC})
+endif()
