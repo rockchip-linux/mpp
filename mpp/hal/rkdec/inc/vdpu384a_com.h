@@ -702,6 +702,7 @@ extern "C" {
 RK_S32 vdpu384a_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
 RK_RET vdpu384a_check_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu384a_setup_rcb(Vdpu384aRegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
+void vdpu384a_init_ctrl_regs(Vdpu384aRegSet *regs, MppCodingType codec_t);
 void vdpu384a_setup_statistic(Vdpu384aCtrlReg *com);
 void vdpu384a_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 RK_S32 vdpu384a_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
