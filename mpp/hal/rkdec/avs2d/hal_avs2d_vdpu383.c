@@ -17,13 +17,12 @@
 #include "mpp_buffer_impl.h"
 
 #include "avs2d_syntax.h"
-#include "vdpu383_com.h"
-#include "vdpu383_avs2d.h"
 #include "hal_avs2d_global.h"
 #include "hal_avs2d_vdpu383.h"
 #include "mpp_dec_cb_param.h"
 #include "vdpu_com.h"
 #include "vdpu38x_com.h"
+#include "vdpu383_com.h"
 #include "hal_avs2d_ctx.h"
 #include "hal_avs2d_com.h"
 
@@ -43,7 +42,7 @@
 #define COLMV_BLOCK_SIZE        (16)
 #define COLMV_BYTES             (16)
 
-static void init_ctrl_regs(Vdpu383Avs2dRegSet *regs)
+static void init_ctrl_regs(Vdpu383RegSet *regs)
 {
     Vdpu383CtrlReg *ctrl_regs = &regs->ctrl_regs;
 
@@ -127,7 +126,7 @@ static void avs2d_refine_rcb_size(VdpuRcbInfo *rcb_info,
     rcb_info[RCB_FLTD_ON_COL].size = 0;
 }
 
-static void hal_avs2d_rcb_info_update(void *hal, Vdpu383Avs2dRegSet *regs)
+static void hal_avs2d_rcb_info_update(void *hal, Vdpu383RegSet *regs)
 {
     MPP_RET ret = MPP_OK;
     Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
@@ -158,7 +157,7 @@ static void hal_avs2d_rcb_info_update(void *hal, Vdpu383Avs2dRegSet *regs)
     }
 }
 
-static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, HalTaskInfo *task)
+static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383RegSet *regs, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     RK_U32 i;
@@ -194,19 +193,19 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
             RK_U32 fbd_offset;
 
             regs->ctrl_regs.reg9.fbc_e = 1;
-            regs->avs2d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
-            fbd_offset = regs->avs2d_paras.reg68_hor_virstride * MPP_ALIGN(ver_virstride, 64) * 4;
-            regs->avs2d_addrs.reg193_fbc_payload_offset = fbd_offset;
+            regs->comm_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
+            fbd_offset = regs->comm_paras.reg68_hor_virstride * MPP_ALIGN(ver_virstride, 64) * 4;
+            regs->comm_addrs.reg193_fbc_payload_offset = fbd_offset;
         } else if (is_tile) {
             regs->ctrl_regs.reg9.tile_e = 1;
-            regs->avs2d_paras.reg68_hor_virstride = hor_virstride * 6 / 16;
-            regs->avs2d_paras.reg70_y_virstride = (y_virstride + uv_virstride) / 16;
+            regs->comm_paras.reg68_hor_virstride = hor_virstride * 6 / 16;
+            regs->comm_paras.reg70_y_virstride = (y_virstride + uv_virstride) / 16;
         } else {
             regs->ctrl_regs.reg9.fbc_e = 0;
             regs->ctrl_regs.reg9.tile_e = 0;
-            regs->avs2d_paras.reg68_hor_virstride = hor_virstride / 16;
-            regs->avs2d_paras.reg69_raster_uv_hor_virstride = hor_virstride / 16;
-            regs->avs2d_paras.reg70_y_virstride = y_virstride / 16;
+            regs->comm_paras.reg68_hor_virstride = hor_virstride / 16;
+            regs->comm_paras.reg69_raster_uv_hor_virstride = hor_virstride / 16;
+            regs->comm_paras.reg70_y_virstride = y_virstride / 16;
         }
     }
 
@@ -216,11 +215,11 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
 
         mpp_assert(fd >= 0);
 
-        regs->avs2d_addrs.reg168_decout_base = fd;
-        regs->avs2d_addrs.reg192_payload_st_cur_base = fd;
+        regs->comm_addrs.reg168_decout_base = fd;
+        regs->comm_addrs.reg192_payload_st_cur_base = fd;
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, task_dec->output);
-        regs->avs2d_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
-        AVS2D_HAL_TRACE("cur frame index %d, fd %d, colmv fd %d", task_dec->output, fd, regs->avs2d_addrs.reg216_colmv_cur_base);
+        regs->comm_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
+        AVS2D_HAL_TRACE("cur frame index %d, fd %d, colmv fd %d", task_dec->output, fd, regs->comm_addrs.reg216_colmv_cur_base);
 
         // TODO: set up error_ref_base
         // regs->avs2d_addr.reg169_err_ref_base.base = regs->avs2d_addr.reg216_colmv_cur_base.base;
@@ -255,10 +254,10 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
                 mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &frame_ref);
 
                 if (frame_ref) {
-                    regs->avs2d_addrs.reg170_185_ref_base[i] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
-                    regs->avs2d_addrs.reg195_210_payload_st_ref_base[i] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
+                    regs->comm_addrs.reg170_185_ref_base[i] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
+                    regs->comm_addrs.reg195_210_payload_st_ref_base[i] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
                     mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
-                    regs->avs2d_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                    regs->comm_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
                 }
             }
         }
@@ -271,31 +270,31 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383Avs2dRegSet *regs, Ha
             mpp_buf_slot_get_prop(p_hal->frame_slots, slot_idx, SLOT_FRAME_PTR, &scene_ref);
 
             if (scene_ref) {
-                regs->avs2d_addrs.reg170_185_ref_base[replace_idx] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
-                regs->avs2d_addrs.reg195_210_payload_st_ref_base[replace_idx] = regs->avs2d_addrs.reg170_185_ref_base[replace_idx];
+                regs->comm_addrs.reg170_185_ref_base[replace_idx] = hal_avs2d_get_frame_fd(p_hal, slot_idx);
+                regs->comm_addrs.reg195_210_payload_st_ref_base[replace_idx] = regs->comm_addrs.reg170_185_ref_base[replace_idx];
                 mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, slot_idx);
-                regs->avs2d_addrs.reg217_232_colmv_ref_base[replace_idx] = mpp_buffer_get_fd(mv_buf->buf[0]);
+                regs->comm_addrs.reg217_232_colmv_ref_base[replace_idx] = mpp_buffer_get_fd(mv_buf->buf[0]);
             }
         }
 
-        regs->avs2d_addrs.reg169_error_ref_base = regs->avs2d_addrs.reg170_185_ref_base[0];
-        regs->avs2d_addrs.reg194_payload_st_error_ref_base = regs->avs2d_addrs.reg195_210_payload_st_ref_base[0];
+        regs->comm_addrs.reg169_error_ref_base = regs->comm_addrs.reg170_185_ref_base[0];
+        regs->comm_addrs.reg194_payload_st_error_ref_base = regs->comm_addrs.reg195_210_payload_st_ref_base[0];
     }
 
     // set rlc
-    regs->common_addr.reg128_strm_base = hal_avs2d_get_packet_fd(p_hal, task_dec->input);
-    AVS2D_HAL_TRACE("packet fd %d from slot %d", regs->common_addr.reg128_strm_base, task_dec->input);
+    regs->comm_addrs.reg128_strm_base = hal_avs2d_get_packet_fd(p_hal, task_dec->input);
+    AVS2D_HAL_TRACE("packet fd %d from slot %d", regs->comm_addrs.reg128_strm_base, task_dec->input);
 
-    regs->avs2d_paras.reg66_stream_len = MPP_ALIGN(mpp_packet_get_length(task_dec->input_packet), 16) + 64;
+    regs->comm_paras.reg66_stream_len = MPP_ALIGN(mpp_packet_get_length(task_dec->input_packet), 16) + 64;
 
     {
         //scale down config
         mpp_buf_slot_get_prop(p_hal->frame_slots, task_dec->output,
                               SLOT_FRAME_PTR, &mframe);
         if (mpp_frame_get_thumbnail_en(mframe)) {
-            regs->common_addr.reg133_scale_down_base = regs->avs2d_addrs.reg168_decout_base;
+            regs->comm_addrs.reg133_scale_down_base = regs->comm_addrs.reg168_decout_base;
             vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
-                                     (void *)&regs->avs2d_paras);
+                                     (void *)&regs->comm_paras);
         } else {
             regs->ctrl_regs.reg9.scale_down_en = 0;
         }
@@ -328,7 +327,7 @@ MPP_RET hal_avs2d_vdpu383_init(void *hal, MppHalCfg *cfg)
     mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->dev);
 
     for (i = 0; i < loop; i++) {
-        reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383Avs2dRegSet, 1);
+        reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383RegSet, 1);
         init_ctrl_regs(reg_ctx->reg_buf[i].regs);
         reg_ctx->reg_buf[i].offset_shph = AVS2_SHPH_OFFSET(i);
         reg_ctx->reg_buf[i].offset_sclst = AVS2_SCALIST_OFFSET(i);
@@ -359,7 +358,7 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     Avs2dRkvRegCtx *reg_ctx;
     Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
-    Vdpu383Avs2dRegSet *regs = NULL;
+    Vdpu383RegSet *regs = NULL;
 
     AVS2D_HAL_TRACE("In.");
 
@@ -395,7 +394,7 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     }
 
     regs = reg_ctx->regs;
-    memset(regs, 0, sizeof(Vdpu383Avs2dRegSet));
+    memset(regs, 0, sizeof(Vdpu383RegSet));
     init_ctrl_regs(regs);
 
     hal_avs2d_vdpu38x_prepare_header(p_hal, reg_ctx->shph_dat, AVS2_383_SHPH_SIZE / 8);
@@ -410,18 +409,18 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         memcpy(reg_ctx->bufs_ptr + reg_ctx->shph_offset, reg_ctx->shph_dat, AVS2_383_SHPH_SIZE);
         memcpy(reg_ctx->bufs_ptr + reg_ctx->sclst_offset, reg_ctx->scalist_dat, AVS2_383_SCALIST_SIZE);
 
-        regs->common_addr.reg131_gbl_base = reg_ctx->bufs_fd;
+        regs->comm_addrs.reg131_gbl_base = reg_ctx->bufs_fd;
         mpp_dev_set_reg_offset(p_hal->dev, 131, reg_ctx->shph_offset);
-        regs->avs2d_paras.reg67_global_len = AVS2_383_SHPH_SIZE;
+        regs->comm_paras.reg67_global_len = AVS2_383_SHPH_SIZE;
 
-        regs->common_addr.reg132_scanlist_addr = reg_ctx->bufs_fd;
+        regs->comm_addrs.reg132_scanlist_addr = reg_ctx->bufs_fd;
         mpp_dev_set_reg_offset(p_hal->dev, 132, reg_ctx->sclst_offset);
     }
 
     // set rcb
     {
         hal_avs2d_rcb_info_update(p_hal, regs);
-        vdpu383_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
+        vdpu383_setup_rcb(&regs->comm_addrs, p_hal->dev, p_hal->fast_mode ?
                           reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0],
                           reg_ctx->rcb_info);
 
@@ -438,7 +437,7 @@ __RETURN:
 MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
-    Vdpu383Avs2dRegSet *regs = NULL;
+    Vdpu383RegSet *regs = NULL;
     Avs2dRkvRegCtx *reg_ctx;
     MppDev dev = NULL;
     Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
@@ -470,17 +469,8 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &regs->common_addr;
-        wr_cfg.size = sizeof(regs->common_addr);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
-
-        wr_cfg.reg = &regs->avs2d_paras;
-        wr_cfg.size = sizeof(regs->avs2d_paras);
+        wr_cfg.reg = &regs->comm_paras;
+        wr_cfg.size = sizeof(regs->comm_paras);
         wr_cfg.offset = OFFSET_CODEC_PARAS_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -488,9 +478,9 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &regs->avs2d_addrs;
-        wr_cfg.size = sizeof(regs->avs2d_addrs);
-        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+        wr_cfg.reg = &regs->comm_addrs;
+        wr_cfg.size = sizeof(regs->comm_addrs);
+        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -536,7 +526,7 @@ MPP_RET hal_avs2d_vdpu383_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
     Avs2dRkvRegCtx *reg_ctx;
-    Vdpu383Avs2dRegSet *regs;
+    Vdpu383RegSet *regs;
 
     INP_CHECK(ret, NULL == p_hal);
     reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;

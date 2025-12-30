@@ -806,7 +806,7 @@ typedef struct Vdpu38xdRegSet_t {
     Vdpu38xRegVersion     reg_version;
     Vdpu38xCtrlReg        ctrl_regs;         /* 8-30 */
     Vdpu38xRegCommParas   comm_paras;        /* 64-106 */
-    Vdpu38xRegCommonAddr  comm_addrs;        /* 128-134, 140-161 168-185, 192-210, 216-232 */
+    Vdpu38xRegCommonAddr  comm_addrs;        /* 128-134, 140-161, 168-185, 192-210, 216-232 */
     Vdpu38xRegStatistic   statistic_regs;    /* 256-312 */
 } Vdpu38xRegSet;
 

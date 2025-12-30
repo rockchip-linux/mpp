@@ -15,10 +15,10 @@
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_vdpu383.h"
-#include "vdpu383_h264d.h"
 #include "mpp_dec_cb_param.h"
 #include "vdpu_com.h"
 #include "vdpu38x_com.h"
+#include "vdpu383_com.h"
 #include "hal_h264d_ctx.h"
 #include "hal_h264d_com.h"
 
@@ -128,15 +128,15 @@ static MPP_RET prepare_framerps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len)
     return MPP_OK;
 }
 
-static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, HalTaskInfo *task)
+static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383RegSet *regs, HalTaskInfo *task)
 {
     DXVA_PicParams_H264_MVC *pp = p_hal->pp;
     HalBuf *mv_buf = NULL;
     HalBuf *origin_buf = NULL;
     Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
 
-    // memset(regs, 0, sizeof(Vdpu383H264dRegSet));
-    regs->h264d_paras.reg66_stream_len = p_hal->strm_len;
+    // memset(regs, 0, sizeof(Vdpu383RegSet));
+    regs->comm_paras.reg66_stream_len = p_hal->strm_len;
 
     //!< caculate the yuv_frame_size
     {
@@ -159,17 +159,17 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
             fbd_offset = fbc_hdr_stride * MPP_ALIGN(ver_virstride, 64) / 16;
 
             regs->ctrl_regs.reg9.fbc_e = 1;
-            regs->h264d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
-            regs->h264d_addrs.reg193_fbc_payload_offset = fbd_offset;
+            regs->comm_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
+            regs->comm_addrs.reg193_fbc_payload_offset = fbd_offset;
         } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
             regs->ctrl_regs.reg9.tile_e = 1;
-            regs->h264d_paras.reg68_hor_virstride = hor_virstride * 6 / 16;
-            regs->h264d_paras.reg70_y_virstride = (y_virstride + uv_virstride) / 16;
+            regs->comm_paras.reg68_hor_virstride = hor_virstride * 6 / 16;
+            regs->comm_paras.reg70_y_virstride = (y_virstride + uv_virstride) / 16;
         } else {
             regs->ctrl_regs.reg9.fbc_e = 0;
-            regs->h264d_paras.reg68_hor_virstride = hor_virstride / 16;
-            regs->h264d_paras.reg69_raster_uv_hor_virstride = hor_virstride / 16;
-            regs->h264d_paras.reg70_y_virstride = y_virstride / 16;
+            regs->comm_paras.reg68_hor_virstride = hor_virstride / 16;
+            regs->comm_paras.reg69_raster_uv_hor_virstride = hor_virstride / 16;
+            regs->comm_paras.reg70_y_virstride = y_virstride / 16;
         }
     }
     //!< set current
@@ -179,13 +179,13 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
 
         mpp_buf_slot_get_prop(p_hal->frame_slots, pp->CurrPic.Index7Bits, SLOT_BUFFER, &mbuffer);
         fd = mpp_buffer_get_fd(mbuffer);
-        regs->h264d_addrs.reg168_decout_base = fd;
-        regs->h264d_addrs.reg192_payload_st_cur_base = fd;
+        regs->comm_addrs.reg168_decout_base = fd;
+        regs->comm_addrs.reg192_payload_st_cur_base = fd;
 
         //colmv_cur_base
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, pp->CurrPic.Index7Bits);
-        regs->h264d_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
-        regs->h264d_addrs.reg169_error_ref_base = fd;
+        regs->comm_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
+        regs->comm_addrs.reg169_error_ref_base = fd;
     }
     //!< set reference
     {
@@ -216,14 +216,14 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
                 pp->FrameNumList[i] > min_frame_num &&
                 (!mpp_frame_get_errinfo(mframe))) {
                 min_frame_num = pp->FrameNumList[i];
-                regs->h264d_addrs.reg169_error_ref_base = mpp_buffer_get_fd(mbuffer);
+                regs->comm_addrs.reg169_error_ref_base = mpp_buffer_get_fd(mbuffer);
             }
 
             fd = mpp_buffer_get_fd(mbuffer);
-            regs->h264d_addrs.reg170_185_ref_base[i] = fd;
-            regs->h264d_addrs.reg195_210_payload_st_ref_base[i] = fd;
+            regs->comm_addrs.reg170_185_ref_base[i] = fd;
+            regs->comm_addrs.reg195_210_payload_st_ref_base[i] = fd;
             mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
-            regs->h264d_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
+            regs->comm_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
         }
 
         if (pp->RefFrameList[15].bPicEntry != 0xff) {
@@ -238,18 +238,18 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
             origin_buf = hal_bufs_get_buf(ctx->origin_bufs, ref_index);
             fd = mpp_buffer_get_fd(origin_buf->buf[0]);
         }
-        regs->h264d_addrs.reg170_185_ref_base[15] = fd;
-        regs->h264d_addrs.reg195_210_payload_st_ref_base[15] = fd;
+        regs->comm_addrs.reg170_185_ref_base[15] = fd;
+        regs->comm_addrs.reg195_210_payload_st_ref_base[15] = fd;
         mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs, ref_index);
-        regs->h264d_addrs.reg217_232_colmv_ref_base[15] = mpp_buffer_get_fd(mv_buf->buf[0]);
+        regs->comm_addrs.reg217_232_colmv_ref_base[15] = mpp_buffer_get_fd(mv_buf->buf[0]);
     }
     {
         MppBuffer mbuffer = NULL;
         Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
 
         mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
-        regs->common_addr.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
-        // regs->h264d_paras.reg65_strm_start_bit = 2 * 8;
+        regs->comm_addrs.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
+        // regs->comm_paras.reg65_strm_start_bit = 2 * 8;
 #ifdef DUMP_VDPU383_DATAS
         {
             char *cur_fname = "stream_in.dat";
@@ -260,7 +260,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
         }
 #endif
 
-        regs->common_addr.reg130_cabactbl_base = reg_ctx->bufs_fd;
+        regs->comm_addrs.reg130_cabactbl_base = reg_ctx->bufs_fd;
         mpp_dev_set_reg_offset(p_hal->dev, 130, reg_ctx->offset_cabac);
     }
 
@@ -278,17 +278,17 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
         thumbnail_mode = mpp_frame_get_thumbnail_en(mframe);
         switch (thumbnail_mode) {
         case MPP_FRAME_THUMBNAIL_ONLY:
-            regs->common_addr.reg133_scale_down_base = fd;
+            regs->comm_addrs.reg133_scale_down_base = fd;
             origin_buf = hal_bufs_get_buf(ctx->origin_bufs, pp->CurrPic.Index7Bits);
             fd = mpp_buffer_get_fd(origin_buf->buf[0]);
-            regs->h264d_addrs.reg168_decout_base = fd;
-            regs->h264d_addrs.reg192_payload_st_cur_base = fd;
-            regs->h264d_addrs.reg169_error_ref_base = fd;
-            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs, (void*)&regs->h264d_paras);
+            regs->comm_addrs.reg168_decout_base = fd;
+            regs->comm_addrs.reg192_payload_st_cur_base = fd;
+            regs->comm_addrs.reg169_error_ref_base = fd;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs, (void*)&regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_MIXED:
-            regs->common_addr.reg133_scale_down_base = fd;
-            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs, (void*)&regs->h264d_paras);
+            regs->comm_addrs.reg133_scale_down_base = fd;
+            vdpu383_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs, (void*)&regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_NONE:
         default:
@@ -300,7 +300,7 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383H264dRegSet *regs, Hal
     return MPP_OK;
 }
 
-static MPP_RET init_ctrl_regs(Vdpu383H264dRegSet *regs)
+static MPP_RET init_ctrl_regs(Vdpu383RegSet *regs)
 {
     Vdpu383CtrlReg *ctrl_regs = &regs->ctrl_regs;
 
@@ -366,7 +366,7 @@ MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
     reg_ctx->offset_cabac = VDPU383_CABAC_TAB_OFFSET;
     reg_ctx->offset_errinfo = VDPU383_ERROR_INFO_OFFSET;
     for (i = 0; i < max_cnt; i++) {
-        reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383H264dRegSet, 1);
+        reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383RegSet, 1);
         init_ctrl_regs(reg_ctx->reg_buf[i].regs);
         reg_ctx->offset_spspps[i] = VDPU383_SPSPPS_OFFSET(i);
         reg_ctx->offset_rps[i] = VDPU383_RPS_OFFSET(i);
@@ -496,7 +496,7 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
     RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
     RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
     Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu383H264dRegSet *regs = ctx->regs;
+    Vdpu383RegSet *regs = ctx->regs;
     MppFrame mframe;
     RK_S32 mv_size = MPP_ALIGN(width, 64) * MPP_ALIGN(height, 16); // 16 byte unit
 
@@ -572,24 +572,24 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
     //!< copy spspps datas
     memcpy((char *)ctx->bufs_ptr + ctx->spspps_offset, (char *)ctx->spspps, VDPU383_SPS_PPS_LEN);
 
-    regs->common_addr.reg131_gbl_base = ctx->bufs_fd;
-    regs->h264d_paras.reg67_global_len = VDPU383_SPS_PPS_LEN / 16; // 128 bit as unit
+    regs->comm_addrs.reg131_gbl_base = ctx->bufs_fd;
+    regs->comm_paras.reg67_global_len = VDPU383_SPS_PPS_LEN / 16; // 128 bit as unit
     mpp_dev_set_reg_offset(p_hal->dev, 131, ctx->spspps_offset);
 
     memcpy((char *)ctx->bufs_ptr + ctx->rps_offset, (void *)ctx->rps, VDPU383_RPS_SIZE);
-    regs->common_addr.reg129_rps_base = ctx->bufs_fd;
+    regs->comm_addrs.reg129_rps_base = ctx->bufs_fd;
     mpp_dev_set_reg_offset(p_hal->dev, 129, ctx->rps_offset);
 
     if (p_hal->pp->scaleing_list_enable_flag) {
         memcpy((char *)ctx->bufs_ptr + ctx->sclst_offset, (void *)ctx->sclst, VDPU383_SCALING_LIST_SIZE);
-        regs->common_addr.reg132_scanlist_addr = ctx->bufs_fd;
+        regs->comm_addrs.reg132_scanlist_addr = ctx->bufs_fd;
         mpp_dev_set_reg_offset(p_hal->dev, 132, ctx->sclst_offset);
     } else {
-        regs->common_addr.reg132_scanlist_addr = 0;
+        regs->comm_addrs.reg132_scanlist_addr = 0;
     }
 
     hal_h264d_rcb_info_update(p_hal);
-    vdpu383_setup_rcb(&regs->common_addr, p_hal->dev, p_hal->fast_mode ?
+    vdpu383_setup_rcb(&regs->comm_addrs, p_hal->dev, p_hal->fast_mode ?
                       ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
                       ctx->rcb_info);
     vdpu383_setup_statistic(&regs->ctrl_regs);
@@ -611,9 +611,9 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
     }
 
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu383H264dRegSet *regs = p_hal->fast_mode ?
-                               reg_ctx->reg_buf[task->dec.reg_index].regs :
-                               reg_ctx->regs;
+    Vdpu383RegSet *regs = p_hal->fast_mode ?
+                          reg_ctx->reg_buf[task->dec.reg_index].regs :
+                          reg_ctx->regs;
     MppDev dev = p_hal->dev;
 
     do {
@@ -629,17 +629,8 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &regs->common_addr;
-        wr_cfg.size = sizeof(regs->common_addr);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
-
-        wr_cfg.reg = &regs->h264d_paras;
-        wr_cfg.size = sizeof(regs->h264d_paras);
+        wr_cfg.reg = &regs->comm_paras;
+        wr_cfg.size = sizeof(regs->comm_paras);
         wr_cfg.offset = OFFSET_CODEC_PARAS_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -647,9 +638,9 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &regs->h264d_addrs;
-        wr_cfg.size = sizeof(regs->h264d_addrs);
-        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+        wr_cfg.reg = &regs->comm_addrs;
+        wr_cfg.size = sizeof(regs->comm_addrs);
+        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -687,9 +678,9 @@ MPP_RET vdpu383_h264d_wait(void *hal, HalTaskInfo *task)
 
     INP_CHECK(ret, NULL == p_hal);
     Vdpu3xxH264dRegCtx *reg_ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    Vdpu383H264dRegSet *p_regs = p_hal->fast_mode ?
-                                 reg_ctx->reg_buf[task->dec.reg_index].regs :
-                                 reg_ctx->regs;
+    Vdpu383RegSet *p_regs = p_hal->fast_mode ?
+                            reg_ctx->reg_buf[task->dec.reg_index].regs :
+                            reg_ctx->regs;
 
     if (task->dec.flags.parse_err ||
         (task->dec.flags.ref_err && !p_hal->cfg->base.disable_error)) {

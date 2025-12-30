@@ -20,7 +20,7 @@
 #include "hal_vp9d_vdpu383.h"
 #include "hal_vp9d_ctx.h"
 #include "vdpu38x_com.h"
-#include "vdpu383_vp9d.h"
+#include "vdpu383_com.h"
 #include "vp9d_syntax.h"
 #include "vdpu_com.h"
 #include "vdpu38x_com.h"
@@ -72,7 +72,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     /* alloc buffer for fast mode or normal */
     if (p_hal->fast_mode) {
         for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
-            hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
+            hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu383RegSet));
             ret = mpp_buffer_get(p_hal->group,
                                  &hw_ctx->g_buf[i].global_base, GBL_SIZE);
             mpp_buffer_attach_dev(hw_ctx->g_buf[i].global_base, p_hal->dev);
@@ -96,7 +96,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
             mpp_buffer_attach_dev(hw_ctx->g_buf[i].count_base, p_hal->dev);
         }
     } else {
-        hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu383Vp9dRegSet));
+        hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu383RegSet));
         ret = mpp_buffer_get(p_hal->group, &hw_ctx->global_base, PROB_SIZE);
         if (ret) {
             mpp_err("vp9 global_base get buffer failed\n");
@@ -226,7 +226,7 @@ static void vp9d_refine_rcb_size(VdpuRcbInfo *rcb_info,
 
 }
 
-static void hal_vp9d_rcb_info_update(void *hal, Vdpu383Vp9dRegSet *hw_regs, void *data)
+static void hal_vp9d_rcb_info_update(void *hal, Vdpu383RegSet *hw_regs, void *data)
 {
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
@@ -304,7 +304,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
-    Vdpu383Vp9dRegSet *vp9_hw_regs = NULL;
+    Vdpu383RegSet *vp9_hw_regs = NULL;
     RK_S32 mv_size = pic_param->width * pic_param->height / 2;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
     MppFrame mframe;
@@ -327,8 +327,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             return MPP_ERR_NOMEM;
         }
     }
-    vp9_hw_regs = (Vdpu383Vp9dRegSet*)hw_ctx->hw_regs;
-    memset(vp9_hw_regs, 0, sizeof(Vdpu383Vp9dRegSet));
+    vp9_hw_regs = (Vdpu383RegSet*)hw_ctx->hw_regs;
+    memset(vp9_hw_regs, 0, sizeof(Vdpu383RegSet));
 
 #ifdef DUMP_VDPU383_DATAS
     {
@@ -346,8 +346,8 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     vdpu38x_vp9d_uncomp_hdr(p_hal, pic_param, (RK_U64 *)hw_ctx->header_data, GBL_SIZE / 8);
     memcpy(mpp_buffer_get_ptr(hw_ctx->global_base), hw_ctx->header_data, GBL_SIZE);
     mpp_buffer_sync_end(hw_ctx->global_base);
-    vp9_hw_regs->vp9d_paras.reg67_global_len = GBL_SIZE / 16;
-    vp9_hw_regs->common_addr.reg131_gbl_base = mpp_buffer_get_fd(hw_ctx->global_base);
+    vp9_hw_regs->comm_paras.reg67_global_len = GBL_SIZE / 16;
+    vp9_hw_regs->comm_addrs.reg131_gbl_base = mpp_buffer_get_fd(hw_ctx->global_base);
 
     if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
         size_t size = mv_size;
@@ -400,22 +400,22 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         }
 
         if (hw_ctx->prob_ctx_valid[frame_ctx_id]) {
-            vp9_hw_regs->vp9d_addrs.reg184_lastprob_base =
+            vp9_hw_regs->comm_addrs.reg184_lastprob_base =
                 mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
 #ifdef DUMP_VDPU383_DATAS
             { cur_last_prob_base = hw_ctx->prob_loop_base[frame_ctx_id]; }
 #endif
         } else {
-            vp9_hw_regs->vp9d_addrs.reg184_lastprob_base = mpp_buffer_get_fd(hw_ctx->prob_default_base);
+            vp9_hw_regs->comm_addrs.reg184_lastprob_base = mpp_buffer_get_fd(hw_ctx->prob_default_base);
             hw_ctx->prob_ctx_valid[frame_ctx_id] |= pic_param->refresh_frame_context;
 #ifdef DUMP_VDPU383_DATAS
             { cur_last_prob_base = hw_ctx->prob_default_base; }
 #endif
         }
-        vp9_hw_regs->vp9d_addrs.reg185_updateprob_base =
+        vp9_hw_regs->comm_addrs.reg185_updateprob_base =
             mpp_buffer_get_fd(hw_ctx->prob_loop_base[frame_ctx_id]);
     }
-    vp9_hw_regs->vp9d_addrs.reg183_kfprob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
+    vp9_hw_regs->comm_addrs.reg183_kfprob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
 #ifdef DUMP_VDPU383_DATAS
     {
         char *cur_fname = "cabac_last_probe.dat";
@@ -435,11 +435,11 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 #else
 #endif
 
-    vp9_hw_regs->vp9d_paras.reg66_stream_len = ((stream_len + 15) & (~15)) + 0x80;
+    vp9_hw_regs->comm_paras.reg66_stream_len = ((stream_len + 15) & (~15)) + 0x80;
 
     mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     bitstream = mpp_buffer_get_ptr(streambuf);
-    aglin_offset = vp9_hw_regs->vp9d_paras.reg66_stream_len - stream_len;
+    aglin_offset = vp9_hw_regs->comm_paras.reg66_stream_len - stream_len;
     if (aglin_offset > 0) {
         memset((void *)(bitstream + stream_len), 0, aglin_offset);
     }
@@ -457,11 +457,11 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             RK_U32 fbd_offset;
 
             vp9_hw_regs->ctrl_regs.reg9.fbc_e = 1;
-            vp9_hw_regs->vp9d_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
-            fbd_offset = vp9_hw_regs->vp9d_paras.reg68_hor_virstride * h * 4;
-            vp9_hw_regs->vp9d_addrs.reg193_fbc_payload_offset = fbd_offset;
+            vp9_hw_regs->comm_paras.reg68_hor_virstride = fbc_hdr_stride / 64;
+            fbd_offset = vp9_hw_regs->comm_paras.reg68_hor_virstride * h * 4;
+            vp9_hw_regs->comm_addrs.reg193_fbc_payload_offset = fbd_offset;
             /* error stride */
-            vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = fbc_hdr_stride / 64;
+            vp9_hw_regs->comm_paras.reg80_error_ref_hor_virstride = fbc_hdr_stride / 64;
         } else {
             sw_y_hor_virstride = mpp_frame_get_hor_stride(mframe) >> 4;
             sw_uv_hor_virstride = sw_y_hor_virstride;
@@ -471,18 +471,18 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
             vp9_hw_regs->ctrl_regs.reg9.fbc_e = 0;
             if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
                 vp9_hw_regs->ctrl_regs.reg9.tile_e = 1;
-                vp9_hw_regs->vp9d_paras.reg68_hor_virstride = sw_y_hor_virstride * 6;
-                vp9_hw_regs->vp9d_paras.reg70_y_virstride = sw_y_virstride + sw_uv_virstride;
+                vp9_hw_regs->comm_paras.reg68_hor_virstride = sw_y_hor_virstride * 6;
+                vp9_hw_regs->comm_paras.reg70_y_virstride = sw_y_virstride + sw_uv_virstride;
             } else {
                 vp9_hw_regs->ctrl_regs.reg9.tile_e = 0;
-                vp9_hw_regs->vp9d_paras.reg68_hor_virstride = sw_y_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg69_raster_uv_hor_virstride = sw_uv_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg70_y_virstride = sw_y_virstride;
+                vp9_hw_regs->comm_paras.reg68_hor_virstride = sw_y_hor_virstride;
+                vp9_hw_regs->comm_paras.reg69_raster_uv_hor_virstride = sw_uv_hor_virstride;
+                vp9_hw_regs->comm_paras.reg70_y_virstride = sw_y_virstride;
             }
             /* error stride */
-            vp9_hw_regs->vp9d_paras.reg80_error_ref_hor_virstride = sw_y_hor_virstride;
-            vp9_hw_regs->vp9d_paras.reg81_error_ref_raster_uv_hor_virstride = sw_uv_hor_virstride;
-            vp9_hw_regs->vp9d_paras.reg82_error_ref_virstride = sw_y_virstride;
+            vp9_hw_regs->comm_paras.reg80_error_ref_hor_virstride = sw_y_hor_virstride;
+            vp9_hw_regs->comm_paras.reg81_error_ref_raster_uv_hor_virstride = sw_uv_hor_virstride;
+            vp9_hw_regs->comm_paras.reg82_error_ref_virstride = sw_y_virstride;
         }
     }
     if (!pic_param->intra_only && pic_param->frame_type &&
@@ -496,25 +496,25 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         origin_buf = hal_bufs_get_buf(hw_ctx->origin_bufs, task->dec.output);
         framebuf = origin_buf->buf[0];
     }
-    vp9_hw_regs->vp9d_addrs.reg168_decout_base = mpp_buffer_get_fd(framebuf);
-    vp9_hw_regs->vp9d_addrs.reg169_error_ref_base = mpp_buffer_get_fd(framebuf);
-    vp9_hw_regs->vp9d_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(framebuf);
-    vp9_hw_regs->vp9d_addrs.reg194_payload_st_error_ref_base = mpp_buffer_get_fd(framebuf);
-    vp9_hw_regs->common_addr.reg128_strm_base = mpp_buffer_get_fd(streambuf);
+    vp9_hw_regs->comm_addrs.reg168_decout_base = mpp_buffer_get_fd(framebuf);
+    vp9_hw_regs->comm_addrs.reg169_error_ref_base = mpp_buffer_get_fd(framebuf);
+    vp9_hw_regs->comm_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(framebuf);
+    vp9_hw_regs->comm_addrs.reg194_payload_st_error_ref_base = mpp_buffer_get_fd(framebuf);
+    vp9_hw_regs->comm_addrs.reg128_strm_base = mpp_buffer_get_fd(streambuf);
 
     {
         RK_U32 strm_offset = pic_param->uncompressed_header_size_byte_aligned;
 
-        vp9_hw_regs->vp9d_paras.reg65_strm_start_bit = 8 * (strm_offset & 0xf);
+        vp9_hw_regs->comm_paras.reg65_strm_start_bit = 8 * (strm_offset & 0xf);
         mpp_dev_set_reg_offset(p_hal->dev, 128, strm_offset & 0xfffffff0);
     }
 
     if (hw_ctx->last_segid_flag) {
-        vp9_hw_regs->vp9d_addrs.reg181_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
-        vp9_hw_regs->vp9d_addrs.reg182_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
+        vp9_hw_regs->comm_addrs.reg181_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
+        vp9_hw_regs->comm_addrs.reg182_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
     } else {
-        vp9_hw_regs->vp9d_addrs.reg181_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
-        vp9_hw_regs->vp9d_addrs.reg182_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
+        vp9_hw_regs->comm_addrs.reg181_segidlast_base = mpp_buffer_get_fd(hw_ctx->segid_cur_base);
+        vp9_hw_regs->comm_addrs.reg182_segidcur_base = mpp_buffer_get_fd(hw_ctx->segid_last_base);
     }
 #ifdef DUMP_VDPU383_DATAS
     cur_last_segid_flag = hw_ctx->last_segid_flag;
@@ -536,17 +536,17 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
     //set cur colmv base
     mv_buf = hal_bufs_get_buf(hw_ctx->cmv_bufs, task->dec.output);
 
-    vp9_hw_regs->vp9d_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
+    vp9_hw_regs->comm_addrs.reg216_colmv_cur_base = mpp_buffer_get_fd(mv_buf->buf[0]);
 
-    hw_ctx->mv_base_addr = vp9_hw_regs->vp9d_addrs.reg216_colmv_cur_base;
+    hw_ctx->mv_base_addr = vp9_hw_regs->comm_addrs.reg216_colmv_cur_base;
     if (hw_ctx->pre_mv_base_addr < 0)
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;
 
     // vp9 only one colmv
-    vp9_hw_regs->vp9d_addrs.reg217_232_colmv_ref_base[0] = hw_ctx->pre_mv_base_addr;
+    vp9_hw_regs->comm_addrs.reg217_232_colmv_ref_base[0] = hw_ctx->pre_mv_base_addr;
 
-    reg_ref_base = vp9_hw_regs->vp9d_addrs.reg170_185_ref_base;
-    reg_payload_ref_base = vp9_hw_regs->vp9d_addrs.reg195_210_payload_st_ref_base;
+    reg_ref_base = vp9_hw_regs->comm_addrs.reg170_185_ref_base;
+    reg_payload_ref_base = vp9_hw_regs->comm_addrs.reg195_210_payload_st_ref_base;
     for (i = 0; i < 3; i++) {
         ref_idx = pic_param->frame_refs[i].Index7Bits;
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
@@ -578,19 +578,19 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 
             switch (i) {
             case 0: {
-                vp9_hw_regs->vp9d_paras.reg83_ref0_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg84_ref0_raster_uv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg85_ref0_virstride = y_virstride;
+                vp9_hw_regs->comm_paras.reg83_ref0_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->comm_paras.reg84_ref0_raster_uv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->comm_paras.reg85_ref0_virstride = y_virstride;
             } break;
             case 1: {
-                vp9_hw_regs->vp9d_paras.reg86_ref1_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg87_ref1_raster_uv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg88_ref1_virstride = y_virstride;
+                vp9_hw_regs->comm_paras.reg86_ref1_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->comm_paras.reg87_ref1_raster_uv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->comm_paras.reg88_ref1_virstride = y_virstride;
             } break;
             case 2: {
-                vp9_hw_regs->vp9d_paras.reg89_ref2_hor_virstride = y_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg90_ref2_raster_uv_hor_virstride = uv_hor_virstride;
-                vp9_hw_regs->vp9d_paras.reg91_ref2_virstride = y_virstride;
+                vp9_hw_regs->comm_paras.reg89_ref2_hor_virstride = y_hor_virstride;
+                vp9_hw_regs->comm_paras.reg90_ref2_raster_uv_hor_virstride = uv_hor_virstride;
+                vp9_hw_regs->comm_paras.reg91_ref2_virstride = y_virstride;
             } break;
             default:
                 break;
@@ -604,13 +604,13 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
                 reg_payload_ref_base[i] = mpp_buffer_get_fd(framebuf);
             } else {
                 mpp_log("ref buff address is no valid used out as base slot index 0x%x", ref_frame_idx);
-                reg_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
-                reg_payload_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
+                reg_ref_base[i] = vp9_hw_regs->comm_addrs.reg168_decout_base;
+                reg_payload_ref_base[i] = vp9_hw_regs->comm_addrs.reg168_decout_base;
             }
             mv_buf = hal_bufs_get_buf(hw_ctx->cmv_bufs, ref_frame_idx);
         } else {
-            reg_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
-            reg_payload_ref_base[i] = vp9_hw_regs->vp9d_addrs.reg168_decout_base;
+            reg_ref_base[i] = vp9_hw_regs->comm_addrs.reg168_decout_base;
+            reg_payload_ref_base[i] = vp9_hw_regs->comm_addrs.reg168_decout_base;
         }
     }
 
@@ -677,7 +677,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         MppBuffer rcb_buf = NULL;
 
         rcb_buf = p_hal->fast_mode ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf : hw_ctx->rcb_buf;
-        vdpu383_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, rcb_buf, hw_ctx->rcb_info);
+        vdpu383_setup_rcb(&vp9_hw_regs->comm_addrs, p_hal->dev, rcb_buf, hw_ctx->rcb_info);
     }
     vdpu383_setup_statistic(&vp9_hw_regs->ctrl_regs);
     // whether need update counts
@@ -698,20 +698,20 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         thumbnail_mode = mpp_frame_get_thumbnail_en(mframe);
         switch (thumbnail_mode) {
         case MPP_FRAME_THUMBNAIL_ONLY:
-            vp9_hw_regs->common_addr.reg133_scale_down_base = mpp_buffer_get_fd(mbuffer);
+            vp9_hw_regs->comm_addrs.reg133_scale_down_base = mpp_buffer_get_fd(mbuffer);
             origin_buf = hal_bufs_get_buf(hw_ctx->origin_bufs, task->dec.output);
             fd = mpp_buffer_get_fd(origin_buf->buf[0]);
-            vp9_hw_regs->vp9d_addrs.reg168_decout_base = fd;
-            vp9_hw_regs->vp9d_addrs.reg169_error_ref_base = fd;
-            vp9_hw_regs->vp9d_addrs.reg192_payload_st_cur_base = fd;
-            vp9_hw_regs->vp9d_addrs.reg194_payload_st_error_ref_base = fd;
+            vp9_hw_regs->comm_addrs.reg168_decout_base = fd;
+            vp9_hw_regs->comm_addrs.reg169_error_ref_base = fd;
+            vp9_hw_regs->comm_addrs.reg192_payload_st_cur_base = fd;
+            vp9_hw_regs->comm_addrs.reg194_payload_st_error_ref_base = fd;
             vdpu383_setup_down_scale(mframe, p_hal->dev, &vp9_hw_regs->ctrl_regs,
-                                     (void *)&vp9_hw_regs->vp9d_paras);
+                                     (void *)&vp9_hw_regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_MIXED:
-            vp9_hw_regs->common_addr.reg133_scale_down_base = mpp_buffer_get_fd(mbuffer);
+            vp9_hw_regs->comm_addrs.reg133_scale_down_base = mpp_buffer_get_fd(mbuffer);
             vdpu383_setup_down_scale(mframe, p_hal->dev, &vp9_hw_regs->ctrl_regs,
-                                     (void *)&vp9_hw_regs->vp9d_paras);
+                                     (void *)&vp9_hw_regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_NONE:
         default:
@@ -728,13 +728,13 @@ static MPP_RET hal_vp9d_vdpu383_start(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
-    Vdpu383Vp9dRegSet *hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->hw_regs;
+    Vdpu383RegSet *hw_regs = (Vdpu383RegSet *)hw_ctx->hw_regs;
     MppDev dev = p_hal->dev;
 
     if (p_hal->fast_mode) {
         RK_S32 index = task->dec.reg_index;
 
-        hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->g_buf[index].hw_regs;
+        hw_regs = (Vdpu383RegSet *)hw_ctx->g_buf[index].hw_regs;
     }
 
     mpp_assert(hw_regs);
@@ -752,17 +752,8 @@ static MPP_RET hal_vp9d_vdpu383_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &hw_regs->common_addr;
-        wr_cfg.size = sizeof(hw_regs->common_addr);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
-        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
-        if (ret) {
-            mpp_err_f("set register write failed %d\n", ret);
-            break;
-        }
-
-        wr_cfg.reg = &hw_regs->vp9d_paras;
-        wr_cfg.size = sizeof(hw_regs->vp9d_paras);
+        wr_cfg.reg = &hw_regs->comm_paras;
+        wr_cfg.size = sizeof(hw_regs->comm_paras);
         wr_cfg.offset = OFFSET_CODEC_PARAS_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -770,9 +761,9 @@ static MPP_RET hal_vp9d_vdpu383_start(void *hal, HalTaskInfo *task)
             break;
         }
 
-        wr_cfg.reg = &hw_regs->vp9d_addrs;
-        wr_cfg.size = sizeof(hw_regs->vp9d_addrs);
-        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+        wr_cfg.reg = &hw_regs->comm_addrs;
+        wr_cfg.size = sizeof(hw_regs->comm_addrs);
+        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -806,10 +797,10 @@ static MPP_RET hal_vp9d_vdpu383_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
-    Vdpu383Vp9dRegSet *hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->hw_regs;
+    Vdpu383RegSet *hw_regs = (Vdpu383RegSet *)hw_ctx->hw_regs;
 
     if (p_hal->fast_mode)
-        hw_regs = (Vdpu383Vp9dRegSet *)hw_ctx->g_buf[task->dec.reg_index].hw_regs;
+        hw_regs = (Vdpu383RegSet *)hw_ctx->g_buf[task->dec.reg_index].hw_regs;
 
     mpp_assert(hw_regs);
 
@@ -859,7 +850,7 @@ static MPP_RET hal_vp9d_vdpu383_wait(void *hal, HalTaskInfo *task)
         RK_U32 *p = (RK_U32 *)hw_regs;
         RK_U32 i = 0;
 
-        for (i = 0; i < sizeof(Vdpu383Vp9dRegSet) / 4; i++)
+        for (i = 0; i < sizeof(Vdpu383RegSet) / 4; i++)
             mpp_log("get regs[%02d]: %08X\n", i, *p++);
     }
 
