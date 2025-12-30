@@ -332,78 +332,39 @@ typedef struct Vdpu38xRegCommParas_t {
     /* SWREG82_ERROR_REF_Y_VIRSTRIDE */
     RK_U32 reg82_error_ref_virstride;
 
-    /* SWREG83_REF0_Y_HOR_VIRSTRIDE */
-    RK_U32 reg83_ref0_hor_virstride;
-
-    /* SWREG84_REF0_UV_HOR_VIRSTRIDE */
-    RK_U32 reg84_ref0_raster_uv_hor_virstride;
-
-    /* SWREG85_REF0_Y_VIRSTRIDE */
-    RK_U32 reg85_ref0_virstride;
-
-    /* SWREG86_REF1_Y_HOR_VIRSTRIDE */
-    RK_U32 reg86_ref1_hor_virstride;
-
-    /* SWREG87_REF1_UV_HOR_VIRSTRIDE */
-    RK_U32 reg87_ref1_raster_uv_hor_virstride;
-
-    /* SWREG88_REF1_Y_VIRSTRIDE */
-    RK_U32 reg88_ref1_virstride;
-
-    /* SWREG89_REF2_Y_HOR_VIRSTRIDE */
-    RK_U32 reg89_ref2_hor_virstride;
-
-    /* SWREG90_REF2_UV_HOR_VIRSTRIDE */
-    RK_U32 reg90_ref2_raster_uv_hor_virstride;
-
-    /* SWREG91_REF2_Y_VIRSTRIDE */
-    RK_U32 reg91_ref2_virstride;
-
-    /* SWREG92_REF3_Y_HOR_VIRSTRIDE */
-    RK_U32 reg92_ref3_hor_virstride;
-
-    /* SWREG93_REF3_UV_HOR_VIRSTRIDE */
-    RK_U32 reg93_ref3_raster_uv_hor_virstride;
-
-    /* SWREG94_REF3_Y_VIRSTRIDE */
-    RK_U32 reg94_ref3_virstride;
-
-    /* SWREG95_REF4_Y_HOR_VIRSTRIDE */
-    RK_U32 reg95_ref4_hor_virstride;
-
-    /* SWREG96_REF4_UV_HOR_VIRSTRIDE */
-    RK_U32 reg96_ref4_raster_uv_hor_virstride;
-
-    /* SWREG97_REF4_Y_VIRSTRIDE */
-    RK_U32 reg97_ref4_virstride;
-
-    /* SWREG98_REF5_Y_HOR_VIRSTRIDE */
-    RK_U32 reg98_ref5_hor_virstride;
-
-    /* SWREG99_REF5_UV_HOR_VIRSTRIDE */
-    RK_U32 reg99_ref5_raster_uv_hor_virstride;
-
-    /* SWREG100_REF5_Y_VIRSTRIDE */
-    RK_U32 reg100_ref5_virstride;
-
-    /* SWREG101_REF6_Y_HOR_VIRSTRIDE */
-    RK_U32 reg101_ref6_hor_virstride;
-
-    /* SWREG102_REF6_UV_HOR_VIRSTRIDE */
-    RK_U32 reg102_ref6_raster_uv_hor_virstride;
-
-    /* SWREG103_REF6_Y_VIRSTRIDE */
-    RK_U32 reg103_ref6_virstride;
-
-    /* SWREG104_REF7_Y_HOR_VIRSTRIDE */
-    RK_U32 reg104_ref7_hor_virstride;
-
-    /* SWREG105_REF7_UV_HOR_VIRSTRIDE */
-    RK_U32 reg105_ref7_raster_uv_hor_virstride;
-
-    /* SWREG106_REF7_Y_VIRSTRIDE */
-    RK_U32 reg106_ref7_virstride;
-
+    union {
+        struct {
+            RK_U32 hor_y_stride;
+            RK_U32 hor_uv_stride;
+            RK_U32 y_stride;
+        } ref_stride[VDPU38X_REG_MAX_REF_CNT];
+        struct {
+            RK_U32 reg83_ref0_hor_virstride;
+            RK_U32 reg84_ref0_raster_uv_hor_virstride;
+            RK_U32 reg85_ref0_virstride;
+            RK_U32 reg86_ref1_hor_virstride;
+            RK_U32 reg87_ref1_raster_uv_hor_virstride;
+            RK_U32 reg88_ref1_virstride;
+            RK_U32 reg89_ref2_hor_virstride;
+            RK_U32 reg90_ref2_raster_uv_hor_virstride;
+            RK_U32 reg91_ref2_virstride;
+            RK_U32 reg92_ref3_hor_virstride;
+            RK_U32 reg93_ref3_raster_uv_hor_virstride;
+            RK_U32 reg94_ref3_virstride;
+            RK_U32 reg95_ref4_hor_virstride;
+            RK_U32 reg96_ref4_raster_uv_hor_virstride;
+            RK_U32 reg97_ref4_virstride;
+            RK_U32 reg98_ref5_hor_virstride;
+            RK_U32 reg99_ref5_raster_uv_hor_virstride;
+            RK_U32 reg100_ref5_virstride;
+            RK_U32 reg101_ref6_hor_virstride;
+            RK_U32 reg102_ref6_raster_uv_hor_virstride;
+            RK_U32 reg103_ref6_virstride;
+            RK_U32 reg104_ref7_hor_virstride;
+            RK_U32 reg105_ref7_raster_uv_hor_virstride;
+            RK_U32 reg106_ref7_virstride;
+        };
+    };
 } Vdpu38xRegCommParas;
 
 typedef struct Vdpu38xRegCommonAddr_t {

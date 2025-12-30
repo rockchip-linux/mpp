@@ -17,48 +17,6 @@
 #define VDPU384B_UNCMPS_HEADER_OFFSET(idx)   (VDPU384B_INFO_ELEM_SIZE * idx + VDPU384B_UNCMPS_HEADER_OFFSET_BASE)
 #define VDPU384B_INFO_BUF_SIZE(cnt)          (VDPU384B_INFO_ELEM_SIZE * cnt)
 
-#define SET_REF_HOR_VIRSTRIDE(regs, ref_index, value)\
-    do{ \
-        switch(ref_index){\
-        case 0: regs.reg83_ref0_hor_virstride = value; break;\
-        case 1: regs.reg86_ref1_hor_virstride = value; break;\
-        case 2: regs.reg89_ref2_hor_virstride = value; break;\
-        case 3: regs.reg92_ref3_hor_virstride = value; break;\
-        case 4: regs.reg95_ref4_hor_virstride = value; break;\
-        case 5: regs.reg98_ref5_hor_virstride = value; break;\
-        case 6: regs.reg101_ref6_hor_virstride = value; break;\
-        case 7: regs.reg104_ref7_hor_virstride = value; break;\
-        default: break;}\
-    }while(0)
-
-#define SET_REF_RASTER_UV_HOR_VIRSTRIDE(regs, ref_index, value)\
-    do{ \
-        switch(ref_index){\
-        case 0: regs.reg84_ref0_raster_uv_hor_virstride = value; break;\
-        case 1: regs.reg87_ref1_raster_uv_hor_virstride = value; break;\
-        case 2: regs.reg90_ref2_raster_uv_hor_virstride = value; break;\
-        case 3: regs.reg93_ref3_raster_uv_hor_virstride = value; break;\
-        case 4: regs.reg96_ref4_raster_uv_hor_virstride = value; break;\
-        case 5: regs.reg99_ref5_raster_uv_hor_virstride = value; break;\
-        case 6: regs.reg102_ref6_raster_uv_hor_virstride = value; break;\
-        case 7: regs.reg105_ref7_raster_uv_hor_virstride = value; break;\
-        default: break;}\
-    }while(0)
-
-#define SET_REF_VIRSTRIDE(regs, ref_index, value)\
-    do{ \
-        switch(ref_index){\
-        case 0: regs.reg85_ref0_virstride = value; break;\
-        case 1: regs.reg88_ref1_virstride = value; break;\
-        case 2: regs.reg91_ref2_virstride = value; break;\
-        case 3: regs.reg94_ref3_virstride = value; break;\
-        case 4: regs.reg97_ref4_virstride = value; break;\
-        case 5: regs.reg100_ref5_virstride = value; break;\
-        case 6: regs.reg103_ref6_virstride = value; break;\
-        case 7: regs.reg106_ref7_virstride = value; break;\
-        default: break;}\
-    }while(0)
-
 static MPP_RET hal_av1d_alloc_res(void *hal)
 {
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
@@ -506,18 +464,18 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
                     y_virstride = hor_virstride * ver_virstride;
                     if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
                         vdpu38x_get_fbc_off(mframe, &fbc_head_stride, &fbc_pld_stride, &fbc_offset);
-                        SET_REF_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, fbc_head_stride);
-                        SET_REF_RASTER_UV_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, fbc_pld_stride);
+                        regs->comm_paras.ref_stride[mapped_idx].hor_y_stride = fbc_head_stride;
+                        regs->comm_paras.ref_stride[mapped_idx].hor_uv_stride = fbc_pld_stride;
                     } else if (MPP_FRAME_FMT_IS_TILE(mpp_frame_get_fmt(mframe))) {
                         hor_virstride = MPP_ALIGN(hor_virstride * 6, 16);
                         y_virstride += y_virstride / 2;
-                        SET_REF_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, hor_virstride >> 4);
-                        SET_REF_RASTER_UV_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, hor_virstride >> 4);
-                        SET_REF_VIRSTRIDE(regs->comm_paras, mapped_idx, y_virstride >> 4);
+                        regs->comm_paras.ref_stride[mapped_idx].hor_y_stride = hor_virstride >> 4;
+                        regs->comm_paras.ref_stride[mapped_idx].hor_uv_stride = hor_virstride >> 4;
+                        regs->comm_paras.ref_stride[mapped_idx].y_stride = y_virstride >> 4;
                     } else {
-                        SET_REF_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, hor_virstride >> 4);
-                        SET_REF_RASTER_UV_HOR_VIRSTRIDE(regs->comm_paras, mapped_idx, hor_virstride >> 4);
-                        SET_REF_VIRSTRIDE(regs->comm_paras, mapped_idx, y_virstride >> 4);
+                        regs->comm_paras.ref_stride[mapped_idx].hor_y_stride = hor_virstride >> 4;
+                        regs->comm_paras.ref_stride[mapped_idx].hor_uv_stride = hor_virstride >> 4;
+                        regs->comm_paras.ref_stride[mapped_idx].y_stride = y_virstride >> 4;
                     }
                 }
             }

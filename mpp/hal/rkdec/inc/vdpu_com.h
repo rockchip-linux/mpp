@@ -15,6 +15,8 @@
 #define RCB_ALLINE_SIZE        (64)
 #define MPP_RCB_BYTES(bits)    ((RK_U32)(MPP_ALIGN(((RK_U32)ceilf(bits) + 7) / 8, RCB_ALLINE_SIZE)))
 
+#define VDPU38X_REG_MAX_REF_CNT   8
+
 typedef enum VdpuRcbSetMode_e {
     RCB_SET_BY_SIZE_SORT_MODE,
     RCB_SET_BY_PRIORITY_MODE,
