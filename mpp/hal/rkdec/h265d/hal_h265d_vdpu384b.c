@@ -91,7 +91,6 @@ static MPP_RET hal_h265d_vdpu384b_init(void *hal, MppHalCfg *cfg)
 
     vdpu38x_rcb_calc_init((Vdpu38xRcbCtx **)&reg_ctx->rcb_ctx);
 
-    (void) cfg;
     return MPP_OK;
 }
 
@@ -484,35 +483,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     if (aglin_offset > 0)
         memset((void *)(dxva_ctx->bitstream + dxva_ctx->bitstream_size), 0, aglin_offset);
 
-    /* common setting */
-    hw_regs->ctrl_regs.reg8_dec_mode = 0; // hevc
-    hw_regs->ctrl_regs.reg9.collect_info_dis = 1;
-
-    hw_regs->ctrl_regs.reg10.strmd_auto_gating_dis      = 0;
-    hw_regs->ctrl_regs.reg10.inter_auto_gating_dis      = 0;
-    hw_regs->ctrl_regs.reg10.intra_auto_gating_dis      = 0;
-    hw_regs->ctrl_regs.reg10.transd_auto_gating_dis     = 0;
-    hw_regs->ctrl_regs.reg10.recon_auto_gating_dis      = 0;
-    hw_regs->ctrl_regs.reg10.filterd_auto_gating_dis    = 0;
-    hw_regs->ctrl_regs.reg10.bus_auto_gating_dis        = 0;
-    hw_regs->ctrl_regs.reg10.ctrl_auto_gating_dis       = 0;
-    hw_regs->ctrl_regs.reg10.rcb_auto_gating_dis        = 0;
-    hw_regs->ctrl_regs.reg10.err_prc_auto_gating_dis    = 0;
-    hw_regs->ctrl_regs.reg10.cache_auto_gating_dis      = 0;
-
-    hw_regs->ctrl_regs.reg11.rd_outstanding = 32;
-    hw_regs->ctrl_regs.reg11.wr_outstanding = 250;
-    // hw_regs->ctrl_regs.reg11.dec_timeout_dis = 1;
-
-    hw_regs->ctrl_regs.reg16.error_proc_disable = 1;
-    hw_regs->ctrl_regs.reg16.error_spread_disable = 0;
-    hw_regs->ctrl_regs.reg16.roi_error_ctu_cal_en = 0;
-
-    hw_regs->ctrl_regs.reg20_cabac_error_en_lowbits = 0xffffdfff;
-    hw_regs->ctrl_regs.reg21_cabac_error_en_highbits = 0xfffbf9ff;
-
-    hw_regs->ctrl_regs.reg13_core_timeout_threshold = 0xffff;
-
+    vdpu384b_init_ctrl_regs(hw_regs, MPP_VIDEO_CodingHEVC);
 
     valid_ref = hw_regs->comm_addrs.reg168_decout_base;
     reg_ctx->error_index[syn->dec.reg_index] = dxva_ctx->pp.CurrPic.Index7Bits;

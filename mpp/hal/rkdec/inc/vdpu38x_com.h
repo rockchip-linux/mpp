@@ -857,6 +857,7 @@ MPP_RET vdpu38x_rcb_dump_rcb_result(Vdpu38xRcbCtx *ctx);
 MPP_RET vdpu38x_get_fbc_off(MppFrame mframe, RK_U32 *head_stride, RK_U32 *pld_stride, RK_U32 *pld_offset);
 MPP_RET vdpu38x_get_tile4x4_h_stride_coeff(MppFrameFormat fmt, RK_U32 *coeff);
 void vdpu38x_setup_rcb(Vdpu38xRcbCtx *ctx, Vdpu38xRegCommonAddr *reg, MppDev dev, MppBuffer buf);
+void vdpu384b_init_ctrl_regs(Vdpu38xRegSet *regs, MppCodingType codec_t);
 void vdpu38x_setup_statistic(Vdpu38xCtrlReg *com);
 void vdpu38x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, void* comParas);

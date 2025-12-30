@@ -633,33 +633,7 @@ static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
         }
     }
 
-    /* common register setting */
-    regs->ctrl_regs.reg8_dec_mode = 2; //set as vp9 dec
-    regs->ctrl_regs.reg9.collect_info_dis = 1;
-
-    regs->ctrl_regs.reg10.strmd_auto_gating_dis      = 0;
-    regs->ctrl_regs.reg10.inter_auto_gating_dis      = 0;
-    regs->ctrl_regs.reg10.intra_auto_gating_dis      = 0;
-    regs->ctrl_regs.reg10.transd_auto_gating_dis     = 0;
-    regs->ctrl_regs.reg10.recon_auto_gating_dis      = 0;
-    regs->ctrl_regs.reg10.filterd_auto_gating_dis    = 0;
-    regs->ctrl_regs.reg10.bus_auto_gating_dis        = 0;
-    regs->ctrl_regs.reg10.ctrl_auto_gating_dis       = 0;
-    regs->ctrl_regs.reg10.rcb_auto_gating_dis        = 0;
-    regs->ctrl_regs.reg10.err_prc_auto_gating_dis    = 0;
-    regs->ctrl_regs.reg10.cache_auto_gating_dis      = 0;
-
-    regs->ctrl_regs.reg11.rd_outstanding = 32;
-    regs->ctrl_regs.reg11.wr_outstanding = 250;
-
-    regs->ctrl_regs.reg16.error_proc_disable = 1;
-    regs->ctrl_regs.reg16.error_spread_disable = 0;
-    regs->ctrl_regs.reg16.roi_error_ctu_cal_en = 0;
-
-    regs->ctrl_regs.reg20_cabac_error_en_lowbits = 0xffffffff;
-    regs->ctrl_regs.reg21_cabac_error_en_highbits = 0xffffffff;
-
-    regs->ctrl_regs.reg13_core_timeout_threshold = 0x3ffff;
+    vdpu384b_init_ctrl_regs(regs, MPP_VIDEO_CodingVP9);
 
     //last info update
     hw_ctx->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;

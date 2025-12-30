@@ -505,6 +505,67 @@ MPP_RET vdpu38x_get_tile4x4_h_stride_coeff(MppFrameFormat fmt, RK_U32 *coeff)
     return ret;
 }
 
+void vdpu384b_init_ctrl_regs(Vdpu38xRegSet *regs, MppCodingType codec_t)
+{
+    Vdpu38xCtrlReg *ctrl_regs = &regs->ctrl_regs;
+
+    switch (codec_t) {
+    case MPP_VIDEO_CodingAVC : {
+        ctrl_regs->reg8_dec_mode = 1;
+        ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffffff;
+        ctrl_regs->reg21_cabac_error_en_highbits = 0xfff3ffff;
+    } break;
+    case MPP_VIDEO_CodingHEVC : {
+        ctrl_regs->reg8_dec_mode = 0;
+        ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffdfff;
+        ctrl_regs->reg21_cabac_error_en_highbits = 0xfffbf9ff;
+    } break;
+    case MPP_VIDEO_CodingAVS2 : {
+        ctrl_regs->reg8_dec_mode = 3;
+        ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffffdf;
+        ctrl_regs->reg21_cabac_error_en_highbits = 0xffffffff;
+    } break;
+    case MPP_VIDEO_CodingVP9 : {
+        ctrl_regs->reg8_dec_mode = 2;
+        ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffffff;
+        ctrl_regs->reg21_cabac_error_en_highbits = 0xffffffff;
+    } break;
+    case MPP_VIDEO_CodingAV1 : {
+        ctrl_regs->reg8_dec_mode = 4;
+        ctrl_regs->reg20_cabac_error_en_lowbits  = 0xffffffff;
+        ctrl_regs->reg21_cabac_error_en_highbits = 0xffffffff;
+    } break;
+    default : {
+        mpp_err("not support codec type %d\n", codec_t);
+    } break;
+    }
+
+    ctrl_regs->reg9.collect_info_dis = 1;
+
+    ctrl_regs->reg10.strmd_auto_gating_dis      = 0;
+    ctrl_regs->reg10.inter_auto_gating_dis      = 0;
+    ctrl_regs->reg10.intra_auto_gating_dis      = 0;
+    ctrl_regs->reg10.transd_auto_gating_dis     = 0;
+    ctrl_regs->reg10.recon_auto_gating_dis      = 0;
+    ctrl_regs->reg10.filterd_auto_gating_dis    = 0;
+    ctrl_regs->reg10.bus_auto_gating_dis        = 0;
+    ctrl_regs->reg10.ctrl_auto_gating_dis       = 0;
+    ctrl_regs->reg10.rcb_auto_gating_dis        = 0;
+    ctrl_regs->reg10.err_prc_auto_gating_dis    = 0;
+    ctrl_regs->reg10.cache_auto_gating_dis      = 0;
+
+    ctrl_regs->reg11.rd_outstanding = 32;
+    ctrl_regs->reg11.wr_outstanding = 250;
+
+    ctrl_regs->reg13_core_timeout_threshold = 0xffffff;
+
+    ctrl_regs->reg16.error_proc_disable = 1;
+    ctrl_regs->reg16.error_spread_disable = 0;
+    ctrl_regs->reg16.roi_error_ctu_cal_en = 0;
+
+    return;
+}
+
 void vdpu38x_setup_statistic(Vdpu38xCtrlReg *ctrl_regs)
 {
     ctrl_regs->reg28.axi_perf_work_e = 1;
