@@ -32,8 +32,8 @@ function(merge_objects out_obj)
         return()
     endif()
 
-    set(merged_o "${CMAKE_BINARY_DIR}/${out_obj}.o")
-    set(rsp_file "${CMAKE_BINARY_DIR}/${out_obj}.rsp")
+    set(merged_o "${CMAKE_CURRENT_BINARY_DIR}/${out_obj}.o")
+    set(rsp_file "${CMAKE_CURRENT_BINARY_DIR}/${out_obj}.rsp")
 
     # 3. Generate response file (one .o per line)
     file(GENERATE OUTPUT "${rsp_file}" CONTENT "$<JOIN:${obj_inputs},\n>")
