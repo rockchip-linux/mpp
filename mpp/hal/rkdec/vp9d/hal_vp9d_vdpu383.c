@@ -614,29 +614,7 @@ static MPP_RET hal_vp9d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         }
     }
 
-    /* common register setting */
-    vp9_hw_regs->ctrl_regs.reg8_dec_mode = 2; //set as vp9 dec
-    vp9_hw_regs->ctrl_regs.reg9.buf_empty_en = 0;
-
-    vp9_hw_regs->ctrl_regs.reg10.strmd_auto_gating_e      = 1;
-    vp9_hw_regs->ctrl_regs.reg10.inter_auto_gating_e      = 1;
-    vp9_hw_regs->ctrl_regs.reg10.intra_auto_gating_e      = 1;
-    vp9_hw_regs->ctrl_regs.reg10.transd_auto_gating_e     = 1;
-    vp9_hw_regs->ctrl_regs.reg10.recon_auto_gating_e      = 1;
-    vp9_hw_regs->ctrl_regs.reg10.filterd_auto_gating_e    = 1;
-    vp9_hw_regs->ctrl_regs.reg10.bus_auto_gating_e        = 1;
-    vp9_hw_regs->ctrl_regs.reg10.ctrl_auto_gating_e       = 1;
-    vp9_hw_regs->ctrl_regs.reg10.rcb_auto_gating_e        = 1;
-    vp9_hw_regs->ctrl_regs.reg10.err_prc_auto_gating_e    = 1;
-
-    vp9_hw_regs->ctrl_regs.reg16.error_proc_disable = 1;
-    vp9_hw_regs->ctrl_regs.reg16.error_spread_disable = 0;
-    vp9_hw_regs->ctrl_regs.reg16.roi_error_ctu_cal_en = 0;
-
-    vp9_hw_regs->ctrl_regs.reg20_cabac_error_en_lowbits = 0xffffffdf;
-    vp9_hw_regs->ctrl_regs.reg21_cabac_error_en_highbits = 0x3fffffff;
-
-    vp9_hw_regs->ctrl_regs.reg13_core_timeout_threshold = 0x3ffff;
+    vdpu383_init_ctrl_regs(vp9_hw_regs, MPP_VIDEO_CodingVP9);
 
     //last info update
     hw_ctx->ls_info.abs_delta_last = pic_param->stVP9Segments.abs_delta;

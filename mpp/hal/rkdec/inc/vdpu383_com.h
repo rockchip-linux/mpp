@@ -639,6 +639,7 @@ extern "C" {
 
 RK_S32 vdpu383_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu383_setup_rcb(Vdpu383RegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
+void vdpu383_init_ctrl_regs(Vdpu383RegSet *regs, MppCodingType codec_t);
 void vdpu383_setup_statistic(Vdpu383CtrlReg *com);
 void vdpu383_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 RK_S32 vdpu383_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);

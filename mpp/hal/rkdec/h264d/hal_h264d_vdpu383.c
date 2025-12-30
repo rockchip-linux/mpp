@@ -300,48 +300,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu383RegSet *regs, HalTaskI
     return MPP_OK;
 }
 
-static MPP_RET init_ctrl_regs(Vdpu383RegSet *regs)
-{
-    Vdpu383CtrlReg *ctrl_regs = &regs->ctrl_regs;
-
-    ctrl_regs->reg8_dec_mode = 1;  //!< h264
-    ctrl_regs->reg9.buf_empty_en = 0;
-
-    ctrl_regs->reg10.strmd_auto_gating_e      = 1;
-    ctrl_regs->reg10.inter_auto_gating_e      = 1;
-    ctrl_regs->reg10.intra_auto_gating_e      = 1;
-    ctrl_regs->reg10.transd_auto_gating_e     = 1;
-    ctrl_regs->reg10.recon_auto_gating_e      = 1;
-    ctrl_regs->reg10.filterd_auto_gating_e    = 1;
-    ctrl_regs->reg10.bus_auto_gating_e        = 1;
-    ctrl_regs->reg10.ctrl_auto_gating_e       = 1;
-    ctrl_regs->reg10.rcb_auto_gating_e        = 1;
-    ctrl_regs->reg10.err_prc_auto_gating_e    = 1;
-
-    ctrl_regs->reg13_core_timeout_threshold = 0xffffff;
-
-    ctrl_regs->reg16.error_proc_disable = 1;
-    ctrl_regs->reg16.error_spread_disable = 0;
-    ctrl_regs->reg16.roi_error_ctu_cal_en = 0;
-
-    ctrl_regs->reg20_cabac_error_en_lowbits = 0xfffedfff;
-    ctrl_regs->reg21_cabac_error_en_highbits = 0x0ffbf9ff;
-
-    /* performance */
-    ctrl_regs->reg28.axi_perf_work_e = 1;
-    ctrl_regs->reg28.axi_cnt_type = 1;
-    ctrl_regs->reg28.rd_latency_id = 11;
-
-    ctrl_regs->reg29.addr_align_type = 2;
-    ctrl_regs->reg29.ar_cnt_id_type = 0;
-    ctrl_regs->reg29.aw_cnt_id_type = 0;
-    ctrl_regs->reg29.ar_count_id = 0xa;
-    ctrl_regs->reg29.aw_count_id = 0;
-    ctrl_regs->reg29.rd_band_width_mode = 0;
-
-    return MPP_OK;
-}
-
 MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -367,7 +325,7 @@ MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
     reg_ctx->offset_errinfo = VDPU383_ERROR_INFO_OFFSET;
     for (i = 0; i < max_cnt; i++) {
         reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383RegSet, 1);
-        init_ctrl_regs(reg_ctx->reg_buf[i].regs);
+        vdpu383_init_ctrl_regs(reg_ctx->reg_buf[i].regs, MPP_VIDEO_CodingAVC);
         reg_ctx->offset_spspps[i] = VDPU383_SPSPPS_OFFSET(i);
         reg_ctx->offset_rps[i] = VDPU383_RPS_OFFSET(i);
         reg_ctx->offset_sclst[i] = VDPU383_SCALING_LIST_OFFSET(i);

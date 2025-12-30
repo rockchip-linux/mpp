@@ -311,48 +311,8 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
     }
 #endif
 
-    /* set reg -> ctrl reg */
-    {
-        regs->ctrl_regs.reg8_dec_mode          = 4; // av1
-        regs->ctrl_regs.reg9.fbc_e             = 0;
-        regs->ctrl_regs.reg9.buf_empty_en      = 0;
-
-        regs->ctrl_regs.reg10.strmd_auto_gating_e    = 1;
-        regs->ctrl_regs.reg10.inter_auto_gating_e    = 1;
-        regs->ctrl_regs.reg10.intra_auto_gating_e    = 1;
-        regs->ctrl_regs.reg10.transd_auto_gating_e   = 1;
-        regs->ctrl_regs.reg10.recon_auto_gating_e    = 1;
-        regs->ctrl_regs.reg10.filterd_auto_gating_e  = 1;
-        regs->ctrl_regs.reg10.bus_auto_gating_e      = 1;
-        regs->ctrl_regs.reg10.ctrl_auto_gating_e     = 1;
-        regs->ctrl_regs.reg10.rcb_auto_gating_e      = 1;
-        regs->ctrl_regs.reg10.err_prc_auto_gating_e  = 1;
-
-        // regs->ctrl_regs.reg11.dec_timeout_dis        = 1;
-
-        regs->ctrl_regs.reg13_core_timeout_threshold  = 0x3fffff;
-
-        regs->ctrl_regs.reg16.error_proc_disable     = 1;
-        regs->ctrl_regs.reg16.error_spread_disable   = 0;
-        regs->ctrl_regs.reg16.roi_error_ctu_cal_en   = 0;
-
-        regs->ctrl_regs.reg20_cabac_error_en_lowbits  = 0xffffffdf;
-        regs->ctrl_regs.reg21_cabac_error_en_highbits = 0x3fffffff;
-
-        regs->ctrl_regs.reg28.axi_perf_work_e = 1;
-        regs->ctrl_regs.reg28.axi_cnt_type    = 1;
-        regs->ctrl_regs.reg28.rd_latency_id   = 11;
-
-        regs->ctrl_regs.reg29.addr_align_type     = 1;
-        regs->ctrl_regs.reg29.ar_cnt_id_type      = 0;
-        regs->ctrl_regs.reg29.aw_cnt_id_type      = 1;
-        regs->ctrl_regs.reg29.ar_count_id         = 17;
-        regs->ctrl_regs.reg29.aw_count_id         = 0;
-        regs->ctrl_regs.reg29.rd_band_width_mode  = 0;
-
-        regs->ctrl_regs.reg30.axi_wr_qos = 0;
-        regs->ctrl_regs.reg30.axi_rd_qos = 0;
-    }
+    vdpu383_init_ctrl_regs(regs, MPP_VIDEO_CodingAV1);
+    vdpu383_setup_statistic(&regs->ctrl_regs);
 
     /* set reg -> pkt data */
     {

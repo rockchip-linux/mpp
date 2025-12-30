@@ -42,47 +42,6 @@
 #define COLMV_BLOCK_SIZE        (16)
 #define COLMV_BYTES             (16)
 
-static void init_ctrl_regs(Vdpu383RegSet *regs)
-{
-    Vdpu383CtrlReg *ctrl_regs = &regs->ctrl_regs;
-
-    ctrl_regs->reg8_dec_mode = 3;  // AVS2
-    ctrl_regs->reg9.buf_empty_en = 1;
-
-    ctrl_regs->reg10.strmd_auto_gating_e      = 1;
-    ctrl_regs->reg10.inter_auto_gating_e      = 1;
-    ctrl_regs->reg10.intra_auto_gating_e      = 1;
-    ctrl_regs->reg10.transd_auto_gating_e     = 1;
-    ctrl_regs->reg10.recon_auto_gating_e      = 1;
-    ctrl_regs->reg10.filterd_auto_gating_e    = 1;
-    ctrl_regs->reg10.bus_auto_gating_e        = 1;
-    ctrl_regs->reg10.ctrl_auto_gating_e       = 1;
-    ctrl_regs->reg10.rcb_auto_gating_e        = 1;
-    ctrl_regs->reg10.err_prc_auto_gating_e    = 1;
-
-    ctrl_regs->reg13_core_timeout_threshold = 0xffffff;
-
-    ctrl_regs->reg16.error_proc_disable = 1;
-    ctrl_regs->reg16.error_spread_disable = 0;
-    ctrl_regs->reg16.roi_error_ctu_cal_en = 0;
-
-    ctrl_regs->reg20_cabac_error_en_lowbits = 0xffffffff;
-    ctrl_regs->reg21_cabac_error_en_highbits = 0x3fffffff;
-
-    /* performance */
-    ctrl_regs->reg28.axi_perf_work_e = 1;
-    ctrl_regs->reg28.axi_cnt_type = 1;
-    ctrl_regs->reg28.rd_latency_id = 0xb;
-    ctrl_regs->reg28.rd_latency_thr = 0;
-
-    ctrl_regs->reg29.addr_align_type = 2;
-    ctrl_regs->reg29.ar_cnt_id_type = 0;
-    ctrl_regs->reg29.aw_cnt_id_type = 0;
-    ctrl_regs->reg29.ar_count_id = 0xa;
-    ctrl_regs->reg29.aw_count_id = 0;
-    ctrl_regs->reg29.rd_band_width_mode = 0;
-}
-
 static void avs2d_refine_rcb_size(VdpuRcbInfo *rcb_info,
                                   RK_S32 width, RK_S32 height, void *dxva)
 {
@@ -328,7 +287,7 @@ MPP_RET hal_avs2d_vdpu383_init(void *hal, MppHalCfg *cfg)
 
     for (i = 0; i < loop; i++) {
         reg_ctx->reg_buf[i].regs = mpp_calloc(Vdpu383RegSet, 1);
-        init_ctrl_regs(reg_ctx->reg_buf[i].regs);
+        vdpu383_init_ctrl_regs(reg_ctx->reg_buf[i].regs, MPP_VIDEO_CodingAVS2);
         reg_ctx->reg_buf[i].offset_shph = AVS2_SHPH_OFFSET(i);
         reg_ctx->reg_buf[i].offset_sclst = AVS2_SCALIST_OFFSET(i);
     }
@@ -395,7 +354,7 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
 
     regs = reg_ctx->regs;
     memset(regs, 0, sizeof(Vdpu383RegSet));
-    init_ctrl_regs(regs);
+    vdpu383_init_ctrl_regs(regs, MPP_VIDEO_CodingAVS2);
 
     hal_avs2d_vdpu38x_prepare_header(p_hal, reg_ctx->shph_dat, AVS2_383_SHPH_SIZE / 8);
     hal_avs2d_vdpu38x_prepare_scalist(p_hal, reg_ctx->scalist_dat, AVS2_383_SCALIST_SIZE / 8);
