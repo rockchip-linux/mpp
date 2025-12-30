@@ -19,5 +19,7 @@ MPP_RET vdpu_h264d_flush(void *hal);
 MPP_RET vdpu38x_h264d_control(void *hal, MpiCmd cmd_type, void *param);
 MPP_RET vdpu38x_h264d_prepare_spspps(H264dHalCtx_t *p_hal, RK_U64 *data, RK_U32 len);
 MPP_RET vdpu38x_h264d_prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32 len);
+void vdpu38x_h264d_rcb_setup(void *hal, HalTaskInfo *task,
+                             Vdpu38xRcbRegSet *rcb_regs, Vdpu38xRcbCalc_f func);
 
 #endif /* HAL_H264D_COM_H */

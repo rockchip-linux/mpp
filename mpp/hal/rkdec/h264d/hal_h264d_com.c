@@ -480,3 +480,81 @@ MPP_RET vdpu38x_h264d_prepare_scanlist(H264dHalCtx_t *p_hal, RK_U8 *data, RK_U32
 
     return MPP_OK;
 }
+
+void vdpu38x_h264d_rcb_setup(void *hal, HalTaskInfo *task,
+                             Vdpu38xRcbRegSet *rcb_regs, Vdpu38xRcbCalc_f func)
+{
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t*)hal;
+    RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
+    RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
+    RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
+    Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
+    RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
+    RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+    MppBuffer rcb_buf;
+
+    if ( ctx->bit_depth != bit_depth ||
+         ctx->chroma_format_idc != chroma_format_idc ||
+         ctx->mbaff != mbaff ||
+         ctx->width != width ||
+         ctx->height != height) {
+        RK_U32 i;
+        RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
+
+        /* update rcb info */
+        {
+            RcbTileInfo tl_info;
+            MppFrame mframe;
+            MppFrameFormat mpp_fmt;
+            Vdpu38xFmt rcb_fmt;
+
+            mpp_buf_slot_get_prop(p_hal->frame_slots, p_hal->pp->CurrPic.Index7Bits,
+                                  SLOT_FRAME_PTR, &mframe);
+            mpp_fmt = mpp_frame_get_fmt(mframe);
+            rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
+
+            vdpu38x_rcb_reset(ctx->rcb_ctx);
+
+            /* update general info */
+            vdpu38x_rcb_set_pic_w(ctx->rcb_ctx, width);
+            vdpu38x_rcb_set_pic_h(ctx->rcb_ctx, height);
+            vdpu38x_rcb_set_fmt(ctx->rcb_ctx, rcb_fmt);
+            vdpu38x_rcb_set_bit_depth(ctx->rcb_ctx, bit_depth);
+
+            /* update cur spec info */
+            vdpu38x_rcb_set_mbaff_flag(ctx->rcb_ctx, mbaff);
+
+            /* add tile info */
+            /* Simplify the calculation. */
+            tl_info.lt_x = 0;
+            tl_info.lt_y = 0;
+            tl_info.w = width;
+            tl_info.h = height;
+            vdpu38x_rcb_set_tile_dir(ctx->rcb_ctx, 0);
+            vdpu38x_rcb_add_tile_info(ctx->rcb_ctx, &tl_info);
+            vdpu38x_rcb_register_calc_handle(ctx->rcb_ctx, func);
+        }
+
+        vdpu38x_rcb_calc_exec(ctx->rcb_ctx, &ctx->rcb_buf_size);
+        /* vdpu384b_check_rcb_buf_size(ctx->rcb_info, width, height); */
+        for (i = 0; i < loop; i++) {
+            rcb_buf = ctx->rcb_buf[i];
+
+            if (rcb_buf) {
+                mpp_buffer_put(rcb_buf);
+                ctx->rcb_buf[i] = NULL;
+            }
+            mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
+            ctx->rcb_buf[i] = rcb_buf;
+        }
+        ctx->bit_depth      = bit_depth;
+        ctx->width          = width;
+        ctx->height         = height;
+        ctx->mbaff          = mbaff;
+        ctx->chroma_format_idc = chroma_format_idc;
+    }
+
+    rcb_buf = p_hal->fast_mode ? ctx->rcb_buf[task->dec.reg_index]
+              : ctx->rcb_buf[0];
+    vdpu38x_setup_rcb(ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+}

@@ -123,7 +123,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET vdpu384b_rcb_vp9_calc_rcb_bufs(void *context, RK_U32 *total_size)
+static MPP_RET vdpu384b_vp9d_rcb_calc(void *context, RK_U32 *total_size)
 {
     Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
     RK_FLOAT cur_bit_size = 0;
@@ -134,7 +134,7 @@ static MPP_RET vdpu384b_rcb_vp9_calc_rcb_bufs(void *context, RK_U32 *total_size)
     RK_U32 on_tl_col = 0;
     Vdpu38xFmt rcb_fmt;
 
-    /* vdpu384b fix 10bit */
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
     bit_depth = 10;
 
     vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
@@ -209,89 +209,6 @@ static MPP_RET vdpu384b_rcb_vp9_calc_rcb_bufs(void *context, RK_U32 *total_size)
     *total_size = vdpu38x_rcb_get_total_size(ctx);
 
     return MPP_OK;
-}
-
-static void vdpu384b_vp9_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
-                                   Vdpu38xRegSet *hw_regs, HalTaskInfo *task)
-{
-    HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
-    Vdpu38xVp9dCtx *hw_ctx = (Vdpu38xVp9dCtx*)p_hal->hw_ctx;
-    RK_U32 num_tiles = pic_param->log2_tile_rows;
-    RK_U32 bit_depth = pic_param->BitDepthMinus8Luma + 8;
-    RK_S32 height = mpp_align_64(pic_param->height);
-    RK_S32 width  = mpp_align_64(pic_param->width);
-    MppBuffer rcb_buf;
-
-    if (hw_ctx->num_row_tiles != num_tiles ||
-        hw_ctx->bit_depth != bit_depth ||
-        hw_ctx->width != width ||
-        hw_ctx->height != height) {
-
-        /* update rcb info */
-        {
-            RcbTileInfo tl_info;
-            MppFrame mframe;
-            MppFrameFormat mpp_fmt;
-            Vdpu38xFmt rcb_fmt;
-
-            mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
-            mpp_fmt = mpp_frame_get_fmt(mframe);
-            rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
-
-            vdpu38x_rcb_reset(hw_ctx->rcb_ctx);
-
-            /* update general info */
-            vdpu38x_rcb_set_pic_w(hw_ctx->rcb_ctx, width);
-            vdpu38x_rcb_set_pic_h(hw_ctx->rcb_ctx, height);
-            vdpu38x_rcb_set_fmt(hw_ctx->rcb_ctx, rcb_fmt);
-            vdpu38x_rcb_set_bit_depth(hw_ctx->rcb_ctx, bit_depth);
-
-            /* add tile info */
-            /* Simplify the calculation. */
-            tl_info.lt_x = 0;
-            tl_info.lt_y = 0;
-            tl_info.w = width;
-            tl_info.h = height;
-            vdpu38x_rcb_set_tile_dir(hw_ctx->rcb_ctx, 0);
-            vdpu38x_rcb_add_tile_info(hw_ctx->rcb_ctx, &tl_info);
-            vdpu38x_rcb_register_calc_handle(hw_ctx->rcb_ctx, vdpu384b_rcb_vp9_calc_rcb_bufs);
-        }
-
-        vdpu38x_rcb_calc_exec(hw_ctx->rcb_ctx, &hw_ctx->rcb_buf_size);
-        // TODO: refine rcb buffer size
-
-        if (p_hal->fast_mode) {
-            RK_U32 i;
-
-            for (i = 0; i < MPP_ARRAY_ELEMS(hw_ctx->g_buf); i++) {
-                rcb_buf = hw_ctx->g_buf[i].rcb_buf;
-
-                if (rcb_buf) {
-                    mpp_buffer_put(rcb_buf);
-                    hw_ctx->g_buf[i].rcb_buf = NULL;
-                }
-                mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
-                hw_ctx->g_buf[i].rcb_buf = rcb_buf;
-            }
-        } else {
-            rcb_buf = hw_ctx->rcb_buf;
-            if (rcb_buf) {
-                mpp_buffer_put(rcb_buf);
-                rcb_buf = NULL;
-            }
-            mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
-            hw_ctx->rcb_buf = rcb_buf;
-        }
-
-        hw_ctx->num_row_tiles  = num_tiles;
-        hw_ctx->bit_depth      = bit_depth;
-        hw_ctx->width          = width;
-        hw_ctx->height         = height;
-    }
-
-    rcb_buf = p_hal->fast_mode ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf
-              : hw_ctx->rcb_buf;
-    vdpu38x_setup_rcb(hw_ctx->rcb_ctx, &hw_regs->comm_addrs, p_hal->dev, rcb_buf);
 }
 
 static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
@@ -669,7 +586,8 @@ static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
                      pic_param->width, pic_param->height,
                      hw_ctx->ls_info.last_intra_only);
 
-    vdpu384b_vp9_rcb_setup(hal, pic_param, regs, task);
+    vdpu38x_vp9d_rcb_setup(hal, pic_param, task, &regs->comm_addrs.rcb_regs,
+                           vdpu384b_vp9d_rcb_calc);
     vdpu38x_setup_statistic(&regs->ctrl_regs);
     // whether need update counts
     if (pic_param->refresh_frame_context && !pic_param->parallelmode) {

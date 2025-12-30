@@ -87,7 +87,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET vdpu384b_rcb_av1_calc_rcb_bufs(void *context, RK_U32 *total_size)
+static MPP_RET vdpu384b_av1d_rcb_calc(void *context, RK_U32 *total_size)
 {
     Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
     RK_FLOAT cur_bit_size = 0;
@@ -98,7 +98,7 @@ static MPP_RET vdpu384b_rcb_av1_calc_rcb_bufs(void *context, RK_U32 *total_size)
     RK_U32 on_tl_col = 0;
     Vdpu38xFmt rcb_fmt;
 
-    /* vdpu384b fix 10bit */
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
     bit_depth = 10;
 
     vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
@@ -117,7 +117,7 @@ static MPP_RET vdpu384b_rcb_av1_calc_rcb_bufs(void *context, RK_U32 *total_size)
      * Therefore, only strmd on-tile needs to be configured, and there is no need to
      * configure strmd in-tile.
      *
-     * Versions with issues: swan1126b (384a version), shark/robin (384b version).
+     * Versions with issues: swan1126b (384a), shark/robin (384b).
      */
     cur_bit_size = MPP_DIVUP(8, in_tl_row) * 100;
     vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_ON_ROW, 142, cur_bit_size);
@@ -181,72 +181,6 @@ static MPP_RET vdpu384b_rcb_av1_calc_rcb_bufs(void *context, RK_U32 *total_size)
     *total_size = vdpu38x_rcb_get_total_size(ctx);
 
     return MPP_OK;
-}
-
-static void vdpu384b_av1d_rcb_setup(Av1dHalCtx *p_hal, Vdpu38xRegSet *regs,
-                                    HalTaskInfo *task, DXVA_PicParams_AV1 *dxva)
-{
-    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
-    MppBuffer rcb_buf;
-    RK_U32 i;
-
-    /* update rcb info */
-    {
-        RcbTileInfo tl_info;
-        MppFrame mframe;
-        MppFrameFormat mpp_fmt;
-        Vdpu38xFmt rcb_fmt;
-        RK_U32 uses_lr = 0;
-
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
-        mpp_fmt = mpp_frame_get_fmt(mframe);
-        rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
-        for (i = 0; i < (dxva->format.mono_chrome ? 1 : 3); i++)
-            uses_lr |= (dxva->loop_filter.frame_restoration_type[i] != AV1_RESTORE_NONE) ? 1 : 0;
-
-        vdpu38x_rcb_reset(reg_ctx->rcb_ctx);
-
-        /* update general info */
-        vdpu38x_rcb_set_pic_w(reg_ctx->rcb_ctx, dxva->width);
-        vdpu38x_rcb_set_pic_h(reg_ctx->rcb_ctx, dxva->height);
-        vdpu38x_rcb_set_fmt(reg_ctx->rcb_ctx, rcb_fmt);
-        vdpu38x_rcb_set_bit_depth(reg_ctx->rcb_ctx, dxva->bitdepth);
-
-        /* update cur spec info */
-        vdpu38x_rcb_set_lr_en(reg_ctx->rcb_ctx, uses_lr ? 1 : 0);
-        vdpu38x_rcb_set_upsc_en(reg_ctx->rcb_ctx, dxva->use_superres);
-
-        /* add tile info */
-        /* Simplify the calculation. */
-        tl_info.lt_x = 0;
-        tl_info.lt_y = 0;
-        tl_info.w = dxva->width;
-        tl_info.h = dxva->height;
-        vdpu38x_rcb_set_tile_dir(reg_ctx->rcb_ctx, 0);
-        vdpu38x_rcb_add_tile_info(reg_ctx->rcb_ctx, &tl_info);
-        vdpu38x_rcb_register_calc_handle(reg_ctx->rcb_ctx, vdpu384b_rcb_av1_calc_rcb_bufs);
-    }
-
-    vdpu38x_rcb_calc_exec(reg_ctx->rcb_ctx, &reg_ctx->rcb_buf_size);
-
-    for (i = 0; i < max_cnt; i++) {
-        rcb_buf = reg_ctx->rcb_bufs[i];
-
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            reg_ctx->rcb_bufs[i] = NULL;
-        }
-        mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
-        reg_ctx->rcb_bufs[i] = rcb_buf;
-    }
-
-    rcb_buf = p_hal->fast_mode ? reg_ctx->rcb_bufs[task->dec.reg_index]
-              : reg_ctx->rcb_bufs[0];
-    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, &regs->comm_addrs, p_hal->dev,
-                      rcb_buf);
-
-    return;
 }
 
 MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
@@ -358,7 +292,8 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
 #endif
     }
 
-    vdpu384b_av1d_rcb_setup(p_hal, regs, task, dxva);
+    vdpu38x_av1d_rcb_setup(p_hal, task, dxva, &regs->comm_addrs.rcb_regs,
+                           vdpu384b_av1d_rcb_calc);
 
     /* set reg -> para (stride, len) */
     {

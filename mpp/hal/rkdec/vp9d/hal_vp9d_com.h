@@ -20,6 +20,7 @@
 #include "rk_mpi_cmd.h"
 #include "hal_vp9d_ctx.h"
 #include "vp9d_syntax.h"
+#include "vdpu38x_com.h"
 
 typedef RK_U8 vp9_prob;
 
@@ -97,6 +98,9 @@ MPP_RET hal_vp9d_prob_kf(void *buf);
 void set_tile_offset(RK_S32 *start, RK_S32 *end, RK_S32 idx, RK_S32 log2_n, RK_S32 n);
 MPP_RET vdpu38x_vp9d_uncomp_hdr(HalVp9dCtx *p_hal, DXVA_PicParams_VP9 *pp,
                                 RK_U64 *data, RK_U32 len);
+void vdpu38x_vp9d_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
+                            HalTaskInfo *task, Vdpu38xRcbRegSet *rcb_regs,
+                            Vdpu38xRcbCalc_f func);
 
 MPP_RET hal_vp9d_vdpu38x_deinit(void *hal);
 MPP_RET hal_vp9d_vdpu38x_reset(void *hal);

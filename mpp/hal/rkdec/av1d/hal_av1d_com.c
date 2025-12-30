@@ -1606,3 +1606,69 @@ MPP_RET vdpu38x_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 __RETURN:
     return ret;
 }
+
+void vdpu38x_av1d_rcb_setup(Av1dHalCtx *p_hal, HalTaskInfo *task,
+                            DXVA_PicParams_AV1 *dxva, Vdpu38xRcbRegSet *rcb_regs,
+                            Vdpu38xRcbCalc_f func)
+{
+    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
+    MppBuffer rcb_buf;
+    RK_U32 i;
+
+    /* update rcb info */
+    {
+        RcbTileInfo tl_info;
+        MppFrame mframe;
+        MppFrameFormat mpp_fmt;
+        Vdpu38xFmt rcb_fmt;
+        RK_U32 uses_lr = 0;
+
+        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_fmt = mpp_frame_get_fmt(mframe);
+        rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
+        for (i = 0; i < (dxva->format.mono_chrome ? 1 : 3); i++)
+            uses_lr |= (dxva->loop_filter.frame_restoration_type[i] != AV1_RESTORE_NONE) ? 1 : 0;
+
+        vdpu38x_rcb_reset(reg_ctx->rcb_ctx);
+
+        /* update general info */
+        vdpu38x_rcb_set_pic_w(reg_ctx->rcb_ctx, dxva->width);
+        vdpu38x_rcb_set_pic_h(reg_ctx->rcb_ctx, dxva->height);
+        vdpu38x_rcb_set_fmt(reg_ctx->rcb_ctx, rcb_fmt);
+        vdpu38x_rcb_set_bit_depth(reg_ctx->rcb_ctx, dxva->bitdepth);
+
+        /* update cur spec info */
+        vdpu38x_rcb_set_lr_en(reg_ctx->rcb_ctx, uses_lr ? 1 : 0);
+        vdpu38x_rcb_set_upsc_en(reg_ctx->rcb_ctx, dxva->use_superres);
+
+        /* add tile info */
+        /* Simplify the calculation. */
+        tl_info.lt_x = 0;
+        tl_info.lt_y = 0;
+        tl_info.w = dxva->width;
+        tl_info.h = dxva->height;
+        vdpu38x_rcb_set_tile_dir(reg_ctx->rcb_ctx, 0);
+        vdpu38x_rcb_add_tile_info(reg_ctx->rcb_ctx, &tl_info);
+        vdpu38x_rcb_register_calc_handle(reg_ctx->rcb_ctx, func);
+    }
+
+    vdpu38x_rcb_calc_exec(reg_ctx->rcb_ctx, &reg_ctx->rcb_buf_size);
+
+    for (i = 0; i < max_cnt; i++) {
+        rcb_buf = reg_ctx->rcb_bufs[i];
+
+        if (rcb_buf) {
+            mpp_buffer_put(rcb_buf);
+            reg_ctx->rcb_bufs[i] = NULL;
+        }
+        mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
+        reg_ctx->rcb_bufs[i] = rcb_buf;
+    }
+
+    rcb_buf = p_hal->fast_mode ? reg_ctx->rcb_bufs[task->dec.reg_index]
+              : reg_ctx->rcb_bufs[0];
+    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+
+    return;
+}

@@ -280,7 +280,7 @@ __FAILED:
     return ret;
 }
 
-static MPP_RET vdpu384b_rcb_h264_calc_rcb_bufs(void *context, RK_U32 *total_size)
+static MPP_RET vdpu384b_h264d_rcb_calc(void *context, RK_U32 *total_size)
 {
     Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
     RK_FLOAT cur_bit_size = 0;
@@ -291,7 +291,7 @@ static MPP_RET vdpu384b_rcb_h264_calc_rcb_bufs(void *context, RK_U32 *total_size
     RK_U32 on_tl_col = 0;
     Vdpu38xFmt rcb_fmt;
 
-    /* vdpu384b fix 10bit */
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
     bit_depth = 10;
 
     vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
@@ -310,7 +310,7 @@ static MPP_RET vdpu384b_rcb_h264_calc_rcb_bufs(void *context, RK_U32 *total_size
      * Therefore, only strmd on-tile needs to be configured, and there is no need to
      * configure strmd in-tile.
      *
-     * Versions with issues: swan1126b (384a version), shark/robin (384b version).
+     * Versions with issues: rk3576(383), swan1126b (384a), shark/robin (384b).
      */
     if (ctx->pic_w > 4096)
         cur_bit_size = MPP_DIVUP(16, in_tl_row) * 158 * (1 + ctx->mbaff_flag);
@@ -371,83 +371,6 @@ static MPP_RET vdpu384b_rcb_h264_calc_rcb_bufs(void *context, RK_U32 *total_size
     *total_size = vdpu38x_rcb_get_total_size(ctx);
 
     return MPP_OK;
-}
-
-static void vdpu384b_h264d_rcb_setup(void *hal, Vdpu38xRegSet *regs, HalTaskInfo *task)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t*)hal;
-    RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
-    RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
-    RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
-    Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
-    RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
-    MppBuffer rcb_buf;
-
-    if ( ctx->bit_depth != bit_depth ||
-         ctx->chroma_format_idc != chroma_format_idc ||
-         ctx->mbaff != mbaff ||
-         ctx->width != width ||
-         ctx->height != height) {
-        RK_U32 i;
-        RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
-
-        /* update rcb info */
-        {
-            RcbTileInfo tl_info;
-            MppFrame mframe;
-            MppFrameFormat mpp_fmt;
-            Vdpu38xFmt rcb_fmt;
-
-            mpp_buf_slot_get_prop(p_hal->frame_slots, p_hal->pp->CurrPic.Index7Bits,
-                                  SLOT_FRAME_PTR, &mframe);
-            mpp_fmt = mpp_frame_get_fmt(mframe);
-            rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
-
-            vdpu38x_rcb_reset(ctx->rcb_ctx);
-
-            /* update general info */
-            vdpu38x_rcb_set_pic_w(ctx->rcb_ctx, width);
-            vdpu38x_rcb_set_pic_h(ctx->rcb_ctx, height);
-            vdpu38x_rcb_set_fmt(ctx->rcb_ctx, rcb_fmt);
-            vdpu38x_rcb_set_bit_depth(ctx->rcb_ctx, bit_depth);
-
-            /* update cur spec info */
-            vdpu38x_rcb_set_mbaff_flag(ctx->rcb_ctx, mbaff);
-
-            /* add tile info */
-            /* Simplify the calculation. */
-            tl_info.lt_x = 0;
-            tl_info.lt_y = 0;
-            tl_info.w = width;
-            tl_info.h = height;
-            vdpu38x_rcb_set_tile_dir(ctx->rcb_ctx, 0);
-            vdpu38x_rcb_add_tile_info(ctx->rcb_ctx, &tl_info);
-            vdpu38x_rcb_register_calc_handle(ctx->rcb_ctx, vdpu384b_rcb_h264_calc_rcb_bufs);
-        }
-
-        vdpu38x_rcb_calc_exec(ctx->rcb_ctx, &ctx->rcb_buf_size);
-        /* vdpu384b_check_rcb_buf_size(ctx->rcb_info, width, height); */
-        for (i = 0; i < loop; i++) {
-            rcb_buf = ctx->rcb_buf[i];
-
-            if (rcb_buf) {
-                mpp_buffer_put(rcb_buf);
-                ctx->rcb_buf[i] = NULL;
-            }
-            mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
-            ctx->rcb_buf[i] = rcb_buf;
-        }
-        ctx->bit_depth      = bit_depth;
-        ctx->width          = width;
-        ctx->height         = height;
-        ctx->mbaff          = mbaff;
-        ctx->chroma_format_idc = chroma_format_idc;
-    }
-
-    rcb_buf = p_hal->fast_mode ? ctx->rcb_buf[task->dec.reg_index]
-              : ctx->rcb_buf[0];
-    vdpu38x_setup_rcb(ctx->rcb_ctx, &regs->comm_addrs, p_hal->dev, rcb_buf);
 }
 
 MPP_RET vdpu384b_h264d_gen_regs(void *hal, HalTaskInfo *task)
@@ -543,7 +466,7 @@ MPP_RET vdpu384b_h264d_gen_regs(void *hal, HalTaskInfo *task)
         regs->comm_addrs.reg132_scanlist_addr = 0;
     }
 
-    vdpu384b_h264d_rcb_setup(p_hal, regs, task);
+    vdpu38x_h264d_rcb_setup(p_hal, task, &regs->comm_addrs.rcb_regs, vdpu384b_h264d_rcb_calc);
     vdpu38x_setup_statistic(&regs->ctrl_regs);
     mpp_buffer_sync_end(ctx->bufs);
 

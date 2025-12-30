@@ -9,6 +9,7 @@
 #include "rk_mpi_cmd.h"
 #include "av1d_syntax.h"
 #include "hal_av1d_common.h"
+#include "vdpu38x_com.h"
 
 #define AV1_PRIMARY_REF_NONE     7
 
@@ -30,5 +31,8 @@ void vdpu38x_av1d_set_cdf_segid(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
                                 RK_U32 *segid_last_base, RK_U32 *segid_cur_base,
                                 RK_U32 *noncoef_rd_base, RK_U32 *noncoef_wr_base);
 MPP_RET vdpu38x_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva);
+void vdpu38x_av1d_rcb_setup(Av1dHalCtx *p_hal, HalTaskInfo *task,
+                            DXVA_PicParams_AV1 *dxva, Vdpu38xRcbRegSet *rcb_regs,
+                            Vdpu38xRcbCalc_f func);
 
 #endif /* HAL_AV1D_COM_H */

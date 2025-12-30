@@ -16,7 +16,7 @@
 #include "vdpu_com.h"
 #include "vdpu38x_com.h"
 
-RK_U32 vdpu38x_rcb_type2loc_map[RCB_BUF_CNT] = {
+const RK_U32 vdpu38x_rcb_type2loc_map[RCB_BUF_CNT] = {
     [RCB_STRMD_IN_ROW]     = VDPU38X_RCB_IN_TILE_ROW,
     [RCB_STRMD_ON_ROW]     = VDPU38X_RCB_ON_TILE_ROW,
     [RCB_INTER_IN_ROW]     = VDPU38X_RCB_IN_TILE_ROW,
@@ -30,21 +30,21 @@ RK_U32 vdpu38x_rcb_type2loc_map[RCB_BUF_CNT] = {
     [RCB_FLTD_UPSC_ON_COL] = VDPU38X_RCB_ON_TILE_COL,
 };
 
-RK_U32 vdpu38x_intra_uv_coef_map[MPP_HAL_FMT_BUTT] = {
+const RK_U32 vdpu38x_intra_uv_coef_map[MPP_HAL_FMT_BUTT] = {
     [MPP_HAL_FMT_YUV400] = 1,
     [MPP_HAL_FMT_YUV420] = 2,
     [MPP_HAL_FMT_YUV422] = 2,
     [MPP_HAL_FMT_YUV444] = 3,
 };
 
-RK_U32 vdpu38x_filter_row_uv_coef_map[MPP_HAL_FMT_BUTT] = {
+const RK_U32 vdpu38x_filter_row_uv_coef_map[MPP_HAL_FMT_BUTT] = {
     [MPP_HAL_FMT_YUV400] = 0,
     [MPP_HAL_FMT_YUV420] = 1,
     [MPP_HAL_FMT_YUV422] = 1,
     [MPP_HAL_FMT_YUV444] = 3,
 };
 
-RK_U32 vdpu38x_filter_col_uv_coef_map[MPP_HAL_FMT_BUTT] = {
+const RK_U32 vdpu38x_filter_col_uv_coef_map[MPP_HAL_FMT_BUTT] = {
     [MPP_HAL_FMT_YUV400] = 0,
     [MPP_HAL_FMT_YUV420] = 1,
     [MPP_HAL_FMT_YUV422] = 3,
@@ -293,35 +293,35 @@ MPP_RET vdpu38x_rcb_calc_exec(Vdpu38xRcbCtx *ctx, RK_U32 *total_sz)
     return ctx->calc_func(ctx, total_sz);
 }
 
-void vdpu38x_setup_rcb(Vdpu38xRcbCtx *ctx, Vdpu38xRegCommonAddr *reg, MppDev dev,
+void vdpu38x_setup_rcb(Vdpu38xRcbCtx *ctx, Vdpu38xRcbRegSet *regs, MppDev dev,
                        MppBuffer buf)
 {
     VdpuRcbInfo *info = ctx->buf_info;
     RK_U32 i;
 
-    reg->reg140_rcb_strmd_row_offset           = mpp_buffer_get_fd(buf);
-    reg->reg142_rcb_strmd_tile_row_offset      = mpp_buffer_get_fd(buf);
-    reg->reg144_rcb_inter_row_offset           = mpp_buffer_get_fd(buf);
-    reg->reg146_rcb_inter_tile_row_offset      = mpp_buffer_get_fd(buf);
-    reg->reg148_rcb_intra_row_offset           = mpp_buffer_get_fd(buf);
-    reg->reg150_rcb_intra_tile_row_offset      = mpp_buffer_get_fd(buf);
-    reg->reg152_rcb_filterd_row_offset         = mpp_buffer_get_fd(buf);
-    reg->reg154_rcb_filterd_protect_row_offset = mpp_buffer_get_fd(buf);
-    reg->reg156_rcb_filterd_tile_row_offset    = mpp_buffer_get_fd(buf);
-    reg->reg158_rcb_filterd_tile_col_offset    = mpp_buffer_get_fd(buf);
-    reg->reg160_rcb_filterd_av1_upscale_tile_col_offset = mpp_buffer_get_fd(buf);
+    regs->strmd_in_row_off     = mpp_buffer_get_fd(buf);
+    regs->strmd_on_row_off     = mpp_buffer_get_fd(buf);
+    regs->inter_in_row_off     = mpp_buffer_get_fd(buf);
+    regs->inter_on_row_off     = mpp_buffer_get_fd(buf);
+    regs->intra_in_row_off     = mpp_buffer_get_fd(buf);
+    regs->intra_on_row_off     = mpp_buffer_get_fd(buf);
+    regs->fltd_in_row_off      = mpp_buffer_get_fd(buf);
+    regs->fltd_prot_in_row_off = mpp_buffer_get_fd(buf);
+    regs->fltd_on_row_off      = mpp_buffer_get_fd(buf);
+    regs->fltd_on_col_off      = mpp_buffer_get_fd(buf);
+    regs->fltd_upsc_on_col_off = mpp_buffer_get_fd(buf);
 
-    reg->reg141_rcb_strmd_row_len           = info[RCB_STRMD_IN_ROW].size;
-    reg->reg143_rcb_strmd_tile_row_len      = info[RCB_STRMD_ON_ROW].size;
-    reg->reg145_rcb_inter_row_len           = info[RCB_INTER_IN_ROW].size;
-    reg->reg147_rcb_inter_tile_row_len      = info[RCB_INTER_ON_ROW].size;
-    reg->reg149_rcb_intra_row_len           = info[RCB_INTRA_IN_ROW].size;
-    reg->reg151_rcb_intra_tile_row_len      = info[RCB_INTRA_ON_ROW].size;
-    reg->reg153_rcb_filterd_row_len         = info[RCB_FLTD_IN_ROW].size;
-    reg->reg155_rcb_filterd_protect_row_len = info[RCB_FLTD_PROT_IN_ROW].size;
-    reg->reg157_rcb_filterd_tile_row_len    = info[RCB_FLTD_ON_ROW].size;
-    reg->reg159_rcb_filterd_tile_col_len    = info[RCB_FLTD_ON_COL].size;
-    reg->reg161_rcb_filterd_av1_upscale_tile_col_len = info[RCB_FLTD_UPSC_ON_COL].size;
+    regs->strmd_in_row_len     = info[RCB_STRMD_IN_ROW].size;
+    regs->strmd_on_row_len     = info[RCB_STRMD_ON_ROW].size;
+    regs->inter_in_row_len     = info[RCB_INTER_IN_ROW].size;
+    regs->inter_on_row_len     = info[RCB_INTER_ON_ROW].size;
+    regs->intra_in_row_len     = info[RCB_INTRA_IN_ROW].size;
+    regs->intra_on_row_len     = info[RCB_INTRA_ON_ROW].size;
+    regs->fltd_in_row_len      = info[RCB_FLTD_IN_ROW].size;
+    regs->fltd_prot_in_row_len = info[RCB_FLTD_PROT_IN_ROW].size;
+    regs->fltd_on_row_len      = info[RCB_FLTD_ON_ROW].size;
+    regs->fltd_on_col_len      = info[RCB_FLTD_ON_COL].size;
+    regs->fltd_upsc_on_col_len = info[RCB_FLTD_UPSC_ON_COL].size;
 
     for (i = 0; i < RCB_BUF_CNT; i++) {
         if (info[i].offset)

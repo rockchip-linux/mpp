@@ -349,3 +349,68 @@ MPP_RET hal_avs2d_vdpu_dump_yuv(void *hal, HalTaskInfo *task)
 
     return ret;
 }
+
+void vdpu38x_avs2d_rcb_setup(void *hal, HalTaskInfo *task,
+                             Vdpu38xRcbRegSet *rcb_regs, Vdpu38xRcbCalc_f func)
+{
+    Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
+    Avs2dSyntax_t *syntax = &p_hal->syntax;
+    PicParams_Avs2d *pp = &syntax->pp;
+    Avs2dRkvRegCtx *reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
+    RK_S32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    MppBuffer rcb_buf = NULL;
+    MPP_RET ret = MPP_OK;
+    RK_S32 i = 0;
+
+    /* update rcb info */
+    {
+        RcbTileInfo tl_info;
+        MppFrame mframe;
+        MppFrameFormat mpp_fmt;
+        Vdpu38xFmt rcb_fmt;
+
+        mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_fmt = mpp_frame_get_fmt(mframe);
+        rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
+
+        vdpu38x_rcb_reset(reg_ctx->rcb_ctx);
+
+        /* update general info */
+        vdpu38x_rcb_set_pic_w(reg_ctx->rcb_ctx, pp->pic_width_in_luma_samples);
+        vdpu38x_rcb_set_pic_h(reg_ctx->rcb_ctx, pp->pic_height_in_luma_samples);
+        vdpu38x_rcb_set_fmt(reg_ctx->rcb_ctx, rcb_fmt);
+        vdpu38x_rcb_set_bit_depth(reg_ctx->rcb_ctx, pp->bit_depth_luma_minus8 + 8);
+
+        /* update cur spec info */
+        vdpu38x_rcb_set_alf_en(reg_ctx->rcb_ctx, pp->adaptive_loop_filter_enable_flag);
+
+        /* add tile info */
+        /* Simplify the calculation. */
+        tl_info.lt_x = 0;
+        tl_info.lt_y = 0;
+        tl_info.w = pp->pic_width_in_luma_samples;
+        tl_info.h = pp->pic_height_in_luma_samples;
+        vdpu38x_rcb_set_tile_dir(reg_ctx->rcb_ctx, 0);
+        vdpu38x_rcb_add_tile_info(reg_ctx->rcb_ctx, &tl_info);
+        vdpu38x_rcb_register_calc_handle(reg_ctx->rcb_ctx, func);
+    }
+
+    vdpu38x_rcb_calc_exec(reg_ctx->rcb_ctx, &reg_ctx->rcb_buf_size);
+
+    for (i = 0; i < loop; i++) {
+        if (reg_ctx->rcb_buf[i]) {
+            mpp_buffer_put(reg_ctx->rcb_buf[i]);
+            reg_ctx->rcb_buf[i] = NULL;
+        }
+
+        ret = mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
+        if (ret)
+            mpp_err_f("AVS2D mpp_buffer_group_get failed\n");
+
+        reg_ctx->rcb_buf[i] = rcb_buf;
+    }
+
+    rcb_buf = p_hal->fast_mode ?
+              reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0];
+    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+}

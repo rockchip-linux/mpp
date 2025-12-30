@@ -18,8 +18,11 @@
 #ifndef HAL_H265D_COM_H
 #define HAL_H265D_COM_H
 
-#include "rk_type.h"
 #include <limits.h>
+
+#include "rk_type.h"
+#include "h265d_syntax.h"
+#include "vdpu38x_com.h"
 
 #define SCALING_LIST_SIZE       (81 * 1360)
 #define RPS_SIZE                (600 * 32)
@@ -153,6 +156,9 @@ void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva);
 void hal_vdpu38x_record_scaling_list(scalingFactor_t *pScalingFactor_out, scalingList_t *pScalingList);
 MPP_RET hal_h265d_vdpu38x_scalinglist_packet(void *hal, void *ptr, void *dxva);
 RK_S32 hal_h265d_vdpu38x_output_pps_packet(void *hal, void *dxva, RK_U32 *scanlist_addr);
+void vdpu38x_h265d_rcb_setup(void *hal, h265d_dxva2_picture_context_t *dxva,
+                             HalTaskInfo *task, RK_S32 width, RK_S32 height,
+                             Vdpu38xRcbRegSet *rcb_regs, Vdpu38xRcbCalc_f func);
 
 MPP_RET hal_h265d_vdpu38x_deinit(void *hal);
 MPP_RET hal_h265d_vdpu_reset(void *hal);
