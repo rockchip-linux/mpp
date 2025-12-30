@@ -175,10 +175,6 @@ if(GCC)
         add_definitions(-fno-builtin-pow)
     endif()
 
-    # for libary linking
-    set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)
-    set(END_WHOLE_ARCHIVE -Wl,--no-whole-archive)
-
     option(ASAN_CHECK "enable Address Sanitizer (Asan)" OFF)
     if(ASAN_CHECK)
         add_definitions(-fsanitize=address -static-libasan -g)
@@ -186,6 +182,10 @@ if(GCC)
         set(ASAN_BIN dl rt m)
     endif(ASAN_CHECK)
 endif(GCC)
+
+# for libary linking
+set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)
+set(END_WHOLE_ARCHIVE -Wl,--no-whole-archive)
 
 # ----------------------------------------------------------------------------
 # Create git version information

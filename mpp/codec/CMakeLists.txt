@@ -61,5 +61,5 @@ target_link_libraries(mpp_codec
     mpp_vproc
     mpp_base
     dec_common
-    hal_common
+
     )
