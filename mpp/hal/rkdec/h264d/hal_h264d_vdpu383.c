@@ -353,6 +353,8 @@ MPP_RET vdpu383_h264d_init(void *hal, MppHalCfg *cfg)
         cfg->hal_fbc_adj_cfg->expand = 16;
     }
 
+    vdpu38x_rcb_calc_init((Vdpu38xRcbCtx **)&reg_ctx->rcb_ctx);
+
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -361,90 +363,99 @@ __FAILED:
     return ret;
 }
 
-static void h264d_refine_rcb_size(H264dHalCtx_t *p_hal, VdpuRcbInfo *rcb_info,
-                                  RK_S32 width, RK_S32 height)
+static MPP_RET vdpu383_h264d_rcb_calc(void *context, RK_U32 *total_size)
 {
-    RK_U32 rcb_bits = 0;
-    RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
-    RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
-    RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
-    RK_U32 row_uv_para = 1; // for yuv420/yuv422
-    RK_U32 filterd_row_append = 8192;
+    Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
+    RK_FLOAT cur_bit_size = 0;
+    RK_U32 cur_uv_para = 0;
+    RK_U32 bit_depth = ctx->bit_depth;
+    RK_U32 in_tl_row = 0;
+    RK_U32 on_tl_row = 0;
+    RK_U32 on_tl_col = 0;
+    Vdpu38xFmt rcb_fmt;
+    RK_U32 fltd_row_append = ctx->pic_w > 4096 ? 256 * 16 * 8 : 864 * 16 * 8;
 
-    // vdpu383 h264d support yuv400/yuv420/yuv422
-    if (chroma_format_idc == 0)
-        row_uv_para = 0;
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
+    bit_depth = 10;
 
-    width = MPP_ALIGN(width, H264_CTU_SIZE);
-    height = MPP_ALIGN(height, H264_CTU_SIZE);
-    /* RCB_STRMD_IN_ROW && RCB_STRMD_ON_ROW*/
-    if (width > 4096)
-        rcb_bits = ((width + 15) / 16) * 154 * (mbaff ? 2 : 1);
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_STRMD_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_STRMD_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTER_IN_ROW && RCB_INTER_ON_ROW*/
-    rcb_bits = ((width + 3) / 4) * 92 * (mbaff ? 2 : 1);
-    rcb_info[RCB_INTER_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTER_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    /* RCB_INTRA_IN_ROW && RCB_INTRA_ON_ROW*/
-    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2) * (mbaff ? 2 : 1);
-    if (chroma_format_idc == 1 || chroma_format_idc == 2)
-        rcb_bits = rcb_bits * 5 / 2; //TODO:
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_ROW, &on_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_COL, &on_tl_col);
+    rcb_fmt = vdpu38x_rcb_get_fmt(ctx);
 
-    rcb_info[RCB_INTRA_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTRA_ON_ROW].size = 0;
-    /* RCB_FLTD_IN_ROW && RCB_FLTD_PROT_IN_ROW*/
+    /* RCB_STRMD_IN_ROW */
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_IN_ROW, 140, cur_bit_size);
+
+    /* RCB_STRMD_ON_ROW */
+    cur_bit_size = 0;
+    /*
+     * For all spec, the hardware connects all in-tile rows of strmd to the on-tile.
+     * Therefore, only strmd on-tile needs to be configured, and there is no need to
+     * configure strmd in-tile.
+     *
+     * Versions with issues: rk3576(383), swan1126b (384a), shark/robin (384b).
+     */
+    if (ctx->pic_w > 4096)
+        cur_bit_size = MPP_DIVUP(16, in_tl_row) * 154 * (1 + ctx->mbaff_flag);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_ON_ROW, 142, cur_bit_size);
+
+    /* RCB_INTER_IN_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(4, in_tl_row) * 92 * (1 + ctx->mbaff_flag);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_IN_ROW, 144, cur_bit_size);
+
+    /* RCB_INTER_ON_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(4, on_tl_row) * 92 * (1 + ctx->mbaff_flag);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_ON_ROW, 146, cur_bit_size);
+
+    /* RCB_INTRA_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (in_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_IN_ROW, 148, cur_bit_size);
+
+    /* RCB_INTRA_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (on_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_ON_ROW, 150, cur_bit_size);
+
+    /* RCB_FLTD_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(16, in_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (( 6 + 3 * cur_uv_para) * (1 + ctx->mbaff_flag)
+                      + 2 * cur_uv_para + 1.5);
+    cur_bit_size = cur_bit_size / 2 + fltd_row_append;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_IN_ROW, 152, cur_bit_size);
+
+    /* RCB_FLTD_PROT_IN_ROW */
     // save space mode : half for RCB_FLTD_IN_ROW, half for RCB_FLTD_PROT_IN_ROW
-    rcb_bits = width * 17 * ((6 + 3 * row_uv_para) * (mbaff ? 2 : 1) + 2 * row_uv_para + 1.5);
-    if (width > 4096)
-        filterd_row_append = 27648;
-    rcb_info[RCB_FLTD_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FLTD_PROT_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_PROT_IN_ROW, 154, cur_bit_size);
 
-    rcb_info[RCB_FLTD_ON_ROW].size = 0;
+    /* RCB_FLTD_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(16, on_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (( 6 + 3 * cur_uv_para) * (1 + ctx->mbaff_flag)
+                      + 2 * cur_uv_para + 1.5);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_ROW, 156, cur_bit_size);
+
     /* RCB_FLTD_ON_COL */
-    rcb_info[RCB_FLTD_ON_COL].size = 0;
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_COL, 158, cur_bit_size);
 
-}
+    /* RCB_FLTD_UPSC_ON_COL */
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_UPSC_ON_COL, 160, cur_bit_size);
 
-static void hal_h264d_rcb_info_update(void *hal)
-{
-    H264dHalCtx_t *p_hal = (H264dHalCtx_t*)hal;
-    RK_U32 mbaff = p_hal->pp->MbaffFrameFlag;
-    RK_U32 bit_depth = p_hal->pp->bit_depth_luma_minus8 + 8;
-    RK_U32 chroma_format_idc = p_hal->pp->chroma_format_idc;
-    Vdpu3xxH264dRegCtx *ctx = (Vdpu3xxH264dRegCtx *)p_hal->reg_ctx;
-    RK_S32 width = MPP_ALIGN((p_hal->pp->wFrameWidthInMbsMinus1 + 1) << 4, 64);
-    RK_S32 height = MPP_ALIGN((p_hal->pp->wFrameHeightInMbsMinus1 + 1) << 4, 64);
+    *total_size = vdpu38x_rcb_get_total_size(ctx);
 
-    if ( ctx->bit_depth != bit_depth ||
-         ctx->chroma_format_idc != chroma_format_idc ||
-         ctx->mbaff != mbaff ||
-         ctx->width != width ||
-         ctx->height != height) {
-        RK_U32 i;
-        RK_U32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(ctx->reg_buf) : 1;
-
-        ctx->rcb_buf_size = vdpu383_get_rcb_buf_size(ctx->rcb_info, width, height);
-        h264d_refine_rcb_size(hal, ctx->rcb_info, width, height);
-        for (i = 0; i < loop; i++) {
-            MppBuffer rcb_buf = ctx->rcb_buf[i];
-
-            if (rcb_buf) {
-                mpp_buffer_put(rcb_buf);
-                ctx->rcb_buf[i] = NULL;
-            }
-            mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
-            ctx->rcb_buf[i] = rcb_buf;
-        }
-        ctx->bit_depth      = bit_depth;
-        ctx->width          = width;
-        ctx->height         = height;
-        ctx->mbaff          = mbaff;
-        ctx->chroma_format_idc = chroma_format_idc;
-    }
+    return MPP_OK;
 }
 
 MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
@@ -546,10 +557,8 @@ MPP_RET vdpu383_h264d_gen_regs(void *hal, HalTaskInfo *task)
         regs->comm_addrs.reg132_scanlist_addr = 0;
     }
 
-    hal_h264d_rcb_info_update(p_hal);
-    vdpu383_setup_rcb(&regs->comm_addrs, p_hal->dev, p_hal->fast_mode ?
-                      ctx->rcb_buf[task->dec.reg_index] : ctx->rcb_buf[0],
-                      ctx->rcb_info);
+    vdpu38x_h264d_rcb_setup(p_hal, task, &regs->comm_addrs.rcb_regs,
+                            vdpu383_h264d_rcb_calc);
     vdpu383_setup_statistic(&regs->ctrl_regs);
     mpp_buffer_sync_end(ctx->bufs);
 
@@ -615,7 +624,7 @@ MPP_RET vdpu383_h264d_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu383_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
+        vdpu38x_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
 
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);

@@ -42,78 +42,97 @@
 #define COLMV_BLOCK_SIZE        (16)
 #define COLMV_BYTES             (16)
 
-static void avs2d_refine_rcb_size(VdpuRcbInfo *rcb_info,
-                                  RK_S32 width, RK_S32 height, void *dxva)
+static MPP_RET vdpu383_avs2d_rcb_calc(void *context, RK_U32 *total_size)
 {
-    (void) height;
-    Avs2dSyntax_t *syntax = dxva;
-    RK_U8 ctu_size = 1 << syntax->pp.lcu_size;
-    RK_U8 bit_depth = syntax->pp.bit_depth_chroma_minus8 + 8;
-    RK_U32 rcb_bits = 0;
-    RK_U32 filterd_row_append = 8192;
+    Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
+    RK_FLOAT cur_bit_size = 0;
+    RK_U32 cur_uv_para = 0;
+    RK_U32 bit_depth = ctx->bit_depth;
+    RK_U32 in_tl_row = 0;
+    RK_U32 on_tl_row = 0;
+    RK_U32 on_tl_col = 0;
+    Vdpu38xFmt rcb_fmt;
+    RK_U32 fltd_row_append = ctx->pic_w > 4096 ? 256 * 16 * 8 : 864 * 16 * 8;
 
-    width = MPP_ALIGN(width, ctu_size);
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
+    bit_depth = 10;
 
-    /* RCB_STRMD_IN_ROW && RCB_STRMD_ON_ROW*/
-    if (width > 8192)
-        rcb_bits = ((width + 63) / 64) * 112;
-    else
-        rcb_bits = 0;
-    rcb_info[RCB_STRMD_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_STRMD_ON_ROW].size = 0;
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_ROW, &on_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_COL, &on_tl_col);
+    rcb_fmt = vdpu38x_rcb_get_fmt(ctx);
 
-    /* RCB_INTER_IN_ROW && RCB_INTER_ON_ROW*/
-    rcb_bits = ((width + 7) / 8) * 166;
-    rcb_info[RCB_INTER_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTER_ON_ROW].size = 0;
+    /* RCB_STRMD_IN_ROW */
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_IN_ROW, 140, cur_bit_size);
 
-    /* RCB_INTRA_IN_ROW && RCB_INTRA_ON_ROW*/
-    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
-    rcb_bits = rcb_bits * 3; //TODO:
-    rcb_info[RCB_INTRA_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_INTRA_ON_ROW].size = 0;
+    /* RCB_STRMD_ON_ROW */
+    cur_bit_size = 0;
+    /*
+     * For all spec, the hardware connects all in-tile rows of strmd to the on-tile.
+     * Therefore, only strmd on-tile needs to be configured, and there is no need to
+     * configure strmd in-tile.
+     *
+     * Versions with issues: rk3576(383), swan1126b (384a), shark/robin (384b).
+     */
+    if (ctx->pic_w > 8192)
+        cur_bit_size = MPP_DIVUP(64, in_tl_row) * 112;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_ON_ROW, 142, cur_bit_size);
 
-    /* RCB_FLTD_IN_ROW && RCB_FLTD_ON_ROW*/
-    if (width > 4096)
-        filterd_row_append = 27648;
-    rcb_bits = MPP_ALIGN(width, 64) * (30 * bit_depth + 9);
-    rcb_info[RCB_FLTD_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FLTD_PROT_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FLTD_ON_ROW].size = 0;
+    /* RCB_INTER_IN_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(8, in_tl_row) * 166;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_IN_ROW, 144, cur_bit_size);
+
+    /* RCB_INTER_ON_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(8, on_tl_row) * 166;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_ON_ROW, 146, cur_bit_size);
+
+    /* RCB_INTRA_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (in_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_IN_ROW, 148, cur_bit_size);
+
+    /* RCB_INTRA_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (on_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_ON_ROW, 150, cur_bit_size);
+
+    /* RCB_FLTD_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(64, in_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (12 + 5 * cur_uv_para + 1.5 * ctx->alf_en);
+    cur_bit_size = cur_bit_size / 2 + fltd_row_append;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_IN_ROW, 152, cur_bit_size);
+
+    /* RCB_FLTD_PROT_IN_ROW */
+    // save space mode : half for RCB_FLTD_IN_ROW, half for RCB_FLTD_PROT_IN_ROW
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_PROT_IN_ROW,  154, cur_bit_size);
+
+    /* RCB_FLTD_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(64, on_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (12 + 5 * cur_uv_para + 1.5 * ctx->alf_en);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_ROW, 156, cur_bit_size);
 
     /* RCB_FLTD_ON_COL */
-    rcb_info[RCB_FLTD_ON_COL].size = 0;
-}
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_COL, 158, cur_bit_size);
 
-static void hal_avs2d_rcb_info_update(void *hal, Vdpu383RegSet *regs)
-{
-    MPP_RET ret = MPP_OK;
-    Avs2dHalCtx_t *p_hal = (Avs2dHalCtx_t *)hal;
-    Avs2dRkvRegCtx *reg_ctx = (Avs2dRkvRegCtx *)p_hal->reg_ctx;
-    RK_S32 width = p_hal->syntax.pp.pic_width_in_luma_samples;
-    RK_S32 height = p_hal->syntax.pp.pic_height_in_luma_samples;
-    RK_S32 i = 0;
-    RK_S32 loop = p_hal->fast_mode ? MPP_ARRAY_ELEMS(reg_ctx->reg_buf) : 1;
+    /* RCB_FLTD_UPSC_ON_COL */
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_UPSC_ON_COL, 160, cur_bit_size);
 
-    (void) regs;
+    *total_size = vdpu38x_rcb_get_total_size(ctx);
 
-    reg_ctx->rcb_buf_size = vdpu383_get_rcb_buf_size(reg_ctx->rcb_info, width, height);
-    avs2d_refine_rcb_size(reg_ctx->rcb_info, width, height, (void *)&p_hal->syntax);
-
-    for (i = 0; i < loop; i++) {
-        MppBuffer rcb_buf = NULL;
-
-        if (reg_ctx->rcb_buf[i]) {
-            mpp_buffer_put(reg_ctx->rcb_buf[i]);
-            reg_ctx->rcb_buf[i] = NULL;
-        }
-
-        ret = mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
-        if (ret)
-            mpp_err_f("AVS2D mpp_buffer_group_get failed\n");
-
-        reg_ctx->rcb_buf[i] = rcb_buf;
-    }
+    return MPP_OK;
 }
 
 static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu383RegSet *regs, HalTaskInfo *task)
@@ -302,6 +321,8 @@ MPP_RET hal_avs2d_vdpu383_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
+    vdpu38x_rcb_calc_init((Vdpu38xRcbCtx **)&reg_ctx->rcb_ctx);
+
 __RETURN:
     AVS2D_HAL_TRACE("Out. ret %d", ret);
     (void)cfg;
@@ -376,15 +397,8 @@ MPP_RET hal_avs2d_vdpu383_gen_regs(void *hal, HalTaskInfo *task)
         mpp_dev_set_reg_offset(p_hal->dev, 132, reg_ctx->sclst_offset);
     }
 
-    // set rcb
-    {
-        hal_avs2d_rcb_info_update(p_hal, regs);
-        vdpu383_setup_rcb(&regs->comm_addrs, p_hal->dev, p_hal->fast_mode ?
-                          reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0],
-                          reg_ctx->rcb_info);
-
-    }
-
+    vdpu38x_avs2d_rcb_setup(p_hal, task, &regs->comm_addrs.rcb_regs,
+                            vdpu383_avs2d_rcb_calc);
     vdpu383_setup_statistic(&regs->ctrl_regs);
     mpp_buffer_sync_end(reg_ctx->bufs);
 
@@ -464,7 +478,7 @@ MPP_RET hal_avs2d_vdpu383_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu383_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
+        vdpu38x_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
 
         // send request to hardware
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);

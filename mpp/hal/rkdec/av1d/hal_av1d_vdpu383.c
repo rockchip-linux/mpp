@@ -23,25 +23,11 @@
 #include "film_grain_noise_table.h"
 #include "av1d_syntax.h"
 
-#define VDPU383_UNCMPS_HEADER_SIZE            (MPP_ALIGN(5160, 128) / 8 + 16) // byte, 5160 bit, reverse 128 bits
-
-// bits len
-#define VDPU383_RCB_STRMD_ROW_LEN             (MPP_ALIGN(dxva->width, 8) / 8 * 100)
-#define VDPU383_RCB_STRMD_TILE_ROW_LEN        (MPP_ALIGN(dxva->width, 8) / 8 * 100)
-#define VDPU383_RCB_INTER_ROW_LEN             (MPP_ALIGN(dxva->width, 64) / 64 * 2752)
-#define VDPU383_RCB_INTER_TILE_ROW_LEN        (MPP_ALIGN(dxva->width, 64) / 64 * 2752)
-#define VDPU383_RCB_INTRA_ROW_LEN             (MPP_ALIGN(dxva->width, 512) * 12 * 3)
-#define VDPU383_RCB_INTRA_TILE_ROW_LEN        (MPP_ALIGN(dxva->width, 512) * 12 * 3)
-#define VDPU383_RCB_FILTERD_ROW_LEN           (MPP_ALIGN(dxva->width, 64) * (16 + 1) * (14 + 6 * 3))
-#define VDPU383_RCB_FILTERD_PROTECT_ROW_LEN   (MPP_ALIGN(dxva->width, 64) * (16 + 1) * (14 + 6 * 3))
-#define VDPU383_RCB_FILTERD_TILE_ROW_LEN      (MPP_ALIGN(dxva->width, 64) * (16 + 1) * (14 + 6 * 3))
-#define VDPU383_RCB_FILTERD_TILE_COL_LEN      (MPP_ALIGN(dxva->width, 64) * (16 + 1) * (14 + 7 * 3 + (14 + 13 * 3) + (9 + 7 * 3)))
-#define VDPU383_RCB_FILTERD_AV1_UP_TL_COL_LEN (MPP_ALIGN(dxva->width, 64) * 10 * 22)
-
-#define VDPU383_UNCMPS_HEADER_OFFSET_BASE            (0)
-#define VDPU383_INFO_ELEM_SIZE (VDPU383_UNCMPS_HEADER_SIZE)
-#define VDPU383_UNCMPS_HEADER_OFFSET(idx)            (VDPU383_INFO_ELEM_SIZE * idx + VDPU383_UNCMPS_HEADER_OFFSET_BASE)
-#define VDPU383_INFO_BUF_SIZE(cnt) (VDPU383_INFO_ELEM_SIZE * cnt)
+#define VDPU383_UNCMPS_HEADER_SIZE          (MPP_ALIGN(5160, 128) / 8 + 16) // byte, 5160 bit, reverse 128 bits
+#define VDPU383_UNCMPS_HEADER_OFFSET_BASE   (0)
+#define VDPU383_INFO_ELEM_SIZE              (VDPU383_UNCMPS_HEADER_SIZE)
+#define VDPU383_UNCMPS_HEADER_OFFSET(idx)   (VDPU383_INFO_ELEM_SIZE * idx + VDPU383_UNCMPS_HEADER_OFFSET_BASE)
+#define VDPU383_INFO_BUF_SIZE(cnt)          (VDPU383_INFO_ELEM_SIZE * cnt)
 
 static MPP_RET hal_av1d_alloc_res(void *hal)
 {
@@ -110,149 +96,95 @@ __FAILED:
     return ret;
 }
 
-static RK_S32 update_size_offset(VdpuRcbInfo *info, RK_U32 reg_idx,
-                                 RK_S32 offset, RK_S32 len, RK_S32 rcb_buf_idx)
+static MPP_RET vdpu383_av1d_rcb_calc(void *context, RK_U32 *total_size)
 {
-    RK_S32 buf_size = 0;
+    Vdpu38xRcbCtx *ctx = (Vdpu38xRcbCtx *)context;
+    RK_FLOAT cur_bit_size = 0;
+    RK_U32 cur_uv_para = 0;
+    RK_U32 bit_depth = ctx->bit_depth;
+    RK_U32 in_tl_row = 0;
+    RK_U32 on_tl_row = 0;
+    RK_U32 on_tl_col = 0;
+    Vdpu38xFmt rcb_fmt;
+    RK_U32 fltd_row_append = ctx->pic_w > 4096 ? 256 * 16 * 8 : 864 * 16 * 8;
 
-    buf_size = MPP_RCB_BYTES(len);
-    info[rcb_buf_idx].reg_idx = reg_idx;
-    info[rcb_buf_idx].offset = offset;
-    info[rcb_buf_idx].size = buf_size;
+    /* vdpu383/vdpu384a/vdpu384b fix 10bit */
+    bit_depth = 10;
 
-    return buf_size;
-}
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_IN_TILE_ROW, &in_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_ROW, &on_tl_row);
+    vdpu38x_rcb_get_len(ctx, VDPU38X_RCB_ON_TILE_COL, &on_tl_col);
+    rcb_fmt = vdpu38x_rcb_get_fmt(ctx);
 
-static void av1d_refine_rcb_size(VdpuRcbInfo *rcb_info,
-                                 RK_S32 width, RK_S32 height, void* data)
-{
-    RK_U32 rcb_bits = 0;
-    DXVA_PicParams_AV1 *pic_param = (DXVA_PicParams_AV1*)data;
-    RK_U32 tile_row_num = pic_param->tiles.rows;
-    RK_U32 tile_col_num = pic_param->tiles.cols;
-    RK_U32 bit_depth = pic_param->bitdepth;
-    RK_U32 sb_size = pic_param->coding.use_128x128_superblock ? 128 : 64;
-    RK_U32 ext_row_align_size = tile_row_num * 64 * 8;
-    RK_U32 ext_col_align_size = tile_col_num * 64 * 8;
-    RK_U32 filterd_row_append = 8192;
+    /* RCB_STRMD_IN_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(8, in_tl_row) * 100;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_IN_ROW, 140, cur_bit_size);
 
-    width = MPP_ALIGN(width, sb_size);
-    height = MPP_ALIGN(height, sb_size);
-    /* RCB_STRMD_IN_ROW && RCB_STRMD_ON_ROW*/
-    rcb_bits = ((width + 7) / 8) * 100;
-    rcb_info[RCB_STRMD_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_info[RCB_STRMD_ON_ROW].size = 0;
+    /* RCB_STRMD_ON_ROW */
+    cur_bit_size = 0;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_STRMD_ON_ROW, 142, cur_bit_size);
 
-    /* RCB_INTER_IN_ROW && RCB_INTER_ON_ROW*/
-    rcb_bits = ((width + 63) / 64) * 2752;
-    rcb_info[RCB_INTER_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_bits += ext_row_align_size;
-    if (tile_row_num > 1)
-        rcb_info[RCB_INTER_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    else
-        rcb_info[RCB_INTER_ON_ROW].size = 0;
+    /* RCB_INTER_IN_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(64, in_tl_row) * 2752;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_IN_ROW, 144, cur_bit_size);
 
-    /* RCB_INTRA_IN_ROW && RCB_INTRA_ON_ROW*/
-    rcb_bits = MPP_ALIGN(width, 512) * (bit_depth + 2);
-    rcb_bits = rcb_bits * 3; //TODO:
-    rcb_info[RCB_INTRA_IN_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    rcb_bits += ext_row_align_size;
-    if (tile_row_num > 1)
-        rcb_info[RCB_INTRA_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    else
-        rcb_info[RCB_INTRA_ON_ROW].size = 0;
+    /* RCB_INTER_ON_ROW */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(64, on_tl_row) * 2752;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTER_ON_ROW, 146, cur_bit_size);
 
-    /* RCB_FLTD_IN_ROW && RCB_FLTD_ON_ROW*/
-    if (width > 4096)
-        filterd_row_append = 27648;
-    rcb_bits = (RK_U32)(MPP_ALIGN(width, 64) * (32 * bit_depth + 10));
-    rcb_info[RCB_FLTD_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_info[RCB_FLTD_PROT_IN_ROW].size = filterd_row_append + MPP_RCB_BYTES(rcb_bits / 2);
-    rcb_bits += ext_row_align_size;
-    if (tile_row_num > 1)
-        rcb_info[RCB_FLTD_ON_ROW].size = MPP_RCB_BYTES(rcb_bits);
-    else
-        rcb_info[RCB_FLTD_ON_ROW].size = 0;
+    /* RCB_INTRA_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (in_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_IN_ROW, 148, cur_bit_size);
+
+    /* RCB_INTRA_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_intra_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(512, (on_tl_row * (bit_depth + 2)
+                                     * (1 + ctx->mbaff_flag) * cur_uv_para));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_INTRA_ON_ROW, 150, cur_bit_size);
+
+    /* RCB_FLTD_IN_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(64, in_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (12.5 + 6 * cur_uv_para + 1.5 * ctx->lr_en);
+    cur_bit_size = cur_bit_size / 2 + fltd_row_append;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_IN_ROW, 152, cur_bit_size);
+
+    /* RCB_FLTD_PROT_IN_ROW */
+    // save space mode : half for RCB_FLTD_IN_ROW, half for RCB_FLTD_PROT_IN_ROW
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_PROT_IN_ROW,  154, cur_bit_size);
+
+    /* RCB_FLTD_ON_ROW */
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_row_uv_coef_map[rcb_fmt];
+    cur_bit_size = MPP_ROUNDUP(64, on_tl_row) * (1.6 * bit_depth + 0.5)
+                   * (12.5 + 6 * cur_uv_para + 1.5 * ctx->lr_en);
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_ROW, 156, cur_bit_size);
 
     /* RCB_FLTD_ON_COL */
-    if (tile_col_num > 1) {
-        rcb_bits = (MPP_ALIGN(height, 64) * (101 * bit_depth + 32)) + ext_col_align_size;
-        rcb_info[RCB_FLTD_ON_COL].size = MPP_RCB_BYTES(rcb_bits);
-    } else {
-        rcb_info[RCB_FLTD_ON_COL].size = 0;
-    }
+    cur_bit_size = 0;
+    cur_uv_para = vdpu38x_filter_col_uv_coef_map[rcb_fmt];
+    if (ctx->tile_dir == 0)
+        cur_bit_size = MPP_ROUNDUP(64, on_tl_col) * (1.6 * bit_depth + 0.5) *
+                       (14 + 7 * cur_uv_para + (14 + 12.5 * cur_uv_para) * ctx->lr_en +
+                        ( ctx->upsc_en ? (8.5 + 7 * cur_uv_para) : (5 + 1 * cur_uv_para)));
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_ON_COL, 158, cur_bit_size);
 
-}
+    /* RCB_FLTD_UPSC_ON_COL */
+    cur_bit_size = 0;
+    cur_bit_size = MPP_DIVUP(64, on_tl_col) * bit_depth * 22;
+    vdpu38x_rcb_reg_info_update(ctx, RCB_FLTD_UPSC_ON_COL, 160, cur_bit_size);
 
-static void vdpu383_av1d_rcb_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
-{
-    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    RK_U32 offset = 0;
-    RK_U32 max_cnt = p_hal->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
-    RK_U32 i;
+    *total_size = vdpu38x_rcb_get_total_size(ctx);
 
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 140, offset, VDPU383_RCB_STRMD_ROW_LEN,             RCB_STRMD_IN_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 142, offset, VDPU383_RCB_STRMD_TILE_ROW_LEN,        RCB_STRMD_ON_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 144, offset, VDPU383_RCB_INTER_ROW_LEN,             RCB_INTER_IN_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 146, offset, VDPU383_RCB_INTER_TILE_ROW_LEN,        RCB_INTER_ON_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 148, offset, VDPU383_RCB_INTRA_ROW_LEN,             RCB_INTRA_IN_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 150, offset, VDPU383_RCB_INTRA_TILE_ROW_LEN,        RCB_INTRA_ON_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 152, offset, VDPU383_RCB_FILTERD_ROW_LEN,           RCB_FLTD_IN_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 154, offset, VDPU383_RCB_FILTERD_PROTECT_ROW_LEN,   RCB_FLTD_PROT_IN_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 156, offset, VDPU383_RCB_FILTERD_TILE_ROW_LEN,      RCB_FLTD_ON_ROW);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 158, offset, VDPU383_RCB_FILTERD_TILE_COL_LEN,      RCB_FLTD_ON_COL);
-    offset += update_size_offset(reg_ctx->rcb_buf_info, 160, offset, VDPU383_RCB_FILTERD_AV1_UP_TL_COL_LEN, RCB_FLTD_UPSC_ON_COL);
-    reg_ctx->rcb_buf_size = offset;
-
-    av1d_refine_rcb_size(reg_ctx->rcb_buf_info, dxva->width, dxva->height, dxva);
-
-    for (i = 0; i < max_cnt; i++) {
-        MppBuffer rcb_buf = reg_ctx->rcb_bufs[i];
-
-        if (rcb_buf) {
-            mpp_buffer_put(rcb_buf);
-            reg_ctx->rcb_bufs[i] = NULL;
-        }
-        mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
-        reg_ctx->rcb_bufs[i] = rcb_buf;
-    }
-
-    return;
-}
-
-static void vdpu383_av1d_rcb_reg_cfg(Av1dHalCtx *p_hal, MppBuffer buf)
-{
-    Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    Vdpu383RegSet *regs = reg_ctx->regs;
-    RK_U32 fd = mpp_buffer_get_fd(buf);
-    RK_U32 i;
-
-    regs->comm_addrs.reg140_rcb_strmd_row_offset           = fd;
-    regs->comm_addrs.reg142_rcb_strmd_tile_row_offset      = fd;
-    regs->comm_addrs.reg144_rcb_inter_row_offset           = fd;
-    regs->comm_addrs.reg146_rcb_inter_tile_row_offset      = fd;
-    regs->comm_addrs.reg148_rcb_intra_row_offset           = fd;
-    regs->comm_addrs.reg150_rcb_intra_tile_row_offset      = fd;
-    regs->comm_addrs.reg152_rcb_filterd_row_offset         = fd;
-    regs->comm_addrs.reg154_rcb_filterd_protect_row_offset = fd;
-    regs->comm_addrs.reg156_rcb_filterd_tile_row_offset    = fd;
-    regs->comm_addrs.reg158_rcb_filterd_tile_col_offset    = fd;
-    regs->comm_addrs.reg160_rcb_filterd_av1_upscale_tile_col_offset = fd;
-
-    regs->comm_addrs.reg141_rcb_strmd_row_len            = reg_ctx->rcb_buf_info[RCB_STRMD_IN_ROW].size;
-    regs->comm_addrs.reg143_rcb_strmd_tile_row_len       = reg_ctx->rcb_buf_info[RCB_STRMD_ON_ROW].size;
-    regs->comm_addrs.reg145_rcb_inter_row_len            = reg_ctx->rcb_buf_info[RCB_INTER_IN_ROW].size;
-    regs->comm_addrs.reg147_rcb_inter_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTER_ON_ROW].size;
-    regs->comm_addrs.reg149_rcb_intra_row_len            = reg_ctx->rcb_buf_info[RCB_INTRA_IN_ROW].size;
-    regs->comm_addrs.reg151_rcb_intra_tile_row_len       = reg_ctx->rcb_buf_info[RCB_INTRA_ON_ROW].size;
-    regs->comm_addrs.reg153_rcb_filterd_row_len          = reg_ctx->rcb_buf_info[RCB_FLTD_IN_ROW].size;
-    regs->comm_addrs.reg155_rcb_filterd_protect_row_len  = reg_ctx->rcb_buf_info[RCB_FLTD_PROT_IN_ROW].size;
-    regs->comm_addrs.reg157_rcb_filterd_tile_row_len     = reg_ctx->rcb_buf_info[RCB_FLTD_ON_ROW].size;
-    regs->comm_addrs.reg159_rcb_filterd_tile_col_len     = reg_ctx->rcb_buf_info[RCB_FLTD_ON_COL].size;
-    regs->comm_addrs.reg161_rcb_filterd_av1_upscale_tile_col_len  = reg_ctx->rcb_buf_info[RCB_FLTD_UPSC_ON_COL].size;
-
-    for (i = 0; i < RCB_BUF_CNT; i++)
-        mpp_dev_set_reg_offset(p_hal->dev, reg_ctx->rcb_buf_info[i].reg_idx, reg_ctx->rcb_buf_info[i].offset);
+    return MPP_OK;
 }
 
 MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
@@ -361,9 +293,8 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 #endif
     }
 
-    /* set reg -> rcb */
-    vdpu383_av1d_rcb_setup(p_hal, dxva);
-    vdpu383_av1d_rcb_reg_cfg(p_hal, p_hal->fast_mode ? ctx->rcb_bufs[task->dec.reg_index] : ctx->rcb_bufs[0]);
+    vdpu38x_av1d_rcb_setup(p_hal, task, dxva, &regs->comm_addrs.rcb_regs,
+                           vdpu383_av1d_rcb_calc);
 
     /* set reg -> para (stride, len) */
     {
@@ -585,7 +516,7 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu383_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_buf_info);
+        vdpu38x_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_buf_info);
 
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
