@@ -715,7 +715,7 @@ static MPP_RET hal_h265d_vdpu383_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->ctrl_regs;
         wr_cfg.size = sizeof(hw_regs->ctrl_regs);
-        wr_cfg.offset = OFFSET_CTRL_REGS;
+        wr_cfg.offset = VDPU38X_OFF_CTRL_REGS;
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
@@ -724,7 +724,7 @@ static MPP_RET hal_h265d_vdpu383_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->comm_paras;
         wr_cfg.size = sizeof(hw_regs->comm_paras);
-        wr_cfg.offset = OFFSET_CODEC_PARAS_REGS;
+        wr_cfg.offset = VDPU38X_OFF_CODEC_PARAS_REGS;
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -733,7 +733,7 @@ static MPP_RET hal_h265d_vdpu383_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->comm_addrs;
         wr_cfg.size = sizeof(hw_regs->comm_addrs);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
+        wr_cfg.offset = VDPU38X_OFF_COMMON_ADDR_REGS;
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -742,7 +742,7 @@ static MPP_RET hal_h265d_vdpu383_start(void *hal, HalTaskInfo *task)
 
         rd_cfg.reg = &hw_regs->ctrl_regs.reg15;
         rd_cfg.size = sizeof(hw_regs->ctrl_regs.reg15);
-        rd_cfg.offset = OFFSET_INTERRUPT_REGS;
+        rd_cfg.offset = VDPU38X_OFF_INTERRUPT_REGS;
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);

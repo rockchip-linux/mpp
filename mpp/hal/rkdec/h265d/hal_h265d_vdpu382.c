@@ -985,7 +985,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->common;
         wr_cfg.size = sizeof(hw_regs->common);
-        wr_cfg.offset = OFFSET_COMMON_REGS;
+        wr_cfg.offset = VDPU382_OFF_COMMON_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -995,7 +995,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->h265d_param;
         wr_cfg.size = sizeof(hw_regs->h265d_param);
-        wr_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
+        wr_cfg.offset = VDPU382_OFF_CODEC_PARAMS_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1005,7 +1005,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->common_addr;
         wr_cfg.size = sizeof(hw_regs->common_addr);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
+        wr_cfg.offset = VDPU382_OFF_COMMON_ADDR_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1015,7 +1015,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->h265d_addr;
         wr_cfg.size = sizeof(hw_regs->h265d_addr);
-        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+        wr_cfg.offset = VDPU382_OFF_CODEC_ADDR_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1025,7 +1025,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->statistic;
         wr_cfg.size = sizeof(hw_regs->statistic);
-        wr_cfg.offset = OFFSET_STATISTIC_REGS;
+        wr_cfg.offset = VDPU382_OFF_STATISTIC_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1035,7 +1035,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &hw_regs->highpoc;
         wr_cfg.size = sizeof(hw_regs->highpoc);
-        wr_cfg.offset = OFFSET_POC_HIGHBIT_REGS;
+        wr_cfg.offset = VDPU382_OFF_POC_HIGHBIT_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -1045,7 +1045,7 @@ static MPP_RET hal_h265d_vdpu382_start(void *hal, HalTaskInfo *task)
 
         rd_cfg.reg = &hw_regs->irq_status;
         rd_cfg.size = sizeof(hw_regs->irq_status);
-        rd_cfg.offset = OFFSET_INTERRUPT_REGS;
+        rd_cfg.offset = VDPU382_OFF_INTERRUPT_REGS;
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {

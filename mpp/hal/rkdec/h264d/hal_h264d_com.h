@@ -7,6 +7,7 @@
 #define HAL_H264D_COM_H
 
 #include "rk_mpi_cmd.h"
+#include "vdpu38x_com.h"
 
 #define H264_CTU_SIZE      16
 

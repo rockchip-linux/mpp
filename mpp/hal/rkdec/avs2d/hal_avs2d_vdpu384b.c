@@ -532,7 +532,7 @@ MPP_RET hal_avs2d_vdpu384b_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->ctrl_regs;
         wr_cfg.size = sizeof(regs->ctrl_regs);
-        wr_cfg.offset = OFFSET_CTRL_REGS;
+        wr_cfg.offset = VDPU38X_OFF_CTRL_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -541,7 +541,7 @@ MPP_RET hal_avs2d_vdpu384b_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->comm_paras;
         wr_cfg.size = sizeof(regs->comm_paras);
-        wr_cfg.offset = OFFSET_CODEC_PARAS_REGS;
+        wr_cfg.offset = VDPU38X_OFF_CODEC_PARAS_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -550,7 +550,7 @@ MPP_RET hal_avs2d_vdpu384b_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->comm_addrs;
         wr_cfg.size = sizeof(regs->comm_addrs);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
+        wr_cfg.offset = VDPU38X_OFF_COMMON_ADDR_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
@@ -559,7 +559,7 @@ MPP_RET hal_avs2d_vdpu384b_start(void *hal, HalTaskInfo *task)
 
         rd_cfg.reg = &regs->ctrl_regs.reg15;
         rd_cfg.size = sizeof(regs->ctrl_regs.reg15);
-        rd_cfg.offset = OFFSET_INTERRUPT_REGS;
+        rd_cfg.offset = VDPU38X_OFF_INTERRUPT_REGS;
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
@@ -569,7 +569,7 @@ MPP_RET hal_avs2d_vdpu384b_start(void *hal, HalTaskInfo *task)
         if (avs2d_hal_debug & AVS2D_HAL_DBG_REG) {
             rd_cfg.reg = &regs->statistic_regs;
             rd_cfg.size = sizeof(regs->statistic_regs);
-            rd_cfg.offset = OFFSET_COM_STATISTIC_REGS_VDPU384B;
+            rd_cfg.offset = VDPU38X_OFF_COM_STATISTIC_REGS_VDPU384B;
             ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         }
 
@@ -620,13 +620,13 @@ MPP_RET hal_avs2d_vdpu384b_wait(void *hal, HalTaskInfo *task)
         RK_U32 i = 0;
 
         for (i = 0; i < sizeof(regs->ctrl_regs) / 4; i++)
-            mpp_log("get regs[%02d]: %08X\n", i + OFFSET_CTRL_REGS, *p++);
+            mpp_log("get regs[%02d]: %08X\n", i + VDPU38X_OFF_CTRL_REGS, *p++);
         for (i = 0; i < sizeof(regs->comm_paras) / 4; i++)
-            mpp_log("get regs[%02d]: %08X\n", i + OFFSET_CODEC_PARAS_REGS, *p++);
+            mpp_log("get regs[%02d]: %08X\n", i + VDPU38X_OFF_CODEC_PARAS_REGS, *p++);
         for (i = 0; i < sizeof(regs->comm_addrs) / 4; i++)
-            mpp_log("get regs[%02d]: %08X\n", i + OFFSET_COMMON_ADDR_REGS, *p++);
+            mpp_log("get regs[%02d]: %08X\n", i + VDPU38X_OFF_COMMON_ADDR_REGS, *p++);
         for (i = 0; i < sizeof(regs->statistic_regs) / 4; i++)
-            mpp_log("get regs[%02d]: %08X\n", i + OFFSET_COM_STATISTIC_REGS_VDPU384B, *p++);
+            mpp_log("get regs[%02d]: %08X\n", i + VDPU38X_OFF_COM_STATISTIC_REGS_VDPU384B, *p++);
 
         mpp_assert(regs->statistic_regs.reg312.rcb_rd_sum_chk ==
                    regs->statistic_regs.reg312.rcb_wr_sum_chk);

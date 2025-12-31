@@ -811,7 +811,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->common;
         wr_cfg.size = sizeof(regs->common);
-        wr_cfg.offset = OFFSET_COMMON_REGS;
+        wr_cfg.offset = VDPU34X_OFF_COMMON_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -821,7 +821,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->h264d_param;
         wr_cfg.size = sizeof(regs->h264d_param);
-        wr_cfg.offset = OFFSET_CODEC_PARAMS_REGS;
+        wr_cfg.offset = VDPU34X_OFF_CODEC_PARAMS_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -831,7 +831,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->common_addr;
         wr_cfg.size = sizeof(regs->common_addr);
-        wr_cfg.offset = OFFSET_COMMON_ADDR_REGS;
+        wr_cfg.offset = VDPU34X_OFF_COMMON_ADDR_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -841,7 +841,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->h264d_addr;
         wr_cfg.size = sizeof(regs->h264d_addr);
-        wr_cfg.offset = OFFSET_CODEC_ADDR_REGS;
+        wr_cfg.offset = VDPU34X_OFF_CODEC_ADDR_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -852,7 +852,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
         if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588) {
             wr_cfg.reg = &regs->h264d_highpoc;
             wr_cfg.size = sizeof(regs->h264d_highpoc);
-            wr_cfg.offset = OFFSET_POC_HIGHBIT_REGS;
+            wr_cfg.offset = VDPU34X_OFF_POC_HIGHBIT_REGS;
             ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
             if (ret) {
                 mpp_err_f("set register write failed %d\n", ret);
@@ -862,7 +862,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         wr_cfg.reg = &regs->statistic;
         wr_cfg.size = sizeof(regs->statistic);
-        wr_cfg.offset = OFFSET_STATISTIC_REGS;
+        wr_cfg.offset = VDPU34X_OFF_STATISTIC_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
@@ -872,7 +872,7 @@ MPP_RET vdpu34x_h264d_start(void *hal, HalTaskInfo *task)
 
         rd_cfg.reg = &regs->irq_status;
         rd_cfg.size = sizeof(regs->irq_status);
-        rd_cfg.offset = OFFSET_INTERRUPT_REGS;
+        rd_cfg.offset = VDPU34X_OFF_INTERRUPT_REGS;
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
