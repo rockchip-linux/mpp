@@ -84,6 +84,7 @@ usage="changelog helper script
   https://www.conventionalcommits.org/zh-hans/v1.0.0/
 
   .option('-t, --version', 'create a version tag with changelog update')
+  .option('-t, --prev', 'setup the previous version tag as baseline')
   .option('-f, --file [file]', 'file to write to, defaults to ./CHANGELOG.md, use - for stdout', './CHANGELOG.md')
   .option('-u, --repo-url [url]', 'specify the repo URL for commit links')
 "
@@ -96,6 +97,10 @@ while [ $# -gt 0 ]; do
             ;;
         --version | -t)
             version_tag=$2
+            shift
+            ;;
+        --prev | -p)
+            prev_tag=$2
             shift
             ;;
         --file | -f)
@@ -172,7 +177,9 @@ fi
 # get current version info
 curr_ver=$(git describe --tags --long)
 curr_tag=$(git describe --tags --abbrev=0)
-prev_tag=$(git describe --tags --abbrev=0 "$curr_tag"^)
+if [ -n "${prev_tag+x}" ] && [ -z "$prev_tag" ]; then
+    prev_tag=$(git describe --tags --abbrev=0 "$curr_tag"^)
+fi
 date="$(date '+%Y-%m-%d')"
 
 echo "curr ver: ${curr_ver}"
