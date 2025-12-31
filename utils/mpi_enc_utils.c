@@ -1744,6 +1744,8 @@ MPP_RET mpi_enc_ctx_init(MpiEncTestData *p, MpiEncTestArgs *cmd, RK_S32 chn)
 
 MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p)
 {
+    RK_S32 i;
+
     if (p) {
         if (p->cam_ctx) {
             camera_source_deinit(p->cam_ctx);
@@ -1753,7 +1755,7 @@ MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p)
             fclose(p->fp_input);
             p->fp_input = NULL;
         }
-        for (RK_S32 i = 0; i < MPI_ENC_MAX_CHN; i++) {
+        for (i = 0; i < MPI_ENC_MAX_CHN; i++) {
             if (p->fp_output[i]) {
                 fclose(p->fp_output[i]);
                 p->fp_output[i] = NULL;
