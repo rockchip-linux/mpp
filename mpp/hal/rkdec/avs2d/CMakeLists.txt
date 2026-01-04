@@ -3,7 +3,6 @@
 # hal avs2 decoder sourse
 set(HAL_AVS2D_SRC
     hal_avs2d_com.c
-    hal_avs2d_api.c
     )
 
 add_hal_source(HAL_AVS2D_SRC HAVE_VDPU381 hal_avs2d_rkv.c)

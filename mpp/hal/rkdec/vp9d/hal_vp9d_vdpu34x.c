@@ -50,7 +50,7 @@ typedef struct Vdpu34xVp9dCtx_t {
     RK_U32          offset_segid_cur;
     RK_U32          offset_segid_last;
     MppBuffer       prob_default_base;
-    void*           hw_regs;
+    void            *hw_regs;
     RK_S32          mv_base_addr;
     RK_S32          pre_mv_base_addr;
     Vp9dLastInfo    ls_info;
@@ -85,18 +85,20 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     RK_S32 ret = 0;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
+    MppBufferGroup group = p_hal->cfg->buf_group;
+
     hw_ctx->offset_count = VDPU34X_OFFSET_COUNT;
     hw_ctx->offset_segid_cur = 0;
     hw_ctx->offset_segid_last = MAX_SEGMAP_SIZE_ALIGN_TO_4K;
     /* alloc common buffer */
     for (i = 0; i < VP9_CONTEXT; i++) {
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_loop_base[i], PROB_SIZE);
+        ret = mpp_buffer_get(group, &hw_ctx->prob_loop_base[i], PROB_SIZE);
         if (ret) {
             mpp_err("vp9 probe_loop_base get buffer failed\n");
             return ret;
         }
     }
-    ret = mpp_buffer_get(p_hal->group, &hw_ctx->prob_default_base, PROB_SIZE);
+    ret = mpp_buffer_get(group, &hw_ctx->prob_default_base, PROB_SIZE);
     if (ret) {
         mpp_err("vp9 probe_default_base get buffer failed\n");
         return ret;
@@ -105,7 +107,7 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
     if (p_hal->fast_mode) {
         for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
             hw_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xVp9dRegSet));
-            ret = mpp_buffer_get(p_hal->group, &hw_ctx->g_buf[i].probe_base, VDPU34X_PROBE_BUFFER_SIZE);
+            ret = mpp_buffer_get(group, &hw_ctx->g_buf[i].probe_base, VDPU34X_PROBE_BUFFER_SIZE);
             if (ret) {
                 mpp_err("vp9 probe_base get buffer failed\n");
                 return ret;
@@ -113,13 +115,13 @@ static MPP_RET hal_vp9d_alloc_res(HalVp9dCtx *hal)
         }
     } else {
         hw_ctx->hw_regs = mpp_calloc_size(void, sizeof(Vdpu34xVp9dRegSet));
-        ret = mpp_buffer_get(p_hal->group, &hw_ctx->probe_base, VDPU34X_PROBE_BUFFER_SIZE);
+        ret = mpp_buffer_get(group, &hw_ctx->probe_base, VDPU34X_PROBE_BUFFER_SIZE);
         if (ret) {
             mpp_err("vp9 probe_base get buffer failed\n");
             return ret;
         }
     }
-    ret = mpp_buffer_get(p_hal->group, &hw_ctx->seg_base, MAX_SEGMAP_SIZE_ALIGN_TO_4K * 2);
+    ret = mpp_buffer_get(group, &hw_ctx->seg_base, MAX_SEGMAP_SIZE_ALIGN_TO_4K * 2);
     if (ret) {
         mpp_err("vp9 segid_base get buffer failed\n");
         return ret;
@@ -219,14 +221,8 @@ static MPP_RET hal_vp9d_vdpu34x_deinit(void *hal)
 
     hal_vp9d_release_res(p_hal);
 
-    if (p_hal->group) {
-        ret = mpp_buffer_group_put(p_hal->group);
-        if (ret) {
-            mpp_err("vp9d group free buffer failed\n");
-            return ret;
-        }
-    }
     MPP_FREE(p_hal->hw_ctx);
+
     return ret = MPP_OK;
 }
 
@@ -234,21 +230,24 @@ static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
+
+    mpp_env_get_u32("hal_vp9d_debug", &hal_vp9d_debug, 0);
+
+    cfg->support_fast_mode = 1;
+    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588)
+        cfg->support_fast_mode = 0;
+
+    p_hal->cfg = cfg;
+    p_hal->client_type = VPU_CLIENT_RKVDEC;
+    p_hal->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
+
     MEM_CHECK(ret, p_hal->hw_ctx = mpp_calloc_size(void, sizeof(Vdpu34xVp9dCtx)));
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
 
     hw_ctx->mv_base_addr = -1;
     hw_ctx->pre_mv_base_addr = -1;
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_64);
-
-    if (p_hal->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&p_hal->group, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("vp9 mpp_buffer_group_get failed\n");
-            goto __FAILED;
-        }
-    }
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_64);
 
     ret = hal_vp9d_alloc_res(p_hal);
     if (ret) {
@@ -355,7 +354,7 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, voi
                     mpp_buffer_put(rcb_buf);
                     hw_ctx->g_buf[i].rcb_buf = NULL;
                 }
-                mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+                mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, hw_ctx->rcb_buf_size);
                 hw_ctx->g_buf[i].rcb_buf = rcb_buf;
             }
         } else {
@@ -365,7 +364,7 @@ static void hal_vp9d_rcb_info_update(void *hal,  Vdpu34xVp9dRegSet *hw_regs, voi
                 mpp_buffer_put(rcb_buf);
                 rcb_buf = NULL;
             }
-            mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+            mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, hw_ctx->rcb_buf_size);
             hw_ctx->rcb_buf = rcb_buf;
         }
 
@@ -384,7 +383,7 @@ static MPP_RET hal_vp9d_vdpu34x_setup_colmv_buf(void *hal, HalTaskInfo *task)
     RK_U32 width = pic_param->width;
     RK_U32 height = pic_param->height;
     RK_S32 mv_size = 0, colmv_size = 8, colmv_byte = 16;
-    RK_U32 compress = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
+    RK_U32 compress = p_hal->cfg->hw_info ? p_hal->cfg->hw_info->cap_colmv_compress : 1;
 
     mv_size = vdpu34x_get_colmv_size(width, height, VP9_CTU_SIZE, colmv_byte, colmv_size, compress);
     if (hw_ctx->cmv_bufs == NULL || hw_ctx->mv_size < mv_size) {
@@ -401,7 +400,7 @@ static MPP_RET hal_vp9d_vdpu34x_setup_colmv_buf(void *hal, HalTaskInfo *task)
             return MPP_ERR_NOMEM;
         }
         hw_ctx->mv_size = mv_size;
-        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal ->slots);
+        hw_ctx->mv_count = mpp_buf_slot_get_count(p_hal->cfg->frame_slots);
         hal_bufs_setup(hw_ctx->cmv_bufs, hw_ctx->mv_count, 1, &size);
     }
 
@@ -433,6 +432,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
     DXVA_PicParams_VP9 *pic_param = (DXVA_PicParams_VP9*)task->dec.syntax.data;
     RK_U32 frame_ctx_id = pic_param->frame_context_idx;
+    MppHalCfg *cfg = p_hal->cfg;
 
     if (p_hal->fast_mode) {
         for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
@@ -487,14 +487,14 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     {
         MppFrame mframe = NULL;
 
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         vp9_hw_regs->vp9d_param.reg65.cur_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         // last poc
         ref_idx = pic_param->frame_refs[0].Index7Bits;
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
+            mpp_buf_slot_get_prop(cfg->frame_slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg95.last_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // golden poc
@@ -502,7 +502,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
+            mpp_buf_slot_get_prop(cfg->frame_slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg96.golden_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // altref poc
@@ -510,7 +510,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_idx = pic_param->ref_frame_map[ref_idx].Index7Bits;
         if (ref_frame_idx < 0x7f) {
             mframe = NULL;
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
+            mpp_buf_slot_get_prop(cfg->frame_slots, ref_frame_idx, SLOT_FRAME_PTR, &mframe);
             vp9_hw_regs->vp9d_param.reg97.altref_poc = mframe ? mpp_frame_get_poc(mframe) : 0;
         }
         // colref poc
@@ -524,11 +524,11 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         vp9_hw_regs->vp9d_addr.reg169_segidcur_base = mpp_buffer_get_fd(hw_ctx->seg_base);
         vp9_hw_regs->vp9d_addr.reg168_segidlast_base = mpp_buffer_get_fd(hw_ctx->seg_base);
         if (hw_ctx->last_segid_flag) {
-            mpp_dev_set_reg_offset(p_hal->dev, 168, hw_ctx->offset_segid_last);
-            mpp_dev_set_reg_offset(p_hal->dev, 169, hw_ctx->offset_segid_cur);
+            mpp_dev_set_reg_offset(cfg->dev, 168, hw_ctx->offset_segid_last);
+            mpp_dev_set_reg_offset(cfg->dev, 169, hw_ctx->offset_segid_cur);
         } else {
-            mpp_dev_set_reg_offset(p_hal->dev, 168, hw_ctx->offset_segid_cur);
-            mpp_dev_set_reg_offset(p_hal->dev, 169, hw_ctx->offset_segid_last);
+            mpp_dev_set_reg_offset(cfg->dev, 168, hw_ctx->offset_segid_cur);
+            mpp_dev_set_reg_offset(cfg->dev, 169, hw_ctx->offset_segid_last);
         }
 
         if ((pic_param->stVP9Segments.enabled && pic_param->stVP9Segments.update_map) ||
@@ -605,12 +605,12 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     hal_vp9d_output_probe(mpp_buffer_get_ptr(hw_ctx->probe_base), task->dec.syntax.data);
     mpp_buffer_sync_end(hw_ctx->probe_base);
 #endif
-    vp9_hw_regs->common.reg012.colmv_compress_en = p_hal->hw_info ? p_hal->hw_info->cap_colmv_compress : 1;
+    vp9_hw_regs->common.reg012.colmv_compress_en = cfg->hw_info ? cfg->hw_info->cap_colmv_compress : 1;
     vp9_hw_regs->common.reg013.cur_pic_is_idr = !pic_param->frame_type;
     vp9_hw_regs->common.reg009.dec_mode = 2; //set as vp9 dec
     vp9_hw_regs->common.reg016_str_len = ((stream_len + 15) & (~15)) + 0x80;
 
-    mpp_buf_slot_get_prop(p_hal ->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
+    mpp_buf_slot_get_prop(p_hal ->cfg->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     bitstream = mpp_buffer_get_ptr(streambuf);
     aglin_offset = vp9_hw_regs->common.reg016_str_len - stream_len;
     if (aglin_offset > 0) {
@@ -623,7 +623,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
     {
         MppFrame mframe = NULL;
 
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         fbc_en = MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe));
 
         if (fbc_en) {
@@ -651,13 +651,13 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         hw_ctx->pre_mv_base_addr = hw_ctx->mv_base_addr;
     }
 
-    mpp_buf_slot_get_prop(p_hal ->slots, task->dec.output, SLOT_BUFFER, &framebuf);
+    mpp_buf_slot_get_prop(p_hal ->cfg->frame_slots, task->dec.output, SLOT_BUFFER, &framebuf);
     vp9_hw_regs->common_addr.reg130_decout_base =  mpp_buffer_get_fd(framebuf);
     vp9_hw_regs->common_addr.reg128_rlc_base = mpp_buffer_get_fd(streambuf);
     vp9_hw_regs->common_addr.reg129_rlcwrite_base = mpp_buffer_get_fd(streambuf);
 
     vp9_hw_regs->vp9d_addr.reg167_count_prob_base = mpp_buffer_get_fd(hw_ctx->probe_base);
-    mpp_dev_set_reg_offset(p_hal->dev, 167, hw_ctx->offset_count);
+    mpp_dev_set_reg_offset(cfg->dev, 167, hw_ctx->offset_count);
 
     //set cur colmv base
     mv_buf = hal_bufs_get_buf(hw_ctx->cmv_bufs, task->dec.output);
@@ -679,7 +679,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         ref_frame_height_y = pic_param->ref_frame_coded_height[ref_idx];
 
         if (ref_frame_idx < 0x7f)
-            mpp_buf_slot_get_prop(p_hal ->slots, ref_frame_idx, SLOT_FRAME_PTR, &frame);
+            mpp_buf_slot_get_prop(cfg->frame_slots, ref_frame_idx, SLOT_FRAME_PTR, &frame);
 
         if (fbc_en && frame) {
             RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(frame);
@@ -699,7 +699,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         }
 
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
-            mpp_buf_slot_get_prop(p_hal ->slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
+            mpp_buf_slot_get_prop(cfg->frame_slots, pic_param->ref_frame_map[ref_idx].Index7Bits, SLOT_BUFFER, &framebuf);
         }
 
         if (pic_param->ref_frame_map[ref_idx].Index7Bits < 0x7f) {
@@ -836,7 +836,7 @@ static MPP_RET hal_vp9d_vdpu34x_gen_regs(void *hal, HalTaskInfo *task)
         MppBuffer rcb_buf = NULL;
 
         rcb_buf = (p_hal->fast_mode != 0) ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf : hw_ctx->rcb_buf;
-        vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, p_hal->dev, rcb_buf, hw_ctx->rcb_info);
+        vdpu34x_setup_rcb(&vp9_hw_regs->common_addr, cfg->dev, rcb_buf, hw_ctx->rcb_info);
     }
     vdpu34x_setup_statistic(&vp9_hw_regs->common, &vp9_hw_regs->statistic);
 
@@ -854,7 +854,7 @@ static MPP_RET hal_vp9d_vdpu34x_start(void *hal, HalTaskInfo *task)
     HalVp9dCtx *p_hal = (HalVp9dCtx*)hal;
     Vdpu34xVp9dCtx *hw_ctx = (Vdpu34xVp9dCtx*)p_hal->hw_ctx;
     Vdpu34xVp9dRegSet *hw_regs = (Vdpu34xVp9dRegSet *)hw_ctx->hw_regs;
-    MppDev dev = p_hal->dev;
+    MppDev dev = p_hal->cfg->dev;
 
     if (p_hal->fast_mode) {
         RK_S32 index =  task->dec.reg_index;
@@ -987,7 +987,7 @@ static MPP_RET hal_vp9d_vdpu34x_wait(void *hal, HalTaskInfo *task)
 
     mpp_assert(hw_regs);
 
-    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(p_hal->cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
@@ -1003,7 +1003,7 @@ static MPP_RET hal_vp9d_vdpu34x_wait(void *hal, HalTaskInfo *task)
         task->dec.flags.ref_err ||
         !hw_regs->irq_status.reg224.dec_rdy_sta) {
         MppFrame mframe = NULL;
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_frame_set_errinfo(mframe, 1);
     }
 #if !HW_PROB
@@ -1067,9 +1067,9 @@ static MPP_RET hal_vp9d_vdpu34x_control(void *hal, MpiCmd cmd_type, void *param)
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu34x_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
+            vdpu34x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 0);
         } else {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         }
     } break;
     default : {
@@ -1080,17 +1080,27 @@ static MPP_RET hal_vp9d_vdpu34x_control(void *hal, MpiCmd cmd_type, void *param)
 }
 
 const MppHalApi hal_vp9d_vdpu34x = {
-    .name = "vp9d_vdpu34x",
-    .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingVP9,
-    .ctx_size = sizeof(Vdpu34xVp9dCtx),
-    .flag = 0,
-    .init = hal_vp9d_vdpu34x_init,
-    .deinit = hal_vp9d_vdpu34x_deinit,
-    .reg_gen = hal_vp9d_vdpu34x_gen_regs,
-    .start = hal_vp9d_vdpu34x_start,
-    .wait = hal_vp9d_vdpu34x_wait,
-    .reset = hal_vp9d_vdpu34x_reset,
-    .flush = hal_vp9d_vdpu34x_flush,
-    .control = hal_vp9d_vdpu34x_control,
+    .name     = "vp9d_vdpu34x",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingVP9,
+    .ctx_size = sizeof(HalVp9dCtx),
+    .flag     = 0,
+    .init     = hal_vp9d_vdpu34x_init,
+    .deinit   = hal_vp9d_vdpu34x_deinit,
+    .reg_gen  = hal_vp9d_vdpu34x_gen_regs,
+    .start    = hal_vp9d_vdpu34x_start,
+    .wait     = hal_vp9d_vdpu34x_wait,
+    .reset    = hal_vp9d_vdpu34x_reset,
+    .flush    = hal_vp9d_vdpu34x_flush,
+    .control  = hal_vp9d_vdpu34x_control,
+    .client   = VPU_CLIENT_RKVDEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3566,
+        ROCKCHIP_SOC_RK3567,
+        ROCKCHIP_SOC_RK3568,
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_vp9d_vdpu34x)

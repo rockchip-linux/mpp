@@ -40,11 +40,11 @@
 #define M2VH_DBG_DUMP_REG          (0x00000004)
 #define M2VH_DBG_IRQ               (0x00000008)
 
-extern RK_U32 m2vh_debug;
+extern RK_U32 hal_m2vd_debug;
 
 #define m2vh_dbg_func(tag) \
     do {\
-        if (M2VH_DBG_FUNCTION & m2vh_debug)\
+        if (M2VH_DBG_FUNCTION & hal_m2vd_debug)\
             { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
     } while (0)
 
@@ -62,15 +62,10 @@ typedef enum M2VDPicStruct_e {
 } M2VDPicStruct;
 
 typedef struct M2vdHalCtx_t {
-    const MppHalApi *hal_api;
-    MppBufSlots     packet_slots;
-    MppBufSlots     frame_slots;
+    MppHalCfg       *cfg;
     void            *regs;
-    MppBufferGroup  group;
     MppBuffer       qp_table;
     RK_U32          dec_frame_cnt;
-    MppCbCtx        *dec_cb;
-    MppDev          dev;
     FILE            *fp_reg_in;
     FILE            *fp_reg_out;
     RK_U32          reg_len;

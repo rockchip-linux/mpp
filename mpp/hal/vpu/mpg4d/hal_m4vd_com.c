@@ -42,7 +42,7 @@ RK_U8 default_inter_matrix[64] = {
 void vpu_mpg4d_get_buffer_by_index(hal_mpg4_ctx *ctx, RK_S32 index, MppBuffer *buffer)
 {
     if (index >= 0) {
-        mpp_buf_slot_get_prop(ctx->frm_slots, index, SLOT_BUFFER, buffer);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, index, SLOT_BUFFER, buffer);
         mpp_assert(*buffer);
     }
 }

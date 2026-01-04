@@ -1,9 +1,7 @@
 # vim: syntax=cmake
 
 # hal mpeg2 decoder sourse
-set(HAL_M2VD_SRC
-   hal_m2vd_api.c
-)
+set(HAL_M2VD_SRC)
 
 add_hal_source(HAL_M2VD_SRC HAVE_VDPU1 hal_m2vd_vdpu1.c)
 add_hal_source(HAL_M2VD_SRC HAVE_VDPU2 hal_m2vd_vdpu2.c)

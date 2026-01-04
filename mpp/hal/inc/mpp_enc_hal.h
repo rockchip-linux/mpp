@@ -93,15 +93,15 @@ MPP_RET mpp_enc_hal_ret_task(MppEncHal ctx, HalEncTask *task);
 
 MPP_RET mpp_enc_hal_check_part_mode(MppEncHal ctx);
 
-#ifdef __cplusplus
-}
-#endif
-
 #define MPP_ENC_HAL_API_REGISTER(api) \
     static void register_##api(void) \
     { \
         mpp_enc_hal_api_register(&api); \
     } \
     MPP_MODULE_ADD(api, register_##api, NULL);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MPP_ENC_HAL_H */

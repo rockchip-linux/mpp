@@ -23,6 +23,7 @@
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"
 
+#include "hal_hw_id.h"
 #include "hal_h265d_debug.h"
 #include "hal_h265d_ctx.h"
 #include "hal_h265d_com.h"
@@ -43,26 +44,25 @@ static MPP_RET hal_h265d_alloc_res(void *hal)
     RK_S32 i = 0;
     RK_S32 ret = 0;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    MppBufferGroup group = reg_ctx->cfg->buf_group;
+
     if (reg_ctx->fast_mode) {
         for (i = 0; i < VDPU_FAST_REG_SET_CNT; i++) {
-            reg_ctx->g_buf[i].hw_regs =
-                mpp_calloc_size(void, sizeof(H265d_REGS_t));
-            ret = mpp_buffer_get(reg_ctx->group,
-                                 &reg_ctx->g_buf[i].scaling_list_data,
-                                 SCALING_LIST_SIZE);
+            reg_ctx->g_buf[i].hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_t));
+            ret = mpp_buffer_get(group, &reg_ctx->g_buf[i].scaling_list_data, SCALING_LIST_SIZE);
             if (ret) {
                 mpp_err("h265d scaling_list_data get buffer failed\n");
                 return ret;
             }
 
-            ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->g_buf[i].pps_data,
+            ret = mpp_buffer_get(group, &reg_ctx->g_buf[i].pps_data,
                                  PPS_SIZE);
             if (ret) {
                 mpp_err("h265d pps_data get buffer failed\n");
                 return ret;
             }
 
-            ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->g_buf[i].rps_data,
+            ret = mpp_buffer_get(group, &reg_ctx->g_buf[i].rps_data,
                                  RPS_SIZE);
             if (ret) {
                 mpp_err("h265d rps_data get buffer failed\n");
@@ -71,20 +71,20 @@ static MPP_RET hal_h265d_alloc_res(void *hal)
         }
     } else {
         reg_ctx->hw_regs = mpp_calloc_size(void, sizeof(H265d_REGS_t));
-        ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->scaling_list_data,
+        ret = mpp_buffer_get(group, &reg_ctx->scaling_list_data,
                              SCALING_LIST_SIZE);
         if (ret) {
             mpp_err("h265d scaling_list_data get buffer failed\n");
             return ret;
         }
 
-        ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->pps_data, PPS_SIZE);
+        ret = mpp_buffer_get(group, &reg_ctx->pps_data, PPS_SIZE);
         if (ret) {
             mpp_err("h265d pps_data get buffer failed\n");
             return ret;
         }
 
-        ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->rps_data, RPS_SIZE);
+        ret = mpp_buffer_get(group, &reg_ctx->rps_data, RPS_SIZE);
         if (ret) {
             mpp_err("h265d rps_data get buffer failed\n");
             return ret;
@@ -165,9 +165,25 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_NOK;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    RockchipSocType soc = mpp_get_soc_type();
+    RK_U32 vcodec_type = mpp_get_vcodec_type();
+    RK_U32 client_type;
+    RK_U32 hw_id = 0;
 
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_env_get_u32("hal_h265d_debug", &hal_h265d_debug, 0);
+
+    reg_ctx->cfg = cfg;
+    cfg->support_fast_mode = 1;
+    reg_ctx->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
+
+    client_type = (vcodec_type & HAVE_HEVC_DEC) ? VPU_CLIENT_HEVC_DEC : VPU_CLIENT_RKVDEC;
+    hw_id = mpp_get_client_hw_id(client_type);
+    reg_ctx->client_type = client_type;
+    reg_ctx->is_v341 = (soc == ROCKCHIP_SOC_RK3228H || (soc == ROCKCHIP_SOC_RK3328));
+    reg_ctx->is_v345 = (hw_id == HWID_VDPU345);
+
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_8);
 
     reg_ctx->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     reg_ctx->sw_rps_buf = mpp_calloc(RK_U64, 400);
@@ -183,15 +199,7 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    if (reg_ctx->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&reg_ctx->group, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("h265d mpp_buffer_group_get failed\n");
-            return ret;
-        }
-    }
-
-    ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->cabac_table_data, sizeof(cabac_table));
+    ret = mpp_buffer_get(cfg->buf_group, &reg_ctx->cabac_table_data, sizeof(cabac_table));
     if (ret) {
         mpp_err("h265d cabac_table get buffer failed\n");
         return ret;
@@ -213,7 +221,6 @@ MPP_RET hal_h265d_rkv_init(void *hal, MppHalCfg *cfg)
 #ifdef dump
     fp = fopen("/data/hal.bin", "wb");
 #endif
-    (void) cfg;
     return MPP_OK;
 }
 
@@ -242,13 +249,6 @@ MPP_RET hal_h265d_rkv_deinit(void *hal)
 
     hal_h265d_release_res(hal);
 
-    if (reg_ctx->group) {
-        ret = mpp_buffer_group_put(reg_ctx->group);
-        if (ret) {
-            mpp_err("h265d group free buffer failed\n");
-            return ret;
-        }
-    }
     return MPP_OK;
 }
 
@@ -738,9 +738,10 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_U32 stream_buf_size = 0;
     HalH265dCtx *reg_ctx = ( HalH265dCtx *)hal;
     MppFrame mframe;
+    MppHalCfg *cfg = reg_ctx->cfg;
 
     if (syn->dec.flags.parse_err ||
-        (syn->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (syn->dec.flags.ref_err && !cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -796,7 +797,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs = (H265d_REGS_t*)reg_ctx->hw_regs;
     memset(hw_regs, 0, sizeof(H265d_REGS_t));
 
-    mpp_buf_slot_get_prop(reg_ctx->slots, dxva_cxt->pp.CurrPic.Index7Bits,
+    mpp_buf_slot_get_prop(cfg->frame_slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_FRAME_PTR, &mframe);
     stride_y = mpp_frame_get_hor_stride(mframe);
     stride_uv = mpp_frame_get_hor_stride(mframe);
@@ -809,7 +810,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->sw_y_virstride = virstrid_y >> 4;
     hw_regs->sw_yuv_virstride = virstrid_yuv >> 4;
     hw_regs->sw_sysctrl.sw_h26x_rps_mode = 0;
-    mpp_buf_slot_get_prop(reg_ctx->slots, dxva_cxt->pp.CurrPic.Index7Bits,
+    mpp_buf_slot_get_prop(cfg->frame_slots, dxva_cxt->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);
     hw_regs->sw_decout_base  = mpp_buffer_get_fd(framebuf); //just index need map
 
@@ -822,7 +823,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 
     hw_regs->sw_cur_poc = dxva_cxt->pp.CurrPicOrderCntVal;
 
-    mpp_buf_slot_get_prop(reg_ctx->packet_slots, syn->dec.input, SLOT_BUFFER,
+    mpp_buf_slot_get_prop(cfg->packet_slots, syn->dec.input, SLOT_BUFFER,
                           &streambuf);
 
     if ( dxva_cxt->bitstream == NULL) {
@@ -876,7 +877,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
             hw_regs->sw_refer_poc[i] = dxva_cxt->pp.PicOrderCntValList[i];
-            mpp_buf_slot_get_prop(reg_ctx->slots,
+            mpp_buf_slot_get_prop(cfg->frame_slots,
                                   dxva_cxt->pp.RefPicList[i].Index7Bits,
                                   SLOT_BUFFER, &framebuf);
             if (framebuf != NULL) {
@@ -892,10 +893,10 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if (sw_ref_valid) {
-        mpp_dev_set_reg_offset(reg_ctx->dev, 10, sw_ref_valid & 0xf);
-        mpp_dev_set_reg_offset(reg_ctx->dev, 11, ((sw_ref_valid >> 4) & 0xf));
-        mpp_dev_set_reg_offset(reg_ctx->dev, 12, ((sw_ref_valid >> 8) & 0xf));
-        mpp_dev_set_reg_offset(reg_ctx->dev, 13, ((sw_ref_valid >> 12) & 0xf));
+        mpp_dev_set_reg_offset(cfg->dev, 10, sw_ref_valid & 0xf);
+        mpp_dev_set_reg_offset(cfg->dev, 11, ((sw_ref_valid >> 4) & 0xf));
+        mpp_dev_set_reg_offset(cfg->dev, 12, ((sw_ref_valid >> 8) & 0xf));
+        mpp_dev_set_reg_offset(cfg->dev, 13, ((sw_ref_valid >> 12) & 0xf));
     }
     mpp_buffer_sync_end(reg_ctx->scaling_list_data);
     mpp_buffer_sync_end(reg_ctx->pps_data);
@@ -914,7 +915,7 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     RK_U32 i;
 
     if (task->dec.flags.parse_err ||
-        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -933,6 +934,7 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
+        MppDev dev = reg_ctx->cfg->dev;
 
         RK_U32 reg_size = (reg_ctx->is_v341 || reg_ctx->is_v345) ? V345_HEVC_REGISTERS :
                           (reg_ctx->client_type == VPU_CLIENT_RKVDEC) ?
@@ -949,7 +951,7 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
                 h265h_dbg(H265H_DBG_REG, "RK_HEVC_DEC: regs[%02d]=%08X\n", i, ((RK_U32 *)hw_regs)[i]);
         }
 
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -959,13 +961,13 @@ MPP_RET hal_h265d_rkv_start(void *hal, HalTaskInfo *task)
         rd_cfg.size = reg_size;
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
 
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -980,6 +982,7 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
     RK_S32 index =  task->dec.reg_index;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    MppHalCfg *cfg = reg_ctx->cfg;
     H265d_REGS_t *hw_regs = NULL;
     RK_S32 i;
 
@@ -990,12 +993,12 @@ MPP_RET hal_h265d_rkv_wait(void *hal, HalTaskInfo *task)
     }
 
     if (task->dec.flags.parse_err ||
-        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (task->dec.flags.ref_err && !cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         goto ERR_PROC;
     }
 
-    ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
@@ -1006,11 +1009,11 @@ ERR_PROC:
         hw_regs->sw_interrupt.sw_dec_timeout_sta ||
         hw_regs->sw_interrupt.sw_dec_empty_sta) {
         if (!reg_ctx->fast_mode) {
-            if (reg_ctx->dec_cb)
-                mpp_callback(reg_ctx->dec_cb, &task->dec);
+            if (cfg->dec_cb)
+                mpp_callback(cfg->dec_cb, &task->dec);
         } else {
             MppFrame mframe = NULL;
-            mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.output,
+            mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
                                   SLOT_FRAME_PTR, &mframe);
             if (mframe) {
                 reg_ctx->fast_mode_err_found = 1;
@@ -1023,13 +1026,13 @@ ERR_PROC:
                 if (task->dec.refer[i] >= 0) {
                     MppFrame frame_ref = NULL;
 
-                    mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.refer[i],
+                    mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.refer[i],
                                           SLOT_FRAME_PTR, &frame_ref);
                     h265h_dbg(H265H_DBG_FAST_ERR, "refer[%d] %d frame %p\n",
                               i, task->dec.refer[i], frame_ref);
                     if (frame_ref && mpp_frame_get_errinfo(frame_ref)) {
                         MppFrame frame_out = NULL;
-                        mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.output,
+                        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
                                               SLOT_FRAME_PTR, &frame_out);
                         mpp_frame_set_errinfo(frame_out, 1);
                         break;
@@ -1060,18 +1063,59 @@ MPP_RET hal_h265d_rkv_reset(void *hal)
     return ret;
 }
 
-const MppHalApi hal_h265d_rkv = {
-    .name = "h265d_rkdec",
-    .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingHEVC,
+const MppHalApi hal_h265d_rkv_hevc_dec = {
+    .name     = "h265d_rkdec",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingHEVC,
     .ctx_size = sizeof(HalH265dCtx),
-    .flag = 0,
-    .init = hal_h265d_rkv_init,
-    .deinit = hal_h265d_rkv_deinit,
-    .reg_gen = hal_h265d_rkv_gen_regs,
-    .start = hal_h265d_rkv_start,
-    .wait = hal_h265d_rkv_wait,
-    .reset = hal_h265d_rkv_reset,
-    .flush = NULL,
-    .control = NULL,
+    .flag     = 0,
+    .init     = hal_h265d_rkv_init,
+    .deinit   = hal_h265d_rkv_deinit,
+    .reg_gen  = hal_h265d_rkv_gen_regs,
+    .start    = hal_h265d_rkv_start,
+    .wait     = hal_h265d_rkv_wait,
+    .reset    = hal_h265d_rkv_reset,
+    .flush    = NULL,
+    .control  = NULL,
+    .client   = VPU_CLIENT_HEVC_DEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3036,
+        ROCKCHIP_SOC_RK3288,
+        ROCKCHIP_SOC_RK312X,
+        ROCKCHIP_SOC_RK3368,
+        ROCKCHIP_SOC_RK3326,
+        ROCKCHIP_SOC_PX30,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+MPP_DEC_HAL_API_REGISTER(hal_h265d_rkv_hevc_dec)
+
+const MppHalApi hal_h265d_rkv = {
+    .name     = "h265d_rkdec",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingHEVC,
+    .ctx_size = sizeof(HalH265dCtx),
+    .flag     = 0,
+    .init     = hal_h265d_rkv_init,
+    .deinit   = hal_h265d_rkv_deinit,
+    .reg_gen  = hal_h265d_rkv_gen_regs,
+    .start    = hal_h265d_rkv_start,
+    .wait     = hal_h265d_rkv_wait,
+    .reset    = hal_h265d_rkv_reset,
+    .flush    = NULL,
+    .control  = NULL,
+    .client   = VPU_CLIENT_RKVDEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3128H,
+        ROCKCHIP_SOC_RK3399,
+        ROCKCHIP_SOC_RK3328,
+        ROCKCHIP_SOC_RK3228,
+        ROCKCHIP_SOC_RK3228H,
+        ROCKCHIP_SOC_RK3229,
+        ROCKCHIP_SOC_RV1109,
+        ROCKCHIP_SOC_RV1126,
+        ROCKCHIP_SOC_BUTT
+    },
+};
+
+MPP_DEC_HAL_API_REGISTER(hal_h265d_rkv)

@@ -2456,11 +2456,6 @@ MPP_RET hal_h265d_vdpu38x_deinit(void *hal)
     }
     vdpu38x_rcb_calc_deinit((Vdpu38xRcbCtx *)reg_ctx->rcb_ctx);
 
-    if (reg_ctx->group) {
-        mpp_buffer_group_put(reg_ctx->group);
-        reg_ctx->group = NULL;
-    }
-
     for (i = 0; i < loop; i++)
         MPP_FREE(reg_ctx->g_buf[i].hw_regs);
 
@@ -2512,14 +2507,14 @@ MPP_RET hal_h265d_vdpu38x_control(void *hal, MpiCmd cmd_type, void *param)
         RK_U32 imgheight = mpp_frame_get_height((MppFrame)param);
 
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         } else if (fmt == MPP_FMT_YUV444SP || fmt == MPP_FMT_YUV444SP_10BIT) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv444);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv444);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->slots, frame, 16);
+            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, frame, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
         break;
     }
@@ -2958,7 +2953,7 @@ RK_S32 hal_h265d_vdpu38x_output_pps_packet(void *hal, void *dxva, RK_U32 *scanli
         hal_h265d_vdpu38x_scalinglist_packet(hal, ptr_scaling + addr, dxva);
 
         *scanlist_addr = reg_ctx->bufs_fd;
-        mpp_dev_set_reg_offset(reg_ctx->dev, 132, addr + reg_ctx->sclst_offset);
+        mpp_dev_set_reg_offset(reg_ctx->cfg->dev, 132, addr + reg_ctx->sclst_offset);
     }
 
 #ifdef dump
@@ -3011,7 +3006,7 @@ void vdpu38x_h265d_rcb_setup(void *hal, h265d_dxva2_picture_context_t *dxva,
             MppFrameFormat mpp_fmt;
             Vdpu38xFmt rcb_fmt;
 
-            mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+            mpp_buf_slot_get_prop(reg_ctx->cfg->frame_slots, dxva_ctx->pp.CurrPic.Index7Bits,
                                   SLOT_FRAME_PTR, &mframe);
             mpp_fmt = mpp_frame_get_fmt(mframe);
             rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
@@ -3043,7 +3038,7 @@ void vdpu38x_h265d_rcb_setup(void *hal, h265d_dxva2_picture_context_t *dxva,
                 mpp_buffer_put(reg_ctx->rcb_buf[i]);
                 reg_ctx->rcb_buf[i] = NULL;
             }
-            mpp_buffer_get(reg_ctx->group, &rcb_buf, reg_ctx->rcb_buf_size);
+            mpp_buffer_get(reg_ctx->cfg->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
             reg_ctx->rcb_buf[i] = rcb_buf;
         }
 
@@ -3057,5 +3052,5 @@ void vdpu38x_h265d_rcb_setup(void *hal, h265d_dxva2_picture_context_t *dxva,
 
     rcb_buf = reg_ctx->fast_mode ? reg_ctx->rcb_buf[task->dec.reg_index]
               : reg_ctx->rcb_buf[0];
-    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, reg_ctx->dev, rcb_buf);
+    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, reg_ctx->cfg->dev, rcb_buf);
 }

@@ -16,7 +16,6 @@ endmacro()
 add_subdirectory(vpu)
 add_subdirectory(rkdec)
 add_subdirectory(rkenc)
-add_subdirectory(dummy)
 add_subdirectory(common)
 
 merge_objects("${HAL_H263D}"    hal_h263d_api)
@@ -25,7 +24,7 @@ merge_objects("${HAL_MPEG2D}"   hal_mpeg2d_api)
 merge_objects("${HAL_MPEG4D}"   hal_mpeg4d_api)
 merge_objects("${HAL_VP8D}"     hal_vp8d_api)
 merge_objects("${HAL_VP9D}"     hal_vp9d_api)
-merge_objects("${HAL_AV1D}"     hal_av1d_api hal_av1d_com hal_av1d_rkv hal_av1d_vpu)
+merge_objects("${HAL_AV1D}"     hal_av1d_com hal_av1d_rkv hal_av1d_vpu)
 merge_objects("${HAL_AVSD}"     hal_avsd_api)
 merge_objects("${HAL_AVS2D}"    hal_avs2d_api)
 merge_objects("${HAL_H264D}"    hal_h264d_api)
@@ -67,5 +66,4 @@ target_link_libraries(mpp_hal
     ${HAL_JPEGE}
     ${HAL_H265E}
     ${HAL_VP8E}
-    hal_dummy
     )

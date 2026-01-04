@@ -8,9 +8,9 @@
 
 #include "mpp_device.h"
 #include "hal_bufs.h"
+#include "mpp_hal.h"
 
 #include "parser_api.h"
-#include "hal_avs2d_api.h"
 #include "avs2d_syntax.h"
 
 #define AVS2D_HAL_DBG_ERROR             (0x00000001)
@@ -23,17 +23,17 @@
 
 #define AVS2D_HAL_DBG_OFFSET            (0x00010000)
 
-extern RK_U32 avs2d_hal_debug;
+extern RK_U32 hal_avs2d_debug;
 
 #define AVS2D_HAL_DBG(level, fmt, ...)\
 do {\
-    if (level & avs2d_hal_debug)\
+    if (level & hal_avs2d_debug)\
     { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #define AVS2D_HAL_TRACE(fmt, ...)\
 do {\
-    if (AVS2D_HAL_DBG_TRACE & avs2d_hal_debug)\
+    if (AVS2D_HAL_DBG_TRACE & hal_avs2d_debug)\
     { mpp_log_f(fmt, ## __VA_ARGS__); }\
 } while (0)
 
@@ -78,16 +78,10 @@ enum {
 };
 
 typedef struct avs2d_hal_ctx_t {
-    const MppHalApi         *hal_api;
-    MppDecCfgSet            *cfg;
-    MppBufSlots             frame_slots;
-    MppBufSlots             packet_slots;
-    MppBufferGroup          buf_group;
+    MppHalCfg               *cfg;
     HalBufs                 cmv_bufs;
     RK_U32                  mv_size;
     RK_U32                  mv_count;
-    MppCbCtx                *dec_cb;
-    MppDev                  dev;
     Avs2dSyntax_t           syntax;
     RK_U32                  fast_mode;
 
@@ -95,8 +89,7 @@ typedef struct avs2d_hal_ctx_t {
     MppBuffer               shph_buf;
     MppBuffer               scalist_buf;
 
-    RK_U32                   frame_no;
-    const MppDecHwCap       *hw_info;
+    RK_U32                  frame_no;
 } Avs2dHalCtx_t;
 
 #endif /* HAL_AVS2D_GLOBAL_H */

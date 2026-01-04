@@ -20,7 +20,6 @@
 #include "mpp_device.h"
 
 #include "parser_api.h"
-#include "hal_avs2d_api.h"
 #include "hal_avs2d_global.h"
 #include "avs2d_syntax.h"
 

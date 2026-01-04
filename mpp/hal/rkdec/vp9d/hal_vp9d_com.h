@@ -17,6 +17,8 @@
 #ifndef HAL_VP9D_COM_H
 #define HAL_VP9D_COM_H
 
+#include "mpp_env.h"
+
 #include "rk_mpi_cmd.h"
 #include "hal_vp9d_ctx.h"
 #include "vp9d_syntax.h"

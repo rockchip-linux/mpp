@@ -21,7 +21,6 @@
 #include "mpp_device.h"
 
 #include "parser_api.h"
-#include "hal_avsd_api.h"
 #include "avsd_syntax.h"
 
 #define AVSD_REGISTERS     60

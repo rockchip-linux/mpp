@@ -31,8 +31,14 @@ static MPP_RET hal_h265d_vdpu384b_init(void *hal, MppHalCfg *cfg)
     RK_S32 ret = 0;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
 
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(reg_ctx->slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_env_get_u32("hal_h265d_debug", &hal_h265d_debug, 0);
+
+    reg_ctx->cfg = cfg;
+    cfg->support_fast_mode = 1;
+    reg_ctx->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
+
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_8);
 
     reg_ctx->scaling_qm = mpp_calloc(DXVA_Qmatrix_HEVC, 1);
     if (reg_ctx->scaling_qm == NULL) {
@@ -49,20 +55,12 @@ static MPP_RET hal_h265d_vdpu384b_init(void *hal, MppHalCfg *cfg)
         return MPP_ERR_MALLOC;
     }
 
-    if (reg_ctx->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&reg_ctx->group, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("h265d mpp_buffer_group_get failed\n");
-            return ret;
-        }
-    }
-
     {
         RK_U32 max_cnt = reg_ctx->fast_mode ? VDPU_FAST_REG_SET_CNT : 1;
         RK_U32 i = 0;
 
         //!< malloc buffers
-        ret = mpp_buffer_get(reg_ctx->group, &reg_ctx->bufs, ALL_BUFFER_SIZE(max_cnt));
+        ret = mpp_buffer_get(cfg->buf_group, &reg_ctx->bufs, ALL_BUFFER_SIZE(max_cnt));
         if (ret) {
             mpp_err("h265d mpp_buffer_get failed\n");
             return ret;
@@ -75,7 +73,7 @@ static MPP_RET hal_h265d_vdpu384b_init(void *hal, MppHalCfg *cfg)
             reg_ctx->offset_sclst[i] = SCALIST_OFFSET(i);
         }
 
-        mpp_buffer_attach_dev(reg_ctx->bufs, reg_ctx->dev);
+        mpp_buffer_attach_dev(reg_ctx->bufs, cfg->dev);
     }
 
     if (!reg_ctx->fast_mode) {
@@ -195,10 +193,10 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     RK_U32 mv_size = 0;
     RK_S32 distance = INT_MAX;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    MppHalCfg *cfg = reg_ctx->cfg;
 
-    (void) fd;
     if (syn->dec.flags.parse_err ||
-        (syn->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (syn->dec.flags.ref_err && !cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -271,7 +269,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         }
 
         reg_ctx->mv_size = mv_size;
-        reg_ctx->mv_count = mpp_buf_slot_get_count(reg_ctx->slots);
+        reg_ctx->mv_count = mpp_buf_slot_get_count(cfg->frame_slots);
         hal_bufs_setup(reg_ctx->cmv_bufs, reg_ctx->mv_count, 1, &size);
     }
 
@@ -290,13 +288,13 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         RK_U32 fbc_offset = 0;
         RK_U32 tile4x4_coeff = 0;
 
-        mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+        mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.CurrPic.Index7Bits,
                               SLOT_FRAME_PTR, &mframe);
         /* for 8K downscale mode*/
         if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
             reg_ctx->origin_bufs == NULL) {
             vdpu38x_setup_scale_origin_bufs(mframe, &reg_ctx->origin_bufs,
-                                            mpp_buf_slot_get_count(reg_ctx->slots));
+                                            mpp_buf_slot_get_count(cfg->frame_slots));
         }
 
         fmt = mpp_frame_get_fmt(mframe);
@@ -345,7 +343,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         hw_regs->comm_paras.reg81_error_ref_raster_uv_hor_virstride = hw_regs->comm_paras.reg69_pp_m_uv_hor_stride;
         hw_regs->comm_paras.reg82_error_ref_virstride = hw_regs->comm_paras.reg70_pp_m_y_virstride;
     }
-    mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+    mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.CurrPic.Index7Bits,
                           SLOT_BUFFER, &framebuf);
 
     if (reg_ctx->origin_bufs) {
@@ -378,7 +376,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 #endif
 
-    mpp_buf_slot_get_prop(reg_ctx->packet_slots, syn->dec.input, SLOT_BUFFER,
+    mpp_buf_slot_get_prop(cfg->packet_slots, syn->dec.input, SLOT_BUFFER,
                           &streambuf);
     if ( dxva_ctx->bitstream == NULL) {
         dxva_ctx->bitstream = mpp_buffer_get_ptr(streambuf);
@@ -398,7 +396,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->comm_paras.reg66_stream_len = ((dxva_ctx->bitstream_size + 15) & (~15)) + 64;
     hw_regs->comm_addrs.reg129_stream_buf_st_base = mpp_buffer_get_fd(streambuf);
     hw_regs->comm_addrs.reg130_stream_buf_end_base = mpp_buffer_get_fd(streambuf);
-    mpp_dev_set_reg_offset(reg_ctx->dev, 130, mpp_buffer_get_size(streambuf));
+    mpp_dev_set_reg_offset(cfg->dev, 130, mpp_buffer_get_size(streambuf));
     aglin_offset =  hw_regs->comm_paras.reg66_stream_len - dxva_ctx->bitstream_size;
     if (aglin_offset > 0)
         memset((void *)(dxva_ctx->bitstream + dxva_ctx->bitstream_size), 0, aglin_offset);
@@ -414,10 +412,10 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
             dxva_ctx->pp.RefPicList[i].bPicEntry != 0x7f) {
 
             MppFrame mframe = NULL;
-            mpp_buf_slot_get_prop(reg_ctx->slots,
+            mpp_buf_slot_get_prop(cfg->frame_slots,
                                   dxva_ctx->pp.RefPicList[i].Index7Bits,
                                   SLOT_BUFFER, &framebuf);
-            mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.RefPicList[i].Index7Bits,
+            mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.RefPicList[i].Index7Bits,
                                   SLOT_FRAME_PTR, &mframe);
             if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
                 origin_buf = hal_bufs_get_buf(reg_ctx->origin_bufs,
@@ -447,7 +445,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     }
 
     if ((reg_ctx->error_index[syn->dec.reg_index] == dxva_ctx->pp.CurrPic.Index7Bits) &&
-        !dxva_ctx->pp.IntraPicFlag && !reg_ctx->cfg->base.disable_error) {
+        !dxva_ctx->pp.IntraPicFlag && !cfg->cfg->base.disable_error) {
         h265h_dbg(H265H_DBG_TASK_ERR, "current frm may be err, should skip process");
         syn->dec.flags.ref_err = 1;
         return MPP_OK;
@@ -456,7 +454,7 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
     /* pps */
     hw_regs->comm_addrs.reg131_gbl_base = reg_ctx->bufs_fd;
     hw_regs->comm_paras.reg67_global_len = SPSPPS_ALIGNED_SIZE / 16;
-    mpp_dev_set_reg_offset(reg_ctx->dev, 131, reg_ctx->spspps_offset);
+    mpp_dev_set_reg_offset(cfg->dev, 131, reg_ctx->spspps_offset);
 
     hal_h265d_vdpu38x_output_pps_packet(hal, syn->dec.syntax.data,
                                         &hw_regs->comm_addrs.reg132_scanlist_addr);
@@ -467,11 +465,11 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
             dxva_ctx->pp.RefPicList[i].bPicEntry != 0x7f) {
             MppFrame mframe = NULL;
 
-            mpp_buf_slot_get_prop(reg_ctx->slots,
+            mpp_buf_slot_get_prop(cfg->frame_slots,
                                   dxva_ctx->pp.RefPicList[i].Index7Bits,
                                   SLOT_BUFFER, &framebuf);
 
-            mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.RefPicList[i].Index7Bits,
+            mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.RefPicList[i].Index7Bits,
                                   SLOT_FRAME_PTR, &mframe);
 
             if (framebuf == NULL || mpp_frame_get_errinfo(mframe)) {
@@ -500,9 +498,9 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         MppBuffer mbuffer = NULL;
         MppFrameThumbnailMode thumbnail_mode;
 
-        mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+        mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.CurrPic.Index7Bits,
                               SLOT_BUFFER, &mbuffer);
-        mpp_buf_slot_get_prop(reg_ctx->slots, dxva_ctx->pp.CurrPic.Index7Bits,
+        mpp_buf_slot_get_prop(cfg->frame_slots, dxva_ctx->pp.CurrPic.Index7Bits,
                               SLOT_FRAME_PTR, &mframe);
         thumbnail_mode = mpp_frame_get_thumbnail_en(mframe);
         switch (thumbnail_mode) {
@@ -513,11 +511,11 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
             hw_regs->comm_addrs.reg168_decout_base = fd;
             hw_regs->comm_addrs.reg192_payload_st_cur_base = fd;
             hw_regs->comm_addrs.reg169_error_ref_base = fd;
-            vdpu38x_setup_down_scale(mframe, reg_ctx->dev, &hw_regs->ctrl_regs, (void*)&hw_regs->comm_paras);
+            vdpu38x_setup_down_scale(mframe, cfg->dev, &hw_regs->ctrl_regs, (void*)&hw_regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_MIXED:
             hw_regs->comm_addrs.reg133_scale_down_base = mpp_buffer_get_fd(mbuffer);
-            vdpu38x_setup_down_scale(mframe, reg_ctx->dev, &hw_regs->ctrl_regs, (void*)&hw_regs->comm_paras);
+            vdpu38x_setup_down_scale(mframe, cfg->dev, &hw_regs->ctrl_regs, (void*)&hw_regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_NONE:
         default:
@@ -539,7 +537,7 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
     MPP_RET ret = MPP_OK;
 
     if (task->dec.flags.parse_err ||
-        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (task->dec.flags.ref_err && !reg_ctx->cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         return MPP_OK;
     }
@@ -560,11 +558,12 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
+        MppDev dev = reg_ctx->cfg->dev;
 
         wr_cfg.reg = &hw_regs->ctrl_regs;
         wr_cfg.size = sizeof(hw_regs->ctrl_regs);
         wr_cfg.offset = VDPU38X_OFF_CTRL_REGS;
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
@@ -573,7 +572,7 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = &hw_regs->comm_paras;
         wr_cfg.size = sizeof(hw_regs->comm_paras);
         wr_cfg.offset = VDPU38X_OFF_CODEC_PARAS_REGS;
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -582,7 +581,7 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
         wr_cfg.reg = &hw_regs->comm_addrs;
         wr_cfg.size = sizeof(hw_regs->comm_addrs);
         wr_cfg.offset = VDPU38X_OFF_COMMON_ADDR_REGS;
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -591,7 +590,7 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
         rd_cfg.reg = &hw_regs->ctrl_regs.reg15;
         rd_cfg.size = sizeof(hw_regs->ctrl_regs.reg15);
         rd_cfg.offset = VDPU38X_OFF_INTERRUPT_REGS;
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
@@ -601,13 +600,13 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
             rd_cfg.reg = &hw_regs->statistic_regs;
             rd_cfg.size = sizeof(hw_regs->statistic_regs);
             rd_cfg.offset = VDPU38X_OFF_COM_STATISTIC_REGS_VDPU384B;
-            ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+            ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         }
 
         /* rcb info for sram */
-        vdpu38x_rcb_set_info(reg_ctx->rcb_ctx, reg_ctx->dev);
+        vdpu38x_rcb_set_info(reg_ctx->rcb_ctx, dev);
 
-        ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -622,6 +621,7 @@ static MPP_RET hal_h265d_vdpu384b_wait(void *hal, HalTaskInfo *task)
 {
     RK_S32 index =  task->dec.reg_index;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
+    MppHalCfg *cfg = reg_ctx->cfg;
     RK_U8* p = NULL;
     Vdpu38xRegSet *hw_regs = NULL;
     RK_S32 i;
@@ -636,12 +636,12 @@ static MPP_RET hal_h265d_vdpu384b_wait(void *hal, HalTaskInfo *task)
     p = (RK_U8*)hw_regs;
 
     if (task->dec.flags.parse_err ||
-        (task->dec.flags.ref_err && !reg_ctx->cfg->base.disable_error)) {
+        (task->dec.flags.ref_err && !cfg->cfg->base.disable_error)) {
         h265h_dbg(H265H_DBG_TASK_ERR, "%s found task error\n", __FUNCTION__);
         goto ERR_PROC;
     }
 
-    ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
@@ -656,11 +656,11 @@ ERR_PROC:
         hw_regs->ctrl_regs.reg15.rkvdec_buffer_empty_sta ||
         hw_regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta) {
         if (!reg_ctx->fast_mode) {
-            if (reg_ctx->dec_cb)
-                mpp_callback(reg_ctx->dec_cb, &task->dec);
+            if (cfg->dec_cb)
+                mpp_callback(cfg->dec_cb, &task->dec);
         } else {
             MppFrame mframe = NULL;
-            mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.output,
+            mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
                                   SLOT_FRAME_PTR, &mframe);
             if (mframe) {
                 reg_ctx->fast_mode_err_found = 1;
@@ -673,13 +673,13 @@ ERR_PROC:
                 if (task->dec.refer[i] >= 0) {
                     MppFrame frame_ref = NULL;
 
-                    mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.refer[i],
+                    mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.refer[i],
                                           SLOT_FRAME_PTR, &frame_ref);
                     h265h_dbg(H265H_DBG_FAST_ERR, "refer[%d] %d frame %p\n",
                               i, task->dec.refer[i], frame_ref);
                     if (frame_ref && mpp_frame_get_errinfo(frame_ref)) {
                         MppFrame frame_out = NULL;
-                        mpp_buf_slot_get_prop(reg_ctx->slots, task->dec.output,
+                        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
                                               SLOT_FRAME_PTR, &frame_out);
                         mpp_frame_set_errinfo(frame_out, 1);
                         break;
@@ -713,17 +713,26 @@ ERR_PROC:
 }
 
 const MppHalApi hal_h265d_vdpu384b = {
-    .name = "h265d_vdpu384b",
-    .type = MPP_CTX_DEC,
-    .coding = MPP_VIDEO_CodingHEVC,
+    .name     = "h265d_vdpu384b",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingHEVC,
     .ctx_size = sizeof(HalH265dCtx),
-    .flag = 0,
-    .init = hal_h265d_vdpu384b_init,
-    .deinit = hal_h265d_vdpu38x_deinit,
-    .reg_gen = hal_h265d_vdpu384b_gen_regs,
-    .start = hal_h265d_vdpu384b_start,
-    .wait = hal_h265d_vdpu384b_wait,
-    .reset = hal_h265d_vdpu_reset,
-    .flush = hal_h265d_vdpu_flush,
-    .control = hal_h265d_vdpu38x_control,
+    .flag     = 0,
+    .init     = hal_h265d_vdpu384b_init,
+    .deinit   = hal_h265d_vdpu38x_deinit,
+    .reg_gen  = hal_h265d_vdpu384b_gen_regs,
+    .start    = hal_h265d_vdpu384b_start,
+    .wait     = hal_h265d_vdpu384b_wait,
+    .reset    = hal_h265d_vdpu_reset,
+    .flush    = hal_h265d_vdpu_flush,
+    .control  = hal_h265d_vdpu38x_control,
+    .client   = VPU_CLIENT_RKVDEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3572,
+        ROCKCHIP_SOC_RK3538,
+        ROCKCHIP_SOC_RK3539,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_h265d_vdpu384b)

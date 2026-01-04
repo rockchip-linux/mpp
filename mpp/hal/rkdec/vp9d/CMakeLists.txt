@@ -2,7 +2,6 @@
 
 # hal vp9 decoder sourse
 set(HAL_VP9D_SRC
-    hal_vp9d_api.c
     hal_vp9d_com.c
     )
 

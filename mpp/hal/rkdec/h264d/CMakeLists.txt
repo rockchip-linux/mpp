@@ -2,7 +2,6 @@
 
 # hal h264 decoder sourse
 set(HAL_H264D_SRC
-    hal_h264d_api.c
     hal_h264d_com.c
     hal_h264d_vdpu_com.c
     )

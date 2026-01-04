@@ -170,7 +170,7 @@ jpegd_set_stream_offset(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     offset = (s->strm_offset & (~7));
     reg->reg12_input_stream_base = ctx->pkt_fd;
     if (offset) {
-        mpp_dev_set_reg_offset(ctx->dev, 12, offset);
+        mpp_dev_set_reg_offset(ctx->cfg->dev, 12, offset);
     }
 
     /* calculate and set stream start bit to hardware
@@ -581,7 +581,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         post->reg67_pp_out_ch_base = ctx->frame_fd;
 
         if (uv_offset)
-            mpp_dev_set_reg_offset(ctx->dev, 67, uv_offset);
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 67, uv_offset);
 
         jpegd_dbg_hal("output_frame_fd:%x, reg67:%x", ctx->frame_fd,
                       post->reg67_pp_out_ch_base);
@@ -597,7 +597,7 @@ static MPP_RET jpegd_setup_pp(JpegdHalCtx *ctx, JpegdSyntax *syntax)
         regs->reg14_sw_jpg_ch_out_base = ctx->frame_fd;
 
         if (uv_offset)
-            mpp_dev_set_reg_offset(ctx->dev, 14, uv_offset);
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 14, uv_offset);
 
         jpegd_dbg_hal("output_frame_fd:%x, reg14:%x", ctx->frame_fd,
                       regs->reg14_sw_jpg_ch_out_base);
@@ -733,14 +733,14 @@ static MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *JpegHalCtx = (JpegdHalCtx *)hal;
 
+    mpp_env_get_u32("hal_jpegd_debug", &hal_jpegd_debug, 0);
+
     mpp_assert(JpegHalCtx);
+
     jpegd_dbg_func("enter\n");
 
-    //configure
-    JpegHalCtx->dec_cb       = cfg->dec_cb;
-    JpegHalCtx->packet_slots = cfg->packet_slots;
-    JpegHalCtx->frame_slots  = cfg->frame_slots;
-    JpegHalCtx->have_pp      = cfg->hw_info->cap_jpg_pp_out;
+    JpegHalCtx->cfg = cfg;
+    JpegHalCtx->have_pp = cfg->hw_info->cap_jpg_pp_out;
 
     /* allocate regs buffer */
     if (JpegHalCtx->regs == NULL) {
@@ -755,17 +755,7 @@ static MPP_RET hal_jpegd_vdpu1_init(void *hal, MppHalCfg *cfg)
     JpegdIocRegInfo *info = (JpegdIocRegInfo *)JpegHalCtx->regs;
     memset(info, 0, sizeof(JpegdIocRegInfo));
 
-    //malloc hw buf
-    if (JpegHalCtx->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&JpegHalCtx->group,
-                                            MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err_f("mpp_buffer_group_get failed ret %d\n", ret);
-            return ret;
-        }
-    }
-
-    ret = mpp_buffer_get(JpegHalCtx->group, &JpegHalCtx->pTableBase,
+    ret = mpp_buffer_get(JpegHalCtx->cfg->buf_group, &JpegHalCtx->pTableBase,
                          JPEGD_BASELINE_TABLE_SIZE);
     if (ret) {
         mpp_err_f("get table buffer failed ret %d\n", ret);
@@ -797,23 +787,10 @@ static MPP_RET hal_jpegd_vdpu1_deinit(void *hal)
 
     jpegd_dbg_func("enter\n");
 
-    if (JpegHalCtx->dev) {
-        mpp_dev_deinit(JpegHalCtx->dev);
-        JpegHalCtx->dev = NULL;
-    }
-
     if (JpegHalCtx->pTableBase) {
         ret = mpp_buffer_put(JpegHalCtx->pTableBase);
         if (ret) {
             mpp_err_f("put buffer failed\n");
-            return ret;
-        }
-    }
-
-    if (JpegHalCtx->group) {
-        ret = mpp_buffer_group_put(JpegHalCtx->group);
-        if (ret) {
-            mpp_err_f("group free buffer failed\n");
             return ret;
         }
     }
@@ -862,7 +839,7 @@ static MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
         }
 
         /* input stream address */
-        mpp_buf_slot_get_prop(JpegHalCtx->packet_slots, syn->dec.input,
+        mpp_buf_slot_get_prop(JpegHalCtx->cfg->packet_slots, syn->dec.input,
                               SLOT_BUFFER, &streambuf);
         JpegHalCtx->pkt_fd = mpp_buffer_get_fd(streambuf);
         if (JpegHalCtx->pkt_fd <= 0) {
@@ -873,7 +850,7 @@ static MPP_RET hal_jpegd_vdpu1_gen_regs(void *hal,  HalTaskInfo *syn)
         syntax->pkt_len = jpegd_vdpu_tail_0xFF_patch(streambuf, syntax->pkt_len);
 
         /* output picture address */
-        mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, syn->dec.output,
+        mpp_buf_slot_get_prop(JpegHalCtx->cfg->frame_slots, syn->dec.output,
                               SLOT_BUFFER, &outputBuf);
         JpegHalCtx->frame_fd = mpp_buffer_get_fd(outputBuf);
         if (JpegHalCtx->frame_fd <= 0) {
@@ -915,6 +892,7 @@ static MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
+        MppDev dev = JpegHalCtx->cfg->dev;
         MppIoctlVersion ioctl_version = mpp_get_ioctl_version();
         RK_U32 reg_size = ioctl_version ?
                           sizeof(((JpegdIocRegInfo *)0)->regs) :
@@ -928,7 +906,7 @@ static MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
         wr_cfg.size = reg_size;
         wr_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(JpegHalCtx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             goto __RETURN;
@@ -940,13 +918,13 @@ static MPP_RET hal_jpegd_vdpu1_start(void *hal, HalTaskInfo *task)
         rd_cfg.size = reg_size;
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(JpegHalCtx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             goto __RETURN;
         }
 
-        ret = mpp_dev_ioctl(JpegHalCtx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             goto __RETURN;
@@ -974,14 +952,14 @@ static MPP_RET hal_jpegd_vdpu1_wait(void *hal, HalTaskInfo *task)
     if (task->dec.flags.parse_err)
         goto __SKIP_HARD;
 
-    ret = mpp_dev_ioctl(JpegHalCtx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(JpegHalCtx->cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret) {
         task->dec.flags.parse_err = 1;
         mpp_err_f("poll cmd failed %d\n", ret);
     }
 
 __SKIP_HARD:
-    if (JpegHalCtx->dec_cb) {
+    if (JpegHalCtx->cfg->dec_cb) {
         DecCbHalDone param;
 
         param.task = (void *)&task->dec;
@@ -1006,7 +984,7 @@ __SKIP_HARD:
             jpegd_dbg_hal("DECODE SUCCESS!");
         }
         param.hard_err = errinfo;
-        mpp_callback(JpegHalCtx->dec_cb, &param);
+        mpp_callback(JpegHalCtx->cfg->dec_cb, &param);
     }
 
     /* debug information */
@@ -1015,7 +993,7 @@ __SKIP_HARD:
         static char name[64];
         MppBuffer outputBuf = NULL;
         void *base = NULL;
-        mpp_buf_slot_get_prop(JpegHalCtx->frame_slots, task->dec.output,
+        mpp_buf_slot_get_prop(JpegHalCtx->cfg->frame_slots, task->dec.output,
                               SLOT_BUFFER, &outputBuf);
         base = mpp_buffer_get_ptr(outputBuf);
 
@@ -1086,4 +1064,15 @@ const MppHalApi hal_jpegd_vdpu1 = {
     .reset    = NULL,
     .flush    = NULL,
     .control  = hal_jpegd_vdpu1_control,
+    .client   = VPU_CLIENT_VDPU1,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3066,
+        ROCKCHIP_SOC_RK3188,
+        ROCKCHIP_SOC_RK3288,
+        ROCKCHIP_SOC_RK312X,
+        ROCKCHIP_SOC_RK3368,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_jpegd_vdpu1)

@@ -6,6 +6,7 @@
 #define MODULE_TAG "hal_av1d_vdpu384b"
 
 #include "mpp_buffer_impl.h"
+#include "mpp_env.h"
 
 #include "hal_av1d_com.h"
 #include "hal_av1d_ctx.h"
@@ -28,12 +29,13 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
 
     INP_CHECK(ret, NULL == p_hal);
 
-    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, p_hal->api->ctx_size));
+    MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(Vdpu38xAv1dRegCtx) +
+                                                    VDPU384B_UNCMPS_HEADER_SIZE));
     reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
 
     //!< malloc buffers
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->bufs, MPP_ALIGN(VDPU384B_INFO_BUF_SIZE(max_cnt), SZ_2K)));
-    mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->dev);
+    BUF_CHECK(ret, mpp_buffer_get(p_hal->cfg->buf_group, &reg_ctx->bufs, MPP_ALIGN(VDPU384B_INFO_BUF_SIZE(max_cnt), SZ_2K)));
+    mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->cfg->dev);
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
 
@@ -49,8 +51,8 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
         reg_ctx->offset_uncomps = reg_ctx->uncmps_offset[0];
     }
 
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->cdf_rd_def_base, MPP_ALIGN(sizeof(g_av1d_default_prob), 2048)));
-    mpp_buffer_attach_dev(reg_ctx->cdf_rd_def_base, p_hal->dev);
+    BUF_CHECK(ret, mpp_buffer_get(p_hal->cfg->buf_group, &reg_ctx->cdf_rd_def_base, MPP_ALIGN(sizeof(g_av1d_default_prob), 2048)));
+    mpp_buffer_attach_dev(reg_ctx->cdf_rd_def_base, p_hal->cfg->dev);
     cdf_ptr = mpp_buffer_get_ptr(reg_ctx->cdf_rd_def_base);
     memcpy(cdf_ptr, g_av1d_default_prob, sizeof(g_av1d_default_prob));
     mpp_buffer_sync_end(reg_ctx->cdf_rd_def_base);
@@ -63,18 +65,22 @@ __FAILED:
 
 MPP_RET vdpu384b_av1d_init(void *hal, MppHalCfg *cfg)
 {
-    (void) cfg;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
     Vdpu38xAv1dRegCtx *reg_ctx = NULL;
     MPP_RET ret = MPP_OK;
 
+    mpp_env_get_u32("hal_av1d_debug", &hal_av1d_debug, 0);
+
     INP_CHECK(ret, NULL == p_hal);
+
+    p_hal->cfg = cfg;
+    p_hal->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
 
     FUN_CHECK(hal_av1d_alloc_res(hal));
 
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_8);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
     vdpu38x_rcb_calc_init((Vdpu38xRcbCtx **)&reg_ctx->rcb_ctx);
@@ -193,6 +199,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
     MppFrame mframe;
     RK_U32 i = 0;
     MPP_RET ret = MPP_ERR_UNKNOW;
+    MppHalCfg *cfg = p_hal->cfg;
 
     INP_CHECK(ret, NULL == p_hal);
 
@@ -205,11 +212,11 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         goto __RETURN;
     }
 
-    mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
+    mpp_buf_slot_get_prop(cfg->frame_slots, dxva->CurrPic.Index7Bits, SLOT_FRAME_PTR, &mframe);
     if (mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY &&
         MPP_MAX(dxva->width, dxva->height) > 4096 && ctx->origin_bufs == NULL) {
         vdpu38x_setup_scale_origin_bufs(mframe, &ctx->origin_bufs,
-                                        mpp_buf_slot_get_count(p_hal->slots));
+                                        mpp_buf_slot_get_count(cfg->frame_slots));
     }
 
     if (p_hal->fast_mode) {
@@ -251,7 +258,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, VDPU384B_UNCMPS_HEADER_SIZE);
         regs->comm_paras.reg67_global_len = VDPU384B_UNCMPS_HEADER_SIZE / 16; // 128 bit as unit
         regs->comm_addrs.reg131_gbl_base = ctx->bufs_fd;
-        // mpp_dev_set_reg_offset(p_hal->dev, 131, ctx->offset_uncomps);
+        // mpp_dev_set_reg_offset(cfg->dev, 131, ctx->offset_uncomps);
 #ifdef DUMP_VDPU38X_DATAS
         {
             char *cur_fname = "global_cfg.dat";
@@ -264,13 +271,13 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         // input strm
         p_hal->strm_len = (RK_S32)mpp_packet_get_length(task->dec.input_packet);
         regs->comm_paras.reg66_stream_len = MPP_ALIGN(p_hal->strm_len + 15, 128);
-        mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
+        mpp_buf_slot_get_prop(cfg->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
         regs->comm_addrs.reg128_strm_base = mpp_buffer_get_fd(mbuffer);
         regs->comm_addrs.reg129_stream_buf_st_base = mpp_buffer_get_fd(mbuffer);
         regs->comm_addrs.reg130_stream_buf_end_base = mpp_buffer_get_fd(mbuffer);
-        mpp_dev_set_reg_offset(p_hal->dev, 130, mpp_buffer_get_size(mbuffer));
+        mpp_dev_set_reg_offset(cfg->dev, 130, mpp_buffer_get_size(mbuffer));
         regs->comm_paras.reg65_strm_start_bit = (ctx->offset_uncomps & 0xf) * 8; // bit start to decode
-        mpp_dev_set_reg_offset(p_hal->dev, 128, ctx->offset_uncomps & 0xfffffff0);
+        mpp_dev_set_reg_offset(cfg->dev, 128, ctx->offset_uncomps & 0xfffffff0);
         /* error */
         regs->comm_addrs.reg169_error_ref_base = mpp_buffer_get_fd(mbuffer);
 #ifdef DUMP_VDPU38X_DATAS
@@ -351,7 +358,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i) {
             mapped_idx = dxva->ref_frame_idx[i];
             if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
-                mpp_buf_slot_get_prop(p_hal->slots, dxva->frame_refs[mapped_idx].Index, SLOT_FRAME_PTR, &mframe);
+                mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_FRAME_PTR, &mframe);
                 if (mframe) {
                     hor_virstride = mpp_frame_get_hor_stride(mframe);
                     ver_virstride = mpp_frame_get_ver_stride(mframe);
@@ -380,15 +387,15 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
     {
         MppBuffer mbuffer = NULL;
         RK_U32 mapped_idx;
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_BUFFER, &mbuffer);
+        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_BUFFER, &mbuffer);
         regs->comm_addrs.reg168_decout_base = mpp_buffer_get_fd(mbuffer);
         regs->comm_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(mbuffer);
 
         for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
             mapped_idx = dxva->ref_frame_idx[i];
             if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
-                mpp_buf_slot_get_prop(p_hal->slots, dxva->frame_refs[mapped_idx].Index, SLOT_BUFFER, &mbuffer);
+                mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_BUFFER, &mbuffer);
                 if (ctx->origin_bufs && mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
                     origin_buf = hal_bufs_get_buf(ctx->origin_bufs, dxva->frame_refs[mapped_idx].Index);
                     mbuffer = origin_buf->buf[0];
@@ -445,8 +452,8 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_S32 fd = -1;
         MppFrameThumbnailMode thumbnail_mode;
 
-        mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits, SLOT_BUFFER, &mbuffer);
-        mpp_buf_slot_get_prop(p_hal->slots, dxva->CurrPic.Index7Bits,
+        mpp_buf_slot_get_prop(cfg->frame_slots, dxva->CurrPic.Index7Bits, SLOT_BUFFER, &mbuffer);
+        mpp_buf_slot_get_prop(cfg->frame_slots, dxva->CurrPic.Index7Bits,
                               SLOT_FRAME_PTR, &mframe);
         thumbnail_mode = mpp_frame_get_thumbnail_en(mframe);
         fd = mpp_buffer_get_fd(mbuffer);
@@ -459,12 +466,12 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
             regs->comm_addrs.reg168_decout_base = fd;
             regs->comm_addrs.reg192_payload_st_cur_base = fd;
             regs->comm_addrs.reg169_error_ref_base = fd;
-            vdpu38x_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
+            vdpu38x_setup_down_scale(mframe, cfg->dev, &regs->ctrl_regs,
                                      (void *)&regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_MIXED:
             regs->comm_addrs.reg133_scale_down_base = fd;
-            vdpu38x_setup_down_scale(mframe, p_hal->dev, &regs->ctrl_regs,
+            vdpu38x_setup_down_scale(mframe, cfg->dev, &regs->ctrl_regs,
                                      (void *)&regs->comm_paras);
             break;
         case MPP_FRAME_THUMBNAIL_NONE:
@@ -494,7 +501,7 @@ MPP_RET vdpu384b_av1d_start(void *hal, HalTaskInfo *task)
     Vdpu38xRegSet *regs = p_hal->fast_mode ?
                           reg_ctx->reg_buf[task->dec.reg_index].regs :
                           reg_ctx->regs;
-    dev = p_hal->dev;
+    dev = p_hal->cfg->dev;
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
@@ -581,7 +588,7 @@ MPP_RET vdpu384b_av1d_wait(void *hal, HalTaskInfo *task)
     {
         char *cur_fname = "decout.dat";
         MppBuffer mbuffer = NULL;
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_BUFFER, &mbuffer);
+        mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_BUFFER, &mbuffer);
         memset(vdpu38x_dump_cur_fname_path, 0, sizeof(vdpu38x_dump_cur_fname_path));
         sprintf(vdpu38x_dump_cur_fname_path, "%s/%s", vdpu38x_dump_cur_dir, cur_fname);
         vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
@@ -594,7 +601,7 @@ MPP_RET vdpu384b_av1d_wait(void *hal, HalTaskInfo *task)
         goto __SKIP_HARD;
     }
 
-    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(p_hal->cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 #ifdef DUMP_VDPU38X_DATAS
@@ -621,7 +628,7 @@ MPP_RET vdpu384b_av1d_wait(void *hal, HalTaskInfo *task)
         p_regs->ctrl_regs.reg15.rkvdec_colmv_ref_error_sta) {
         MppFrame mframe = NULL;
 
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_frame_set_errinfo(mframe, 1);
     }
     if (hal_av1d_debug & AV1D_DBG_REG) {
@@ -642,7 +649,7 @@ const MppHalApi hal_av1d_vdpu384b = {
     .name       = "av1d_vdpu384b",
     .type       = MPP_CTX_DEC,
     .coding     = MPP_VIDEO_CodingAV1,
-    .ctx_size   = sizeof(Vdpu38xAv1dRegCtx) + VDPU384B_UNCMPS_HEADER_SIZE,
+    .ctx_size   = sizeof(Av1dHalCtx),
     .flag       = 0,
     .init       = vdpu384b_av1d_init,
     .deinit     = vdpu38x_av1d_deinit,
@@ -652,4 +659,13 @@ const MppHalApi hal_av1d_vdpu384b = {
     .reset      = vdpu38x_av1d_reset,
     .flush      = vdpu38x_av1d_flush,
     .control    = vdpu38x_av1d_control,
+    .client     = VPU_CLIENT_RKVDEC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3572,
+        ROCKCHIP_SOC_RK3538,
+        ROCKCHIP_SOC_RK3539,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_av1d_vdpu384b)

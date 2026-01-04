@@ -20,6 +20,7 @@
 #include <stdio.h>
 
 #include "mpp_hal.h"
+#include "mpp_env.h"
 #include "mpp_device.h"
 
 typedef struct PPInfo_t {
@@ -35,14 +36,9 @@ typedef struct PPInfo_t {
 } PPInfo;
 
 typedef struct JpegdHalCtx {
-    MppBufSlots            packet_slots;
-    MppBufSlots            frame_slots;
-    MppDev                 dev;
+    MppHalCfg              *cfg;
     void                   *regs;
-    MppBufferGroup         group;
     MppBuffer              pTableBase;
-    const MppHalApi        *hal_api;
-    MppCbCtx               *dec_cb;
 
     MppFrameFormat         output_fmt;
     RK_U32                 set_output_fmt_flag;
@@ -56,7 +52,8 @@ typedef struct JpegdHalCtx {
 
     RK_U32                 have_pp;
     PPInfo                 pp_info;
-    const MppDecHwCap       *hw_info;
 } JpegdHalCtx;
+
+extern RK_U32 hal_jpegd_debug;
 
 #endif /* HAL_JPEGD_COMMON_H */

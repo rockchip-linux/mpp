@@ -17,23 +17,22 @@
 #ifndef HAL_H263D_BASE_H
 #define HAL_H263D_BASE_H
 
-#include "mpp_device.h"
+#include "mpp_hal.h"
+
+#define H263D_HAL_DBG_REG_PUT       (0x00000001)
+#define H263D_HAL_DBG_REG_GET       (0x00000002)
+
+extern RK_U32 hal_h263d_debug;
 
 typedef struct h263d_reg_context {
-    MppHalApi           hal_api;
-    MppBufSlots         frm_slots;
-    MppBufSlots         pkt_slots;
-    MppCbCtx            *dec_cb;
-    MppDev              dev;
+    MppHalCfg            *cfg;
 
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              vpu_fd;
     RK_S32              fd_curr;
     RK_S32              fd_ref0;
 
-    void*   regs;
+    void                *regs;
 } hal_h263_ctx;
-
-void vpu_h263d_get_buffer_by_index(hal_h263_ctx *ctx, RK_S32 index, MppBuffer *buffer);
 
 #endif

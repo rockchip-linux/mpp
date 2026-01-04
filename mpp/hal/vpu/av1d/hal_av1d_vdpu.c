@@ -28,6 +28,7 @@
 #include "mpp_hal.h"
 #include "mpp_dec_cb_param.h"
 #include "mpp_device.h"
+#include "mpp_env.h"
 #include "hal_bufs.h"
 
 #include "hal_av1d_vdpu.h"
@@ -118,6 +119,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
 
     MEM_CHECK(ret, p_hal->reg_ctx = mpp_calloc_size(void, sizeof(VdpuAv1dRegCtx)));
     VdpuAv1dRegCtx *reg_ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
+    MppBufferGroup group = p_hal->cfg->buf_group;
 
     //!< malloc buffers
     for (i = 0; i < max_cnt; i++) {
@@ -129,12 +131,12 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
         reg_ctx->regs = reg_ctx->reg_buf[0].regs;
     }
 
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->prob_tbl_base, MPP_ALIGN(sizeof(AV1CDFs), 2048)));
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->prob_tbl_out_base, MPP_ALIGN(sizeof(AV1CDFs), 2048)));
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->tile_info, AV1_TILE_INFO_SIZE));
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->film_grain_mem, MPP_ALIGN(sizeof(AV1FilmGrainMemory), 2048)));
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->global_model, MPP_ALIGN(GLOBAL_MODEL_SIZE, 2048)));
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->buf_group, &reg_ctx->tile_buf, MPP_ALIGN(32 * MaxTiles, 4096)));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->prob_tbl_base, MPP_ALIGN(sizeof(AV1CDFs), 2048)));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->prob_tbl_out_base, MPP_ALIGN(sizeof(AV1CDFs), 2048)));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->tile_info, AV1_TILE_INFO_SIZE));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->film_grain_mem, MPP_ALIGN(sizeof(AV1FilmGrainMemory), 2048)));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->global_model, MPP_ALIGN(GLOBAL_MODEL_SIZE, 2048)));
+    BUF_CHECK(ret, mpp_buffer_get(group, &reg_ctx->tile_buf, MPP_ALIGN(32 * MaxTiles, 4096)));
 
 __RETURN:
     return ret;
@@ -203,7 +205,7 @@ static MPP_RET vdpu_av1d_filtermem_alloc(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ctx,
     //     asic_buff->rfc_col_size = NEXT_MULTIPLE(asic_buff->height, 8) / 8 * 16 * 2;
     //     size += asic_buff->rfc_col_size * num_tile_cols;
     // }
-    if (!mpp_buffer_get(p_hal->buf_group, &ctx->filter_mem, MPP_ALIGN(size, SZ_4K)))
+    if (!mpp_buffer_get(p_hal->cfg->buf_group, &ctx->filter_mem, MPP_ALIGN(size, SZ_4K)))
         return MPP_NOK;
 
     return MPP_OK;
@@ -242,7 +244,13 @@ MPP_RET vdpu_av1d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
+
+    mpp_env_get_u32("hal_av1d_debug", &hal_av1d_debug, 0);
+
     INP_CHECK(ret, NULL == p_hal);
+
+    p_hal->cfg = cfg;
+    p_hal->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
 
     FUN_CHECK(hal_av1d_alloc_res(hal));
 
@@ -254,11 +262,10 @@ MPP_RET vdpu_av1d_init(void *hal, MppHalCfg *cfg)
         reg_ctx->tile_transpose = 1;
     }
 
-    mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_16);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_VER_ALIGN, mpp_align_8);
-    mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_8);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
-    (void)cfg;
 __RETURN:
     return MPP_OK;
 __FAILED:
@@ -407,6 +414,8 @@ static void set_ref_cb_base(Av1dHalCtx *p_hal, RK_S32 i, RK_S32 val, HalBufs buf
     VdpuAv1dRegCtx *ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
     VdpuAv1dRegSet *regs = ctx->regs;
     HalBuf *tile_out_buf;
+    MppDev dev = p_hal->cfg->dev;
+
     tile_out_buf = hal_bufs_get_buf(bufs, val);
     // MppBuffer framebuf = NULL;
 
@@ -418,25 +427,25 @@ static void set_ref_cb_base(Av1dHalCtx *p_hal, RK_S32 i, RK_S32 val, HalBufs buf
     val =  mpp_buffer_get_fd(tile_out_buf->buf[0]);
 
     if (i == 0) {
-        mpp_dev_set_reg_offset(p_hal->dev, 101, offset);
+        mpp_dev_set_reg_offset(dev, 101, offset);
         regs->addr_cfg.swreg101.sw_refer0_cbase_lsb  = val;
     } else if (i == 1) {
-        mpp_dev_set_reg_offset(p_hal->dev, 103, offset);
+        mpp_dev_set_reg_offset(dev, 103, offset);
         regs->addr_cfg.swreg103.sw_refer1_cbase_lsb  = val;
     } else if (i == 2) {
-        mpp_dev_set_reg_offset(p_hal->dev, 105, offset);
+        mpp_dev_set_reg_offset(dev, 105, offset);
         regs->addr_cfg.swreg105.sw_refer2_cbase_lsb  = val;
     } else if (i == 3) {
-        mpp_dev_set_reg_offset(p_hal->dev, 107, offset);
+        mpp_dev_set_reg_offset(dev, 107, offset);
         regs->addr_cfg.swreg107.sw_refer3_cbase_lsb  = val;
     } else if (i == 4) {
-        mpp_dev_set_reg_offset(p_hal->dev, 109, offset);
+        mpp_dev_set_reg_offset(dev, 109, offset);
         regs->addr_cfg.swreg109.sw_refer4_cbase_lsb  = val;
     } else if (i == 5) {
-        mpp_dev_set_reg_offset(p_hal->dev, 111, offset);
+        mpp_dev_set_reg_offset(dev, 111, offset);
         regs->addr_cfg.swreg111.sw_refer5_cbase_lsb  = val;
     } else if (i == 6) {
-        mpp_dev_set_reg_offset(p_hal->dev, 113, offset);
+        mpp_dev_set_reg_offset(dev, 113, offset);
         regs->addr_cfg.swreg113.sw_refer6_cbase_lsb  = val;
     } else {
         mpp_err("Error: trying to set invalid reference index.");
@@ -470,6 +479,8 @@ static void set_ref_dbase(Av1dHalCtx *p_hal, RK_S32 i, RK_S32 val,  HalBufs bufs
     VdpuAv1dRegCtx *ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
     VdpuAv1dRegSet *regs = ctx->regs;
     HalBuf *tile_out_buf;
+    MppDev dev = p_hal->cfg->dev;
+
     tile_out_buf = hal_bufs_get_buf(bufs, val);
     // MppBuffer framebuf = NULL;
 
@@ -480,25 +491,25 @@ static void set_ref_dbase(Av1dHalCtx *p_hal, RK_S32 i, RK_S32 val,  HalBufs bufs
     }
     val =  mpp_buffer_get_fd(tile_out_buf->buf[0]);
     if (i == 0) {
-        mpp_dev_set_reg_offset(p_hal->dev, 135, offset);
+        mpp_dev_set_reg_offset(dev, 135, offset);
         regs->addr_cfg.swreg135.sw_refer0_dbase_lsb = val;
     } else if (i == 1) {
-        mpp_dev_set_reg_offset(p_hal->dev, 137, offset);
+        mpp_dev_set_reg_offset(dev, 137, offset);
         regs->addr_cfg.swreg137.sw_refer1_dbase_lsb = val;
     } else if (i == 2) {
-        mpp_dev_set_reg_offset(p_hal->dev, 139, offset);
+        mpp_dev_set_reg_offset(dev, 139, offset);
         regs->addr_cfg.swreg139.sw_refer2_dbase_lsb = val;
     } else if (i == 3) {
-        mpp_dev_set_reg_offset(p_hal->dev, 141, offset);
+        mpp_dev_set_reg_offset(dev, 141, offset);
         regs->addr_cfg.swreg141.sw_refer3_dbase_lsb = val;
     } else if (i == 4) {
-        mpp_dev_set_reg_offset(p_hal->dev, 143, offset);
+        mpp_dev_set_reg_offset(dev, 143, offset);
         regs->addr_cfg.swreg143.sw_refer4_dbase_lsb = val;
     } else if (i == 5) {
-        mpp_dev_set_reg_offset(p_hal->dev, 145, offset);
+        mpp_dev_set_reg_offset(dev, 145, offset);
         regs->addr_cfg.swreg145.sw_refer5_dbase_lsb = val;
     } else if (i == 6) {
-        mpp_dev_set_reg_offset(p_hal->dev, 147, offset);
+        mpp_dev_set_reg_offset(dev, 147, offset);
         regs->addr_cfg.swreg147.sw_refer6_dbase_lsb = val;
     } else {
         mpp_err("Error: trying to set invalid reference index.");
@@ -1034,7 +1045,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                 tile_out_buf = hal_bufs_get_buf(ctx->tile_out_bufs, prim_buf_idx);
                 regs->addr_cfg.swreg80.sw_segment_read_base_msb = 0;
                 regs->addr_cfg.swreg81.sw_segment_read_base_lsb = mpp_buffer_get_fd(tile_out_buf->buf[0]);
-                mpp_dev_set_reg_offset(p_hal->dev, 81, mv_offset);
+                mpp_dev_set_reg_offset(p_hal->cfg->dev, 81, mv_offset);
                 regs->swreg11.sw_use_temporal3_mvs = 1;
             }
         }
@@ -1183,7 +1194,7 @@ end:
     regs->swreg5.sw_superres_is_scaled = superres_is_scaled;
 
     regs->addr_cfg.swreg89.sw_superres_colbuf_base_lsb = mpp_buffer_get_fd(ctx->filter_mem);
-    mpp_dev_set_reg_offset(p_hal->dev, 89, ctx->filt_info[SR_COL].offset);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 89, ctx->filt_info[SR_COL].offset);
 }
 
 
@@ -1402,7 +1413,7 @@ static void vdpu_av1d_set_loopfilter(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva
 
     regs->addr_cfg.swreg179.sw_dec_vert_filt_base_lsb = mpp_buffer_get_fd(ctx->filter_mem);
     regs->addr_cfg.swreg183.sw_dec_bsd_ctrl_base_lsb = mpp_buffer_get_fd(ctx->filter_mem);
-    mpp_dev_set_reg_offset(p_hal->dev, 183, ctx->filt_info[DB_CTRL_COL].offset);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 183, ctx->filt_info[DB_CTRL_COL].offset);
 }
 
 static void vdpu_av1d_set_global_model(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
@@ -1615,7 +1626,7 @@ static void vdpu_av1d_set_cdef(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 
     // tile column buffer; repurpose some encoder specific base
     regs->addr_cfg.swreg85.sw_cdef_colbuf_base_lsb = mpp_buffer_get_fd(ctx->filter_mem);
-    mpp_dev_set_reg_offset(p_hal->dev, 85, ctx->filt_info[CDEF_COL].offset);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 85, ctx->filt_info[CDEF_COL].offset);
 }
 
 static void vdpu_av1d_set_lr(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
@@ -1633,7 +1644,7 @@ static void vdpu_av1d_set_lr(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     regs->swreg18.sw_lr_type = lr_type;
     regs->swreg19.sw_lr_unit_size = lr_unit_size;
     regs->addr_cfg.swreg91.sw_lr_colbuf_base_lsb = mpp_buffer_get_fd(ctx->filter_mem);
-    mpp_dev_set_reg_offset(p_hal->dev, 91, ctx->filt_info[LR_COL].offset);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 91, ctx->filt_info[LR_COL].offset);
 }
 
 static void init_scaling_function(RK_U8 scaling_points[][2], RK_U8 num_points,
@@ -1823,7 +1834,7 @@ static MPP_RET vdpu_av1d_setup_tile_bufs(void *hal, DXVA_PicParams_AV1 *dxva)
         mpp_err_f("tile out bufs init fail\n");
         return MPP_ERR_NOMEM;
     }
-    ctx->tile_out_count = mpp_buf_slot_get_count(p_hal->slots);
+    ctx->tile_out_count = mpp_buf_slot_get_count(p_hal->cfg->frame_slots);
     hal_bufs_setup(ctx->tile_out_bufs, ctx->tile_out_count, 1, &ctx->tile_out_size);
 
     return MPP_OK;
@@ -1845,6 +1856,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     RK_U32 ver_stride;
     HalBuf *tile_out_buf;
     RK_U32 num_tile_cols = 1 << dxva->tile_cols_log2;
+    MppHalCfg *cfg = p_hal->cfg;
 
     INP_CHECK(ret, NULL == p_hal);
 
@@ -1888,9 +1900,9 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
     ctx->width = width;
     ctx->height = height;
     ctx->num_tile_cols = num_tile_cols;
-    mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
-    mpp_buf_slot_get_prop(p_hal ->slots, task->dec.output, SLOT_BUFFER, &buffer);
-    mpp_buf_slot_get_prop(p_hal ->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
+    mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+    mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output, SLOT_BUFFER, &buffer);
+    mpp_buf_slot_get_prop(cfg->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
     tile_out_buf = hal_bufs_get_buf(ctx->tile_out_bufs, task->dec.output);
     hor_stride = mpp_frame_get_hor_stride(mframe);
     ver_stride = mpp_frame_get_ver_stride(mframe);
@@ -2092,9 +2104,9 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
         regs->addr_cfg.swreg65.sw_dec_out_ybase_lsb = mpp_buffer_get_fd(tile_out_buf->buf[0]);//mpp_buffer_get_fd(buffer);
         regs->addr_cfg.swreg99.sw_dec_out_cbase_lsb = mpp_buffer_get_fd(tile_out_buf->buf[0]);
-        mpp_dev_set_reg_offset(p_hal->dev, 99, y_stride);
+        mpp_dev_set_reg_offset(cfg->dev, 99, y_stride);
         regs->addr_cfg.swreg133.sw_dec_out_dbase_lsb = mpp_buffer_get_fd(tile_out_buf->buf[0]);
-        mpp_dev_set_reg_offset(p_hal->dev, 133, mv_offset);
+        mpp_dev_set_reg_offset(cfg->dev, 133, mv_offset);
 
         /*  if (ctx->fbc_en) {
               regs->swreg190.sw_dec_out_tybase_lsb = 0;// TODO:
@@ -2107,7 +2119,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->swreg259.sw_strm_start_offset = 0;
         regs->addr_cfg.swreg168.sw_stream_base_msb = 0;
         regs->addr_cfg.swreg169.sw_stream_base_lsb = mpp_buffer_get_fd(streambuf);
-        mpp_dev_set_reg_offset(p_hal->dev, 169, offset);
+        mpp_dev_set_reg_offset(cfg->dev, 169, offset);
 
         AV1D_DBG(AV1D_DBG_LOG, "stream len %d\n", p_hal->strm_len);
         AV1D_DBG(AV1D_DBG_LOG, "stream offset %d\n", offset);
@@ -2206,7 +2218,7 @@ MPP_RET vdpu_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->vdpu_av1d_pp_cfg.swreg322.sw_pp_out_format = out_fmt;
         regs->vdpu_av1d_pp_cfg.swreg326.sw_pp_out_lu_base_lsb = mpp_buffer_get_fd(buffer);
         regs->vdpu_av1d_pp_cfg.swreg328.sw_pp_out_ch_base_lsb = mpp_buffer_get_fd(buffer);
-        mpp_dev_set_reg_offset(p_hal->dev, 328, y_stride);
+        mpp_dev_set_reg_offset(cfg->dev, 328, y_stride);
     }
 
 __RETURN:
@@ -2227,7 +2239,7 @@ MPP_RET vdpu_av1d_start(void *hal, HalTaskInfo *task)
     VdpuAv1dRegSet *regs = (p_hal->fast_mode != 0) ?
                            reg_ctx->reg_buf[task->dec.reg_index].regs :
                            reg_ctx->regs;
-    MppDev dev = p_hal->dev;
+    MppDev dev = p_hal->cfg->dev;
 #if DUMP_AV1_DATAS
     {
         RK_U32 i = 0;
@@ -2295,7 +2307,7 @@ MPP_RET vdpu_av1d_wait(void *hal, HalTaskInfo *task)
         goto __SKIP_HARD;
     }
 
-    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(p_hal->cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 #if DUMP_AV1_DATAS
@@ -2317,7 +2329,7 @@ MPP_RET vdpu_av1d_wait(void *hal, HalTaskInfo *task)
 #endif
 
 __SKIP_HARD:
-    if (p_hal->dec_cb) {
+    if (p_hal->cfg->dec_cb) {
         DecCbHalDone m_ctx;
         RK_U32 *prob_out = (RK_U32*)mpp_buffer_get_ptr(reg_ctx->prob_tbl_out_base);
 
@@ -2329,7 +2341,7 @@ __SKIP_HARD:
         else
             m_ctx.hard_err = 0;
 
-        mpp_callback(p_hal->dec_cb, &m_ctx);
+        mpp_callback(p_hal->cfg->dec_cb, &m_ctx);
     }
     if (p_hal->fast_mode)
         reg_ctx->reg_buf[task->dec.reg_index].valid = 0;
@@ -2377,7 +2389,7 @@ MPP_RET vdpu_av1d_control(void *hal, MpiCmd cmd_type, void *param)
 
         AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         break;
     }
@@ -2396,7 +2408,7 @@ const MppHalApi hal_av1d_vdpu = {
     .name       = "av1d_vdpu",
     .type       = MPP_CTX_DEC,
     .coding     = MPP_VIDEO_CodingAV1,
-    .ctx_size   = sizeof(VdpuAv1dRegCtx),
+    .ctx_size   = sizeof(Av1dHalCtx),
     .flag       = 0,
     .init       = vdpu_av1d_init,
     .deinit     = vdpu_av1d_deinit,
@@ -2406,4 +2418,11 @@ const MppHalApi hal_av1d_vdpu = {
     .reset      = vdpu_av1d_reset,
     .flush      = vdpu_av1d_flush,
     .control    = vdpu_av1d_control,
+    .client     = VPU_CLIENT_AV1DEC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_av1d_vdpu)

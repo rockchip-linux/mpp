@@ -22,9 +22,9 @@
 #include "mpp_err.h"
 #include "mpp_mem.h"
 #include "mpp_debug.h"
+#include "mpp_env.h"
 
 #include "h263d_syntax.h"
-#include "hal_h263d_api.h"
 #include "hal_h263d_vdpu2.h"
 #include "hal_h263d_vdpu2_reg.h"
 #include "hal_h263d_base.h"
@@ -83,7 +83,7 @@ static void vpu2_h263d_setup_regs_by_syntax(hal_h263_ctx *ctx, MppSyntax syntax)
         RK_U32 left_bytes = stream_length - consumed_bytes_align;
 
         if (consumed_bytes_align) {
-            mpp_dev_set_reg_offset(ctx->dev, 64, consumed_bytes_align);
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 64, consumed_bytes_align);
         }
         regs->reg64_input_stream_base = val;
         regs->reg122.sw_stream_start_word = start_bit_offset;
@@ -126,7 +126,10 @@ MPP_RET hal_vpu2_h263d_init(void *hal, MppHalCfg *cfg)
     Vpu2H263dRegSet_t *regs = NULL;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
 
+    mpp_env_get_u32("hal_h263d_debug", &hal_h263d_debug, 0);
+
     mpp_assert(hal);
+    mpp_assert(cfg);
 
     regs = mpp_calloc(Vpu2H263dRegSet_t, 1);
     if (NULL == regs) {
@@ -135,16 +138,7 @@ MPP_RET hal_vpu2_h263d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU2);
-    if (ret) {
-        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-        ret = MPP_ERR_UNKNOW;
-        goto ERR_RET;
-    }
-
-    ctx->frm_slots  = cfg->frame_slots;
-    ctx->pkt_slots  = cfg->packet_slots;
-    ctx->dec_cb     = cfg->dec_cb;
+    ctx->cfg        = cfg;
     ctx->regs       = (void*)regs;
 
     return ret;
@@ -169,10 +163,7 @@ MPP_RET hal_vpu2_h263d_deinit(void *hal)
         ctx->regs = NULL;
     }
 
-    if (ctx->dev) {
-        mpp_dev_deinit(ctx->dev);
-        ctx->dev = NULL;
-    }
+    ctx->cfg = NULL;
 
     return ret;
 }
@@ -213,10 +204,13 @@ MPP_RET hal_vpu2_h263d_gen_regs(void *hal,  HalTaskInfo *syn)
     regs->reg153.sw_pred_bc_tap_0_3 = 20;
 
     /* setup buffer for input / output / reference */
-    mpp_buf_slot_get_prop(ctx->pkt_slots, task->input, SLOT_BUFFER, &buf_pkt);
+    mpp_buf_slot_get_prop(ctx->cfg->packet_slots, task->input, SLOT_BUFFER, &buf_pkt);
     mpp_assert(buf_pkt);
-    vpu_h263d_get_buffer_by_index(ctx, task->output, &buf_frm_curr);
-    vpu_h263d_get_buffer_by_index(ctx, task->refer[0], &buf_frm_ref0);
+
+    if (task->input >= 0)
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, task->output, SLOT_BUFFER, &buf_frm_curr);
+    if (task->refer[0] >= 0)
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, task->refer[0], SLOT_BUFFER, &buf_frm_ref0);
 
     /* address registers setup first */
     ctx->fd_curr = mpp_buffer_get_fd(buf_frm_curr);
@@ -234,9 +228,10 @@ MPP_RET hal_vpu2_h263d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
+    MppDev dev = ctx->cfg->dev;
     RK_U32 *regs = (RK_U32 *)ctx->regs;
 
-    if (h263d_hal_debug & H263D_HAL_DBG_REG_PUT) {
+    if (hal_h263d_debug & H263D_HAL_DBG_REG_PUT) {
         RK_U32 reg_count = (sizeof(Vpu2H263dRegSet_t) / sizeof(RK_U32));
         RK_U32 i = 0;
 
@@ -252,7 +247,7 @@ MPP_RET hal_vpu2_h263d_start(void *hal, HalTaskInfo *task)
         wr_cfg.size = sizeof(Vpu2H263dRegSet_t);
         wr_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -262,13 +257,13 @@ MPP_RET hal_vpu2_h263d_start(void *hal, HalTaskInfo *task)
         rd_cfg.size = sizeof(Vpu2H263dRegSet_t);
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -283,12 +278,13 @@ MPP_RET hal_vpu2_h263d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_h263_ctx *ctx = (hal_h263_ctx *)hal;
+    MppDev dev = ctx->cfg->dev;
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
-    if (h263d_hal_debug & H263D_HAL_DBG_REG_GET) {
+    if (hal_h263d_debug & H263D_HAL_DBG_REG_GET) {
         RK_U32 *regs = (RK_U32 *)ctx->regs;
         RK_U32 reg_count = (sizeof(Vpu2H263dRegSet_t) / sizeof(RK_U32));
         RK_U32 i = 0;
@@ -300,3 +296,41 @@ MPP_RET hal_vpu2_h263d_wait(void *hal, HalTaskInfo *task)
     (void)task;
     return ret;
 }
+
+
+const MppHalApi hal_h263d_vdpu2 = {
+    .name     = "h263d_vdpu2",
+    .type     = MPP_CTX_DEC,
+    .coding   = MPP_VIDEO_CodingH263,
+    .ctx_size = sizeof(hal_h263_ctx),
+    .flag     = 0,
+    .init     = hal_vpu2_h263d_init,
+    .deinit   = hal_vpu2_h263d_deinit,
+    .reg_gen  = hal_vpu2_h263d_gen_regs,
+    .start    = hal_vpu2_h263d_start,
+    .wait     = hal_vpu2_h263d_wait,
+    .reset    = NULL,
+    .flush    = NULL,
+    .control  = NULL,
+    .client   = VPU_CLIENT_VDPU2,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3128H,
+        ROCKCHIP_SOC_RK3399,
+        ROCKCHIP_SOC_RK3328,
+        ROCKCHIP_SOC_RK3228,
+        ROCKCHIP_SOC_RK3228H,
+        ROCKCHIP_SOC_RK3229,
+        ROCKCHIP_SOC_RK3326,
+        ROCKCHIP_SOC_RK1808,
+        ROCKCHIP_SOC_RK3566,
+        ROCKCHIP_SOC_RK3567,
+        ROCKCHIP_SOC_RK3568,
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_RK3528,
+        ROCKCHIP_SOC_RK3538,
+        ROCKCHIP_SOC_RK3539,
+        ROCKCHIP_SOC_BUTT
+    },
+};
+
+MPP_DEC_HAL_API_REGISTER(hal_h263d_vdpu2)

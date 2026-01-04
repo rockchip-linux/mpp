@@ -30,23 +30,20 @@ extern RK_U32 hal_mpg4d_debug;
 #define MPEG4_MAX_MV_BUF_SIZE       ((1920/16)*(1088/16)*4*sizeof(RK_U32))
 
 typedef struct mpeg4d_reg_context {
-    MppBufSlots         frm_slots;
-    MppBufSlots         pkt_slots;
-    MppBufferGroup      group;
-    MppCbCtx            *dec_cb;
-    MppDev              dev;
+    MppHalCfg            *cfg;
+
     // save fd for curr/ref0/ref1 for reg_gen
     RK_S32              fd_curr;
     RK_S32              fd_ref0;
     RK_S32              fd_ref1;
     RK_U32              bitstrm_len;
+
     // mv info buffer
     // NOTE: mv buffer fix to 1080p size for convenience
     MppBuffer           mv_buf;
     MppBuffer           qp_table;
 
-    void*               regs;
-    const MppHalApi      *hal_api;
+    void                *regs;
 } hal_mpg4_ctx;
 
 extern RK_U8 default_inter_matrix[64];

@@ -20,11 +20,13 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_debug.h"
 #include "mpp_bitread.h"
 #include "mpp_bitput.h"
+#include "mpp_platform.h"
+#include "mpp_device.h"
+#include "osal_2str.h"
 
 #include "hal_dec_task.h"
 #include "jpegd_syntax.h"
@@ -508,7 +510,7 @@ MPP_RET jpegd_setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *s, RK_S32 output)
         pp_info->pp_enable = 0;
     }
 
-    mpp_buf_slot_get_prop(ctx->frame_slots, output,
+    mpp_buf_slot_get_prop(ctx->cfg->frame_slots, output,
                           SLOT_FRAME_PTR, &frm);
     mpp_frame_set_fmt(frm, ctx->output_fmt);
     mpp_frame_set_hor_stride_pixel(frm, s->hor_stride);

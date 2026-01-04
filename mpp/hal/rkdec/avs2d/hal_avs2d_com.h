@@ -6,6 +6,7 @@
 #ifndef HAL_AVS2D_COM_H
 #define HAL_AVS2D_COM_H
 
+#include "mpp_env.h"
 #include "vdpu38x_com.h"
 
 MPP_RET hal_avs2d_vdpu_deinit(void *hal);

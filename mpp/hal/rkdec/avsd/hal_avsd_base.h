@@ -18,8 +18,9 @@
 #define HAL_AVSD_BASE_H
 
 #include "parser_api.h"
-#include "hal_avsd_api.h"
 #include "avsd_syntax.h"
+#include "mpp_hal.h"
+#include "mpp_env.h"
 
 #include "mpp_device.h"
 
@@ -34,17 +35,17 @@
 #define AVSD_DBG_HARD_MODE             (0x00010000)
 #define AVSD_DBG_PROFILE_ID            (0x00020000)
 
-extern RK_U32 avsd_hal_debug;
+extern RK_U32 hal_avsd_debug;
 
 #define AVSD_HAL_DBG(level, fmt, ...)\
 do {\
-    if (level & avsd_hal_debug)\
+    if (level & hal_avsd_debug)\
     { mpp_log(fmt, ## __VA_ARGS__); }\
 } while (0)
 
 #define AVSD_HAL_TRACE(fmt, ...)\
 do {\
-    if (AVSD_HAL_DBG_TRACE & avsd_hal_debug)\
+    if (AVSD_HAL_DBG_TRACE & hal_avsd_debug)\
     { mpp_log_f(fmt, ## __VA_ARGS__); }\
 } while (0)
 
@@ -99,21 +100,14 @@ typedef struct avsd_hal_picture_t {
 
 
 typedef struct avsd_hal_ctx_t {
-    const MppHalApi          *hal_api;
-    MppBufSlots              frame_slots;
-    MppBufSlots              packet_slots;
-    MppBufferGroup           buf_group;
-
     MppCodingType            coding;
-    MppCbCtx                 *dec_cb;
-    MppDev                   dev;
-    MppDecCfgSet             *dec_cfg;
+
+    MppHalCfg                *cfg;
 
     AvsdSyntax_t             syn;
     RK_U32                   *p_regs;
     RK_U32                   regs_num;
     MppBuffer                mv_buf;
-    MppHalCfg                *cfg;
 
     AvsdHalPic_t             pic[3];
     //!< add for control

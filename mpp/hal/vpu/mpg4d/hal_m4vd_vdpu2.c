@@ -26,11 +26,12 @@
 #include "mpp_common.h"
 
 #include "mpg4d_syntax.h"
-#include "hal_mpg4d_api.h"
 #include "hal_m4vd_com.h"
 #include "hal_m4vd_vdpu2.h"
 #include "hal_m4vd_vdpu2_reg.h"
 #include "mpp_dec_cb_param.h"
+
+static MPP_RET vdpu2_mpg4d_deinit(void *hal);
 
 static void vdpu2_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax)
 {
@@ -120,7 +121,7 @@ static void vdpu2_mpg4d_setup_regs_by_syntax(hal_mpg4_ctx *ctx, MppSyntax syntax
 
         regs->reg64_input_stream_base = val;
         if (consumed_bytes_align)
-            mpp_dev_set_reg_offset(ctx->dev, 64, consumed_bytes_align);
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 64, consumed_bytes_align);
         regs->reg122.sw_stream_start_word = start_bit_offset;
         regs->reg51_stream_info.sw_stream_len = left_bytes;
     }
@@ -224,26 +225,26 @@ static MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     M4vdVdpu2Regs_t *regs = NULL;
-    MppBufferGroup group = NULL;
-    MppBuffer mv_buf = NULL;
-    MppBuffer qp_table = NULL;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
 
     mpp_assert(hal);
+    mpp_assert(cfg);
 
-    ret = mpp_buffer_group_get_internal(&group, MPP_BUFFER_TYPE_ION);
-    if (ret) {
-        mpp_err_f("failed to get buffer group ret %d\n", ret);
-        goto ERR_RET;
+    mpp_env_get_u32("hal_mpg4d_debug", &hal_mpg4d_debug, 0);
+
+    ctx->cfg = cfg;
+    if (!cfg->dev || !cfg->buf_group) {
+        mpp_err_f("invalid cfg dev %p buf_group %p\n", cfg->dev, cfg->buf_group);
+        return MPP_ERR_NULL_PTR;
     }
 
-    ret = mpp_buffer_get(group, &mv_buf, MPEG4_MAX_MV_BUF_SIZE);
+    ret = mpp_buffer_get(cfg->buf_group, &ctx->mv_buf, MPEG4_MAX_MV_BUF_SIZE);
     if (ret) {
         mpp_err_f("failed to get mv buffer ret %d\n", ret);
         goto ERR_RET;
     }
 
-    ret = mpp_buffer_get(group, &qp_table, 64 * 2 * sizeof(RK_U8));
+    ret = mpp_buffer_get(cfg->buf_group, &ctx->qp_table, 64 * 2 * sizeof(RK_U8));
     if (ret) {
         mpp_err_f("failed to get qp talbe buffer ret %d\n", ret);
         goto ERR_RET;
@@ -256,45 +257,12 @@ static MPP_RET vdpu2_mpg4d_init(void *hal, MppHalCfg *cfg)
         goto ERR_RET;
     }
 
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU2);
-    if (ret) {
-        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-        goto ERR_RET;
-    }
-
-    ctx->frm_slots  = cfg->frame_slots;
-    ctx->pkt_slots  = cfg->packet_slots;
-    ctx->dec_cb     = cfg->dec_cb;
-    ctx->group      = group;
-    ctx->mv_buf     = mv_buf;
-    ctx->qp_table   = qp_table;
-    ctx->regs       = regs;
-    cfg->dev        = ctx->dev;
-
-    mpp_env_get_u32("hal_mpg4d_debug", &hal_mpg4d_debug, 0);
+    ctx->regs = regs;
 
     return ret;
+
 ERR_RET:
-    if (regs) {
-        mpp_free(regs);
-        regs = NULL;
-    }
-
-    if (qp_table) {
-        mpp_buffer_put(qp_table);
-        qp_table = NULL;
-    }
-
-    if (mv_buf) {
-        mpp_buffer_put(mv_buf);
-        mv_buf = NULL;
-    }
-
-    if (group) {
-        mpp_buffer_group_put(group);
-        group = NULL;
-    }
-
+    vdpu2_mpg4d_deinit(ctx);
     return ret;
 }
 
@@ -320,15 +288,7 @@ static MPP_RET vdpu2_mpg4d_deinit(void *hal)
         ctx->mv_buf = NULL;
     }
 
-    if (ctx->group) {
-        mpp_buffer_group_put(ctx->group);
-        ctx->group = NULL;
-    }
-
-    if (ctx->dev) {
-        mpp_dev_deinit(ctx->dev);
-        ctx->dev = NULL;
-    }
+    ctx->cfg = NULL;
 
     return ret;
 }
@@ -370,7 +330,7 @@ static MPP_RET vdpu2_mpg4d_gen_regs(void *hal,  HalTaskInfo *syn)
     regs->reg153.sw_pred_bc_tap_0_3 = 20;
 
     /* setup buffer for input / output / reference */
-    mpp_buf_slot_get_prop(ctx->pkt_slots, task->input, SLOT_BUFFER, &buf_pkt);
+    mpp_buf_slot_get_prop(ctx->cfg->packet_slots, task->input, SLOT_BUFFER, &buf_pkt);
     mpp_assert(buf_pkt);
     vpu_mpg4d_get_buffer_by_index(ctx, task->output, &buf_frm_curr);
     vpu_mpg4d_get_buffer_by_index(ctx, task->refer[0], &buf_frm_ref0);
@@ -399,6 +359,7 @@ static MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
+    MppDev dev = ctx->cfg->dev;
     RK_U32* regs = (RK_U32 *)ctx->regs;
 
     if (hal_mpg4d_debug & MPG4D_HAL_DBG_REG_PUT) {
@@ -419,7 +380,7 @@ static MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
         wr_cfg.size = reg_size;
         wr_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -429,13 +390,13 @@ static MPP_RET vdpu2_mpg4d_start(void *hal, HalTaskInfo *task)
         rd_cfg.size = reg_size;
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -450,9 +411,10 @@ static MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     hal_mpg4_ctx *ctx = (hal_mpg4_ctx *)hal;
+    MppDev dev = ctx->cfg->dev;
     M4vdVdpu2Regs_t *regs = (M4vdVdpu2Regs_t *)ctx->regs;
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
@@ -465,7 +427,7 @@ static MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
         }
     }
 
-    if (ctx->dec_cb) {
+    if (ctx->cfg->dec_cb) {
         DecCbHalDone param = { 0 };
 
         if (!regs->reg55_Interrupt.sw_dec_rdy_int)
@@ -474,7 +436,7 @@ static MPP_RET vdpu2_mpg4d_wait(void *hal, HalTaskInfo *task)
         param.task = (void *)&task->dec;
         param.regs = (RK_U32 *)ctx->regs;
 
-        mpp_callback(ctx->dec_cb, &param);
+        mpp_callback(ctx->cfg->dec_cb, &param);
     }
 
     (void)task;
@@ -495,4 +457,25 @@ const MppHalApi vdpu2_mpg4d = {
     .reset    = NULL,
     .flush    = NULL,
     .control  = NULL,
+    .client   = VPU_CLIENT_VDPU2,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3128H,
+        ROCKCHIP_SOC_RK3399,
+        ROCKCHIP_SOC_RK3328,
+        ROCKCHIP_SOC_RK3228,
+        ROCKCHIP_SOC_RK3228H,
+        ROCKCHIP_SOC_RK3229,
+        ROCKCHIP_SOC_RK3326,
+        ROCKCHIP_SOC_RK1808,
+        ROCKCHIP_SOC_RK3566,
+        ROCKCHIP_SOC_RK3567,
+        ROCKCHIP_SOC_RK3568,
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_RK3528,
+        ROCKCHIP_SOC_RK3538,
+        ROCKCHIP_SOC_RK3539,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(vdpu2_mpg4d)

@@ -14,6 +14,7 @@
 
 #include "jpegd_syntax.h"
 #include "hal_jpegd_base.h"
+#include "hal_jpegd_common.h"
 
 #include "hal_jpegd_vpu7xx_com.h"
 #include "hal_jpegd_vpu730.h"
@@ -34,10 +35,9 @@ static MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg)
         }
     }
 
-    ctx->dec_cb       = cfg->dec_cb;
-    ctx->packet_slots = cfg->packet_slots;
-    ctx->frame_slots  = cfg->frame_slots;
+    mpp_env_get_u32("hal_jpegd_debug", &hal_jpegd_debug, 0);
 
+    ctx->cfg = cfg;
     /* allocate regs buffer */
     if (ctx->regs == NULL) {
         ctx->regs = mpp_calloc_size(void, sizeof(JpegdVpu730Reg));
@@ -49,21 +49,12 @@ static MPP_RET hal_jpegd_vpu730_init(void *hal, MppHalCfg *cfg)
         }
     }
 
-    if (ctx->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
-
-        if (ret) {
-            mpp_err_f("mpp_buffer_group_get failed ret %d\n", ret);
-            return ret;
-        }
-    }
-
-    ret = mpp_buffer_get(ctx->group, &ctx->pTableBase, RKD_TABLE_SIZE);
+    ret = mpp_buffer_get(ctx->cfg->buf_group, &ctx->pTableBase, RKD_TABLE_SIZE);
 
     if (ret)
         mpp_err_f("Get table buffer failed, ret %d\n", ret);
 
-    mpp_buffer_attach_dev(ctx->pTableBase, ctx->dev);
+    mpp_buffer_attach_dev(ctx->pTableBase, ctx->cfg->dev);
 
     jpegd_dbg_func("exit\n");
 
@@ -77,25 +68,11 @@ static MPP_RET hal_jpegd_vpu730_deinit(void *hal)
 
     jpegd_dbg_func("enter\n");
 
-    if (ctx->dev) {
-        mpp_dev_deinit(ctx->dev);
-        ctx->dev = NULL;
-    }
-
     if (ctx->pTableBase) {
         ret = mpp_buffer_put(ctx->pTableBase);
 
         if (ret) {
             mpp_err_f("put buffer failed\n");
-            return ret;
-        }
-    }
-
-    if (ctx->group) {
-        ret = mpp_buffer_group_put(ctx->group);
-
-        if (ret) {
-            mpp_err_f("group free buffer failed\n");
             return ret;
         }
     }
@@ -126,7 +103,7 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
     RK_U32 stride = syntax->hor_stride;
     MppFrame frm = NULL;
 
-    mpp_buf_slot_get_prop(ctx->frame_slots, out_idx, SLOT_FRAME_PTR, &frm);
+    mpp_buf_slot_get_prop(ctx->cfg->frame_slots, out_idx, SLOT_FRAME_PTR, &frm);
 
     if (ctx->scale) {
         if (ctx->scale == 2)
@@ -404,9 +381,9 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     regs->reg13_dec_out_base = ctx->frame_fd;
     regs->reg12_strm_base = ctx->pkt_fd;
 
-    mpp_dev_set_reg_offset(ctx->dev, 12, hw_strm_offset);
-    mpp_dev_set_reg_offset(ctx->dev, 10, RKD_HUFFMAN_MINCODE_TBL_OFFSET);
-    mpp_dev_set_reg_offset(ctx->dev, 11, RKD_HUFFMAN_VALUE_TBL_OFFSET);
+    mpp_dev_set_reg_offset(ctx->cfg->dev, 12, hw_strm_offset);
+    mpp_dev_set_reg_offset(ctx->cfg->dev, 10, RKD_HUFFMAN_MINCODE_TBL_OFFSET);
+    mpp_dev_set_reg_offset(ctx->cfg->dev, 11, RKD_HUFFMAN_VALUE_TBL_OFFSET);
 
     regs->reg14_strm_error.error_prc_mode = 1;
     regs->reg14_strm_error.strm_ffff_err_mode = 2;
@@ -441,8 +418,8 @@ static MPP_RET hal_jpegd_vpu730_gen_regs(void *hal,  HalTaskInfo *syn)
     if (syn->dec.flags.parse_err)
         goto __RETURN;
 
-    mpp_buf_slot_get_prop(ctx->packet_slots, syn->dec.input, SLOT_BUFFER, & strm_buf);
-    mpp_buf_slot_get_prop(ctx->frame_slots, syn->dec.output, SLOT_BUFFER, &output_buf);
+    mpp_buf_slot_get_prop(ctx->cfg->packet_slots, syn->dec.input, SLOT_BUFFER, & strm_buf);
+    mpp_buf_slot_get_prop(ctx->cfg->frame_slots, syn->dec.output, SLOT_BUFFER, &output_buf);
 
     ctx->pkt_fd = mpp_buffer_get_fd(strm_buf);
     if (ctx->pkt_fd <= 0) {
@@ -483,6 +460,7 @@ static MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx * ctx = (JpegdHalCtx *)hal;
+    MppDev dev = ctx->cfg->dev;
     RK_U32 *regs = (RK_U32 *)ctx->regs;
 
     jpegd_dbg_func("enter\n");
@@ -504,7 +482,7 @@ static MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task)
         }
     }
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
 
     if (ret) {
         mpp_err_f("set register write failed %d\n", ret);
@@ -515,14 +493,14 @@ static MPP_RET hal_jpegd_vpu730_start(void *hal, HalTaskInfo *task)
     rd_cfg.size = reg_size;
     rd_cfg.offset = 0;
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
 
     if (ret) {
         mpp_err_f("set register read failed %d\n", ret);
         goto __RETURN;
     }
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
 
     if (ret) {
         mpp_err_f("send cmd failed %d\n", ret);
@@ -542,6 +520,7 @@ static MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     JpegdHalCtx *ctx = (JpegdHalCtx *)hal;
+    MppDev dev = ctx->cfg->dev;
     JpegdVpu730Reg *reg_out = ctx->regs;
     RK_U32 errinfo = 0;
     RK_U8 i = 0;
@@ -550,7 +529,7 @@ static MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task)
     if (task->dec.flags.parse_err)
         goto __SKIP_HARD;
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_POLL, NULL);
 
     if (ret) {
         task->dec.flags.parse_err = 1;
@@ -558,7 +537,7 @@ static MPP_RET hal_jpegd_vpu730_wait(void *hal, HalTaskInfo *task)
     }
 
 __SKIP_HARD:
-    if (ctx->dec_cb) {
+    if (ctx->cfg->dec_cb) {
         DecCbHalDone param;
 
         param.task = (void *)&task->dec;
@@ -570,7 +549,7 @@ __SKIP_HARD:
             errinfo = 1;
         }
         param.hard_err = errinfo;
-        mpp_callback(ctx->dec_cb, &param);
+        mpp_callback(ctx->cfg->dec_cb, &param);
     }
     if (jpegd_debug & JPEGD_DBG_HAL_INFO) {
         for (i = 0; i < JPEGD_VPU730_REG_NUM; i++) {
@@ -585,7 +564,7 @@ __SKIP_HARD:
         char name[32];
         MppBuffer outputBuf = NULL;
         void *base = NULL;
-        mpp_buf_slot_get_prop(ctx->frame_slots, task->dec.output, SLOT_BUFFER, &outputBuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, task->dec.output, SLOT_BUFFER, &outputBuf);
         base = mpp_buffer_get_ptr(outputBuf);
 
         snprintf(name, sizeof(name) - 1, "/data/tmp/output%02d.yuv", ctx->output_yuv_count);
@@ -676,4 +655,13 @@ const MppHalApi hal_jpegd_vpu730 = {
     .reset    = NULL,
     .flush    = NULL,
     .control  = hal_jpegd_vpu730_control,
+    .client   = VPU_CLIENT_JPEG_DEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3538,
+        ROCKCHIP_SOC_RK3539,
+        ROCKCHIP_SOC_RK3572,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_jpegd_vpu730)

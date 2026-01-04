@@ -22,8 +22,8 @@
 #include "mpp_mem.h"
 #include "mpp_device.h"
 
+#include "mpp_hal.h"
 #include "avsd_syntax.h"
-#include "hal_avsd_api.h"
 #include "hal_avsd_plus_reg.h"
 #include "hal_avsd_plus.h"
 #include "mpp_dec_cb_param.h"
@@ -82,6 +82,7 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
 
     AvsdSyntax_t *p_syn = &p_hal->syn;
     AvsdPlusRegs_t *p_regs = (AvsdPlusRegs_t *)p_hal->p_regs;
+    MppHalCfg *cfg = p_hal->cfg;
 
     p_regs->sw02.dec_timeout_e = 1;
 
@@ -133,7 +134,7 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
     p_regs->sw05.strm_start_bit = 8 * (p_hal->data_offset & 0x7);
     p_hal->data_offset = (p_hal->data_offset & ~0x7);
     p_regs->sw12.rlc_vlc_base = get_packet_fd(p_hal, task->input);
-    mpp_dev_set_reg_offset(p_hal->dev, 12, p_hal->data_offset);
+    mpp_dev_set_reg_offset(cfg->dev, 12, p_hal->data_offset);
     p_regs->sw06.stream_len = p_syn->bitstream_size - p_hal->data_offset;
 
     p_regs->sw03.pic_fixed_quant = p_syn->pp.fixedPictureQp;
@@ -176,7 +177,7 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
         RK_U32 stride = p_syn->pp.horizontalSize;
 
         p_regs->sw13.dec_out_base = get_frame_fd(p_hal, task->output);
-        mpp_dev_set_reg_offset(p_hal->dev, 13, stride);
+        mpp_dev_set_reg_offset(cfg->dev, 13, stride);
     }
     {
         RK_S32 tmp_fwd = -1;
@@ -468,7 +469,7 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
             frame_height = 2 * ((p_syn->pp.verticalSize + 31) >> 5);
         offset = MPP_ALIGN(frame_width * frame_height / 2, 2) * 16;
         p_regs->sw41.dir_mv_base = mpp_buffer_get_fd(p_hal->mv_buf);
-        mpp_dev_set_reg_offset(p_hal->dev, 41, offset);
+        mpp_dev_set_reg_offset(cfg->dev, 41, offset);
     }
     //!< AVS Plus stuff
     if (p_regs->sw44.dec_avsp_ena) {
@@ -489,8 +490,8 @@ static MPP_RET set_regs_parameters(AvsdHalCtx_t *p_hal, HalDecTask *task)
     // p_regs->sw16.refer2_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
     // p_regs->sw17.refer3_field_e = (!p_hal->prev_pic_structure) ? 1 : 0;
     if (!p_hal->prev_pic_structure) {
-        mpp_dev_set_reg_offset(p_hal->dev, 16, 2);
-        mpp_dev_set_reg_offset(p_hal->dev, 17, 3);
+        mpp_dev_set_reg_offset(cfg->dev, 16, 2);
+        mpp_dev_set_reg_offset(cfg->dev, 17, 3);
     }
 
     p_regs->sw03.dec_out_dis = 0;
@@ -543,7 +544,7 @@ static MPP_RET repeat_other_field(AvsdHalCtx_t *p_hal, HalTaskInfo *task)
     p_hal->data_offset += p_hal->syn.bitstream_offset;
     p_hal->data_offset -= MPP_MIN(p_hal->data_offset, 8);
 
-    mpp_buf_slot_get_prop(p_hal->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
+    mpp_buf_slot_get_prop(p_hal->cfg->packet_slots, task->dec.input, SLOT_BUFFER, &mbuffer);
     pdata = (RK_U8 *)mpp_buffer_get_ptr(mbuffer) + p_hal->data_offset;
     stream_remain = p_hal->syn.bitstream_size - p_hal->data_offset;
 
@@ -593,17 +594,21 @@ static MPP_RET hal_avsd_plus_init(void *decoder, MppHalCfg *cfg)
     RK_U32 buf_size = 0;
     AvsdHalCtx_t *p_hal = (AvsdHalCtx_t *)decoder;
 
+    mpp_env_get_u32("hal_avsd_debug", &hal_avsd_debug, 0);
+
     AVSD_HAL_TRACE("AVS_plus In.");
 
+    p_hal->cfg = cfg;
+
     buf_size = (1920 * 1088) * 2;
-    FUN_CHECK(ret = mpp_buffer_get(p_hal->buf_group, &p_hal->mv_buf, buf_size));
+    FUN_CHECK(ret = mpp_buffer_get(p_hal->cfg->buf_group, &p_hal->mv_buf, buf_size));
 
     p_hal->p_regs = mpp_calloc_size(RK_U32, sizeof(AvsdPlusRegs_t));
     MEM_CHECK(ret, p_hal->p_regs);
 
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
-    mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_VER_ALIGN, mpp_align_16);
+    mpp_slots_set_prop(cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     p_hal->regs_num = 60;
     //!< initial for control
@@ -656,11 +661,12 @@ static MPP_RET hal_avsd_plus_gen_regs(void *decoder, HalTaskInfo *task)
 
     AVSD_HAL_TRACE("In.");
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
-        !p_hal->dec_cfg->base.disable_error) {
+        !p_hal->cfg->cfg->base.disable_error) {
         goto __RETURN;
     }
     p_hal->data_offset = p_hal->syn.bitstream_offset;
 
+    memcpy(&p_hal->syn, task->dec.syntax.data, sizeof(AvsdSyntax_t));
     FUN_CHECK(ret = set_regs_parameters(p_hal, &task->dec));
 __RETURN:
     AVSD_HAL_TRACE("Out.");
@@ -684,19 +690,20 @@ static MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
     INP_CHECK(ret, NULL == decoder);
 
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
-        !p_hal->dec_cfg->base.disable_error) {
+        !p_hal->cfg->cfg->base.disable_error) {
         goto __RETURN;
     }
 
     do {
         MppDevRegWrCfg wr_cfg;
         MppDevRegRdCfg rd_cfg;
+        MppDev dev = p_hal->cfg->dev;
 
         wr_cfg.reg = p_hal->p_regs;
         wr_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
         wr_cfg.offset = 0;
 
-        if (avsd_hal_debug & AVSD_HAL_DBG_ERROR) {
+        if (hal_avsd_debug & AVSD_HAL_DBG_ERROR) {
             static RK_U32 frame_no = 0;
             static FILE *fp = NULL;
             RK_U32 i;
@@ -716,7 +723,7 @@ static MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
             }
         }
 
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -726,13 +733,13 @@ static MPP_RET hal_avsd_plus_start(void *decoder, HalTaskInfo *task)
         rd_cfg.size = AVSD_REGISTERS * sizeof(RK_U32);
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
 
-        ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -760,16 +767,16 @@ static MPP_RET hal_avsd_plus_wait(void *decoder, HalTaskInfo *task)
     INP_CHECK(ret, NULL == decoder);
 
     if ((task->dec.flags.parse_err || task->dec.flags.ref_err) &&
-        !p_hal->dec_cfg->base.disable_error) {
+        !p_hal->cfg->cfg->base.disable_error) {
         goto __SKIP_HARD;
     }
 
-    ret = mpp_dev_ioctl(p_hal->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(p_hal->cfg->dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
 __SKIP_HARD:
-    if (p_hal->dec_cb) {
+    if (p_hal->cfg->dec_cb) {
         DecCbHalDone param;
 
         param.task = (void *)&task->dec;
@@ -777,7 +784,7 @@ __SKIP_HARD:
         param.hard_err = (!((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int) ||
                          ((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_error_int;
 
-        mpp_callback(p_hal->dec_cb, &param);
+        mpp_callback(p_hal->cfg->dec_cb, &param);
     }
 
     AVSD_HAL_DBG(AVSD_HAL_DBG_WAIT, "first_field %d, irq 0x%08x, parse err %d, ref err %d\n",
@@ -786,7 +793,7 @@ __SKIP_HARD:
     update_parameters(p_hal);
     if (!p_hal->first_field && p_hal->syn.pp.pictureStructure == FIELDPICTURE &&
         ((!task->dec.flags.parse_err && !task->dec.flags.ref_err) ||
-         p_hal->dec_cfg->base.disable_error)) {
+         p_hal->cfg->cfg->base.disable_error)) {
         if (((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_rdy_int &&
             !((AvsdPlusRegs_t *)p_hal->p_regs)->sw01.dec_error_int) {
             memset(&p_hal->p_regs[1], 0, sizeof(RK_U32));
@@ -883,4 +890,13 @@ const MppHalApi hal_avsd_plus = {
     .reset    = hal_avsd_plus_reset,
     .flush    = hal_avsd_plus_flush,
     .control  = hal_avsd_plus_control,
+    .client   = VPU_CLIENT_AVSPLUS_DEC,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3228H,
+        ROCKCHIP_SOC_RK3588,
+        ROCKCHIP_SOC_RK3528,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_avsd_plus)

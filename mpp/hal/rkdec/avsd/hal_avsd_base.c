@@ -7,10 +7,9 @@
 
 #include "mpp_debug.h"
 #include "mpp_common.h"
-
+#include "mpp_device.h"
+#include "mpp_platform.h"
 #include "hal_avsd_base.h"
-
-RK_U32 avsd_hal_debug = 0;
 
 RK_S32 get_queue_pic(AvsdHalCtx_t *p_hal)
 {
@@ -33,7 +32,7 @@ RK_S32 get_packet_fd(AvsdHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_buf_slot_get_prop(p_hal->packet_slots, idx, SLOT_BUFFER, &mbuffer);
+    mpp_buf_slot_get_prop(p_hal->cfg->packet_slots, idx, SLOT_BUFFER, &mbuffer);
     mpp_assert(mbuffer);
     ret_fd =  mpp_buffer_get_fd(mbuffer);
 
@@ -45,7 +44,7 @@ RK_S32 get_frame_fd(AvsdHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_buf_slot_get_prop(p_hal->frame_slots, idx, SLOT_BUFFER, &mbuffer);
+    mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, idx, SLOT_BUFFER, &mbuffer);
     mpp_assert(mbuffer);
     ret_fd = mpp_buffer_get_fd(mbuffer);
 

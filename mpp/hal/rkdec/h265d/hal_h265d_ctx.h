@@ -8,6 +8,7 @@
 
 #include "mpp_device.h"
 #include "mpp_hal.h"
+#include "mpp_env.h"
 #include "hal_bufs.h"
 #include "vdpu_com.h"
 
@@ -19,7 +20,7 @@ typedef struct H265dRegBuf_t {
     MppBuffer scaling_list_data;
     MppBuffer pps_data;
     MppBuffer rps_data;
-    void*     hw_regs;
+    void      *hw_regs;
 } H265dRegBuf;
 
 typedef struct H265dRcbInfo_t {
@@ -29,19 +30,12 @@ typedef struct H265dRcbInfo_t {
 } H265dRcbInfo;
 
 typedef struct HalH265dCtx_t {
-    /* for hal api call back */
-    const MppHalApi *api;
-
     /* for hardware info */
     MppClientType   client_type;
     RK_U32          hw_id;
-    MppDev          dev;
-    MppDecCfgSet    *cfg;
 
-    /* for resource */
-    MppBufSlots     slots;
-    MppBufSlots     packet_slots;
-    MppBufferGroup  group;
+    MppHalCfg       *cfg;
+
     MppBuffer       cabac_table_data;
     MppBuffer       scaling_list_data;
     MppBuffer       pps_data;
@@ -54,10 +48,9 @@ typedef struct HalH265dCtx_t {
     H265dRcbInfo    rcb_info[H265D_RCB_BUF_COUNT];
     MppBuffer       rcb_buf[VDPU_FAST_REG_SET_CNT];
 
-    void*           hw_regs;
+    void            *hw_regs;
     H265dRegBuf     g_buf[VDPU_FAST_REG_SET_CNT];
     RK_U32          fast_mode;
-    MppCbCtx        *dec_cb;
     RK_U32          fast_mode_err_found;
     void            *scaling_rk;
     void            *scaling_qm;
@@ -92,8 +85,6 @@ typedef struct HalH265dCtx_t {
     HalBufs         origin_bufs;
     MppBuffer       missing_ref_buf;
     RK_U32          missing_ref_buf_size;
-
-    const MppDecHwCap   *hw_info;
 } HalH265dCtx;
 
 typedef struct ScalingList_t {

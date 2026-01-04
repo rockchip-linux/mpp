@@ -120,21 +120,14 @@ do{\
 #define AV1DEC_MAX_PIC_BUFFERS 24
 
 typedef struct av1d_hal_ctx_t {
-    const MppHalApi          *api;
-    RK_U8                    *bitstream;
-    RK_U32                   strm_len;
+    RK_U8                   *bitstream;
+    RK_U32                  strm_len;
 
-    HalDecTask               *in_task;
-    MppBufSlots              slots;
-    MppBufSlots              packet_slots;
-    MppDecCfgSet             *cfg;
-    MppBufferGroup           buf_group;
+    HalDecTask              *in_task;
+    MppHalCfg               *cfg;
 
-    MppCbCtx                 *dec_cb;
-    MppDev                   dev;
-    void                     *reg_ctx;
-    RK_U32                   fast_mode;
-    const MppDecHwCap       *hw_info;
+    void                    *reg_ctx;
+    RK_U32                  fast_mode;
 } Av1dHalCtx;
 
 #endif /* HAL_AV1D_GLOBAL_H */

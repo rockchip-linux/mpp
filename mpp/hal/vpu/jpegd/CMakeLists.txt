@@ -2,7 +2,6 @@
 
 # hal jpeg decoder sourse
 set(HAL_JPEGD_SRC
-    hal_jpegd_api.c
     hal_jpegd_common.c
     hal_jpegd_vpu7xx_com.c
     )

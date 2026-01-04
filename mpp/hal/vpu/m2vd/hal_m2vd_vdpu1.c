@@ -20,6 +20,7 @@
 
 #include "mpp_mem.h"
 #include "mpp_common.h"
+#include "mpp_env.h"
 
 #include "hal_m2vd_base.h"
 #include "hal_m2vd_vdpu1_reg.h"
@@ -32,6 +33,11 @@ static MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
     M2vdVdpu1Reg_t *regs = NULL;
 
+    mpp_env_get_u32("hal_m2vd_debug", &hal_m2vd_debug, 0);
+
+    mpp_assert(hal);
+    mpp_assert(cfg);
+
     regs = mpp_calloc(M2vdVdpu1Reg_t, 1);
     if (NULL == regs) {
         mpp_err_f("failed to malloc register ret\n");
@@ -40,43 +46,28 @@ static MPP_RET hal_m2vd_vdpu1_init(void *hal, MppHalCfg *cfg)
     }
 
     ctx->reg_len = M2VD_VDPU1_REG_NUM;
+    ctx->cfg = cfg;
+    ctx->regs = (void*)regs;
 
-    ret = mpp_dev_init(&ctx->dev, VPU_CLIENT_VDPU1);
-    if (ret) {
-        mpp_err_f("mpp_dev_init failed. ret: %d\n", ret);
-        ret = MPP_ERR_UNKNOW;
+    if (!ctx->cfg || !ctx->cfg->dev || !ctx->cfg->buf_group) {
+        mpp_err_f("invalid cfg %p dev %p buf_group %p\n", ctx->cfg,
+                  ctx->cfg ? ctx->cfg->dev : NULL,
+                  ctx->cfg ? ctx->cfg->buf_group : NULL);
+        ret = MPP_ERR_NULL_PTR;
         goto __ERR_RET;
     }
-    if (ctx->group == NULL) {
-        ret = mpp_buffer_group_get_internal(&ctx->group, MPP_BUFFER_TYPE_ION);
-        if (ret) {
-            mpp_err("m2v_hal mpp_buffer_group_get failed\n");
-            goto __ERR_RET;
-        }
-    }
-    ret = mpp_buffer_get(ctx->group, &ctx->qp_table, M2VD_BUF_SIZE_QPTAB);
+
+    ret = mpp_buffer_get(ctx->cfg->buf_group, &ctx->qp_table, M2VD_BUF_SIZE_QPTAB);
     if (ret) {
         mpp_err("m2v_hal_qtable_base get buffer failed\n");
         goto __ERR_RET;
     }
 
-    ctx->packet_slots   = cfg->packet_slots;
-    ctx->frame_slots    = cfg->frame_slots;
-    ctx->dec_cb         = cfg->dec_cb;
-    ctx->regs           = (void*)regs;
-    cfg->dev            = ctx->dev;
-
     return ret;
 
 __ERR_RET:
-    if (regs) {
-        mpp_free(regs);
-        regs = NULL;
-    }
-
-    if (ctx) {
+    if (ctx)
         hal_m2vd_vdpu1_deinit(ctx);
-    }
 
     return ret;
 }
@@ -86,28 +77,21 @@ static MPP_RET hal_m2vd_vdpu1_deinit(void *hal)
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *p = (M2vdHalCtx *)hal;
 
-    if (p->dev) {
-        mpp_dev_deinit(p->dev);
-        p->dev = NULL;
-    }
-
     if (p->qp_table) {
         ret = mpp_buffer_put(p->qp_table);
         p->qp_table = NULL;
-        if (MPP_OK !=  ret) {
+        if (MPP_OK != ret) {
             mpp_err("m2v_hal qp_table put buffer failed\n");
             return ret;
         }
     }
 
-    if (p->group) {
-        ret = mpp_buffer_group_put(p->group);
-        p->group = NULL;
-        if (ret) {
-            mpp_err("m2v_hal group free buffer failed\n");
-            return ret;
-        }
+    if (p->regs) {
+        mpp_free(p->regs);
+        p->regs = NULL;
     }
+
+    p->cfg = NULL;
 
     return ret;
 }
@@ -213,32 +197,32 @@ static MPP_RET hal_m2vd_vdpu1_gen_regs(void *hal, HalTaskInfo *task)
         p_regs->sw05.frame_pred_dct = dx->pic_code_ext.frame_pred_frame_dct;
         p_regs->sw06.init_qp = 1;
 
-        mpp_buf_slot_get_prop(ctx->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
+        mpp_buf_slot_get_prop(ctx->cfg->packet_slots, task->dec.input, SLOT_BUFFER, &streambuf);
         p_regs->sw12.rlc_vlc_base = mpp_buffer_get_fd(streambuf);
         if (dx->bitstream_offset) {
-            mpp_dev_set_reg_offset(ctx->dev, 12, dx->bitstream_offset);
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 12, dx->bitstream_offset);
         }
 
-        mpp_buf_slot_get_prop(ctx->frame_slots, dx->CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, dx->CurrPic.Index7Bits, SLOT_BUFFER, &framebuf);
 
         if ((dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_TOP_FIELD) ||
             (dx->pic_code_ext.picture_structure == M2VD_PIC_STRUCT_FRAME)) {
             p_regs->sw13.dec_out_base = mpp_buffer_get_fd(framebuf);
         } else {
             p_regs->sw13.dec_out_base = mpp_buffer_get_fd(framebuf);
-            mpp_dev_set_reg_offset(ctx->dev, 13, MPP_ALIGN(dx->seq.decode_width, 16));
+            mpp_dev_set_reg_offset(ctx->cfg->dev, 13, MPP_ALIGN(dx->seq.decode_width, 16));
         }
 
-        mpp_buf_slot_get_prop(ctx->frame_slots, dx->frame_refs[0].Index7Bits, SLOT_BUFFER, &framebuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, dx->frame_refs[0].Index7Bits, SLOT_BUFFER, &framebuf);
         p_regs->sw14.refer0_base = mpp_buffer_get_fd(framebuf);
 
-        mpp_buf_slot_get_prop(ctx->frame_slots, dx->frame_refs[1].Index7Bits, SLOT_BUFFER, &framebuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, dx->frame_refs[1].Index7Bits, SLOT_BUFFER, &framebuf);
         p_regs->sw15.refer1_base = mpp_buffer_get_fd(framebuf);
 
-        mpp_buf_slot_get_prop(ctx->frame_slots, dx->frame_refs[2].Index7Bits, SLOT_BUFFER, &framebuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, dx->frame_refs[2].Index7Bits, SLOT_BUFFER, &framebuf);
         p_regs->sw16.refer2_base = mpp_buffer_get_fd(framebuf);
 
-        mpp_buf_slot_get_prop(ctx->frame_slots, dx->frame_refs[3].Index7Bits, SLOT_BUFFER, &framebuf);
+        mpp_buf_slot_get_prop(ctx->cfg->frame_slots, dx->frame_refs[3].Index7Bits, SLOT_BUFFER, &framebuf);
         p_regs->sw17.refer3_base = mpp_buffer_get_fd(framebuf);
 
         p_regs->sw40.qtable_base = mpp_buffer_get_fd(ctx->qp_table);
@@ -268,12 +252,13 @@ static MPP_RET hal_m2vd_vdpu1_start(void *hal, HalTaskInfo *task)
         MppDevRegRdCfg rd_cfg;
         RK_U32 *regs = (RK_U32 *)ctx->regs;
         RK_U32 reg_size = sizeof(M2vdVdpu1Reg_t);
+        MppDev dev = ctx->cfg->dev;
 
         wr_cfg.reg = regs;
         wr_cfg.size = reg_size;
         wr_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_WR, &wr_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_WR, &wr_cfg);
         if (ret) {
             mpp_err_f("set register write failed %d\n", ret);
             break;
@@ -283,13 +268,13 @@ static MPP_RET hal_m2vd_vdpu1_start(void *hal, HalTaskInfo *task)
         rd_cfg.size = reg_size;
         rd_cfg.offset = 0;
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_REG_RD, &rd_cfg);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_REG_RD, &rd_cfg);
         if (ret) {
             mpp_err_f("set register read failed %d\n", ret);
             break;
         }
 
-        ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_SEND, NULL);
+        ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {
             mpp_err_f("send cmd failed %d\n", ret);
             break;
@@ -304,15 +289,16 @@ static MPP_RET hal_m2vd_vdpu1_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_OK;
     M2vdHalCtx *ctx = (M2vdHalCtx *)hal;
+    MppDev dev = ctx->cfg->dev;
     M2vdVdpu1Reg_t* reg_out = (M2vdVdpu1Reg_t * )ctx->regs;
 
-    ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, NULL);
+    ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_POLL, NULL);
     if (ret)
         mpp_err_f("poll cmd failed %d\n", ret);
 
     if (reg_out->sw01.dec_error_int | reg_out->sw01.dec_buffer_int) {
-        if (ctx->dec_cb)
-            mpp_callback(ctx->dec_cb, NULL);
+        if (ctx->cfg->dec_cb)
+            mpp_callback(ctx->cfg->dec_cb, NULL);
     }
 
     (void)task;
@@ -334,4 +320,16 @@ const MppHalApi hal_m2vd_vdpu1 = {
     .reset    = NULL,
     .flush    = NULL,
     .control  = NULL,
+    .client   = VPU_CLIENT_VDPU1,
+    .soc_type = {
+        ROCKCHIP_SOC_RK3036,
+        ROCKCHIP_SOC_RK3066,
+        ROCKCHIP_SOC_RK3188,
+        ROCKCHIP_SOC_RK3288,
+        ROCKCHIP_SOC_RK312X,
+        ROCKCHIP_SOC_RK3368,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_DEC_HAL_API_REGISTER(hal_m2vd_vdpu1)

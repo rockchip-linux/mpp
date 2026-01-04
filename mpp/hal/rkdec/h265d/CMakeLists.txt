@@ -2,7 +2,6 @@
 # hal h265 reg
 
 set(HAL_H265D_SRC
-    hal_h265d_api.c
     hal_h265d_com.c
     )
 

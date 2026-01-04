@@ -2146,13 +2146,6 @@ MPP_RET hal_vp9d_vdpu38x_deinit(void *hal)
     hal_vp9d_release_res(p_hal);
     vdpu38x_rcb_calc_deinit(hw_ctx->rcb_ctx);
 
-    if (p_hal->group) {
-        ret = mpp_buffer_group_put(p_hal->group);
-        if (ret) {
-            mpp_err("vp9d group free buffer failed\n");
-            return ret;
-        }
-    }
     MPP_FREE(p_hal->hw_ctx);
 
     return ret;
@@ -2199,9 +2192,9 @@ MPP_RET hal_vp9d_vdpu38x_control(void *hal, MpiCmd cmd_type, void *param)
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->slots, (MppFrame)param, 0);
+            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 0);
         } else {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
     } break;
     case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
@@ -2439,7 +2432,7 @@ void vdpu38x_vp9d_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
             MppFrameFormat mpp_fmt;
             Vdpu38xFmt rcb_fmt;
 
-            mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+            mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
             mpp_fmt = mpp_frame_get_fmt(mframe);
             rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
 
@@ -2475,7 +2468,7 @@ void vdpu38x_vp9d_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
                     mpp_buffer_put(rcb_buf);
                     hw_ctx->g_buf[i].rcb_buf = NULL;
                 }
-                mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+                mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, hw_ctx->rcb_buf_size);
                 hw_ctx->g_buf[i].rcb_buf = rcb_buf;
             }
         } else {
@@ -2484,7 +2477,7 @@ void vdpu38x_vp9d_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
                 mpp_buffer_put(rcb_buf);
                 rcb_buf = NULL;
             }
-            mpp_buffer_get(p_hal->group, &rcb_buf, hw_ctx->rcb_buf_size);
+            mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, hw_ctx->rcb_buf_size);
             hw_ctx->rcb_buf = rcb_buf;
         }
 
@@ -2496,5 +2489,5 @@ void vdpu38x_vp9d_rcb_setup(void *hal, DXVA_PicParams_VP9 *pic_param,
 
     rcb_buf = p_hal->fast_mode ? hw_ctx->g_buf[task->dec.reg_index].rcb_buf :
               hw_ctx->rcb_buf;
-    vdpu38x_setup_rcb(hw_ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+    vdpu38x_setup_rcb(hw_ctx->rcb_ctx, rcb_regs, p_hal->cfg->dev, rcb_buf);
 }

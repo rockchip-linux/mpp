@@ -10,6 +10,7 @@
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_ctx.h"
+#include "hal_h264d_com.h"
 #include "vdpu38x_com.h"
 
 const RK_U32 rkv_cabac_table[928] = {
@@ -248,12 +249,12 @@ MPP_RET vdpu38x_h264d_control(void *hal, MpiCmd cmd_type, void *param)
 
         mpp_log("control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if (fmt == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->frame_slots, (MppFrame)param, 16);
+            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
     } break;
     case MPP_DEC_GET_THUMBNAIL_FRAME_INFO: {
@@ -508,7 +509,7 @@ void vdpu38x_h264d_rcb_setup(void *hal, HalTaskInfo *task,
             MppFrameFormat mpp_fmt;
             Vdpu38xFmt rcb_fmt;
 
-            mpp_buf_slot_get_prop(p_hal->frame_slots, p_hal->pp->CurrPic.Index7Bits,
+            mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, p_hal->pp->CurrPic.Index7Bits,
                                   SLOT_FRAME_PTR, &mframe);
             mpp_fmt = mpp_frame_get_fmt(mframe);
             rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
@@ -544,7 +545,7 @@ void vdpu38x_h264d_rcb_setup(void *hal, HalTaskInfo *task,
                 mpp_buffer_put(rcb_buf);
                 ctx->rcb_buf[i] = NULL;
             }
-            mpp_buffer_get(p_hal->buf_group, &rcb_buf, ctx->rcb_buf_size);
+            mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, ctx->rcb_buf_size);
             ctx->rcb_buf[i] = rcb_buf;
         }
         ctx->bit_depth      = bit_depth;
@@ -556,5 +557,34 @@ void vdpu38x_h264d_rcb_setup(void *hal, HalTaskInfo *task,
 
     rcb_buf = p_hal->fast_mode ? ctx->rcb_buf[task->dec.reg_index]
               : ctx->rcb_buf[0];
-    vdpu38x_setup_rcb(ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+    vdpu38x_setup_rcb(ctx->rcb_ctx, rcb_regs, p_hal->cfg->dev, rcb_buf);
+}
+
+
+void hal_h264d_explain_input_buffer(void *hal, HalDecTask *task)
+{
+    H264dHalCtx_t *p_hal = (H264dHalCtx_t *)hal;
+    DXVA2_DecodeBufferDesc *pdes = (DXVA2_DecodeBufferDesc *)task->syntax.data;
+    RK_U32 i = 0;
+
+    for (i = 0; i < task->syntax.number; i++) {
+        switch (pdes[i].CompressedBufferType) {
+        case DXVA2_PictureParametersBufferType:
+            p_hal->pp = (DXVA_PicParams_H264_MVC *)pdes[i].pvPVPState;
+            break;
+        case DXVA2_InverseQuantizationMatrixBufferType:
+            p_hal->qm = (DXVA_Qmatrix_H264 *)pdes[i].pvPVPState;
+            break;
+        case DXVA2_SliceControlBufferType:
+            p_hal->slice_num = pdes[i].DataSize / sizeof(DXVA_Slice_H264_Long);
+            p_hal->slice_long = (DXVA_Slice_H264_Long *)pdes[i].pvPVPState;
+            break;
+        case DXVA2_BitStreamDateBufferType:
+            p_hal->bitstream = (RK_U8 *)pdes[i].pvPVPState;
+            p_hal->strm_len = pdes[i].DataSize;
+            break;
+        default:
+            break;
+        }
+    }
 }

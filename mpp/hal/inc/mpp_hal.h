@@ -21,6 +21,8 @@
 
 #include "mpp_buf_slot.h"
 #include "mpp_platform.h"
+#include "mpp_soc.h"
+#include "mpp_singleton.h"
 
 #include "hal_dec_task.h"
 #include "mpp_dec_cfg.h"
@@ -50,6 +52,7 @@ typedef struct MppHalCfg_t {
     MppDev              dev;
     RK_S32              support_fast_mode;
     SlotHalFbcAdjCfg    *hal_fbc_adj_cfg;
+    MppBufferGroup      buf_group;
 } MppHalCfg;
 
 typedef struct MppHalApi_t {
@@ -72,6 +75,9 @@ typedef struct MppHalApi_t {
     MPP_RET (*reset)(void *ctx);
     MPP_RET (*flush)(void *ctx);
     MPP_RET (*control)(void *ctx, MpiCmd cmd, void *param);
+
+    MppClientType   client;
+    RockchipSocType soc_type[];
 } MppHalApi;
 
 typedef void* MppHal;
@@ -90,6 +96,15 @@ MPP_RET mpp_hal_hw_wait(MppHal ctx, HalTaskInfo *task);
 MPP_RET mpp_hal_reset(MppHal ctx);
 MPP_RET mpp_hal_flush(MppHal ctx);
 MPP_RET mpp_hal_control(MppHal ctx, MpiCmd cmd, void *param);
+
+MPP_RET mpp_hal_api_register(const MppHalApi *api);
+
+#define MPP_DEC_HAL_API_REGISTER(api) \
+    static void register_##api(void) \
+    { \
+        mpp_hal_api_register(&api); \
+    } \
+    MPP_MODULE_ADD(api, register_##api, NULL);
 
 #ifdef __cplusplus
 }

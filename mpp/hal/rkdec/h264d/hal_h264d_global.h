@@ -9,6 +9,7 @@
 #include "mpp_hal.h"
 #include "mpp_debug.h"
 #include "mpp_device.h"
+#include "mpp_env.h"
 #include "hal_bufs.h"
 
 #include "dxva_syntax.h"
@@ -93,8 +94,6 @@ do{\
 
 
 typedef struct h264d_hal_ctx_t {
-    const MppHalApi          *hal_api;
-
     DXVA_PicParams_H264_MVC  *pp;
     DXVA_Qmatrix_H264        *qm;
     RK_U32                   slice_num;
@@ -106,20 +105,13 @@ typedef struct h264d_hal_ctx_t {
     void                     *priv;       //!< resert data for extent
     //!< add
     HalDecTask               *in_task;
-    MppBufSlots              frame_slots;
-    MppBufSlots              packet_slots;
-    MppDecCfgSet             *cfg;
-    MppBufferGroup           buf_group;
+    MppHalCfg                *cfg;
     HalBufs                  cmv_bufs;
     RK_S32                   mv_size;
     RK_S32                   mv_count;
 
-    MppCbCtx                 *dec_cb;
-    MppDev                   dev;
     void                     *reg_ctx;
     RK_U32                   fast_mode;
-
-    const MppDecHwCap        *hw_info;
 } H264dHalCtx_t;
 
 extern const RK_U32 h264_cabac_table[928];

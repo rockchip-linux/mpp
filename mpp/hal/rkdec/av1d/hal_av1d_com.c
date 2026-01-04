@@ -975,7 +975,11 @@ static void hal_av1d_release_res(void *hal)
 
 MPP_RET vdpu38x_av1d_deinit(void *hal)
 {
-    hal_av1d_release_res(hal);
+    Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
+
+    if (p_hal) {
+        hal_av1d_release_res(p_hal);
+    }
 
     return MPP_OK;
 }
@@ -1009,12 +1013,12 @@ MPP_RET vdpu38x_av1d_control(void *hal, MpiCmd cmd_type, void *param)
 
         AV1D_DBG(AV1D_DBG_LOG, "control info: fmt %d, w %d, h %d\n", fmt, imgwidth, imgheight);
         if ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV422SP) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->slots, (MppFrame)param, 16);
+            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
-            mpp_slots_set_prop(p_hal->slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
+            mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }
         break;
     }
@@ -1442,7 +1446,7 @@ MPP_RET vdpu38x_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
         }
 
         reg_ctx->cdf_segid_size = size;
-        reg_ctx->cdf_segid_count = mpp_buf_slot_get_count(p_hal->slots);
+        reg_ctx->cdf_segid_count = mpp_buf_slot_get_count(p_hal->cfg->frame_slots);
         hal_bufs_setup(reg_ctx->cdf_segid_bufs, reg_ctx->cdf_segid_count, 1, &size);
     }
 
@@ -1546,10 +1550,10 @@ void vdpu38x_av1d_set_cdf_segid(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
     *segid_cur_base = mpp_buffer_get_fd(cdf_buf->buf[0]);
 
     /* byte, 434 x 128 bit = 434 x 16 byte */
-    mpp_dev_set_reg_offset(p_hal->dev, 178, NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx);
-    mpp_dev_set_reg_offset(p_hal->dev, 179, NON_COEF_CDF_SIZE);
-    mpp_dev_set_reg_offset(p_hal->dev, 181, ALL_CDF_SIZE);
-    mpp_dev_set_reg_offset(p_hal->dev, 182, ALL_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 178, NON_COEF_CDF_SIZE + COEF_CDF_SIZE * coeff_cdf_idx);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 179, NON_COEF_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 181, ALL_CDF_SIZE);
+    mpp_dev_set_reg_offset(p_hal->cfg->dev, 182, ALL_CDF_SIZE);
 
     /* update params sync with "update buffer" */
     for (i = 0; i < NUM_REF_FRAMES; i++) {
@@ -1599,7 +1603,7 @@ MPP_RET vdpu38x_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
             goto __RETURN;
         }
         reg_ctx->colmv_size = mv_size;
-        reg_ctx->colmv_count = mpp_buf_slot_get_count(p_hal->slots);
+        reg_ctx->colmv_count = mpp_buf_slot_get_count(p_hal->cfg->frame_slots);
         hal_bufs_setup(reg_ctx->colmv_bufs, reg_ctx->colmv_count, 1, &mv_size);
     }
 
@@ -1624,7 +1628,7 @@ void vdpu38x_av1d_rcb_setup(Av1dHalCtx *p_hal, HalTaskInfo *task,
         Vdpu38xFmt rcb_fmt;
         RK_U32 uses_lr = 0;
 
-        mpp_buf_slot_get_prop(p_hal->slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_fmt = mpp_frame_get_fmt(mframe);
         rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
         for (i = 0; i < (dxva->format.mono_chrome ? 1 : 3); i++)
@@ -1662,13 +1666,13 @@ void vdpu38x_av1d_rcb_setup(Av1dHalCtx *p_hal, HalTaskInfo *task,
             mpp_buffer_put(rcb_buf);
             reg_ctx->rcb_bufs[i] = NULL;
         }
-        mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
+        mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
         reg_ctx->rcb_bufs[i] = rcb_buf;
     }
 
     rcb_buf = p_hal->fast_mode ? reg_ctx->rcb_bufs[task->dec.reg_index]
               : reg_ctx->rcb_bufs[0];
-    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->cfg->dev, rcb_buf);
 
     return;
 }

@@ -44,18 +44,14 @@ extern RK_U32 hal_vp8d_debug;
     } while (0)
 
 typedef struct VP8DHalContext {
-    MppBufSlots     packet_slots;
-    MppBufSlots     frame_slots;
-    MppDev          dev;
+    MppHalCfg       *cfg;
     void            *regs;
     RK_U8           reg_size;
-    MppBufferGroup  group;
     MppBuffer       probe_table;
     MppBuffer       seg_map;
     RK_U32          dec_frame_cnt;
     FILE            *fp_reg_in;
     FILE            *fp_reg_out;
-    const MppHalApi *hal_api;
 } VP8DHalContext_t;
 
 #endif

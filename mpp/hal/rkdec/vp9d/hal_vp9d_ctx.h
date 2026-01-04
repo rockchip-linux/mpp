@@ -51,22 +51,13 @@ typedef struct Vp9dRegBuf_t {
 } Vp9dRegBuf;
 
 typedef struct HalVp9dCtx_t {
-    /* for hal api call back */
-    const MppHalApi *api;
-
     /* for hardware info */
     MppClientType   client_type;
-    RK_U32          hw_id;
-    MppDev          dev;
 
-    MppBufSlots     slots;
-    MppBufSlots     packet_slots;
-    MppBufferGroup  group;
-    MppCbCtx        *dec_cb;
+    MppHalCfg       *cfg;
+
     RK_U32          fast_mode;
-    void*           hw_ctx;
-
-    const MppDecHwCap   *hw_info;
+    void            *hw_ctx;
 } HalVp9dCtx;
 
 typedef struct Vdpu38xVp9dCtx_t {
@@ -77,7 +68,7 @@ typedef struct Vdpu38xVp9dCtx_t {
     MppBuffer       segid_cur_base;
     MppBuffer       segid_last_base;
     MppBuffer       prob_default_base;
-    void*           hw_regs;
+    void            *hw_regs;
     RK_S32          mv_base_addr;
     RK_S32          pre_mv_base_addr;
     Vp9dLastInfo    ls_info;

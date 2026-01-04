@@ -3,7 +3,6 @@
 # hal avs decoder sourse
 
 set(HAL_AVSD_SRC
-    hal_avsd_api.c
     hal_avsd_base.c
     hal_avsd_plus.c
     )

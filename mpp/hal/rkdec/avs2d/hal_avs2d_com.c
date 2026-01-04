@@ -12,13 +12,13 @@
 #include <unistd.h>
 
 #include "mpp_mem.h"
-#include "mpp_env.h"
 #include "mpp_platform.h"
 #include "mpp_common.h"
 #include "mpp_log.h"
 #include "vdpu38x_com.h"
 #include "hal_avs2d_global.h"
 #include "hal_avs2d_ctx.h"
+#include "hal_avs2d_com.h"
 #include "mpp_bitput.h"
 
 MPP_RET hal_avs2d_vdpu_deinit(void *hal)
@@ -211,7 +211,7 @@ RK_S32 hal_avs2d_get_frame_fd(Avs2dHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_buf_slot_get_prop(p_hal->frame_slots, idx, SLOT_BUFFER, &mbuffer);
+    mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, idx, SLOT_BUFFER, &mbuffer);
     ret_fd = mpp_buffer_get_fd(mbuffer);
 
     return ret_fd;
@@ -222,7 +222,7 @@ RK_S32 hal_avs2d_get_packet_fd(Avs2dHalCtx_t *p_hal, RK_S32 idx)
     RK_S32 ret_fd = 0;
     MppBuffer mbuffer = NULL;
 
-    mpp_buf_slot_get_prop(p_hal->packet_slots, idx, SLOT_BUFFER, &mbuffer);
+    mpp_buf_slot_get_prop(p_hal->cfg->packet_slots, idx, SLOT_BUFFER, &mbuffer);
     ret_fd =  mpp_buffer_get_fd(mbuffer);
 
     return ret_fd;
@@ -258,7 +258,7 @@ MPP_RET hal_avs2d_set_up_colmv_buf(void *hal)
         }
 
         p_hal->mv_size = mv_size;
-        p_hal->mv_count = mpp_buf_slot_get_count(p_hal->frame_slots);
+        p_hal->mv_count = mpp_buf_slot_get_count(p_hal->cfg->frame_slots);
         hal_bufs_setup(p_hal->cmv_bufs, p_hal->mv_count, 1, &size);
     }
 
@@ -298,12 +298,12 @@ MPP_RET hal_avs2d_vdpu_dump_yuv(void *hal, HalTaskInfo *task)
     RK_U32 i, j;
     MPP_RET ret = MPP_OK;
 
-    ret = mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output, SLOT_FRAME_PTR, &frame);
+    ret = mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &frame);
 
     if (ret != MPP_OK || frame == NULL)
         mpp_log_f("failed to get frame slot %d", task->dec.output);
 
-    ret = mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output, SLOT_BUFFER, &buffer);
+    ret = mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_BUFFER, &buffer);
 
     if (ret != MPP_OK || buffer == NULL)
         mpp_log_f("failed to get frame buffer slot %d", task->dec.output);
@@ -369,7 +369,7 @@ void vdpu38x_avs2d_rcb_setup(void *hal, HalTaskInfo *task,
         MppFrameFormat mpp_fmt;
         Vdpu38xFmt rcb_fmt;
 
-        mpp_buf_slot_get_prop(p_hal->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
+        mpp_buf_slot_get_prop(p_hal->cfg->frame_slots, task->dec.output, SLOT_FRAME_PTR, &mframe);
         mpp_fmt = mpp_frame_get_fmt(mframe);
         rcb_fmt = vdpu38x_fmt_mpp2hal(mpp_fmt);
 
@@ -403,14 +403,14 @@ void vdpu38x_avs2d_rcb_setup(void *hal, HalTaskInfo *task,
             reg_ctx->rcb_buf[i] = NULL;
         }
 
-        ret = mpp_buffer_get(p_hal->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
+        ret = mpp_buffer_get(p_hal->cfg->buf_group, &rcb_buf, reg_ctx->rcb_buf_size);
         if (ret)
-            mpp_err_f("AVS2D mpp_buffer_group_get failed\n");
+            mpp_err_f("AVS2D mpp_buffer_get failed\n");
 
         reg_ctx->rcb_buf[i] = rcb_buf;
     }
 
     rcb_buf = p_hal->fast_mode ?
               reg_ctx->rcb_buf[task->dec.reg_index] : reg_ctx->rcb_buf[0];
-    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->dev, rcb_buf);
+    vdpu38x_setup_rcb(reg_ctx->rcb_ctx, rcb_regs, p_hal->cfg->dev, rcb_buf);
 }
