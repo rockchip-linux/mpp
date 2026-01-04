@@ -87,18 +87,48 @@ MPP_RET mpp_opt_add(MppOpt opt, MppOptInfo *info)
 MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
 {
     MppOptImpl *impl = (MppOptImpl *)opt;
+    char **cfg_argv = NULL;
+    RK_S32 cfg_argc_idx = 0;
     MPP_RET ret = MPP_NOK;
     RK_S32 opt_idx = 0;
+    RK_S32 i;
 
     if (NULL == impl || NULL == impl->trie || argc < 2 || NULL == argv)
         return ret;
 
+    cfg_argv = mpp_calloc(char*, argc);
+    if (!cfg_argv) {
+        mpp_err("malloc cfg_argv failed\n");
+        return ret;
+    }
+
+    /* 1. put the program name at the first position of the new array */
+    cfg_argv[cfg_argc_idx++] = argv[0];
+
+    /* 2. then put -cfg and its argument */
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-cfg") == 0) {
+            cfg_argv[cfg_argc_idx++] = argv[i++];
+            if (i < argc)
+                cfg_argv[cfg_argc_idx++] = argv[i];
+        }
+    }
+
+    /* 3. finally put other command arguments */
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-cfg") == 0)
+            i++;
+        else
+            cfg_argv[cfg_argc_idx++] = argv[i];
+    }
+
     ret = MPP_OK;
 
-    while (opt_idx <= argc) {
+    /* use cfg_argv to parse options */
+    while (opt_idx <= cfg_argc_idx) {
         RK_S32 opt_next = opt_idx + 1;
-        char *opts = argv[opt_idx++];
-        char *next = (opt_next >= argc) ? NULL : argv[opt_next];
+        char *opts = cfg_argv[opt_idx++];
+        char *next = (opt_next >= cfg_argc_idx) ? NULL : cfg_argv[opt_next];
 
         if (NULL == opts)
             break;
@@ -126,6 +156,8 @@ MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
             opt_idx += step;
         }
     }
+
+    MPP_FREE(cfg_argv);
 
     return ret;
 }
