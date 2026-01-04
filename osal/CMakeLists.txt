@@ -1,9 +1,4 @@
 # vim: syntax=cmake
-cmake_minimum_required(VERSION 2.6.3)
-project(osal C CXX)
-include(GNUInstallDirs)
-
-find_package(Threads)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_REENTRANT -D_GNU_SOURCE")
@@ -60,28 +55,12 @@ add_library(osal OBJECT
     ${MPP_DRIVER}
 )
 
-target_link_libraries(osal ${CMAKE_THREAD_LIBS_INIT})
-
 target_include_directories(osal PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/inc"
     "${CMAKE_CURRENT_SOURCE_DIR}/allocator"
     "${CMAKE_CURRENT_SOURCE_DIR}/driver/inc"
 )
-
-set_target_properties(osal PROPERTIES FOLDER "osal")
-
-# leave those special platform here
-if(ANDROID)
-    add_definitions(-static)
-    # in Android pthread is in libc, also need liblog
-    # Android 14 requires libc++ not libstdc++
-    if("${ANDROID_STL}" STREQUAL "c++_static")
-        target_link_libraries(osal log ${LIBM})
-    else()
-        target_link_libraries(osal log stdc++ ${LIBM})
-    endif()
-endif(ANDROID)
 
 # unit test
 add_subdirectory(test)

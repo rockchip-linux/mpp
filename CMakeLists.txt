@@ -108,13 +108,6 @@ else()
     message(STATUS "Please add this value near ${CMAKE_CURRENT_LIST_FILE}:${CMAKE_CURRENT_LIST_LINE}")
 endif()
 
-if(UNIX)
-    SET(PLATFORM_LIBS pthread)
-    if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        SET(PLATFORM_LIBS ${PLATFORM_LIBS} rt)
-    endif()
-endif(UNIX)
-
 # ----------------------------------------------------------------------------
 # Compiler detection
 # ----------------------------------------------------------------------------
@@ -269,6 +262,8 @@ configure_file(
 find_package(PkgConfig)
 include(GNUInstallDirs)
 pkg_search_module(PTHREAD pthread)
+
+find_package(Threads)
 
 # ----------------------------------------------------------------------------
 # Set Warning as Error
