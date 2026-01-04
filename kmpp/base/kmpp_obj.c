@@ -213,7 +213,7 @@ const char *strof_elem_type(ElemType type)
     };
     static const char *invalid_type_str = "invalid";
 
-    if (type & (~ELEM_TYPE_BUTT))
+    if (type >= ELEM_TYPE_BUTT)
         return invalid_type_str;
 
     return ELEM_TYPE_names[type] ? ELEM_TYPE_names[type] : invalid_type_str;
