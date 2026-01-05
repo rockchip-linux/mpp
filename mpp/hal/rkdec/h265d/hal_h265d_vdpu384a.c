@@ -101,7 +101,7 @@ static MPP_RET hal_h265d_vdpu384a_init(void *hal, MppHalCfg *cfg)
     }
 
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu384a_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 16;
     }
 

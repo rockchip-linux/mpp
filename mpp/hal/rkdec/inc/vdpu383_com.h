@@ -601,7 +601,6 @@ extern "C" {
 
 void vdpu383_init_ctrl_regs(Vdpu383RegSet *regs, MppCodingType codec_t);
 void vdpu383_setup_statistic(Vdpu383CtrlReg *com);
-void vdpu383_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu383_setup_down_scale(MppFrame frame, MppDev dev, Vdpu383CtrlReg *com, void* comParas);
 void vdpu383_update_thumbnail_frame_info(MppFrame frame);
 

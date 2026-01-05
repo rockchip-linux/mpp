@@ -273,7 +273,7 @@ MPP_RET vdpu384a_h264d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(p_hal->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv420);
 
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu384a_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 16;
     }
 
