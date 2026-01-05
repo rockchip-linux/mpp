@@ -116,6 +116,18 @@ typedef struct MpiEncTestArgs_t {
     RK_U32              ssim_en;
     char                *file_slt;
     RK_U32              kmpp_en;
+
+    RK_U32              split_mode;
+    RK_U32              split_arg;
+    RK_U32              split_out;
+
+    RK_U32              osd_enable;
+    RK_U32              osd_mode;
+
+    RK_U32              user_data_enable;
+    RK_U32              roi_enable;
+    RK_U32              roi_jpeg_enable;
+    RK_U32              jpeg_osd_case;
 } MpiEncTestArgs;
 
 typedef struct MppEncTestObjSet_t {
@@ -150,8 +162,6 @@ typedef struct {
 
     /* encoder config set */
     MppEncCfg           cfg;
-    MppEncPrepCfg       prep_cfg;
-    MppEncRcCfg         rc_cfg;
     MppEncOSDPltCfg     osd_plt_cfg;
     MppEncOSDPlt        osd_plt;
     MppEncOSDData       osd_data;
@@ -183,52 +193,6 @@ typedef struct {
     /* NOTE: packet buffer may overflow */
     size_t              packet_size;
 
-    RK_U32              osd_enable;
-    RK_U32              osd_mode;
-    RK_U32              split_mode;
-    RK_U32              split_arg;
-    RK_U32              split_out;
-
-    RK_U32              user_data_enable;
-    RK_U32              roi_enable;
-    RK_U32              roi_jpeg_enable;
-
-    /* -qc */
-    RK_S32              qp_init;
-    RK_S32              qp_min;
-    RK_S32              qp_max;
-    RK_S32              qp_min_i;
-    RK_S32              qp_max_i;
-
-    /* -fqc */
-    RK_S32              fqp_min_i;
-    RK_S32              fqp_min_p;
-    RK_S32              fqp_max_i;
-    RK_S32              fqp_max_p;
-    // rate control runtime parameter
-    RK_S32              fps_in_flex;
-    RK_S32              fps_in_den;
-    RK_S32              fps_in_num;
-    RK_S32              fps_out_flex;
-    RK_S32              fps_out_den;
-    RK_S32              fps_out_num;
-    RK_S32              bps;
-    RK_S32              bps_max;
-    RK_S32              bps_min;
-    RK_S32              rc_mode;
-    RK_S32              gop_mode;
-    RK_S32              gop_len;
-    RK_S32              vi_len;
-    RK_S32              scene_mode;
-    RK_S32              deblur_en;
-
-    RK_S32              cu_qp_delta_depth;
-    RK_S32              anti_flicker_str;
-    RK_S32              atr_str_i;
-    RK_S32              atr_str_p;
-    RK_S32              atl_str;
-    RK_S32              sao_str_i;
-    RK_S32              sao_str_p;
     RK_S64              first_frm;
     RK_S64              first_pkt;
     RK_S64              last_pkt;
@@ -236,7 +200,6 @@ typedef struct {
     MppEncOSDData3      osd_data3;
     KmppBuffer          osd_buffer;
     RK_U8               *osd_pattern;
-    RK_U32              jpeg_osd_case;
 } MpiEncTestData;
 
 #ifdef __cplusplus
@@ -257,12 +220,15 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
                              RK_U32 width, RK_U32 height, RK_U32 frame_cnt);
 MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 frame_cnt);
 
-MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv);
+MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv, const char *module_tag);
 MPP_RET mpi_enc_test_cmd_put(MppEncTestObjSet* obj_set);
 
 MPP_RET mpi_enc_ctx_init(MpiEncTestData *p, MpiEncTestArgs *cmd, RK_S32 chn);
 MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p);
 MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_obj);
+
+MPP_RET mpi_enc_test_objset_get(MppEncTestObjSet **obj_set);
+MPP_RET mpi_enc_test_objset_put(MppEncTestObjSet *obj_set);
 
 #ifdef __cplusplus
 }

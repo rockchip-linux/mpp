@@ -62,16 +62,22 @@ static rk_s32 mpp_enc_args_impl_dump(void *entry)
 
 #define MPP_ENC_ARGS_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
     CFG_DEF_START() \
-    ENTRY(prefix, s32,  rk_s32,     type_src,       FLAG_NONE,       type_src) \
-    ENTRY(prefix, s32,  rk_s32,     frame_num,      FLAG_NONE,       frame_num) \
-    ENTRY(prefix, s32,  rk_s32,     loop_cnt,       FLAG_NONE,       loop_cnt) \
-    ENTRY(prefix, s32,  rk_s32,     nthreads,       FLAG_NONE,       nthreads) \
-    ENTRY(prefix, s32,  rk_s32,     frm_step,       FLAG_NONE,       frm_step) \
-    ENTRY(prefix, s32,  rk_s32,     gop_mode,       FLAG_NONE,       gop_mode) \
-    ENTRY(prefix, s32,  rk_s32,     vi_len,         FLAG_NONE,       vi_len) \
-    ENTRY(prefix, s32,  rk_s32,     quiet,          FLAG_NONE,       quiet) \
-    ENTRY(prefix, s32,  rk_s32,     trace_fps,      FLAG_NONE,       trace_fps) \
-    ENTRY(prefix, u32,  rk_u32,     kmpp_en,        FLAG_NONE,       kmpp_en) \
+    ENTRY(prefix, s32,  rk_s32,     type_src,         FLAG_NONE,       type_src) \
+    ENTRY(prefix, s32,  rk_s32,     frame_num,        FLAG_NONE,       frame_num) \
+    ENTRY(prefix, s32,  rk_s32,     loop_cnt,         FLAG_NONE,       loop_cnt) \
+    ENTRY(prefix, s32,  rk_s32,     nthreads,         FLAG_NONE,       nthreads) \
+    ENTRY(prefix, s32,  rk_s32,     frm_step,         FLAG_NONE,       frm_step) \
+    ENTRY(prefix, s32,  rk_s32,     gop_mode,         FLAG_NONE,       gop_mode) \
+    ENTRY(prefix, s32,  rk_s32,     vi_len,           FLAG_NONE,       vi_len) \
+    ENTRY(prefix, s32,  rk_s32,     quiet,            FLAG_NONE,       quiet) \
+    ENTRY(prefix, s32,  rk_s32,     trace_fps,        FLAG_NONE,       trace_fps) \
+    ENTRY(prefix, u32,  rk_u32,     kmpp_en,          FLAG_NONE,       kmpp_en) \
+    ENTRY(prefix, u32,  rk_u32,     osd_enable,       FLAG_NONE,       osd_enable) \
+    ENTRY(prefix, u32,  rk_u32,     osd_mode,         FLAG_NONE,       osd_mode) \
+    ENTRY(prefix, u32,  rk_u32,     user_data_enable, FLAG_NONE,       user_data_enable) \
+    ENTRY(prefix, u32,  rk_u32,     roi_enable,       FLAG_NONE,       roi_enable) \
+    ENTRY(prefix, u32,  rk_u32,     roi_jpeg_enable,  FLAG_NONE,       roi_jpeg_enable) \
+    ENTRY(prefix, u32,  rk_u32,     jpeg_osd_case,    FLAG_NONE,       jpeg_osd_case) \
     CFG_DEF_END()
 
 #define KMPP_OBJ_NAME               mpp_enc_args

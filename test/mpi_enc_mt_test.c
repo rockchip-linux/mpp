@@ -312,8 +312,8 @@ void *enc_test_input(void *arg)
 
         meta = mpp_frame_get_meta(frame);
 
-        if (p->osd_enable || p->user_data_enable || p->roi_enable) {
-            if (p->user_data_enable) {
+        if (cmd->osd_enable || cmd->user_data_enable || cmd->roi_enable) {
+            if (cmd->user_data_enable) {
                 MppEncUserData user_data;
                 const char *str = "this is user data\n";
 
@@ -345,7 +345,7 @@ void *enc_test_input(void *arg)
                 mpp_meta_set_ptr(meta, KEY_USER_DATAS, &data_group);
             }
 
-            if (p->osd_enable) {
+            if (cmd->osd_enable) {
                 /* gen and cfg osd plt */
                 mpi_enc_gen_osd_plt(&p->osd_plt, p->frm_cnt_in);
 
@@ -365,7 +365,7 @@ void *enc_test_input(void *arg)
                 mpp_meta_set_ptr(meta, KEY_OSD_DATA, (void*)&p->osd_data);
             }
 
-            if (p->roi_enable) {
+            if (cmd->roi_enable) {
                 RoiRegionCfg *region = &p->roi_region;
 
                 /* calculated in pixels */
@@ -559,7 +559,7 @@ void *enc_test_output(void *arg)
     enc_ret->frame_count = p->frm_cnt_out;
     enc_ret->stream_size = p->stream_size;
     enc_ret->frame_rate = (float)p->frm_cnt_out * 1000000 / enc_ret->elapsed_time;
-    enc_ret->bit_rate = (p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frm_cnt_out;
+    enc_ret->bit_rate = (p->stream_size * 8 * (cmd->fps_out_num / cmd->fps_out_den)) / p->frm_cnt_out;
     enc_ret->delay = p->first_pkt - p->first_frm;
 
     return NULL;
@@ -659,24 +659,22 @@ int enc_test_mt(MppEncTestObjSet *obj_set, const char *name)
 
 int main(int argc, char **argv)
 {
-    MppEncTestObjSet obj_set;
-    RK_S32 ret = MPP_NOK;
+    MppEncTestObjSet *obj_set = NULL;
+    RK_S32 ret;
 
-    memset(&obj_set, 0, sizeof(obj_set));
-    // parse the cmd option
-    ret = mpi_enc_test_objset_update_by_args(&obj_set, argc, argv);
+    ret = mpi_enc_test_objset_get(&obj_set);
     if (ret)
         goto DONE;
 
-    mpp_enc_args_dump(obj_set.cmd_obj, MODULE_TAG);
+    // parse the cmd option
+    ret = mpi_enc_test_objset_update_by_args(obj_set, argc, argv, MODULE_TAG);
+    if (ret)
+        goto DONE;
 
-    ret = enc_test_mt(&obj_set, argv[0]);
+    ret = enc_test_mt(obj_set, argv[0]);
 
 DONE:
-    if (obj_set.cmd_obj)
-        mpi_enc_test_cmd_put(&obj_set);
-    if (obj_set.cfg_obj)
-        mpp_enc_cfg_deinit(obj_set.cfg_obj);
+    mpi_enc_test_objset_put(obj_set);
 
     return ret;
 }

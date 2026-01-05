@@ -81,6 +81,7 @@ static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
 {
     MppVencKcfg init_kcfg = NULL;
     MpiEncTestData *p = &info->ctx;
+    MpiEncTestArgs *cmd = info->obj_set->cmd;
     MPP_RET ret = MPP_NOK;
 
     mpp_venc_kcfg_init(&init_kcfg, MPP_VENC_KCFG_TYPE_INIT);
@@ -98,11 +99,11 @@ static MPP_RET kmpp_cfg_init(MpiEncMultiCtxInfo *info)
     mpp_venc_kcfg_set_u32(init_kcfg, "buf_size", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_strm_cnt", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "shared_buf_en", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "smart_en", p->rc_mode == MPP_ENC_RC_MODE_SMTRC);
+    mpp_venc_kcfg_set_u32(init_kcfg, "smart_en", cmd->rc_mode == MPP_ENC_RC_MODE_SMTRC);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_width", p->width);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_height", p->height);
     mpp_venc_kcfg_set_u32(init_kcfg, "max_lt_cnt", 0);
-    mpp_venc_kcfg_set_u32(init_kcfg, "qpmap_en", p->deblur_en);
+    mpp_venc_kcfg_set_u32(init_kcfg, "qpmap_en", cmd->deblur_en);
     mpp_venc_kcfg_set_u32(init_kcfg, "chan_dup", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "tmvp_enable", 0);
     mpp_venc_kcfg_set_u32(init_kcfg, "only_smartp", 0);
@@ -248,8 +249,8 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
         mpp_meta_set_packet(meta, KEY_OUTPUT_PACKET, packet);
         mpp_meta_set_buffer(meta, KEY_MOTION_INFO, priv->md_info);
 
-        if (p->osd_enable || p->user_data_enable || p->roi_enable || p->roi_jpeg_enable) {
-            if (p->user_data_enable) {
+        if (cmd->osd_enable || cmd->user_data_enable || cmd->roi_enable || cmd->roi_jpeg_enable) {
+            if (cmd->user_data_enable) {
                 MppEncUserData user_data;
                 char *str = "this is user data\n";
 
@@ -281,7 +282,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                 mpp_meta_set_ptr(meta, KEY_USER_DATAS, &data_group);
             }
 
-            if (p->osd_enable) {
+            if (cmd->osd_enable) {
                 if (soc_type == ROCKCHIP_SOC_RV1126B) {
                     /* osd for RV1126B use struct MppEncOSDData3 */
                     RK_S32 osd_case;
@@ -290,7 +291,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                     }
 
                     if (p->type == MPP_VIDEO_CodingMJPEG) {
-                        osd_case = p->jpeg_osd_case;
+                        osd_case = cmd->jpeg_osd_case;
                     } else {
                         osd_case = p->frm_cnt_out;
                     }
@@ -320,7 +321,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                 }
             }
 
-            if (p->roi_enable) {
+            if (cmd->roi_enable) {
                 RoiRegionCfg *region = &p->roi_region;
 
                 /* calculated in pixels */
@@ -348,7 +349,7 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
                 mpp_enc_roi_setup_meta(p->roi_ctx, meta);
             }
 
-            if (p->roi_jpeg_enable) {
+            if (cmd->roi_jpeg_enable) {
                 RK_U32 index;
                 RK_U32 width = 128;
                 RK_U32 height = 128;
@@ -553,7 +554,7 @@ void *enc_test(void *arg)
         goto MPP_TEST_OUT;
     }
 
-    mdinfo_size  = get_mdinfo_size(p, cmd->type);
+    mdinfo_size = get_mdinfo_size(p, cmd->type);
     ret = mpp_buffer_get(p->buf_grp, &priv->md_info, mdinfo_size);
     if (ret) {
         mpp_err_f("failed to get buffer for motion info output packet ret %d\n", ret);
@@ -624,7 +625,7 @@ void *enc_test(void *arg)
     enc_ret->frame_count = p->frm_cnt_out;
     enc_ret->stream_size = p->stream_size;
     enc_ret->frame_rate = (float)p->frm_cnt_out * 1000000 / enc_ret->elapsed_time;
-    enc_ret->bit_rate = (p->stream_size * 8 * (p->fps_out_num / p->fps_out_den)) / p->frm_cnt_out;
+    enc_ret->bit_rate = (p->stream_size * 8 * (cmd->fps_out_num / cmd->fps_out_den)) / p->frm_cnt_out;
     enc_ret->delay = p->first_pkt - p->first_frm;
 
 MPP_TEST_OUT:
@@ -745,24 +746,22 @@ int enc_test_multi(MppEncTestObjSet* obj_set, const char *name)
 
 int main(int argc, char **argv)
 {
-    MppEncTestObjSet obj_set;
-    RK_S32 ret = MPP_NOK;
+    MppEncTestObjSet *obj_set = NULL;
+    RK_S32 ret;
 
-    memset(&obj_set, 0, sizeof(obj_set));
-    // parse the cmd option
-    ret = mpi_enc_test_objset_update_by_args(&obj_set, argc, argv);
+    ret = mpi_enc_test_objset_get(&obj_set);
     if (ret)
         goto DONE;
 
-    mpp_enc_args_dump(obj_set.cmd_obj, MODULE_TAG);
+    // parse the cmd option
+    ret = mpi_enc_test_objset_update_by_args(obj_set, argc, argv, MODULE_TAG);
+    if (ret)
+        goto DONE;
 
-    ret = enc_test_multi(&obj_set, argv[0]);
+    ret = enc_test_multi(obj_set, argv[0]);
 
 DONE:
-    if (obj_set.cmd_obj)
-        mpi_enc_test_cmd_put(&obj_set);
-    if (obj_set.cfg_obj)
-        mpp_enc_cfg_deinit(obj_set.cfg_obj);
+    mpi_enc_test_objset_put(obj_set);
 
     return ret;
 }

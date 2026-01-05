@@ -1107,16 +1107,17 @@ MPP_TEST_OUT:
 
 int main(int argc, char **argv)
 {
-    MppEncTestObjSet obj_set;
+    MppEncTestObjSet *obj_set = NULL;
     MpiRc2TestCtx *ctx = NULL;
-    MPP_RET ret = MPP_OK;
+    MPP_RET ret;
 
-    memset(&obj_set, 0, sizeof(obj_set));
-    ret = mpi_enc_test_objset_update_by_args(&obj_set, argc, argv);
+    ret = mpi_enc_test_objset_get(&obj_set);
     if (ret)
         goto DONE;
 
-    mpp_enc_args_dump(obj_set.cmd_obj, MODULE_TAG);
+    ret = mpi_enc_test_objset_update_by_args(obj_set, argc, argv, MODULE_TAG);
+    if (ret)
+        goto DONE;
 
     ctx = mpp_calloc(MpiRc2TestCtx, 1);
     if (NULL == ctx) {
@@ -1124,7 +1125,7 @@ int main(int argc, char **argv)
         goto DONE;
     }
 
-    ctx->enc_cmd = obj_set.cmd;
+    ctx->enc_cmd = obj_set->cmd;
 
     ret = mpi_rc_init(ctx);
     if (ret) {
@@ -1142,10 +1143,7 @@ DONE:
         ctx = NULL;
     }
 
-    if (obj_set.cmd_obj)
-        mpi_enc_test_cmd_put(&obj_set);
-    if (obj_set.cfg_obj)
-        mpp_enc_cfg_deinit(obj_set.cfg_obj);
+    mpi_enc_test_objset_put(obj_set);
 
     return (int)ret;
 }
