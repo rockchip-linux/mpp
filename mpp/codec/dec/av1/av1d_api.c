@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #define MODULE_TAG "av1d_api"
@@ -36,12 +25,13 @@
  */
 MPP_RET av1d_deinit(void *ctx)
 {
-    RK_U8 *buf = NULL;
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
 
     if (av1_ctx) {
         av1d_parser_deinit(av1_ctx);
         if (av1_ctx->pkt) {
+            RK_U8 *buf;
+
             buf = mpp_packet_get_data(av1_ctx->pkt);
             MPP_FREE(buf);
             mpp_packet_deinit(&av1_ctx->pkt);
@@ -59,10 +49,10 @@ MPP_RET av1d_deinit(void *ctx)
  */
 MPP_RET av1d_init(void *ctx, ParserCfg *init)
 {
-    MPP_RET ret = MPP_OK;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
     RK_U8 *buf = NULL;
     RK_S32 size = SZ_512K;
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
+    MPP_RET ret = MPP_OK;
 
     if (!av1_ctx || !init) {
         mpp_err("av1d init fail");
@@ -75,9 +65,6 @@ MPP_RET av1d_init(void *ctx, ParserCfg *init)
     if ((ret = av1d_parser_init(av1_ctx, init)) != MPP_OK)
         goto _err_exit;
 
-    if ((ret = av1d_split_init(av1_ctx)) != MPP_OK)
-        goto _err_exit;
-
     buf = mpp_malloc(RK_U8, size);
     if (!buf) {
         mpp_err("av1d init malloc stream buffer fail");
@@ -88,7 +75,7 @@ MPP_RET av1d_init(void *ctx, ParserCfg *init)
     if ((ret = mpp_packet_init(&av1_ctx->pkt, (void *)buf, size)) != MPP_OK)
         goto _err_exit;
 
-    av1_ctx->stream = buf;
+    av1_ctx->stream_data = buf;
     av1_ctx->stream_size = size;
     mpp_packet_set_size(av1_ctx->pkt, size);
     mpp_packet_set_length(av1_ctx->pkt, 0);
@@ -106,13 +93,11 @@ _err_exit:
  *   reset
  ***********************************************************************
  */
-MPP_RET  av1d_reset(void *ctx)
+MPP_RET av1d_reset(void *ctx)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
 
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
-    av1d_paser_reset(av1_ctx);
-    return ret = MPP_OK;
+    return av1d_paser_reset(av1_ctx);
 }
 
 /*!
@@ -121,12 +106,11 @@ MPP_RET  av1d_reset(void *ctx)
  *   flush
  ***********************************************************************
  */
-MPP_RET  av1d_flush(void *ctx)
+MPP_RET av1d_flush(void *ctx)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-
     (void)ctx;
-    return ret = MPP_OK;
+
+    return MPP_OK;
 }
 
 /*!
@@ -137,48 +121,49 @@ MPP_RET  av1d_flush(void *ctx)
  */
 MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 {
-    MPP_RET ret = MPP_OK;
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
-    AV1Context *s = (AV1Context *)av1_ctx->priv_data;
-    RK_S64 pts = -1;
-    RK_S64 dts = -1;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
+    Av1Codec *s = (Av1Codec *)av1_ctx->priv_data;
+    RK_S64 pts = mpp_packet_get_pts(pkt);
+    RK_S64 dts = mpp_packet_get_dts(pkt);
     RK_U8 *buf = NULL;
-    RK_S32 length = 0;
+    RK_S32 length = (RK_S32)mpp_packet_get_length(pkt);
     RK_U8 *out_data = NULL;
     RK_S32 out_size = -1;
     RK_S32 consumed = 0;
     RK_U8 *pos = NULL;
-    RK_U32 need_split = s->cfg->base.split_parse;
+    RK_U32 need_split = av1_ctx->cfg->base.split_parse;
+    MPP_RET ret = MPP_OK;
 
     need_split = 1;
     task->valid = 0;
-    av1_ctx->new_frame = 0;
+    av1_ctx->is_new_frame = 0;
 
-    pts = mpp_packet_get_pts(pkt);
-    dts = mpp_packet_get_dts(pkt);
     buf = pos = mpp_packet_get_pos(pkt);
-    length = (RK_S32)mpp_packet_get_length(pkt);
     if (mpp_packet_get_flag(pkt)& MPP_PACKET_FLAG_EXTRA_DATA) {
         s->extra_has_frame = 0;
         task = NULL;
         s->current_obu.data = buf;
         s->current_obu.data_size = length;
-        ret = mpp_av1_split_fragment(s, &s->current_obu, 1);
+        ret = av1d_parser_fragment_header(&s->current_obu);
         if (ret < 0) {
             return ret;
         }
-        ret = mpp_av1_read_fragment_content(s, &s->current_obu);
+        ret = av1d_get_fragment_units(s, &s->current_obu);
         if (ret < 0) {
             return ret;
         }
-        if (!s->sequence_header) {
+        ret = av1d_read_fragment_uints(s, &s->current_obu);
+        if (ret < 0) {
+            return ret;
+        }
+        if (!s->seq_header) {
             goto end;
         }
-        ret = mpp_av1_set_context_with_sequence(av1_ctx, s->sequence_header);
+        ret = av1d_set_context_with_seq(av1_ctx, s->seq_header);
     end:
         pos = buf + length;
         mpp_packet_set_pos(pkt, pos);
-        mpp_av1_fragment_reset(&s->current_obu);
+        av1d_fragment_reset(&s->current_obu);
         return ret;
     }
 
@@ -186,7 +171,7 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         consumed = av1d_split_frame(av1_ctx, &out_data, &out_size, buf, length);
     } else {
         out_size = consumed = length;
-        av1_ctx->new_frame = 1;
+        av1_ctx->is_new_frame = 1;
     }
 
     pos += (consumed >= 0) ? consumed : length;
@@ -196,7 +181,7 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     if (!mpp_packet_get_length(pkt))
         av1_ctx->eos = mpp_packet_get_eos(pkt);
     av1d_dbg(AV1D_DBG_STRMIN, "pkt_len=%d, pts=%lld , out_size %d consumed %d new frame %d eos %d\n",
-             length, pts, out_size, consumed, av1_ctx->new_frame, av1_ctx->eos);
+             length, pts, out_size, consumed, av1_ctx->is_new_frame, av1_ctx->eos);
     if (out_size > 0) {
         av1d_get_frame_stream(av1_ctx, buf, consumed);
         task->input_packet = av1_ctx->pkt;
@@ -210,15 +195,12 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     if (av1_ctx->eos && !mpp_packet_get_length(pkt))
         task->flags.eos = av1_ctx->eos;
 
-    if (av1_ctx->new_frame || (task->flags.eos)) {
+    if (av1_ctx->is_new_frame || (task->flags.eos)) {
         if (av1_ctx->stream_offset > 0)
             task->valid = 1;
         av1_ctx->stream_offset = 0;
     }
 
-    (void)pts;
-    (void)dts;
-    (void)task;
     return ret = MPP_OK;
 }
 
@@ -230,10 +212,10 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
  */
 MPP_RET av1d_parser(void *ctx, HalDecTask *in_task)
 {
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
-    MPP_RET ret = MPP_OK;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
+
     av1d_parser_frame(av1_ctx, in_task);
-    return ret;
+    return MPP_OK;
 }
 
 /*!
@@ -244,7 +226,7 @@ MPP_RET av1d_parser(void *ctx, HalDecTask *in_task)
  */
 MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
 {
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)ctx;
     MPP_RET ret = MPP_OK;
 
     if (!ctx)
@@ -254,8 +236,8 @@ MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
     case MPP_DEC_SET_OUTPUT_FORMAT : {
         av1_ctx->usr_set_fmt = param ? *((MppFrameFormat *)param) : MPP_FMT_YUV420SP;
     } break;
-    default:
-        break;
+    default : {
+    } break;
     }
 
     return ret;
@@ -269,11 +251,11 @@ MPP_RET av1d_control(void *ctx, MpiCmd cmd, void *param)
  */
 MPP_RET av1d_callback(void *decoder, void *info)
 {
-    MPP_RET ret = MPP_ERR_UNKNOW;
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)decoder;
+    Av1DecCtx *av1_ctx = (Av1DecCtx *)decoder;
+
     av1d_parser_update(av1_ctx, info);
 
-    return ret = MPP_OK;
+    return MPP_OK;
 }
 
 /*!
@@ -282,11 +264,10 @@ MPP_RET av1d_callback(void *decoder, void *info)
  *   api struct interface
  ***********************************************************************
  */
-
 static const ParserApi mpp_av1d = {
     .name = "av1d_parse",
     .coding = MPP_VIDEO_CodingAV1,
-    .ctx_size = sizeof(Av1CodecContext),
+    .ctx_size = sizeof(Av1DecCtx),
     .flag = 0,
     .init = av1d_init,
     .deinit = av1d_deinit,

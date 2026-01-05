@@ -13,8 +13,8 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp_parser.h"
-#include "vp9d_codec.h"
-#include "vp9d_parser.h"
+#include "vp9d_ctx.h"
+#include "vp9d.h"
 
 /*!
 ***********************************************************************

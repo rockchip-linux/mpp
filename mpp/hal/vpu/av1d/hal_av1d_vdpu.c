@@ -38,7 +38,7 @@
 #include "film_grain_noise_table.h"
 
 #define VDPU_FAST_REG_SET_CNT    3
-#define AV1_MAX_TILES 128
+
 #define AV1_TILE_INFO_SIZE AV1_MAX_TILES * 16
 #define GM_GLOBAL_MODELS_PER_FRAME 7
 #define GLOBAL_MODEL_TOTAL_SIZE (6 * 4 + 4 * 2)
@@ -79,11 +79,11 @@ typedef struct VdpuAv1dRegCtx_t {
     filtInfo        filt_info[FILT_TYPE_BUT];
 
     AV1CDFs         *cdfs;
-    MvCDFs          *cdfs_ndvc;
+    Av1MvCDFs       *cdfs_ndvc;
     AV1CDFs         default_cdfs;
-    MvCDFs          default_cdfs_ndvc;
-    AV1CDFs         cdfs_last[NUM_REF_FRAMES];
-    MvCDFs          cdfs_last_ndvc[NUM_REF_FRAMES];
+    Av1MvCDFs       default_cdfs_ndvc;
+    AV1CDFs         cdfs_last[AV1_NUM_REF_FRAMES];
+    Av1MvCDFs       cdfs_last_ndvc[AV1_NUM_REF_FRAMES];
     RK_U32          refresh_frame_flags;
 
     RK_U32          width;
@@ -678,7 +678,7 @@ static RK_S32 GetRelativeDist(DXVA_PicParams_AV1 *dxva, RK_S32 a, RK_S32 b)
 
 #define POPULATE_REF_OFFSET(index)                                               \
  {                                                                               \
-    RK_S32 ref_offset[MAX_REF_FRAMES_EX - 1];                                    \
+    RK_S32 ref_offset[AV1_NUM_REF_FRAMES - 1];                                    \
     RK_S32 idx = refs_selected[(index) - 1];                                     \
     ref_offset[0] = GetRelativeDist(dxva, dxva->frame_refs[idx].order_hint,      \
                                     dxva->frame_refs[idx].lst_frame_offset);     \
@@ -757,7 +757,7 @@ static void vdpu_av1d_set_prob(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
     if (dxva->format.frame_type == AV1_FRAME_INTRA_ONLY ||
         dxva->format.frame_type == AV1_FRAME_KEY) {
         // Overwrite MV context area with intrabc MV context
-        memcpy(prob_base + mv_cdf_offset, dxva->cdfs_ndvc, sizeof(MvCDFs));
+        memcpy(prob_base + mv_cdf_offset, dxva->cdfs_ndvc, sizeof(Av1MvCDFs));
     }
     mpp_buffer_sync_end(reg_ctx->prob_tbl_base);
 
@@ -769,7 +769,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
 {
     RK_U32 tmp1, tmp2, i;
     RK_U32 cur_height, cur_width;
-    RK_U8  max_ref_frames = MAX_REF_FRAMES_EX;
+    RK_U8  max_ref_frames = AV1_NUM_REF_FRAMES;
     RK_U8 prev_valid = 0;
 
     VdpuAv1dRegSet *regs = ctx->regs;
@@ -798,7 +798,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
 
     set_frame_sign_bias(p_hal, dxva);
 
-    for (i = LAST_FRAME; i < max_ref_frames; i++) {
+    for (i = AV1_REF_FRAME_LAST; i < max_ref_frames; i++) {
         RK_U32 ref = i - 1;
         RK_S32 idx = 0;
         if (dxva->coding.intrabc) {
@@ -862,12 +862,12 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
     }
 
     {
-        RK_S32 gld_buf_idx = GOLDEN_FRAME_EX - LAST_FRAME;
-        RK_S32 alt_buf_idx = ALTREF_FRAME_EX - LAST_FRAME;
-        RK_S32 lst_buf_idx = LAST_FRAME - LAST_FRAME;
-        RK_S32 bwd_buf_idx = BWDREF_FRAME_EX - LAST_FRAME;
-        RK_S32 alt2_buf_idx = ALTREF2_FRAME_EX - LAST_FRAME;
-        RK_S32 lst2_buf_idx = LAST2_FRAME_EX - LAST_FRAME;
+        RK_S32 gld_buf_idx = AV1_REF_FRAME_GOLDEN - AV1_REF_FRAME_LAST;
+        RK_S32 alt_buf_idx = AV1_REF_FRAME_ALTREF - AV1_REF_FRAME_LAST;
+        RK_S32 lst_buf_idx = AV1_REF_FRAME_LAST - AV1_REF_FRAME_LAST;
+        RK_S32 bwd_buf_idx = AV1_REF_FRAME_BWDREF - AV1_REF_FRAME_LAST;
+        RK_S32 alt2_buf_idx = AV1_REF_FRAME_ALTREF2 - AV1_REF_FRAME_LAST;
+        RK_S32 lst2_buf_idx = AV1_REF_FRAME_LAST2 - AV1_REF_FRAME_LAST;
 
         RK_S32 cur_frame_offset = dxva->order_hint;
         RK_S32 alt_frame_offset = 0;
@@ -915,7 +915,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                     dxva->frame_refs[lst_buf_idx].is_intra_frame;
                 if (lst_mi_cols == cur_mi_cols && lst_mi_rows == cur_mi_rows &&
                     !lst_intra_only) {
-                    mf_types[ref_ind] = LAST_FRAME;
+                    mf_types[ref_ind] = AV1_REF_FRAME_LAST;
                     refs_selected[ref_ind++] = lst_buf_idx;
                 }
             }
@@ -931,7 +931,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                                     dxva->frame_refs[bwd_buf_idx].is_intra_frame;
             if (bwd_mi_cols == cur_mi_cols && bwd_mi_rows == cur_mi_rows &&
                 !bwd_intra_only) {
-                mf_types[ref_ind] = BWDREF_FRAME_EX;
+                mf_types[ref_ind] = AV1_REF_FRAME_BWDREF;
                 refs_selected[ref_ind++] = bwd_buf_idx;
                 ref_stamp--;
             }
@@ -947,7 +947,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                 dxva->frame_refs[alt2_buf_idx].is_intra_frame;
             if (alt2_mi_cols == cur_mi_cols && alt2_mi_rows == cur_mi_rows &&
                 !alt2_intra_only) {
-                mf_types[ref_ind] = ALTREF2_FRAME_EX;
+                mf_types[ref_ind] = AV1_REF_FRAME_ALTREF2;
                 refs_selected[ref_ind++] = alt2_buf_idx;
                 ref_stamp--;
             }
@@ -963,7 +963,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                                     dxva->frame_refs[alt_buf_idx].is_intra_frame;
             if (alt_mi_cols == cur_mi_cols && alt_mi_rows == cur_mi_rows &&
                 !alt_intra_only) {
-                mf_types[ref_ind] = ALTREF_FRAME_EX;
+                mf_types[ref_ind] = AV1_REF_FRAME_ALTREF;
                 refs_selected[ref_ind++] = alt_buf_idx;
                 ref_stamp--;
             }
@@ -979,15 +979,15 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                 dxva->frame_refs[lst2_buf_idx].is_intra_frame;
             if (lst2_mi_cols == cur_mi_cols && lst2_mi_rows == cur_mi_rows &&
                 !lst2_intra_only) {
-                mf_types[ref_ind] = LAST2_FRAME_EX;
+                mf_types[ref_ind] = AV1_REF_FRAME_LAST2;
                 refs_selected[ref_ind++] = lst2_buf_idx;
                 ref_stamp--;
             }
         }
 
-        RK_S32 cur_offset[MAX_REF_FRAMES_EX - 1];
-        RK_S32 cur_roffset[MAX_REF_FRAMES_EX - 1];
-        for ( rf = 0; rf < MAX_REF_FRAMES_EX - 1; ++rf) {
+        RK_S32 cur_offset[AV1_NUM_REF_FRAMES - 1];
+        RK_S32 cur_roffset[AV1_NUM_REF_FRAMES - 1];
+        for ( rf = 0; rf < AV1_NUM_REF_FRAMES - 1; ++rf) {
             RK_S32 buf_idx = dxva->frame_refs[rf].Index;
             if (buf_idx >= 0) {
                 cur_offset[rf] =
@@ -1009,29 +1009,29 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
         regs->swreg11.sw_use_temporal3_mvs = 0;
 
         if (dxva->coding.use_ref_frame_mvs && ref_ind > 0 &&
-            cur_offset[mf_types[0] - LAST_FRAME] <= MAX_FRAME_DISTANCE &&
-            cur_offset[mf_types[0] - LAST_FRAME] >= -MAX_FRAME_DISTANCE) {
+            cur_offset[mf_types[0] - AV1_REF_FRAME_LAST] <= MAX_FRAME_DISTANCE &&
+            cur_offset[mf_types[0] - AV1_REF_FRAME_LAST] >= -MAX_FRAME_DISTANCE) {
             regs->swreg11.sw_use_temporal0_mvs = 1;
             POPULATE_REF_OFFSET(1)
         }
 
         if (dxva->coding.use_ref_frame_mvs && ref_ind > 1 &&
-            cur_offset[mf_types[1] - LAST_FRAME] <= MAX_FRAME_DISTANCE &&
-            cur_offset[mf_types[1] - LAST_FRAME] >= -MAX_FRAME_DISTANCE) {
+            cur_offset[mf_types[1] - AV1_REF_FRAME_LAST] <= MAX_FRAME_DISTANCE &&
+            cur_offset[mf_types[1] - AV1_REF_FRAME_LAST] >= -MAX_FRAME_DISTANCE) {
             regs->swreg11.sw_use_temporal1_mvs = 1;
             POPULATE_REF_OFFSET(2)
         }
 
         if (dxva->coding.use_ref_frame_mvs && ref_ind > 2 &&
-            cur_offset[mf_types[2] - LAST_FRAME] <= MAX_FRAME_DISTANCE &&
-            cur_offset[mf_types[2] - LAST_FRAME] >= -MAX_FRAME_DISTANCE) {
+            cur_offset[mf_types[2] - AV1_REF_FRAME_LAST] <= MAX_FRAME_DISTANCE &&
+            cur_offset[mf_types[2] - AV1_REF_FRAME_LAST] >= -MAX_FRAME_DISTANCE) {
             regs->swreg11.sw_use_temporal2_mvs = 1;
             POPULATE_REF_OFFSET(3)
         }
 
         // Pass one additional frame that will contain the segment information
         if (dxva->segmentation.enabled &&
-            dxva->primary_ref_frame < ALLOWED_REFS_PER_FRAME_EX) {
+            dxva->primary_ref_frame < AV1_REFS_PER_FRAME) {
             // Primary ref frame is zero based
             RK_S32 prim_buf_idx = dxva->frame_refs[dxva->primary_ref_frame].Index;
 
@@ -1049,7 +1049,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
                 regs->swreg11.sw_use_temporal3_mvs = 1;
             }
         }
-        if (dxva->primary_ref_frame < ALLOWED_REFS_PER_FRAME_EX) {
+        if (dxva->primary_ref_frame < AV1_REFS_PER_FRAME) {
             RK_S32 prim_buf_idx = dxva->primary_ref_frame;
             ctx->resolution_change =
                 cur_mi_cols !=
@@ -1077,9 +1077,9 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
         regs->swreg262.sw_cur_altref_roffset           = cur_roffset[6];
 
         /* Index start from 0 */
-        regs->swreg9.sw_mf1_type  = mf_types[0] - LAST_FRAME;
-        regs->swreg9.sw_mf2_type  = mf_types[1] - LAST_FRAME;
-        regs->swreg9.sw_mf3_type  = mf_types[2] - LAST_FRAME;
+        regs->swreg9.sw_mf1_type  = mf_types[0] - AV1_REF_FRAME_LAST;
+        regs->swreg9.sw_mf2_type  = mf_types[1] - AV1_REF_FRAME_LAST;
+        regs->swreg9.sw_mf3_type  = mf_types[2] - AV1_REF_FRAME_LAST;
         AV1D_DBG(AV1D_DBG_LOG, "mf_types[%d %d %d]\n", mf_types[0], mf_types[1], mf_types[2]);
     }
     regs->swreg5.sw_ref_scaling_enable = ref_scale_e;
@@ -1218,7 +1218,7 @@ static void vdpu_av1d_set_picture_dimensions(Av1dHalCtx *p_hal, DXVA_PicParams_A
 
 static void vdpu_av1d_set_segmentation(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
 {
-    RK_U32 segval[MAX_MB_SEGMENTS][SEG_AV1_LVL_MAX];
+    RK_U32 segval[AV1_MAX_SEGMENTS][AV1_SEG_LVL_MAX];
     VdpuAv1dRegSet *regs = ctx->regs;
     RK_U8 s, i, j;
     RK_U8 segsign = 0;
@@ -1244,59 +1244,59 @@ static void vdpu_av1d_set_segmentation(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *
 
     /* Set filter level and QP for every segment ID. Initialize all
     * segments with default QP and filter level. */
-    for (s = 0; s < MAX_MB_SEGMENTS; s++) {
-        segval[s][SEG_AV1_LVL_ALT_Q] = 0;
-        segval[s][SEG_AV1_LVL_ALT_LF_Y_V] = 0;
-        segval[s][SEG_AV1_LVL_ALT_LF_Y_H] = 0;
-        segval[s][SEG_AV1_LVL_ALT_LF_U] = 0;
-        segval[s][SEG_AV1_LVL_ALT_LF_V] = 0;
-        segval[s][SEG_AV1_LVL_REF_FRAME] = 0; /* segment ref_frame disabled */
-        segval[s][SEG_AV1_LVL_SKIP] = 0;      /* segment skip disabled */
-        segval[s][SEG_AV1_LVL_GLOBALMV] = 0;  /* global motion */
+    for (s = 0; s < AV1_MAX_SEGMENTS; s++) {
+        segval[s][AV1_SEG_LVL_ALT_Q] = 0;
+        segval[s][AV1_SEG_LVL_ALT_LF_Y_V] = 0;
+        segval[s][AV1_SEG_LVL_ALT_LF_Y_H] = 0;
+        segval[s][AV1_SEG_LVL_ALT_LF_U] = 0;
+        segval[s][AV1_SEG_LVL_ALT_LF_V] = 0;
+        segval[s][AV1_SEG_LVL_REF_FRAME] = 0; /* segment ref_frame disabled */
+        segval[s][AV1_SEG_LVL_SKIP] = 0;      /* segment skip disabled */
+        segval[s][AV1_SEG_LVL_GLOBALMV] = 0;  /* global motion */
     }
     /* If a feature is enabled for a segment, overwrite the default. */
     if (dxva->segmentation.enabled) {
-        RK_S32 (*segdata)[SEG_AV1_LVL_MAX] = dxva->segmentation.feature_data;
+        RK_S32 (*segdata)[AV1_SEG_LVL_MAX] = dxva->segmentation.feature_data;
 
-        for (s = 0; s < MAX_MB_SEGMENTS; s++) {
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_ALT_Q)) {
-                segval[s][SEG_AV1_LVL_ALT_Q] =
-                    MPP_CLIP3(0, 255, MPP_ABS(segdata[s][SEG_AV1_LVL_ALT_Q]));
-                segsign |= (segdata[s][SEG_AV1_LVL_ALT_Q] < 0) << s;
+        for (s = 0; s < AV1_MAX_SEGMENTS; s++) {
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_ALT_Q)) {
+                segval[s][AV1_SEG_LVL_ALT_Q] =
+                    MPP_CLIP3(0, 255, MPP_ABS(segdata[s][AV1_SEG_LVL_ALT_Q]));
+                segsign |= (segdata[s][AV1_SEG_LVL_ALT_Q] < 0) << s;
             }
 
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_ALT_LF_Y_V))
-                segval[s][SEG_AV1_LVL_ALT_LF_Y_V] =
-                    MPP_CLIP3(-63, 63, segdata[s][SEG_AV1_LVL_ALT_LF_Y_V]);
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_ALT_LF_Y_V))
+                segval[s][AV1_SEG_LVL_ALT_LF_Y_V] =
+                    MPP_CLIP3(-63, 63, segdata[s][AV1_SEG_LVL_ALT_LF_Y_V]);
 
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_ALT_LF_Y_H))
-                segval[s][SEG_AV1_LVL_ALT_LF_Y_H] =
-                    MPP_CLIP3(-63, 63, segdata[s][SEG_AV1_LVL_ALT_LF_Y_H]);
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_ALT_LF_Y_H))
+                segval[s][AV1_SEG_LVL_ALT_LF_Y_H] =
+                    MPP_CLIP3(-63, 63, segdata[s][AV1_SEG_LVL_ALT_LF_Y_H]);
 
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_ALT_LF_U))
-                segval[s][SEG_AV1_LVL_ALT_LF_U] =
-                    MPP_CLIP3(-63, 63, segdata[s][SEG_AV1_LVL_ALT_LF_U]);
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_ALT_LF_U))
+                segval[s][AV1_SEG_LVL_ALT_LF_U] =
+                    MPP_CLIP3(-63, 63, segdata[s][AV1_SEG_LVL_ALT_LF_U]);
 
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_ALT_LF_V))
-                segval[s][SEG_AV1_LVL_ALT_LF_V] =
-                    MPP_CLIP3(-63, 63, segdata[s][SEG_AV1_LVL_ALT_LF_V]);
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_ALT_LF_V))
+                segval[s][AV1_SEG_LVL_ALT_LF_V] =
+                    MPP_CLIP3(-63, 63, segdata[s][AV1_SEG_LVL_ALT_LF_V]);
 
             if (dxva->format.frame_type &&
-                dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_REF_FRAME))
-                segval[s][SEG_AV1_LVL_REF_FRAME] =
-                    segdata[s][SEG_AV1_LVL_REF_FRAME] + 1;
+                dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_REF_FRAME))
+                segval[s][AV1_SEG_LVL_REF_FRAME] =
+                    segdata[s][AV1_SEG_LVL_REF_FRAME] + 1;
 
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_SKIP))
-                segval[s][SEG_AV1_LVL_SKIP] = 1;
-            if (dxva->segmentation.feature_mask[s] & (1 << SEG_AV1_LVL_GLOBALMV))
-                segval[s][SEG_AV1_LVL_GLOBALMV] = 1;
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_SKIP))
+                segval[s][AV1_SEG_LVL_SKIP] = 1;
+            if (dxva->segmentation.feature_mask[s] & (1 << AV1_SEG_LVL_GLOBALMV))
+                segval[s][AV1_SEG_LVL_GLOBALMV] = 1;
         }
     }
 
-    for (i = 0; i < MAX_MB_SEGMENTS; i++) {
-        for (j = 0; j < SEG_AV1_LVL_MAX; j++) {
+    for (i = 0; i < AV1_MAX_SEGMENTS; i++) {
+        for (j = 0; j < AV1_SEG_LVL_MAX; j++) {
             if (dxva->segmentation.feature_mask[i] & (1 << j)) {
-                preskip_segid |= j >= SEG_AV1_LVL_REF_FRAME;
+                preskip_segid |= j >= AV1_SEG_LVL_REF_FRAME;
                 last_active_seg = MPP_MAX(i, last_active_seg);
             }
         }
@@ -1307,77 +1307,77 @@ static void vdpu_av1d_set_segmentation(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *
 
     regs->swreg12.sw_seg_quant_sign = segsign;
     /* Write QP, filter level, ref frame and skip for every segment */
-    regs->swreg14.sw_quant_seg0 = segval[0][SEG_AV1_LVL_ALT_Q];
-    regs->swreg14.sw_filt_level_delta0_seg0 = segval[0][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg20.sw_filt_level_delta1_seg0 = segval[0][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg20.sw_filt_level_delta2_seg0 = segval[0][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg20.sw_filt_level_delta3_seg0 = segval[0][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg14.sw_refpic_seg0 = segval[0][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg14.sw_skip_seg0 = segval[0][SEG_AV1_LVL_SKIP];
-    regs->swreg20.sw_global_mv_seg0 = segval[0][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg14.sw_quant_seg0 = segval[0][AV1_SEG_LVL_ALT_Q];
+    regs->swreg14.sw_filt_level_delta0_seg0 = segval[0][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg20.sw_filt_level_delta1_seg0 = segval[0][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg20.sw_filt_level_delta2_seg0 = segval[0][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg20.sw_filt_level_delta3_seg0 = segval[0][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg14.sw_refpic_seg0 = segval[0][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg14.sw_skip_seg0 = segval[0][AV1_SEG_LVL_SKIP];
+    regs->swreg20.sw_global_mv_seg0 = segval[0][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg15.sw_quant_seg1 = segval[1][SEG_AV1_LVL_ALT_Q];
-    regs->swreg15.sw_filt_level_delta0_seg1 = segval[1][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg21.sw_filt_level_delta1_seg1 = segval[1][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg21.sw_filt_level_delta2_seg1 = segval[1][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg21.sw_filt_level_delta3_seg1 = segval[1][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg15.sw_refpic_seg1 = segval[1][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg15.sw_skip_seg1 = segval[1][SEG_AV1_LVL_SKIP];
-    regs->swreg21.sw_global_mv_seg1 = segval[1][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg15.sw_quant_seg1 = segval[1][AV1_SEG_LVL_ALT_Q];
+    regs->swreg15.sw_filt_level_delta0_seg1 = segval[1][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg21.sw_filt_level_delta1_seg1 = segval[1][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg21.sw_filt_level_delta2_seg1 = segval[1][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg21.sw_filt_level_delta3_seg1 = segval[1][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg15.sw_refpic_seg1 = segval[1][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg15.sw_skip_seg1 = segval[1][AV1_SEG_LVL_SKIP];
+    regs->swreg21.sw_global_mv_seg1 = segval[1][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg16.sw_quant_seg2 = segval[2][SEG_AV1_LVL_ALT_Q];
-    regs->swreg16.sw_filt_level_delta0_seg2 = segval[2][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg22.sw_filt_level_delta1_seg2 = segval[2][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg22.sw_filt_level_delta2_seg2 = segval[2][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg22.sw_filt_level_delta3_seg2 = segval[2][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg16.sw_refpic_seg2 = segval[2][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg16.sw_skip_seg2 = segval[2][SEG_AV1_LVL_SKIP];
-    regs->swreg22.sw_global_mv_seg2 = segval[2][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg16.sw_quant_seg2 = segval[2][AV1_SEG_LVL_ALT_Q];
+    regs->swreg16.sw_filt_level_delta0_seg2 = segval[2][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg22.sw_filt_level_delta1_seg2 = segval[2][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg22.sw_filt_level_delta2_seg2 = segval[2][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg22.sw_filt_level_delta3_seg2 = segval[2][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg16.sw_refpic_seg2 = segval[2][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg16.sw_skip_seg2 = segval[2][AV1_SEG_LVL_SKIP];
+    regs->swreg22.sw_global_mv_seg2 = segval[2][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg17.sw_quant_seg3 = segval[3][SEG_AV1_LVL_ALT_Q];
-    regs->swreg17.sw_filt_level_delta0_seg3 = segval[3][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg23.sw_filt_level_delta1_seg3 = segval[3][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg23.sw_filt_level_delta2_seg3 = segval[3][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg23.sw_filt_level_delta3_seg3 = segval[3][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg17.sw_refpic_seg3 = segval[3][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg17.sw_skip_seg3 = segval[3][SEG_AV1_LVL_SKIP];
-    regs->swreg23.sw_global_mv_seg3 = segval[3][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg17.sw_quant_seg3 = segval[3][AV1_SEG_LVL_ALT_Q];
+    regs->swreg17.sw_filt_level_delta0_seg3 = segval[3][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg23.sw_filt_level_delta1_seg3 = segval[3][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg23.sw_filt_level_delta2_seg3 = segval[3][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg23.sw_filt_level_delta3_seg3 = segval[3][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg17.sw_refpic_seg3 = segval[3][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg17.sw_skip_seg3 = segval[3][AV1_SEG_LVL_SKIP];
+    regs->swreg23.sw_global_mv_seg3 = segval[3][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg18.sw_quant_seg4 = segval[4][SEG_AV1_LVL_ALT_Q];
-    regs->swreg18.sw_filt_level_delta0_seg4 = segval[4][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg24.sw_filt_level_delta1_seg4 = segval[4][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg24.sw_filt_level_delta2_seg4 = segval[4][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg24.sw_filt_level_delta3_seg4 = segval[4][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg18.sw_refpic_seg4 = segval[4][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg18.sw_skip_seg4 = segval[4][SEG_AV1_LVL_SKIP];
-    regs->swreg24.sw_global_mv_seg4 = segval[4][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg18.sw_quant_seg4 = segval[4][AV1_SEG_LVL_ALT_Q];
+    regs->swreg18.sw_filt_level_delta0_seg4 = segval[4][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg24.sw_filt_level_delta1_seg4 = segval[4][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg24.sw_filt_level_delta2_seg4 = segval[4][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg24.sw_filt_level_delta3_seg4 = segval[4][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg18.sw_refpic_seg4 = segval[4][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg18.sw_skip_seg4 = segval[4][AV1_SEG_LVL_SKIP];
+    regs->swreg24.sw_global_mv_seg4 = segval[4][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg19.sw_quant_seg5 = segval[5][SEG_AV1_LVL_ALT_Q];
-    regs->swreg19.sw_filt_level_delta0_seg5 = segval[5][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg25.sw_filt_level_delta1_seg5 = segval[5][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg25.sw_filt_level_delta2_seg5 = segval[5][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg25.sw_filt_level_delta3_seg5 = segval[5][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg19.sw_refpic_seg5 = segval[5][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg19.sw_skip_seg5 = segval[5][SEG_AV1_LVL_SKIP];
-    regs->swreg25.sw_global_mv_seg5 = segval[5][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg19.sw_quant_seg5 = segval[5][AV1_SEG_LVL_ALT_Q];
+    regs->swreg19.sw_filt_level_delta0_seg5 = segval[5][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg25.sw_filt_level_delta1_seg5 = segval[5][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg25.sw_filt_level_delta2_seg5 = segval[5][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg25.sw_filt_level_delta3_seg5 = segval[5][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg19.sw_refpic_seg5 = segval[5][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg19.sw_skip_seg5 = segval[5][AV1_SEG_LVL_SKIP];
+    regs->swreg25.sw_global_mv_seg5 = segval[5][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg31.sw_quant_seg6 = segval[6][SEG_AV1_LVL_ALT_Q];
-    regs->swreg31.sw_filt_level_delta0_seg6 = segval[6][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg26.sw_filt_level_delta1_seg6 = segval[6][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg26.sw_filt_level_delta2_seg6 = segval[6][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg26.sw_filt_level_delta3_seg6 = segval[6][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg31.sw_refpic_seg6 = segval[6][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg31.sw_skip_seg6 = segval[6][SEG_AV1_LVL_SKIP];
-    regs->swreg26.sw_global_mv_seg6 = segval[6][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg31.sw_quant_seg6 = segval[6][AV1_SEG_LVL_ALT_Q];
+    regs->swreg31.sw_filt_level_delta0_seg6 = segval[6][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg26.sw_filt_level_delta1_seg6 = segval[6][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg26.sw_filt_level_delta2_seg6 = segval[6][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg26.sw_filt_level_delta3_seg6 = segval[6][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg31.sw_refpic_seg6 = segval[6][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg31.sw_skip_seg6 = segval[6][AV1_SEG_LVL_SKIP];
+    regs->swreg26.sw_global_mv_seg6 = segval[6][AV1_SEG_LVL_GLOBALMV];
 
-    regs->swreg32.sw_quant_seg7 = segval[7][SEG_AV1_LVL_ALT_Q];
-    regs->swreg32.sw_filt_level_delta0_seg7 = segval[7][SEG_AV1_LVL_ALT_LF_Y_V];
-    regs->swreg27.sw_filt_level_delta1_seg7 = segval[7][SEG_AV1_LVL_ALT_LF_Y_H];
-    regs->swreg27.sw_filt_level_delta2_seg7 = segval[7][SEG_AV1_LVL_ALT_LF_U];
-    regs->swreg27.sw_filt_level_delta3_seg7 = segval[7][SEG_AV1_LVL_ALT_LF_V];
-    regs->swreg32.sw_refpic_seg7 = segval[7][SEG_AV1_LVL_REF_FRAME];
-    regs->swreg32.sw_skip_seg7 = segval[7][SEG_AV1_LVL_SKIP];
-    regs->swreg27.sw_global_mv_seg7 = segval[7][SEG_AV1_LVL_GLOBALMV];
+    regs->swreg32.sw_quant_seg7 = segval[7][AV1_SEG_LVL_ALT_Q];
+    regs->swreg32.sw_filt_level_delta0_seg7 = segval[7][AV1_SEG_LVL_ALT_LF_Y_V];
+    regs->swreg27.sw_filt_level_delta1_seg7 = segval[7][AV1_SEG_LVL_ALT_LF_Y_H];
+    regs->swreg27.sw_filt_level_delta2_seg7 = segval[7][AV1_SEG_LVL_ALT_LF_U];
+    regs->swreg27.sw_filt_level_delta3_seg7 = segval[7][AV1_SEG_LVL_ALT_LF_V];
+    regs->swreg32.sw_refpic_seg7 = segval[7][AV1_SEG_LVL_REF_FRAME];
+    regs->swreg32.sw_skip_seg7 = segval[7][AV1_SEG_LVL_SKIP];
+    regs->swreg27.sw_global_mv_seg7 = segval[7][AV1_SEG_LVL_GLOBALMV];
 }
 
 static void vdpu_av1d_set_loopfilter(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)

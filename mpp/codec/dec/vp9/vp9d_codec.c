@@ -4,7 +4,7 @@
  */
 
 #include "mpp_common.h"
-#include "vp9d_codec.h"
+#include "vp9d_ctx.h"
 
 const RK_S16 vp9_dc_qlookup[3][256] = {
     {

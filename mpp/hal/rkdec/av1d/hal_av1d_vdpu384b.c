@@ -355,7 +355,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->comm_paras.reg81_error_ref_raster_uv_hor_virstride = regs->comm_paras.reg69_pp_m_uv_hor_stride;
         regs->comm_paras.reg82_error_ref_virstride = regs->comm_paras.reg70_pp_m_y_virstride;
 
-        for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; ++i) {
+        for (i = 0; i < AV1_REFS_PER_FRAME; ++i) {
             mapped_idx = dxva->ref_frame_idx[i];
             if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
                 mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_FRAME_PTR, &mframe);
@@ -392,7 +392,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->comm_addrs.reg168_decout_base = mpp_buffer_get_fd(mbuffer);
         regs->comm_addrs.reg192_payload_st_cur_base = mpp_buffer_get_fd(mbuffer);
 
-        for (i = 0; i < ALLOWED_REFS_PER_FRAME_EX; i++) {
+        for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
             mapped_idx = dxva->ref_frame_idx[i];
             if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
                 mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_BUFFER, &mbuffer);
@@ -419,7 +419,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
 #ifdef DUMP_VDPU38X_DATAS
         memset(mpp_buffer_get_ptr(mv_buf->buf[0]), 0, mpp_buffer_get_size(mv_buf->buf[0]));
 #endif
-        for (i = 0; i < NUM_REF_FRAMES; i++) {
+        for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
             if (dxva->frame_refs[i].Index != (CHAR)0xff && dxva->frame_refs[i].Index != 0x7f) {
                 mv_buf = hal_bufs_get_buf(ctx->colmv_bufs, dxva->frame_refs[i].Index);
                 regs->comm_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);

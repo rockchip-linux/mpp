@@ -12,7 +12,7 @@
 #include "mpp_bitread.h"
 
 #include "parser_api.h"
-#include "vp9d_codec.h"
+#include "vp9d_ctx.h"
 #include "vp9d_syntax.h"
 
 extern RK_U32 vp9d_debug;

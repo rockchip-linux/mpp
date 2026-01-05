@@ -47,13 +47,13 @@ typedef struct Vdpu38xAv1dRegCtx_t {
     RK_U32              colmv_count;
     RK_U32              colmv_size;
 
-    Vdpu38xRefInfo      ref_info_tbl[NUM_REF_FRAMES];
+    Vdpu38xRefInfo      ref_info_tbl[AV1_NUM_REF_FRAMES];
 
     MppBuffer           cdf_rd_def_base;
     HalBufs             cdf_segid_bufs;
     RK_U32              cdf_segid_count;
     RK_U32              cdf_segid_size;
-    RK_U32              cdf_coeff_cdf_idxs[NUM_REF_FRAMES];
+    RK_U32              cdf_coeff_cdf_idxs[AV1_NUM_REF_FRAMES];
 
     MppBuffer           tile_info;
     MppBuffer           film_grain_mem;
@@ -62,11 +62,11 @@ typedef struct Vdpu38xAv1dRegCtx_t {
     MppBuffer           tile_buf;
 
     AV1CDFs             *cdfs;
-    MvCDFs              *cdfs_ndvc;
+    Av1MvCDFs           *cdfs_ndvc;
     AV1CDFs             default_cdfs;
-    MvCDFs              default_cdfs_ndvc;
-    AV1CDFs             cdfs_last[NUM_REF_FRAMES];
-    MvCDFs              cdfs_last_ndvc[NUM_REF_FRAMES];
+    Av1MvCDFs           default_cdfs_ndvc;
+    AV1CDFs             cdfs_last[AV1_NUM_REF_FRAMES];
+    Av1MvCDFs           cdfs_last_ndvc[AV1_NUM_REF_FRAMES];
     RK_U32              refresh_frame_flags;
 
     RK_U32              width;

@@ -11,8 +11,6 @@
 #include "hal_av1d_common.h"
 #include "vdpu38x_com.h"
 
-#define AV1_PRIMARY_REF_NONE     7
-
 #define NON_COEF_CDF_SIZE (434 * 16) // byte
 #define COEF_CDF_SIZE (354 * 16) // byte
 #define ALL_CDF_SIZE (NON_COEF_CDF_SIZE + COEF_CDF_SIZE * 4)
