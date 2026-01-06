@@ -25,6 +25,15 @@
 #define enc_hal_dbg_flow(fmt, ...)      enc_hal_dbg_f(ENC_HAL_DBG_FLOW, fmt, ## __VA_ARGS__)
 #define enc_hal_dbg_api(fmt, ...)       enc_hal_dbg(ENC_HAL_DBG_API, fmt, ## __VA_ARGS__)
 
+#define TRY_GET_ENC_HAL_API(client_type) \
+        if (vcodec_type & (1 << client_type)) { \
+            api = mpp_enc_hal_api_get(coding, (client_type)); \
+            if (api) { \
+                ret = hal_impl_init(p, api, cfg); \
+                break; \
+            } \
+        }
+
 typedef struct MppEncHalImpl_t {
     MppCodingType       coding;
 
@@ -93,7 +102,10 @@ const MppEncHalApi *mpp_enc_hal_api_get(MppCodingType coding, MppClientType type
         return NULL;
 
     api = venc_apis[index][0];
-    if (api && api->client == type) {
+    if (!api)
+        return NULL;
+
+    if (api->client == type) {
         enc_hal_dbg_api("found api %s for coding %d client %d\n",
                         api->name, coding, type);
         return api;
@@ -125,6 +137,7 @@ static MPP_RET hal_impl_init(MppEncHalImpl *p, const MppEncHalApi *api, MppEncHa
             mpp_err_f("hal_task_group_init failed ret %d\n", ret);
             MPP_FREE(p->ctx);
         }
+        cfg->tasks = p->tasks;
     } else {
         mpp_err_f("hal %s init failed ret %d\n", api->name, ret);
     }
@@ -160,29 +173,12 @@ MPP_RET mpp_enc_hal_init(MppEncHal *ctx, MppEncHalCfg *cfg)
     coding = cfg->coding;
 
     do {
-        if (vcodec_type & HAVE_RKVENC) {
-            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_RKVENC);
-            if (api) {
-                ret = hal_impl_init(p, api, cfg);
-                break;
-            }
-        }
-
-        if (vcodec_type & HAVE_VEPU2) {
-            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_VEPU2);
-            if (api) {
-                ret = hal_impl_init(p, api, cfg);
-                break;
-            }
-        }
-
-        if (vcodec_type & HAVE_VEPU1) {
-            api = mpp_enc_hal_api_get(coding, VPU_CLIENT_VEPU1);
-            if (api) {
-                ret = hal_impl_init(p, api, cfg);
-                break;
-            }
-        }
+        TRY_GET_ENC_HAL_API(VPU_CLIENT_RKVENC);
+        if (coding == MPP_VIDEO_CodingMJPEG)
+            TRY_GET_ENC_HAL_API(VPU_CLIENT_JPEG_ENC);
+        TRY_GET_ENC_HAL_API(VPU_CLIENT_VEPU2);
+        TRY_GET_ENC_HAL_API(VPU_CLIENT_VEPU1);
+        TRY_GET_ENC_HAL_API(VPU_CLIENT_VEPU22);
     } while (0);
 
     if (ret) {
