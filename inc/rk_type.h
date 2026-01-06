@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef RK_TYPE_H
@@ -211,17 +200,5 @@ typedef struct KmppShmPtr_t {
     };
     /* DO NOT access reserved data only used by kernel */
 } KmppShmPtr;
-
-#define MPP_BIT(n)                      (1UL << (n))
-
-#define MPP_FLAG_1OR(a)                 ((RK_U32)(a))
-#define MPP_FLAG_2OR(a, b)              ((RK_U32)(a) | (RK_U32)(b))
-#define MPP_FLAG_3OR(a, b, c)           ((RK_U32)(a) | (RK_U32)(b) | (RK_U32)(c))
-#define MPP_FLAG_4OR(a, b, c, d)        ((RK_U32)(a) | (RK_U32)(b) | (RK_U32)(c) | (RK_U32)(d))
-#define MPP_FLAG_5OR(a, b, c, d, e)     ((RK_U32)(a) | (RK_U32)(b) | (RK_U32)(c) | (RK_U32)(d) | (RK_U32)(e))
-#define MPP_FLAG_6OR(a, b, c, d, e, f)  ((RK_U32)(a) | (RK_U32)(b) | (RK_U32)(c) | (RK_U32)(d) | (RK_U32)(e) | (RK_U32)(f))
-
-#define MPP_FLAG_OR_HELPER(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
-#define MPP_FLAG_OR(...) MPP_FLAG_OR_HELPER(__VA_ARGS__, MPP_FLAG_6OR, MPP_FLAG_5OR, MPP_FLAG_4OR, MPP_FLAG_3OR, MPP_FLAG_2OR, MPP_FLAG_1OR)(__VA_ARGS__)
 
 #endif /* RK_TYPE_H */

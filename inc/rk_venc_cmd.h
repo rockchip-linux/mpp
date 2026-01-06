@@ -6,6 +6,7 @@
 #ifndef RK_VENC_CMD_H
 #define RK_VENC_CMD_H
 
+#include "mpp_bit.h"
 #include "mpp_frame.h"
 #include "rk_venc_rc.h"
 

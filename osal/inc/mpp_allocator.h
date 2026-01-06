@@ -6,6 +6,7 @@
 #ifndef MPP_ALLOCATOR_H
 #define MPP_ALLOCATOR_H
 
+#include "mpp_bit.h"
 #include "mpp_buffer.h"
 
 typedef enum MppAllocFlagType_e {

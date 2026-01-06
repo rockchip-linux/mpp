@@ -6,8 +6,9 @@
 #ifndef MPP_SYS_CFG_H
 #define MPP_SYS_CFG_H
 
-#include "mpp_frame.h"
+#include "mpp_bit.h"
 #include "mpp_list.h"
+#include "mpp_frame.h"
 
 typedef enum MppSysDecBufCkhCfgChange_e {
     MPP_SYS_DEC_BUF_CHK_CFG_CHANGE_ENABLE           = MPP_BIT(0),
