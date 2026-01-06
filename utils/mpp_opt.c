@@ -96,7 +96,7 @@ MPP_RET mpp_opt_parse(MppOpt opt, int argc, char **argv)
     if (NULL == impl || NULL == impl->trie || argc < 2 || NULL == argv)
         return ret;
 
-    cfg_argv = mpp_calloc(char*, argc);
+    cfg_argv = mpp_calloc(char*, argc + 1);
     if (!cfg_argv) {
         mpp_err("malloc cfg_argv failed\n");
         return ret;
