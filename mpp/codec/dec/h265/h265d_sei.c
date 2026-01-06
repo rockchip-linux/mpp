@@ -28,10 +28,11 @@
 #define MODULE_TAG "h265d_sei"
 
 #include "mpp_bitread.h"
-#include "h265d_parser.h"
 #include "rk_hdr_meta_com.h"
-#include "h2645d_sei.h"
 
+#include "h265d_debug.h"
+#include "h265d_parser.h"
+#include "h2645d_sei.h"
 
 static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
 {
@@ -95,19 +96,19 @@ static RK_S32 decode_pic_timing(HEVCContext *s, BitReadCtx_t *gb)
     if (sps->vui.frame_field_info_present_flag) {
         READ_BITS(gb, 4, &s->picture_struct);
         switch (s->picture_struct) {
-        case  0 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "(progressive) frame \n"); break;
-        case  1 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg(H265D_DBG_SEI, "top field\n"); break;
-        case  2 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg(H265D_DBG_SEI, "bottom field\n"); break;
-        case  3 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "top field, bottom field, in that order\n"); break;
-        case  4 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "bottom field, top field, in that order\n"); break;
-        case  5 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "top field, bottom field, top field repeated, in that order\n"); break;
-        case  6 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "bottom field, top field, bottom field repeated, in that order\n"); break;
-        case  7 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "frame doubling\n"); break;
-        case  8 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg(H265D_DBG_SEI, "frame tripling\n"); break;
-        case  9 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg(H265D_DBG_SEI, "top field paired with previous bottom field in output order\n"); break;
-        case 10 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg(H265D_DBG_SEI, "bottom field paired with previous top field in output order\n"); break;
-        case 11 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg(H265D_DBG_SEI, "top field paired with next bottom field in output order\n"); break;
-        case 12 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg(H265D_DBG_SEI, "bottom field paired with next top field in output order\n"); break;
+        case  0 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("(progressive) frame \n"); break;
+        case  1 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field\n"); break;
+        case  2 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field\n"); break;
+        case  3 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("top field, bottom field, in that order\n"); break;
+        case  4 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("bottom field, top field, in that order\n"); break;
+        case  5 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("top field, bottom field, top field repeated, in that order\n"); break;
+        case  6 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("bottom field, top field, bottom field repeated, in that order\n"); break;
+        case  7 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("frame doubling\n"); break;
+        case  8 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("frame tripling\n"); break;
+        case  9 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field paired with previous bottom field in output order\n"); break;
+        case 10 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field paired with previous top field in output order\n"); break;
+        case 11 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field paired with next bottom field in output order\n"); break;
+        case 12 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field paired with next top field in output order\n"); break;
         }
         SKIP_BITS(gb, 2);                   // source_scan_type
         SKIP_BITS(gb, 1);                   // duplicate_flag
@@ -164,17 +165,17 @@ static RK_S32 mastering_display_colour_volume(HEVCContext *s, BitReadCtx_t *gb)
     mpp_read_longbits(gb, 32, &lum);
     s->mastering_display.min_luminance = lum;
 
-    h265d_dbg(H265D_DBG_SEI, "dis_prim [%d %d] [%d %d] [%d %d] white point %d %d luminance %d %d\n",
-              s->mastering_display.display_primaries[0][0],
-              s->mastering_display.display_primaries[0][1],
-              s->mastering_display.display_primaries[1][0],
-              s->mastering_display.display_primaries[1][1],
-              s->mastering_display.display_primaries[2][0],
-              s->mastering_display.display_primaries[2][1],
-              s->mastering_display.white_point[0],
-              s->mastering_display.white_point[1],
-              s->mastering_display.max_luminance,
-              s->mastering_display.min_luminance);
+    h265d_dbg_sei("dis_prim [%d %d] [%d %d] [%d %d] white point %d %d luminance %d %d\n",
+                  s->mastering_display.display_primaries[0][0],
+                  s->mastering_display.display_primaries[0][1],
+                  s->mastering_display.display_primaries[1][0],
+                  s->mastering_display.display_primaries[1][1],
+                  s->mastering_display.display_primaries[2][0],
+                  s->mastering_display.display_primaries[2][1],
+                  s->mastering_display.white_point[0],
+                  s->mastering_display.white_point[1],
+                  s->mastering_display.max_luminance,
+                  s->mastering_display.min_luminance);
 
     return 0;
 
@@ -367,8 +368,8 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
 
     READ_BITS(gb, 16, &provider_code);
     READ_BITS(gb, 16, &provider_oriented_code);
-    h265d_dbg(H265D_DBG_SEI, "country_code=%d provider_code=%d terminal_provider_code %d\n",
-              country_code, provider_code, provider_oriented_code);
+    h265d_dbg_sei("country_code=%d provider_code=%d terminal_provider_code %d\n",
+                  country_code, provider_code, provider_oriented_code);
     switch (provider_code) {
     case 0x4: {/* cuva provider_code is 0x4 */
         vivid_display_info(s, gb, mpp_get_bits_left(gb) >> 3);
@@ -414,7 +415,7 @@ MPP_RET decode_recovery_point(BitReadCtx_t *gb, HEVCContext *s)
 
     READ_SE(gb, &val);
     if (val > 32767 || val < -32767) {
-        h265d_dbg(H265D_DBG_SEI, "recovery_poc_cnt %d, is out of range");
+        h265d_dbg_sei("recovery_poc_cnt %d, is out of range");
         return MPP_ERR_STREAM;
     }
 
@@ -422,7 +423,7 @@ MPP_RET decode_recovery_point(BitReadCtx_t *gb, HEVCContext *s)
     s->recovery.valid_flag = 1;
     s->recovery.recovery_frame_cnt = val;
 
-    h265d_dbg(H265D_DBG_SEI, "Recovery point: poc_cnt %d", s->recovery.recovery_frame_cnt);
+    h265d_dbg_sei("Recovery point: poc_cnt %d", s->recovery.recovery_frame_cnt);
     return MPP_OK;
 __BITREAD_ERR:
     return MPP_ERR_STREAM;
@@ -438,7 +439,7 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
     RK_S32 byte = 0xFF;
     RK_S32 i = 0;
     BitReadCtx_t payload_bitctx;
-    h265d_dbg(H265D_DBG_SEI, "Decoding SEI\n");
+    h265d_dbg_sei("Decoding SEI\n");
 
     do {
         payload_type = 0;
@@ -476,7 +477,7 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
         mpp_set_bitread_ctx(&payload_bitctx, s->HEVClc->gb.data_, payload_size);
         mpp_set_bitread_pseudo_code_type(&payload_bitctx, PSEUDO_CODE_H264_H265_SEI);
 
-        h265d_dbg(H265D_DBG_SEI, "s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
+        h265d_dbg_sei("s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
 
         if (s->nal_unit_type == NAL_SEI_PREFIX) {
             if (payload_type == 256 /*&& s->decode_checksum_sei*/) {
@@ -485,45 +486,45 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
                 ret = decode_nal_sei_frame_packing_arrangement(s, &payload_bitctx);
             } else if (payload_type == 1) {
                 ret = decode_pic_timing(s, &payload_bitctx);
-                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+                h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             } else if (payload_type == 4) {
                 ret = user_data_registered_itu_t_t35(s, &payload_bitctx, payload_size);
             } else if (payload_type == 5) {
                 ret = check_encoder_sei_info(&payload_bitctx, payload_size, &s->deny_flag);
 
                 if (s->deny_flag)
-                    h265d_dbg(H265D_DBG_SEI, "Bitstream is encoded by special encoder.");
+                    h265d_dbg_sei("Bitstream is encoded by special encoder.");
             } else if (payload_type == 129) {
                 ret = active_parameter_sets(s, &payload_bitctx);
-                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+                h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             } else if (payload_type == 137) {
-                h265d_dbg(H265D_DBG_SEI, "mastering_display_colour_volume in\n");
+                h265d_dbg_sei("mastering_display_colour_volume in\n");
                 ret = mastering_display_colour_volume(s, &payload_bitctx);
                 s->is_hdr = 1;
             } else if (payload_type == 144) {
-                h265d_dbg(H265D_DBG_SEI, "content_light_info in\n");
+                h265d_dbg_sei("content_light_info in\n");
                 ret = content_light_info(s, &payload_bitctx);
             } else if (payload_type == 143) {
-                h265d_dbg(H265D_DBG_SEI, "colour_remapping_info in\n");
+                h265d_dbg_sei("colour_remapping_info in\n");
                 ret = colour_remapping_info(&payload_bitctx);
             } else if (payload_type == 23) {
-                h265d_dbg(H265D_DBG_SEI, "tone_mapping_info in\n");
+                h265d_dbg_sei("tone_mapping_info in\n");
                 ret = tone_mapping_info(&payload_bitctx);
             } else if (payload_type == 6) {
-                h265d_dbg(H265D_DBG_SEI, "recovery point in\n");
+                h265d_dbg_sei("recovery point in\n");
                 s->max_ra = INT_MIN;
                 ret = decode_recovery_point(&payload_bitctx, s);
             }  else if (payload_type == 147) {
-                h265d_dbg(H265D_DBG_SEI, "alternative_transfer in\n");
+                h265d_dbg_sei("alternative_transfer in\n");
                 ret = decode_nal_sei_alternative_transfer(s, &payload_bitctx);
             } else {
-                h265d_dbg(H265D_DBG_SEI, "Skipped PREFIX SEI %d\n", payload_type);
+                h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             }
         } else { /* nal_unit_type == NAL_SEI_SUFFIX */
             if (payload_type == 132 /* && s->decode_checksum_sei */)
                 ret = decode_nal_sei_decoded_picture_hash(&payload_bitctx);
             else {
-                h265d_dbg(H265D_DBG_SEI, "Skipped SUFFIX SEI %d\n", payload_type);
+                h265d_dbg_sei("Skipped SUFFIX SEI %d\n", payload_type);
             }
         }
 
