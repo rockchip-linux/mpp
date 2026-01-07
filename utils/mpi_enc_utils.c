@@ -203,12 +203,15 @@ error:
 
 static void mpi_enc_sync_cmd(MpiEncTestArgs *cmd, MppEncCfg cfg)
 {
+    mpp_enc_cfg_get_s32(cfg, "codec:type", (RK_S32 *)&cmd->type);
     mpp_enc_cfg_get_s32(cfg, "prep:width", &cmd->width);
     mpp_enc_cfg_get_s32(cfg, "prep:height", &cmd->height);
     mpp_enc_cfg_get_s32(cfg, "prep:hor_stride", &cmd->hor_stride);
     mpp_enc_cfg_get_s32(cfg, "prep:ver_stride", &cmd->ver_stride);
-    mpp_enc_cfg_get_s32(cfg, "codec:type", (RK_S32 *)&cmd->type);
     mpp_enc_cfg_get_s32(cfg, "prep:format", (RK_S32 *)&cmd->format);
+    mpp_enc_cfg_get_s32(cfg, "prep:mirror", (RK_S32 *)&cmd->mirroring);
+    mpp_enc_cfg_get_s32(cfg, "prep:rotation", (RK_S32 *)&cmd->rotation);
+    mpp_enc_cfg_get_s32(cfg, "prep:flip", (RK_S32 *)&cmd->flip);
     mpp_enc_cfg_get_s32(cfg, "rc:mode", &cmd->rc_mode);
     mpp_enc_cfg_get_s32(cfg, "rc:gop", &cmd->gop_len);
     mpp_enc_cfg_get_s32(cfg, "rc:fps_in_flex", &cmd->fps_in_flex);
@@ -231,13 +234,10 @@ static void mpi_enc_sync_cmd(MpiEncTestArgs *cmd, MppEncCfg cfg)
     mpp_enc_cfg_get_s32(cfg, "rc:bps_min", &cmd->bps_min);
     mpp_enc_cfg_get_s32(cfg, "tune:scene_mode", &cmd->scene_mode);
     mpp_enc_cfg_get_s32(cfg, "tune:deblur_en", &cmd->deblur_en);
-    mpp_enc_cfg_get_s32(cfg, "tune:anti_flicker_str", &cmd->anti_flicker_str);
-    mpp_enc_cfg_get_s32(cfg, "tune:atr_str_i", &cmd->atr_str_i);
-    mpp_enc_cfg_get_s32(cfg, "tune:atr_str_p", &cmd->atr_str_p);
-    mpp_enc_cfg_get_s32(cfg, "tune:atl_str", &cmd->atl_str);
-    mpp_enc_cfg_get_s32(cfg, "tune:sao_str_i", &cmd->sao_str_i);
-    mpp_enc_cfg_get_s32(cfg, "tune:sao_str_p", &cmd->sao_str_p);
     mpp_enc_cfg_get_s32(cfg, "h265:diff_cu_qp_delta_depth", &cmd->cu_qp_delta_depth);
+    mpp_enc_cfg_get_s32(cfg, "split:mode", (RK_S32 *)&cmd->split_mode);
+    mpp_enc_cfg_get_s32(cfg, "split:arg", (RK_S32 *)&cmd->split_arg);
+    mpp_enc_cfg_get_s32(cfg, "split:out", (RK_S32 *)&cmd->split_out);
 }
 
 RK_S32 mpi_enc_opt_i(void *ctx, const char *next)
@@ -1154,6 +1154,25 @@ void show_enc_fps(RK_S64 total_time, RK_S64 total_count, RK_S64 last_time, RK_S6
             total_count, avg_fps, ins_fps);
 }
 
+static void mpi_enc_cmd_env_get(MpiEncTestArgs *cmd)
+{
+    mpp_env_get_u32("mirroring", &cmd->mirroring, cmd->mirroring);
+    mpp_env_get_u32("rotation", &cmd->rotation, cmd->rotation);
+    mpp_env_get_u32("flip", &cmd->flip, cmd->flip);
+    mpp_env_get_u32("split_mode", &cmd->split_mode, cmd->split_mode);
+    mpp_env_get_u32("split_arg", &cmd->split_arg, cmd->split_arg);
+    mpp_env_get_u32("split_out", &cmd->split_out, cmd->split_out);
+    mpp_env_get_u32("osd_enable", &cmd->osd_enable, cmd->osd_enable);
+    mpp_env_get_u32("roi_jpeg_enable", &cmd->roi_jpeg_enable, cmd->roi_jpeg_enable);
+    mpp_env_get_u32("jpeg_osd_case", &cmd->jpeg_osd_case, cmd->jpeg_osd_case);
+    mpp_env_get_u32("osd_mode", &cmd->osd_mode, cmd->osd_mode);
+    mpp_env_get_u32("roi_enable", &cmd->roi_enable, cmd->roi_enable);
+    mpp_env_get_u32("user_data_enable", &cmd->user_data_enable, cmd->user_data_enable);
+    mpp_env_get_u32("constraint_set", &cmd->constraint_set, cmd->constraint_set);
+    mpp_env_get_u32("gop_mode", (RK_U32 *)&cmd->gop_mode, (RK_U32)cmd->gop_mode);
+    mpp_env_get_u32("sei_mode", &cmd->sei_mode, cmd->sei_mode);
+}
+
 MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv, const char *module_tag)
 {
     MpiEncTestArgs *cmd = NULL;
@@ -1184,6 +1203,8 @@ MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, 
     ret = mpp_opt_parse(opts, argc, argv);
     if (ret)
         goto done;
+
+    mpi_enc_cmd_env_get(cmd);
 
     if (cmd->type <= MPP_VIDEO_CodingAutoDetect) {
         mpp_err("invalid type %d\n", cmd->type);
@@ -1761,10 +1782,6 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
     MppCtx ctx = p->ctx;
     MppEncCfg cfg = p->cfg;
     MPP_RET ret;
-    RK_U32 rotation;
-    RK_U32 mirroring;
-    RK_U32 flip;
-    RK_U32 gop_mode = cmd->gop_mode;
     MppEncRefCfg ref = NULL;
 
     /* setup default parameter */
@@ -1793,14 +1810,6 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         mpp_enc_cfg_set_s32(cfg, "prep:format", p->fmt);
         mpp_enc_cfg_set_s32(cfg, "prep:range", MPP_FRAME_RANGE_JPEG);
 
-        mpp_env_get_u32("mirroring", &mirroring, 0);
-        mpp_env_get_u32("rotation", &rotation, 0);
-        mpp_env_get_u32("flip", &flip, 0);
-
-        mpp_enc_cfg_set_s32(cfg, "prep:mirroring", mirroring);
-        mpp_enc_cfg_set_s32(cfg, "prep:rotation", rotation);
-        mpp_enc_cfg_set_s32(cfg, "prep:flip", flip);
-
         /* setup rate control parameters */
         mpp_enc_cfg_set_s32(cfg, "rc:mode", cmd->rc_mode);
         mpp_enc_cfg_set_u32(cfg, "rc:max_reenc_times", 0);
@@ -1810,16 +1819,6 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         mpp_enc_cfg_set_u32(cfg, "rc:drop_mode", MPP_ENC_RC_DROP_FRM_DISABLED);
         mpp_enc_cfg_set_u32(cfg, "rc:drop_thd", 20);        /* 20% of max bps */
         mpp_enc_cfg_set_u32(cfg, "rc:drop_gap", 1);         /* Do not continuous drop frame */
-
-        mpp_env_get_u32("split_mode", &cmd->split_mode, MPP_ENC_SPLIT_NONE);
-        mpp_env_get_u32("split_arg", &cmd->split_arg, 0);
-        mpp_env_get_u32("split_out", &cmd->split_out, 0);
-
-        if (cmd->split_mode) {
-            mpp_enc_cfg_set_s32(cfg, "split:mode", cmd->split_mode);
-            mpp_enc_cfg_set_s32(cfg, "split:arg", cmd->split_arg);
-            mpp_enc_cfg_set_s32(cfg, "split:out", cmd->split_out);
-        }
 
         /* setup fine tuning paramters */
         mpp_enc_cfg_set_s32(cfg, "tune:anti_flicker_str", cmd->anti_flicker_str);
@@ -1841,10 +1840,19 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         mpp_enc_cfg_set_s32(cfg, "hw:qbias_en", 1);
         mpp_enc_cfg_set_s32(cfg, "hw:qbias_i", cmd->bias_i);
         mpp_enc_cfg_set_s32(cfg, "hw:qbias_p", cmd->bias_p);
-
         mpp_enc_cfg_set_s32(cfg, "hw:skip_bias_en", 0);
         mpp_enc_cfg_set_s32(cfg, "hw:skip_bias", 4);
         mpp_enc_cfg_set_s32(cfg, "hw:skip_sad", 8);
+    }
+
+    mpp_enc_cfg_set_s32(cfg, "prep:mirroring", cmd->mirroring);
+    mpp_enc_cfg_set_s32(cfg, "prep:rotation", cmd->rotation);
+    mpp_enc_cfg_set_s32(cfg, "prep:flip", cmd->flip);
+
+    if (cmd->split_mode) {
+        mpp_enc_cfg_set_s32(cfg, "split:mode", cmd->split_mode);
+        mpp_enc_cfg_set_s32(cfg, "split:arg", cmd->split_arg);
+        mpp_enc_cfg_set_s32(cfg, "split:out", cmd->split_out);
     }
 
     /* fix input / output frame rate */
@@ -1939,8 +1947,6 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
 
     switch (p->type) {
     case MPP_VIDEO_CodingAVC : {
-        RK_U32 constraint_set;
-
         /*
          * H.264 profile_idc parameter
          * 66  - Baseline profile
@@ -1961,9 +1967,8 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         mpp_enc_cfg_set_s32(cfg, "h264:cabac_idc", 0);
         mpp_enc_cfg_set_s32(cfg, "h264:trans8x8", 1);
 
-        mpp_env_get_u32("constraint_set", &constraint_set, 0);
-        if (constraint_set & 0x3f0000)
-            mpp_enc_cfg_set_s32(cfg, "h264:constraint_set", constraint_set);
+        if (cmd->constraint_set & 0x3f0000)
+            mpp_enc_cfg_set_s32(cfg, "h264:constraint_set", cmd->constraint_set);
     } break;
     case MPP_VIDEO_CodingHEVC : {
         mpp_enc_cfg_set_s32(cfg, "h265:diff_cu_qp_delta_depth", cmd->cu_qp_delta_depth);
@@ -1979,12 +1984,11 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
     // config gop_len and ref cfg
     mpp_enc_cfg_set_s32(cfg, "rc:gop", cmd->gop_len ? cmd->gop_len : cmd->fps_out_num * 2);
 
-    mpp_env_get_u32("gop_mode", &gop_mode, gop_mode);
-    if (gop_mode) {
+    if (cmd->gop_mode) {
         mpp_enc_ref_cfg_init(&ref);
 
-        if (gop_mode < 4)
-            mpi_enc_gen_ref_cfg(ref, gop_mode);
+        if (cmd->gop_mode < 4)
+            mpi_enc_gen_ref_cfg(ref, cmd->gop_mode);
         else
             mpi_enc_gen_smart_gop_ref_cfg(ref, cmd->gop_len, cmd->vi_len);
 
@@ -2034,16 +2038,10 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
         mpp_enc_ref_cfg_deinit(&ref);
 
     /* optional */
-    {
-        RK_U32 sei_mode;
-
-        mpp_env_get_u32("sei_mode", &sei_mode, MPP_ENC_SEI_MODE_DISABLE);
-        p->sei_mode = sei_mode;
-        ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &p->sei_mode);
-        if (ret) {
-            mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
-            goto RET;
-        }
+    ret = mpi->control(ctx, MPP_ENC_SET_SEI_CFG, &cmd->sei_mode);
+    if (ret) {
+        mpp_err("mpi control enc set sei cfg failed ret %d\n", ret);
+        goto RET;
     }
 
     if (p->type == MPP_VIDEO_CodingAVC || p->type == MPP_VIDEO_CodingHEVC) {
@@ -2054,14 +2052,6 @@ MPP_RET mpi_enc_cfg_setup(MpiEncTestData *p, MpiEncTestArgs *cmd, MppEncCfg cfg_
             goto RET;
         }
     }
-
-    /* setup test mode by env */
-    mpp_env_get_u32("osd_enable", &cmd->osd_enable, cmd->osd_enable);
-    mpp_env_get_u32("roi_jpeg_enable", &cmd->roi_jpeg_enable, cmd->roi_jpeg_enable);
-    mpp_env_get_u32("jpeg_osd_case", &cmd->jpeg_osd_case, cmd->jpeg_osd_case);
-    mpp_env_get_u32("osd_mode", &cmd->osd_mode, cmd->osd_mode);
-    mpp_env_get_u32("roi_enable", &cmd->roi_enable, cmd->roi_enable);
-    mpp_env_get_u32("user_data_enable", &cmd->user_data_enable, cmd->user_data_enable);
 
     if (cmd->roi_enable) {
         mpp_enc_roi_init(&p->roi_ctx, p->width, p->height, p->type, 4);

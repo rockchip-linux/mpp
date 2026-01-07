@@ -128,6 +128,13 @@ typedef struct MpiEncTestArgs_t {
     RK_U32              roi_enable;
     RK_U32              roi_jpeg_enable;
     RK_U32              jpeg_osd_case;
+
+    RK_U32              mirroring;
+    RK_U32              rotation;
+    RK_U32              flip;
+
+    RK_U32              constraint_set;
+    RK_U32              sei_mode;
 } MpiEncTestArgs;
 
 typedef struct MppEncTestObjSet_t {
@@ -171,7 +178,6 @@ typedef struct {
 
     // input / output
     MppBufferGroup      buf_grp;
-    MppEncSeiMode       sei_mode;
     MppEncHeaderMode    header_mode;
 
     // paramter for resource malloc

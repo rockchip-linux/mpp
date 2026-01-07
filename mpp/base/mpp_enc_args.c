@@ -78,6 +78,8 @@ static rk_s32 mpp_enc_args_impl_dump(void *entry)
     ENTRY(prefix, u32,  rk_u32,     roi_enable,       FLAG_NONE,       roi_enable) \
     ENTRY(prefix, u32,  rk_u32,     roi_jpeg_enable,  FLAG_NONE,       roi_jpeg_enable) \
     ENTRY(prefix, u32,  rk_u32,     jpeg_osd_case,    FLAG_NONE,       jpeg_osd_case) \
+    ENTRY(prefix, u32,  rk_u32,     constraint_set,   FLAG_NONE,       constraint_set) \
+    ENTRY(prefix, u32,  rk_u32,     sei_mode,         FLAG_NONE,       sei_mode) \
     CFG_DEF_END()
 
 #define KMPP_OBJ_NAME               mpp_enc_args
