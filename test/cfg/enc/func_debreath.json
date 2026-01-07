@@ -1,0 +1,6 @@
+"enc_cfg" : {
+    "rc" : {
+        "debreath_en" : 1,
+        "debreath_strength" : 16
+    }
+}

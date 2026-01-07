@@ -1,0 +1,36 @@
+"enc_cfg" : {
+    "codec" : {
+        "type" : 16777220
+    },
+    "h265" : {
+        "profile" : 1,
+        "tier" : 0,
+        "level" : 120,
+        "scaling_list" : 0,
+        "cb_qp_offset" : 0,
+        "cr_qp_offset" : 0,
+        "diff_cu_qp_delta_depth" : 0,
+        "dblk_disable" : 0,
+        "dblk_alpha" : 0,
+        "dblk_beta" : 0,
+        "qp_init" : -1,
+        "qp_min" : 10,
+        "qp_max" : 51,
+        "qp_min_i" : 10,
+        "qp_max_i" : 51,
+        "qp_step" : 0,
+        "qp_delta_ip" : 2,
+        "sao_luma_disable" : 0,
+        "sao_chroma_disable" : 0,
+        "sao_bit_ratio" : 0,
+        "lpf_acs_sli_en" : 0,
+        "lpf_acs_tile_disable" : 0,
+        "auto_tile" : 0,
+        "max_tid" : 0,
+        "max_ltr" : 0,
+        "base_layer_pid" : 0,
+        "const_intra" : 0,
+        "lcu_size" : 64,
+        "vui_en" : 1
+    }
+}

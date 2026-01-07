@@ -1,0 +1,7 @@
+"enc_cfg" : {
+    "split" : {
+        "mode" : 2,
+        "arg" : 256,
+        "out" : 0
+    }
+}

@@ -1,0 +1,37 @@
+"enc_cfg" : {
+    "codec" : {
+        "type" : 7
+    },
+    "h264" : {
+        "stream_type" : 0,
+        "profile" : 100,
+        "level" : 40,
+        "poc_type" : 0,
+        "log2_max_poc_lsb" : 12,
+        "log2_max_frm_num" : 12,
+        "gaps_not_allowed" : 0,
+        "cabac_en" : 1,
+        "cabac_idc" : 0,
+        "trans8x8" : 1,
+        "const_intra" : 0,
+        "scaling_list" : 0,
+        "cb_qp_offset" : -6,
+        "cr_qp_offset" : -6,
+        "dblk_disable" : 0,
+        "dblk_alpha" : 0,
+        "dblk_beta" : 0,
+        "qp_init" : -1,
+        "qp_min" : 10,
+        "qp_max" : 51,
+        "qp_min_i" : 10,
+        "qp_max_i" : 51,
+        "qp_step" : 0,
+        "qp_delta_ip" : 2,
+        "max_tid" : 0,
+        "max_ltr" : 0,
+        "prefix_mode" : 0,
+        "base_layer_pid" : 0,
+        "constraint_set" : 0,
+        "vui_en" : 1
+    }
+}
