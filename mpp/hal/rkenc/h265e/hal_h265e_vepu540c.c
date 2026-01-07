@@ -1710,7 +1710,6 @@ const MppEncHalApi hal_h265e_vepu540c = {
     .client     = VPU_CLIENT_RKVENC,
     .soc_type   = {
         ROCKCHIP_SOC_RK3528,
-        ROCKCHIP_SOC_RK3562,
         ROCKCHIP_SOC_BUTT
     },
 };

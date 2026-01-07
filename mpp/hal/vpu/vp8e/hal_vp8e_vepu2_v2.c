@@ -544,9 +544,6 @@ const MppEncHalApi hal_vp8e_vepu2 = {
         ROCKCHIP_SOC_RV1126,
         ROCKCHIP_SOC_RK3326,
         ROCKCHIP_SOC_RK1808,
-        ROCKCHIP_SOC_RK3566,
-        ROCKCHIP_SOC_RK3567,
-        ROCKCHIP_SOC_RK3568,
         ROCKCHIP_SOC_RK3588,
         ROCKCHIP_SOC_BUTT
     },

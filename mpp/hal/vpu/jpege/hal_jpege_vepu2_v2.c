@@ -1063,11 +1063,8 @@ const MppEncHalApi hal_jpege_vepu2 = {
     .ret_task   = hal_jpege_vepu2_ret_task,
     .client     = VPU_CLIENT_VEPU2,
     .soc_type   = {
-        ROCKCHIP_SOC_RK3128H,
         ROCKCHIP_SOC_RK3399,
         ROCKCHIP_SOC_RK3328,
-        ROCKCHIP_SOC_RK3228,
-        ROCKCHIP_SOC_RK3228H,
         ROCKCHIP_SOC_RK3229,
         ROCKCHIP_SOC_RV1108,
         ROCKCHIP_SOC_RV1109,
