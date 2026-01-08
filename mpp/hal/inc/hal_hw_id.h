@@ -22,6 +22,7 @@
 #define HWID_VEPU540C              (0x50603313)
 #define HWID_VEPU510               (0x506f2314)
 #define HWID_VEPU511               (0x50602715)
+#define HWID_VEPU511A              (0x506f3316)
 
 /* jpeg */
 #define HWID_JPEGE_VPU730          (0x73010000)

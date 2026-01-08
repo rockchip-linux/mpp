@@ -73,7 +73,8 @@ static MPP_RET h265e_init(void *ctx, EncImplCfg *ctrlCfg)
     soc_type = mpp_get_soc_type();
     if (soc_type == ROCKCHIP_SOC_RK3528 ||
         soc_type == ROCKCHIP_SOC_RK3576 ||
-        soc_type == ROCKCHIP_SOC_RV1126B)
+        soc_type == ROCKCHIP_SOC_RV1126B ||
+        soc_type == ROCKCHIP_SOC_RK3572)
         h265->max_cu_size = 32;
     else
         h265->max_cu_size = 64;

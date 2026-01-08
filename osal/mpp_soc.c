@@ -77,6 +77,7 @@
 #define CAP_CODING_VEPU54X            (HAVE_AVC|HAVE_HEVC)
 #define CAP_CODING_VEPU540C           (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
 #define CAP_CODING_VEPU511            (HAVE_AVC|HAVE_HEVC|HAVE_MJPEG)
+#define CAP_CODING_VEPU511A           (HAVE_AVC|HAVE_HEVC)
 
 static const MppDecHwCap vdpu1 = {
     .cap_coding         = CAP_CODING_VDPU,
@@ -714,6 +715,17 @@ static const MppEncHwCap vepu511 = {
     .reserved           = 0,
 };
 
+static const MppEncHwCap vepu511a = {
+    .cap_coding         = CAP_CODING_VEPU511A,
+    .type               = VPU_CLIENT_RKVENC,
+    .cap_fbc            = 2,
+    .cap_4k             = 1,
+    .cap_8k             = 0,
+    .cap_hw_osd         = 0,
+    .cap_hw_roi         = 1,
+    .reserved           = 0,
+};
+
 static const MppEncHwCap rkjpege_vpu720 = {
     .cap_coding         = HAVE_MJPEG,
     .type               = VPU_CLIENT_JPEG_ENC,
@@ -1076,7 +1088,7 @@ static const MppSocInfo mpp_soc_infos[] = {
         ROCKCHIP_SOC_RK3572,
         HAVE_RKVDEC | HAVE_RKVENC | HAVE_JPEG_DEC | HAVE_JPEG_ENC,
         {   &vdpu384b, &rkjpegd, NULL, NULL, NULL, NULL},
-        {   &vepu511, &rkjpege_vpu720, NULL, NULL},
+        {   &vepu511a, &rkjpege_vpu720, NULL, NULL},
     },
     {   /*
          * RK3539 has codec:

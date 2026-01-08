@@ -210,7 +210,9 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
 
     tuQTMaxLog2Size = convertToBit[codec->max_cu_size] + 2 - 1;
     soc_type = mpp_get_soc_type();
-    if (soc_type == ROCKCHIP_SOC_RK3576 || soc_type == ROCKCHIP_SOC_RV1126B) {
+    if (soc_type == ROCKCHIP_SOC_RK3576 ||
+        soc_type == ROCKCHIP_SOC_RV1126B ||
+        soc_type == ROCKCHIP_SOC_RK3572) {
         tuQTMaxLog2Size = tuQTMaxLog2Size + 1;
     }
 

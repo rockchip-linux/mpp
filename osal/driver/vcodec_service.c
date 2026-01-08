@@ -387,7 +387,8 @@ const char *mpp_get_vcodec_dev_name(MppCtxType type, MppCodingType coding)
         }
     } break;
     case ROCKCHIP_SOC_RK3576 :
-    case ROCKCHIP_SOC_RV1126B : {
+    case ROCKCHIP_SOC_RV1126B :
+    case ROCKCHIP_SOC_RK3572 : {
         if (type == MPP_CTX_DEC) {
             if (coding == MPP_VIDEO_CodingMJPEG)
                 dev = mpp_find_device(mpp_jpegd_dev);
