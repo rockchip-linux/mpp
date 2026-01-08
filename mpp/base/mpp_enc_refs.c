@@ -1007,6 +1007,7 @@ MPP_RET mpp_enc_refs_get_cpb_pass1(MppEncRefs refs, EncCpbStatus *status)
     frm->ref_mode = REF_TO_PREV_REF_FRM;
     frm->ref_arg = 0;
     frm->non_recn = 0;
+    frm->seq_idx = cpb->seq_idx;
 
     /* step 4. try find ref by the ref_mode */
     EncFrmStatus *ref_found = get_ref_from_cpb(cpb, frm);
