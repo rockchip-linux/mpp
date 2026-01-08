@@ -381,3 +381,18 @@ RK_S32 mpp_get_bits_count(BitReadCtx_t *bitctx)
 {
     return bitctx->used_bits;
 }
+
+MPP_RET mpp_read_signbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out)
+{
+    RK_S32 sign;
+    RK_S32 _out;
+    MPP_RET ret;
+
+    ret = mpp_read_bits(bitctx, num_bits, &_out);
+    ret |= mpp_read_bits(bitctx, 1, &sign);
+
+    if (!ret)
+        *out = (sign != 0) ? (-_out) : _out;
+
+    return ret;
+}

@@ -93,6 +93,14 @@
         else { goto __BITREAD_ERR; }\
     } while (0)
 
+#define READ_SIGNBITS(bitctx, num_bits, out)\
+    do {\
+        RK_S32 _out;\
+        bitctx->ret = mpp_read_signbits(bitctx, num_bits, &_out);\
+        if (!bitctx->ret) { *out = _out; }\
+        else { goto __BITREAD_ERR; }\
+    } while (0)
+
 typedef enum  PseudoCodeType_e {
     PSEUDO_CODE_NONE = 0,
     PSEUDO_CODE_H264_H265,
@@ -169,6 +177,9 @@ RK_U8  *mpp_align_get_bits(BitReadCtx_t *bitctx);
 RK_S32 mpp_get_bits_left(BitReadCtx_t *bitctx);
 
 RK_S32 mpp_get_bits_count(BitReadCtx_t *bitctx);
+
+//!< Read sign bits (1-31)
+MPP_RET mpp_read_signbits(BitReadCtx_t *bitctx, RK_S32 num_bits, RK_S32 *out);
 
 #ifdef  __cplusplus
 }
