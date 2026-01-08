@@ -33,7 +33,7 @@
             { mpp_log("%s: line(%d), func(%s)", tag, __LINE__, __FUNCTION__); }\
     } while (0)
 
-static RK_U32 vp8d_debug = 0x0;
+extern RK_U32 vp8d_debug;
 
 static void vp8hwdBoolStart(vpBoolCoder_t *bit_ctx, RK_U8 *buffer, RK_U32 len)
 {

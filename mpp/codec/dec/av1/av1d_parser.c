@@ -33,8 +33,6 @@
 #include "mpp_dec_cb_param.h"
 #include "mpp_frame_impl.h"
 
-RK_U32 av1d_debug = 0;
-
 static const RK_S16 div_lut[AV1_DIV_LUT_NUM] = {
     16384, 16320, 16257, 16194, 16132, 16070, 16009, 15948, 15888, 15828, 15768,
     15709, 15650, 15592, 15534, 15477, 15420, 15364, 15308, 15252, 15197, 15142,

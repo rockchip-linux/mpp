@@ -24,10 +24,32 @@
 #include "mpp_debug.h"
 #include "mpp_packet_impl.h"
 
+#include "mpp_parser.h"
 #include "av1d_codec.h"
 #include "av1d_parser.h"
 
-#include "av1d_api.h"
+/*!
+ ***********************************************************************
+ * \brief
+ *   free all buffer
+ ***********************************************************************
+ */
+MPP_RET av1d_deinit(void *ctx)
+{
+    RK_U8 *buf = NULL;
+    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
+
+    if (av1_ctx) {
+        av1d_parser_deinit(av1_ctx);
+        if (av1_ctx->pkt) {
+            buf = mpp_packet_get_data(av1_ctx->pkt);
+            MPP_FREE(buf);
+            mpp_packet_deinit(&av1_ctx->pkt);
+        }
+    }
+
+    return MPP_OK;
+}
 
 /*!
  ***********************************************************************
@@ -35,7 +57,6 @@
  *   alloc all buffer
  ***********************************************************************
  */
-
 MPP_RET av1d_init(void *ctx, ParserCfg *init)
 {
     MPP_RET ret = MPP_OK;
@@ -77,29 +98,6 @@ MPP_RET av1d_init(void *ctx, ParserCfg *init)
 _err_exit:
     av1d_deinit(av1_ctx);
     return ret;
-}
-
-/*!
- ***********************************************************************
- * \brief
- *   free all buffer
- ***********************************************************************
- */
-MPP_RET av1d_deinit(void *ctx)
-{
-    RK_U8 *buf = NULL;
-    Av1CodecContext *av1_ctx = (Av1CodecContext *)ctx;
-
-    if (av1_ctx) {
-        av1d_parser_deinit(av1_ctx);
-        if (av1_ctx->pkt) {
-            buf = mpp_packet_get_data(av1_ctx->pkt);
-            MPP_FREE(buf);
-            mpp_packet_deinit(&av1_ctx->pkt);
-        }
-    }
-
-    return MPP_OK;
 }
 
 /*!
@@ -285,7 +283,7 @@ MPP_RET av1d_callback(void *decoder, void *info)
  ***********************************************************************
  */
 
-const ParserApi api_av1d_parser = {
+static const ParserApi mpp_av1d = {
     .name = "av1d_parse",
     .coding = MPP_VIDEO_CodingAV1,
     .ctx_size = sizeof(Av1CodecContext),
@@ -299,3 +297,5 @@ const ParserApi api_av1d_parser = {
     .control = av1d_control,
     .callback = av1d_callback,
 };
+
+MPP_PARSER_API_REGISTER(mpp_av1d);

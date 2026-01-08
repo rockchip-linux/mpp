@@ -25,14 +25,14 @@
 #include "h263d_parser.h"
 #include "h263d_syntax.h"
 
-RK_U32 h263d_debug = 0;
-
 #define h263d_dbg(flag, fmt, ...)   mpp_dbg(h263d_debug, flag, fmt, ## __VA_ARGS__)
 #define h263d_dbg_f(flag, fmt, ...) mpp_dbg_f(h263d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define h263d_dbg_func(fmt, ...)    h263d_dbg_f(H263D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define h263d_dbg_bit(fmt, ...)     h263d_dbg(H263D_DBG_BITS, fmt, ## __VA_ARGS__)
 #define h263d_dbg_status(fmt, ...)  h263d_dbg(H263D_DBG_STATUS, fmt, ## __VA_ARGS__)
+
+extern RK_U32 h263d_debug;
 
 #define H263_STARTCODE                      0x00000080      /* 17 zero and 1 one */
 #define H263_STARTCODE_MASK                 0x00FFFF80

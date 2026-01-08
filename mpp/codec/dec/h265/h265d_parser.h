@@ -705,4 +705,6 @@ void mpp_hevc_pps_free(RK_U8 *data);
 
 void mpp_hevc_fill_dynamic_meta(HEVCContext *s, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt);
 
+MPP_RET h265d_flush(void *ctx);
+
 #endif /* H265D_PAESER_H */

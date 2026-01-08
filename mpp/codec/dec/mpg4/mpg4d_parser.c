@@ -27,14 +27,14 @@
 #include "mpg4d_parser.h"
 #include "mpg4d_syntax.h"
 
-RK_U32 mpg4d_debug = 0;
-
 #define mpg4d_dbg(flag, fmt, ...)   mpp_dbg(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_f(flag, fmt, ...) mpp_dbg_f(mpg4d_debug, flag, fmt, ## __VA_ARGS__)
 
 #define mpg4d_dbg_func(fmt, ...)    mpg4d_dbg_f(MPG4D_DBG_FUNCTION, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_bit(fmt, ...)     mpg4d_dbg(MPG4D_DBG_BITS, fmt, ## __VA_ARGS__)
 #define mpg4d_dbg_result(fmt, ...)  mpg4d_dbg(MPG4D_DBG_RESULT, fmt, ## __VA_ARGS__)
+
+extern RK_U32 mpg4d_debug;
 
 #define MPEG4_VIDOBJ_START_CODE             0x00000100  /* ..0x0000011f */
 #define MPEG4_VIDOBJLAY_START_CODE          0x00000120  /* ..0x0000012f */

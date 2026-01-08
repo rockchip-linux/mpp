@@ -19,16 +19,18 @@
 #define H264D_GLOBAL_H
 
 #include <stdio.h>
-#include "h2645d_sei.h"
-#include "rk_type.h"
 
+#include "mpp_soc.h"
 #include "mpp_debug.h"
+#include "mpp_frame.h"
 #include "mpp_bitread.h"
 #include "mpp_mem_pool.h"
+#include "mpp_buf_slot.h"
+#include "mpp_dec_cfg.h"
 
 #include "h264d_syntax.h"
-#include "h264d_api.h"
-
+#include "h2645d_sei.h"
+#include "hal_dec_task.h"
 
 #define H264D_DBG_ERROR             (0x00000001)
 #define H264D_DBG_ASSERT            (0x00000002)
@@ -42,7 +44,6 @@
 
 #define H264D_DBG_DPB_INFO          (0x00000100)   //!< dpb size
 #define H264D_DBG_DPB_MALLIC        (0x00000200)   //!< malloc
-
 
 #define H264D_DBG_DPB_REF_ERR       (0x00001000)
 #define H264D_DBG_SLOT_FLUSH        (0x00002000)   //!< dpb buffer slot remain
@@ -185,6 +186,13 @@ typedef enum {
     BI_PRED_L0 = 3,
     BI_PRED_L1 = 4
 } ListType;
+
+typedef enum mpp_decmtd_type {
+    MPP_DEC_NULL     = 0,
+    MPP_DEC_BY_SLICE = 0x1,
+    MPP_DEC_BY_FRAME = 0x2,
+    MPP_DEC_MAX,
+} MppDecMtd_type;
 
 //!< NAL Unit structure
 typedef struct h264_nalu_t {

@@ -56,9 +56,5 @@ target_link_libraries(mpp_codec
     ${CODEC_H265E}
     ${CODEC_JPEGE}
     ${CODEC_VP8E}
-    codec_dummy_enc
-    codec_dummy_dec
-    mpp_vproc
-    mpp_base
     dec_common
     )

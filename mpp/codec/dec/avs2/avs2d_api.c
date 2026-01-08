@@ -27,8 +27,9 @@
 #include "mpp_packet_impl.h"
 #include "mpp_buffer_impl.h"
 
+#include "mpp_parser.h"
+
 #include "avs2d_syntax.h"
-#include "avs2d_api.h"
 #include "avs2d_parse.h"
 #include "avs2d_dpb.h"
 #include "mpp_dec_cb_param.h"
@@ -38,8 +39,6 @@ static RK_U32 rkv_ctu_64_align(RK_U32 val)
 {
     return MPP_ALIGN(val, 64);
 }
-
-RK_U32 avs2d_parse_debug = 0;
 
 MPP_RET avs2d_deinit(void *decoder)
 {
@@ -70,7 +69,7 @@ MPP_RET avs2d_init(void *decoder, ParserCfg *init)
     INP_CHECK(ret, !p_dec);
 
     memset(p_dec, 0, sizeof(Avs2dCtx_t));
-    mpp_env_get_u32("avs2d_debug", &avs2d_parse_debug, 0);
+    mpp_env_get_u32("avs2d_debug", &avs2d_debug, 0);
     //!< restore init parameters
     p_dec->init = *init;
     // p_dec->init.cfg->base.split_parse = 1;
@@ -333,7 +332,7 @@ __FAILED:
     return ret;
 }
 
-const ParserApi api_avs2d_parser = {
+const ParserApi mpp_avs2d = {
     .name = "avs2d_parse",
     .coding = MPP_VIDEO_CodingAVS2,
     .ctx_size = sizeof(Avs2dCtx_t),
@@ -347,3 +346,5 @@ const ParserApi api_avs2d_parser = {
     .control = avs2d_control,
     .callback = avs2d_callback,
 };
+
+MPP_PARSER_API_REGISTER(mpp_avs2d);

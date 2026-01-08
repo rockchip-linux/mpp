@@ -308,4 +308,3 @@ MPP_RET  m2vd_parser_parse  (void *ctx, HalDecTask *task);
 MPP_RET  m2vd_parser_callback(void *ctx, void *err_info);
 
 #endif
-

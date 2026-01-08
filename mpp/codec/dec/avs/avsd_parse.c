@@ -23,7 +23,6 @@
 #include "mpp_packet_impl.h"
 #include "hal_dec_task.h"
 
-#include "avsd_api.h"
 #include "avsd_parse.h"
 
 static MPP_RET get_sequence_header(BitReadCtx_t *bitctx, AvsdSeqHeader_t *vsh)

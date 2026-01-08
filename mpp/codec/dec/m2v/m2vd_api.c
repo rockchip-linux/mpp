@@ -18,11 +18,11 @@
 
 #include <string.h>
 
-#include "m2vd_api.h"
+#include "mpp_parser.h"
 #include "m2vd_parser.h"
 #include "m2vd_codec.h"
 
-const ParserApi api_m2vd_parser = {
+const ParserApi mpp_m2vd = {
     .name = "m2vd_parse",
     .coding = MPP_VIDEO_CodingMPEG2,
     .ctx_size = sizeof(M2VDContext),
@@ -36,3 +36,5 @@ const ParserApi api_m2vd_parser = {
     .control = m2vd_parser_control,
     .callback = m2vd_parser_callback,
 };
+
+MPP_PARSER_API_REGISTER(mpp_m2vd);

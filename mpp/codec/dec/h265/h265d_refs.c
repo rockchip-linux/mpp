@@ -29,7 +29,6 @@
 
 #include "mpp_compat_impl.h"
 
-#include "h265d_api.h"
 #include "h265d_debug.h"
 #include "h265d_parser.h"
 

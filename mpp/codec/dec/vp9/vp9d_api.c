@@ -24,9 +24,33 @@
 #include "mpp_mem.h"
 #include "mpp_packet_impl.h"
 
+#include "mpp_parser.h"
 #include "vp9d_codec.h"
 #include "vp9d_parser.h"
-#include "vp9d_api.h"
+
+/*!
+***********************************************************************
+* \brief
+*   free all buffer
+***********************************************************************
+*/
+MPP_RET vp9d_deinit(void *ctx)
+{
+    RK_U8 *buf = NULL;
+    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
+
+    if (vp9_ctx) {
+        vp9d_parser_deinit(vp9_ctx);
+        vp9d_split_deinit(vp9_ctx);
+        if (vp9_ctx->pkt) {
+            buf = mpp_packet_get_data(vp9_ctx->pkt);
+            MPP_FREE(buf);
+            mpp_packet_deinit(&vp9_ctx->pkt);
+        }
+    }
+
+    return MPP_OK;
+}
 
 /*!
 ***********************************************************************
@@ -68,30 +92,6 @@ MPP_RET vp9d_init(void *ctx, ParserCfg *init)
 _err_exit:
     vp9d_deinit(vp9_ctx);
     return ret;
-}
-
-/*!
-***********************************************************************
-* \brief
-*   free all buffer
-***********************************************************************
-*/
-MPP_RET vp9d_deinit(void *ctx)
-{
-    RK_U8 *buf = NULL;
-    Vp9CodecContext *vp9_ctx = (Vp9CodecContext *)ctx;
-
-    if (vp9_ctx) {
-        vp9d_parser_deinit(vp9_ctx);
-        vp9d_split_deinit(vp9_ctx);
-        if (vp9_ctx->pkt) {
-            buf = mpp_packet_get_data(vp9_ctx->pkt);
-            MPP_FREE(buf);
-            mpp_packet_deinit(&vp9_ctx->pkt);
-        }
-    }
-
-    return MPP_OK;
 }
 
 /*!
@@ -210,7 +210,7 @@ MPP_RET vp9d_callback(void *decoder, void *info)
 ***********************************************************************
 */
 
-const ParserApi api_vp9d_parser = {
+const ParserApi mpp_vp9d = {
     .name = "vp9d_parse",
     .coding = MPP_VIDEO_CodingVP9,
     .ctx_size = sizeof(Vp9CodecContext),
@@ -225,3 +225,4 @@ const ParserApi api_vp9d_parser = {
     .callback = vp9d_callback,
 };
 
+MPP_PARSER_API_REGISTER(mpp_vp9d);

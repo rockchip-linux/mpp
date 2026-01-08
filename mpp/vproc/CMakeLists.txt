@@ -24,5 +24,4 @@ target_link_libraries(mpp_vproc
     ${VPROC_IEP}
     ${VPROC_IEP2}
     ${VPROC_VDPP}
-    mpp_base
     )

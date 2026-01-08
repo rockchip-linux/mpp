@@ -23,7 +23,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 
-#include "mpg4d_api.h"
+#include "mpp_parser.h"
 #include "mpg4d_parser.h"
 #include "mpp_packet_impl.h"
 #include "mpp_dec_cb_param.h"
@@ -342,7 +342,7 @@ static MPP_RET mpg4d_callback(void *dec, void *err_info)
     return MPP_OK;
 }
 
-const ParserApi api_mpg4d_parser = {
+const ParserApi mpp_mpg4d = {
     .name = "api_mpg4d_parser",
     .coding = MPP_VIDEO_CodingMPEG4,
     .ctx_size = sizeof(Mpg4dCtx),
@@ -357,3 +357,4 @@ const ParserApi api_mpg4d_parser = {
     .callback = mpg4d_callback,
 };
 
+MPP_PARSER_API_REGISTER(mpp_mpg4d);

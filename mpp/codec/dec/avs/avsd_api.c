@@ -25,13 +25,10 @@
 #include "mpp_debug.h"
 #include "mpp_packet_impl.h"
 
+#include "mpp_parser.h"
 #include "avsd_syntax.h"
-#include "avsd_api.h"
 #include "avsd_parse.h"
 #include "mpp_dec_cb_param.h"
-
-RK_U32 avsd_parse_debug = 0;
-
 
 /*!
 ***********************************************************************
@@ -74,7 +71,7 @@ static MPP_RET avsd_init(void *decoder, ParserCfg *init)
     INP_CHECK(ret, !p_dec);
 
     memset(p_dec, 0, sizeof(AvsdCtx_t));
-    mpp_env_get_u32("avsd_debug", &avsd_parse_debug, 0);
+    mpp_env_get_u32("avsd_debug", &avsd_debug, 0);
     //!< restore init parameters
     p_dec->init = *init;
     p_dec->frame_slots = init->frame_slots;
@@ -360,7 +357,7 @@ static MPP_RET avsd_callback(void *decoder, void *info)
 *   api struct interface
 ***********************************************************************
 */
-const ParserApi api_avsd_parser = {
+const ParserApi mpp_avsd = {
     .name = "avsd_parse",
     .coding = MPP_VIDEO_CodingAVS,
     .ctx_size = sizeof(AvsdCtx_t),
@@ -375,7 +372,7 @@ const ParserApi api_avsd_parser = {
     .callback = avsd_callback,
 };
 
-const ParserApi api_avsd_plus_parser = {
+const ParserApi mpp_avsd_plus = {
     .name = "avsd_parse",
     .coding = MPP_VIDEO_CodingAVSPLUS,
     .ctx_size = sizeof(AvsdCtx_t),
@@ -389,3 +386,6 @@ const ParserApi api_avsd_plus_parser = {
     .control = avsd_control,
     .callback = avsd_callback,
 };
+
+MPP_PARSER_API_REGISTER(mpp_avsd);
+MPP_PARSER_API_REGISTER(mpp_avsd_plus);

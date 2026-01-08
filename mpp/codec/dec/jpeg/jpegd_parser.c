@@ -26,11 +26,9 @@
 #include "mpp_bitread.h"
 #include "mpp_packet_impl.h"
 
-#include "jpegd_api.h"
+#include "mpp_parser.h"
 #include "jpegd_parser.h"
 #include "mpp_dec_cb_param.h"
-
-RK_U32 jpegd_debug = 0x0;
 
 /* return the 8 bit start code value and update the search
    state. Return 0 if no start code found */
@@ -1322,7 +1320,7 @@ __RETURN:
     return MPP_OK;
 }
 
-const ParserApi api_jpegd_parser = {
+const ParserApi mpp_jpegd = {
     .name = "jpegd_parse",
     .coding = MPP_VIDEO_CodingMJPEG,
     .ctx_size = sizeof(JpegdCtx),
@@ -1337,4 +1335,4 @@ const ParserApi api_jpegd_parser = {
     .callback = jpegd_callback,
 };
 
-
+MPP_PARSER_API_REGISTER(mpp_jpegd);

@@ -23,7 +23,7 @@
 #include "mpp_debug.h"
 #include "mpp_common.h"
 
-#include "h263d_api.h"
+#include "mpp_parser.h"
 #include "h263d_parser.h"
 
 #define h263d_INIT_STREAM_SIZE      SZ_64K
@@ -309,7 +309,7 @@ MPP_RET h263d_callback(void *dec, void *err_info)
     return MPP_OK;
 }
 
-const ParserApi api_h263d_parser = {
+const ParserApi mpp_h263d = {
     .name = "api_h263d_parser",
     .coding = MPP_VIDEO_CodingH263,
     .ctx_size = sizeof(H263dCtx),
@@ -324,3 +324,4 @@ const ParserApi api_h263d_parser = {
     .callback = h263d_callback,
 };
 
+MPP_PARSER_API_REGISTER(mpp_h263d);

@@ -24,7 +24,6 @@
 #include "mpp_packet_impl.h"
 #include "hal_task.h"
 
-#include "avs2d_api.h"
 #include "avs2d_dpb.h"
 #include "avs2d_parse.h"
 #include "avs2d_ps.h"

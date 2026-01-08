@@ -33,8 +33,6 @@
 #define MAX_FRAME_PERIOD_27M        1130000  /* less than 23.976 fps a little */
 #define MAX_FRAME_PERIOD_DIFF       13500   /* 500us */
 
-RK_U32 m2vd_debug = 0x0;
-
 static RK_U8 scanOrder[2][64] = {
     {   /* zig-zag */
         0, 1, 8, 16, 9, 2, 3, 10,

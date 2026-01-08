@@ -26,7 +26,6 @@
 #include "mpp_packet_impl.h"
 #include "hal_task.h"
 
-#include "avs2d_api.h"
 #include "avs2d_ps.h"
 
 static const RK_U32 wq_param_default[2][6] = {

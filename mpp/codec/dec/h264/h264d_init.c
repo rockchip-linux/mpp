@@ -1919,6 +1919,8 @@ __RETURN:
     return MPP_OK;
 }
 
+extern MPP_RET h264d_reset(void *decoder);
+
 static MPP_RET check_refer_dpb_buf_slots(H264_SLICE_t *currSlice)
 {
     RK_U32 i = 0;

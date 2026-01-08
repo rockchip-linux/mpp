@@ -28,7 +28,6 @@
 
 #include "hal_dec_task.h"
 #include "jpegd_syntax.h"
-#include "jpegd_api.h"
 #include "hal_jpegd_common.h"
 
 static PpRgbCfg pp_rgb_cfgs[PP_RGB_CFG_LENTH] = {
