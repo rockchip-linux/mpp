@@ -93,6 +93,7 @@ typedef struct MppEncRefsImpl_t {
     MppEncRefCfgImpl    *ref_cfg;
     MppEncRefFrmUsrCfg  usr_cfg;
     RK_S32              igop;
+    RK_S32              force_recon;
     RK_U32              refresh_length;
 
     RK_S32              hdr_need_update;
@@ -907,7 +908,7 @@ MPP_RET mpp_enc_refs_get_cpb(MppEncRefs refs, EncCpbStatus *status)
         usr_cfg->force_flag &= ~ENC_FORCE_PSKIP_IS_REF;
     }
 
-    frm->non_recn = frm->is_non_ref || (p->igop == 1);
+    frm->non_recn = (frm->is_non_ref || (p->igop == 1)) && !p->force_recon;
 
     /* update st_cfg for st_cfg loop */
     cpb->st_cfg_repeat_pos++;
@@ -1071,5 +1072,24 @@ MPP_RET mpp_enc_refs_rollback(MppEncRefs refs)
     memcpy(&p->cpb, &p->cpb_stash, sizeof(p->cpb));
 
     enc_refs_dbg_func("leave %p\n", refs);
+    return MPP_OK;
+}
+
+MPP_RET mpp_enc_refs_force_recon(MppEncRefs refs, RK_S32 force_recon)
+{
+    MppEncRefsImpl *p = NULL;
+
+    if (!refs) {
+        mpp_err_f("invalid NULL input refs\n");
+        return MPP_ERR_VALUE;
+    }
+
+    enc_refs_dbg_func("enter %p\n", refs);
+
+    p = (MppEncRefsImpl *)refs;
+    p->force_recon = force_recon;
+
+    enc_refs_dbg_func("leave %p\n", refs);
+
     return MPP_OK;
 }

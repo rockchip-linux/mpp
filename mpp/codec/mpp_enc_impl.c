@@ -611,6 +611,7 @@ static void proc_prep_cfg(MppEncImpl *enc)
 #define RC_CHANGE_FPS_IN    (1 << 2)
 #define RC_CHANGE_FPS_OUT   (1 << 3)
 #define RC_CHANGE_GOP       (1 << 4)
+#define RC_CHANGE_DEBREATH  (1 << 5)
 
 static MPP_RET mpp_enc_control_set_ref_cfg(MppEncImpl *enc, void *param);
 static void show_rc_update(MppEncRcCfg *cfg, MppEncRcCfg *set, rk_u32 change)
@@ -808,6 +809,8 @@ static void proc_rc_cfg(MppEncImpl *enc)
         change |= RC_CHANGE_FPS_OUT;
     if (set->gop != cfg->gop)
         change |= RC_CHANGE_GOP;
+    if (set->debreath_en != cfg->debreath_en)
+        change |= RC_CHANGE_DEBREATH;
 
     if (change & (RC_CHANGE_MODE | RC_CHANGE_FPS_IN | RC_CHANGE_FPS_OUT | RC_CHANGE_GOP))
         enc_set_resend_hdr(enc, "change rc_mode/fps/gop");
@@ -821,6 +824,9 @@ static void proc_rc_cfg(MppEncImpl *enc)
 
     if (change & RC_CHANGE_GOP)
         mpp_enc_refs_set_rc_igop(enc->refs, cfg->gop);
+
+    if (change & RC_CHANGE_DEBREATH)
+        mpp_enc_refs_force_recon(enc->refs, !!cfg->debreath_en);
 
     if (set->ref_cfg)
         mpp_enc_control_set_ref_cfg(enc, set->ref_cfg);

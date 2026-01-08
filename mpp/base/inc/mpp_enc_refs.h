@@ -81,6 +81,7 @@ MPP_RET mpp_enc_refs_rollback(MppEncRefs refs);
 /* check next frame is intra or not */
 RK_S32  mpp_enc_refs_next_frm_is_intra(MppEncRefs refs);
 MPP_RET mpp_enc_refs_get_cpb_pass1(MppEncRefs refs, EncCpbStatus *status);
+MPP_RET mpp_enc_refs_force_recon(MppEncRefs refs, RK_S32 force_recon);
 
 #define dump_frm(frm)   _dump_frm(frm, __FUNCTION__, __LINE__)
 
