@@ -39,10 +39,11 @@ function(merge_objects out_obj)
     file(GENERATE OUTPUT "${rsp_file}" CONTENT "$<JOIN:${obj_inputs},\n>")
 
     # 4. Merge command
-    add_custom_command(
-        OUTPUT  "${merged_o}"
+    add_custom_target(
+        ${out_obj}_t
         COMMAND ${CMAKE_LINKER} -r -o "${merged_o}" "@${rsp_file}"
         DEPENDS ${deps} "${rsp_file}"
+        BYPRODUCTS "${merged_o}"
         COMMENT "Merging OBJECT libs into ${out_obj}.o"
     )
 
@@ -51,6 +52,5 @@ function(merge_objects out_obj)
     set_target_properties("${out_obj}" PROPERTIES
                           IMPORTED_OBJECTS "${merged_o}")
     # Dependency chain: users must wait for large .o generation when linking
-    add_dependencies("${out_obj}" "${out_obj}_gen")   # Pseudo target, ensure commands run first
-    add_custom_target("${out_obj}_gen" DEPENDS "${merged_o}")
+    add_dependencies("${out_obj}" ${out_obj}_t)
 endfunction()
