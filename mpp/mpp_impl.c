@@ -314,6 +314,8 @@ MPP_RET mpp_dump_deinit(MppDump *info)
         MPP_FREE(p->fp_buf);
 
         mpp_mutex_destroy(&p->lock);
+
+        MPP_FREE(p);
     }
 
     return MPP_OK;
