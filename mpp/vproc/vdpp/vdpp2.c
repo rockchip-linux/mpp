@@ -502,6 +502,7 @@ static void set_es_to_vdpp2_reg(struct vdpp2_params* src_params, struct vdpp2_re
         double x1 = p_es_param->es_iDiff2conf_lut_x[i + 1];
         double y0 = p_es_param->es_iDiff2conf_lut_y[i];
         double y1 = p_es_param->es_iDiff2conf_lut_y[i + 1];
+
         diff2conf_lut_k[i] = mpp_clip(FLOOR(256 * (y1 - y0) / (x1 - x0)), 0, 255);
     }
     dst_reg->es.reg13.lut_k0 = diff2conf_lut_k[0];
@@ -1110,8 +1111,8 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
 
     dst_reg->common.reg0.sw_vdpp_frm_en = 1;
 
-    /* 0x0004(reg1), TODO: add debug function */
-    dst_reg->common.reg1.sw_vdpp_src_fmt = MPP_FMT_YUV420SP;
+    /* 0x0004(reg1) */
+    dst_reg->common.reg1.sw_vdpp_src_fmt = VDPP_FMT_YUV420; // vep only support yuv420
     dst_reg->common.reg1.sw_vdpp_src_yuv_swap = src_params->src_yuv_swap;
 
     if (MPP_FMT_YUV420SP_VU == src_params->src_fmt)
@@ -1192,10 +1193,10 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
     dst_reg->common.reg27.sw_vdpp_dst_addr_uv = src_params->dst.cbcr;
 
     if (src_params->yuv_out_diff) {
-        RK_U32 dst_c_width     = src_params->dst_c_width;
-        RK_U32 dst_c_height    = src_params->dst_c_height;
-        RK_U32 dst_c_width_vir = src_params->dst_c_width_vir;
-        RK_U32 dst_redundant_c = 0;
+        RK_S32 dst_c_width     = src_params->dst_c_width;
+        RK_S32 dst_c_height    = src_params->dst_c_height;
+        RK_S32 dst_c_width_vir = src_params->dst_c_width_vir;
+        RK_S32 dst_redundant_c = 0;
 
         /** @note: no need to half the chroma size for YUV420, since vdpp will do it according to the output format! */
         if (dst_reg->common.reg1.sw_vdpp_dst_fmt == VDPP_FMT_YUV420) {
@@ -1213,7 +1214,7 @@ static MPP_RET vdpp2_params_to_reg(struct vdpp2_params* src_params, struct vdpp2
         dst_reg->common.reg16.sw_vdpp_dst_pic_height_c = dst_c_height - 1;
         dst_reg->common.reg27.sw_vdpp_dst_addr_uv = src_params->dst_c.cbcr;
 
-        VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_yuvout_diff_en=%d [dword], vdpp_dst_right_redundant_c=%d [pixel]\n",
+        VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_dst_vir_c_stride=%d [dword], vdpp_dst_right_redundant_c=%d [pixel]\n",
                   dst_reg->common.reg13.sw_vdpp_dst_vir_c_stride, dst_reg->common.reg16.sw_vdpp_dst_right_redundant_c);
         VDPP2_DBG(VDPP2_DBG_TRACE, "set reg: vdpp_dst_pic_width_c=%d [pixel], vdpp_dst_pic_height_c=%d [pixel]\n",
                   dst_reg->common.reg16.sw_vdpp_dst_pic_width_c, dst_reg->common.reg16.sw_vdpp_dst_pic_height_c);

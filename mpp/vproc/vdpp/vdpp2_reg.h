@@ -825,9 +825,9 @@ struct vdpp2_reg {
         RK_U32 reg77;
 
         struct {
-            RK_U32 sw_peaking6_idx_n0   : 12;
-            RK_U32 reserved1            : 4;
-            RK_U32 sw_peaking6_idx_n1   : 12;
+            RK_U32 sw_peaking6_idx_n0   : 9;
+            RK_U32 reserved1            : 7;
+            RK_U32 sw_peaking6_idx_n1   : 9;
         } reg78;         // 0x0338
 
         struct {
