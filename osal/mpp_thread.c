@@ -531,7 +531,7 @@ void mpp_sthd_stop(MppSThd thd)
     switch (status) {
     case MPP_STHD_RUNNING :
     case MPP_STHD_WAITING : {
-        status = MPP_STHD_STOPPING;
+        impl->status = MPP_STHD_STOPPING;
         pthread_cond_signal(&impl->cond);
     } break;
     default : {
