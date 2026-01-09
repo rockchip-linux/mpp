@@ -147,3 +147,38 @@ RK_U32 mpp_align_wxh2yuv444(RK_U32 val)
     return (val * 3);
 }
 
+// Clip a signed integer to the range [0, 2^n - 1]
+RK_U32 mpp_clip_uint_pow2(RK_S32 val, RK_S32 n)
+{
+    /* Calculate mask: 2^n - 1 */
+    RK_U32 mask = (1 << n) - 1;
+
+    /* Check if value is out of range */
+    RK_U32 sign = val & ~mask;
+
+    /* If out of range, return boundary value; otherwise return original value */
+    return sign ? (-val >> 31 & mask) : val;
+}
+
+// Divide an unsigned integer x by 2^n and round to nearest integer
+RK_U64 mpp_round_pow2(RK_U64 x, RK_U16 n)
+{
+    /* Special case: no division needed when n=0 */
+    if (n == 0)
+        return x;
+
+    /* Calculate offset: 2^(n-1) for rounding */
+    RK_U64 offset = (RK_U64)1 << (n - 1);
+
+    /* Add offset then right-shift n bits to achieve division and rounding */
+    return (x + offset) >> n;
+}
+
+// Divide a signed integer x by 2^n and round to nearest integer
+RK_S64 mpp_round_pow2_signed(RK_S64 x, RK_U16 n)
+{
+    if (x < 0)
+        return -((RK_S64)mpp_round_pow2(-x, n));
+    else
+        return (RK_S64)mpp_round_pow2(x, n);
+}
