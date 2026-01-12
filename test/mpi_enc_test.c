@@ -718,7 +718,7 @@ int enc_test_multi(MppEncTestObjSet* obj_set, const char *name)
         mpp_log("**** Press Enter to stop loop encoding ****\n");
         mpp_log("*******************************************\n");
 
-        getc(stdin);
+        (void)getc(stdin);
         for (i = 0; i < cmd->nthreads; i++)
             ctxs[i].ctx.loop_end = 1;
     }

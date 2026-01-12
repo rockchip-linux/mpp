@@ -427,7 +427,7 @@ int dec_nt_decode(MpiDecTestCmd *cmd)
         mpp_log("**** Press Enter to stop loop decoding ****\n");
         mpp_log("*******************************************\n");
 
-        getc(stdin);
+        (void)getc(stdin);
         data.loop_end = 1;
     }
 

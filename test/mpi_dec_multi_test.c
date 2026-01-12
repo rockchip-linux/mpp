@@ -619,7 +619,7 @@ int main(int argc, char **argv)
         mpp_log("**** Press Enter to stop loop decoding ****\n");
         mpp_log("*******************************************\n");
 
-        getc(stdin);
+        (void)getc(stdin);
         for (i = 0; i < cmd->nthreads; i++)
             ctxs[i].ctx.loop_end = 1;
     }
