@@ -2957,4 +2957,11 @@ const MppEncHalApi hal_h265e_vepu511 = {
     .part_start = NULL,
     .part_wait  = NULL,
     .ret_task   = hal_h265e_vepu511_ret_task,
+    .client     = VPU_CLIENT_RKVENC,
+    .soc_type   = {
+        ROCKCHIP_SOC_RV1126B,
+        ROCKCHIP_SOC_BUTT
+    },
 };
+
+MPP_ENC_HAL_API_REGISTER(hal_h265e_vepu511)
