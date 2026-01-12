@@ -52,6 +52,30 @@ static RK_U8 vepu511_h264_cqm_jvt8p[64] = {
     24, 25, 27, 28, 30, 32, 33, 35
 };
 
+/* scale_q = (65536  + scale_iq / 2) / scale_iq */
+static RK_U16  vepu511_h264_cqm_jvt8i_q[64] = {
+    10923,  6554,  5041,  4096,  3641,  2849,  2621,  2427,
+    6554,  5958,  4096,  3641,  2849,  2621,  2427,  2260,
+    5041,  4096,  3641,  2849,  2621,  2427,  2260,  2114,
+    4096,  3641,  2849,  2621,  2427,  2260,  2114,  1986,
+    3641,  2849,  2621,  2427,  2260,  2114,  1986,  1820,
+    2849,  2621,  2427,  2260,  2114,  1986,  1820,  1725,
+    2621,  2427,  2260,  2114,  1986,  1820,  1725,  1638,
+    2427,  2260,  2114,  1986,  1820,  1725,  1638,  1560
+};
+
+/* scale_q = (65536 + scale_iq / 2) / scale_iq */
+static RK_U16  vepu511_h264_cqm_jvt8p_q[64] = {
+    7282,  5041,  4369,  3855,  3449,  3121,  2979,  2731,
+    5041,  5041,  3855,  3449,  3121,  2979,  2731,  2621,
+    4369,  3855,  3449,  3121,  2979,  2731,  2621,  2427,
+    3855,  3449,  3121,  2979,  2731,  2621,  2427,  2341,
+    3449,  3121,  2979,  2731,  2621,  2427,  2341,  2185,
+    3121,  2979,  2731,  2621,  2427,  2341,  2185,  2048,
+    2979,  2731,  2621,  2427,  2341,  2185,  2048,  1986,
+    2731,  2621,  2427,  2341,  2185,  2048,  1986,  1872
+};
+
 typedef struct Vepu511RoiH264BsCfg_t {
     RK_U64 force_inter   : 42;
     RK_U64 mode_mask     : 9;
@@ -2165,7 +2189,9 @@ static void setup_vepu511_anti_smear(HalH264eVepu511Ctx *ctx)
 static void setup_vepu511_scaling_list(HalH264eVepu511Ctx *ctx)
 {
     Vepu511SclCfg *s = &ctx->regs_set->reg_scl_jpgtbl.scl;
+    Vepu511SclCfgExt *s_ext = &ctx->regs_set->reg_scl_jpgtbl.scl_ext;
     RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
+    RK_U16 *q = (RK_U16 *)&s_ext->tu8_intra_y[0];
     RK_U8 idx;
 
     hal_h264e_dbg_func("enter\n");
@@ -2177,6 +2203,9 @@ static void setup_vepu511_scaling_list(HalH264eVepu511Ctx *ctx)
         for (idx = 0; idx < 64; idx++) {
             p[idx] = vepu511_h264_cqm_jvt8i[63 - idx]; /* intra8x8 */
             p[idx + 64] = vepu511_h264_cqm_jvt8p[63 - idx]; /* inter8x8 */
+
+            q[idx] = vepu511_h264_cqm_jvt8i_q[63 - idx]; /* intra8x8 */
+            q[idx + 64] = vepu511_h264_cqm_jvt8p_q[63 - idx]; /* inter8x8 */
         }
     } else if (ctx->pps->pic_scaling_matrix_present == 2) {
         //TODO: Update scaling list for (scaling_list_mode == 2)
