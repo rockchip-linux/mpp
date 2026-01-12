@@ -11,10 +11,6 @@
 #include "mpp_debug.h"
 #include "mpp_frame.h"
 
-#define CEIL(a)                 (int)( (double)(a) > (int)(a) ? (int)((a)+1) : (int)(a) )
-#define FLOOR(a)                (int)( (double)(a) < (int)(a) ? (int)((a)-1) : (int)(a) )
-#define ROUND(a)                (int)( (a) > 0 ? ((double) (a) + 0.5) : ((double) (a) - 0.5) )
-
 #define RKVOP_PQ_PREPROCESS_GLOBAL_HIST_BIN_BITS    (8)
 #define RKVOP_PQ_PREPROCESS_GLOBAL_HIST_BIN_NUMS    (1 << (RKVOP_PQ_PREPROCESS_GLOBAL_HIST_BIN_BITS))
 #define RKVOP_PQ_PREPROCESS_HIST_BITS_VERI          (4)
@@ -24,6 +20,7 @@
 #define RKVOP_PQ_PREPROCESS_LOCAL_HIST_BIN_BITS     (4)
 #define RKVOP_PQ_PREPROCESS_LOCAL_HIST_BIN_NUMS     (1 << (RKVOP_PQ_PREPROCESS_LOCAL_HIST_BIN_BITS))
 
+/* for vdpp_api_content.hist.dci_csc_range */
 #define VDPP_COLOR_SPACE_LIMIT_RANGE    (0)
 #define VDPP_COLOR_SPACE_FULL_RANGE     (1)
 
@@ -34,6 +31,7 @@
 #define VDPP_WORK_MODE_VEP        (2)
 #define VDPP_WORK_MODE_DCI        (3) /* hist mode */
 
+/* for vdpp_api_content.com2.cfg_set */
 #define VDPP_DMSR_EN            (4)
 #define VDPP_ES_EN              (2)
 #define VDPP_SHARP_EN           (1)
@@ -46,17 +44,18 @@
 #define VDPP_DCI_VSD_MODE_1     (1)
 #define VDPP_DCI_VSD_MODE_2     (2)
 
-enum VDPP_FMT {
-    VDPP_FMT_YUV444 = 0,
-    VDPP_FMT_YUV420 = 3,
-};
+/* vdpp reg format definition */
+typedef enum VdppFmt_e {
+    VDPP_FMT_YUV444 = 0, // yuv444sp
+    VDPP_FMT_YUV420 = 3, // yuv420sp
+} VdppFmt;
 
-enum VDPP_YUV_SWAP {
+typedef enum VdppYuvSwap_e {
     VDPP_YUV_SWAP_SP_UV,
     VDPP_YUV_SWAP_SP_VU,
-};
+} VdppYuvSwap;
 
-enum VDPP_PARAM_TYPE {
+typedef enum VdppParamType_e {
     VDPP_PARAM_TYPE_COM,
     VDPP_PARAM_TYPE_DMSR,
     VDPP_PARAM_TYPE_ZME_COM,
@@ -65,7 +64,7 @@ enum VDPP_PARAM_TYPE {
     VDPP_PARAM_TYPE_ES,
     VDPP_PARAM_TYPE_HIST,
     VDPP_PARAM_TYPE_SHARP,
-};
+} VdppParamType;
 
 typedef enum VdppCmd_e {
     VDPP_CMD_INIT,                            /* reset msg to all zero */
@@ -79,43 +78,49 @@ typedef enum VdppCmd_e {
     VDPP_CMD_SET_ZME_COEFF_CFG,               /* config ZME COEFF configure */
     /* hardware trigger command */
     VDPP_CMD_RUN_SYNC             = 0x1000,   /* start sync mode process */
+
+    /* new after vdpp2 */
     VDPP_CMD_SET_COM2_CFG         = 0x2000,   /* config common params for RK3576 */
     VDPP_CMD_SET_DST_C,                       /* config destination chroma info */
     VDPP_CMD_SET_HIST_FD,                     /* config dci hist fd */
     VDPP_CMD_SET_ES,                          /* config ES configure */
     VDPP_CMD_SET_DCI_HIST,                    /* config dci hist configure */
     VDPP_CMD_SET_SHARP,                       /* config sharp configure */
+    VDPP_CMD_GET_AVG_LUMA         = 0x2100,   /* get average luma value */
 } VdppCmd;
 
+/* forward declaration */
 typedef void* VdppCtx;
-typedef struct vdpp_com_ctx_t vdpp_com_ctx;
+typedef struct VdppComCtx_t VdppComCtx;
 
 typedef struct VdppImg_t {
     RK_U32  mem_addr; /* base address fd */
-    RK_U32  uv_addr;  /* chroma address fd + (offset << 10) */
-    RK_U32  uv_off;
+    RK_U32  uv_addr;  /* chroma address fd */
+    RK_U32  uv_off;   /* chroma offset, unit: byte */
 } VdppImg;
 
-typedef struct vdpp_com_ops_t {
+typedef struct VdppComOps_t {
     MPP_RET (*init)(VdppCtx *ctx);
     MPP_RET (*deinit)(VdppCtx ctx);
     MPP_RET (*control)(VdppCtx ctx, VdppCmd cmd, void *param);
-    void    (*release)(vdpp_com_ctx *ctx);
+    void    (*release)(VdppComCtx *ctx); /* RESERVED */
     RK_S32  (*check_cap)(VdppCtx ctx);
     MPP_RET (*reserve[3])(VdppCtx *ctx);
-} vdpp_com_ops;
+} VdppComOps;
 
-typedef struct vdpp_com_ctx_t {
-    vdpp_com_ops *ops;
+typedef VdppComOps vdpp_com_ops; // for compatibility
+
+typedef struct VdppComCtx_t {
+    VdppComOps *ops;
     VdppCtx priv;
-    RK_S32 ver;
-} vdpp_com_ctx;
+    RK_S32 ver; // vdpp version, range: {0x100, 0x200, 0x300}
+} VdppComCtx;
 
-union vdpp_api_content {
+typedef union VdppApiContent_u {
     struct {
-        enum VDPP_YUV_SWAP sswap;
-        enum VDPP_FMT dfmt;
-        enum VDPP_YUV_SWAP dswap;
+        VdppYuvSwap sswap;
+        VdppFmt dfmt; // 0-yuv444sp, 3-yuv420sp
+        VdppYuvSwap dswap;
         RK_S32 src_width;
         RK_S32 src_height;
         RK_S32 dst_width;
@@ -153,30 +158,32 @@ union vdpp_api_content {
         RK_U32 dering_sen_1;
         RK_U32 dering_blend_alpha;
         RK_U32 dering_blend_beta;
-        RK_S16 (*tap8_coeff)[17][8];
-        RK_S16 (*tap6_coeff)[17][8];
+        const RK_S16 (*tap8_coeff)[17][8]; // 11x17x8
+        const RK_S16 (*tap6_coeff)[17][8];
     } zme;
 
+    /* new after vdpp2 */
     struct {
-        MppFrameFormat sfmt;
-        enum VDPP_YUV_SWAP sswap;
-        enum VDPP_FMT dfmt;
-        enum VDPP_YUV_SWAP dswap;
-        RK_U32 src_width;
-        RK_U32 src_height;
-        RK_U32 src_width_vir;
-        RK_U32 src_height_vir;
-        RK_U32 dst_width;
-        RK_U32 dst_height;
-        RK_U32 dst_width_vir;
-        RK_U32 dst_height_vir;
-        RK_U32 yuv_out_diff;
-        RK_U32 dst_c_width;
-        RK_U32 dst_c_height;
-        RK_U32 dst_c_width_vir;
-        RK_U32 dst_c_height_vir;
-        RK_U32 hist_mode_en;  /* 0 - vdpp, 1 - hist */
-        /* high 16 bit: mask; low 3 bit: dmsr|es|sharp */
+        MppFrameFormat sfmt;      //
+        VdppYuvSwap sswap;        // {0-uv, 1-vu}, default: 0
+        VdppFmt dfmt;             // {0-yuv444sp, 3-yuv420sp}
+        VdppYuvSwap dswap;        // {0-uv, 1-vu}, default: 0
+        RK_U32 src_width;         // unit: pixel
+        RK_U32 src_height;        // unit: pixel
+        RK_U32 src_width_vir;     // unit: pixel
+        RK_U32 src_height_vir;    // unit: pixel
+        RK_U32 dst_width;         // unit: pixel
+        RK_U32 dst_height;        // unit: pixel
+        RK_U32 dst_width_vir;     // unit: pixel
+        RK_U32 dst_height_vir;    // unit: pixel
+        RK_U32 yuv_out_diff;      // output luma/chroma buffer separated flag
+        RK_U32 dst_c_width;       // unit: pixel
+        RK_U32 dst_c_height;      // unit: pixel
+        RK_U32 dst_c_width_vir;   // unit: pixel
+        RK_U32 dst_c_height_vir;  // unit: pixel
+        /* 0-vdpp(vep), 1-dci_hist, use to set the work mode */
+        RK_U32 hist_mode_en;
+        /* high 16 bit: mask; low 3 bit (msb->lsb): dmsr|es|sharp */
         RK_U32 cfg_set;
     } com2;
 
@@ -205,16 +212,17 @@ union vdpp_api_content {
 
     struct {
         RK_U32 hist_cnt_en;
-        RK_U32 dci_hsd_mode;
-        RK_U32 dci_vsd_mode;
-        RK_U32 dci_yrgb_gather_num;
-        RK_U32 dci_yrgb_gather_en;
-        RK_U32 dci_csc_range;
+        RK_U32 dci_hsd_mode;        // [0, 1], default: 0
+        RK_U32 dci_vsd_mode;        // [0, 2], default: 0
+        RK_U32 dci_yrgb_gather_num; // DCI AXI bus yrgb data gather transfer number {0:2, 1:4, 2:8}
+        RK_U32 dci_yrgb_gather_en;  // default: 0
+        RK_U32 dci_csc_range;       // {0-limited, 1-full}, default: 0
+        RK_U32 hist_addr;           // hist buffer fd
     } hist;
 
     struct {
-        RK_S32 sharp_enable;
-        RK_S32 sharp_coloradj_bypass_en;
+        RK_S32 sharp_enable;             // default: 1
+        RK_S32 sharp_coloradj_bypass_en; // default: 1, DO NOT modify this!
 
         RK_S32 lti_h_enable;
         RK_S32 lti_h_radius;
@@ -354,23 +362,31 @@ union vdpp_api_content {
         RK_S32 tex_adj_grd[6];
         RK_S32 tex_adj_val[6];
     } sharp;
-};
+} VdppApiContent;
 
-struct vdpp_api_params {
-    enum VDPP_PARAM_TYPE ptype;
-    union vdpp_api_content param;
-};
+typedef union VdppResults_u {
+    struct {
+        RK_S32 luma_avg;        // output mean luma value in U10 range, <0 means invalid value
+    } hist;
+
+} VdppResults;
+
+typedef struct VdppApiParams_t {
+    VdppParamType ptype;
+    VdppApiContent param;
+} VdppApiParams;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-vdpp_com_ctx* rockchip_vdpp_api_alloc_ctx(void);
-void rockchip_vdpp_api_release_ctx(vdpp_com_ctx *com_ctx);
-MPP_RET dci_hist_info_parser(RK_U8* p_pack_hist_addr, RK_U32* p_hist_local, RK_U32* p_hist_global);
+VdppComCtx *rockchip_vdpp_api_alloc_ctx(void);
+void rockchip_vdpp_api_release_ctx(VdppComCtx *com_ctx);
+
+MPP_RET dci_hist_info_parser(const RK_U8 *p_pack_hist_addr, RK_U32 *p_hist_local, RK_U32 *p_hist_global);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* VDPP_API_H */

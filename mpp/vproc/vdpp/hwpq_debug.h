@@ -38,4 +38,4 @@
 
 extern RK_U32 hwpq_vdpp_debug;
 
-#endif // HWPQ_DEBUG_H
+#endif /* HWPQ_DEBUG_H */

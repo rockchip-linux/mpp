@@ -7,8 +7,8 @@
 #define HWPQ_VDPP_PROC_API_H
 
 /* version definition */
-#define HWPQ_VDPP_PROC_VERSION_HEX  (0x01020000)    /* [31:0] = [major:8-minor:8-patch:16] */
-#define HWPQ_VDPP_PROC_VERSION_STR  "v1.2.0"
+#define HWPQ_VDPP_PROC_VERSION_HEX  (0x01030000)    /* [31:0] = [major:8-minor:8-patch:16] */
+#define HWPQ_VDPP_PROC_VERSION_STR  "v1.3.0"
 
 /* hwpq vdpp color format definition */
 #define VDPP_FRAME_FMT_COLOR_MASK   (0x000f0000)    /* DEPRECATED */
@@ -16,6 +16,7 @@
 #define VDPP_FRAME_FMT_RGB          (0x00010000)    /* DEPRECATED */
 
 #define VDPP_HIST_LENGTH            (10240)
+#define HWPQ_VDPP_SOC_NAME_LENGTH   (128)
 
 typedef enum vdpp_frame_format {
     // YUV
@@ -66,8 +67,8 @@ typedef struct vdpp_plane_info {
     void   *addr;
     int     offset;
 
-    int     w_vld;  // image width,  unit: pixel
-    int     h_vld;  // image height, unit: pixel
+    int     w_vld;  // image width,    unit: pixel
+    int     h_vld;  // image height,   unit: pixel
     int     w_vir;  // aligned width,  unit: pixel
     int     h_vir;  // aligned height, unit: pixel
 } HwpqVdppPlaneInfo;
@@ -82,7 +83,7 @@ typedef struct vdpp_img_info {
 typedef struct vdpp_params {
     /* vdpp 1 features */
     // dmsr config
-    unsigned int dmsr_en;               // default: 1
+    unsigned int dmsr_en;               // default: 0
     unsigned int str_pri_y;             // default: 10
     unsigned int str_sec_y;             // default: 4
     unsigned int dumping_y;             // default: 6
@@ -94,22 +95,26 @@ typedef struct vdpp_params {
     unsigned int reserve_es[4];
 
     // zme config
-    unsigned int zme_dering_en;         // default: 0
+    unsigned int zme_dering_en;         // default: 1
     unsigned int reserve_zme[4];
 
     /* vdpp 2 features */
     // hist_cnt config
     unsigned int hist_cnt_en;           // default: 1
-    unsigned int hist_csc_range;        // default: 0. see vdpp_range_info
-    unsigned int reserve_hist_cnt[4];
+    unsigned int hist_csc_range;        // default: VDPP_LIMIT_RANGE. see HwpqVdppRange
+    unsigned int hist_vsd_mode;         // (RESERVED) range: [0, 2], default: -1, means auto calculate
+    unsigned int hist_hsd_mode;         // (RESERVED) range: [0, 1], default: -1, means auto calculate
+    unsigned int reserve_hist_cnt[2];
 
     // sharp config
-    unsigned int shp_en;                // default: 1
+    unsigned int shp_en;                // default: 0
     unsigned int peaking_gain;          // default: 196
     unsigned int shp_shoot_ctrl_en;     // default: 1
     unsigned int shp_shoot_ctrl_over;   // default: 8
     unsigned int shp_shoot_ctrl_under;  // default: 8
     unsigned int reserve_shp[4];
+
+    /* new features add here */
 } HwpqVdppConfig;
 
 typedef struct hwpq_vdpp_info_t {
@@ -123,11 +128,20 @@ typedef struct hwpq_vdpp_info_t {
     unsigned short  vdpp_blk_size_v;
 } HwpqVdppDciInfo;
 
-typedef struct hwpq_vdpp_output_t {
+typedef union hwpq_vdpp_output_t {
     /* mean luma result */
-    int     luma_avg;           // U10 range: [0, 1023]. <0 means invalid value.
+    struct {
+        int             luma_avg;       // U10 range: [0, 1023]. <0 means invalid value.
+        HwpqVdppDciInfo dci_vdpp_info;  // dci info for VOP
+    } hist;
 
-    int     reserved[7];
+    /* bbd result, unit: pixel */
+    // struct HwpqVdppBbdSize {
+    //     int bbd_size_top;       // [0, H], <0 means invalid value.
+    //     int bbd_size_bottom;    // [0, H], <0 means invalid value.
+    //     int bbd_size_left;      // [0, W], <0 means invalid value.
+    //     int bbd_size_right;     // [0, W], <0 means invalid value.
+    // } bbd;
 } HwpqVdppOutput;
 
 typedef struct rk_vdpp_proc_params {
@@ -144,10 +158,49 @@ typedef struct rk_vdpp_proc_params {
     unsigned int    vdpp_config_update_flag;    // set this to 1 if needs to update 'vdpp_config'
     HwpqVdppConfig  vdpp_config;
 
-    /* output */
-    HwpqVdppDciInfo dci_vdpp_info;  //[o] output dci hist info for VOP
-    HwpqVdppOutput  output;         //[o] output data, 32bytes
+    /* DEPRECATED, use 'hwpq_vdpp_run_cmd()' with corresponding argument instead! */
+    HwpqVdppDciInfo dci_vdpp_info;  /* DEPRECATED, arg: HWPQ_VDPP_CMD_GET_HIST_RESULT */
+    HwpqVdppOutput  output;         /* DEPRECATED, arg: HWPQ_VDPP_CMD_GET_BBD_RESULT  */
 } HwpqVdppParams;
+
+/* hwpq vdpp commands */
+typedef enum {
+    HWPQ_VDPP_CMD_INIT,                     /* RESERVED */
+
+    /* Get useful info from a context, use 'HwpqVdppQueryInfo' as data in 'hwpq_vdpp_run_cmd()' */
+    HWPQ_VDPP_CMD_GET_VERSION,              /* get vdpp version info */
+    HWPQ_VDPP_CMD_GET_SOC_NAME,             /* get platform soc name */
+    // HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE,         /* get minimal virtual size for each layer of PYR */
+
+    /* Get result from a context, use 'HwpqVdppOutput' as data in 'hwpq_vdpp_run_cmd()' */
+    HWPQ_VDPP_CMD_GET_HIST_RESULT = 0x0100, /* get DCI info  */
+    // HWPQ_VDPP_CMD_GET_BBD_RESULT,           /* get BBD result */
+
+    /* Set module config to default values */
+    HWPQ_VDPP_CMD_SET_DEF_CFG = 0x1000,     /* set 'HwpqVdppConfig' to default values */
+} HwpqVdppCmd;
+
+/* hwpq vdpp query infos */
+typedef union vdpp_query_info {
+    /* common query info */
+    struct {
+        char soc_name[HWPQ_VDPP_SOC_NAME_LENGTH];
+    } platform;
+
+    struct {
+        int  vdpp_ver;      // {0x100, 0x200, 0x300}
+    } version;
+
+    /* query pyr minimal virtual size info, unit: pixel */
+    // struct {
+    //     int dst_width;      // [I] set the dst width  after ZME, unit: pixel
+    //     int dst_height;     // [I] set the dst height after ZME, unit: pixel
+    //     int nb_layers;      // [O] get the number of layers exclude the original layer, always be 3 for now!
+    //     int vir_widths[8];  // [O] output virtual widths  of each layer, unit: pixel
+    //     int vir_heights[8]; // [O] output virtual heights of each layer, unit: pixel
+    // } pyr;
+} HwpqVdppQueryInfo;
+
 
 #ifdef __cplusplus
 extern "C"
@@ -162,8 +215,20 @@ int hwpq_vdpp_check_work_mode(HwpqVdppContext ctx, const HwpqVdppParams *p_proc_
 int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *p_proc_param);
 int hwpq_vdpp_deinit(HwpqVdppContext ctx);
 
+/**
+ * | cmd                            | data type         | data_size                 |
+ * | ------------------------------ | ----------------- | ------------------------- |
+ * | HWPQ_VDPP_CMD_GET_VERSION      | HwpqVdppQueryInfo | sizeof(HwpqVdppQueryInfo) |
+ * | HWPQ_VDPP_CMD_GET_SOC_NAME     | HwpqVdppQueryInfo | sizeof(HwpqVdppQueryInfo) |
+ * | HWPQ_VDPP_CMD_GET_PYR_MIN_SIZE | HwpqVdppQueryInfo | sizeof(HwpqVdppQueryInfo) |
+ * | HWPQ_VDPP_CMD_GET_HIST_RESULT  | HwpqVdppOutput    | sizeof(HwpqVdppOutput)    |
+ * | HWPQ_VDPP_CMD_GET_BBD_RESULT   | HwpqVdppOutput    | sizeof(HwpqVdppOutput)    |
+ * | HWPQ_VDPP_CMD_SET_DEF_CFG      | HwpqVdppConfig    | sizeof(HwpqVdppConfig)    |
+ */
+int hwpq_vdpp_run_cmd(HwpqVdppContext ctx, HwpqVdppCmd cmd, void *data, int data_size, void *user_data);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HWPQ_VDPP_PROC_API_H
+#endif /* HWPQ_VDPP_PROC_API_H */

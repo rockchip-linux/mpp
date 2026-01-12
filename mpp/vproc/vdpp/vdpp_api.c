@@ -3,6 +3,8 @@
  * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
  */
 
+#define MODULE_TAG "vdpp"
+
 #include "mpp_soc.h"
 #include "mpp_mem.h"
 
@@ -10,40 +12,56 @@
 #include "vdpp.h"
 #include "vdpp2.h"
 
-vdpp_com_ctx *rockchip_vdpp_api_alloc_ctx(void)
+VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
 {
-    vdpp_com_ctx *com_ctx = mpp_calloc(vdpp_com_ctx, 1);
-    vdpp_com_ops *ops = mpp_calloc(vdpp_com_ops, 1);
+    VdppComCtx *com_ctx = mpp_calloc(VdppComCtx, 1);
+    VdppComOps *ops = mpp_calloc(VdppComOps, 1);
     VdppCtx ctx = NULL;
+    RockchipSocType soc_type = mpp_get_soc_type();
+    RK_U32 vdpp_ver = 0;
 
-    if (NULL == com_ctx || NULL == ops) {
-        mpp_err_f("failed to calloc com_ctx %p ops %p\n", com_ctx, ops);
+    switch (soc_type) {
+    case ROCKCHIP_SOC_RK3528: vdpp_ver = 1; break;
+    case ROCKCHIP_SOC_RK3576: vdpp_ver = 2; break;
+    //case ROCKCHIP_SOC_RK3538:
+    //case ROCKCHIP_SOC_RK3539:
+    //case ROCKCHIP_SOC_RK3572: vdpp_ver = 3; break;
+    default:
+        vdpp_logf("unsupported soc_type %d for vdpp!!!\n", soc_type);
         goto __ERR;
     }
 
-    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3576) {
-        ops->init = vdpp2_init;
-        ops->deinit = vdpp2_deinit;
-        ops->control = vdpp2_control;
-        ops->check_cap = vdpp2_check_cap;
+    if (NULL == com_ctx || NULL == ops) {
+        vdpp_loge("failed to calloc com_ctx %p ops %p\n", com_ctx, ops);
+        goto __ERR;
+    }
 
-        ctx = mpp_calloc(struct vdpp2_api_ctx, 1);
-    } else {
+    if (1 == vdpp_ver) {
         ops->init = vdpp_init;
         ops->deinit = vdpp_deinit;
         ops->control = vdpp_control;
         ops->check_cap = vdpp_check_cap;
+        com_ctx->ver = 0x100;
 
-        ctx = mpp_calloc(struct vdpp_api_ctx, 1);
+        ctx = mpp_calloc(Vdpp1ApiCtx, 1);
+    } else {
+        ops->init = vdpp2_init;
+        ops->deinit = vdpp2_deinit;
+        ops->control = vdpp2_control;
+        ops->check_cap = vdpp2_check_cap;
+        com_ctx->ver = 0x200;
+
+        ctx = mpp_calloc(Vdpp2ApiCtx, 1);
     }
 
     if (NULL == ctx) {
-        mpp_err_f("failed to calloc vdpp_api_ctx %p\n", ctx);
+        vdpp_loge("failed to calloc vdpp_api_ctx %p\n", ctx);
         goto __ERR;
     }
 
     com_ctx->ops = ops;
     com_ctx->priv = ctx;
+    vdpp_logi("init vdp_api_ctx: soc=%d, vdpp_ver=%d\n", soc_type, com_ctx->ver >> 8);
 
     return com_ctx;
 
@@ -54,7 +72,7 @@ __ERR:
     return NULL;
 }
 
-void rockchip_vdpp_api_release_ctx(vdpp_com_ctx *com_ctx)
+void rockchip_vdpp_api_release_ctx(VdppComCtx *com_ctx)
 {
     if (NULL == com_ctx)
         return;
@@ -64,18 +82,22 @@ void rockchip_vdpp_api_release_ctx(vdpp_com_ctx *com_ctx)
     MPP_FREE(com_ctx);
 }
 
-MPP_RET dci_hist_info_parser(RK_U8* p_pack_hist_addr, RK_U32* p_hist_local, RK_U32* p_hist_global)
+MPP_RET dci_hist_info_parser(const RK_U8 *p_pack_hist_addr, RK_U32 *p_hist_local, RK_U32 *p_hist_global)
 {
+    const RK_U32 local_hist_length = RKVOP_PQ_PREPROCESS_HIST_SIZE_VERI *
+                                     RKVOP_PQ_PREPROCESS_HIST_SIZE_HORI *
+                                     RKVOP_PQ_PREPROCESS_LOCAL_HIST_BIN_NUMS;
     RK_U32 hw_hist_idx = 0;
-    RK_U32 idx;
+    RK_U32 idx = 0;
 
     if (NULL == p_pack_hist_addr || NULL == p_hist_local || NULL == p_hist_global) {
-        mpp_err_f("found NULL ptr, pack_hist %p hist_local %p hist_global %p\n",  p_pack_hist_addr, p_hist_local, p_hist_global);
+        vdpp_loge("found NULL ptr, pack_hist %p hist_local %p hist_global %p\n",
+                  p_pack_hist_addr, p_hist_local, p_hist_global);
         return MPP_ERR_NULL_PTR;
     }
 
     /* Hist packed (10240 byte) -> unpacked (local: 16 * 16 * 16 * U32 + global: 256 * U32) */
-    for (idx = 0; idx < RKVOP_PQ_PREPROCESS_HIST_SIZE_VERI * RKVOP_PQ_PREPROCESS_HIST_SIZE_HORI * RKVOP_PQ_PREPROCESS_LOCAL_HIST_BIN_NUMS; idx = idx + 4) {
+    for (idx = 0; idx < local_hist_length; idx = idx + 4) {
         RK_U32 tmp0_u18, tmp1_u18, tmp2_u18, tmp3_u18;
         RK_U32 tmp0_u8, tmp1_u8, tmp2_u8, tmp3_u8, tmp4_u8, tmp5_u8, tmp6_u8, tmp7_u8, tmp8_u8;
 

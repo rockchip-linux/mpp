@@ -7,20 +7,37 @@
 #define VDPP2_H
 
 #include "vdpp2_reg.h"
-#include "vdpp_common.h"
+#include "vdpp.h"
 
-/* vdpp log marco */
-#define VDPP2_DBG_TRACE             (0x00000001)
-#define VDPP2_DBG_INT               (0x00000002)
-#define VDPP2_DBG_CHECK             (0x00000004)
+typedef enum VdppDciFmt_e {
+    VDPP_DCI_FMT_RGB888,        // 0, MSB order: [23:0]=[R8:G8:B8]
+    VDPP_DCI_FMT_ARGB8888,      // 1, MSB order: [31:0]=[A8:R8:G8:B8]
+    VDPP_DCI_FMT_Y_8bit_SP = 4, // 4
+    VDPP_DCI_FMT_Y_10bit_SP,    // 5, [15:0]=[X6:Y10]
+    VDPP_DCI_FMT_BUTT,
+} VdppDciFmt; // for reg-sw_dci_data_format
 
-extern RK_U32 vdpp2_debug;
-
-#define VDPP2_DBG(level, fmt, ...)\
-do {\
-    if (level & vdpp2_debug)\
-    { mpp_log(fmt, ## __VA_ARGS__); }\
-} while (0)
+typedef struct EsParams_t {
+    RK_U32 es_bEnabledES;
+    RK_U32 es_iAngleDelta;
+    RK_U32 es_iAngleDeltaExtra;
+    RK_U32 es_iGradNoDirTh;
+    RK_U32 es_iGradFlatTh;
+    RK_U32 es_iWgtGain; // should not be 0
+    RK_U32 es_iWgtDecay;
+    RK_U32 es_iLowConfTh;
+    RK_U32 es_iLowConfRatio;
+    RK_U32 es_iConfCntTh;
+    RK_U32 es_iWgtLocalTh;
+    RK_U32 es_iK1;
+    RK_U32 es_iK2;
+    RK_U32 es_iDeltaLimit;
+    RK_U32 es_iDiff2conf_lut_x[9];
+    RK_U32 es_iDiff2conf_lut_y[9];
+    RK_U32 es_bEndpointCheckEnable;
+    RK_U32 es_tan_hi_th;
+    RK_U32 es_tan_lo_th;
+} EsParams;
 
 typedef struct ShpParams_t {
     RK_S32 sharp_enable;
@@ -165,78 +182,67 @@ typedef struct ShpParams_t {
     RK_S32 tex_adj_val[6];
 } ShpParams;
 
-typedef struct EsParams_t {
-    RK_U32 es_bEnabledES;
-    RK_U32 es_iAngleDelta;
-    RK_U32 es_iAngleDeltaExtra;
-    RK_U32 es_iGradNoDirTh;
-    RK_U32 es_iGradFlatTh;
-    RK_U32 es_iWgtGain;
-    RK_U32 es_iWgtDecay;
-    RK_U32 es_iLowConfTh;
-    RK_U32 es_iLowConfRatio;
-    RK_U32 es_iConfCntTh;
-    RK_U32 es_iWgtLocalTh;
-    RK_U32 es_iK1;
-    RK_U32 es_iK2;
-    RK_U32 es_iDeltaLimit;
-    RK_U32 es_iDiff2conf_lut_x[9];
-    RK_U32 es_iDiff2conf_lut_y[9];
-    RK_U32 es_bEndpointCheckEnable;
-    RK_U32 es_tan_hi_th;
-    RK_U32 es_tan_lo_th;
-} EsParams;
+typedef struct hist_params {
+    RK_U32 hist_cnt_en;         // [0, 1], default: 0
+    RK_U32 dci_hsd_mode;        // [0, 1], default: 0
+    RK_U32 dci_vsd_mode;        // [0, 2], default: 0
+    RK_U32 dci_yrgb_gather_num; // DCI AXI bus yrgb data gather transfer number {0:2, 1:4, 2:8}
+    RK_U32 dci_yrgb_gather_en;  // default: 0
+    RK_S32 dci_format;          // see VdppDciFmt: {0: rgb24, 1: argb32, 4: yuvsp-8bit, 5: yuvsp-10bit}
+    RK_S32 dci_alpha_swap;      // [0, 1], default: 0
+    RK_S32 dci_rbuv_swap;       // [0, 1], default: 0
+    RK_S32 dci_csc_range;       // {0-limited, 1-full}, default: 0
+    RK_S32 hist_addr;           // dci hist buffer fd
 
-struct vdpp2_params {
-    RK_U32 src_fmt;
-    RK_U32 src_yuv_swap;
-    RK_U32 dst_fmt;
-    RK_U32 dst_yuv_swap;
-    RK_U32 src_width;
-    RK_U32 src_height;
-    RK_U32 src_width_vir;
-    RK_U32 src_height_vir;
-    RK_U32 dst_width;
-    RK_U32 dst_height;
-    RK_U32 dst_width_vir;
-    RK_U32 dst_height_vir;
-    RK_U32 yuv_out_diff;
-    RK_U32 dst_c_width;
-    RK_U32 dst_c_height;
-    RK_U32 dst_c_width_vir;
-    RK_U32 dst_c_height_vir;
-    RK_U32 working_mode;    // 2 - VDPP, 3 - DCI HIST
+    /* for register checking */
+    RK_U32 src_fmt;             // see MppFrameFormat, {0-nv12, 15-nv24}
+    RK_U32 src_width;           // real width,  unit: pixel
+    RK_U32 src_height;          // real height, unit: pixel
+    RK_U32 src_width_vir;       // aligned width,  unit: pixel
+    RK_U32 src_height_vir;      // aligned height, unit: pixel
+    RK_U32 src_addr;            // src buffer fd
+    RK_U32 working_mode;        // 1-IEP2, 2-VEP, 3-DCI_HIST
+} HistParams;
 
-    struct vdpp_addr src;   // src frame
-    struct vdpp_addr dst;   // dst frame
-    struct vdpp_addr dst_c; // dst chroma
+typedef struct vdpp2_params {
+    RK_U32 src_fmt;          // see MppFrameFormat, {0-nv12, 15-nv24}
+    RK_U32 src_yuv_swap;     // {0-no_swap(UV), 1-swap(VU)}
+    RK_U32 src_width;        // real width,  unit: pixel
+    RK_U32 src_height;       // real height, unit: pixel
+    RK_U32 src_width_vir;    // aligned width,  unit: pixel
+    RK_U32 src_height_vir;   // aligned height, unit: pixel
+    RK_U32 dst_fmt;          // see VDPP_FMT, {0-yuv444sp, 3-yuv420sp}
+    RK_U32 dst_yuv_swap;     // {0-no_swap(UV), 1-swap(VU)}
+    RK_U32 dst_width;        // unit: pixel
+    RK_U32 dst_height;       // unit: pixel
+    RK_U32 dst_width_vir;    // unit: pixel
+    RK_U32 dst_height_vir;   // unit: pixel
+    RK_U32 yuv_out_diff;     // {0:single_buf_out, 1-two_separate_bufs_out}
+    RK_U32 dst_c_width;      // unit: pixel, valid when yuv_out_diff=1
+    RK_U32 dst_c_height;     // unit: pixel, valid when yuv_out_diff=1
+    RK_U32 dst_c_width_vir;  // unit: pixel, valid when yuv_out_diff=1
+    RK_U32 dst_c_height_vir; // unit: pixel, valid when yuv_out_diff=1
+    RK_U32 working_mode;     // 1-IEP2, 2-VEP, 3-DCI_HIST
 
-    RK_S32 hist;            // dci hist fd
+    struct vdpp_addr src;    // src frame
+    struct vdpp_addr dst;    // dst frame
+    struct vdpp_addr dst_c;  // dst chroma frame, valid when yuv_out_diff=1
 
-    struct dmsr_params dmsr_params;
-    struct zme_params zme_params;
-    /* vdpp2 new feature */
-    EsParams   es_params;
-    ShpParams  shp_params;
+    /* vdpp features */
+    DmsrParams  dmsr_params;
+    ZmeParams   zme_params;
 
-    RK_U32 hist_cnt_en;
-    RK_U32 dci_hsd_mode;
-    RK_U32 dci_vsd_mode;
-    RK_U32 dci_yrgb_gather_num;
-    RK_U32 dci_yrgb_gather_en;
-    RK_S32 dci_format;
-    RK_S32 dci_alpha_swap;
-    RK_S32 dci_rbuv_swap;
-    RK_S32 dci_csc_range;
-};
+    /* vdpp2 features */
+    HistParams  hist_params;
+    EsParams    es_params;
+    ShpParams   shp_params;
+} Vdpp2Params;
 
-struct vdpp2_api_ctx {
+typedef struct vdpp2_api_ctx {
     RK_S32 fd;
     struct vdpp2_params params;
     struct vdpp2_reg reg;
-    struct dmsr_reg dmsr;
-    struct zme_reg zme;
-};
+} Vdpp2ApiCtx;
 
 #ifdef __cplusplus
 extern "C" {
@@ -251,4 +257,4 @@ RK_S32  vdpp2_check_cap(VdppCtx ictx);
 }
 #endif
 
-#endif
+#endif /* VDPP2_H */
