@@ -27,7 +27,7 @@
 
 #define CLIP3(l, h, v) ((v) < (l) ? (l) : ((v) > (h) ? (h) : (v)))
 
-static const RK_U32 mcFilter[8][6] = {
+static const RK_S32 mcFilter[8][6] = {
     { 0,  0,  128,    0,   0,  0 },
     { 0, -6,  123,   12,  -1,  0 },
     { 2, -11, 108,   36,  -8,  1 },
