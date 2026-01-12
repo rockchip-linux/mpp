@@ -1212,6 +1212,7 @@ static void proc_jpeg_cfg(MppEncImpl *enc)
     if (update_rc)
         rc_cfg->rc_mode = rc_set->rc_mode;
     cfg->update = 1;
+    enc_set_rc_updated(enc, "jpeg cfg changed");
 }
 
 static void proc_vp8_cfg(MppEncImpl *enc)
