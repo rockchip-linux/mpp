@@ -185,6 +185,7 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     RK_U32 size_total = 0;
     RK_U32 size_total_old = 0;
     RK_U32 depth = MPP_FRAME_FMT_IS_YUV_10BIT(fmt) ? 10 : 8;
+    RockchipSocType soc_type = mpp_get_soc_type();
 
     if (type == MPP_VIDEO_CodingUnused) {
         mpp_err("The coding type is invalid");
@@ -201,27 +202,58 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     sys_cfg_dbg_dec_buf("outside stride wxh: [%d %d]\n",
                         cfg->h_stride_by_byte, cfg->v_stride);
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
+        RK_U32 ext_pix = 0;
         /* fbc case */
         switch (type) {
-        case MPP_VIDEO_CodingHEVC :
+        case MPP_VIDEO_CodingHEVC : {
+            if (((soc_type == ROCKCHIP_SOC_RK3538) ||
+                 (soc_type == ROCKCHIP_SOC_RK3572)) &&
+                MPP_FRAME_FMT_IS_AFBC(fmt)) {
+                ext_pix = ((aligned_height == cfg->height) ||
+                           (aligned_height - cfg->height < 8)) ?
+                          8 : 0;
+            }
+            sys_cfg_dbg_dec_buf("height padding: %d\n", ext_pix);
+            aligned_pixel = MPP_ALIGN(cfg->width, 64);
+            aligned_height = ((aligned_height != 0) ? aligned_height :
+                              cfg->height) + ext_pix;
+            aligned_height = MPP_ALIGN(aligned_height, 16);
+        } break;
         case MPP_VIDEO_CodingAV1 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height :
+                                       cfg->height, 16);
         } break;
-        case MPP_VIDEO_CodingAVC :
+        case MPP_VIDEO_CodingAVC : {
+            if (((soc_type == ROCKCHIP_SOC_RK3538) ||
+                 (soc_type == ROCKCHIP_SOC_RK3572)) &&
+                MPP_FRAME_FMT_IS_AFBC(fmt)) {
+                ext_pix = ((aligned_height == cfg->height) ||
+                           (aligned_height - cfg->height < 8)) ?
+                          8 : 0;
+            }
+            sys_cfg_dbg_dec_buf("height padding: %d\n", ext_pix);
+            aligned_pixel = MPP_ALIGN(cfg->width, 64);
+            aligned_height = ((aligned_height != 0) ? aligned_height :
+                              cfg->height) + ext_pix;
+            aligned_height = MPP_ALIGN(aligned_height, 16);
+        } break;
         case MPP_VIDEO_CodingAVSPLUS :
         case MPP_VIDEO_CodingAVS :
         case MPP_VIDEO_CodingAVS2 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height :
+                                       cfg->height, 16);
         } break;
         case MPP_VIDEO_CodingVP9 : {
             aligned_pixel = MPP_ALIGN(cfg->width, 64);
-            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 64);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height :
+                                       cfg->height, 64);
         } break;
         default : {
             aligned_pixel = MPP_ALIGN(cfg->width, 16);
-            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height : cfg->height, 16);
+            aligned_height = MPP_ALIGN((aligned_height != 0) ? aligned_height :
+                                       cfg->height, 16);
         } break;
         }
         sys_cfg_dbg_dec_buf("spec aligned pixel wxh: [%d %d]\n", aligned_pixel, aligned_height);
@@ -292,8 +324,6 @@ MPP_RET mpp_sys_dec_buf_chk_proc(MppSysDecBufChkCfg *cfg)
     } else {
         /* tile case */
         /* raster case */
-        RockchipSocType soc_type = mpp_get_soc_type();
-
         aligned_pixel = cfg->width;
         switch (type) {
         case MPP_VIDEO_CodingHEVC : {
