@@ -222,6 +222,7 @@ static RK_U32 rdo_lambda_table_P[60] = {
     0x01120000, 0x01600000, 0x01c00000, 0x02240000,
 };
 
+/* scale_iq */
 static RK_U8 vepu511_h265_cqm_intra8[64] = {
     16, 16, 16, 16, 17, 18, 21, 24,
     16, 16, 16, 16, 17, 19, 22, 25,
@@ -233,6 +234,7 @@ static RK_U8 vepu511_h265_cqm_intra8[64] = {
     24, 25, 29, 36, 47, 65, 88, 115
 };
 
+/* scale_iq */
 static RK_U8 vepu511_h265_cqm_inter8[64] = {
     16, 16, 16, 16, 17, 18, 20, 24,
     16, 16, 16, 17, 18, 20, 24, 25,
@@ -242,6 +244,30 @@ static RK_U8 vepu511_h265_cqm_inter8[64] = {
     18, 20, 24, 25, 28, 33, 41, 54,
     20, 24, 25, 28, 33, 41, 54, 71,
     24, 25, 28, 33, 41, 54, 71, 91
+};
+
+/* scale_q = (65536 + scale_iq / 2) / scale_iq */
+static RK_U16 vepu511_h265_cqm_intra8_q[64] = {
+    4096,  4096,  4096,  4096,  3855,  3641,  3121,  2731,
+    4096,  4096,  4096,  4096,  3855,  3449,  2979,  2621,
+    4096,  4096,  3855,  3641,  3277,  2979,  2621,  2260,
+    4096,  4096,  3641,  3121,  2731,  2427,  2114,  1820,
+    3855,  3855,  3277,  2731,  2185,  1872,  1598,  1394,
+    3641,  3449,  2979,  2427,  1872,  1489,  1214,  1008,
+    3121,  2979,  2621,  2114,  1598,  1214,   936,   745,
+    2731,  2621,  2260,  1820,  1394,  1008,   745,   570
+};
+
+/* scale_q = (65536 + scale_iq / 2) / scale_iq */
+static RK_U16 vepu511_h265_cqm_inter8_q[64] = {
+    4096,  4096,  4096,  4096,  3855,  3641,  3277,  2731,
+    4096,  4096,  4096,  3855,  3641,  3277,  2731,  2621,
+    4096,  4096,  3855,  3641,  3277,  2731,  2621,  2341,
+    4096,  3855,  3641,  3277,  2731,  2621,  2341,  1986,
+    3855,  3641,  3277,  2731,  2621,  2341,  1986,  1598,
+    3641,  3277,  2731,  2621,  2341,  1986,  1598,  1214,
+    3277,  2731,  2621,  2341,  1986,  1598,  1214,   923,
+    2731,  2621,  2341,  1986,  1598,  1214,   923,   720
 };
 
 void save_to_file_511(char *name, void *ptr, size_t size)
@@ -757,8 +783,9 @@ static void vepu511_h265_set_scaling_list(H265eV511RegSet *regs)
 {
     Vepu511SclCfg *s = &regs->reg_scl_jpgtbl.scl;
     Vepu511SclCfgExt *s_ext = &regs->reg_scl_jpgtbl.scl_ext;
-    RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
     RK_U32 scl_lst_sel = regs->reg_frm.reg0232_rdo_cfg.scl_lst_sel;
+    RK_U8 *p = (RK_U8 *)&s->tu8_intra_y[0];
+    RK_U16 *q = (RK_U16 *)&s_ext->tu8_intra_y[0];
     RK_U8 idx;
 
     hal_h265e_dbg_func("enter\n");
@@ -767,28 +794,47 @@ static void vepu511_h265_set_scaling_list(H265eV511RegSet *regs)
         for (idx = 0; idx < 64; idx++) {
             /* TU8 intra Y/U/V */
             p[idx + 64 * 0] = vepu511_h265_cqm_intra8[63 - idx];
-
             p[idx + 64 * 1] = vepu511_h265_cqm_intra8[63 - idx];
             p[idx + 64 * 2] = vepu511_h265_cqm_intra8[63 - idx];
+
+            q[idx + 64 * 0] = vepu511_h265_cqm_intra8_q[63 - idx];
+            q[idx + 64 * 1] = vepu511_h265_cqm_intra8_q[63 - idx];
+            q[idx + 64 * 2] = vepu511_h265_cqm_intra8_q[63 - idx];
 
             /* TU8 inter Y/U/V */
             p[idx + 64 * 3] = vepu511_h265_cqm_inter8[63 - idx];
             p[idx + 64 * 4] = vepu511_h265_cqm_inter8[63 - idx];
             p[idx + 64 * 5] = vepu511_h265_cqm_inter8[63 - idx];
 
+            q[idx + 64 * 3] = vepu511_h265_cqm_inter8_q[63 - idx];
+            q[idx + 64 * 4] = vepu511_h265_cqm_inter8_q[63 - idx];
+            q[idx + 64 * 5] = vepu511_h265_cqm_inter8_q[63 - idx];
+
             /* TU16 intra Y/U/V AC */
             p[idx + 64 * 6] = vepu511_h265_cqm_intra8[63 - idx];
             p[idx + 64 * 7] = vepu511_h265_cqm_intra8[63 - idx];
             p[idx + 64 * 8] = vepu511_h265_cqm_intra8[63 - idx];
+
+
+            q[idx + 64 * 6] = vepu511_h265_cqm_intra8_q[63 - idx];
+            q[idx + 64 * 7] = vepu511_h265_cqm_intra8_q[63 - idx];
+            q[idx + 64 * 8] = vepu511_h265_cqm_intra8_q[63 - idx];
 
             /* TU16 inter Y/U/V AC */
             p[idx + 64 *  9] = vepu511_h265_cqm_inter8[63 - idx];
             p[idx + 64 * 10] = vepu511_h265_cqm_inter8[63 - idx];
             p[idx + 64 * 11] = vepu511_h265_cqm_inter8[63 - idx];
 
+            q[idx + 64 *  9] = vepu511_h265_cqm_inter8_q[63 - idx];
+            q[idx + 64 * 10] = vepu511_h265_cqm_inter8_q[63 - idx];
+            q[idx + 64 * 11] = vepu511_h265_cqm_inter8_q[63 - idx];
+
             /* TU32 intra/inter Y AC */
             p[idx + 64 * 12] = vepu511_h265_cqm_intra8[63 - idx];
             p[idx + 64 * 13] = vepu511_h265_cqm_inter8[63 - idx];
+
+            q[idx + 64 * 12] = vepu511_h265_cqm_intra8_q[63 - idx];
+            q[idx + 64 * 13] = vepu511_h265_cqm_inter8_q[63 - idx];
         }
 
         s->tu_dc0.tu16_intra_y_dc = 16;
