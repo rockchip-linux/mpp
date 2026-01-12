@@ -27,7 +27,7 @@
         if (srv_runtime) { \
             __tmp = srv_runtime; \
         } else { \
-            mpp_err("mpp mem pool srv not init at %s\n", __FUNCTION__); \
+            mpp_err("mpp runtime srv not init at %s\n", __FUNCTION__); \
             __tmp = NULL; \
         } \
         __tmp; \

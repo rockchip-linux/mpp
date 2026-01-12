@@ -7,14 +7,12 @@
 
 #include <string.h>
 
-#include "rk_mpi.h"
-
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_debug.h"
 #include "mpp_common.h"
 
-#include "mpi_impl.h"
+#include "mpp_sys.h"
 #include "mpp_info.h"
 
 RK_U32 mpi_debug = 0;
@@ -435,6 +433,8 @@ MPP_RET mpp_create(MppCtx *ctx, MppApi **mpi)
         p->check    = p;
         *ctx = p;
         *mpi = p->api;
+
+        mpp_sys_attach(p);
     } while (0);
 
     show_mpp_version();
@@ -481,6 +481,8 @@ MPP_RET mpp_destroy(MppCtx ctx)
         ret = check_mpp_ctx(p);
         if (ret)
             return ret;
+
+        mpp_sys_detach(p);
 
         if (p->ctx)
             mpp_ctx_destroy(p->ctx);

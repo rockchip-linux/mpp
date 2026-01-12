@@ -1,22 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2015 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef MPI_IMPL_H
 #define MPI_IMPL_H
 
+#include "rk_mpi.h"
+
+#include "mpp_list.h"
 #include "mpp.h"
 
 #define MPI_DBG_FUNCTION            (0x00000001)
@@ -29,12 +21,15 @@
 typedef struct MpiImpl_t MpiImpl;
 
 struct MpiImpl_t {
-    MpiImpl         *check;
-    MppCtxType      type;
-    MppCodingType   coding;
+    MpiImpl             *check;
+    struct list_head    list;
 
-    MppApi          *api;
-    Mpp             *ctx;
+    MppCtxType          type;
+    MppCodingType       coding;
+
+    RK_U32              ctx_id;
+    MppApi              *api;
+    Mpp                 *ctx;
 };
 
 extern RK_U32 mpi_debug;

@@ -55,6 +55,7 @@ add_subdirectory(hal)
 # ----------------------------------------------------------------------------
 set (MPP_SRC
     mpp_info.c
+    mpp_sys.c
     mpp.c
     mpp_impl.c
     mpi.c
