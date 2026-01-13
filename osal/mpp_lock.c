@@ -30,8 +30,7 @@ void mpp_spinlock_lock(spinlock_t *lock)
         time = mpp_time();
 
     while (!MPP_BOOL_CAS(&lock->lock, LOCK_IDLE, LOCK_BUSY)) {
-        asm("NOP");
-        asm("NOP");
+        sched_yield();
     }
 
     if (lock->debug && time) {
