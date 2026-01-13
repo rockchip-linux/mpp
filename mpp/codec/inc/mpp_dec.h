@@ -64,6 +64,8 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfg cfg, MpiCmd cmd, void *param);
  */
 MPP_RET mpp_dec_decode(MppDec ctx, MppPacket packet);
 
+MppDecCfg mpp_dec_to_cfg(MppDec ctx);
+
 #ifdef __cplusplus
 }
 #endif

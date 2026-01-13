@@ -980,3 +980,10 @@ MPP_RET mpp_dec_set_cfg_by_cmd(MppDecCfg cfg, MpiCmd cmd, void *param)
 
     return ret;
 }
+
+MppDecCfg mpp_dec_to_cfg(MppDec ctx)
+{
+    MppDecImpl *dec = (MppDecImpl *)ctx;
+
+    return (NULL != dec) ? dec->cfg_obj : NULL;
+}
