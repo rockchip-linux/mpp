@@ -90,51 +90,14 @@ MPP_RET mpp_ctx_create(Mpp **mpp, MppCtx ctx)
     }
 
     /* Initialize all members to default values */
-    p->mPktIn = NULL;
-    p->mPktOut = NULL;
-    p->mFrmIn = NULL;
-    p->mFrmOut = NULL;
-    p->mPacketPutCount = 0;
-    p->mPacketGetCount = 0;
-    p->mFramePutCount = 0;
-    p->mFrameGetCount = 0;
-    p->mTaskPutCount = 0;
-    p->mTaskGetCount = 0;
-    p->mPacketGroup = NULL;
-    p->mFrameGroup = NULL;
-    p->mExternalBufferMode = 0;
-    p->mUsrInPort = NULL;
-    p->mUsrOutPort = NULL;
-    p->mMppInPort = NULL;
-    p->mMppOutPort = NULL;
-    p->mInputTaskQueue = NULL;
-    p->mOutputTaskQueue = NULL;
     p->mInputTaskCount = 1;
     p->mOutputTaskCount = 1;
     p->mInputTimeout = MPP_POLL_BUTT;
     p->mOutputTimeout = MPP_POLL_BUTT;
-    p->mInputTask = NULL;
-    p->mEosTask = NULL;
     p->mCtx = ctx;
-    p->mDec = NULL;
-    p->mEnc = NULL;
-    p->mEncAyncIo = 0;
-    p->mEncAyncProc = 0;
     p->mIoMode = MPP_IO_MODE_DEFAULT;
-    p->mDisableThread = 0;
-    p->mDump = NULL;
-    p->mKmpp = NULL;
-    p->mVencInitKcfg = NULL;
     p->mType = MPP_CTX_BUTT;
     p->mCoding = MPP_VIDEO_CodingUnused;
-    p->mInitDone = 0;
-    p->mStatus = 0;
-    p->mDecCfg = NULL;
-    p->mParserFastMode = 0;
-    p->mParserNeedSplit = 0;
-    p->mParserInternalPts = 0;
-    p->mImmediateOut = 0;
-    p->mExtraPacket = NULL;
 
     mpp_env_get_u32("mpp_debug", &mpp_debug, 0);
 
