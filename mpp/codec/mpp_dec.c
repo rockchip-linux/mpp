@@ -551,6 +551,7 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         };
 
         mpp_buf_slot_set_callback(frame_slots, &cb_ctx);
+        mpp_buf_slot_set_dec_cfg(frame_slots, p->cfg_obj);
 
         ret = mpp_buf_slot_init(&p->packet_slots);
         if (ret) {

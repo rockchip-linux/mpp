@@ -208,6 +208,7 @@ struct MppBufSlotsImpl_t {
     RK_U32              eos;
 
     // buffer parameter, default alignement is 16
+    MppDecCfg           dec_cfg;
     MppSysCfg           sys_cfg;
     AlignFunc           hal_hor_align;          // default NULL
     AlignFunc           hal_ver_align;          // default NULL
@@ -962,6 +963,17 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots)
     impl->info_changed = 0;
     impl->info_change_slot_idx = -1;
 
+    if (impl->dec_cfg) {
+        MppDecCfg cfg = impl->dec_cfg;
+        MppFrameImpl *frm = (MppFrameImpl *)impl->info;
+
+        mpp_dec_cfg_set_s32(cfg, "status:width", frm->width);
+        mpp_dec_cfg_set_s32(cfg, "status:height", frm->height);
+        mpp_dec_cfg_set_s32(cfg, "status:hor_stride", frm->hor_stride);
+        mpp_dec_cfg_set_s32(cfg, "status:ver_stride", frm->ver_stride);
+        mpp_dec_cfg_set_s32(cfg, "status:buf_size", frm->buf_size);
+    }
+
     mpp_mutex_unlock(&impl->lock);
 
     return MPP_OK;
@@ -1012,6 +1024,22 @@ MPP_RET mpp_buf_slot_set_callback(MppBufSlots slots, MppCbCtx *cb_ctx)
 
     mpp_mutex_lock(&impl->lock);
     impl->callback = *cb_ctx;
+    mpp_mutex_unlock(&impl->lock);
+
+    return MPP_OK;
+}
+
+MPP_RET mpp_buf_slot_set_dec_cfg(MppBufSlots slots, MppDecCfg cfg)
+{
+    MppBufSlotsImpl *impl = (MppBufSlotsImpl *)slots;
+
+    if (!impl) {
+        mpp_err_f("found NULL input\n");
+        return MPP_NOK;
+    }
+
+    mpp_mutex_lock(&impl->lock);
+    impl->dec_cfg = cfg;
     mpp_mutex_unlock(&impl->lock);
 
     return MPP_OK;
@@ -1483,6 +1511,17 @@ MPP_RET mpp_slots_set_prop(MppBufSlots slots, SlotsPropType type, void *val)
             }
 
             impl->info_change_slot_idx = -1;
+        }
+
+        if (impl->dec_cfg) {
+            MppDecCfg cfg = impl->dec_cfg;
+            MppFrameImpl *frm = (MppFrameImpl *)val;
+
+            mpp_dec_cfg_set_s32(cfg, "status:width", frm->width);
+            mpp_dec_cfg_set_s32(cfg, "status:height", frm->height);
+            mpp_dec_cfg_set_s32(cfg, "status:hor_stride", frm->hor_stride);
+            mpp_dec_cfg_set_s32(cfg, "status:ver_stride", frm->ver_stride);
+            mpp_dec_cfg_set_s32(cfg, "status:buf_size", frm->buf_size);
         }
     } break;
     case SLOTS_HAL_FBC_ADJ : {

@@ -17,6 +17,8 @@
 #ifndef MPP_BUF_SLOT_H
 #define MPP_BUF_SLOT_H
 
+#include "rk_vdec_cfg.h"
+
 #include "mpp_frame.h"
 #include "mpp_callback.h"
 
@@ -132,6 +134,8 @@ MPP_RET mpp_buf_slot_ready(MppBufSlots slots);
 size_t  mpp_buf_slot_get_size(MppBufSlots slots);
 RK_S32  mpp_buf_slot_get_count(MppBufSlots slots);
 MPP_RET mpp_buf_slot_set_callback(MppBufSlots slots, MppCbCtx *cb_ctx);
+MPP_RET mpp_buf_slot_set_dec_cfg(MppBufSlots slots, MppDecCfg cfg);
+
 /*
  * called by parser
  *
