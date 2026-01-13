@@ -172,6 +172,8 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param);
 MPP_RET mpp_enc_notify_v2(MppEnc ctx, RK_U32 flag);
 MPP_RET mpp_enc_reset_v2(MppEnc ctx);
 
+MppEncCfg mpp_enc_to_cfg(MppEnc ctx);
+
 #ifdef __cplusplus
 }
 #endif

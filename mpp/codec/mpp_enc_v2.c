@@ -447,3 +447,10 @@ MPP_RET mpp_enc_control_v2(MppEnc ctx, MpiCmd cmd, void *param)
 
     return ret;
 }
+
+MppEncCfg mpp_enc_to_cfg(MppEnc ctx)
+{
+    MppEncImpl *enc = (MppEncImpl *)ctx;
+
+    return (NULL != enc) ? enc->cfg_obj : NULL;
+}
