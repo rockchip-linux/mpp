@@ -329,7 +329,7 @@ void vdpu38x_setup_rcb(Vdpu38xRcbCtx *ctx, Vdpu38xRcbRegSet *regs, MppDev dev,
     }
 }
 
-RK_S32 vdpu38x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info)
+RK_S32 vdpu38x_rcb_set_info(Vdpu38xRcbCtx *ctx, MppDev dev)
 {
     MppDevRcbInfoCfg rcb_cfg;
     VdpuRcbSetMode set_rcb_mode = RCB_SET_BY_PRIORITY_MODE;
@@ -356,7 +356,7 @@ RK_S32 vdpu38x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info)
     case RCB_SET_BY_SIZE_SORT_MODE : {
         VdpuRcbInfo info[RCB_BUF_CNT];
 
-        memcpy(info, rcb_info, sizeof(info));
+        memcpy(info, ctx->buf_info, sizeof(info));
         qsort(info, MPP_ARRAY_ELEMS(info),
               sizeof(info[0]), vdpu_compare_rcb_size);
 
@@ -370,7 +370,7 @@ RK_S32 vdpu38x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info)
         }
     } break;
     case RCB_SET_BY_PRIORITY_MODE : {
-        VdpuRcbInfo *info = rcb_info;
+        VdpuRcbInfo *info = ctx->buf_info;
         RK_U32 index = 0;
 
         for (i = 0; i < MPP_ARRAY_ELEMS(rcb_priority); i ++) {

@@ -70,7 +70,7 @@ typedef struct Vdpu38xRcbCtx_t {
     RK_U32              lr_en;
     RK_U32              upsc_en;
 
-    VdpuRcbInfo   buf_info[RCB_BUF_CNT];
+    VdpuRcbInfo         buf_info[RCB_BUF_CNT];
     Vdpu38xRcbCalc_f    calc_func;
 } Vdpu38xRcbCtx;
 
@@ -814,7 +814,7 @@ RK_U32 vdpu38x_rcb_reg_info_update(Vdpu38xRcbCtx *ctx, Vdpu38xRcbType type, RK_U
 RK_U32 vdpu38x_rcb_get_total_size(Vdpu38xRcbCtx *ctx);
 MPP_RET vdpu38x_rcb_register_calc_handle(Vdpu38xRcbCtx *ctx, Vdpu38xRcbCalc_f func);
 MPP_RET vdpu38x_rcb_calc_exec(Vdpu38xRcbCtx *ctx, RK_U32 *total_sz);
-RK_S32 vdpu38x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
+RK_S32 vdpu38x_rcb_set_info(Vdpu38xRcbCtx *ctx, MppDev dev);
 MPP_RET vdpu38x_rcb_dump_rcb_result(Vdpu38xRcbCtx *ctx);
 MPP_RET vdpu38x_get_fbc_off(MppFrame mframe, RK_U32 *head_stride, RK_U32 *pld_stride, RK_U32 *pld_offset);
 MPP_RET vdpu38x_get_tile4x4_h_stride_coeff(MppFrameFormat fmt, RK_U32 *coeff);

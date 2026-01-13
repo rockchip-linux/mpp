@@ -605,7 +605,7 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu38x_set_rcbinfo(reg_ctx->dev, (VdpuRcbInfo*)reg_ctx->rcb_info);
+        vdpu38x_rcb_set_info(reg_ctx->rcb_ctx, reg_ctx->dev);
 
         ret = mpp_dev_ioctl(reg_ctx->dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {

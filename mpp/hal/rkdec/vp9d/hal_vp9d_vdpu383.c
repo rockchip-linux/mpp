@@ -730,7 +730,7 @@ static MPP_RET hal_vp9d_vdpu383_start(void *hal, HalTaskInfo *task)
         }
 
         // rcb info for sram
-        vdpu38x_set_rcbinfo(dev, hw_ctx->rcb_info);
+        vdpu38x_rcb_set_info(hw_ctx->rcb_ctx, dev);
 
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
         if (ret) {

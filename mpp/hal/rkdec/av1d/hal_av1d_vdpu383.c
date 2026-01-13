@@ -516,7 +516,7 @@ MPP_RET vdpu383_av1d_start(void *hal, HalTaskInfo *task)
         }
 
         /* rcb info for sram */
-        vdpu38x_set_rcbinfo(dev, (VdpuRcbInfo*)reg_ctx->rcb_buf_info);
+        vdpu38x_rcb_set_info(reg_ctx->rcb_ctx, dev);
 
         /* send request to hardware */
         ret = mpp_dev_ioctl(dev, MPP_DEV_CMD_SEND, NULL);
