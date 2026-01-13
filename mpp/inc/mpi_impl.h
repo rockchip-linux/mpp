@@ -27,7 +27,7 @@ struct MpiImpl_t {
     MppCtxType          type;
     MppCodingType       coding;
 
-    RK_U32              ctx_id;
+    RK_S32              ctx_id;
     MppApi              *api;
     Mpp                 *ctx;
 };
