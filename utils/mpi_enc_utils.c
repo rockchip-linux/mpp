@@ -209,7 +209,7 @@ static void mpi_enc_sync_cmd(MpiEncTestArgs *cmd, MppEncCfg cfg)
     mpp_enc_cfg_get_s32(cfg, "prep:hor_stride", &cmd->hor_stride);
     mpp_enc_cfg_get_s32(cfg, "prep:ver_stride", &cmd->ver_stride);
     mpp_enc_cfg_get_s32(cfg, "prep:format", (RK_S32 *)&cmd->format);
-    mpp_enc_cfg_get_s32(cfg, "prep:mirror", (RK_S32 *)&cmd->mirroring);
+    mpp_enc_cfg_get_s32(cfg, "prep:mirroring", (RK_S32 *)&cmd->mirroring);
     mpp_enc_cfg_get_s32(cfg, "prep:rotation", (RK_S32 *)&cmd->rotation);
     mpp_enc_cfg_get_s32(cfg, "prep:flip", (RK_S32 *)&cmd->flip);
     mpp_enc_cfg_get_s32(cfg, "rc:mode", &cmd->rc_mode);
@@ -395,7 +395,7 @@ RK_S32 mpi_enc_opt_t(void *ctx, const char *next)
         if (!mpp_check_support_format(MPP_CTX_ENC, type)) {
             cmd->type = type;
             if (cfg_obj)
-                mpp_enc_cfg_set_s32(cfg_obj, "prep:type", (RK_S32)type);
+                mpp_enc_cfg_set_s32(cfg_obj, "codec:type", (RK_S32)type);
         }
         return 1;
     }
@@ -471,7 +471,7 @@ RK_S32 mpi_enc_opt_rc(void *ctx, const char *next)
         cnt = sscanf(next, "%d", &cmd->rc_mode);
         if (cnt) {
             if (cfg_obj)
-                mpp_enc_cfg_set_s32(cfg_obj, "rc:rc_mode", cmd->rc_mode);
+                mpp_enc_cfg_set_s32(cfg_obj, "rc:mode", cmd->rc_mode);
             return 1;
         }
     }
