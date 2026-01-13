@@ -10,34 +10,6 @@
 #include "mpp_frame.h"
 #include "rk_vdec_cmd.h"
 
-typedef enum MppDecCfgChange_e {
-    MPP_DEC_CFG_CHANGE_TYPE              = MPP_BIT(0),
-    MPP_DEC_CFG_CHANGE_CODING            = MPP_BIT(1),
-    MPP_DEC_CFG_CHANGE_HW_TYPE           = MPP_BIT(2),
-    MPP_DEC_CFG_CHANGE_BATCH_MODE        = MPP_BIT(3),
-
-    MPP_DEC_CFG_CHANGE_OUTPUT_FORMAT     = MPP_BIT(8),
-    MPP_DEC_CFG_CHANGE_FAST_OUT          = MPP_BIT(9),
-    MPP_DEC_CFG_CHANGE_FAST_PARSE        = MPP_BIT(10),
-    MPP_DEC_CFG_CHANGE_SPLIT_PARSE       = MPP_BIT(11),
-    MPP_DEC_CFG_CHANGE_INTERNAL_PTS      = MPP_BIT(12),
-    MPP_DEC_CFG_CHANGE_SORT_PTS          = MPP_BIT(13),
-    MPP_DEC_CFG_CHANGE_DISABLE_ERROR     = MPP_BIT(14),
-    MPP_DEC_CFG_CHANGE_ENABLE_VPROC      = MPP_BIT(15),
-    MPP_DEC_CFG_CHANGE_ENABLE_FAST_PLAY  = MPP_BIT(16),
-    MPP_DEC_CFG_CHANGE_ENABLE_HDR_META   = MPP_BIT(17),
-    MPP_DEC_CFG_CHANGE_ENABLE_THUMBNAIL  = MPP_BIT(18),
-    MPP_DEC_CFG_CHANGE_ENABLE_MVC        = MPP_BIT(19),
-    /* disable dpb discontinuous check */
-    MPP_DEC_CFG_CHANGE_DISABLE_DPB_CHECK = MPP_BIT(20),
-    /* reserve high bit for global config */
-    MPP_DEC_CFG_CHANGE_DISABLE_THREAD    = MPP_BIT(28),
-    MPP_DEC_CFG_CHANGE_CODEC_MODE        = MPP_BIT(29),
-    MPP_DEC_CFG_CHANGE_DIS_ERR_CLR_MARK  = MPP_BIT(30),
-
-    MPP_DEC_CFG_CHANGE_ALL               = (0xFFFFFFFFU),
-} MppDecCfgChange;
-
 typedef enum MppVprocMode_e {
     MPP_VPROC_MODE_NONE                  = 0,
     /*
@@ -64,8 +36,6 @@ typedef enum FastPlayMode_e {
 } FastPlayMode;
 
 typedef struct MppDecBaseCfg_t {
-    RK_U64              change;
-
     MppCtxType          type;
     MppCodingType       coding;
     RK_S32              hw_type;
@@ -89,16 +59,7 @@ typedef struct MppDecBaseCfg_t {
     RK_U32              dis_err_clr_mark;
 } MppDecBaseCfg;
 
-typedef enum MppDecCbCfgChange_e {
-    MPP_DEC_CB_CFG_CHANGE_PKT_RDY       = MPP_BIT(0),
-    MPP_DEC_CB_CFG_CHANGE_FRM_RDY       = MPP_BIT(1),
-
-    MPP_DEC_CB_CFG_CHANGE_ALL           = (0xFFFFFFFFU),
-} MppDecCbCfgChange;
-
 typedef struct MppDecCbCfg_t {
-    RK_U64              change;
-
     /* notify packet process done and can accept new packet */
     MppExtCbFunc        pkt_rdy_cb;
     MppExtCbCtx         pkt_rdy_ctx;
@@ -111,6 +72,12 @@ typedef struct MppDecCbCfg_t {
 } MppDecCbCfg;
 
 typedef struct MppDecStatusCfg_t {
+    RK_S32              width;
+    RK_S32              height;
+    RK_S32              hor_stride;
+    RK_S32              ver_stride;
+    RK_S32              buf_size;
+
     RK_U32              hal_support_fast_mode;
     RK_U32              hal_task_count;
     RK_U32              vproc_task_count;

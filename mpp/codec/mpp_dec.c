@@ -138,7 +138,6 @@ MPP_RET mpp_dec_proc_cfg(MppDecImpl *dec, MpiCmd cmd, void *param)
         ret = mpp_dec_set_cfg_by_cmd(dec->cfg_obj, cmd, param);
         mpp_dec_update_cfg(dec);
         mpp_dec_check_fbc_cap(dec);
-        dec->cfg->base.change = 0;
     } break;
     case MPP_DEC_QUERY: {
         MppDecQueryCfg *query = (MppDecQueryCfg *)param;

@@ -46,6 +46,13 @@
     ENTRY(prefix, u32, rk_u32,     codec_mode,          FLAG_INCR,      base, codec_mode) \
     ENTRY(prefix, u32, rk_u32,     dis_err_clr_mark,    FLAG_INCR,      base, dis_err_clr_mark) \
     STRUCT_END(base) \
+    STRUCT_START(status) \
+    ENTRY(prefix, s32, rk_s32,     width,               FLAG_NONE,      status, width) \
+    ENTRY(prefix, s32, rk_s32,     height,              FLAG_NONE,      status, height) \
+    ENTRY(prefix, s32, rk_s32,     hor_stride,          FLAG_NONE,      status, hor_stride) \
+    ENTRY(prefix, s32, rk_s32,     ver_stride,          FLAG_NONE,      status, ver_stride) \
+    ENTRY(prefix, s32, rk_s32,     buf_size,            FLAG_NONE,      status, buf_size) \
+    STRUCT_END(status) \
     STRUCT_START(cb) \
     ENTRY(prefix, ptr, void *,     pkt_rdy_cb,          FLAG_BASE(0),   cb, pkt_rdy_cb) \
     ENTRY(prefix, ptr, void *,     pkt_rdy_ctx,         FLAG_PREV,      cb, pkt_rdy_ctx) \
