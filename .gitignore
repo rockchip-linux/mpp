@@ -89,3 +89,10 @@ Build
 #
 .vscode/
 .code-workspace
+
+#
+# Clangd
+#
+.clangd
+.clang-format
+compile_commands.json
