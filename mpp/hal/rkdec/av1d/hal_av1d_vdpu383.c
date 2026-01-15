@@ -345,7 +345,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
         for (i = 0; i < AV1_REFS_PER_FRAME; ++i) {
             mapped_idx = dxva->ref_frame_idx[i];
-            if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
+            if (dxva->frame_refs[mapped_idx].Index != (RK_S8)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
                 mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_FRAME_PTR, &mframe);
                 if (mframe) {
                     hor_virstride = mpp_frame_get_hor_stride(mframe);
@@ -376,7 +376,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
         for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
             mapped_idx = dxva->ref_frame_idx[i];
-            if (dxva->frame_refs[mapped_idx].Index != (CHAR)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
+            if (dxva->frame_refs[mapped_idx].Index != (RK_S8)0xff && dxva->frame_refs[mapped_idx].Index != 0x7f) {
                 mpp_buf_slot_get_prop(cfg->frame_slots, dxva->frame_refs[mapped_idx].Index, SLOT_BUFFER, &mbuffer);
                 if (ctx->origin_bufs && mpp_frame_get_thumbnail_en(mframe) == MPP_FRAME_THUMBNAIL_ONLY) {
                     origin_buf = hal_bufs_get_buf(ctx->origin_bufs, dxva->frame_refs[mapped_idx].Index);
@@ -402,7 +402,7 @@ MPP_RET vdpu383_av1d_gen_regs(void *hal, HalTaskInfo *task)
         memset(mpp_buffer_get_ptr(mv_buf->buf[0]), 0, mpp_buffer_get_size(mv_buf->buf[0]));
 #endif
         for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
-            if (dxva->frame_refs[i].Index != (CHAR)0xff && dxva->frame_refs[i].Index != 0x7f) {
+            if (dxva->frame_refs[i].Index != (RK_S8)0xff && dxva->frame_refs[i].Index != 0x7f) {
                 mv_buf = hal_bufs_get_buf(ctx->colmv_bufs, dxva->frame_refs[i].Index);
                 regs->comm_addrs.reg217_232_colmv_ref_base[i] = mpp_buffer_get_fd(mv_buf->buf[0]);
 #ifdef DUMP_VDPU38X_DATAS

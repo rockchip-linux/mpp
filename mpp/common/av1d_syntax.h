@@ -1,17 +1,6 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright 2021 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
  */
 
 #ifndef AV1D_SYNTAX_H
@@ -19,213 +8,196 @@
 
 #include "av1d_common.h"
 
-typedef unsigned long       DWORD;
-typedef unsigned char       BYTE;
-typedef unsigned short      WORD;
-typedef unsigned long       ULONG;
-typedef unsigned short      USHORT;
-typedef unsigned char       UCHAR;
-typedef unsigned int        UINT;
-typedef unsigned int        UINT32;
-
-typedef signed   int        BOOL;
-typedef signed   int        INT;
-typedef signed   char       CHAR;
-typedef signed   short      SHORT;
-typedef signed   long       LONG;
-typedef void               *PVOID;
-
 typedef struct DXVA_PicEntry_AV1_t {
     union {
         struct {
-            UCHAR Index7Bits     : 7;
-            UCHAR AssociatedFlag : 1;
+            RK_U8 Index7Bits     : 7;
+            RK_U8 AssociatedFlag : 1;
         };
-        UCHAR bPicEntry;
+        RK_U8 bPicEntry;
     };
 } DXVA_PicEntry_AV1, *LPDXVA_PicEntry_AV1;
 
-
 typedef struct DXVA_PicParams_AV1_t {
     DXVA_PicEntry_AV1 CurrPic;
-    USHORT width               ;
-    USHORT height              ;
-    USHORT max_width           ;
-    USHORT max_height          ;
-    USHORT CurrPicTextureIndex ;
-    USHORT use_superres        ;
-    USHORT superres_denom      ;
-    USHORT bitdepth            ;
-    USHORT seq_profile         ;
-    USHORT frame_header_size   ;
+    RK_U16 width               ;
+    RK_U16 height              ;
+    RK_U16 max_width           ;
+    RK_U16 max_height          ;
+    RK_U16 CurrPicTextureIndex ;
+    RK_U16 use_superres        ;
+    RK_U16 superres_denom      ;
+    RK_U16 bitdepth            ;
+    RK_U16 seq_profile         ;
+    RK_U16 frame_header_size   ;
     union {
         struct {
-            UINT32 current_operating_point      : 12;
-            UINT32 use_128x128_superblock       : 1;
-            UINT32 intra_edge_filter            : 1;
-            UINT32 interintra_compound          : 1;
-            UINT32 masked_compound              : 1;
-            UINT32 warped_motion                : 1;
-            UINT32 dual_filter                  : 1;
-            UINT32 jnt_comp                     : 1;
-            UINT32 screen_content_tools         : 1;
-            UINT32 integer_mv                   : 2;
-            UINT32 cdef_en                      : 1;
-            UINT32 restoration                  : 1;
-            UINT32 film_grain_en                : 1;
-            UINT32 intrabc                      : 1;
-            UINT32 high_precision_mv            : 1;
-            UINT32 switchable_motion_mode       : 1;
-            UINT32 filter_intra                 : 1;
-            UINT32 disable_frame_end_update_cdf : 1;
-            UINT32 disable_cdf_update           : 1;
-            UINT32 reference_mode               : 1;
-            UINT32 skip_mode                    : 1;
-            UINT32 reduced_tx_set               : 1;
-            UINT32 superres                     : 1;
-            UINT32 tx_mode                      : 3;
-            UINT32 use_ref_frame_mvs            : 1;
-            UINT32 enable_ref_frame_mvs         : 1;
-            UINT32 reference_frame_update       : 1;
-            UINT32 error_resilient_mode         : 1;
+            RK_U32 current_operating_point      : 12;
+            RK_U32 use_128x128_superblock       : 1;
+            RK_U32 intra_edge_filter            : 1;
+            RK_U32 interintra_compound          : 1;
+            RK_U32 masked_compound              : 1;
+            RK_U32 warped_motion                : 1;
+            RK_U32 dual_filter                  : 1;
+            RK_U32 jnt_comp                     : 1;
+            RK_U32 screen_content_tools         : 1;
+            RK_U32 integer_mv                   : 2;
+            RK_U32 cdef_en                      : 1;
+            RK_U32 restoration                  : 1;
+            RK_U32 film_grain_en                : 1;
+            RK_U32 intrabc                      : 1;
+            RK_U32 high_precision_mv            : 1;
+            RK_U32 switchable_motion_mode       : 1;
+            RK_U32 filter_intra                 : 1;
+            RK_U32 disable_frame_end_update_cdf : 1;
+            RK_U32 disable_cdf_update           : 1;
+            RK_U32 reference_mode               : 1;
+            RK_U32 skip_mode                    : 1;
+            RK_U32 reduced_tx_set               : 1;
+            RK_U32 superres                     : 1;
+            RK_U32 tx_mode                      : 3;
+            RK_U32 use_ref_frame_mvs            : 1;
+            RK_U32 enable_ref_frame_mvs         : 1;
+            RK_U32 reference_frame_update       : 1;
+            RK_U32 error_resilient_mode         : 1;
         } coding;
     };
 
     struct {
-        USHORT   cols;
-        USHORT   rows;
-        USHORT   context_update_id;
-        USHORT   widths[64];
-        USHORT   heights[64];
-        UINT32   tile_offset_start[128];
-        UINT32   tile_offset_end[128];
-        UCHAR    tile_sz_mag;
+        RK_U16 cols;
+        RK_U16 rows;
+        RK_U16 context_update_id;
+        RK_U16 widths[64];
+        RK_U16 heights[64];
+        RK_U32 tile_offset_start[128];
+        RK_U32 tile_offset_end[128];
+        RK_U8 tile_sz_mag;
     } tiles;
 
     struct {
-        UCHAR frame_type    ;
-        UCHAR show_frame    ;
-        UCHAR showable_frame;
-        UCHAR subsampling_x ;
-        UCHAR subsampling_y ;
-        UCHAR mono_chrome   ;
+        RK_U8 frame_type    ;
+        RK_U8 show_frame    ;
+        RK_U8 showable_frame;
+        RK_U8 subsampling_x ;
+        RK_U8 subsampling_y ;
+        RK_U8 mono_chrome   ;
     } format;
 
-    UCHAR primary_ref_frame;
-    UCHAR enable_order_hint;
-    UCHAR order_hint;
-    UCHAR order_hint_bits;
+    RK_U8 primary_ref_frame;
+    RK_U8 enable_order_hint;
+    RK_U8 order_hint;
+    RK_U8 order_hint_bits;
 
     struct {
-        UCHAR filter_level[2]              ;
-        UCHAR filter_level_u               ;
-        UCHAR filter_level_v               ;
-        UCHAR sharpness_level              ;
-        UCHAR mode_ref_delta_enabled       ;
-        UCHAR mode_ref_delta_update        ;
-        UCHAR delta_lf_multi               ;
-        UCHAR delta_lf_present             ;
-        UCHAR delta_lf_res                 ;
-        CHAR  ref_deltas[8]                ;
-        CHAR  mode_deltas[2]               ;
-        UCHAR frame_restoration_type[3]    ;
-        UCHAR log2_restoration_unit_size[3];
+        RK_U8 filter_level[2]              ;
+        RK_U8 filter_level_u               ;
+        RK_U8 filter_level_v               ;
+        RK_U8 sharpness_level              ;
+        RK_U8 mode_ref_delta_enabled       ;
+        RK_U8 mode_ref_delta_update        ;
+        RK_U8 delta_lf_multi               ;
+        RK_U8 delta_lf_present             ;
+        RK_U8 delta_lf_res                 ;
+        RK_S8 ref_deltas[8]                ;
+        RK_S8 mode_deltas[2]               ;
+        RK_U8 frame_restoration_type[3]    ;
+        RK_U8 log2_restoration_unit_size[3];
     } loop_filter;
 
     struct {
-        UCHAR delta_q_present;
-        UCHAR delta_q_res    ;
-        UCHAR base_qindex    ;
-        CHAR  y_dc_delta_q   ;
-        CHAR  u_dc_delta_q   ;
-        CHAR  v_dc_delta_q   ;
-        CHAR  u_ac_delta_q   ;
-        CHAR  v_ac_delta_q   ;
-        CHAR  using_qmatrix  ;
-        UCHAR qm_y           ;
-        UCHAR qm_u           ;
-        UCHAR qm_v           ;
+        RK_U8 delta_q_present;
+        RK_U8 delta_q_res    ;
+        RK_U8 base_qindex    ;
+        RK_S8 y_dc_delta_q   ;
+        RK_S8 u_dc_delta_q   ;
+        RK_S8 v_dc_delta_q   ;
+        RK_S8 u_ac_delta_q   ;
+        RK_S8 v_ac_delta_q   ;
+        RK_S8 using_qmatrix  ;
+        RK_U8 qm_y           ;
+        RK_U8 qm_u           ;
+        RK_U8 qm_v           ;
     } quantization;
 
     struct {
-        UCHAR damping;
-        UCHAR bits;
+        RK_U8 damping;
+        RK_U8 bits;
 
         struct {
-            UCHAR primary;
-            UCHAR secondary;
+            RK_U8 primary;
+            RK_U8 secondary;
         } y_strengths[8];
         struct {
-            UCHAR primary;
-            UCHAR secondary;
+            RK_U8 primary;
+            RK_U8 secondary;
         } uv_strengths[8];
     } cdef;
 
     struct {
-        UCHAR  enabled           ;
-        UCHAR  update_map        ;
-        UCHAR  update_data       ;
-        UCHAR  temporal_update   ;
-        UCHAR  feature_mask[8]   ;
-        INT    feature_data[8][8];
-        UCHAR  last_active       ;
-        UCHAR  preskip           ;
+        RK_U8 enabled                   ;
+        RK_U8 update_map                ;
+        RK_U8 update_data               ;
+        RK_U8 temporal_update           ;
+        RK_U8 feature_mask[8]           ;
+        RK_S32 feature_data[8][8]       ;
+        RK_U8 last_active               ;
+        RK_U8 preskip                   ;
     } segmentation;
 
     struct {
-        UCHAR apply_grain              ;
-        UCHAR scaling_shift_minus8     ;
-        UCHAR chroma_scaling_from_luma ;
-        UCHAR ar_coeff_lag             ;
-        UCHAR ar_coeff_shift_minus6    ;
-        UCHAR grain_scale_shift        ;
-        UCHAR overlap_flag             ;
-        UCHAR clip_to_restricted_range ;
-        UCHAR matrix_coefficients      ;
-        UCHAR matrix_coeff_is_identity ;
-        UCHAR num_y_points             ;
-        UCHAR num_cb_points            ;
-        UCHAR num_cr_points            ;
-        UCHAR scaling_points_y[14][2]  ;
-        UCHAR scaling_points_cb[10][2] ;
-        UCHAR scaling_points_cr[10][2] ;
-        UCHAR ar_coeffs_y[24]          ;
-        UCHAR ar_coeffs_cb[25]         ;
-        UCHAR ar_coeffs_cr[25]         ;
-        UCHAR cb_mult                  ;
-        UCHAR cb_luma_mult             ;
-        UCHAR cr_mult                  ;
-        UCHAR cr_luma_mult             ;
+        RK_U8 apply_grain               ;
+        RK_U8 scaling_shift_minus8      ;
+        RK_U8 chroma_scaling_from_luma  ;
+        RK_U8 ar_coeff_lag              ;
+        RK_U8 ar_coeff_shift_minus6     ;
+        RK_U8 grain_scale_shift         ;
+        RK_U8 overlap_flag              ;
+        RK_U8 clip_to_restricted_range  ;
+        RK_U8 matrix_coefficients       ;
+        RK_U8 matrix_coeff_is_identity  ;
+        RK_U8 num_y_points              ;
+        RK_U8 num_cb_points             ;
+        RK_U8 num_cr_points             ;
+        RK_U8 scaling_points_y[14][2]   ;
+        RK_U8 scaling_points_cb[10][2]  ;
+        RK_U8 scaling_points_cr[10][2]  ;
+        RK_U8 ar_coeffs_y[24]           ;
+        RK_U8 ar_coeffs_cb[25]          ;
+        RK_U8 ar_coeffs_cr[25]          ;
+        RK_U8 cb_mult                   ;
+        RK_U8 cb_luma_mult              ;
+        RK_U8 cr_mult                   ;
+        RK_U8 cr_luma_mult              ;
 
-        USHORT grain_seed              ;
-        USHORT update_grain            ;
-        USHORT cb_offset               ;
-        USHORT cr_offset               ;
+        RK_U16 grain_seed               ;
+        RK_U16 update_grain             ;
+        RK_U16 cb_offset                ;
+        RK_U16 cr_offset                ;
     } film_grain;
 
-    UINT32 ref_frame_valued;
-    UINT32 ref_frame_idx[7];
+    RK_U32 ref_frame_valued;
+    RK_U32 ref_frame_idx[7];
 
-    UINT32 ref_order_hint[8];
+    RK_U32 ref_order_hint[8];
     struct {
-        UINT32  width;
-        UINT32  height;
-        UINT32  order_hint;
-        UINT32  lst_frame_offset;
-        UINT32  lst2_frame_offset;
-        UINT32  lst3_frame_offset;
-        UINT32  gld_frame_offset;
-        UINT32  bwd_frame_offset;
-        UINT32  alt2_frame_offset;
-        UINT32  alt_frame_offset;
-        UINT32  is_intra_frame;
-        UINT32  intra_only;
-        CHAR    Index;
-        UCHAR   wminvalid;
-        UCHAR   wmtype;
-        RK_S32  wmmat[6];
-        RK_S32  wmmat_val[6];
-        USHORT  alpha, beta, gamma, delta;
+        RK_U32 width;
+        RK_U32 height;
+        RK_U32 order_hint;
+        RK_U32 lst_frame_offset;
+        RK_U32 lst2_frame_offset;
+        RK_U32 lst3_frame_offset;
+        RK_U32 gld_frame_offset;
+        RK_U32 bwd_frame_offset;
+        RK_U32 alt2_frame_offset;
+        RK_U32 alt_frame_offset;
+        RK_U32 is_intra_frame;
+        RK_U32 intra_only;
+        RK_S8 Index;
+        RK_U8 wminvalid;
+        RK_U8 wmtype;
+        RK_S32 wmmat[6];
+        RK_S32 wmmat_val[6];
+        RK_U16 alpha, beta, gamma, delta;
     } frame_refs[8];
 
     struct {
@@ -245,28 +217,28 @@ typedef struct DXVA_PicParams_AV1_t {
 
     RK_U8 ref_frame_sign_bias[8];
 
-    UCHAR coded_lossless;
+    RK_U8 coded_lossless;
     RK_S32 all_lossless;
-    UCHAR interp_filter;
-    UCHAR RefFrameMapTextureIndex[8];
-    UINT32 upscaled_width;
-    UINT32 frame_to_show_map_idx;
-    UINT32 show_existing_frame;
-    UINT32 frame_tag_size;
-    UINT32 offset_to_dct_parts;
-    UCHAR  skip_ref0;
-    UCHAR  skip_ref1;
+    RK_U8 interp_filter;
+    RK_U8 RefFrameMapTextureIndex[8];
+    RK_U32 upscaled_width;
+    RK_U32 frame_to_show_map_idx;
+    RK_U32 show_existing_frame;
+    RK_U32 frame_tag_size;
+    RK_U32 offset_to_dct_parts;
+    RK_U8 skip_ref0;
+    RK_U8 skip_ref1;
     RK_U8 refresh_frame_flags;
-    void         *cdfs;
-    void          *cdfs_ndvc;
+    void *cdfs;
+    void *cdfs_ndvc;
     RK_U8 tile_cols_log2;
     RK_U8 tile_rows_log2;
 } DXVA_PicParams_AV1, *LPDXVA_PicParams_AV1;
 
 typedef struct DXVA_Slice_AV1_Short_t {
-    UINT BSNALunitDataLocation;
-    UINT SliceByteInBuffer;
-    USHORT wBadSliceChopping;
+    RK_U32 BSNALunitDataLocation;
+    RK_U32 SliceByteInBuffer;
+    RK_U16 wBadSliceChopping;
 } DXVA_Slice_AV1_Short, *LPDXVA_Slice_AV1_Short;
 
 #endif

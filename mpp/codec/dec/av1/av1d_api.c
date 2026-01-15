@@ -14,7 +14,7 @@
 #include "mpp_packet_impl.h"
 
 #include "mpp_parser.h"
-#include "av1d_codec.h"
+#include "av1d_ctx.h"
 #include "av1d_parser.h"
 
 /*!

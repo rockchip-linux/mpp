@@ -1,26 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
+ */
 
 #ifndef DXVA_SYNTAX_H
 #define DXVA_SYNTAX_H
 
 #include "rk_type.h"
 
-enum MIDL___MIDL_itf_dxva2api_0000_0000_0012_e {
+enum MIDL___MIDL_itf_dxva2_e {
     DXVA2_PictureParametersBufferType         = 0,
     DXVA2_MacroBlockControlBufferType         = 1,
     DXVA2_ResidualDifferenceBufferType        = 2,
@@ -37,19 +25,19 @@ typedef struct DXVA2_ConfigPictureDecode_t {
     //GUID guidConfigMBcontrolEncryption;
     //GUID guidConfigResidDiffEncryption;
     RK_U32 ConfigBitstreamRaw;
-    //UINT ConfigMBcontrolRasterOrder;
-    //UINT ConfigResidDiffHost;
-    //UINT ConfigSpatialResid8;
-    //UINT ConfigResid8Subtraction;
-    //UINT ConfigSpatialHost8or9Clipping;
-    //UINT ConfigSpatialResidInterleaved;
-    //UINT ConfigIntraResidUnsigned;
-    //UINT ConfigResidDiffAccelerator;
-    //UINT ConfigHostInverseScan;
-    //UINT ConfigSpecificIDCT;
-    //UINT Config4GroupedCoefs;
-    //USHORT ConfigMinRenderTargetBuffCount;
-    //USHORT ConfigDecoderSpecific;
+    //RK_U32 ConfigMBcontrolRasterOrder;
+    //RK_U32 ConfigResidDiffHost;
+    //RK_U32 ConfigSpatialResid8;
+    //RK_U32 ConfigResid8Subtraction;
+    //RK_U32 ConfigSpatialHost8or9Clipping;
+    //RK_U32 ConfigSpatialResidInterleaved;
+    //RK_U32 ConfigIntraResidUnsigned;
+    //RK_U32 ConfigResidDiffAccelerator;
+    //RK_U32 ConfigHostInverseScan;
+    //RK_U32 ConfigSpecificIDCT;
+    //RK_U32 Config4GroupedCoefs;
+    //RK_U16 ConfigMinRenderTargetBuffCount;
+    //RK_U16 ConfigDecoderSpecific;
 } DXVA2_ConfigPictureDecode;
 
 typedef struct DXVA2_DecodeBufferDesc_t {

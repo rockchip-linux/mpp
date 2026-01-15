@@ -13,7 +13,7 @@
 #include "mpp_frame.h"
 #include "parser_api.h"
 
-#include "av1d_codec.h"
+#include "av1d_ctx.h"
 #include "av1d_syntax.h"
 #include "av1d_common.h"
 
