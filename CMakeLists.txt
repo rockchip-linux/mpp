@@ -176,6 +176,12 @@ if(GCC)
     endif(ASAN_CHECK)
 endif(GCC)
 
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:C>:-Wall;-Wextra;-Wuninitialized;-Wmissing-field-initializers>"
+    )
+endif()
+
 # for libary linking
 set(BEGIN_WHOLE_ARCHIVE -Wl,--whole-archive)
 set(END_WHOLE_ARCHIVE -Wl,--no-whole-archive)
