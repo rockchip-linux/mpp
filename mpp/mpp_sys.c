@@ -566,7 +566,7 @@ static rk_s32 mpp_sys_ctrl(rk_s32 pid, char *cmd, rk_s32 n)
         sys_dbg_args("argv[%d]: %s", i, argv[i]);
 
     for (i = 0; i < argc; i++) {
-        rk_s32 j;
+        rk_s32 j = 0;
 
         if (!argv[i])
             break;
