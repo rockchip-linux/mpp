@@ -420,6 +420,9 @@ static MPP_RET set_current_read_grain_params(Av1Codec *s)
     AV1FilmGrainParams *src, *dst;
     const AV1FilmGrainParams *film_grain = &s->frame_header->film_grain;
 
+    src = &s->ref[film_grain->film_grain_params_ref_idx].film_grain;
+    dst = &s->cur_frame.film_grain;
+
     if (!film_grain->apply_grain)
         return MPP_OK;
 
@@ -428,8 +431,6 @@ static MPP_RET set_current_read_grain_params(Av1Codec *s)
         return MPP_OK;
     }
 
-    src = &s->ref[film_grain->film_grain_params_ref_idx].film_grain;
-    dst = &s->cur_frame.film_grain;
     memcpy(dst, src, sizeof(*dst));
     dst->grain_seed = film_grain->grain_seed;
 
