@@ -39,6 +39,7 @@ add_library(osal OBJECT
     mpp_lock.c
     mpp_time.c
     mpp_list.c
+    mpp_ring.c
     mpp_mem.c
     mpp_env.c
     mpp_log.c

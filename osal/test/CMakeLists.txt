@@ -51,3 +51,6 @@ add_mpp_osal_test(mpp_thread)
 
 # eventfd implement unit test
 add_mpp_osal_test(mpp_eventfd)
+
+# ring buffer unit test
+add_mpp_osal_test(mpp_ring)
