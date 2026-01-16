@@ -64,8 +64,9 @@ int main(int argc, char **argv)
                 KmppPacket packet = NULL;
                 KmppFrame frame = NULL;
                 KmppShmPtr sptr;
+                rk_s32 rd;
 
-                fread(buf, 1, size, fp);
+                rd = fread(buf, 1, size, fp);
 
                 kmpp_packet_get(&packet);
 
