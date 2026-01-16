@@ -427,7 +427,7 @@ static rk_s32 mpp_sys_venc(MppSysSrv *srv, const char **argv, void *ctx)
 
     if (argv[next + 1]) {
         MppSysCmdInfo **cmds = &venc_cmds.sub_cmd[0];
-        rk_s32 j;
+        rk_s32 j = 0;
 
         cmd = argv[next + 1];
 
