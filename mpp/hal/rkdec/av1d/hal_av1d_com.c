@@ -1114,8 +1114,13 @@ MPP_RET vdpu38x_av1d_uncomp_hdr(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
         mpp_put_bits(&bp, dxva->order_hint, 8);
         if (soc_type == ROCKCHIP_SOC_RK3538 ||
             soc_type == ROCKCHIP_SOC_RK3572 ||
-            soc_type == ROCKCHIP_SOC_RK3539)
-            mpp_put_bits(&bp, dxva->primary_ref_frame == AV1_PRIMARY_REF_NONE, 1);
+            soc_type == ROCKCHIP_SOC_RK3539) {
+            /*
+             * Hardware bugs in the vdpu384b need to be fixed;
+             * the hardened CDF (the default CDF) is temporarily disabled.
+             */
+            mpp_put_bits(&bp, 0, 1);
+        }
         mpp_put_bits(&bp, dxva->width, 16);
         mpp_put_bits(&bp, dxva->height, 16);
         mpp_put_bits(&bp, dxva->coding.superres, 1);
