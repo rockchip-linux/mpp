@@ -14,10 +14,6 @@
 #include "mpp_time.h"
 #include "mpp_singleton.h"
 
-/* max count for 64bit mask */
-#define MPP_SGLN_MAX_CNT 64
-#define MPP_SGLN_NO_ID_MAX_CNT 128
-
 #define sgln_dbg(fmt, ...) \
     do { \
         if (sgln_debug) \
@@ -86,6 +82,7 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
     } else {
         if (impl->max_id >= max_info) {
             sgln_err("id %d larger than max %d at %s\n", id, max_info, caller);
+            abort();
             return rk_nok;
         }
         id = impl->max_id++;

@@ -8,6 +8,9 @@
 
 #include "rk_type.h"
 
+#define MPP_SGLN_MAX_CNT 64
+#define MPP_SGLN_NO_ID_MAX_CNT 128
+
 typedef enum MppSingletonId_e {
     MPP_SGLN_BASE           = 0,
     /* osal base module */
@@ -65,6 +68,8 @@ typedef struct MppSingletonInfo_t {
 /* warning: constructor priorities from 0 to 100 are reserved for the implementation */
 #define SNGL_BASE_ID    101
 #define MPP_SINGLETON(id, name, init, deinit) \
+    _Static_assert((id) >= 0, "MPP_SINGLETON id must be >= 0"); \
+    _Static_assert((id) < MPP_SGLN_MAX_CNT, "MPP_SINGLETON id out of range"); \
     /* increase id from base id to avoid compiler warning */ \
     __attribute__((constructor(SNGL_BASE_ID + id))) \
     static void SNGL_TO_FUNC(name)(void) { \
