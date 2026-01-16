@@ -28,23 +28,20 @@
         printf(MODULE_TAG ": " fmt, ##__VA_ARGS__);
 
 typedef struct MppSingletonCtxImpl_t {
-    rk_u64 mask;
     rk_u32 max_id;
     rk_u32 max_info;
     MppSingletonInfo *info;
 } MppSingletonCtx;
 
-static MppSingletonInfo info_with_id[MPP_SGLN_MAX_CNT];
+static MppSingletonInfo info_with_id[MPP_SGLN_MAX_CNT] = {0};
 static MppSingletonCtx module_with_id = {
-    .mask = 0,
     .max_id = 0,
     .max_info = MPP_SGLN_MAX_CNT,
     .info = info_with_id,
 };
 
-static MppSingletonInfo info_without_id[MPP_SGLN_NO_ID_MAX_CNT];
+static MppSingletonInfo info_without_id[MPP_SGLN_NO_ID_MAX_CNT] = {0};
 static MppSingletonCtx module_without_id = {
-    .mask = 0,
     .max_id = 0,
     .max_info = MPP_SGLN_NO_ID_MAX_CNT,
     .info = info_without_id,
@@ -82,7 +79,7 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
         }
 
         impl->max_id = MPP_MAX(impl->max_id, info->id);
-        if (impl->mask & ((rk_u64)1 << info->id)) {
+        if (impl->info[info->id].name) {
             sgln_err("info %d has been registered at %s\n", info->id, caller);
             return rk_nok;
         }
@@ -96,7 +93,6 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
     }
 
     impl->info[info->id] = *info;
-    impl->mask |= ((rk_u64)1 << info->id);
 
     {
         rk_u32 name_len = strlen(info->name);
@@ -124,18 +120,16 @@ static void mpp_singleton_deinit(void)
 
         /* NOTE: revert deinit order */
         for (i = impl->max_id; i >= 0; i--) {
-            if (impl->mask & ((rk_u64)1 << i)) {
-                MppSingletonInfo *info = &impl->info[i];
+            MppSingletonInfo *info = &impl->info[i];
 
-                if (info->deinit) {
-                    sgln_dbg("info %2d %-*s deinit start\n", info->id,
-                             max_name_len, info->name);
+            if (info->deinit) {
+                sgln_dbg("info %2d %-*s deinit start\n", info->id,
+                         max_name_len, info->name);
 
-                    info->deinit();
+                info->deinit();
 
-                    sgln_dbg("info %2d %-*s deinit finish\n", info->id,
-                             max_name_len, info->name);
-                }
+                sgln_dbg("info %2d %-*s deinit finish\n", info->id,
+                         max_name_len, info->name);
             }
         }
     }
@@ -158,23 +152,21 @@ __attribute__((constructor(65535))) static void mpp_singleton_init(void)
         rk_s32 i;
 
         for (i = 0; i <= impl->max_id; i++) {
-            if (impl->mask & ((rk_u64)1 << i)) {
-                MppSingletonInfo *info = &impl->info[i];
+            MppSingletonInfo *info = &impl->info[i];
 
-                if (info->init) {
-                    rk_s64 time;
+            if (info->init) {
+                rk_s64 time;
 
-                    sgln_dbg("info %2d %-*s init start\n", info->id,
-                             max_name_len, info->name);
+                sgln_dbg("info %2d %-*s init start\n", info->id,
+                         max_name_len, info->name);
 
-                    time = mpp_time();
-                    info->init();
-                    time = mpp_time() - time;
-                    sum += time;
+                time = mpp_time();
+                info->init();
+                time = mpp_time() - time;
+                sum += time;
 
-                    sgln_dbg("info %2d %-*s init finish %lld us\n", info->id,
-                             max_name_len, info->name, time);
-                }
+                sgln_dbg("info %2d %-*s init finish %lld us\n", info->id,
+                         max_name_len, info->name, time);
             }
         }
     }
