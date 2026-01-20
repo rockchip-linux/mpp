@@ -21,6 +21,7 @@ int main(int argc, char **argv)
     char *path = argv[1];
     MppVdecKcfg cfg;
     rk_s32 ret = rk_ok;
+    (void)argc;
 
     mpp_log(MODULE_TAG " start path %s\n", path);
 
@@ -67,6 +68,10 @@ int main(int argc, char **argv)
                 rk_s32 rd;
 
                 rd = fread(buf, 1, size, fp);
+                if (rd != size) {
+                    mpp_err(MODULE_TAG " read file failed: size %d, rd %d\n", size, rd);
+                    return ret;
+                }
 
                 kmpp_packet_get(&packet);
 

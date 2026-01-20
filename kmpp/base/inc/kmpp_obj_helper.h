@@ -301,10 +301,10 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
 #define CFG_DEF_START(...) \
     { \
         char str_buf[256] = {0}; \
-        rk_s32 str_pos = 0; \
-        rk_s32 str_size = sizeof(str_buf) - 1; \
+        rk_s32 str_pos __maybe_unused = 0; \
+        rk_s32 str_size __maybe_unused = sizeof(str_buf) - 1; \
+        MppCfgObj __parent __maybe_unused = NULL; \
         MppCfgObj root = NULL; \
-        MppCfgObj __parent = NULL; \
         if (once) { \
             mpp_cfg_get_object(&root, NULL, MPP_CFG_TYPE_OBJECT, NULL); \
             __parent = root; \
@@ -351,7 +351,7 @@ KMPP_OBJ_ENTRY_TABLE(KMPP_OBJ_NAME, VAL_ENTRY_TBL, VAL_ENTRY_TBL,
 
 static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
 {
-    rk_u32 once = 1;
+    rk_u32 once __maybe_unused = 1;
 
     mpp_env_get_u32(TO_STR(CONCAT_US(KMPP_OBJ_NAME, debug)), &KMPP_OBJ_DEF_DEUBG(KMPP_OBJ_NAME), 0);
 
@@ -363,14 +363,10 @@ static void CONCAT_US(KMPP_OBJ_NAME, register)(void)
     } else {
 #ifdef KMPP_OBJ_IMPL_TYPE
         rk_s32 impl_size = (sizeof(KMPP_OBJ_IMPL_TYPE) + KMPP_OBJ_EXTRA_SIZE + 3) & ~3;
-        rk_s32 __flag_base = impl_size << 3;
-        rk_s32 __flag_step = 0;
-        rk_s32 __flag_prev = 0;
-        rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX];
-        (void) __flag_base;
-        (void) __flag_step;
-        (void) __flag_prev;
-        (void) __flag_record;
+        rk_s32 __flag_base __maybe_unused = impl_size << 3;
+        rk_s32 __flag_step __maybe_unused = 0;
+        rk_s32 __flag_prev __maybe_unused = 0;
+        rk_s32 __flag_record[ELEM_FLAG_RECORD_MAX] __maybe_unused;
 
         kmpp_objdef_register(&KMPP_OBJ_DEF(KMPP_OBJ_NAME), KMPP_OBJ_PRIV_SIZE,
                              impl_size, TO_STR(KMPP_OBJ_INTF_TYPE));

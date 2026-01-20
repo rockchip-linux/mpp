@@ -14,6 +14,11 @@
 
 #include "kmpp_obj.h"
 
+/* Compiler attributes for unused variables */
+#ifndef __maybe_unused
+#define __maybe_unused              __attribute__((__unused__))
+#endif
+
 #define TO_STR_(x)                  #x
 #define TO_STR(x)                   TO_STR_(x)
 
