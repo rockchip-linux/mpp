@@ -280,6 +280,9 @@ static rk_s32 mpp_sys_help(MppSysSrv *srv, const char *argv[], void *ctx)
 {
     MppSysCmdInfo **cmds = &sys_cmds[0];
     rk_s32 idx = 0;
+    (void)srv;
+    (void)argv;
+    (void)ctx;
 
     mpp_logi("mpp system command list:");
 
@@ -311,6 +314,7 @@ static rk_s32 mpp_sys_show(MppSysSrv *srv, const char *argv[], void *ctx)
     MpiImpl *tmp;
     rk_u32 show_mask = 0;
     rk_s32 next = 0;
+    (void)ctx;
 
     if (argv[1]) {
         rk_s32 i;
@@ -326,7 +330,7 @@ static rk_s32 mpp_sys_show(MppSysSrv *srv, const char *argv[], void *ctx)
             MPP_BIT32_OR(MPP_CTX_ENC, MPP_CTX_DEC),
         };
 
-        for (i = 0; i < MPP_ARRAY_ELEMS(filter); i++) {
+        for (i = 0; i < MPP_ARRAY_ELEMS_S(filter); i++) {
             if (!strcmp(argv[1], filter[i])) {
                 show_mask = filter_mask[i];
                 next++;
@@ -415,6 +419,7 @@ static rk_s32 mpp_sys_venc(MppSysSrv *srv, const char **argv, void *ctx)
     MpiImpl *tmp;
     rk_s32 next = 0;
     rk_s32 ctx_id = -1;
+    (void)ctx;
 
     if (argv[1]) {
         rk_s32 ret = safe_atoi(argv[1], &ctx_id);
@@ -508,8 +513,10 @@ static rk_s32 mpp_sys_venc_dump_cfg(MppSysSrv *srv, const char **argv, void *ctx
             rk_s32 wr_nr = 0;
 
             wr_nr = fwrite(buf, 1, len, fp);
-            mpp_logi("venc %d write cfg to file %s len %d\n",
-                     impl->ctx_id, file_name, len);
+            if (wr_nr != len) {
+                mpp_loge("venc %d write cfg to file %s failed, written %d/%d\n",
+                         impl->ctx_id, file_name, wr_nr, len);
+            }
 
             mpp_free(buf);
         }
@@ -524,6 +531,8 @@ static rk_s32 mpp_sys_venc_show_cfg(MppSysSrv *srv, const char **argv, void *ctx
 {
     MpiImpl *impl = (MpiImpl *)ctx;
     Mpp *mpp = impl->ctx;
+    (void)srv;
+    (void)argv;
 
     mpp_logi("venc %d dump cfg:", impl->ctx_id);
 
@@ -551,7 +560,6 @@ static rk_s32 mpp_sys_ctrl(rk_s32 pid, char *cmd, rk_s32 n)
     MppSysCmdInfo **cmds = NULL;
     const char *argv[32];
     rk_s32 argc;
-    rk_s32 ret;
     rk_s32 i;
 
     sys_dbg_cmd("mpp-%d [cmd]: (%d) %s", pid, strlen(cmd), cmd);
@@ -607,11 +615,9 @@ static void *mpp_sys_srv(MppSThdCtx *data)
     rk_s32 exit_efd = ctx->exit_efd;
     rk_s32 fifo_fd = -1;
     rk_s32 epoll_fd = -1;
-    rk_s32 str_len = 0;
     rk_s32 pid = ctx->pid;
-    rk_s32 len;
 
-    len = snprintf(name, sizeof(name) - 1, "/tmp/mpp-%d-cmd", pid);
+    snprintf(name, sizeof(name) - 1, "/tmp/mpp-%d-cmd", pid);
     do {
         if (0 != mkfifo(name, 0600)) {
             sys_dbg_flow("pid %d mkfifo %s failed for %s\n",
@@ -758,6 +764,10 @@ static void mpp_sys_deinit(void)
 
         mpp_sthd_stop(srv->thd);
         ret = write(srv->exit_efd, &exit_val, sizeof(exit_val));
+        if (ret != sizeof(exit_val)) {
+            mpp_loge("write to exit_efd failed, ret %zd expected %zu\n",
+                     ret, sizeof(exit_val));
+        }
 
         /* wait for system service to quit */
         mpp_sthd_stop_sync(srv->thd);

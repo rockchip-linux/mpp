@@ -701,7 +701,7 @@ RK_S32 mpp_meta_s32_read(MppMeta meta, RK_S32 index, RK_S32 *val)
     MppMetaVal *meta_val;
     MPP_RET ret = MPP_NOK;
 
-    if (!impl || index < 0 || index >= meta_key_count) {
+    if (!impl || index < 0 || (RK_U32)index >= meta_key_count) {
         mpp_err_f("found NULL input meta %p index %d\n", meta, index);
         return MPP_ERR_NULL_PTR;
     }

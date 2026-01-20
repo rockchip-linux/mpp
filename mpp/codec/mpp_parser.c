@@ -58,7 +58,7 @@ MPP_RET mpp_parser_api_register(const ParserApi *api)
     parser_dbg_api("parser %s adding api %s\n", str, api->name);
 
     index = mpp_coding_to_index(api->coding);
-    if (index < 0 || index >= MPP_ARRAY_ELEMS(parser_apis))
+    if (index < 0 || index >= MPP_ARRAY_ELEMS_S(parser_apis))
         return MPP_NOK;
 
     if (NULL != parser_apis[index]) {
@@ -77,7 +77,6 @@ MPP_RET mpp_parser_init(Parser *prs, ParserCfg *cfg)
     MPP_RET ret;
     RK_S32 index;
     RK_S32 size;
-    RK_U32 i;
 
     if (NULL == prs || NULL == cfg) {
         mpp_loge_f("found NULL input parser %p config %p\n", prs, cfg);
@@ -86,7 +85,7 @@ MPP_RET mpp_parser_init(Parser *prs, ParserCfg *cfg)
 
     *prs = NULL;
     index = mpp_coding_to_index(cfg->coding);
-    if (index < 0 || index >= MPP_ARRAY_ELEMS(parser_apis)) {
+    if (index < 0 || index >= MPP_ARRAY_ELEMS_S(parser_apis)) {
         mpp_loge_f("invalid coding type %d\n", cfg->coding);
         return MPP_NOK;
     }

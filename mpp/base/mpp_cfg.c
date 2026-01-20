@@ -11,16 +11,6 @@
 #include "mpp_cfg.h"
 #include "mpp_debug.h"
 
-#define MPP_CFG_DBG_SET             (0x00000001)
-#define MPP_CFG_DBG_GET             (0x00000002)
-
-#define mpp_cfg_dbg(flag, fmt, ...) mpp_dbg(mpp_cfg_debug, flag, fmt, ## __VA_ARGS__)
-
-#define mpp_cfg_dbg_set(fmt, ...)   mpp_cfg_dbg(MPP_CFG_DBG_SET, fmt, ## __VA_ARGS__)
-#define mpp_cfg_dbg_get(fmt, ...)   mpp_cfg_dbg(MPP_CFG_DBG_GET, fmt, ## __VA_ARGS__)
-
-static RK_U32 mpp_cfg_debug = 0;
-
 static void show_cfg_entry_err(KmppEntry *node, ElemType type, const char *func, const char *name)
 {
     mpp_err("%s cfg %s expect %s input NOT %s\n", func, name,

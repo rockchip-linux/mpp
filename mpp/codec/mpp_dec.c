@@ -495,9 +495,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
     MppCodingType coding;
     MppBufSlots frame_slots = NULL;
     MppBufSlots packet_slots = NULL;
-    HalTaskGroup tasks = NULL;
-    Parser parser = NULL;
-    MppHal hal = NULL;
     Mpp *mpp = (Mpp *)cfg->mpp;
     MppDecImpl *p = NULL;
     MppDecCfgSet *dec_cfg = NULL;
@@ -561,16 +558,17 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
         packet_slots = p->packet_slots;
 
         MppHalCfg hal_cfg = {
-            MPP_CTX_DEC,
-            coding,
-            frame_slots,
-            packet_slots,
-            dec_cfg,
-            &p->dec_cb,
-            NULL,
-            NULL,
-            0,
-            &hal_fbc_adj_cfg,
+            .type = MPP_CTX_DEC,
+            .coding = coding,
+            .frame_slots = frame_slots,
+            .packet_slots = packet_slots,
+            .cfg = dec_cfg,
+            .dec_cb = &p->dec_cb,
+            .hw_info = NULL,
+            .dev = NULL,
+            .support_fast_mode = 0,
+            .hal_fbc_adj_cfg = &hal_fbc_adj_cfg,
+            .buf_group = NULL,
         };
 
         memset(&hal_fbc_adj_cfg, 0, sizeof(hal_fbc_adj_cfg));
@@ -580,8 +578,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_err_f("could not init hal\n");
             break;
         }
-
-        hal = p->hal;
 
         if (hal_fbc_adj_cfg.func)
             mpp_slots_set_prop(frame_slots, SLOTS_HAL_FBC_ADJ, &hal_fbc_adj_cfg);
@@ -603,7 +599,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_err_f("hal_task_group_init failed ret %d\n", ret);
             break;
         }
-        tasks = p->tasks;
 
         mpp_buf_slot_setup(packet_slots, hal_task_count);
         mpp_slots_set_prop(packet_slots, SLOTS_CODING_TYPE, &coding);
@@ -627,7 +622,6 @@ MPP_RET mpp_dec_init(MppDec *dec, MppDecInitCfg *cfg)
             mpp_err_f("could not init parser\n");
             break;
         }
-        parser = p->parser;
 
         ret = hal_info_init(&p->hal_info, MPP_CTX_DEC, coding);
         if (ret) {
