@@ -111,7 +111,7 @@ static MPP_RET get_pixel_format(Av1DecCtx *ctx)
 // Inverse recenters a non-negative literal v around a reference r
 static RK_U32 inv_recenter_nonneg(RK_S32 r, RK_U32 v)
 {
-    if (v > (r << 1))
+    if (v > (RK_U32)(r << 1))
         return v;
     else if (v & 1) // v is odd
         return r - ((v + 1) >> 1);
@@ -488,7 +488,6 @@ __BITREAD_ERR:
 
 static MPP_RET av1d_frame_unref(Av1DecCtx *ctx, AV1FrameIInfo *info)
 {
-    Av1Codec *s = ctx->priv_data;
     info->spatial_id = info->temporal_id = 0;
     memset(info->skip_mode_frame_idx, 0,
            2 * sizeof(uint8_t));
@@ -553,7 +552,6 @@ static MPP_RET set_output_frame(Av1DecCtx *ctx)
 
 static MPP_RET av1d_frame_ref(Av1DecCtx *ctx, AV1FrameIInfo *dst, const AV1FrameIInfo *src)
 {
-    Av1Codec *s = ctx->priv_data;
     MppFrameImpl *impl_frm = (MppFrameImpl *)dst->f;
     dst->spatial_id = src->spatial_id;
     dst->temporal_id = src->temporal_id;
@@ -1162,7 +1160,7 @@ MPP_RET av1d_parser_frame(Av1DecCtx *ctx, HalDecTask *task)
     s->current_obu.data = data;
     s->current_obu.data_size = size;
     s->tile_offset = 0;
-    ret = av1d_get_fragment_units(s, &s->current_obu);
+    ret = av1d_get_fragment_units(&s->current_obu);
     if (ret < 0) {
         return ret;
     }
@@ -1452,7 +1450,7 @@ RK_S32 av1d_split_frame(Av1DecCtx *ctx,
             obu_size = data_size - 1 - m_hdr.obu_extension_flag;
 
         obu_length = mpp_get_bits_count(gb) / 8 + obu_size;
-        if (obu_length > data_size)
+        if (obu_length > (RK_U64)data_size)
             break;
 
         av1d_dbg(AV1D_DBG_STRMIN, "obu_type: %d, temporal_id: %d, spatial_id: %d, payload size: %d\n",

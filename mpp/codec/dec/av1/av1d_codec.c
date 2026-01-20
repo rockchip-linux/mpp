@@ -28,8 +28,8 @@
 static MPP_RET read_ns(BitReadCtx_t *gb, RK_U32 n, RK_U32 *out_val)
 {
     RK_U32 w = mpp_log2(n) + 1;
-    RK_U32 m = (1 << w) - n;
-    RK_U32 value = 0;
+    RK_S32 m = (1 << w) - n;
+    RK_S32 value = 0;
     RK_S32 v;
 
     if (w - 1 > 0)
@@ -1322,8 +1322,6 @@ static MPP_RET read_gm_param(Av1Codec *ctx, BitReadCtx_t *gb,
     (void)prec_bits;
     (void)ctx;
     return MPP_OK;
-__BITREAD_ERR:
-    return MPP_ERR_READ_BIT;
 }
 
 static MPP_RET read_global_motion_params(Av1Codec *ctx, BitReadCtx_t *gb,
@@ -2555,14 +2553,14 @@ MPP_RET av1d_parser_fragment_header(Av1UnitFragment *frag)
         frag->data_size -= 4;
     }
 
-success:
     return MPP_OK;
+
 fail:
     frag->data_size = 0;
     return MPP_NOK;
 }
 
-MPP_RET av1d_get_fragment_units(Av1Codec *ctx, Av1UnitFragment *frag)
+MPP_RET av1d_get_fragment_units(Av1UnitFragment *frag)
 {
     RK_U8 *data = frag->data;
     size_t size = frag->data_size;
@@ -2611,7 +2609,6 @@ MPP_RET av1d_get_fragment_units(Av1Codec *ctx, Av1UnitFragment *frag)
         size -= obu_length;
     }
 
-success:
     ret = MPP_OK;
 fail:
     return ret;

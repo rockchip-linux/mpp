@@ -571,7 +571,7 @@ typedef struct HEVCContext {
 
     RK_S32 active_seq_parameter_set_id;
 
-    RK_S32 nal_length_size;    ///< Number of bytes used for nal length (1, 2 or 4)
+    RK_U32 nal_length_size;    ///< Number of bytes used for nal length (1, 2 or 4)
     RK_S32 nuh_layer_id;
 
     /** frame packing arrangement variables */

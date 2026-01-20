@@ -148,7 +148,7 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         if (ret < 0) {
             return ret;
         }
-        ret = av1d_get_fragment_units(s, &s->current_obu);
+        ret = av1d_get_fragment_units(&s->current_obu);
         if (ret < 0) {
             return ret;
         }

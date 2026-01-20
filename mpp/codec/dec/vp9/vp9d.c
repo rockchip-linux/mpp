@@ -410,8 +410,8 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
     VP9Context *s = ctx->priv_data;
     RK_S32 fmt = ctx->pix_fmt;
     BitReadCtx_t *gb = &s->gb;
-    RK_S32 i, j, k, l, m, n;
-    RK_S32 w, h;
+    RK_S32 i;
+    RK_U32 w, h;
     RK_S32 val;
 
     /* general header */
@@ -641,7 +641,8 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
                     s->mvscale[i][0] = (refw << 14) / w;
                     s->mvscale[i][1] = (refh << 14) / h;
                 } else {
-                    if (w * 2 < refw || h * 2 < refh || w > 16 * refw || h > 16 * refh) {
+                    if (w * 2 < refw || h * 2 < refh ||
+                        w > 16 * refw || h > 16 * refh) {
                         mpp_err("Invalid ref frame dimensions %dx%d for frame size %dx%d\n",
                                 refw, refh, w, h);
                         return MPP_ERR_VALUE;
@@ -899,7 +900,7 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
     vp9d_dbg(VP9D_DBG_HEADER, "offset %d", aligned_data - data);
     s->uncompress_head_size_in_byte = aligned_data - data;
     vp9d_dbg(VP9D_DBG_HEADER, "uncompress_head_size_in_byte %d", s->uncompress_head_size_in_byte);
-    if (first_partition_size > (size - s->uncompress_head_size_in_byte)) {
+    if (first_partition_size > size - s->uncompress_head_size_in_byte) {
         mpp_err("invalid: compressed_header_size %d, size %d, uncompress_head_size_in_byte %d \n",
                 first_partition_size, size, s->uncompress_head_size_in_byte);
         return MPP_ERR_STREAM;
@@ -912,7 +913,6 @@ __BITREAD_ERR:
 static RK_S32 read_compressed_header(VP9Context *s, const RK_U8 *aligned_data,
                                      RK_S32 first_partition_size)
 {
-    BitReadCtx_t *gb = &s->gb;
     RK_S32 c, i, j, k, l, m, n;
 
     vp9d_reader_init(&s->c, aligned_data, first_partition_size);
@@ -1430,7 +1430,7 @@ RK_S32 vp9_parser_frame(Vp9DecCtx *ctx, HalDecTask *task)
     if (ret < 0)
         return ret;
 
-    RK_S32 head_size = s->first_partition_size + (RK_S32)s->uncompress_head_size_in_byte;
+    RK_S32 head_size = s->first_partition_size + s->uncompress_head_size_in_byte;
     vp9d_dbg(VP9D_DBG_HEADER, "%s end, head_size %d\n", __FUNCTION__, head_size);
 
     if (head_size == 0) {
