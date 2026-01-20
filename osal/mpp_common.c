@@ -157,7 +157,7 @@ RK_U32 mpp_clip_uint_pow2(RK_S32 val, RK_S32 n)
     RK_U32 sign = val & ~mask;
 
     /* If out of range, return boundary value; otherwise return original value */
-    return sign ? (-val >> 31 & mask) : val;
+    return sign ? (RK_U32)(-val >> 31 & mask) : (RK_U32)val;
 }
 
 // Divide an unsigned integer x by 2^n and round to nearest integer

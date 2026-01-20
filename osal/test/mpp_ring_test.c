@@ -29,7 +29,6 @@ int main(void)
     rk_u8 *ptr;
     rk_s32 size = 4096;
     rk_s32 ret;
-    rk_s32 i;
 
     mpp_logi("start\n");
 

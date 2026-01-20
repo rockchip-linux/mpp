@@ -54,7 +54,7 @@ static rk_u32 max_name_len = 12;
 rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
 {
     MppSingletonCtx *impl;
-    rk_s32 max_info;
+    rk_u32 max_info;
     rk_s32 id;
 
     mpp_env_get_u32("mpp_sgln_debug", &sgln_debug, 0);
@@ -106,17 +106,16 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
 
 static void mpp_singleton_deinit(void)
 {
-    MppSingletonCtx *impl;
     rk_s32 j;
 
     sgln_dbg("deinit enter\n");
 
-    for (j = MPP_ARRAY_ELEMS(info_list) - 1; j >= 0; j--) {
+    for (j = MPP_ARRAY_ELEMS_S(info_list) - 1; j >= 0; j--) {
         MppSingletonCtx *impl = info_list[j];
         rk_s32 i;
 
         /* NOTE: revert deinit order */
-        for (i = impl->max_id; i >= 0; i--) {
+        for (i = (rk_s32)impl->max_id; i >= 0; i--) {
             MppSingletonInfo *info = &impl->info[i];
 
             if (info->deinit) {
@@ -144,11 +143,11 @@ __attribute__((constructor(65535))) static void mpp_singleton_init(void)
     /* NOTE: call atexit first to avoid init crash but not deinit */
     atexit(mpp_singleton_deinit);
 
-    for (j = 0; j < MPP_ARRAY_ELEMS(info_list); j++) {
+    for (j = 0; j < MPP_ARRAY_ELEMS_S(info_list); j++) {
         MppSingletonCtx *impl = info_list[j];
         rk_s32 i;
 
-        for (i = 0; i <= impl->max_id; i++) {
+        for (i = 0; i <= (rk_s32)impl->max_id; i++) {
             MppSingletonInfo *info = &impl->info[i];
 
             if (info->init) {
