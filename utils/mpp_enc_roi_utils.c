@@ -453,9 +453,9 @@ static void set_roi_qp_cfg(void *buf, RK_U32 index, Vepu541RoiCfg *cfg)
         set_roi_qp_cfg(buf, offset, cfg); \
     } while(0)
 
-void set_roi_amv(RK_U32 *buf, Vepu580RoiH265BsCfg val)
+void set_roi_amv(RK_U32 *buf, const Vepu580RoiH265BsCfg *val)
 {
-    set_roi_pos_val(buf, 511, val.amv_en);
+    set_roi_pos_val(buf, 511, val->amv_en);
 }
 
 static MPP_RET gen_vepu580_roi_h264(MppEncRoiImpl *ctx)
@@ -509,13 +509,13 @@ static MPP_RET gen_vepu580_roi_h264(MppEncRoiImpl *ctx)
     return MPP_OK;
 }
 
-void set_roi_cu16_split_cu8(RK_U32 *buf, RK_U32 cu16index, Vepu580RoiH265BsCfg val)
+void set_roi_cu16_split_cu8(RK_U32 *buf, RK_U32 cu16index, const Vepu580RoiH265BsCfg *val)
 {
     RK_S32 cu16_x = cu16index % 4;
     RK_S32 cu16_y = cu16index / 4;
     RK_U32 cu8cnt;
 
-    // mpp_log("cu16index = %d, force intra = %d, cu16_y= %d", cu16index, val.force_intra, cu16_y);
+    // mpp_log("cu16index = %d, force intra = %d, cu16_y= %d", cu16index, val->force_intra, cu16_y);
     for (cu8cnt = 0; cu8cnt < 4; cu8cnt++) {
         RK_U32 zindex = 0;
         RK_U32 cu8_x = cu8cnt % 2;
@@ -526,7 +526,7 @@ void set_roi_cu16_split_cu8(RK_U32 *buf, RK_U32 cu16index, Vepu580RoiH265BsCfg v
         zindex = raster2scan8[cu8raster_index];
         //  mpp_log("cu8raster_index = %d zindex = %d x %d, y %d, cu8_x %d cu8_y %d",
         //          cu8raster_index,zindex, x, y, cu8_x, cu8_y);
-        set_roi_cu8_base_cfg(buf, zindex, val);
+        set_roi_cu8_base_cfg(buf, zindex, *val);
     }
 }
 
@@ -579,7 +579,7 @@ static MPP_RET gen_vepu580_roi_h265(MppEncRoiImpl *ctx)
                         adjust_cnt++;
                     }
 
-                    set_roi_cu16_split_cu8(dst_base, cu16cnt, val);
+                    set_roi_cu16_split_cu8(dst_base, cu16cnt, &val);
                     set_roi_cu16_base_cfg(dst_base, zindex, val);
                     set_roi_cu16_qp_cfg(dst_qp, zindex, cu16_cfg);
                     /*

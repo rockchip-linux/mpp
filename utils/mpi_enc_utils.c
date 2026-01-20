@@ -1176,7 +1176,6 @@ static void mpi_enc_cmd_env_get(MpiEncTestArgs *cmd)
 MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv, const char *module_tag)
 {
     MpiEncTestArgs *cmd = NULL;
-    MppEncCfg cfg_obj = NULL;
     MppEncArgs cmd_obj = NULL;
     MppOpt opts = NULL;
     RK_S32 ret = -1;
