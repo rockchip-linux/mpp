@@ -419,21 +419,18 @@ MPP_RET vdpu38x_rcb_dump_rcb_result(Vdpu38xRcbCtx *ctx)
 MPP_RET vdpu38x_get_fbc_off(MppFrame mframe, RK_U32 *head_stride, RK_U32 *pld_stride, RK_U32 *pld_offset)
 {
     MppFrameFormat fmt;
-    RK_U32 fbc_unit_w;
-    RK_U32 fbc_unit_h;
+    RK_U32 fbc_unit_w = 0;
+    RK_U32 fbc_unit_h = 0;
     RK_U32 bit_depth;
     Vdpu38xFmt fmt_type;
     static const RK_FLOAT fmt_coeff[MPP_HAL_FMT_BUTT] = {1, 1.5, 2, 3};
-    RK_U32 hor_virstride = 0;
     RK_U32 ver_virstride = 0;
     RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
-    RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
     RK_U32 fbc_unit_bit_sz;
     RK_U32 head_vir_w; // byte
     RK_U32 pld_real_w; // byte
     RK_U32 pld_vir_w; // byte
 
-    hor_virstride = mpp_frame_get_hor_stride(mframe);
     ver_virstride = mpp_frame_get_ver_stride(mframe);
     fmt = mpp_frame_get_fmt(mframe);
 

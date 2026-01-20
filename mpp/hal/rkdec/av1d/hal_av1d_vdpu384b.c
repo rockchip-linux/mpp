@@ -310,8 +310,6 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 y_virstride = 0;
         RK_U32 uv_virstride = 0;
         RK_U32 mapped_idx = 0;
-        RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
-        RK_U32 h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
         RK_U32 fbc_head_stride = 0;
         RK_U32 fbc_pld_stride = 0;
         RK_U32 fbc_offset = 0;

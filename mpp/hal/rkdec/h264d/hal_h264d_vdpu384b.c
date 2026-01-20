@@ -53,7 +53,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu38xRegSet *regs, HalTaskI
         RK_U32 ver_virstride = 0;
         RK_U32 y_virstride = 0;
         RK_U32 uv_virstride = 0;
-        RK_U32 fbc_hdr_stride = 0;
         RK_U32 fbc_head_stride = 0;
         RK_U32 fbc_pld_stride = 0;
         RK_U32 fbc_offset = 0;
@@ -65,7 +64,6 @@ static MPP_RET set_registers(H264dHalCtx_t *p_hal, Vdpu38xRegSet *regs, HalTaskI
         ver_virstride = mpp_frame_get_ver_stride(mframe);
         y_virstride = hor_virstride * ver_virstride;
         uv_virstride = hor_virstride * ver_virstride / 2;
-        fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
 
         if (MPP_FRAME_FMT_IS_AFBC(fmt)) {
             vdpu38x_get_fbc_off(mframe, &fbc_head_stride, &fbc_pld_stride, &fbc_offset);

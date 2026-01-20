@@ -237,44 +237,44 @@ typedef struct  {
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_1_1  : 10;
-        RK_U32  sw_pred_bc_tap_1_0  : 10;
-        RK_U32  sw_pred_bc_tap_0_3  : 10;
+        RK_S32  sw_pred_bc_tap_1_1  : 10;
+        RK_S32  sw_pred_bc_tap_1_0  : 10;
+        RK_S32  sw_pred_bc_tap_0_3  : 10;
     } reg34;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_2_0  : 10;
-        RK_U32  sw_pred_bc_tap_1_3  : 10;
-        RK_U32  sw_pred_bc_tap_1_2  : 10;
+        RK_S32  sw_pred_bc_tap_2_0  : 10;
+        RK_S32  sw_pred_bc_tap_1_3  : 10;
+        RK_S32  sw_pred_bc_tap_1_2  : 10;
     } reg35;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_2_3  : 10;
-        RK_U32  sw_pred_bc_tap_2_2  : 10;
-        RK_U32  sw_pred_bc_tap_2_1  : 10;
+        RK_S32  sw_pred_bc_tap_2_3  : 10;
+        RK_S32  sw_pred_bc_tap_2_2  : 10;
+        RK_S32  sw_pred_bc_tap_2_1  : 10;
     } reg36;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_3_2  : 10;
-        RK_U32  sw_pred_bc_tap_3_1  : 10;
-        RK_U32  sw_pred_bc_tap_3_0  : 10;
+        RK_S32  sw_pred_bc_tap_3_2  : 10;
+        RK_S32  sw_pred_bc_tap_3_1  : 10;
+        RK_S32  sw_pred_bc_tap_3_0  : 10;
     } reg37;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_4_1  : 10;
-        RK_U32  sw_pred_bc_tap_4_0  : 10;
-        RK_U32  sw_pred_bc_tap_3_3  : 10;
+        RK_S32  sw_pred_bc_tap_4_1  : 10;
+        RK_S32  sw_pred_bc_tap_4_0  : 10;
+        RK_S32  sw_pred_bc_tap_3_3  : 10;
     } reg38;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_5_0  : 10;
-        RK_U32  sw_pred_bc_tap_4_3  : 10;
-        RK_U32  sw_pred_bc_tap_4_2  : 10;
+        RK_S32  sw_pred_bc_tap_5_0  : 10;
+        RK_S32  sw_pred_bc_tap_4_3  : 10;
+        RK_S32  sw_pred_bc_tap_4_2  : 10;
     } reg39;
 
     RK_U32      reg40_qtable_base;
@@ -282,23 +282,23 @@ typedef struct  {
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_5_3  : 10;
-        RK_U32  sw_pred_bc_tap_5_2  : 10;
-        RK_U32  sw_pred_bc_tap_5_1  : 10;
+        RK_S32  sw_pred_bc_tap_5_3  : 10;
+        RK_S32  sw_pred_bc_tap_5_2  : 10;
+        RK_S32  sw_pred_bc_tap_5_1  : 10;
     } reg42;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_6_2  : 10;
-        RK_U32  sw_pred_bc_tap_6_1  : 10;
-        RK_U32  sw_pred_bc_tap_6_0  : 10;
+        RK_S32  sw_pred_bc_tap_6_2  : 10;
+        RK_S32  sw_pred_bc_tap_6_1  : 10;
+        RK_S32  sw_pred_bc_tap_6_0  : 10;
     } reg43;
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_7_1  : 10;
-        RK_U32  sw_pred_bc_tap_7_0  : 10;
-        RK_U32  sw_pred_bc_tap_6_3  : 10;
+        RK_S32  sw_pred_bc_tap_7_1  : 10;
+        RK_S32  sw_pred_bc_tap_7_0  : 10;
+        RK_S32  sw_pred_bc_tap_6_3  : 10;
     } reg44;
 
     struct {
@@ -308,8 +308,8 @@ typedef struct  {
         RK_U32  sw_pred_tap_4_M1    : 2;
         RK_U32  sw_pred_tap_2_4     : 2;
         RK_U32  sw_pred_tap_2_M1    : 2;
-        RK_U32  sw_pred_bc_tap_7_3  : 10;
-        RK_U32  sw_pred_bc_tap_7_2  : 10;
+        RK_S32  sw_pred_bc_tap_7_3  : 10;
+        RK_S32  sw_pred_bc_tap_7_2  : 10;
     } reg45;
 
     struct {
@@ -334,9 +334,9 @@ typedef struct  {
 
     struct {
         RK_U32  reserved0           : 2;
-        RK_U32  sw_pred_bc_tap_0_2  : 10;
-        RK_U32  sw_pred_bc_tap_0_1  : 10;
-        RK_U32  sw_pred_bc_tap_0_0  : 10;
+        RK_S32  sw_pred_bc_tap_0_2  : 10;
+        RK_S32  sw_pred_bc_tap_0_1  : 10;
+        RK_S32  sw_pred_bc_tap_0_0  : 10;
     } reg49;
 
     RK_U32 reg50;

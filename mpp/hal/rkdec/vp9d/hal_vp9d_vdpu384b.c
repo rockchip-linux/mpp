@@ -372,8 +372,6 @@ static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
         RK_U32 sw_ver_virstride = 0;
         RK_U32 sw_y_virstride = 0;
         RK_U32 sw_uv_virstride = 0;
-        RK_U32 fbc_hdr_stride = 0;
-        RK_U32 h = 0;
         RK_U32 fbc_head_stride = 0;
         RK_U32 fbc_pld_stride = 0;
         RK_U32 fbc_offset = 0;
@@ -385,8 +383,6 @@ static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
         sw_ver_virstride = mpp_frame_get_ver_stride(mframe);
         sw_y_virstride = sw_ver_virstride * sw_hor_virstride;
         sw_uv_virstride = sw_ver_virstride * sw_hor_virstride / 2;
-        fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
-        h = MPP_ALIGN(mpp_frame_get_height(mframe), 64);
         if (MPP_FRAME_FMT_IS_AFBC(fmt)) {
             vdpu38x_get_fbc_off(mframe, &fbc_head_stride, &fbc_pld_stride, &fbc_offset);
 

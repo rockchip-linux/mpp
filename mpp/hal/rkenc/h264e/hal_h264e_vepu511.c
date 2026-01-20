@@ -1691,10 +1691,6 @@ static void setup_vepu511_split(HalVepu511RegSet *regs, MppEncCfgSet *enc_cfg)
         regs->reg_ctl.int_en.vslc_done_en       = (cfg->split_out != 0) ? 1 : 0;
     } break;
     case MPP_ENC_SPLIT_BY_CTU : {
-        RK_U32 mb_w = MPP_ALIGN(enc_cfg->prep.width, 16) / 16;
-        RK_U32 mb_h = MPP_ALIGN(enc_cfg->prep.height, 16) / 16;
-        RK_U32 slice_num = (mb_w * mb_h + cfg->split_arg - 1) / cfg->split_arg;
-
         regs->reg_frm.sli_splt.sli_splt         = 1;
         regs->reg_frm.sli_splt.sli_splt_mode    = 1;
         regs->reg_frm.sli_splt.sli_splt_cpst    = 0;
@@ -1853,7 +1849,6 @@ static void setup_vepu511_aq(HalH264eVepu511Ctx *ctx)
     MppEncHwCfg *hw = &cfg->hw;
     Vepu511RcRoiCfg *s = &ctx->regs_set->reg_rc_roi;
     RK_S32 *aq_step, *aq_thd;
-    RK_U8 i;
 
     if (ctx->slice->slice_type == H264_I_SLICE) {
         aq_thd = (RK_S32 *)&hw->aq_thrd_i[0];

@@ -99,7 +99,7 @@ MPP_RET mpp_hal_api_register(const MppHalApi *api)
     }
 
     index = mpp_coding_to_index(api->coding);
-    if (index < 0 || index >= MPP_ARRAY_ELEMS(vdec_apis))
+    if (index < 0 || index >= MPP_ARRAY_ELEMS_S(vdec_apis))
         return MPP_NOK;
 
     if (NULL == vdec_apis[index][0])
@@ -117,7 +117,7 @@ const MppHalApi *mpp_dec_hal_api_get(MppCodingType coding, MppClientType type)
     RK_S32 index = mpp_coding_to_index(coding);
     const MppHalApi *api;
 
-    if (index < 0 || index >= MPP_ARRAY_ELEMS(vdec_apis))
+    if (index < 0 || index >= MPP_ARRAY_ELEMS_S(vdec_apis))
         return NULL;
 
     api = vdec_apis[index][0];
@@ -204,7 +204,6 @@ MPP_RET mpp_hal_init(MppHal *ctx, MppHalCfg *cfg)
     MPP_RET ret = MPP_NOK;
     RK_U32 vcodec_type;
     MppDecBaseCfg *base;
-    RK_U32 i;
 
     if (NULL == ctx || NULL == cfg) {
         mpp_err_f("found NULL input ctx %p cfg %p\n", ctx, cfg);

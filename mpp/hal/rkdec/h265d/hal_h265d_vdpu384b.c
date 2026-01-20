@@ -282,7 +282,6 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         RK_U32 uv_virstride = 0;
         RK_U32 uv_virstride_tile = 0;
         RK_U32 chroma_fmt_idc = dxva_ctx->pp.chroma_format_idc;
-        RK_U32 fbc_hdr_stride = 0;
         RK_U32 fbc_head_stride = 0;
         RK_U32 fbc_pld_stride = 0;
         RK_U32 fbc_offset = 0;
@@ -302,7 +301,6 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
         ver_virstride = mpp_frame_get_ver_stride(mframe);
         uv_virstride = hor_virstride;
         y_virstride = ver_virstride * hor_virstride;
-        fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
 
         if (chroma_fmt_idc == 3)
             uv_virstride *= 2;
@@ -529,11 +527,9 @@ static MPP_RET hal_h265d_vdpu384b_gen_regs(void *hal,  HalTaskInfo *syn)
 
 static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
 {
-    RK_U8* p = NULL;
     Vdpu38xRegSet *hw_regs = NULL;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
     RK_S32 index =  task->dec.reg_index;
-    RK_U32 i;
     MPP_RET ret = MPP_OK;
 
     if (task->dec.flags.parse_err ||
@@ -543,10 +539,8 @@ static MPP_RET hal_h265d_vdpu384b_start(void *hal, HalTaskInfo *task)
     }
 
     if (reg_ctx->fast_mode) {
-        p = (RK_U8*)reg_ctx->g_buf[index].hw_regs;
         hw_regs = ( Vdpu38xRegSet *)reg_ctx->g_buf[index].hw_regs;
     } else {
-        p = (RK_U8*)reg_ctx->hw_regs;
         hw_regs = ( Vdpu38xRegSet *)reg_ctx->hw_regs;
     }
 
@@ -622,9 +616,8 @@ static MPP_RET hal_h265d_vdpu384b_wait(void *hal, HalTaskInfo *task)
     RK_S32 index =  task->dec.reg_index;
     HalH265dCtx *reg_ctx = (HalH265dCtx *)hal;
     MppHalCfg *cfg = reg_ctx->cfg;
-    RK_U8* p = NULL;
     Vdpu38xRegSet *hw_regs = NULL;
-    RK_S32 i;
+    RK_U32 i;
     MPP_RET ret = MPP_OK;
 
     if (reg_ctx->fast_mode) {
@@ -632,8 +625,6 @@ static MPP_RET hal_h265d_vdpu384b_wait(void *hal, HalTaskInfo *task)
     } else {
         hw_regs = ( Vdpu38xRegSet *)reg_ctx->hw_regs;
     }
-
-    p = (RK_U8*)hw_regs;
 
     if (task->dec.flags.parse_err ||
         (task->dec.flags.ref_err && !cfg->cfg->base.disable_error)) {

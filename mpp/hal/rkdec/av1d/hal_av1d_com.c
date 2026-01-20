@@ -1473,7 +1473,6 @@ void vdpu38x_av1d_set_cdf_segid(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
                                 RK_U32 *noncoef_rd_base, RK_U32 *noncoef_wr_base)
 {
     Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    Vdpu38xRegSet *regs = reg_ctx->regs;
     RK_U32 coeff_cdf_idx = 0;
     RK_U32 mapped_idx = 0;
     HalBuf *cdf_buf = NULL;

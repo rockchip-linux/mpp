@@ -145,7 +145,6 @@ static MPP_RET fill_registers(Avs2dHalCtx_t *p_hal, Vdpu38xRegSet *regs, HalTask
         RK_U32 ver_virstride = 0;
         RK_U32 y_virstride = 0;
         RK_U32 uv_virstride = 0;
-        RK_U32 fbc_hdr_stride = mpp_frame_get_fbc_hdr_stride(mframe);
         RK_U32 fbc_head_stride = 0;
         RK_U32 fbc_pld_stride = 0;
         RK_U32 fbc_offset = 0;

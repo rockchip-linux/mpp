@@ -861,7 +861,7 @@ static void vepu511_h265_set_scaling_list(H265eV511RegSet *regs)
     hal_h265e_dbg_func("leave\n");
 }
 
-static void vepu511_h265_set_normal(H265eV511HalContext *ctx, H265eV511RegSet *regs)
+static void vepu511_h265_set_normal(H265eV511RegSet *regs)
 {
     Vepu511ControlCfg *reg_ctl = &regs->reg_ctl;
 
@@ -2213,7 +2213,6 @@ static void vepu511_h265_set_aq(H265eV511HalContext *ctx, H265eV511RegSet *regs)
     MppEncHwCfg *hw = &ctx->cfg->hw;
     HevcVepu511RcRoi *rc_regs =  &regs->reg_rc_roi;
     RK_S32 *aq_step, *aq_thd, *aq_rnge;
-    RK_U32 i;
 
     if (ctx->frame_type == INTRA_FRAME) {
         aq_thd = (RK_S32 *)&hw->aq_thrd_i[0];
@@ -2272,7 +2271,7 @@ static void vepu511_h265_set_aq(H265eV511HalContext *ctx, H265eV511RegSet *regs)
     rc_regs->aq_clip.aq_subj_rme_en = 1;
 }
 
-static void vepu511_h265_set_subj_opt_regs(H265eV511HalContext *ctx, H265eV511RegSet *regs)
+static void vepu511_h265_set_subj_opt_regs(H265eV511RegSet *regs)
 {
     HevcVepu511Sqi *s = &regs->reg_sqi;
 
@@ -2355,7 +2354,7 @@ MPP_RET hal_h265e_vepu511_gen_regs(void *hal, HalEncTask *task)
 
     memset(regs, 0, sizeof(H265eV511RegSet));
 
-    vepu511_h265_set_normal(ctx, regs);
+    vepu511_h265_set_normal(regs);
     vepu511_h265_set_prep(ctx, task, regs);
     vepu511_h265_set_me_regs(ctx, syn , regs);
     vepu511_h265_set_split(regs, ctx->cfg);
@@ -2380,7 +2379,7 @@ MPP_RET hal_h265e_vepu511_gen_regs(void *hal, HalEncTask *task)
     vepu511_h265_set_smear_regs(ctx, regs);
     vepu511_h265_set_scaling_list(regs);
     vepu511_h265_set_aq(ctx, regs);
-    vepu511_h265_set_subj_opt_regs(ctx, regs);
+    vepu511_h265_set_subj_opt_regs(regs);
 
     if (ctx->osd_cfg.osd_data3)
         vepu511_set_osd(&ctx->osd_cfg);
