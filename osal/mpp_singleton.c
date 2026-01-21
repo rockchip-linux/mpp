@@ -69,7 +69,7 @@ rk_s32 mpp_singleton_add(MppSingletonInfo *info, const char *caller)
     max_info = impl->max_info;
 
     if (id >= 0) {
-        if (id >= max_info) {
+        if (id >= (rk_s32)max_info) {
             sgln_err("id %d larger than max %d at %s\n", id, max_info, caller);
             return rk_nok;
         }
