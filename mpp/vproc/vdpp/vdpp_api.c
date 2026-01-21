@@ -21,11 +21,12 @@ VdppComCtx *rockchip_vdpp_api_alloc_ctx(void)
     RK_U32 vdpp_ver = 0;
 
     switch (soc_type) {
-    case ROCKCHIP_SOC_RK3528: vdpp_ver = 1; break;
-    case ROCKCHIP_SOC_RK3576: vdpp_ver = 2; break;
-    //case ROCKCHIP_SOC_RK3538:
-    //case ROCKCHIP_SOC_RK3539:
-    //case ROCKCHIP_SOC_RK3572: vdpp_ver = 3; break;
+    case ROCKCHIP_SOC_RK3528: {
+        vdpp_ver = 1;
+    } break;
+    case ROCKCHIP_SOC_RK3576: {
+        vdpp_ver = 2;
+    } break;
     default:
         vdpp_logf("unsupported soc_type %d for vdpp!!!\n", soc_type);
         goto __ERR;

@@ -124,8 +124,8 @@ int update_dci_ctl(HistParams *hist_params)
     RK_S32 dci_alpha_swap = 0;
     RK_S32 dci_rbuv_swap = 0;
 
-    switch (hist_params->src_fmt) {
     /* Only consider luma data for YUV formats */
+    switch (hist_params->src_fmt) {
     case MPP_FMT_YUV420SP:
     case MPP_FMT_YUV422SP:
     case MPP_FMT_YUV420P:
