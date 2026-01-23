@@ -13,6 +13,15 @@ GRTAGS
 GSYMS
 GTAGS
 ID
+cscope.in.out
+cscope.out
+cscope.po.out
+tags
+.prjBuild.sh
+.prjDebug.sh
+prjBuild.sh
+prjDebug.sh
+debug.gdb
 
 #
 # GNU Autotools
