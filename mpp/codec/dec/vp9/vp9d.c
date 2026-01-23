@@ -530,7 +530,6 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
         s->resetctx = 0;
         if (!s->error_res_mode) {
             READ_BITS(gb, 2, &s->resetctx);
-            mpp_log("222 read resetctx %d", s->resetctx);
         }
         vp9d_dbg(VP9D_DBG_HEADER, "reset_frame_context_value %d", s->resetctx);
         if (s->intraonly) {
