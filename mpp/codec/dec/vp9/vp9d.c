@@ -484,6 +484,7 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
                 READ_ONEBIT(gb, &bits);
                 bits += 1;
             }
+            fmt = bits ? MPP_FMT_YUV420SP_10BIT : MPP_FMT_YUV420P;
             vp9d_dbg(VP9D_DBG_HEADER, "bit_depth %d", 8 + bits * 2);
             s->bpp_index = bits;
             s->bpp = 8 + bits * 2;

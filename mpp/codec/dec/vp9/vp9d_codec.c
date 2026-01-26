@@ -1227,7 +1227,7 @@ RK_S32 vp9d_merge_prob(RK_U8 *prob, RK_U32 cout0, RK_U32 cout1,
 {
     RK_U32 cout = cout0 + cout1;
 
-    if (!cout) {
+    if (cout) {
         RK_U32 prob2, prob1;
 
         prob1 = *prob;
