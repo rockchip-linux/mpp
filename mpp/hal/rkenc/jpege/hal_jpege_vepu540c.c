@@ -170,9 +170,9 @@ MPP_RET hal_jpege_v540c_gen_regs(void *hal, HalEncTask *task)
     write_jpeg_header(bits, syntax, &ctx->hal_rc);
 
     bitpos = jpege_bits_get_bitpos(bits);
-    task->length = (bitpos + 7) >> 3;
-    mpp_buffer_sync_partial_end(task->output, 0, task->length);
-    mpp_packet_set_length(task->packet, task->length);
+    length = (bitpos + 7) >> 3;
+    task->hw_length = length - task->length;
+    mpp_buffer_sync_partial_end(task->output, 0, length);
     reg_ctl->reg0004_enc_strt.lkt_num      = 0;
     reg_ctl->reg0004_enc_strt.vepu_cmd     = ctx->enc_mode;
     reg_ctl->reg0005_enc_clr.safe_clr      = 0x0;

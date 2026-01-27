@@ -463,12 +463,11 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     jpege_bits_setup(bits, buf, (RK_U32)size);
     jpege_seek_bits(bits, length << 3);
     write_jpeg_header(bits, syntax, &ctx->hal_rc);
-    mpp_buffer_sync_end(task->output);
 
     bitpos = jpege_bits_get_bitpos(bits);
-    task->length = (bitpos + 7) >> 3;
-
-    mpp_packet_set_length(task->packet, task->length);
+    length = (bitpos + 7) >> 3;
+    task->hw_length = length - task->length;
+    mpp_buffer_sync_partial_end(task->output, 0, length);
 
     reg_base->reg001_enc_strt.lkt_num = 0;
     reg_base->reg001_enc_strt.vepu_cmd = ctx->enc_mode;
@@ -572,7 +571,7 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     memcpy(qtbl_base, ctx->qtbl_sw_buf, JPEGE_VPU720_QTABLE_SIZE * sizeof(RK_U16));
     mpp_buffer_sync_end(ctx->qtbl_buffer);
 
-    mpp_dev_set_reg_offset(ctx->dev, 20, mpp_packet_get_length(task->packet));
+    mpp_dev_set_reg_offset(ctx->dev, 20, length);
     mpp_dev_set_reg_offset(ctx->dev, 17, mpp_buffer_get_size(task->output));
     mpp_dev_set_reg_offset(ctx->dev, 23, ctx->fmt_cfg.u_offset);
     mpp_dev_set_reg_offset(ctx->dev, 24, ctx->fmt_cfg.v_offset);

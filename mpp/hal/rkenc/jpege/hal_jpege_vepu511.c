@@ -213,7 +213,7 @@ MPP_RET vepu511_set_jpeg_reg(Vepu511JpegCfg *cfg)
     regs->adr_bsbs = regs->adr_bsbt;
     regs->adr_bsbr = regs->adr_bsbt;
 
-    mpp_dev_set_reg_offset(cfg->dev, 258, mpp_packet_get_length(task->packet));
+    mpp_dev_set_reg_offset(cfg->dev, 258, task->length + task->hw_length);
     mpp_dev_set_reg_offset(cfg->dev, 256, mpp_buffer_get_size(task->output));
 
     regs->enc_rsl.pic_wd8_m1    = pic_width_align8 / 8 - 1;
@@ -387,9 +387,10 @@ MPP_RET hal_jpege_vepu511_gen_regs(void *hal, HalEncTask *task)
     write_jpeg_header(bits, syntax, &ctx->hal_rc);
 
     bitpos = jpege_bits_get_bitpos(bits);
-    task->length = (bitpos + 7) >> 3;
-    mpp_buffer_sync_partial_end(task->output, 0, task->length);
-    mpp_packet_set_length(task->packet, task->length);
+    length = (bitpos + 7) >> 3;
+    task->hw_length = length - task->length;
+    mpp_buffer_sync_partial_end(task->output, 0, length);
+
     reg_ctl->enc_strt.lkt_num      = 0;
     reg_ctl->enc_strt.vepu_cmd     = ctx->enc_mode;
     reg_ctl->enc_clr.safe_clr      = 0x0;
