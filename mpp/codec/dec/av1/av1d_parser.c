@@ -441,11 +441,9 @@ static MPP_RET get_tiles_info(Av1DecCtx *ctx, const AV1TileGroup *tile_group)
 {
     Av1Codec *s = ctx->priv_data;
     BitReadCtx_t m_gb, *gb = &m_gb;
-    const AV1FrameHeader *f = s->frame_header;
 
     // Initialize BitReadCtx_t
     mpp_set_bitread_ctx(gb, tile_group->tile_data.data, tile_group->tile_data.data_size);
-
     if (s->tile_offset)
         s->tile_offset += tile_group->tile_data.offset;
 
@@ -454,29 +452,34 @@ static MPP_RET get_tiles_info(Av1DecCtx *ctx, const AV1TileGroup *tile_group)
 
         if (tile_num == tile_group->tg_end) {
             used_bytes = mpp_get_bits_count(gb) / 8;
+            left_bytes = mpp_get_bits_left(gb) / 8;
+
             s->tile_offset_start[tile_num] = used_bytes + s->tile_offset;
-            s->tile_offset_end[tile_num] = tile_group->tile_data.data_size + s->tile_offset;
+            s->tile_offset_end[tile_num] = used_bytes + left_bytes + s->tile_offset;
             s->tile_offset = s->tile_offset_end[tile_num];
             return MPP_OK;
         }
-        size_bytes = f->tile_size_bytes_minus1 + 1;
-        // Check if there are enough bytes left
+
+        size_bytes = s->frame_header->tile_size_bytes_minus1 + 1;
         left_bytes = mpp_get_bits_left(gb) / 8;
         if (left_bytes < size_bytes)
             return MPP_ERR_VALUE;
-
-        // Read the size_bytes bytes
-        READ_BITS_LONG(gb, size_bytes * 8, &size);
-        // Check if there are enough bytes left
+        // Read the size_bytes bytes to get the size
+        size = 0;
+        for (i = 0; i < size_bytes; i++) {
+            RK_S32 val = 0;
+            READ_BITS(gb,  8, &val);
+            size |= val << 8 * i;
+        }
+        used_bytes = mpp_get_bits_count(gb) / 8;
         left_bytes = mpp_get_bits_left(gb) / 8;
         if (left_bytes <= size)
             return MPP_ERR_VALUE;
-
         size++;
-        used_bytes = mpp_get_bits_count(gb) / 8;
         s->tile_offset_start[tile_num] = used_bytes + s->tile_offset;
         s->tile_offset_end[tile_num] = used_bytes + size + s->tile_offset;
 
+        // skip the size bytes
         for (i = 0; i < size; i++)
             SKIP_BITS(gb, 8);
     }

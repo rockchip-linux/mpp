@@ -815,42 +815,41 @@ __BITREAD_ERR:
     return MPP_ERR_READ_BIT;
 }
 
+static const RK_U32 bitmask_table[] = {
+    0x00000000, 0x00000001, 0x00000003, 0x00000007, 0x0000000F, 0x0000001F, 0x0000003F, 0x0000007F,
+    0x000000FF, 0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF, 0x00001FFF, 0x00003FFF, 0x00007FFF,
+    0x0000FFFF, 0x0001FFFF, 0x0003FFFF, 0x0007FFFF, 0x000FFFFF, 0x001FFFFF, 0x003FFFFF, 0x007FFFFF,
+    0x00FFFFFF, 0x01FFFFFF, 0x03FFFFFF, 0x07FFFFFF, 0x0FFFFFFF, 0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF,
+};
+
+#define READ_DELTA_Q(gb, bits, val) do { \
+        RK_U32 delta_flag = 0; \
+        RK_S32 delta_q_val = 0; \
+        READ_ONEBIT(gb, &delta_flag);\
+        if (delta_flag) {\
+            READ_BITS(gb, bits, &delta_q_val);\
+            delta_q_val &= bitmask_table[bits];\
+        }\
+        *(val) = delta_q_val; \
+    } while (0)
+
 static MPP_RET read_quantization_params(Av1Codec *ctx, BitReadCtx_t *gb,
                                         AV1FrameHeader *f)
 {
     const AV1SeqHeader *seq = ctx->seq_header;
-    RK_S32 flag;
 
     READ_BITS(gb, 8, &f->base_q_idx);
-
-    f->delta_q_y_dc = 0;
-    READ_ONEBIT(gb, &flag);
-    if (flag)
-        READ_SIGNBITS(gb, 7, &f->delta_q_y_dc);
-
+    READ_DELTA_Q(gb, 7, &f->delta_q_y_dc);
     if (ctx->num_planes > 1) {
+        f->diff_uv_delta = 0;
         if (seq->color_config.separate_uv_delta_q)
             READ_ONEBIT(gb, &f->diff_uv_delta);
-        else
-            f->diff_uv_delta = 0;
 
-        f->delta_q_u_dc = 0;
-        READ_ONEBIT(gb, &flag);
-        if (flag)
-            READ_SIGNBITS(gb, 7, &f->delta_q_u_dc);
-        f->delta_q_u_ac = 0;
-        READ_ONEBIT(gb, &flag);
-        if (flag)
-            READ_SIGNBITS(gb, 7, &f->delta_q_u_ac);
+        READ_DELTA_Q(gb, 7, &f->delta_q_u_dc);
+        READ_DELTA_Q(gb, 7, &f->delta_q_u_ac);
         if (f->diff_uv_delta) {
-            f->delta_q_v_dc = 0;
-            READ_ONEBIT(gb, &flag);
-            if (flag)
-                READ_SIGNBITS(gb, 7, &f->delta_q_v_dc);
-            f->delta_q_v_ac = 0;
-            READ_ONEBIT(gb, &flag);
-            if (flag)
-                READ_SIGNBITS(gb, 7, &f->delta_q_v_ac);
+            READ_DELTA_Q(gb, 7, &f->delta_q_v_dc);
+            READ_DELTA_Q(gb, 7, &f->delta_q_v_ac);
         } else {
             f->delta_q_v_dc = f->delta_q_u_dc;
             f->delta_q_v_ac = f->delta_q_u_ac;
