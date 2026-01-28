@@ -19,11 +19,11 @@
 #define VDPU384B_INFO_BUF_SIZE(cnt)          (VDPU384B_INFO_ELEM_SIZE * cnt)
 #define VDPU384B_DEF_CDF_UPDATE_ARRAY_SIZE   (20)
 
-struct {
+static struct {
     RK_U32 org_data_off;  // char unit
     RK_U32 new_data_sz;   // char unit
     RK_U32 data[16];
-} static vdpu384b_def_prob_update_info[VDPU384B_DEF_CDF_UPDATE_ARRAY_SIZE] = {
+} vdpu384b_def_prob_update_info[VDPU384B_DEF_CDF_UPDATE_ARRAY_SIZE] = {
     {
         .org_data_off = 314 * 8 * 4,
         .new_data_sz = 64,
