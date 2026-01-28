@@ -28,9 +28,13 @@ if(NOT COMMAND find_host_program)
     endmacro()
 endif()
 
+if(POLICY CMP0009)
+  cmake_policy(SET CMP0009 NEW)
+endif()
+
+cmake_minimum_required(VERSION 3.5)
 project (rk_mpp)
 
-cmake_minimum_required (VERSION 2.8.8) # OBJECT libraries require 2.8.8
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
@@ -302,6 +306,7 @@ option(BUILD_SHARED_LIBS "Build shared library" ON)
 # scan all LOG_TAG for log information and generate module header file
 # ----------------------------------------------------------------------------
 set( module_list "" )
+
 file ( GLOB_RECURSE ALL_SRC . *.c;*.cpp )
 foreach( files ${ALL_SRC} )
     file( STRINGS ${files} module_tag_line REGEX "MODULE_TAG( )+\".+\"" )
