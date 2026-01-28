@@ -369,12 +369,12 @@ static RK_S32 vp9_alloc_frame(Vp9DecCtx *ctx, VP9Frame *frame)
     return 0;
 }
 
-static RK_S32 update_size(Vp9DecCtx *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
+static MPP_RET update_size(Vp9DecCtx *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
 {
     VP9Context *s = ctx->priv_data;
 
     if (w == ctx->width && h == ctx->height && ctx->pix_fmt == fmt)
-        return 0;
+        return MPP_OK;
 
     ctx->width   = w;
     ctx->height  = h;
@@ -389,7 +389,7 @@ static RK_S32 update_size(Vp9DecCtx *ctx, RK_S32 w, RK_S32 h, RK_S32 fmt)
         s->last_bpp = s->bpp;
     }
 
-    return 0;
+    return MPP_OK;
 }
 
 static inline RK_S32 read_synccode(BitReadCtx_t *gb)
@@ -404,8 +404,12 @@ __BITREAD_ERR:
     return 0;
 }
 
-static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32 size,
-                                       RK_S32 *refo)
+static const MppFrameColorSpace colorspaces_table[8] = {
+    MPP_FRAME_SPC_UNSPECIFIED, MPP_FRAME_SPC_BT470BG, MPP_FRAME_SPC_BT709, MPP_FRAME_SPC_SMPTE170M,
+    MPP_FRAME_SPC_SMPTE240M, MPP_FRAME_SPC_BT2020_NCL, MPP_FRAME_SPC_RESERVED, MPP_FRAME_SPC_RGB,
+};
+static MPP_RET read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32 size,
+                                        RK_S32 *refo)
 {
     VP9Context *s = ctx->priv_data;
     RK_S32 fmt = ctx->pix_fmt;
@@ -484,14 +488,15 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
                 READ_ONEBIT(gb, &bits);
                 bits += 1;
             }
-            fmt = bits ? MPP_FMT_YUV420SP_10BIT : MPP_FMT_YUV420P;
+            fmt = bits ? MPP_FMT_YUV420SP_10BIT : MPP_FMT_YUV420SP;
             vp9d_dbg(VP9D_DBG_HEADER, "bit_depth %d", 8 + bits * 2);
             s->bpp_index = bits;
             s->bpp = 8 + bits * 2;
             s->bytesperpixel = (7 + s->bpp) >> 3;
-            READ_BITS(gb, 3, &ctx->colorspace);
+            READ_BITS(gb, 3, &val); // color_space
+            ctx->colorspace = colorspaces_table[val];
             vp9d_dbg(VP9D_DBG_HEADER, "color_space %d", ctx->colorspace);
-            if (ctx->colorspace == 7) { // RGB = profile 1 VP9_CS_SRGB
+            if (ctx->colorspace == MPP_FRAME_SPC_RGB) { // RGB = profile 1 VP9_CS_SRGB
                 mpp_err("RGB not supported in profile %d\n", ctx->profile);
                 return MPP_ERR_STREAM;
             } else { // profile 0/2
@@ -829,11 +834,7 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
     }
 
     // update size
-    RK_S32 res = update_size(ctx, w, h, fmt);
-    if (res < 0) {
-        mpp_err("Failed to update size for %dx%d @ %d\n", w, h, fmt);
-        return res;
-    }
+    update_size(ctx, w, h, fmt);
 
     // get min log2 tile cols
     for (s->tiling.log2_tile_cols = 0;
@@ -891,18 +892,16 @@ static RK_S32 read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32
         s->frame_context_idx = 0;
 
     // next 16 bits is size of the rest of the header (arith-coded)
-    RK_S32 first_partition_size;
-    READ_BITS(gb, 16, &first_partition_size);
-    vp9d_dbg(VP9D_DBG_HEADER, "first_partition_size %d", first_partition_size);
-    s->first_partition_size = first_partition_size;
+    READ_BITS(gb, 16, &s->first_partition_size);
+    vp9d_dbg(VP9D_DBG_HEADER, "first_partition_size %d", s->first_partition_size);
 
     const RK_U8 *aligned_data = mpp_align_get_bits(gb);
     vp9d_dbg(VP9D_DBG_HEADER, "offset %d", aligned_data - data);
     s->uncompress_head_size_in_byte = aligned_data - data;
     vp9d_dbg(VP9D_DBG_HEADER, "uncompress_head_size_in_byte %d", s->uncompress_head_size_in_byte);
-    if (first_partition_size > size - s->uncompress_head_size_in_byte) {
+    if (s->first_partition_size > size - s->uncompress_head_size_in_byte) {
         mpp_err("invalid: compressed_header_size %d, size %d, uncompress_head_size_in_byte %d \n",
-                first_partition_size, size, s->uncompress_head_size_in_byte);
+                s->first_partition_size, size, s->uncompress_head_size_in_byte);
         return MPP_ERR_STREAM;
     }
     return MPP_OK;
@@ -910,8 +909,8 @@ __BITREAD_ERR:
     return MPP_ERR_STREAM;
 }
 
-static RK_S32 read_compressed_header(VP9Context *s, const RK_U8 *aligned_data,
-                                     RK_S32 first_partition_size)
+static MPP_RET read_compressed_header(VP9Context *s, const RK_U8 *aligned_data,
+                                      RK_S32 first_partition_size)
 {
     RK_S32 c, i, j, k, l, m, n;
 
@@ -1191,14 +1190,15 @@ static RK_S32 read_compressed_header(VP9Context *s, const RK_U8 *aligned_data,
             }
         }
     }
-    return 0;
+    return MPP_OK;
 }
 
-static RK_S32 decode_parser_header(Vp9DecCtx *ctx,
-                                   const RK_U8 *data, RK_S32 size, RK_S32 *refo)
+static MPP_RET decode_parser_header(Vp9DecCtx *ctx,
+                                    const RK_U8 *data, RK_S32 size)
 {
+    RK_S32 ref = 0;
+    MPP_RET ret = MPP_NOK;
     VP9Context *s = ctx->priv_data;
-    RK_S32 ret;
 
 #ifdef dump
     char filename[20] = "data/acoef";
@@ -1210,17 +1210,35 @@ static RK_S32 decode_parser_header(Vp9DecCtx *ctx,
     vp9_p_fp2 = fopen(filename, "wb");
 #endif
 
-    ret = read_uncompressed_header(ctx, data, size, refo);
+    ret = read_uncompressed_header(ctx, data, size, &ref);
     if (ret < 0) {
         mpp_err("read uncompressed header failed\n");
         return ret;
     }
 
-    const RK_U8 *aligned_data = mpp_align_get_bits(&s->gb);
-    ret = read_compressed_header(s, aligned_data, s->first_partition_size);
-    if (ret < 0) {
-        mpp_err("read compressed header failed\n");
-        return ret;
+    if (s->show_existing_frame) {
+        MppFrame frame = NULL;
+
+        if (!s->refs[ref].ref) {
+            //mpp_err("Requested reference %d not available\n", ref);
+            return MPP_ERR_NULL_PTR;
+        }
+        mpp_buf_slot_get_prop(s->slots, s->refs[ref].slot_index, SLOT_FRAME_PTR, &frame);
+        mpp_frame_set_pts(frame, s->pts);
+        mpp_frame_set_dts(frame, s->dts);
+        mpp_buf_slot_set_flag(s->slots, s->refs[ref].slot_index, SLOT_QUEUE_USE);
+        mpp_buf_slot_enqueue(s->slots, s->refs[ref].slot_index, QUEUE_DISPLAY);
+        s->refs[ref].ref->is_output = 1;
+        vp9d_dbg(VP9D_DBG_HEADER, "out repeat num %d", s->outframe_num++);
+
+        return MPP_OK;
+    } else {
+        const RK_U8 *aligned_data = mpp_align_get_bits(&s->gb);
+        ret = read_compressed_header(s, aligned_data, s->first_partition_size);
+        if (ret < 0) {
+            mpp_err("read compressed header failed\n");
+            return ret;
+        }
     }
 
     return MPP_OK;
@@ -1409,7 +1427,7 @@ RK_S32 vp9_parser_frame(Vp9DecCtx *ctx, HalDecTask *task)
     RK_S32 size = 0;
     VP9Context *s = (VP9Context *)ctx->priv_data;
     RK_S32 ret;
-    RK_S32 i, ref = 0;
+    RK_S32 i;
 
     vp9d_dbg(VP9D_DBG_FUNCTION, "%s", __FUNCTION__);
     task->valid = -1;
@@ -1426,34 +1444,19 @@ RK_S32 vp9_parser_frame(Vp9DecCtx *ctx, HalDecTask *task)
     if (size <= 0) {
         return MPP_OK;
     }
-    ret = decode_parser_header(ctx, data, size, &ref);
+    ret = decode_parser_header(ctx, data, size);
     if (ret < 0)
         return ret;
 
-    RK_S32 head_size = s->first_partition_size + s->uncompress_head_size_in_byte;
-    vp9d_dbg(VP9D_DBG_HEADER, "%s end, head_size %d\n", __FUNCTION__, head_size);
-
-    if (head_size == 0) {
-        if (!s->refs[ref].ref) {
-            //mpp_err("Requested reference %d not available\n", ref);
-            return -1;//AVERROR_INVALIDDATA;
-        }
-        {
-            MppFrame frame = NULL;
-
-            mpp_buf_slot_get_prop(s->slots, s->refs[ref].slot_index, SLOT_FRAME_PTR, &frame);
-            mpp_frame_set_pts(frame, s->pts);
-            mpp_frame_set_dts(frame, s->dts);
-            mpp_buf_slot_set_flag(s->slots, s->refs[ref].slot_index, SLOT_QUEUE_USE);
-            mpp_buf_slot_enqueue(s->slots, s->refs[ref].slot_index, QUEUE_DISPLAY);
-            s->refs[ref].ref->is_output = 1;
-        }
-
-        mpp_log("out repeat num %d", s->outframe_num++);
+    if (s->show_existing_frame) {
         return size;
+    } else {
+        RK_S32 head_size = s->first_partition_size + (RK_S32)s->uncompress_head_size_in_byte;
+        vp9d_dbg(VP9D_DBG_HEADER, "%s end, head_size %d\n", __FUNCTION__, head_size);
+        // move to frame data
+        data += head_size;
+        size -= head_size;
     }
-    data += head_size;
-    size -= head_size;
 
     if (s->frames[VP9_REF_FRAME_MVPAIR].ref)
         vp9_unref_frame(s, &s->frames[VP9_REF_FRAME_MVPAIR]);
