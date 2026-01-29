@@ -26,6 +26,7 @@ MPP_RET mpp_parser_reset(Parser prs);
 MPP_RET mpp_parser_flush(Parser prs);
 MPP_RET mpp_parser_control(Parser prs, MpiCmd cmd, void *para);
 MPP_RET mpp_parser_callback(void* prs, void *err_info);
+MPP_RET mpp_parser_sync(Parser prs, RK_S32 frame_id);
 
 MPP_RET mpp_parser_api_register(const ParserApi *api);
 

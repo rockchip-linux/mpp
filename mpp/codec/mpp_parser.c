@@ -229,3 +229,19 @@ MPP_RET mpp_parser_control(Parser prs, MpiCmd cmd, void *para)
     return p->api->control(p->ctx, cmd, para);
 }
 
+MPP_RET mpp_parser_sync(Parser prs, RK_S32 frame_id)
+{
+    ParserImpl *p;
+
+    if (NULL == prs) {
+        mpp_loge_f("found NULL input\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    p = (ParserImpl *)prs;
+    if (!p->api || !p->api->sync)
+        return MPP_OK;
+
+    return p->api->sync(p->ctx, frame_id);
+}
+

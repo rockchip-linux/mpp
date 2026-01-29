@@ -567,7 +567,7 @@ static MPP_RET h265e_check_frame_cpb(H265eDpbFrm *frm, RK_S32 cnt, EncFrmStatus 
         }
 
         if (frms[i].seq_idx == seq_idx) {
-            ret =  MPP_OK;
+            ret = MPP_OK;
         }
     }
 

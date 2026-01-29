@@ -1342,13 +1342,13 @@ MPP_RET check_re_enc(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
             if (target_bps / 20 < ins_bps - last_ins_bps &&
                 (target_bps + target_bps / 10 < ins_bps
                  || target_bps - target_bps / 10 > ins_bps)) {
-                ret =  MPP_NOK;
+                ret = MPP_NOK;
             }
         } else {
             target_bps = usr_cfg->bps_max;
             if ((target_bps - (target_bps >> 3) < ins_bps) &&
                 (target_bps / 20  < ins_bps - last_ins_bps)) {
-                ret =  MPP_NOK;
+                ret = MPP_NOK;
             }
         }
     }

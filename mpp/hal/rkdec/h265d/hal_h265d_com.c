@@ -244,8 +244,8 @@ int hal_h265d_slice_rpl(void *dxva, SliceHeader_t *sh, RefPicListTab_t *ref)
 
     if (!(bef_nb_refs + aft_nb_refs +
           lt_cur_nb_refs)) {
-        mpp_err( "Zero refs in the frame RPS.\n");
-        return  MPP_ERR_STREAM;
+        mpp_loge("rps: zero refs in frame\n");
+        return MPP_ERR_STREAM;
     }
 
     for (list_idx = 0; list_idx < nb_list; list_idx++) {
@@ -365,21 +365,18 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
     RK_S32 slice_idx = 0;
     BitReadCtx_t gb_cxt, *gb;
     SliceHeader_t sh;
-    RK_U8 rps_bit_offset[600];
-    RK_U8 rps_bit_offset_st[600];
-    RK_U8 slice_nb_rps_poc[600];
-    RK_U8 lowdelay_flag[600];
-    slice_ref_map_t rps_pic_info[600][2][15];
+    H265dSliceRpsData_t *rps_data = NULL;
     RK_U32 nb_refs = 0;
     RK_S32 bit_begin;
     h265d_dxva2_picture_context_t *dxva_cxt = NULL;
     RK_U32 i, j, k;
 
-    memset(&rps_pic_info,   0, sizeof(rps_pic_info));
-    memset(&slice_nb_rps_poc, 0, sizeof(slice_nb_rps_poc));
-    memset(&rps_bit_offset, 0, sizeof(rps_bit_offset));
-    memset(&rps_bit_offset_st, 0, sizeof(rps_bit_offset_st));
-    memset(&lowdelay_flag, 0, sizeof(lowdelay_flag));
+    // Allocate RPS data buffer (600 slices)
+    rps_data = mpp_calloc(H265dSliceRpsData_t, 600);
+    if (rps_data == NULL) {
+        mpp_err("hal: failed to allocate rps_data\n");
+        return MPP_ERR_NOMEM;
+    }
 
     dxva_cxt = (h265d_dxva2_picture_context_t*)dxva;
     for (k = 0; k < dxva_cxt->slice_count; k++) {
@@ -395,8 +392,10 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
 
         READ_ONEBIT(gb, &value);
 
-        if ( value != 0)
-            return  MPP_ERR_STREAM;
+        if ( value != 0) {
+            mpp_free(rps_data);
+            return MPP_ERR_STREAM;
+        }
 
         READ_BITS(gb, 6, &nal_type);
 
@@ -414,8 +413,9 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         READ_UE(gb, &sh.pps_id);
 
         if (sh.pps_id >= 64 ) {
-            mpp_err( "PPS id out of range: %d\n", sh.pps_id);
-            return  MPP_ERR_STREAM;
+            mpp_loge("pps: invalid pps id %d\n", sh.pps_id);
+            mpp_free(rps_data);
+            return MPP_ERR_STREAM;
         }
 
         sh.dependent_slice_segment_flag = 0;
@@ -439,10 +439,10 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             READ_BITS(gb, slice_address_length, &sh.slice_segment_addr);
 
             if (sh.slice_segment_addr >= (RK_U32)(ctb_width * ctb_height)) {
-                mpp_err(
-                    "Invalid slice segment address: %u.\n",
-                    sh.slice_segment_addr);
-                return  MPP_ERR_STREAM;
+                mpp_err("slice: invalid segment address %u\n",
+                        sh.slice_segment_addr);
+                mpp_free(rps_data);
+                return MPP_ERR_STREAM;
             }
 
             if (!sh.dependent_slice_segment_flag) {
@@ -462,14 +462,11 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             if (!(sh.slice_type == I_SLICE ||
                   sh.slice_type == P_SLICE ||
                   sh.slice_type == B_SLICE)) {
-                mpp_err( "Unknown slice type: %d.\n",
+                mpp_loge("slice: unknown type %d\n",
                          sh.slice_type);
-                return  MPP_ERR_STREAM;
+                mpp_free(rps_data);
+                return MPP_ERR_STREAM;
             }
-            /*     if (!s->decoder_id && IS_IRAP(nal_type) && sh->slice_type != I_SLICE) {
-                     mpp_err( "Inter slices in an IRAP frame.\n");
-                     return  MPP_ERR_STREAM;
-                 }*/
 
             if (dxva_cxt->pp.output_flag_present_flag)
                 READ_ONEBIT(gb, &sh.pic_output_flag);
@@ -491,8 +488,9 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 } else {
                     RK_S32 numbits, rps_idx;
                     if (!dxva_cxt->pp.num_short_term_ref_pic_sets) {
-                        mpp_err( "No ref lists in the SPS.\n");
-                        return  MPP_ERR_STREAM;
+                        mpp_loge("sps: missing ref lists\n");
+                        mpp_free(rps_data);
+                        return MPP_ERR_STREAM;
                     }
                     numbits = mpp_ceil_log2(dxva_cxt->pp.num_short_term_ref_pic_sets);
                     rps_idx = 0;
@@ -500,8 +498,8 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                         READ_BITS(gb, numbits, &rps_idx);
                 }
 
-                rps_bit_offset_st[slice_idx] = gb->used_bits - bit_begin;
-                rps_bit_offset[slice_idx] = rps_bit_offset_st[slice_idx];
+                rps_data[slice_idx].rps_bit_offset_st = gb->used_bits - bit_begin;
+                rps_data[slice_idx].rps_bit_offset = rps_data[slice_idx].rps_bit_offset_st;
                 if (dxva_cxt->pp.long_term_ref_pics_present_flag) {
 
 //                    RK_S32 max_poc_lsb    = 1 << (dxva_cxt->pp.log2_max_pic_order_cnt_lsb_minus4 + 4);
@@ -534,7 +532,7 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                             READ_UE(gb, &delta);
                         }
                     }
-                    rps_bit_offset[slice_idx] += (gb->used_bits - bit_begin);
+                    rps_data[slice_idx].rps_bit_offset += (gb->used_bits - bit_begin);
 
                 }
 
@@ -543,7 +541,7 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 else
                     sh.slice_temporal_mvp_enabled_flag = 0;
             } else {
-                sh.short_term_rps = NULL;
+                sh.st_rps_using = NULL;
             }
 
             if (dxva_cxt->pp.sample_adaptive_offset_enabled_flag) {
@@ -575,9 +573,9 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                     }
                 }
                 if (sh.nb_refs[L0] > MAX_REFS || sh.nb_refs[L1] > MAX_REFS) {
-                    mpp_err( "Too many refs: %d/%d.\n",
+                    mpp_loge("slice: reference count exceeds limit %d %d\n",
                              sh.nb_refs[L0], sh.nb_refs[L1]);
-                    return  MPP_ERR_STREAM;
+                    return MPP_ERR_STREAM;
                 }
 
                 sh.rpl_modification_flag[0] = 0;
@@ -591,8 +589,9 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                 }
 
                 if (!nb_refs) {
-                    mpp_err( "Zero refs for a frame with P or B slices.\n");
-                    return  MPP_ERR_STREAM;
+                    mpp_loge("refs: zero refs for p or b frame\n");
+                    mpp_free(rps_data);
+                    return MPP_ERR_STREAM;
                 }
 
                 if (dxva_cxt->pp.lists_modification_present_flag && nb_refs > 1) {
@@ -617,7 +616,7 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
             RK_U32 nb_list = I_SLICE - sh.slice_type;
 
             hal_h265d_slice_rpl(dxva, &sh, &ref);
-            lowdelay_flag[slice_idx]  =  1;
+            rps_data[slice_idx].lowdelay_flag = 1;
 
             for (j = 0; j < nb_list; j++) {
                 for (i = 0; i < ref.refPicList[j].nb_refs; i++) {
@@ -625,50 +624,51 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
                     index = ref.refPicList[j].dpb_index[i];
                     // mpp_err("slice_idx = %d index = %d,j = %d i = %d",slice_idx,index,j,i);
                     if (index != 0xff) {
-                        rps_pic_info[slice_idx][j][i].dpb_index = index;
-                        rps_pic_info[slice_idx][j][i].is_long_term
+                        rps_data[slice_idx].rps_pic_info[j][i].dpb_index = index;
+                        rps_data[slice_idx].rps_pic_info[j][i].is_long_term
                             = dxva_cxt->pp.RefPicList[index].AssociatedFlag;
                         if (dxva_cxt->pp.PicOrderCntValList[index] > dxva_cxt->pp.CurrPicOrderCntVal)
-                            lowdelay_flag[slice_idx] = 0;
+                            rps_data[slice_idx].lowdelay_flag = 0;
                     }
                 }
             }
 
             if (sh.slice_type == I_SLICE)
-                slice_nb_rps_poc[slice_idx] = 0;
+                rps_data[slice_idx].slice_nb_rps_poc = 0;
             else
-                slice_nb_rps_poc[slice_idx] = nb_refs;
+                rps_data[slice_idx].slice_nb_rps_poc = nb_refs;
 
         }
     }
 //out put for rk format
     {
-        RK_S32  nb_slice = slice_idx + 1;
-        RK_S32  fifo_len   = nb_slice * 4 + 1;//size of rps_packet alloc more 1 64 bit invoid buffer no enought
+        RK_S32 nb_slice = slice_idx + 1;
+        RK_S32 fifo_len = nb_slice * 4 + 1;//size of rps_packet alloc more 1 64 bit invoid buffer no enought
         RK_U64 *rps_packet = mpp_malloc(RK_U64, fifo_len);
         BitputCtx_t bp;
+
         mpp_set_bitput_ctx(&bp, rps_packet, fifo_len);
         for (k = 0; k < (RK_U32)nb_slice; k++) {
             for (j = 0; j < 2; j++) {
                 for (i = 0; i < 15; i++) {
-                    mpp_put_bits(&bp, rps_pic_info[k][j][i].is_long_term, 1);
+                    mpp_put_bits(&bp, rps_data[k].rps_pic_info[j][i].is_long_term, 1);
                     if (j == 1 && i == 4) {
                         mpp_put_align (&bp, 64, 0);
                     }
-                    mpp_put_bits(&bp, rps_pic_info[k][j][i].dpb_index,    4);
+                    mpp_put_bits(&bp, rps_data[k].rps_pic_info[j][i].dpb_index,    4);
                 }
             }
-            mpp_put_bits(&bp, lowdelay_flag      [k], 1);
-            h265h_dbg(H265H_DBG_RPS, "lowdelay_flag = %d \n", lowdelay_flag[k]);
-            mpp_put_bits(&bp, rps_bit_offset     [k], 10);
+            mpp_put_bits(&bp, rps_data[k].lowdelay_flag, 1);
+            h265h_dbg(H265H_DBG_RPS, "lowdelay_flag = %d \n", rps_data[k].lowdelay_flag);
+            mpp_put_bits(&bp, rps_data[k].rps_bit_offset, 10);
 
-            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset = %d \n", rps_bit_offset[k]);
-            mpp_put_bits(&bp, rps_bit_offset_st  [k], 9);
+            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset = %d \n", rps_data[k].rps_bit_offset);
+            mpp_put_bits(&bp, rps_data[k].rps_bit_offset_st, 9);
 
-            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset_st = %d \n", rps_bit_offset_st[k]);
-            mpp_put_bits(&bp, slice_nb_rps_poc   [k], 4);
+            h265h_dbg(H265H_DBG_RPS, "rps_bit_offset_st = %d \n", rps_data[k].rps_bit_offset_st);
+            mpp_put_bits(&bp, rps_data[k].slice_nb_rps_poc, 4);
 
-            h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", slice_nb_rps_poc[k]);
+            h265h_dbg(H265H_DBG_RPS, "slice_nb_rps_poc = %d \n", rps_data[k].slice_nb_rps_poc);
             mpp_put_align   (&bp, 64, 0);
         }
         if (rps_buf != NULL) {
@@ -677,9 +677,11 @@ RK_S32 hal_h265d_slice_output_rps(void *dxva, void *rps_buf)
         mpp_free(rps_packet);
     }
 
+    mpp_free(rps_data);
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    mpp_free(rps_data);
+    return MPP_ERR_STREAM;
 }
 
 void hal_h265d_output_scalinglist_packet(void *hal, void *ptr, void *dxva)
@@ -2684,8 +2686,8 @@ RK_S32 hal_h265d_vdpu38x_output_pps_packet(void *hal, void *dxva, RK_U32 *scanli
     RK_S32 i;
 
     if (NULL == reg_ctx || NULL == dxva_ctx) {
-        mpp_err("%s:%s:%d reg_ctx or dxva_ctx is NULL",
-                __FILE__, __FUNCTION__, __LINE__);
+        mpp_err("hal: reg_ctx or dxva_ctx is NULL at %s:%d\n",
+                __FUNCTION__, __LINE__);
         return MPP_ERR_NULL_PTR;
     }
 
@@ -2695,7 +2697,7 @@ RK_S32 hal_h265d_vdpu38x_output_pps_packet(void *hal, void *dxva, RK_U32 *scanli
         RK_U64 *pps_packet = reg_ctx->pps_buf;
 
         if (NULL == pps_ptr) {
-            mpp_err("pps_data get ptr error");
+            mpp_err("hal: pps_data get ptr failed\n");
             return MPP_ERR_NOMEM;
         }
 

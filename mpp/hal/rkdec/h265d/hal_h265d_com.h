@@ -20,8 +20,9 @@
 
 #include <limits.h>
 
-#include "rk_type.h"
 #include "h265d_syntax.h"
+
+#include "hal_h265d_ctx.h"
 #include "vdpu38x_com.h"
 
 #define SCALING_LIST_SIZE       (81 * 1360)
@@ -56,21 +57,17 @@ typedef struct slice_ref_map {
     RK_U8 is_long_term;
 } slice_ref_map_t;
 
-typedef struct ShortTermRPS {
-    RK_U32 num_negative_pics;
-    RK_S32 num_delta_pocs;
-    RK_S32 delta_poc[32];
-    RK_U8  used[32];
-} ShortTermRPS;
-
-typedef struct LongTermRPS {
-    RK_S32  poc[32];
-    RK_U8   used[32];
-    RK_U8   nb_refs;
-} LongTermRPS;
+// Per-slice RPS data structure
+typedef struct H265dSliceRpsData {
+    RK_U8 rps_bit_offset;
+    RK_U8 rps_bit_offset_st;
+    RK_U8 slice_nb_rps_poc;
+    RK_U8 lowdelay_flag;
+    slice_ref_map_t rps_pic_info[2][15];
+} H265dSliceRpsData_t;
 
 typedef struct RefPicList {
-    RK_U32  dpb_index[MAX_REFS];
+    RK_U32 dpb_index[MAX_REFS];
     RK_U32 nb_refs;
 } RefPicList_t;
 
@@ -96,9 +93,9 @@ typedef struct SliceHeader {
     RK_U8 colour_plane_id;
 
     ///< RPS coded in the slice header itself is stored here
-    ShortTermRPS slice_rps;
-    const ShortTermRPS *short_term_rps;
-    LongTermRPS long_term_rps;
+    H265dStRps st_rps_slice;
+    const H265dStRps *st_rps_using;
+    H265dLtRps lt_rps;
     RK_U32 list_entry_lx[2][32];
 
     RK_U8 rpl_modification_flag[2];

@@ -11,6 +11,30 @@
 /* HEVC Picture Entry structure */
 #define MAX_SLICES 600
 
+/* Short-Term Reference Picture Set structure */
+typedef struct H265dStRps_t {
+    RK_U32 num_neg;          /* number of negative pictures */
+    RK_S32 num_deltas;       /* number of delta POCs */
+    RK_S32 ref_delta_cnt;    /* reference delta count */
+    RK_S32 poc_delta[32];    /* POC delta values */
+    RK_U32 flags;            /* flags for each picture (bit field) */
+} H265dStRps;
+
+/* Long-Term Reference Picture Set in SPS */
+typedef struct H265dLtRpsSps_t {
+    RK_U32 valid;
+    RK_U16 poc_lsb[32];
+    RK_U32 used_flag;
+    RK_U32 num_refs;
+} H265dLtRpsSps;
+
+/* Long-Term Reference Picture Set for Slice */
+typedef struct H265dLtRps_t {
+    RK_S32 poc[32];
+    RK_U32 used;
+    RK_U32 nb_refs;
+} H265dLtRps;
+
 typedef struct DXVA_PicEntry_HEVC_t {
     union {
         struct {

@@ -1,38 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- *
- * Copyright 2015 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
  */
 
-/*
- * @file       h265d_sei.c
- * @brief
- * @author      csy(csy@rock-chips.com)
-
- * @version     1.0.0
- * @history
- *   2015.7.15 : Create
- */
-
-#define MODULE_TAG "h265d_sei"
+#define MODULE_TAG "h265d"
 
 #include "mpp_bitread.h"
 #include "rk_hdr_meta_com.h"
 
 #include "h265d_debug.h"
-#include "h265d_parser.h"
 #include "h2645d_sei.h"
+#include "h265d_sei.h"
 
 static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
 {
@@ -40,9 +18,8 @@ static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
     RK_U8 hash_type;
     READ_BITS(gb, 8, &hash_type);
 
-    for (cIdx = 0; cIdx < 3/*((s->sps->chroma_format_idc == 0) ? 1 : 3)*/; cIdx++) {
+    for (cIdx = 0; cIdx < 3; cIdx++) {
         if (hash_type == 0) {
-            //s->is_md5 = 1;
             for (i = 0; i < 16; i++)
                 SKIP_BITS(gb, 8);
         } else if (hash_type == 1) {
@@ -53,196 +30,187 @@ static RK_S32 decode_nal_sei_decoded_picture_hash(BitReadCtx_t *gb)
     }
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_nal_sei_frame_packing_arrangement(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 decode_nal_sei_frame_packing_arrangement(BitReadCtx_t *gb)
 {
     RK_S32 value = 0;
 
-    READ_UE(gb, &value);                  // frame_packing_arrangement_id
+    READ_UE(gb, &value);
     READ_ONEBIT(gb, &value);
-    s->sei_frame_packing_present = !value;
 
-    if (s->sei_frame_packing_present) {
-        READ_BITS(gb, 7, &s->frame_packing_arrangement_type);
-        READ_ONEBIT(gb, &s->quincunx_subsampling);
-        READ_BITS(gb, 6, &s->content_interpretation_type);
+    if (!value) {
+        /* frame_packing_arrangement_type */
+        READ_BITS(gb, 7, &value);
+        /* quincunx_subsampling */
+        READ_ONEBIT(gb, &value);
+        /* content_interpretation_type */
+        READ_BITS(gb, 6, &value);
 
-        // the following skips spatial_flipping_flag frame0_flipped_flag
-        // field_views_flag current_frame_is_frame0_flag
-        // frame0_self_contained_flag frame1_self_contained_flag
         SKIP_BITS(gb, 6);
 
-        if (!s->quincunx_subsampling && s->frame_packing_arrangement_type != 5)
-            SKIP_BITS(gb, 16);  // frame[01]_grid_position_[xy]
-        SKIP_BITS(gb, 8);       // frame_packing_arrangement_reserved_byte
-        SKIP_BITS(gb, 1);        // frame_packing_arrangement_persistance_flag
+        /* spatiotemporal_idle_flag */
+        READ_ONEBIT(gb, &value);
+        if (value != 3)
+            SKIP_BITS(gb, 16);
+        SKIP_BITS(gb, 8);
+        SKIP_BITS(gb, 1);
     }
-    SKIP_BITS(gb, 1);            // upsampled_aspect_ratio_flag
+    /* extension_flag */
+    SKIP_BITS(gb, 1);
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_pic_timing(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 decode_pic_timing(H265dPrs *p, BitReadCtx_t *gb)
 {
-    HEVCSPS *sps;
+    H265dSps *sps;
+    RK_S32 value;
 
-    if (!s->sps_list[s->active_seq_parameter_set_id])
+    if (!p->sps_list[p->active_seq_parameter_set_id])
         return MPP_ERR_NOMEM;
-    sps = (HEVCSPS*)s->sps_list[s->active_seq_parameter_set_id];
-    s->picture_struct = MPP_PICTURE_STRUCTURE_UNKNOWN;
+
+    sps = p->sps_list[p->active_seq_parameter_set_id];
     if (sps->vui.frame_field_info_present_flag) {
-        READ_BITS(gb, 4, &s->picture_struct);
-        switch (s->picture_struct) {
-        case  0 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("(progressive) frame \n"); break;
-        case  1 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field\n"); break;
-        case  2 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field\n"); break;
-        case  3 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("top field, bottom field, in that order\n"); break;
-        case  4 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("bottom field, top field, in that order\n"); break;
-        case  5 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("top field, bottom field, top field repeated, in that order\n"); break;
-        case  6 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("bottom field, top field, bottom field repeated, in that order\n"); break;
-        case  7 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("frame doubling\n"); break;
-        case  8 : s->picture_struct = MPP_PICTURE_STRUCTURE_FRAME;         h265d_dbg_sei("frame tripling\n"); break;
-        case  9 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field paired with previous bottom field in output order\n"); break;
-        case 10 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field paired with previous top field in output order\n"); break;
-        case 11 : s->picture_struct = MPP_PICTURE_STRUCTURE_TOP_FIELD;     h265d_dbg_sei("top field paired with next bottom field in output order\n"); break;
-        case 12 : s->picture_struct = MPP_PICTURE_STRUCTURE_BOTTOM_FIELD;  h265d_dbg_sei("bottom field paired with next top field in output order\n"); break;
-        }
-        SKIP_BITS(gb, 2);                   // source_scan_type
-        SKIP_BITS(gb, 1);                   // duplicate_flag
+        /* pic_struct */
+        READ_BITS(gb, 4, &value);
+        (void)value;
+        SKIP_BITS(gb, 2);
+        SKIP_BITS(gb, 1);
     }
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 active_parameter_sets(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 active_parameter_sets(H265dPrs *p, BitReadCtx_t *gb)
 {
     RK_S32 num_sps_ids_minus1;
     RK_S32 i, value;
     RK_U32 active_seq_parameter_set_id;
 
-    SKIP_BITS(gb, 4); // active_video_parameter_set_id
-    SKIP_BITS(gb, 1); // self_contained_cvs_flag
-    SKIP_BITS(gb, 1); // num_sps_ids_minus1
-    READ_UE(gb, &num_sps_ids_minus1); // num_sps_ids_minus1
+    SKIP_BITS(gb, 4);
+    SKIP_BITS(gb, 1);
+    SKIP_BITS(gb, 1);
+    READ_UE(gb, &num_sps_ids_minus1);
 
     READ_UE(gb, &active_seq_parameter_set_id);
     if (active_seq_parameter_set_id >= MAX_SPS_COUNT) {
-        mpp_err( "active_parameter_set_id %d invalid\n", active_seq_parameter_set_id);
-        return  MPP_ERR_STREAM;
+        mpp_loge("sei: active param set id %d invalid\n", active_seq_parameter_set_id);
+        return MPP_ERR_STREAM;
     }
-    s->active_seq_parameter_set_id = active_seq_parameter_set_id;
+    p->active_seq_parameter_set_id = active_seq_parameter_set_id;
 
     for (i = 1; i <= num_sps_ids_minus1; i++)
-        READ_UE(gb, &value); // active_seq_parameter_set_id[i]
+        READ_UE(gb, &value);
 
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 mastering_display_colour_volume(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 mastering_display_colour_volume(H265dPrs *p, BitReadCtx_t *gb)
 {
-    RK_S32 i = 0;
-    RK_U16 value = 0;
+    RK_U32 value = 0;
     RK_U32 lum = 0;
+    RK_S32 i = 0;
 
     for (i = 0; i < 3; i++) {
         READ_BITS(gb, 16, &value);
-        s->mastering_display.display_primaries[i][0] = value;
+        p->mastering_display.display_primaries[i][0] = value;
         READ_BITS(gb, 16, &value);
-        s->mastering_display.display_primaries[i][1] = value;
+        p->mastering_display.display_primaries[i][1] = value;
     }
     READ_BITS(gb, 16, &value);
-    s->mastering_display.white_point[0] = value;
+    p->mastering_display.white_point[0] = value;
     READ_BITS(gb, 16, &value);
-    s->mastering_display.white_point[1] = value;
+    p->mastering_display.white_point[1] = value;
     mpp_read_longbits(gb, 32, &lum);
-    s->mastering_display.max_luminance = lum;
+    p->mastering_display.max_luminance = lum;
     mpp_read_longbits(gb, 32, &lum);
-    s->mastering_display.min_luminance = lum;
+    p->mastering_display.min_luminance = lum;
 
     h265d_dbg_sei("dis_prim [%d %d] [%d %d] [%d %d] white point %d %d luminance %d %d\n",
-                  s->mastering_display.display_primaries[0][0],
-                  s->mastering_display.display_primaries[0][1],
-                  s->mastering_display.display_primaries[1][0],
-                  s->mastering_display.display_primaries[1][1],
-                  s->mastering_display.display_primaries[2][0],
-                  s->mastering_display.display_primaries[2][1],
-                  s->mastering_display.white_point[0],
-                  s->mastering_display.white_point[1],
-                  s->mastering_display.max_luminance,
-                  s->mastering_display.min_luminance);
+                  p->mastering_display.display_primaries[0][0],
+                  p->mastering_display.display_primaries[0][1],
+                  p->mastering_display.display_primaries[1][0],
+                  p->mastering_display.display_primaries[1][1],
+                  p->mastering_display.display_primaries[2][0],
+                  p->mastering_display.display_primaries[2][1],
+                  p->mastering_display.white_point[0],
+                  p->mastering_display.white_point[1],
+                  p->mastering_display.max_luminance,
+                  p->mastering_display.min_luminance);
 
     return 0;
 
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 content_light_info(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 content_light_info(H265dPrs *p, BitReadCtx_t *gb)
 {
     RK_U32 value = 0;
+
     mpp_read_longbits(gb, 16, &value);
-    s->content_light.MaxCLL = value;
+    p->content_light.MaxCLL = value;
     mpp_read_longbits(gb, 16, &value);
-    s->content_light.MaxFALL = value;
+    p->content_light.MaxFALL = value;
     return 0;
 }
 
 static RK_S32 colour_remapping_info(BitReadCtx_t *gb)
 {
-    RK_U32 i = 0, j = 0;
-    RK_U32 value = 0;
     RK_U32 in_bit_depth = 0;
     RK_U32 out_bit_depth = 0;
+    RK_U32 value = 0;
+    RK_U32 i = 0, j = 0;
 
-    READ_UE(gb, &value); //colour_remap ID
-    READ_ONEBIT(gb, &value); //colour_remap_cancel_flag
+    READ_UE(gb, &value);
+    READ_ONEBIT(gb, &value);
     if (!value) {
-        READ_ONEBIT(gb, &value); //colour_remap_persistence_flag
-        READ_ONEBIT(gb, &value); //colour_remap_video_signal_info_present_flag
+        READ_ONEBIT(gb, &value);
+        READ_ONEBIT(gb, &value);
         if (value) {
-            READ_ONEBIT(gb, &value); //colour_remap_full_rang_flag
-            READ_BITS(gb, 8, &value); //colour_remap_primaries
-            READ_BITS(gb, 8, &value); //colour_remap_transfer_function
-            READ_BITS(gb, 8, &value); //colour_remap_matries_coefficients
+            READ_ONEBIT(gb, &value);
+            READ_BITS(gb, 8, &value);
+            READ_BITS(gb, 8, &value);
+            READ_BITS(gb, 8, &value);
         }
 
-        READ_BITS(gb, 8, &in_bit_depth); //colour_remap_input_bit_depth
-        READ_BITS(gb, 8, &out_bit_depth); //colour_remap_bit_depth
+        READ_BITS(gb, 8, &in_bit_depth);
+        READ_BITS(gb, 8, &out_bit_depth);
         for (i = 0; i < 3; i++) {
             RK_U32 pre_lut_num_val_minus1 = 0;
             RK_U32 in_bit = ((in_bit_depth + 7) >> 3) << 3;
             RK_U32 out_bit = ((out_bit_depth + 7) >> 3) << 3;
-            READ_BITS(gb, 8, &pre_lut_num_val_minus1); //pre_lut_num_val_minus1
+            READ_BITS(gb, 8, &pre_lut_num_val_minus1);
             if (pre_lut_num_val_minus1 > 0) {
                 for (j = 0; j <= pre_lut_num_val_minus1; j++) {
-                    READ_BITS(gb, in_bit, &value); //pre_lut_coded_value
-                    READ_BITS(gb, out_bit, &value); //pre_lut_target_value
+                    READ_BITS(gb, in_bit, &value);
+                    READ_BITS(gb, out_bit, &value);
                 }
             }
         }
-        READ_ONEBIT(gb, &value); //colour_remap_matrix_present_flag
+        READ_ONEBIT(gb, &value);
         if (value) {
-            READ_BITS(gb, 4, &value); //log2_matrix_denom
+            READ_BITS(gb, 4, &value);
             for (i = 0; i < 3; i++) {
                 for (j = 0; j < 3; j++)
-                    READ_SE(gb, &value); //colour_remap_coeffs
+                    READ_SE(gb, &value);
             }
         }
         for (i = 0; i < 3; i++) {
             RK_U32 post_lut_num_val_minus1 = 0;
             RK_U32 in_bit = ((in_bit_depth + 7) >> 3) << 3;
             RK_U32 out_bit = ((out_bit_depth + 7) >> 3) << 3;
-            READ_BITS(gb, 8, &post_lut_num_val_minus1); //post_lut_num_val_minus1
+            READ_BITS(gb, 8, &post_lut_num_val_minus1);
             if (post_lut_num_val_minus1 > 0) {
                 for (j = 0; j <= post_lut_num_val_minus1; j++) {
-                    READ_BITS(gb, in_bit, &value); //post_lut_coded_value
-                    READ_BITS(gb, out_bit, &value); //post_lut_target_value
+                    READ_BITS(gb, in_bit, &value);
+                    READ_BITS(gb, out_bit, &value);
                 }
             }
         }
@@ -251,37 +219,39 @@ static RK_S32 colour_remapping_info(BitReadCtx_t *gb)
 
     return MPP_OK;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
 static RK_S32 tone_mapping_info(BitReadCtx_t *gb)
 {
-    RK_U32 i = 0;
-    RK_U32 value = 0;
     RK_U32 codec_bit_depth = 0;
     RK_U32 target_bit_depth = 0;
+    RK_U32 value = 0;
+    RK_U32 i = 0;
 
-    READ_UE(gb, &value); //tone_map ID
-    READ_ONEBIT(gb, &value); //tone_map_cancel_flag
+    READ_UE(gb, &value);
+    READ_ONEBIT(gb, &value);
     if (!value) {
         RK_U32 tone_map_model_id;
-        READ_ONEBIT(gb, &value); //tone_map_persistence_flag
-        READ_BITS(gb, 8, &codec_bit_depth); //coded_data_bit_depth
-        READ_BITS(gb, 8, &target_bit_depth); //target_bit_depth
-        READ_UE(gb, &tone_map_model_id); //tone_map_model_id
+
+        READ_ONEBIT(gb, &value);
+        READ_BITS(gb, 8, &codec_bit_depth);
+        READ_BITS(gb, 8, &target_bit_depth);
+        READ_UE(gb, &tone_map_model_id);
         switch (tone_map_model_id) {
         case 0: {
-            mpp_read_longbits(gb, 32, &value); //min_value
-            mpp_read_longbits(gb, 32, &value); //max_value
+            mpp_read_longbits(gb, 32, &value);
+            mpp_read_longbits(gb, 32, &value);
             break;
         }
         case 1: {
-            mpp_read_longbits(gb, 32, &value); //sigmoid_midpoint
-            mpp_read_longbits(gb, 32, &value); //sigmoid_width
+            mpp_read_longbits(gb, 32, &value);
+            mpp_read_longbits(gb, 32, &value);
             break;
         }
         case 2: {
             RK_U32 in_bit = ((codec_bit_depth + 7) >> 3) << 3;
+
             for (i = 0; i < (RK_U32)(1 << target_bit_depth); i++) {
                 READ_BITS(gb, in_bit, &value);
             }
@@ -291,7 +261,8 @@ static RK_S32 tone_mapping_info(BitReadCtx_t *gb)
             RK_U32  num_pivots;
             RK_U32 in_bit = ((codec_bit_depth + 7) >> 3) << 3;
             RK_U32 out_bit = ((target_bit_depth + 7) >> 3) << 3;
-            READ_BITS(gb, 16, &num_pivots); //num_pivots
+
+            READ_BITS(gb, 16, &num_pivots);
             for (i = 0; i < num_pivots; i++) {
                 READ_BITS(gb, in_bit, &value);
                 READ_BITS(gb, out_bit, &value);
@@ -301,23 +272,24 @@ static RK_S32 tone_mapping_info(BitReadCtx_t *gb)
         case 4: {
             RK_U32 camera_iso_speed_idc;
             RK_U32 exposure_index_idc;
+
             READ_BITS(gb, 8, &camera_iso_speed_idc);
             if (camera_iso_speed_idc == 255) {
-                mpp_read_longbits(gb, 32, &value); //camera_iso_speed_value
+                mpp_read_longbits(gb, 32, &value);
 
             }
             READ_BITS(gb, 8, &exposure_index_idc);
             if (exposure_index_idc == 255) {
-                mpp_read_longbits(gb, 32, &value); //exposure_index_value
+                mpp_read_longbits(gb, 32, &value);
             }
-            READ_ONEBIT(gb, &value); //exposure_compensation_value_sign_flag
-            READ_BITS(gb, 16, &value); //exposure_compensation_value_numerator
-            READ_BITS(gb, 16, &value); //exposure_compensation_value_denom_idc
-            READ_BITS_LONG(gb, 32, &value); //ref_screen_luminance_white
-            READ_BITS_LONG(gb, 32, &value); //extended_range_white_level
-            READ_BITS(gb, 16, &value); //nominal_black_level_code_value
-            READ_BITS(gb, 16, &value); //nominal_white_level_code_value
-            READ_BITS(gb, 16, &value); //extended_white_level_code_value
+            READ_ONEBIT(gb, &value);
+            READ_BITS(gb, 16, &value);
+            READ_BITS(gb, 16, &value);
+            READ_BITS_LONG(gb, 32, &value);
+            READ_BITS_LONG(gb, 32, &value);
+            READ_BITS(gb, 16, &value);
+            READ_BITS(gb, 16, &value);
+            READ_BITS(gb, 16, &value);
             break;
         }
         default:
@@ -327,24 +299,24 @@ static RK_S32 tone_mapping_info(BitReadCtx_t *gb)
 
     return MPP_OK;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 vivid_display_info(HEVCContext *s, BitReadCtx_t *gb, RK_U32 size)
+static RK_S32 vivid_display_info(H265dPrs *p, BitReadCtx_t *gb, RK_U32 size)
 {
     if (gb)
-        mpp_hevc_fill_dynamic_meta(s, gb->data_, size, HDRVIVID);
+        h265d_fill_dynamic_meta(p, gb->data_, size, HDRVIVID);
     return 0;
 }
 
-static RK_S32 hdr10plus_dynamic_data(HEVCContext *s, BitReadCtx_t *gb, RK_U32 size)
+static RK_S32 hdr10plus_dynamic_data(H265dPrs *p, BitReadCtx_t *gb, RK_U32 size)
 {
     if (gb)
-        mpp_hevc_fill_dynamic_meta(s, gb->data_, size, HDR10PLUS);
+        h265d_fill_dynamic_meta(p, gb->data_, size, HDR10PLUS);
     return 0;
 }
 
-static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, int size)
+static RK_S32 user_data_registered_itu_t_t35(H265dPrs *p, BitReadCtx_t *gb, RK_S32 size)
 {
     RK_S32 country_code, provider_code;
     RK_U16 provider_oriented_code;
@@ -360,30 +332,28 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
         SKIP_BITS(gb, 8);
     }
 
-    /* usa country_code or china country_code */
     if (country_code != 0xB5 && country_code != 0x26) {
-        mpp_log("Unsupported User Data Registered ITU-T T35 SEI message (country_code = %d)", country_code);
+        mpp_log("Unsupported User Data Registered ITU-T T35 SEI message (country_code %d)", country_code);
         return MPP_ERR_STREAM;
     }
 
     READ_BITS(gb, 16, &provider_code);
     READ_BITS(gb, 16, &provider_oriented_code);
-    h265d_dbg_sei("country_code=%d provider_code=%d terminal_provider_code %d\n",
+    h265d_dbg_sei("country_code=%d provider_code %d terminal_provider_code %d\n",
                   country_code, provider_code, provider_oriented_code);
     switch (provider_code) {
-    case 0x4: {/* cuva provider_code is 0x4 */
-        vivid_display_info(s, gb, mpp_get_bits_left(gb) >> 3);
+    case 0x4: {
+        vivid_display_info(p, gb, mpp_get_bits_left(gb) >> 3);
     } break;
-    case 0x3c: {/* smpte2094_40 provider_code is 0x3c*/
+    case 0x3c: {
         const RK_U16 smpte2094_40_provider_oriented_code = 0x0001;
         const RK_U8 smpte2094_40_application_identifier = 0x04;
         RK_U8 application_identifier;
 
         READ_BITS(gb, 8, &application_identifier);
-        /* hdr10plus priverder_oriented_code is 0x0001, application_identifier is 0x04 */
         if (provider_oriented_code == smpte2094_40_provider_oriented_code &&
             application_identifier == smpte2094_40_application_identifier)
-            hdr10plus_dynamic_data(s, gb, mpp_get_bits_left(gb) >> 3);
+            hdr10plus_dynamic_data(p, gb, mpp_get_bits_left(gb) >> 3);
     } break;
     default:
         break;
@@ -392,24 +362,24 @@ static RK_S32 user_data_registered_itu_t_t35(HEVCContext *s, BitReadCtx_t *gb, i
     return 0;
 
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-static RK_S32 decode_nal_sei_alternative_transfer(HEVCContext *s, BitReadCtx_t *gb)
+static RK_S32 decode_nal_sei_alternative_transfer(H265dPrs *p, BitReadCtx_t *gb)
 {
-    HEVCSEIAlternativeTransfer *alternative_transfer = &s->alternative_transfer;
+    HEVCSEIAlternativeTransfer *alternative_transfer = &p->alternative_transfer;
     RK_S32 val;
 
     READ_BITS(gb, 8, &val);
     alternative_transfer->present = 1;
     alternative_transfer->preferred_transfer_characteristics = val;
-    s->is_hdr = 1;
+    p->is_hdr = 1;
     return 0;
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }
 
-MPP_RET decode_recovery_point(BitReadCtx_t *gb, HEVCContext *s)
+MPP_RET decode_recovery_point(BitReadCtx_t *gb, H265dPrs *p)
 {
     RK_S32 val = -1;
 
@@ -419,26 +389,26 @@ MPP_RET decode_recovery_point(BitReadCtx_t *gb, HEVCContext *s)
         return MPP_ERR_STREAM;
     }
 
-    memset(&s->recovery, 0, sizeof(RecoveryPoint));
-    s->recovery.valid_flag = 1;
-    s->recovery.recovery_frame_cnt = val;
+    memset(&p->recovery, 0, sizeof(RecoveryPoint));
+    p->recovery.valid_flag = 1;
+    p->recovery.recovery_frame_cnt = val;
 
-    h265d_dbg_sei("Recovery point: poc_cnt %d", s->recovery.recovery_frame_cnt);
+    h265d_dbg_sei("Recovery point: poc_cnt %d", p->recovery.recovery_frame_cnt);
     return MPP_OK;
 __BITREAD_ERR:
     return MPP_ERR_STREAM;
 }
 
-MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
+MPP_RET h265d_nal_sei(H265dPrs *p)
 {
-    MPP_RET ret = MPP_OK;
-    BitReadCtx_t *gb = &s->HEVClc->gb;
-
+    BitReadCtx_t payload_bitctx;
+    BitReadCtx_t *gb = &p->bit;
     RK_S32 payload_type = 0;
     RK_S32 payload_size = 0;
     RK_S32 byte = 0xFF;
+    MPP_RET ret = MPP_OK;
     RK_S32 i = 0;
-    BitReadCtx_t payload_bitctx;
+
     h265d_dbg_sei("Decoding SEI\n");
 
     do {
@@ -474,36 +444,36 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
         }
 
         memset(&payload_bitctx, 0, sizeof(payload_bitctx));
-        mpp_set_bitread_ctx(&payload_bitctx, s->HEVClc->gb.data_, payload_size);
+        mpp_set_bitread_ctx(&payload_bitctx, p->bit.data_, payload_size);
         mpp_set_bitread_pseudo_code_type(&payload_bitctx, PSEUDO_CODE_H264_H265_SEI);
 
-        h265d_dbg_sei("s->nal_unit_type %d payload_type %d payload_size %d\n", s->nal_unit_type, payload_type, payload_size);
+        h265d_dbg_sei("s->nal_unit_type %d payload_type %d payload_size %d\n", p->nal_unit_type, payload_type, payload_size);
 
-        if (s->nal_unit_type == NAL_SEI_PREFIX) {
-            if (payload_type == 256 /*&& s->decode_checksum_sei*/) {
+        if (p->nal_unit_type == NAL_SEI_PREFIX) {
+            if (payload_type == 256) {
                 ret = decode_nal_sei_decoded_picture_hash(&payload_bitctx);
             } else if (payload_type == 45) {
-                ret = decode_nal_sei_frame_packing_arrangement(s, &payload_bitctx);
+                ret = decode_nal_sei_frame_packing_arrangement(&payload_bitctx);
             } else if (payload_type == 1) {
-                ret = decode_pic_timing(s, &payload_bitctx);
+                ret = decode_pic_timing(p, &payload_bitctx);
                 h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             } else if (payload_type == 4) {
-                ret = user_data_registered_itu_t_t35(s, &payload_bitctx, payload_size);
+                ret = user_data_registered_itu_t_t35(p, &payload_bitctx, payload_size);
             } else if (payload_type == 5) {
-                ret = check_encoder_sei_info(&payload_bitctx, payload_size, &s->deny_flag);
+                ret = check_encoder_sei_info(&payload_bitctx, payload_size, &p->deny_flag);
 
-                if (s->deny_flag)
+                if (p->deny_flag)
                     h265d_dbg_sei("Bitstream is encoded by special encoder.");
             } else if (payload_type == 129) {
-                ret = active_parameter_sets(s, &payload_bitctx);
+                ret = active_parameter_sets(p, &payload_bitctx);
                 h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             } else if (payload_type == 137) {
                 h265d_dbg_sei("mastering_display_colour_volume in\n");
-                ret = mastering_display_colour_volume(s, &payload_bitctx);
-                s->is_hdr = 1;
+                ret = mastering_display_colour_volume(p, &payload_bitctx);
+                p->is_hdr = 1;
             } else if (payload_type == 144) {
                 h265d_dbg_sei("content_light_info in\n");
-                ret = content_light_info(s, &payload_bitctx);
+                ret = content_light_info(p, &payload_bitctx);
             } else if (payload_type == 143) {
                 h265d_dbg_sei("colour_remapping_info in\n");
                 ret = colour_remapping_info(&payload_bitctx);
@@ -512,16 +482,16 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
                 ret = tone_mapping_info(&payload_bitctx);
             } else if (payload_type == 6) {
                 h265d_dbg_sei("recovery point in\n");
-                s->max_ra = INT_MIN;
-                ret = decode_recovery_point(&payload_bitctx, s);
+                p->max_ra = INT_MIN;
+                ret = decode_recovery_point(&payload_bitctx, p);
             }  else if (payload_type == 147) {
                 h265d_dbg_sei("alternative_transfer in\n");
-                ret = decode_nal_sei_alternative_transfer(s, &payload_bitctx);
+                ret = decode_nal_sei_alternative_transfer(p, &payload_bitctx);
             } else {
                 h265d_dbg_sei("Skipped PREFIX SEI %d\n", payload_type);
             }
-        } else { /* nal_unit_type == NAL_SEI_SUFFIX */
-            if (payload_type == 132 /* && s->decode_checksum_sei */)
+        } else {
+            if (payload_type == 132)
                 ret = decode_nal_sei_decoded_picture_hash(&payload_bitctx);
             else {
                 h265d_dbg_sei("Skipped SUFFIX SEI %d\n", payload_type);
@@ -538,5 +508,5 @@ MPP_RET mpp_hevc_decode_nal_sei(HEVCContext *s)
     return ret;
 
 __BITREAD_ERR:
-    return  MPP_ERR_STREAM;
+    return MPP_ERR_STREAM;
 }

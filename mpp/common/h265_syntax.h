@@ -1,20 +1,18 @@
 /*
-*
-* Copyright 2015 Rockchip Electronics Co. LTD
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
+ * Copyright 2015 Rockchip Electronics Co. LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef H265_SYNTAX_H
 #define H265_SYNTAX_H
@@ -66,7 +64,6 @@
 #define MAX_SHORT_TERM_RPS_COUNT 64
 #define MAX_CU_SIZE 128
 
-//TODO: check if this is really the maximum
 #define MAX_TRANSFORM_DEPTH 5
 
 #define MAX_TB_SIZE 32
@@ -83,8 +80,8 @@
 #define L1 1
 
 #define REF_PIC_LIST_NUM_IDX 32
-#define MAX_CPB_CNT          32 //< Upper bound of (cpb_cnt_minus1 + 1)
-#define MAX_CU_DEPTH         6  // log2(LCUSize)
+#define MAX_CPB_CNT          32
+#define MAX_CU_DEPTH         6
 #define MAX_VPS_NUM_HRD_PARAMETERS  1
 #define MAX_VPS_OP_SETS_PLUS1       1024
 #define MAX_VPS_NUH_RESERVED_ZERO_LAYER_ID_PLUS1  1
@@ -123,11 +120,11 @@
 /**
  * Value of the luma sample at position (x, y) in the 2D array tab.
  */
-#define IS_IDR(s) (s->nal_unit_type == NAL_IDR_W_RADL || s->nal_unit_type == NAL_IDR_N_LP)
-#define IS_BLA(s) (s->nal_unit_type == NAL_BLA_W_RADL || s->nal_unit_type == NAL_BLA_W_LP || \
-                   s->nal_unit_type == NAL_BLA_N_LP)
-#define IS_IRAP(s) (s->nal_unit_type >= 16 && s->nal_unit_type <= 23)
-#define IS_CRA(s) (s->nal_unit_type == NAL_CRA_NUT)
+#define IS_IDR(type) (type == NAL_IDR_W_RADL || type == NAL_IDR_N_LP)
+#define IS_BLA(type) (type == NAL_BLA_W_RADL || type == NAL_BLA_W_LP || \
+                      type == NAL_BLA_N_LP)
+#define IS_IRAP(type) (type >= NAL_BLA_W_LP && type <= NAL_CRA_NUT)
+#define IS_CRA(type) (type == NAL_CRA_NUT)
 
 /**
  * Table 7-3: NAL unit type codes

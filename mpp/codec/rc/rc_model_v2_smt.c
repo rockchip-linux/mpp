@@ -1076,7 +1076,7 @@ MPP_RET check_re_enc_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
     if (cfg->bit_real > bit_thr) {
         bps = usr_cfg->bps_max;
         if ((bps - (bps >> 3) < ins_bps) && (bps / 20  < ins_bps - last_ins_bps))
-            ret =  MPP_NOK;
+            ret = MPP_NOK;
     }
 
     rc_dbg_func("leave %p ret %d\n", ctx, ret);

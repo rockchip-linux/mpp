@@ -441,6 +441,9 @@ static MPP_RET try_proc_dec_task(Mpp *mpp, DecTask *task)
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_CODEC_READY);
         mpp_buf_slot_set_flag(packet_slots, task_dec->input, SLOT_HAL_INPUT);
         task->status.dec_pkt_copy_rdy = 1;
+
+        // Sync parser to release zero-copy data after hardware copy is done
+        mpp_parser_sync(dec->parser, task_dec->input);
     }
 
     /* 7.1 if not fast mode wait previous task done here */

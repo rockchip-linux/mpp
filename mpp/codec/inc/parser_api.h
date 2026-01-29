@@ -71,6 +71,7 @@ typedef struct ParserApi_t {
     MPP_RET (*flush)(void *ctx);
     MPP_RET (*control)(void *ctx, MpiCmd cmd, void *param);
     MPP_RET (*callback)(void *ctx, void *err_info);
+    MPP_RET (*sync)(void *ctx, RK_S32 frame_id);
 } ParserApi;
 
 
