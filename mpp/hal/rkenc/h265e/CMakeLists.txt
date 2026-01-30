@@ -14,6 +14,7 @@ add_hal_source(HAL_H265E_SRC HAVE_VEPU580 hal_h265e_vepu580.c)
 add_hal_source(HAL_H265E_SRC HAVE_VEPU540C hal_h265e_vepu540c.c)
 add_hal_source(HAL_H265E_SRC HAVE_VEPU510 hal_h265e_vepu510.c)
 add_hal_source(HAL_H265E_SRC HAVE_VEPU511 hal_h265e_vepu511.c)
+add_hal_source(HAL_H265E_SRC HAVE_VEPU511A hal_h265e_vepu511a.c)
 
 if (HAL_H265E_SRC)
     add_library(hal_h265e_vepu5xx OBJECT ${HAL_H265E_SRC})
