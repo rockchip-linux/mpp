@@ -39,4 +39,9 @@
 #define MPP_BIT64_OR_HELPER(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 #define MPP_BIT64_OR(...) MPP_BIT64_OR_HELPER(__VA_ARGS__, MPP_BIT64_6OR, MPP_BIT64_5OR, MPP_BIT64_4OR, MPP_BIT64_3OR, MPP_BIT64_2OR, MPP_BIT64_1OR)(__VA_ARGS__)
 
+#define MPP_SET_BIT(bits, n)            ((bits) |= MPP_BIT(n))
+#define MPP_CLR_BIT(bits, n)            ((bits) &= ~MPP_BIT(n))
+#define MPP_GET_BIT(bits, n)            (((bits) >> (n)) & 1U)
+#define MPP_MOD_BIT(bits, n, v)         ((v) ? MPP_SET_BIT(bits, n) : MPP_CLR_BIT(bits, n))
+
 #endif /* MPP_BIT_H */
