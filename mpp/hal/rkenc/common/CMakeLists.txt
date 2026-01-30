@@ -10,4 +10,5 @@ add_library(hal_vepu5xx_common OBJECT
     vepu580_common.c
     vepu510_common.c
     vepu511_common.c
+    vepu511a_common.c
     )
