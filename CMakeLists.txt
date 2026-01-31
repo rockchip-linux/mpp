@@ -122,6 +122,19 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(GCC true)
 endif()
 
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    # remove -g option for high version ndk
+    string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "[ ]+" " " CMAKE_C_FLAGS "${TMP}")
+    string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "[ ]+" " " CMAKE_CXX_FLAGS "${TMP}")
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+else()
+    add_definitions(-g)
+endif()
+
 if(GCC)
     if(ARM)
         if(ARMEABI_V6)
@@ -137,19 +150,6 @@ if(GCC)
         if(X86 AND NOT X64)
             add_definitions(-march=i686)
         endif()
-    endif()
-
-    if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-        # remove -g option for high version ndk
-        string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_C_FLAGS}")
-        string(REGEX REPLACE "[ ]+" " " CMAKE_C_FLAGS "${TMP}")
-        string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_CXX_FLAGS}")
-        string(REGEX REPLACE "[ ]+" " " CMAKE_CXX_FLAGS "${TMP}")
-
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
-    else()
-        add_definitions(-g)
     endif()
 
     # disable multichar warning
