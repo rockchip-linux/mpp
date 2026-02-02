@@ -3,13 +3,13 @@
         "type" : 8
     },
     "jpeg" : {
-        "q_mode" : {},
+        "q_mode" : 0,
         "quant" : -1,
         "q_factor" : 80,
         "qf_max" : 99,
         "qf_min" : 1,
-        "qtable_y" : {},
-        "qtable_u" : {},
-        "qtable_v" : {}
+        "qtable_y" : [],
+        "qtable_u" : [],
+        "qtable_v" : []
     }
 }

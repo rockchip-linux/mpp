@@ -30,7 +30,7 @@
         "max_ltr" : 0,
         "base_layer_pid" : 0,
         "const_intra" : 0,
-        "lcu_size" : 64,
+        "lcu_size" : 0,
         "vui_en" : 1
     }
 }

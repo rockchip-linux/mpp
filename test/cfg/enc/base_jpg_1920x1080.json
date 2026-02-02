@@ -46,8 +46,8 @@
         "qp_ip" : 0,
         "qp_vi" : 0,
         "hier_qp_en" : 0,
-        "hier_qp_delta" : {},
-        "hier_frame_num" : {},
+        "hier_qp_delta" : [],
+        "hier_frame_num" : [],
         "stats_time" : 0,
         "refresh_en" : 0,
         "refresh_mode" : 0,
@@ -83,14 +83,14 @@
         "flip" : 0
     },
     "jpeg" : {
-        "q_mode" : {},
+        "q_mode" : 0,
         "quant" : -1,
         "q_factor" : 80,
         "qf_max" : 99,
         "qf_min" : 1,
-        "qtable_y" : {},
-        "qtable_u" : {},
-        "qtable_v" : {}
+        "qtable_y" : [],
+        "qtable_u" : [],
+        "qtable_v" : []
     },
     "split" : {
         "mode" : 0,
@@ -100,20 +100,20 @@
     "hw" : {
         "qp_row" : 0,
         "qp_row_i" : 0,
-        "aq_thrd_i" : {},
-        "aq_thrd_p" : {},
-        "aq_step_i" : {},
-        "aq_step_p" : {},
+        "aq_thrd_i" : [],
+        "aq_thrd_p" : [],
+        "aq_step_i" : [],
+        "aq_step_p" : [],
         "mb_rc_disable" : 0,
-        "aq_rnge_arr" : {},
-        "mode_bias" : {},
+        "aq_rnge_arr" : [],
+        "mode_bias" : [],
         "skip_bias_en" : 0,
         "skip_sad" : 8,
         "skip_bias" : 4,
         "qbias_i" : 0,
         "qbias_p" : 0,
         "qbias_en" : 1,
-        "qbias_arr" : {},
+        "qbias_arr" : [],
         "flt_str_i" : 0,
         "flt_str_p" : 0
     },
@@ -172,5 +172,7 @@
     "user_data_enable" : 0,
     "roi_enable" : 0,
     "roi_jpeg_enable" : 0,
-    "jpeg_osd_case" : 0
+    "jpeg_osd_case" : 0,
+    "constraint_set" : 0,
+    "sei_mode" : 0
 }
