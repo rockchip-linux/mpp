@@ -553,10 +553,10 @@ RK_S32 mpi_enc_opt_fps(void *ctx, const char *next)
 
         if (cfg_obj && ret != 0) {
             mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_num", cmd->fps_in_num);
-            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_den", cmd->fps_in_den);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_denom", cmd->fps_in_den);
             mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_in_flex", cmd->fps_in_flex);
             mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_num", cmd->fps_out_num);
-            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_den", cmd->fps_out_den);
+            mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_denom", cmd->fps_out_den);
             mpp_enc_cfg_set_s32(cfg_obj, "rc:fps_out_flex", cmd->fps_out_flex);
         }
 
