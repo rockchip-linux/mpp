@@ -19,6 +19,13 @@
 #define VDPP_TILE_W_MAX                 (120)
 #define VDPP_TILE_H_MAX                 (480)
 
+// marcos for common use
+#ifndef ROUND
+#define CEIL(a)                 (int)( (double)(a) > (int)(a) ? (int)((a)+1) : (int)(a) )
+#define FLOOR(a)                (int)( (double)(a) < (int)(a) ? (int)((a)-1) : (int)(a) )
+#define ROUND(a)                (int)( (a) > 0 ? ((double) (a) + 0.5) : ((double) (a) - 0.5) )
+#endif
+
 // marcos for zme
 #define SCALE_FACTOR_DN_FIXPOINT_SHIFT  (12)
 #define SCALE_FACTOR_UP_FIXPOINT_SHIFT  (16)
