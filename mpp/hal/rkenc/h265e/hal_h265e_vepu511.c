@@ -2931,6 +2931,8 @@ MPP_RET hal_h265e_vepu511_get_task(void *hal, HalEncTask *task)
     task->flags.reg_idx = ctx->task_idx;
     ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
     frm_cfg->frame_count = ++ctx->frame_count;
+    task->part_first = 1;
+    task->part_last = 0;
 
     ctx->task_idx++;
     if (ctx->task_idx >= ctx->task_cnt)
