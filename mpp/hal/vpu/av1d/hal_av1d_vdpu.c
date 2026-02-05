@@ -775,7 +775,7 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
     VdpuAv1dRegSet *regs = ctx->regs;
     RK_S32 ref_count[AV1DEC_MAX_PIC_BUFFERS] = {0};
 
-    RK_U32 ref_scale_e = 0;
+    RK_U32 ref_scale_e = 1;
     RK_U32 y_stride = ctx->luma_size;
     RK_U32 uv_stride = y_stride / 2;
     RK_U32 mv_offset = ctx->luma_size + ctx->chroma_size + 64;
@@ -820,10 +820,12 @@ static void vdpu_av1d_set_reference_frames(Av1dHalCtx *p_hal, VdpuAv1dRegCtx *ct
 
         set_ref_hor_scale(regs, ref, tmp1);
         set_ref_ver_scale(regs, ref, tmp2);
-        if (tmp1 != (1 << AV1_REF_SCALE_SHIFT) ||
-            tmp2 != (1 << AV1_REF_SCALE_SHIFT)) {
-            ref_scale_e = 1;
-        }
+
+        /* Keep ref_scale_e always 1 for hw bug */
+        // if (tmp1 != (1 << AV1_REF_SCALE_SHIFT) ||
+        //     tmp2 != (1 << AV1_REF_SCALE_SHIFT)) {
+        //     ref_scale_e = 1;
+        // }
 
         if (idx == ctx->prev_out_buffer_i) {
             prev_valid = 1;
