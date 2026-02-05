@@ -38,7 +38,7 @@
 #define AV1_DRL_MODE_CONTEXTS       3
 #define AV1_INTRA_INTER_CONTEXTS    4
 #define AV1_COMP_INTER_CONTEXTS     5
-#define AV1_REF_CONTEXTS            5
+#define AV1_REF_CONTEXTS            3
 #define AV1_FWD_REFS                4
 #define AV1_BWD_REFS                3
 #define AV1_SINGLE_REFS             7
