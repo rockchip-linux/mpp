@@ -2840,8 +2840,8 @@ MPP_RET hal_h265e_vepu511_wait(void *hal, HalEncTask *task)
 
             ret = mpp_dev_ioctl(ctx->dev, MPP_DEV_CMD_POLL, poll_cfg);
             for (i = 0; i < poll_cfg->count_ret; i++) {
-                slice_last = poll_cfg->slice_info[i].last;
-                slice_len = poll_cfg->slice_info[i].length;
+                slice_last = poll_cfg->slice_info[i].vepu511.sli_lst;
+                slice_len = poll_cfg->slice_info[i].vepu511.sli_len;
                 param.length = slice_len;
 
                 mpp_packet_add_segment_info(pkt, type, seg_offset, slice_len);
