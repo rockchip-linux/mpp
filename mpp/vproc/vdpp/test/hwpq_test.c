@@ -116,7 +116,7 @@ static void *multi_vdpp(void *cmd_ctx)
     RK_U32 pyr_vir_wids[3] = {0};
     RK_U32 pyr_vir_hgts[3] = {0};
     RK_U32 pyr_buf_sizes[3]  = {0};
-    RK_S32 pyr_fds[3] = {-1, -1, -1};
+    RK_S32 pyr_fds[3] = { -1, -1, -1};
     void *pyr_addrs[3] = {0};
 
     MppBufferGroup memGroup = NULL;

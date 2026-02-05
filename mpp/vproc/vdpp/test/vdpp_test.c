@@ -505,7 +505,7 @@ int vdpp_test(VdppComCtx *vdppCtx, VdppTestCfg *cfg)
     RK_S32 fddst = -1;
     RK_S32 fddst_c = -1;
     RK_S32 fdhist = -1;
-    RK_S32 pyrFds[3] = {-1, -1, -1};
+    RK_S32 pyrFds[3] = { -1, -1, -1};
     RK_U32 pyrWids[3] = {0};
     RK_U32 pyrHgts[3] = {0};
     RK_U32 pyrSizes[3] = {0};
