@@ -44,4 +44,9 @@
 #define MPP_GET_BIT(bits, n)            (((bits) >> (n)) & 1U)
 #define MPP_MOD_BIT(bits, n, v)         ((v) ? MPP_SET_BIT(bits, n) : MPP_CLR_BIT(bits, n))
 
+#define MPP_SET_BIT64(bits, n)          ((bits) |= MPP_BIT64(n))
+#define MPP_CLR_BIT64(bits, n)          ((bits) &= ~MPP_BIT64(n))
+#define MPP_GET_BIT64(bits, n)          (((bits) >> (n)) & 1ULL)
+#define MPP_MOD_BIT64(bits, n, v)       ((v) ? MPP_SET_BIT64(bits, n) : MPP_CLR_BIT64(bits, n))
+
 #endif /* MPP_BIT_H */
