@@ -798,8 +798,7 @@ static MPP_RET vepu540c_h265_set_pp_regs(H265eV540cRegSet *regs, VepuFmtCfg *fmt
     reg_base->reg0198_src_fmt.src_cfmt = fmt->format;
     reg_base->reg0198_src_fmt.alpha_swap = fmt->alpha_swap;
     reg_base->reg0198_src_fmt.rbuv_swap = fmt->rbuv_swap;
-
-    reg_base->reg0198_src_fmt.out_fmt = (prep_cfg->format == MPP_FMT_YUV400) ? 0 : 1;
+    reg_base->reg0198_src_fmt.out_fmt = (fmt->format == VEPU5xx_FMT_YUV400) ? 0 : 1;
     reg_base->reg0203_src_proc.src_mirr = prep_cfg->mirroring > 0;
     reg_base->reg0203_src_proc.src_rot = prep_cfg->rotation;
 

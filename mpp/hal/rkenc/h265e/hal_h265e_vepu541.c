@@ -1071,6 +1071,7 @@ static MPP_RET vepu541_h265_set_pp_regs(VepuFmtCfg *fmt, H265eV541HalContext *ct
     regs->src_fmt.alpha_swap = fmt->alpha_swap;
     regs->src_fmt.rbuv_swap = fmt->rbuv_swap;
     regs->src_fmt.src_range = fmt->src_range;
+    regs->src_fmt.out_fmt_cfg = (fmt->format == VEPU5xx_FMT_YUV400) ? 1 : 0;
     regs->src_proc.src_mirr = prep_cfg->mirroring > 0;
     regs->src_proc.src_rot = prep_cfg->rotation;
 

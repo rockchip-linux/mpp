@@ -154,7 +154,7 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     }
     profileTierLevel->m_tierFlag = codec->tier ? 1 : 0;
 
-    if (prep->format == MPP_FMT_YUV400) {
+    if ((prep->format & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV400) {
         /* general_profile_idc == 4 */
         codec->profile = MPP_PROFILE_HEVC_FORMAT_RANGE_EXTENDIONS;
         profileTierLevel->m_max12bitConstraintFlag = 1;
@@ -185,7 +185,7 @@ MPP_RET h265e_set_sps(H265eCtx *ctx, H265eSps *sps, H265eVps *vps)
     MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     MppEncVuiCfg *vui = &codec->vui;
-    MppFrameFormat fmt = prep->format;
+    MppFrameFormat fmt = prep->format & MPP_FRAME_FMT_MASK;
     RK_S32 i_timebase_num = rc->fps_out_denom;
     RK_S32 i_timebase_den = rc->fps_out_num;
     RK_U8  convertToBit[MAX_CU_SIZE + 1];

@@ -721,7 +721,7 @@ static MPP_RET setup_vepu510_prep(HalVepu510RegSet *regs, MppEncPrepCfg *prep)
     reg_frm->common.src_fmt.src_cfmt   = hw_fmt;
     reg_frm->common.src_fmt.alpha_swap = cfg.alpha_swap;
     reg_frm->common.src_fmt.rbuv_swap  = cfg.rbuv_swap;
-    reg_frm->common.src_fmt.out_fmt = ((fmt & MPP_FRAME_FMT_MASK) == MPP_FMT_YUV400 ? 0 : 1);
+    reg_frm->common.src_fmt.out_fmt = (hw_fmt == VEPU5xx_FMT_YUV400) ? 0 : 1;
 
     if (MPP_FRAME_FMT_IS_FBC(fmt)) {
         mpp_err("Unsupported FBC format input.\n");

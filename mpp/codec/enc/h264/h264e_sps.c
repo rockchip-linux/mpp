@@ -66,7 +66,7 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     MppEncH264Cfg *h264 = &cfg->h264;
     MppEncRefCfg ref = cfg->ref_cfg;
     MppEncCpbInfo *info = mpp_enc_ref_cfg_get_cpb_info(ref);
-    MppFrameFormat fmt = prep->format;
+    MppFrameFormat fmt = prep->format & MPP_FRAME_FMT_MASK;
     RK_S32 gop = rc->gop;
     RK_S32 width = prep->width;
     RK_S32 height = prep->height;

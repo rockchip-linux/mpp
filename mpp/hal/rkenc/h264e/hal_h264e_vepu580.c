@@ -724,7 +724,7 @@ static MPP_RET setup_vepu580_prep(HalVepu580RegSet *regs, MppEncPrepCfg *prep,
     regs->reg_base.src_fmt.src_cfmt   = hw_fmt;
     regs->reg_base.src_fmt.alpha_swap = cfg.alpha_swap;
     regs->reg_base.src_fmt.rbuv_swap  = cfg.rbuv_swap;
-    regs->reg_base.src_fmt.out_fmt    = (fmt == MPP_FMT_YUV400) ? 0 : 1;
+    regs->reg_base.src_fmt.out_fmt    = (hw_fmt == VEPU5xx_FMT_YUV400) ? 0 : 1;
 
     if (MPP_FRAME_FMT_IS_YUV(fmt))
         regs->reg_base.src_fmt.src_range  = 1;
