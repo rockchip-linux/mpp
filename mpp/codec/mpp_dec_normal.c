@@ -843,7 +843,10 @@ void *mpp_dec_hal_thread(void *data)
              */
             if (task_dec->flags.eos &&
                 (!task_dec->valid || task_dec->output < 0)) {
-                mpp_dec_push_display(mpp, task_dec->flags);
+                HalDecTaskFlag flag = task_dec->flags;
+
+                flag.eos = 0;
+                mpp_dec_push_display(mpp, flag);
                 /*
                  * Use -1 as invalid buffer slot index.
                  * Reason: the last task maybe is a empty task with eos flag
