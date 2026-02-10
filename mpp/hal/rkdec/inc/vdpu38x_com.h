@@ -821,7 +821,6 @@ MPP_RET vdpu38x_get_tile4x4_h_stride_coeff(MppFrameFormat fmt, RK_U32 *coeff);
 void vdpu38x_setup_rcb(Vdpu38xRcbCtx *ctx, Vdpu38xRcbRegSet *regs, MppDev dev, MppBuffer buf);
 void vdpu384b_init_ctrl_regs(Vdpu38xRegSet *regs, MppCodingType codec_t);
 void vdpu38x_setup_statistic(Vdpu38xCtrlReg *com);
-void vdpu38x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 void vdpu38x_setup_down_scale(MppFrame frame, MppDev dev, Vdpu38xCtrlReg *com, void* comParas);
 void vdpu38x_update_thumbnail_frame_info(MppFrame frame);
 MPP_RET vdpu38x_setup_scale_origin_bufs(MppFrame mframe, HalBufs *org_bufs, RK_S32 max_cnt);

@@ -8,7 +8,7 @@
 
 #include <math.h>
 
-#include "rk_type.h"
+#include "mpp_buf_slot.h"
 
 #define VDPU_FAST_REG_SET_CNT  3
 
@@ -70,5 +70,6 @@ typedef struct Vdpu38xRcbRegSet_t {
 } Vdpu38xRcbRegSet;
 
 RK_S32 vdpu_compare_rcb_size(const void *a, const void *b);
+void vdpu_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 
 #endif /* VDPU_COM_H */

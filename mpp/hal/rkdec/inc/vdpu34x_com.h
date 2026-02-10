@@ -484,7 +484,6 @@ extern "C" {
 RK_S32 vdpu34x_get_rcb_buf_size(VdpuRcbInfo *info, RK_S32 width, RK_S32 height);
 void vdpu34x_setup_rcb(Vdpu34xRegCommonAddr *reg, MppDev dev, MppBuffer buf, VdpuRcbInfo *info);
 void vdpu34x_setup_statistic(Vdpu34xRegCommon *com, Vdpu34xRegStatistic *sta);
-void vdpu34x_afbc_align_calc(MppBufSlots slots, MppFrame frame, RK_U32 expand);
 RK_S32 vdpu34x_set_rcbinfo(MppDev dev, VdpuRcbInfo *rcb_info);
 RK_U32 vdpu34x_get_colmv_size(RK_U32 width, RK_U32 height, RK_U32 ctu_size,
                               RK_U32 colmv_bytes, RK_U32 colmv_size, RK_U32 compress);

@@ -562,7 +562,7 @@ MPP_RET vdpu382_h264d_init(void *hal, MppHalCfg *cfg)
             mpp_dev_ioctl(cfg->dev, MPP_DEV_SET_ERR_REF_HACK, &reg_ctx->err_ref_hack);
     }
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 16;
     }
 
@@ -1050,7 +1050,7 @@ MPP_RET vdpu382_h264d_control(void *hal, MpiCmd cmd_type, void *param)
             mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
+            vdpu_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
             mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         }

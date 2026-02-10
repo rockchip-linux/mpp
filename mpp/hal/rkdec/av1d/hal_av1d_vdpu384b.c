@@ -302,7 +302,7 @@ MPP_RET vdpu384b_av1d_init(void *hal, MppHalCfg *cfg)
     mpp_slots_set_prop(cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
 
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 0;
     }
 

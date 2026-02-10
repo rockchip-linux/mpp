@@ -1016,7 +1016,7 @@ MPP_RET vdpu38x_av1d_control(void *hal, MpiCmd cmd_type, void *param)
             mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_LEN_ALIGN, mpp_align_wxh2yuv422);
         }
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
+            vdpu_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 16);
         } else if (imgwidth > 1920 || imgheight > 1088) {
             mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_128_odd_plus_64);
         }

@@ -256,7 +256,7 @@ static MPP_RET hal_vp9d_vdpu382_init(void *hal, MppHalCfg *cfg)
     hw_ctx->last_segid_flag = 1;
 
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 0;
     }
 
@@ -1096,7 +1096,7 @@ static MPP_RET hal_vp9d_vdpu382_control(void *hal, MpiCmd cmd_type, void *param)
         MppFrameFormat fmt = mpp_frame_get_fmt((MppFrame)param);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 0);
+            vdpu_afbc_align_calc(p_hal->cfg->frame_slots, (MppFrame)param, 0);
         } else {
             mpp_slots_set_prop(p_hal->cfg->frame_slots, SLOTS_HOR_ALIGN, mpp_align_256_odd);
         }

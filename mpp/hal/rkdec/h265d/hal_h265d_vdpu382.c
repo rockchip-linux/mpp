@@ -159,7 +159,7 @@ static MPP_RET hal_h265d_vdpu382_init(void *hal, MppHalCfg *cfg)
     }
 
     if (cfg->hal_fbc_adj_cfg) {
-        cfg->hal_fbc_adj_cfg->func = vdpu38x_afbc_align_calc;
+        cfg->hal_fbc_adj_cfg->func = vdpu_afbc_align_calc;
         cfg->hal_fbc_adj_cfg->expand = 16;
     }
 
@@ -1178,7 +1178,7 @@ static MPP_RET hal_h265d_vdpu382_control(void *hal, MpiCmd cmd_type, void *param
         MppFrameFormat fmt = mpp_frame_get_fmt(frame);
 
         if (MPP_FRAME_FMT_IS_FBC(fmt)) {
-            vdpu38x_afbc_align_calc(p_hal->cfg->frame_slots, frame, 16);
+            vdpu_afbc_align_calc(p_hal->cfg->frame_slots, frame, 16);
         }
         break;
     }
