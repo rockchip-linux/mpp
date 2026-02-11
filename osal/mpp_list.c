@@ -321,7 +321,7 @@ MPP_RET mpp_list_wait_timed(MppList *list, rk_s64 timeout)
     if (ret == 0) {
         return MPP_OK;
     } else if (ret == ETIMEDOUT) {
-        return MPP_NOK;
+        return MPP_ERR_TIMEOUT;
     } else {
         return MPP_NOK;
     }

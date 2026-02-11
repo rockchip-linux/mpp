@@ -542,15 +542,11 @@ MPP_RET mpp_get_frame(Mpp *mpp, MppFrame *frame)
                 /* block wait */
                 mpp_list_wait(mpp->mFrmOut);
             } else {
-                RK_S32 ret = mpp_list_wait_timed(mpp->mFrmOut, mpp->mOutputTimeout);
+                MPP_RET ret = mpp_list_wait_timed(mpp->mFrmOut, mpp->mOutputTimeout);
+
                 if (ret) {
-                    if (ret == ETIMEDOUT) {
-                        mpp_mutex_cond_unlock(&mpp->mFrmOut->cond_lock);
-                        return MPP_ERR_TIMEOUT;
-                    } else {
-                        mpp_mutex_cond_unlock(&mpp->mFrmOut->cond_lock);
-                        return MPP_NOK;
-                    }
+                    mpp_mutex_cond_unlock(&mpp->mFrmOut->cond_lock);
+                    return ret;
                 }
             }
         }
@@ -935,16 +931,11 @@ MPP_RET mpp_get_packet_async(Mpp *mpp, MppPacket *packet)
                 /* block wait */
                 mpp_list_wait(mpp->mPktOut);
             } else {
-                RK_S32 ret = mpp_list_wait_timed(mpp->mPktOut, mpp->mOutputTimeout);
+                MPP_RET ret = mpp_list_wait_timed(mpp->mPktOut, mpp->mOutputTimeout);
 
                 if (ret) {
-                    if (ret == ETIMEDOUT) {
-                        mpp_mutex_cond_unlock(&mpp->mPktOut->cond_lock);
-                        return MPP_ERR_TIMEOUT;
-                    } else {
-                        mpp_mutex_cond_unlock(&mpp->mPktOut->cond_lock);
-                        return MPP_NOK;
-                    }
+                    mpp_mutex_cond_unlock(&mpp->mPktOut->cond_lock);
+                    return ret;
                 }
             }
         } else {
