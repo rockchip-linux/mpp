@@ -16,4 +16,5 @@ add_library(utils OBJECT
     camera_source.c
     osd3_test.c
     utils_singleton.c
+    mpp_enc_args.c
     )

@@ -1281,25 +1281,6 @@ done:
     return ret;
 }
 
-MPP_RET mpi_enc_test_cmd_put(MppEncTestObjSet* obj_set)
-{
-    MpiEncTestArgs *cmd = obj_set->cmd;
-
-    if (cmd->cfg_ini) {
-        iniparser_freedict(cmd->cfg_ini);
-        cmd->cfg_ini = NULL;
-    }
-
-    if (cmd->fps) {
-        fps_calc_deinit(cmd->fps);
-        cmd->fps = NULL;
-    }
-
-    mpp_enc_args_put(obj_set->cmd_obj);
-
-    return MPP_OK;
-}
-
 MPP_RET mpi_enc_gen_ref_cfg(MppEncRefCfg ref, RK_S32 gop_mode)
 {
     MppEncRefLtFrmCfg lt_ref[4];
@@ -2074,7 +2055,7 @@ MPP_RET mpi_enc_test_objset_put(MppEncTestObjSet *obj_set)
         return MPP_OK;
 
     if (obj_set->cmd_obj)
-        mpi_enc_test_cmd_put(obj_set);
+        mpp_enc_args_put(obj_set->cmd_obj);
     if (obj_set->cfg_obj)
         mpp_enc_cfg_deinit(obj_set->cfg_obj);
 

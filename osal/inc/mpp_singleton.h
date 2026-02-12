@@ -53,7 +53,6 @@ typedef enum MppSingletonId_e {
     MPP_SGLN_ENC_CFG,
     MPP_SGLN_DEC_CFG,
     MPP_SGLN_ENC_RC_API,
-    MPP_SGLN_ENC_ARGS,
 } MppSingletonId;
 
 #define MPP_SINGLETON(id, name, init, deinit) \

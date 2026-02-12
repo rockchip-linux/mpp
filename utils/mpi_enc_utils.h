@@ -20,10 +20,10 @@
 #include <stdio.h>
 #include "iniparser.h"
 #include "utils.h"
+#include "mpp_enc_args.h"
 
 #include "rk_mpi.h"
 #include "rk_venc_kcfg.h"
-#include "mpp_enc_args.h"
 
 #include "camera_source.h"
 #include "mpp_enc_roi_utils.h"
@@ -227,7 +227,6 @@ MPP_RET mpi_enc_gen_osd_data(MppEncOSDData *osd_data, MppBufferGroup group,
 MPP_RET mpi_enc_gen_osd_plt(MppEncOSDPlt *osd_plt, RK_U32 frame_cnt);
 
 MPP_RET mpi_enc_test_objset_update_by_args(MppEncTestObjSet *obj_set, int argc, char **argv, const char *module_tag);
-MPP_RET mpi_enc_test_cmd_put(MppEncTestObjSet* obj_set);
 
 MPP_RET mpi_enc_ctx_init(MpiEncTestData *p, MpiEncTestArgs *cmd, RK_S32 chn);
 MPP_RET mpi_enc_ctx_deinit(MpiEncTestData *p);

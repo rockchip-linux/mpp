@@ -26,6 +26,7 @@
 #warning "KMPP_OBJ_FUNC_INIT            - add object init function"
 #warning "KMPP_OBJ_FUNC_DEINIT          - add object deinit function"
 #warning "KMPP_OBJ_FUNC_DUMP            - add object dump function"
+#warning "KMPP_OBJ_SGLN                 - singleton macro (default MPP_SINGLETON)"
 #warning "KMPP_OBJ_SGLN_ID              - add object singleton id for singleton macro"
 #warning "KMPP_OBJ_FUNC_EXPORT_DISABLE  - disable function exprot by EXPORT_SYMBOL"
 #warning "KMPP_OBJ_ACCESS_DISABLE       - disable access function creation"
@@ -45,7 +46,7 @@
 #include <linux/stddef.h>
 
 #ifndef KMPP_OBJ_PRIV_SIZE
-#define KMPP_OBJ_PRIV_SIZE     0
+#define KMPP_OBJ_PRIV_SIZE      0
 #endif
 
 #ifndef KMPP_OBJ_EXTRA_SIZE
@@ -54,6 +55,10 @@
 
 #ifndef KMPP_OBJ_ENTRY_TABLE
 #define KMPP_OBJ_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS)
+#endif
+
+#ifndef KMPP_OBJ_SGLN
+#define KMPP_OBJ_SGLN           MPP_SINGLETON
 #endif
 
 #ifdef KMPP_OBJ_IMPL_TYPE
@@ -419,7 +424,7 @@ static void CONCAT_US(KMPP_OBJ_NAME, unregister)(void)
     KMPP_OBJ_DBG_LOG("unregister leave\n");
 }
 
-MPP_SINGLETON(KMPP_OBJ_SGLN_ID, KMPP_OBJ_NAME, CONCAT_US(KMPP_OBJ_NAME, register), CONCAT_US(KMPP_OBJ_NAME, unregister))
+KMPP_OBJ_SGLN(KMPP_OBJ_SGLN_ID, KMPP_OBJ_NAME, CONCAT_US(KMPP_OBJ_NAME, register), CONCAT_US(KMPP_OBJ_NAME, unregister))
 
 rk_s32 CONCAT_US(KMPP_OBJ_NAME, size)(void)
 {

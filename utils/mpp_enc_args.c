@@ -1,14 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0 OR MIT */
 /*
- * Copyright (c) 2025 Rockchip Electronics Co., Ltd.
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
  */
-
-#include "iniparser.h"
 
 #include "mpp_mem.h"
 #include "mpp_cfg_io.h"
-#include "mpp_singleton.h"
 
+#include "iniparser.h"
+#include "utils_singleton.h"
 #include "mpi_enc_utils.h"
 #include "mpp_enc_args.h"
 
@@ -29,6 +28,16 @@ static rk_s32 mpp_enc_args_impl_init(void *entry, KmppObj obj, const char *calle
 static rk_s32 mpp_enc_args_impl_deinit(void *entry, KmppObj obj, const char *caller)
 {
     MpiEncTestArgs *args = (MpiEncTestArgs *)entry;
+
+    if (args->cfg_ini) {
+        iniparser_freedict(args->cfg_ini);
+        args->cfg_ini = NULL;
+    }
+
+    if (args->fps) {
+        fps_calc_deinit(args->fps);
+        args->fps = NULL;
+    }
 
     MPP_FREE(args->file_input);
     MPP_FREE(args->file_output);
@@ -85,7 +94,8 @@ static rk_s32 mpp_enc_args_impl_dump(void *entry)
 #define KMPP_OBJ_NAME               mpp_enc_args
 #define KMPP_OBJ_INTF_TYPE          MppEncArgs
 #define KMPP_OBJ_IMPL_TYPE          MpiEncTestArgs
-#define KMPP_OBJ_SGLN_ID            MPP_SGLN_ENC_ARGS
+#define KMPP_OBJ_SGLN               UTILS_SINGLETON
+#define KMPP_OBJ_SGLN_ID            UTILS_SGLN_ENC_ARGS
 #define KMPP_OBJ_FUNC_INIT          mpp_enc_args_impl_init
 #define KMPP_OBJ_FUNC_DEINIT        mpp_enc_args_impl_deinit
 #define KMPP_OBJ_FUNC_DUMP          mpp_enc_args_impl_dump
