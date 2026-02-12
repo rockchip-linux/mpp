@@ -1624,6 +1624,8 @@ static void setup_vepu511a_me(HalH264eVepu511aCtx *ctx)
     reg_param->cime_mvd_th_comb.cime_mvd_th1  = 48;
     reg_param->cime_mvd_th_comb.cime_mvd_th2  = 80;
     reg_param->cime_madp_th_comb.cime_madp_th = 16;
+    reg_param->cime_madp_th_comb.ratio_consi_cfg = 13;
+    reg_param->cime_madp_th_comb.ratio_bmv_dist  = 9;
     reg_param->cime_multi_comb.cime_multi0    = 8;
     reg_param->cime_multi_comb.cime_multi1    = 12;
     reg_param->cime_multi_comb.cime_multi2    = 16;
@@ -2304,6 +2306,66 @@ static void setup_vepu511a_scaling_list(HalH264eVepu511aCtx *ctx)
     hal_h264e_dbg_func("leave\n");
 }
 
+static void setup_vepu511a_quant(HalH264eVepu511aCtx *ctx)
+{
+    MppEncHwCfg *hw = &ctx->cfg->hw;
+    HalVepu511aRegSet *regs = ctx->regs_set;
+    H264eVepu511aParam *s = &regs->reg_param;
+    RK_U8 th0 = 0, th1 = 0, th2 = 0; /* 5, 13, 27 */
+    RK_U16 bias_i0 = 0, bias_i1 = 0, bias_i2 = 0, bias_i3 = 683; /* 171, 150, 120, 100 */
+    RK_U16 bias_p0 = 0, bias_p1 = 0, bias_p2 = 0, bias_p3 = 341; /* 85, 80, 70, 65 */
+    RK_U32 sli_type = ctx->slice->slice_type;
+
+    if (!hw->qbias_en) {
+        /* used for venc_info log */
+        hw->qbias_arr[IFRAME_THD0] = hw->qbias_arr[PFRAME_THD0] = th0;
+        hw->qbias_arr[IFRAME_THD1] = hw->qbias_arr[PFRAME_THD1] = th1;
+        hw->qbias_arr[IFRAME_THD2] = hw->qbias_arr[PFRAME_THD2] = th2;
+        hw->qbias_arr[IFRAME_BIAS0] = hw->qbias_arr[PFRAME_IBLK_BIAS0] = bias_i0;
+        hw->qbias_arr[IFRAME_BIAS1] = hw->qbias_arr[PFRAME_IBLK_BIAS1] = bias_i1;
+        hw->qbias_arr[IFRAME_BIAS2] = hw->qbias_arr[PFRAME_IBLK_BIAS2] = bias_i2;
+        hw->qbias_arr[IFRAME_BIAS3] = hw->qbias_arr[PFRAME_IBLK_BIAS3] = bias_i3;
+        hw->qbias_arr[PFRAME_PBLK_BIAS0] = bias_p0;
+        hw->qbias_arr[PFRAME_PBLK_BIAS1] = bias_p1;
+        hw->qbias_arr[PFRAME_PBLK_BIAS2] = bias_p2;
+        hw->qbias_arr[PFRAME_PBLK_BIAS3] = bias_p3;
+    } else {
+        if (sli_type == H264_I_SLICE) {
+            th0 = hw->qbias_arr[IFRAME_THD0];
+            th1 = hw->qbias_arr[IFRAME_THD1];
+            th2 = hw->qbias_arr[IFRAME_THD2];
+            bias_i0 = hw->qbias_arr[IFRAME_BIAS0];
+            bias_i1 = hw->qbias_arr[IFRAME_BIAS1];
+            bias_i2 = hw->qbias_arr[IFRAME_BIAS2];
+            bias_i3 = hw->qbias_arr[IFRAME_BIAS3];
+        } else {
+            th0 = hw->qbias_arr[PFRAME_THD0];
+            th1 = hw->qbias_arr[PFRAME_THD1];
+            th2 = hw->qbias_arr[PFRAME_THD2];
+            bias_i0 = hw->qbias_arr[PFRAME_IBLK_BIAS0];
+            bias_i1 = hw->qbias_arr[PFRAME_IBLK_BIAS1];
+            bias_i2 = hw->qbias_arr[PFRAME_IBLK_BIAS2];
+            bias_i3 = hw->qbias_arr[PFRAME_IBLK_BIAS3];
+            bias_p0 = hw->qbias_arr[PFRAME_PBLK_BIAS0];
+            bias_p1 = hw->qbias_arr[PFRAME_PBLK_BIAS1];
+            bias_p2 = hw->qbias_arr[PFRAME_PBLK_BIAS2];
+            bias_p3 = hw->qbias_arr[PFRAME_PBLK_BIAS3];
+        }
+    }
+
+    s->bias_madi_thd_comb.bias_madi_th0 = th0;
+    s->bias_madi_thd_comb.bias_madi_th1 = th1;
+    s->bias_madi_thd_comb.bias_madi_th2 = th2;
+    s->qnt0_i_bias_comb.bias_i_val0 = bias_i0;
+    s->qnt0_i_bias_comb.bias_i_val1 = bias_i1;
+    s->qnt0_i_bias_comb.bias_i_val2 = bias_i2;
+    s->qnt1_i_bias_comb.bias_i_val3 = bias_i3;
+    s->qnt0_p_bias_comb.bias_p_val0 = bias_p0;
+    s->qnt0_p_bias_comb.bias_p_val1 = bias_p1;
+    s->qnt0_p_bias_comb.bias_p_val2 = bias_p2;
+    s->qnt1_p_bias_comb.bias_p_val3 = bias_p3;
+}
+
 static MPP_RET hal_h264e_vepu511a_gen_regs(void *hal, HalEncTask *task)
 {
     HalH264eVepu511aCtx *ctx = (HalH264eVepu511aCtx *)hal;
@@ -2332,6 +2394,7 @@ static MPP_RET hal_h264e_vepu511a_gen_regs(void *hal, HalEncTask *task)
     setup_vepu511a_anti_flicker(ctx);
     setup_vepu511a_anti_smear(ctx);
     setup_vepu511a_scaling_list(ctx);
+    setup_vepu511a_quant(ctx);
 
     setup_vepu511a_rc_base(regs, ctx, rc_task);
     setup_vepu511a_io_buf(regs, ctx->offsets, task);

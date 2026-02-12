@@ -330,6 +330,14 @@ typedef struct H264eVepu511aParam_t {
         RK_U32 reserved         : 8;
     } bias_madi_thd_comb;
 
+    /* 0x00001734 reg1485 */
+    struct {
+        RK_U32 bias_i_val0    : 10;
+        RK_U32 bias_i_val1    : 10;
+        RK_U32 bias_i_val2    : 10;
+        RK_U32 reserved       : 2;
+    } qnt0_i_bias_comb;
+
     /* 0x00001738 reg1486 */
     struct {
         RK_U32 bias_i_val3    : 10;
