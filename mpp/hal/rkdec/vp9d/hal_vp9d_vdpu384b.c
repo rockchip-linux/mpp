@@ -491,7 +491,7 @@ static MPP_RET hal_vp9d_vdpu384b_gen_regs(void *hal, HalTaskInfo *task)
         if (ref_frame_idx < 0x7f)
             mpp_buf_slot_get_prop(cfg->frame_slots, ref_frame_idx, SLOT_FRAME_PTR, &ref_frame);
         if (MPP_FRAME_FMT_IS_FBC(mpp_frame_get_fmt(mframe))) {
-            vdpu38x_get_fbc_off(mframe, &y_hor_virstride, &uv_hor_virstride, &y_virstride);
+            vdpu38x_get_fbc_off(ref_frame, &y_hor_virstride, &uv_hor_virstride, &y_virstride);
         } else {
             if (ref_frame)
                 y_hor_virstride = uv_hor_virstride = (mpp_frame_get_hor_stride(ref_frame) >> 4);

@@ -418,6 +418,11 @@ MPP_RET vdpu38x_rcb_dump_rcb_result(Vdpu38xRcbCtx *ctx)
 
 MPP_RET vdpu38x_get_fbc_off(MppFrame mframe, RK_U32 *head_stride, RK_U32 *pld_stride, RK_U32 *pld_offset)
 {
+    if (!mframe) {
+        mpp_loge("mframe is null\n");
+        return MPP_ERR_NULL_PTR;
+    }
+
     MppFrameFormat fmt;
     RK_U32 fbc_unit_w = 0;
     RK_U32 fbc_unit_h = 0;
