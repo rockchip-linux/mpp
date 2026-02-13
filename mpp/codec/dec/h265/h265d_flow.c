@@ -1335,9 +1335,6 @@ RK_S32 h265d_split_nal(H265dPrs *p, RK_U8 *buf, RK_S32 length)
     MPP_RET ret = MPP_OK;
     RK_S32 i;
 
-    h265d_dbg_split("h265d_split_nal ENTER: is_nalff %d, length %u, buf[0-7] %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                    p->is_nalff, length, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
-
     if (p->bitstream_size < max_bitstream_size) {
         mpp_free(p->bitstream);
         p->bitstream = mpp_malloc(RK_U8, max_bitstream_size);
@@ -1358,14 +1355,23 @@ RK_S32 h265d_split_nal(H265dPrs *p, RK_U8 *buf, RK_S32 length)
         if (p->is_nalff) {
             for (i = 0; i < p->nal_length_size; i++)
                 extract_length = (extract_length << 8) | buf[i];
+
             buf    += p->nal_length_size;
             length -= p->nal_length_size;
             total_consumed += p->nal_length_size;
 
             nal_data = buf;
 
-            if (extract_length > length) {
-                mpp_loge("nal: unit size invalid\n");
+            /*
+             * Use unsigned comparison to correctly handle corrupted data.
+             * When stream data is corrupted (e.g., during seeking), extract_length
+             * may become a large negative value like -1347309641 (0xAFAFFB11).
+             * Signed comparison would incorrectly treat this as less than length,
+             * bypassing the check and causing memcpy to crash.
+             */
+            if ((RK_U32)extract_length > (RK_U32)length) {
+                mpp_loge("nal: unit size invalid extract_length %d length %d\n",
+                         extract_length, length);
                 ret = MPP_ERR_STREAM;
                 goto fail;
             }
