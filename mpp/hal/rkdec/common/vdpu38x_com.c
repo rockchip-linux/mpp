@@ -160,7 +160,7 @@ Vdpu38xFmt vdpu38x_fmt_mpp2hal(MppFrameFormat mpp_fmt)
     case MPP_FMT_YUV422_YVYU :
     case MPP_FMT_YUV422_UYVY :
     case MPP_FMT_YUV422_VYUY : {
-        return MPP_HAL_FMT_YUV444;
+        return MPP_HAL_FMT_YUV422;
     } break;
     case MPP_FMT_YUV444SP :
     case MPP_FMT_YUV444P :
