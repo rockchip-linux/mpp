@@ -1680,152 +1680,30 @@ static void vepu511a_set_speed(HalH264eVepu511aCtx *ctx)
     RK_S32 is_ipc_scene = ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC;
     RK_S32 ppc_level = ctx->cfg->tune.speed;
 
+    /* Speed mode 0-5 (ppc = pixels per cycle):
+     * 0 - slowest (ppc 0.35, best quality)
+     * 1 - slow    (ppc 0.4)
+     * 2 - medium  (ppc 0.5)
+     * 3 - fast    (ppc 0.6)
+     * 4 - faster  (ppc 0.6_1)
+     * 5 - fastest (ppc 0.6_2, worst quality)
+     */
     hal_h264e_dbg_func("enter\n");
     hal_h264e_dbg_detail("vepu511a_set_speed ppc_level %d\n", ppc_level);
 
     switch (ppc_level) {
-    case 4: { // ppc 0.4
-        if (slice->slice_type == H264_I_SLICE) {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
-            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
-        } else {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
-            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
-            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 0;
-            reg_frm->rdo_mark_mode.p8_interp_num   = 2;
-            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 2;
-            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 2;
-            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        }
-
-        reg_param->me_sqi_comb.fme_lvl_mrg        = 0;
-        reg_param->me_sqi_comb.rime_prelvl_en     = 3;
-        break;
-    }
-
-    case 5: { // ppc 0.5
-        if (slice->slice_type == H264_I_SLICE) {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
-            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 256;
-        } else {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
-            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
-            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 256;
-            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
-            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
-            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        }
-
-        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
-        reg_param->me_sqi_comb.rime_prelvl_en     = 3;
-        break;
-    }
-
-    case 6: { // ppc 0.6
-        if (slice->slice_type == H264_I_SLICE) {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
-            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 257;
-        } else {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-            reg_frm->rdo_mark_mode.p16_interp_num  = 1;
-            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 1;
-            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 257;
-            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
-            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
-            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        }
-
-        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
-        reg_param->me_sqi_comb.rime_prelvl_en     = 0;
-        break;
-    }
-
-    case 61: {
-        if (slice->slice_type == H264_I_SLICE) {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
-            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 256;
-        } else {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
-            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
-            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 256;
-            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
-            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
-            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        }
-
-        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
-        reg_param->me_sqi_comb.rime_prelvl_en     = 0;
-        break;
-    }
-
-    case 62: { // ppc 0.62
-        if (slice->slice_type == H264_I_SLICE) {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
-            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
-            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 260;
-        } else {
-            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
-            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
-            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
-            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 0;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 260;
-            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
-            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
-            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
-            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
-        }
-
-        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
-        reg_param->me_sqi_comb.rime_prelvl_en     = 0;
-        break;
-    }
-    case 7: { // ppc 0.62
+    case 0:
+    default: { // speed mode 0: slowest (ppc 0.35, best quality)
         if (slice->slice_type == H264_I_SLICE) {
             regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
             reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
             reg_frm->rdo_mark_mode.i8_rdo_num         = 2;
             reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
         } else {
             regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
             reg_frm->rdo_mark_mode.p16_interp_num  = 3;
             reg_frm->rdo_mark_mode.p16t8_rdo_num   = 3;
             reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 0;
             reg_frm->rdo_mark_mode.p8_interp_num   = 3;
             reg_frm->rdo_mark_mode.p8t8_rdo_num    = 2;
             reg_frm->rdo_mark_mode.p8t4_rmd_num    = 2;
@@ -1834,23 +1712,23 @@ static void vepu511a_set_speed(HalH264eVepu511aCtx *ctx)
             regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
         }
 
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
         reg_param->me_sqi_comb.fme_lvl_mrg        = 0;
         reg_param->me_sqi_comb.rime_prelvl_en     = 3;
         break;
     }
-    default: {
+
+    case 1: { // speed mode 1: slow (ppc 0.4)
         if (slice->slice_type == H264_I_SLICE) {
             regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
             reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
-            reg_frm->rdo_mark_mode.i8_rdo_num         = 2;
+            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
             reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
         } else {
             regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
             reg_frm->rdo_mark_mode.p16_interp_num  = 2;
             reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
             reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
-            reg_frm->rdo_mark_mode.rdo_mark_mode   = 0;
             reg_frm->rdo_mark_mode.p8_interp_num   = 2;
             reg_frm->rdo_mark_mode.p8t8_rdo_num    = 2;
             reg_frm->rdo_mark_mode.p8t4_rmd_num    = 2;
@@ -1858,6 +1736,108 @@ static void vepu511a_set_speed(HalH264eVepu511aCtx *ctx)
             regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
             regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
         }
+
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 0;
+        reg_param->me_sqi_comb.fme_lvl_mrg        = 0;
+        reg_param->me_sqi_comb.rime_prelvl_en     = 3;
+        break;
+    }
+
+    case 2: { // speed mode 2: medium (ppc 0.5)
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
+            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
+            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
+            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        } else {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
+            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
+            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
+            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 2;
+            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
+            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
+            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        }
+
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 256;
+        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
+        reg_param->me_sqi_comb.rime_prelvl_en     = 3;
+        break;
+    }
+
+    case 3: { // speed mode 3: fastest (ppc 0.6, lowest quality)
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
+            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
+            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
+            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        } else {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
+            reg_frm->rdo_mark_mode.p16_interp_num  = 1;
+            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 1;
+            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 1;
+            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
+            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
+            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        }
+
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 257;
+        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
+        reg_param->me_sqi_comb.rime_prelvl_en     = 0;
+        break;
+    }
+
+    case 4: { // ppc 0.6_1
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
+            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
+            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
+            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        } else {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
+            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
+            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
+            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 1;
+            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
+            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
+            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        }
+
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 256;
+        reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
+        reg_param->me_sqi_comb.rime_prelvl_en     = 0;
+        break;
+    }
+
+    case 5: { // ppc 0.6_2
+        if (slice->slice_type == H264_I_SLICE) {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = 6;
+            reg_frm->rdo_mark_mode.iframe_i16_rdo_num = 2;
+            reg_frm->rdo_mark_mode.i8_rdo_num         = 1;
+            reg_frm->rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        } else {
+            regs->reg_rc_roi.klut_ofst.chrm_klut_ofst = is_ipc_scene ? 9 : 6;
+            reg_frm->rdo_mark_mode.p16_interp_num  = 2;
+            reg_frm->rdo_mark_mode.p16t8_rdo_num   = 2;
+            reg_frm->rdo_mark_mode.p16t4_rmd_num   = 0;
+            reg_frm->rdo_mark_mode.p8_interp_num   = 1;
+            reg_frm->rdo_mark_mode.p8t8_rdo_num    = 1;
+            reg_frm->rdo_mark_mode.p8t4_rmd_num    = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i16_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.i8_rdo_num = 1;
+            regs->reg_frm.rdo_mark_mode.iframe_i4_rdo_num  = 1;
+        }
+
+        reg_frm->rdo_mark_mode.rdo_mark_mode      = 260;
         reg_param->me_sqi_comb.fme_lvl_mrg        = 1;
         reg_param->me_sqi_comb.rime_prelvl_en     = 0;
         break;

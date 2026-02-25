@@ -1064,101 +1064,18 @@ static void vepu511a_set_speed(H265eV511AHalContext *ctx, H265eV511ARegSet *regs
     H265eVepu511aParam *s = &regs->reg_param;
     RK_S32 ppc_level = ctx->cfg->tune.speed;
 
+    /* Speed mode 0-3 (ppc = pixels per cycle):
+     * 0 - slowest (ppc 0.35, best quality)
+     * 1 - slow    (ppc 0.4)
+     * 2 - medium  (ppc 0.5)
+     * 3 - fastest (ppc 0.55, lowest quality)
+     */
     hal_h265e_dbg_func("enter\n");
     hal_h265e_dbg_detail("vepu511a_set_speed ppc_level %d\n", ppc_level);
 
     switch (ppc_level) {
-    case 4: { // ppc 0.4
-        if (ctx->frame_type == INTRA_FRAME) {
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 2;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 2;
-        } else if (ctx->frame_type == INTER_P_FRAME) {
-            reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 2;
-            reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 2;
-            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 2;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 1;
-        }
-
-        s->me_sqi_comb.fme_lvl_mrg    = 0;
-        s->me_sqi_comb.rime_prelvl_en = 3;
-        break;
-    }
-
-    case 5: { // ppc 0.5
-        if (ctx->frame_type == INTRA_FRAME) {
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 2;
-        } else if (ctx->frame_type == INTER_P_FRAME) {
-            reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 1;
-            reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 1;
-            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 1;
-        }
-
-        s->me_sqi_comb.fme_lvl_mrg    = 1;
-        s->me_sqi_comb.rime_prelvl_en = 2;
-        break;
-    }
-
-    case 55: { // ppc 0.55
-        if (ctx->frame_type == INTRA_FRAME) {
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 2;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 2;
-        } else if (ctx->frame_type == INTER_P_FRAME) {
-            reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 1;
-            reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 3;
-            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 0;
-            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 0;
-            reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
-            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
-            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 1;
-            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 1;
-        }
-
-        s->me_sqi_comb.fme_lvl_mrg    = 1;
-        s->me_sqi_comb.rime_prelvl_en = 2;
-        break;
-    }
-
-    case 7: { // ppc max performance
+    case 0:
+    default: { // speed mode 0: slowest (ppc 0.35, best quality)
         if (ctx->frame_type == INTRA_FRAME) {
             reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
             reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
@@ -1188,7 +1105,7 @@ static void vepu511a_set_speed(H265eV511AHalContext *ctx, H265eV511ARegSet *regs
         break;
     }
 
-    default: {
+    case 1: { // speed mode 1: slow (ppc 0.4)
         if (ctx->frame_type == INTRA_FRAME) {
             reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
             reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
@@ -1215,6 +1132,66 @@ static void vepu511a_set_speed(H265eV511AHalContext *ctx, H265eV511ARegSet *regs
 
         s->me_sqi_comb.fme_lvl_mrg    = 0;
         s->me_sqi_comb.rime_prelvl_en = 3;
+        break;
+    }
+
+    case 2: { // speed mode 2: medium (ppc 0.5)
+        if (ctx->frame_type == INTRA_FRAME) {
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 2;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 2;
+        } else if (ctx->frame_type == INTER_P_FRAME) {
+            reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 1;
+            reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 1;
+            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 1;
+        }
+
+        s->me_sqi_comb.fme_lvl_mrg    = 1;
+        s->me_sqi_comb.rime_prelvl_en = 2;
+        break;
+    }
+
+    case 3: { // speed mode 3: fastest (ppc 0.55, lowest quality)
+        if (ctx->frame_type == INTRA_FRAME) {
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 2;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 2;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 2;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 2;
+        } else if (ctx->frame_type == INTER_P_FRAME) {
+            reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 1;
+            reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 3;
+            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 0;
+            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 0;
+            reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_big_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu4_intra_mode_num          = 1;
+            reg_frm->rdo_intra_mode.pu32_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu16_intra_mode_num_small_lvl = 1;
+            reg_frm->rdo_intra_mode.pu8_intra_mode_num_small_lvl  = 1;
+        }
+
+        s->me_sqi_comb.fme_lvl_mrg    = 1;
+        s->me_sqi_comb.rime_prelvl_en = 2;
         break;
     }
     }

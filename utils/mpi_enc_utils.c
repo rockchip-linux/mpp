@@ -1022,7 +1022,7 @@ RK_S32 mpi_enc_opt_speed(void *ctx, const char *next)
 
     if (next) {
         cmd->speed = atoi(next);
-        if (cmd->speed > 3 || cmd->speed < 0) {
+        if (cmd->speed > 5 || cmd->speed < 0) {
             cmd->speed = 0;
             mpp_err("invalid speed %d set to default 0\n", cmd->speed);
         }
