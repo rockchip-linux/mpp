@@ -873,7 +873,7 @@ MPP_RET hal_h265d_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
     hw_regs->rkv_reg_ends.extern_error_en = 0x30000000;
 
     valid_ref = hw_regs->sw_decout_base;
-    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(dxva_cxt->pp.RefPicList); i++) {
+    for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(hw_regs->sw_refer_base); i++) {
         if (dxva_cxt->pp.RefPicList[i].bPicEntry != 0xff &&
             dxva_cxt->pp.RefPicList[i].bPicEntry != 0x7f) {
             hw_regs->sw_refer_poc[i] = dxva_cxt->pp.PicOrderCntValList[i];
