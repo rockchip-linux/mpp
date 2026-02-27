@@ -26,7 +26,6 @@
 #include "vepu511_common.h"
 
 #define DUMP_REG                0
-#define MAX_TASK_CNT            2
 #define VEPU540C_MAX_ROI_NUM    8
 
 /* Custom Quant Matrices: Joint Video Team */
@@ -113,7 +112,6 @@ typedef struct HalH264eVepu511Ctx_t {
 
     MppDev                  dev;
     RK_S32                  frame_cnt;
-    RK_U32                  task_cnt;
 
     /* buffers management */
     HalBufs                 hw_recn;
@@ -127,7 +125,7 @@ typedef struct HalH264eVepu511Ctx_t {
 
     /* external line buffer over 4K */
     MppBufferGroup          ext_line_buf_grp;
-    MppBuffer               ext_line_bufs[MAX_TASK_CNT];
+    MppBuffer               ext_line_buf;
     RK_S32                  ext_line_buf_size;
 
     /* syntax for input from enc_impl */
@@ -156,23 +154,14 @@ typedef struct HalH264eVepu511Ctx_t {
     /* two-pass deflicker */
     MppBuffer               buf_pass1;
 
-    /* register */
-    HalVepu511RegSet        *regs_sets;
-    HalH264eVepuStreamAmend *amend_sets;
-
-    H264ePrefixNal          *prefix_sets;
-    H264eSlice              *slice_sets;
-
-    /* frame parallel info */
-    RK_S32                  task_idx;
-    RK_S32                  curr_idx;
-    RK_S32                  prev_idx;
+    /* single register set for single core */
     HalVepu511RegSet        *regs_set;
-    HalH264eVepuStreamAmend *amend;
+    HalH264eVepuStreamAmend  amend;
     H264ePrefixNal          *prefix;
     H264eSlice              *slice;
 
-    MppBuffer               ext_line_buf;
+    RK_S32                  curr_idx;
+    RK_S32                  prev_idx;
 
     /* slice low delay output callback */
     MppCbCtx                *output_cb;
@@ -243,33 +232,24 @@ static RK_U32 h264e_lambda_cvr[60] = {
 
 static void setup_ext_line_bufs(HalH264eVepu511Ctx *ctx)
 {
-    RK_U32 i;
+    if (ctx->ext_line_buf)
+        return;
 
-    for (i = 0; i < ctx->task_cnt; i++) {
-        if (ctx->ext_line_bufs[i])
-            continue;
-
-        mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_bufs[i],
-                       ctx->ext_line_buf_size);
-    }
+    mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_buf,
+                   ctx->ext_line_buf_size);
 }
 
 static void clear_ext_line_bufs(HalH264eVepu511Ctx *ctx)
 {
-    RK_U32 i;
-
-    for (i = 0; i < ctx->task_cnt; i++) {
-        if (ctx->ext_line_bufs[i]) {
-            mpp_buffer_put(ctx->ext_line_bufs[i]);
-            ctx->ext_line_bufs[i] = NULL;
-        }
+    if (ctx->ext_line_buf) {
+        mpp_buffer_put(ctx->ext_line_buf);
+        ctx->ext_line_buf = NULL;
     }
 }
 
 static MPP_RET hal_h264e_vepu511_deinit(void *hal)
 {
     HalH264eVepu511Ctx *p = (HalH264eVepu511Ctx *)hal;
-    RK_U32 i;
 
     hal_h264e_dbg_func("enter %p\n", p);
 
@@ -280,15 +260,9 @@ static MPP_RET hal_h264e_vepu511_deinit(void *hal)
 
     clear_ext_line_bufs(p);
 
-    if (p->amend_sets) {
-        for (i = 0; i < p->task_cnt; i++)
-            h264e_vepu_stream_amend_deinit(&p->amend_sets[i]);
-    }
+    h264e_vepu_stream_amend_deinit(&p->amend);
 
-    MPP_FREE(p->regs_sets);
-    MPP_FREE(p->amend_sets);
-    MPP_FREE(p->prefix_sets);
-    MPP_FREE(p->slice_sets);
+    MPP_FREE(p->regs_set);
     MPP_FREE(p->reorder);
     MPP_FREE(p->marking);
     MPP_FREE(p->poll_cfgs);
@@ -351,8 +325,6 @@ static MPP_RET hal_h264e_vepu511_init(void *hal, MppEncHalCfg *cfg)
         goto DONE;
     }
     p->dev = cfg->dev;
-    p->task_cnt = cfg->task_cnt;
-    mpp_assert(p->task_cnt && p->task_cnt <= MAX_TASK_CNT);
 
     ret = hal_bufs_init(&p->hw_recn);
     if (ret) {
@@ -360,53 +332,30 @@ static MPP_RET hal_h264e_vepu511_init(void *hal, MppEncHalCfg *cfg)
         goto DONE;
     }
 
-    p->regs_sets = mpp_malloc(HalVepu511RegSet, p->task_cnt);
-    if (NULL == p->regs_sets) {
+    p->regs_set = mpp_malloc(HalVepu511RegSet, 1);
+    if (NULL == p->regs_set) {
         ret = MPP_ERR_MALLOC;
         mpp_err_f("init register buffer failed\n");
         goto DONE;
     }
 
-    p->amend_sets = mpp_malloc(HalH264eVepuStreamAmend, p->task_cnt);
-    if (NULL == p->amend_sets) {
+    p->reorder = mpp_malloc(H264eReorderInfo, 1);
+    if (NULL == p->reorder) {
         ret = MPP_ERR_MALLOC;
-        mpp_err_f("init amend data failed\n");
+        mpp_err_f("init reorder data failed\n");
         goto DONE;
     }
 
-    if (p->task_cnt > 1) {
-        p->prefix_sets = mpp_malloc(H264ePrefixNal, p->task_cnt);
-        if (NULL == p->prefix_sets) {
-            ret = MPP_ERR_MALLOC;
-            mpp_err_f("init amend data failed\n");
-            goto DONE;
-        }
-
-        p->slice_sets = mpp_malloc(H264eSlice, p->task_cnt);
-        if (NULL == p->slice_sets) {
-            ret = MPP_ERR_MALLOC;
-            mpp_err_f("init amend data failed\n");
-            goto DONE;
-        }
-
-        p->reorder = mpp_malloc(H264eReorderInfo, 1);
-        if (NULL == p->reorder) {
-            ret = MPP_ERR_MALLOC;
-            mpp_err_f("init amend data failed\n");
-            goto DONE;
-        }
-
-        p->marking = mpp_malloc(H264eMarkingInfo, 1);
-        if (NULL == p->marking) {
-            ret = MPP_ERR_MALLOC;
-            mpp_err_f("init amend data failed\n");
-            goto DONE;
-        }
+    p->marking = mpp_malloc(H264eMarkingInfo, 1);
+    if (NULL == p->marking) {
+        ret = MPP_ERR_MALLOC;
+        mpp_err_f("init marking data failed\n");
+        goto DONE;
     }
 
     p->poll_slice_max = 8;
     p->poll_cfg_size = (sizeof(p->poll_cfgs) + sizeof(RK_S32) * p->poll_slice_max);
-    p->poll_cfgs = mpp_malloc_size(MppDevPollCfg, p->poll_cfg_size * p->task_cnt);
+    p->poll_cfgs = mpp_malloc_size(MppDevPollCfg, p->poll_cfg_size);
     if (NULL == p->poll_cfgs) {
         ret = MPP_ERR_MALLOC;
         mpp_err_f("init poll cfg buffer failed\n");
@@ -438,8 +387,7 @@ static MPP_RET hal_h264e_vepu511_init(void *hal, MppEncHalCfg *cfg)
     mpp_dev_multi_offset_init(&p->offsets, 24);
     p->output_cb = cfg->output_cb;
     cfg->cap_recn_out = 1;
-    for (i = 0; i < p->task_cnt; i++)
-        h264e_vepu_stream_amend_init(&p->amend_sets[i]);
+    h264e_vepu_stream_amend_init(&p->amend);
 
     // p->tune = vepu511_h264e_tune_init(p);
 
@@ -614,7 +562,6 @@ static MPP_RET hal_h264e_vepu511_get_task(void *hal, HalEncTask *task)
 {
     HalH264eVepu511Ctx *ctx = (HalH264eVepu511Ctx *)hal;
     MppEncCfgSet *cfg_set = ctx->cfg;
-    MppEncRefCfgImpl *ref = (MppEncRefCfgImpl *)cfg_set->ref_cfg;
     MppEncH264HwCfg *hw_cfg = &cfg_set->h264.hw_cfg;
     RK_U32 updated = update_vepu511_syntax(ctx, &task->syntax);
     EncFrmStatus *frm_status = &task->rc_task->frm;
@@ -642,51 +589,17 @@ static MPP_RET hal_h264e_vepu511_get_task(void *hal, HalEncTask *task)
         h264e_dpb_hal_start(ctx->dpb, frms->refr_idx);
     }
 
-    task->flags.reg_idx = ctx->task_idx;
     task->flags.curr_idx = frms->curr_idx;
     task->flags.refr_idx = frms->refr_idx;
     task->part_first = 1;
     task->part_last = 0;
 
-    ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
-    ctx->regs_set = &ctx->regs_sets[ctx->task_idx];
-    ctx->amend = &ctx->amend_sets[ctx->task_idx];
-
     /* if not VEPU1/2, update log2_max_frame_num_minus4 in hw_cfg */
     hw_cfg->hw_log2_max_frame_num_minus4 = ctx->sps->log2_max_frame_num_minus4;
     hw_cfg->hw_poc_type = ctx->sps->pic_order_cnt_type;
 
-    if (ctx->task_cnt > 1 && (ref->lt_cfg_cnt || ref->st_cfg_cnt > 1)) {
-        H264ePrefixNal *prefix = &ctx->prefix_sets[ctx->task_idx];
-        H264eSlice *slice = &ctx->slice_sets[ctx->task_idx];
-
-        //store async encode TSVC info
-        if (ctx->prefix)
-            memcpy(prefix, ctx->prefix, sizeof(H264ePrefixNal));
-        else
-            prefix = NULL;
-
-        if (ctx->slice) {
-            memcpy(slice, ctx->slice, sizeof(H264eSlice));
-
-            /*
-             * Generally, reorder and marking are shared by dpb and slice.
-             * However, async encoding TSVC will change reorder and marking in each task.
-             * Therefore, malloc a special space for async encoding TSVC.
-             */
-            ctx->amend->reorder = ctx->reorder;
-            ctx->amend->marking = ctx->marking;
-        }
-
-        h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
-                                       slice, prefix);
-    } else {
-        h264e_vepu_stream_amend_config(ctx->amend, task->packet, ctx->cfg,
-                                       ctx->slice, ctx->prefix);
-    }
-
-    if (ctx->task_cnt > 1)
-        ctx->task_idx = !ctx->task_idx;
+    h264e_vepu_stream_amend_config(&ctx->amend, task->packet, ctx->cfg,
+                                   ctx->slice, ctx->prefix);
 
     hal_h264e_dbg_func("leave %p\n", hal);
 
@@ -2445,7 +2358,7 @@ static MPP_RET hal_h264e_vepu511_wait(void *hal, HalEncTask *task)
 {
     MPP_RET ret = MPP_OK;
     HalH264eVepu511Ctx *ctx = (HalH264eVepu511Ctx *)hal;
-    HalVepu511RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
+    HalVepu511RegSet *regs = ctx->regs_set;
     RK_U32 split_out = ctx->cfg->split.split_out;
     MppPacket pkt = task->packet;
     RK_S32 offset = mpp_packet_get_length(pkt);
@@ -2466,8 +2379,7 @@ static MPP_RET hal_h264e_vepu511_wait(void *hal, HalEncTask *task)
         EncOutParam param;
         RK_U32 slice_len;
         RK_U32 slice_last;
-        MppDevPollCfg *poll_cfg = (MppDevPollCfg *)((char *)ctx->poll_cfgs +
-                                                    task->flags.reg_idx * ctx->poll_cfg_size);
+        MppDevPollCfg *poll_cfg = ctx->poll_cfgs;
         param.task = task;
         param.base = mpp_packet_get_data(task->packet);
 
@@ -2517,7 +2429,7 @@ static MPP_RET hal_h264e_vepu511_wait(void *hal, HalEncTask *task)
     }
 
     if (!(split_out & MPP_ENC_SPLIT_OUT_LOWDELAY) && !ret) {
-        HalH264eVepuStreamAmend *amend = &ctx->amend_sets[task->flags.reg_idx];
+        HalH264eVepuStreamAmend *amend = &ctx->amend;
 
         if (amend->enable) {
             amend->old_length = task->hw_length;
@@ -2538,7 +2450,7 @@ static MPP_RET hal_h264e_vepu511_wait(void *hal, HalEncTask *task)
 
 static void vepu511_h264e_update_tune_stat(HalH264eVepu511Ctx *ctx, HalEncTask *task)
 {
-    HalVepu511RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
+    HalVepu511RegSet *regs = ctx->regs_set;
     Vepu511Status *reg_st = &regs->reg_st;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     RK_U32 mb_w = ctx->sps->pic_width_in_mbs;
@@ -2634,7 +2546,7 @@ static void vepu511_h264e_update_tune_stat(HalH264eVepu511Ctx *ctx, HalEncTask *
 static MPP_RET hal_h264e_vepu511_ret_task(void * hal, HalEncTask * task)
 {
     HalH264eVepu511Ctx *ctx = (HalH264eVepu511Ctx *)hal;
-    HalVepu511RegSet *regs = &ctx->regs_sets[task->flags.reg_idx];
+    HalVepu511RegSet *regs = ctx->regs_set;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     Vepu511H264Fbk *fb = &ctx->feedback;
     Vepu511Status *reg_st = &regs->reg_st;

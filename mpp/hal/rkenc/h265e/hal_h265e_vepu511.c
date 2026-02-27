@@ -28,7 +28,6 @@
 #include "vepu5xx_common.h"
 #include "vepu511_common.h"
 
-#define MAX_FRAME_TASK_NUM      2
 #define H265E_LAMBDA_TAB_SIZE  (52 * sizeof(RK_U32))
 #define H265E_SMEAR_STR_NUM    (8)
 
@@ -99,9 +98,8 @@ typedef struct H265eV511HalContext_t {
     MppDev              dev;
     void                *regs;
     void                *reg_out;
-    Vepu511H265eFrmCfg  *frms[MAX_FRAME_TASK_NUM];
 
-    /* current used frame config */
+    /* single frame config for single core */
     Vepu511H265eFrmCfg  *frm;
 
     /* slice split poll cfg */
@@ -112,10 +110,6 @@ typedef struct H265eV511HalContext_t {
 
     /* @frame_cnt starts from ZERO */
     RK_S32              frame_count;
-
-    /* frame parallel info */
-    RK_S32              task_cnt;
-    RK_S32              task_idx;
 
     /* dchs cfg */
     RK_S32              curr_idx;
@@ -160,7 +154,6 @@ typedef struct H265eV511HalContext_t {
     RK_S32              ext_line_buf_size;
     MppBuffer           ext_line_buf;
     MppBuffer           buf_pass1;
-    MppBuffer           ext_line_bufs[MAX_FRAME_TASK_NUM];
 
     void                *tune;
 } H265eV511HalContext;
@@ -280,7 +273,7 @@ void save_to_file_511(char *name, void *ptr, size_t size)
         mpp_err("create file %s failed\n", name);
 }
 
-void vepu511_h265e_dump(H265eV511HalContext *ctx, HalEncTask *enc_task)
+void vepu511_h265e_dump(H265eV511HalContext *ctx, HalEncTask *enc_task __maybe_unused)
 {
     H265eSyntax_new *syn = ctx->syn;
     HalBuf *hal_buf = hal_bufs_get_buf(ctx->dpb_bufs, syn->sp.ref_pic.slot_idx);
@@ -288,7 +281,7 @@ void vepu511_h265e_dump(H265eV511HalContext *ctx, HalEncTask *enc_task)
     size_t dws_size = mpp_buffer_get_size(hal_buf->buf[1]);
     void *ptr = mpp_buffer_get_ptr(hal_buf->buf[0]);
     void *dws_ptr = mpp_buffer_get_ptr(hal_buf->buf[1]);
-    RK_U32 frm_num = ctx->frms[enc_task->flags.reg_idx]->frame_count;
+    RK_U32 frm_num = ctx->frm->frame_count;
     RK_S32 pid = getpid();
     char name[128];
     size_t name_len = sizeof(name) - 1;
@@ -321,26 +314,18 @@ void vepu511_h265e_dump(H265eV511HalContext *ctx, HalEncTask *enc_task)
 
 static void setup_ext_line_bufs(H265eV511HalContext *ctx)
 {
-    RK_S32 i;
+    if (ctx->ext_line_buf)
+        return;
 
-    for (i = 0; i < ctx->task_cnt; i++) {
-        if (ctx->ext_line_bufs[i])
-            continue;
-
-        mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_bufs[i],
-                       ctx->ext_line_buf_size);
-    }
+    mpp_buffer_get(ctx->ext_line_buf_grp, &ctx->ext_line_buf,
+                   ctx->ext_line_buf_size);
 }
 
 static void clear_ext_line_bufs(H265eV511HalContext *ctx)
 {
-    RK_S32 i;
-
-    for (i = 0; i < ctx->task_cnt; i++) {
-        if (ctx->ext_line_bufs[i]) {
-            mpp_buffer_put(ctx->ext_line_bufs[i]);
-            ctx->ext_line_bufs[i] = NULL;
-        }
+    if (ctx->ext_line_buf) {
+        mpp_buffer_put(ctx->ext_line_buf);
+        ctx->ext_line_buf = NULL;
     }
 }
 
@@ -461,35 +446,29 @@ static MPP_RET vepu511_h265_setup_hal_bufs(H265eV511HalContext *ctx)
 MPP_RET hal_h265e_vepu511_deinit(void *hal)
 {
     H265eV511HalContext *ctx = (H265eV511HalContext *)hal;
-    RK_S32 i = 0;
 
     hal_h265e_enter();
     MPP_FREE(ctx->poll_cfgs);
     MPP_FREE(ctx->input_fmt);
     hal_bufs_deinit(ctx->dpb_bufs);
 
-    for (i = 0; i < ctx->task_cnt; i++) {
-        Vepu511H265eFrmCfg *frm = ctx->frms[i];
-
-        if (!frm)
-            continue;
-
-        if (frm->roir_buf) {
-            mpp_buffer_put(frm->roir_buf);
-            frm->roir_buf = NULL;
-            frm->roir_buf_size = 0;
+    if (ctx->frm) {
+        if (ctx->frm->roir_buf) {
+            mpp_buffer_put(ctx->frm->roir_buf);
+            ctx->frm->roir_buf = NULL;
+            ctx->frm->roir_buf_size = 0;
         }
 
-        MPP_FREE(frm->roi_base_cfg_sw_buf);
+        MPP_FREE(ctx->frm->roi_base_cfg_sw_buf);
 
-        if (frm->reg_cfg) {
-            mpp_dev_multi_offset_deinit(frm->reg_cfg);
-            frm->reg_cfg = NULL;
+        if (ctx->frm->reg_cfg) {
+            mpp_dev_multi_offset_deinit(ctx->frm->reg_cfg);
+            ctx->frm->reg_cfg = NULL;
         }
 
-        MPP_FREE(frm->regs_set);
-        MPP_FREE(frm->regs_ret);
-        MPP_FREE(ctx->frms[i]);
+        MPP_FREE(ctx->frm->regs_set);
+        MPP_FREE(ctx->frm->regs_ret);
+        MPP_FREE(ctx->frm);
     }
 
     clear_ext_line_bufs(ctx);
@@ -532,24 +511,15 @@ MPP_RET hal_h265e_vepu511_init(void *hal, MppEncHalCfg *cfg)
 {
     MPP_RET ret = MPP_OK;
     H265eV511HalContext *ctx = (H265eV511HalContext *)hal;
-    RK_S32 i = 0;
 
     mpp_env_get_u32("hal_h265e_debug", &hal_h265e_debug, 0);
     hal_h265e_enter();
 
-    ctx->task_cnt = cfg->task_cnt;
-    mpp_assert(ctx->task_cnt && ctx->task_cnt <= MAX_FRAME_TASK_NUM);
-    if (ctx->task_cnt > MAX_FRAME_TASK_NUM)
-        ctx->task_cnt = MAX_FRAME_TASK_NUM;
-
-    for (i = 0; i < ctx->task_cnt; i++) {
-        Vepu511H265eFrmCfg *frm_cfg = mpp_calloc(Vepu511H265eFrmCfg, 1);
-
-        frm_cfg->regs_set = mpp_calloc(H265eV511RegSet, 1);
-        frm_cfg->regs_ret = mpp_calloc(H265eV511StatusElem, 1);
-        frm_cfg->frame_type = INTRA_FRAME;
-        ctx->frms[i] = frm_cfg;
-    }
+    /* single core uses single frame config */
+    ctx->frm = mpp_calloc(Vepu511H265eFrmCfg, 1);
+    ctx->frm->regs_set = mpp_calloc(H265eV511RegSet, 1);
+    ctx->frm->regs_ret = mpp_calloc(H265eV511StatusElem, 1);
+    ctx->frm->frame_type = INTRA_FRAME;
 
     ctx->input_fmt      = mpp_calloc(VepuFmtCfg, 1);
     ctx->cfg            = cfg->cfg;
@@ -2582,12 +2552,11 @@ MPP_RET hal_h265e_vepu511_start(void *hal, HalEncTask *enc_task)
 static MPP_RET vepu511_h265_set_feedback(H265eV511HalContext *ctx, HalEncTask *enc_task)
 {
     EncRcTaskInfo *hal_rc_ret = (EncRcTaskInfo *)&enc_task->rc_task->info;
-    Vepu511H265eFrmCfg *frm = ctx->frms[enc_task->flags.reg_idx];
-    Vepu511H265Fbk  *fb = &frm->feedback;
+    Vepu511H265Fbk  *fb = &ctx->frm->feedback;
     MppEncCfgSet    *cfg = ctx->cfg;
     RK_S32 mb8_num = MPP_ALIGN(cfg->prep.width, 8) * MPP_ALIGN(cfg->prep.height, 8) / 64;
     RK_S32 mb4_num = (mb8_num << 2);
-    H265eV511StatusElem *elem = (H265eV511StatusElem *)frm->regs_ret;
+    H265eV511StatusElem *elem = (H265eV511StatusElem *)ctx->frm->regs_ret;
     RK_U32 hw_status = elem->hw_status;
 
     hal_h265e_enter();
@@ -2697,13 +2666,11 @@ static MPP_RET hal_h265e_vepu511_status_check(H265eV511RegSet *regs)
 
 static void vepu511_h265e_update_tune_stat(H265eV511HalContext *ctx, HalEncTask *task)
 {
-    RK_S32 task_idx = task->flags.reg_idx;
-    Vepu511H265eFrmCfg *frm = ctx->frms[task_idx];
-    Vepu511H265Fbk *fb = &frm->feedback;
-    H265eV511RegSet *regs = frm->regs_set;
+    Vepu511H265Fbk *fb = &ctx->frm->feedback;
+    H265eV511RegSet *regs = ctx->frm->regs_set;
     HevcVepu511RcRoi *s = &regs->reg_rc_roi;
     MppEncCfgSet *cfg = ctx->cfg;
-    Vepu511Status *st = &frm->regs_ret->st;
+    Vepu511Status *st = &ctx->frm->regs_ret->st;
     EncRcTaskInfo *info = (EncRcTaskInfo *)&task->rc_task->info;
     RK_U32 b16_num = MPP_ALIGN(cfg->prep.width, 16) * MPP_ALIGN(cfg->prep.height, 16) / 256;
     RK_U32 madi_cnt = 0, madp_cnt = 0;
@@ -2802,14 +2769,12 @@ MPP_RET hal_h265e_vepu511_wait(void *hal, HalEncTask *task)
     HalEncTask *enc_task = task;
     MppPacket pkt = enc_task->packet;
     RK_U32 split_out = ctx->cfg->split.split_out;
-    RK_S32 task_idx = task->flags.reg_idx;
-    Vepu511H265eFrmCfg *frm = ctx->frms[task_idx];
-    H265eV511RegSet *regs = frm->regs_set;
+    H265eV511RegSet *regs = ctx->frm->regs_set;
     RK_U32 offset = mpp_packet_get_length(pkt);
     RK_U32 seg_offset = offset;
     HevcVepu511Frame *reg_frm = &regs->reg_frm;
     RK_U32 type = reg_frm->reg0236_synt_nal.nal_unit_type;
-    H265eV511StatusElem *elem = (H265eV511StatusElem *)frm->regs_ret;
+    H265eV511StatusElem *elem = (H265eV511StatusElem *)ctx->frm->regs_ret;
 
     hal_h265e_enter();
 
@@ -2890,10 +2855,8 @@ MPP_RET hal_h265e_vepu511_wait(void *hal, HalEncTask *task)
 MPP_RET hal_h265e_vepu511_get_task(void *hal, HalEncTask *task)
 {
     H265eV511HalContext *ctx = (H265eV511HalContext *)hal;
-    Vepu511H265eFrmCfg *frm_cfg = NULL;
     MppFrame frame = task->frame;
     EncFrmStatus  *frm_status = &task->rc_task->frm;
-    RK_S32 task_idx = ctx->task_idx;
 
     hal_h265e_enter();
 
@@ -2912,8 +2875,6 @@ MPP_RET hal_h265e_vepu511_get_task(void *hal, HalEncTask *task)
     }
 
     ctx->last_frame_type = ctx->frame_type;
-    frm_cfg = ctx->frms[task_idx];
-    ctx->frm = frm_cfg;
 
     if (frm_status->is_intra) {
         ctx->frame_type = INTRA_FRAME;
@@ -2928,23 +2889,17 @@ MPP_RET hal_h265e_vepu511_get_task(void *hal, HalEncTask *task)
         mpp_meta_get_ptr_d(meta, KEY_OSD_DATA3, (void **)&ctx->osd_cfg.osd_data3, NULL);
     }
 
-    task->flags.reg_idx = ctx->task_idx;
-    ctx->ext_line_buf = ctx->ext_line_bufs[ctx->task_idx];
-    frm_cfg->frame_count = ++ctx->frame_count;
+    ctx->frm->frame_count = ++ctx->frame_count;
     task->part_first = 1;
     task->part_last = 0;
 
-    ctx->task_idx++;
-    if (ctx->task_idx >= ctx->task_cnt)
-        ctx->task_idx = 0;
+    ctx->frm->hal_curr_idx = ctx->syn->sp.recon_pic.slot_idx;
+    ctx->frm->hal_refr_idx = ctx->syn->sp.ref_pic.slot_idx;
 
-    frm_cfg->hal_curr_idx = ctx->syn->sp.recon_pic.slot_idx;
-    frm_cfg->hal_refr_idx = ctx->syn->sp.ref_pic.slot_idx;
+    h265e_dpb_hal_start(ctx->dpb, ctx->frm->hal_curr_idx);
+    h265e_dpb_hal_start(ctx->dpb, ctx->frm->hal_refr_idx);
 
-    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_curr_idx);
-    h265e_dpb_hal_start(ctx->dpb, frm_cfg->hal_refr_idx);
-
-    memset(&frm_cfg->feedback, 0, sizeof(Vepu511H265Fbk));
+    memset(&ctx->frm->feedback, 0, sizeof(Vepu511H265Fbk));
 
     hal_h265e_leave();
     return MPP_OK;
@@ -2954,9 +2909,7 @@ MPP_RET hal_h265e_vepu511_ret_task(void *hal, HalEncTask *task)
 {
     H265eV511HalContext *ctx = (H265eV511HalContext *)hal;
     HalEncTask *enc_task = task;
-    RK_S32 task_idx = task->flags.reg_idx;
-    Vepu511H265eFrmCfg *frm = ctx->frms[task_idx];
-    Vepu511H265Fbk *fb = &frm->feedback;
+    Vepu511H265Fbk *fb = &ctx->frm->feedback;
     EncRcTaskInfo *rc_info = &task->rc_task->info;
     RK_U32 offset = mpp_packet_get_length(enc_task->packet);
 
@@ -2979,8 +2932,8 @@ MPP_RET hal_h265e_vepu511_ret_task(void *hal, HalEncTask *task)
     enc_task->hw_length = fb->out_strm_size;
     enc_task->length += fb->out_strm_size;
 
-    h265e_dpb_hal_end(ctx->dpb, frm->hal_curr_idx);
-    h265e_dpb_hal_end(ctx->dpb, frm->hal_refr_idx);
+    h265e_dpb_hal_end(ctx->dpb, ctx->frm->hal_curr_idx);
+    h265e_dpb_hal_end(ctx->dpb, ctx->frm->hal_refr_idx);
 
     vepu511_h265e_update_tune_stat(ctx, enc_task);
 
