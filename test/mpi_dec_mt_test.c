@@ -143,7 +143,7 @@ void *thread_output(void *arg)
             mpp_log_q(quiet, "decoder require buffer w:h [%d:%d] stride [%d:%d] size %d\n",
                       width, height, hor_stride, ver_stride, buf_size);
 
-            if (MPP_FRAME_FMT_IS_FBC(cmd->format)) {
+            if (MPP_FRAME_FMT_IS_FBC(cmd->format) || MPP_FRAME_FMT_IS_TILE(cmd->format)) {
                 MppFrame frm = NULL;
 
                 mpp_frame_init(&frm);
