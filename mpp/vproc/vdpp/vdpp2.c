@@ -1723,6 +1723,11 @@ MPP_RET vdpp2_start(Vdpp2ApiCtx *ctx)
         return MPP_ERR_NULL_PTR;
     }
 
+    // get env here so that we can change loglevel dynamically
+    mpp_env_get_u32(VDPP_COM_DEBUG_ENV_NAME, &vdpp_debug,
+                    (VDPP_LOG_FATAL | VDPP_LOG_ERROR | VDPP_LOG_WARNING));
+    vdpp_logt("get env '%s' flag: %#x", VDPP_COM_DEBUG_ENV_NAME, vdpp_debug);
+
     vdpp_enter();
 
     work_mode = ctx->params.working_mode;

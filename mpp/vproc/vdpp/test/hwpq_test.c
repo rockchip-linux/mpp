@@ -424,6 +424,13 @@ static void *multi_vdpp(void *cmd_ctx)
                 fprintf(mul_ctx->fp_o_res, "mean luma result: %d\n", vdpp_output.hist.luma_avg);
                 fflush(mul_ctx->fp_o_res);
             }
+
+            // write dci info after hist
+            fwrite(&vdpp_output.hist.dci_vdpp_info, 1, sizeof(HwpqVdppDciInfo), mul_ctx->fp_o_hist);
+
+            // or copy to dci_vdpp_info_t of hwpq
+            // memcpy(&pConfigHwpq->rk_hwpq_dci_cfg.dci_vdpp_info, &vdpp_output.hist.dci_vdpp_info,
+            //        sizeof(HwpqVdppDciInfo));
         }
 
         /* write pyr result */

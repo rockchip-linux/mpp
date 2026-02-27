@@ -566,6 +566,7 @@ static void vdpp_dump_bufs(HwpqVdppParams *p_proc_param, RK_S32 index)
     FILE *fp_in = NULL;
     FILE *fp_out = NULL;
     char filename[256] = {0};
+    (void)index;
 
     if (NULL == p_proc_param) {
         hwpq_loge("found NULL proc_param %p!\n", p_proc_param);
@@ -854,7 +855,7 @@ int hwpq_vdpp_init(HwpqVdppContext *p_ctx_ptr)
 
     /* get env */
     mpp_env_get_u32(HWPQ_VDPP_DEBUG_CFG_PROP, &hwpq_vdpp_debug, 0);
-    hwpq_logi("get env: %s=%#x", HWPQ_VDPP_DEBUG_CFG_PROP, hwpq_vdpp_debug);
+    hwpq_logi("get env '%s' flag: %#x", HWPQ_VDPP_DEBUG_CFG_PROP, hwpq_vdpp_debug);
 
     hwpq_enter();
 
@@ -1022,6 +1023,10 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
         hwpq_loge("found NULL vdpp or vdpp ops\n");
         return MPP_ERR_NULL_PTR;
     }
+
+    // get env here so that we can change loglevel dynamically
+    mpp_env_get_u32(HWPQ_VDPP_DEBUG_CFG_PROP, &hwpq_vdpp_debug, 0);
+    hwpq_logt("get env '%s' flag: %#x", HWPQ_VDPP_DEBUG_CFG_PROP, hwpq_vdpp_debug);
 
     hwpq_enter();
 
@@ -1237,6 +1242,7 @@ int hwpq_vdpp_run_cmd(HwpqVdppContext ctx, HwpqVdppCmd cmd, void *data, int data
     VdppComCtx *ctx_com = NULL;
     RK_S32 min_data_size = 0;
     RK_S32 ret = MPP_OK;
+    (void)user_data;
 
     if (NULL == ctx || NULL == data) {
         hwpq_loge("found NULL input ctx %p data %p\n", ctx, data);
