@@ -22,6 +22,7 @@ set(MPP_DRIVER
 )
 
 add_library(osal OBJECT
+    mpp_sgln_base.c
     mpp_singleton.c
     mpp_soc.c
     mpp_platform.c
