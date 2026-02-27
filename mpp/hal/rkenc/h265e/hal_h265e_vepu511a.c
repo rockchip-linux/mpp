@@ -955,7 +955,7 @@ static void vepu511a_h265_set_me_regs(H265eV511AHalContext *ctx, H265eSyntax_new
     reg_frm->common.me_rnge.dlt_frm_num      = 0x1;
 
     if (syn->pp.sps_temporal_mvp_enabled_flag && (ctx->frame_type != INTRA_FRAME)) {
-        if (ctx->last_frame_fb.frame_type == INTRA_FRAME)
+        if (ctx->last_frame_type == INTRA_FRAME)
             reg_frm->common.me_cach.colmv_load_hevc = 0;
         else
             reg_frm->common.me_cach.colmv_load_hevc = 1;
@@ -2777,10 +2777,13 @@ MPP_RET hal_h265e_vepu511a_get_task(void *hal, HalEncTask *task)
     ctx->smart_en = (ctx->cfg->rc.rc_mode == MPP_ENC_RC_MODE_SMTRC);
     ctx->qpmap_en = ctx->cfg->tune.deblur_en;
 
-    if (vepu511a_h265_setup_hal_bufs(ctx)) {
-        hal_h265e_err("vepu541_h265_allocate_buffers failed, free buffers and return\n");
-        task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
-        return MPP_ERR_MALLOC;
+    if (!task->rc_task->frm.reencode) {
+        if (vepu511a_h265_setup_hal_bufs(ctx)) {
+            hal_h265e_err("vepu541_h265_allocate_buffers failed, free buffers and return\n");
+            task->flags.err |= HAL_ENC_TASK_ERR_ALLOC;
+            return MPP_ERR_MALLOC;
+        }
+        ctx->last_frame_fb = ctx->feedback;
     }
 
     ctx->last_frame_type = ctx->frame_type;

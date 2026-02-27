@@ -1050,7 +1050,7 @@ static void vepu511_h265_set_me_regs(H265eV511HalContext *ctx, H265eSyntax_new *
     reg_frm->reg0220_me_rnge.dlt_frm_num    = 0;
 
     if (syn->pp.sps_temporal_mvp_enabled_flag && (ctx->frame_type != INTRA_FRAME)) {
-        if (ctx->last_frame_fb.frame_type == INTRA_FRAME)
+        if (ctx->last_frame_type == INTRA_FRAME)
             reg_frm->reg0222_me_cach.colmv_load = 0;
         else
             reg_frm->reg0222_me_cach.colmv_load = 1;
