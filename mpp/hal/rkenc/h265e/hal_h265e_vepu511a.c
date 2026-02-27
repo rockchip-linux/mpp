@@ -1087,8 +1087,8 @@ static void vepu511a_set_speed(H265eV511AHalContext *ctx, H265eV511ARegSet *regs
         } else if (ctx->frame_type == INTER_P_FRAME) {
             reg_frm->rdo_cfg.pu32_inter_interpolation_num_big_lvl = 3;
             reg_frm->rdo_cfg.pu16_inter_interpolation_num_big_lvl = 3;
-            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 3;
-            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 3;
+            reg_frm->rdo_cfg.pu8_inter_interpolation_num_big_lvl  = 1;
+            reg_frm->rdo_intra_mode.pu32_inter_interpolation_num_small_lvl = 1;
             reg_frm->rdo_intra_mode.pu16_inter_interpolation_num_small_lvl = 3;
             reg_frm->rdo_intra_mode.pu8_inter_interpolation_num_small_lvl  = 3;
             reg_frm->rdo_intra_mode.pu32_intra_mode_num_big_lvl = 1;
@@ -2048,7 +2048,7 @@ static void vepu511a_h265_set_slice_regs(H265eSyntax_new *syn, H265eVepu511aFram
     regs->synt_sli1.dblk_fltr_ovrd_flg    = syn->sp.dblk_fltr_ovrd_flg;
     regs->synt_sli1.sli_cb_qp_ofst = syn->pp.pps_slice_chroma_qp_offsets_present_flag ?
                                      syn->sp.sli_cb_qp_ofst : syn->pp.pps_cb_qp_offset;
-    regs->synt_sli1.max_mrg_cnd           = 1;
+    regs->synt_sli1.max_mrg_cnd           = 3;
 
     regs->synt_sli1.col_ref_idx           = syn->sp.col_ref_idx;
     regs->synt_sli1.col_frm_l0_flg        = syn->sp.col_frm_l0_flg;
