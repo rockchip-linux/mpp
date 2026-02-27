@@ -3,6 +3,7 @@
 # add libvpu implement
 # ----------------------------------------------------------------------------
 include_directories(${PROJECT_SOURCE_DIR}/mpp/base/inc)
+include_directories(${PROJECT_SOURCE_DIR}/osal/inc)
 
 add_library(utils OBJECT
     mpp_enc_roi_utils.c
@@ -14,4 +15,5 @@ add_library(utils OBJECT
     dictionary.c
     camera_source.c
     osd3_test.c
+    utils_singleton.c
     )
