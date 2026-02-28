@@ -139,6 +139,8 @@ typedef struct HalH264eVepu510Ctx_t {
     RK_S32                  task_idx;
     RK_S32                  curr_idx;
     RK_S32                  prev_idx;
+    RK_S32                  slot_to_dchs_txid[H264E_MAX_REFS_CNT];
+
     HalVepu510RegSet        *regs_set;
     HalH264eVepuStreamAmend *amend;
     H264ePrefixNal          *prefix;
@@ -380,6 +382,7 @@ static MPP_RET hal_h264e_vepu510_init(void *hal, MppEncHalCfg *cfg)
         h264e_vepu_stream_amend_init(&p->amend_sets[i]);
 
     p->tune = vepu510_h264e_tune_init(p);
+    memset(p->slot_to_dchs_txid, 0, sizeof(p->slot_to_dchs_txid));
 
 DONE:
     if (ret)
@@ -1775,25 +1778,42 @@ static void setup_vepu510_ext_line_buf(HalVepu510RegSet *regs, HalH264eVepu510Ct
     mpp_dev_ioctl(ctx->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
 }
 
-static MPP_RET setup_vepu510_dual_core(HalH264eVepu510Ctx *ctx, H264SliceType slice_type)
+static MPP_RET setup_vepu510_dual_core(HalH264eVepu510Ctx *ctx, H264SliceType slice_type,
+                                       RK_S32 curr_slot, RK_S32 refr_slot)
 {
     H264eVepu510Frame *reg_frm = &ctx->regs_set->reg_frm;
     RK_U32 dchs_ofst = 9;
     RK_U32 dchs_rxe  = 1;
     RK_U32 dchs_dly  = 0;
+    RK_U32 dchs_txe  = 1;
+    RK_U32 rxid = 0;
 
     if (ctx->task_cnt == 1)
         return MPP_OK;
+
+    if (curr_slot < 0 || curr_slot >= H264E_MAX_REFS_CNT || refr_slot < 0 || refr_slot >= H264E_MAX_REFS_CNT) {
+        mpp_loge_f("dual core setup failed! invalid frame slot index. curr_slot:%d, refr_slot:%d",
+                   curr_slot, refr_slot);
+        return MPP_ERR_UNKNOW;
+    }
 
     if (slice_type == H264_I_SLICE) {
         ctx->curr_idx = 0;
         ctx->prev_idx = 0;
         dchs_rxe = 0;
+        rxid = 0;
+    } else {
+        rxid = ctx->slot_to_dchs_txid[refr_slot];
     }
 
+    if (!reg_frm->common.enc_pic.cur_frm_ref)
+        dchs_txe = 0;
+
+    ctx->slot_to_dchs_txid[curr_slot] = ctx->curr_idx;
+
     reg_frm->common.dual_core.dchs_txid = ctx->curr_idx;
-    reg_frm->common.dual_core.dchs_rxid = ctx->prev_idx;
-    reg_frm->common.dual_core.dchs_txe  = 1;
+    reg_frm->common.dual_core.dchs_rxid = rxid;
+    reg_frm->common.dual_core.dchs_txe  = dchs_txe;
     reg_frm->common.dual_core.dchs_rxe  = dchs_rxe;
     reg_frm->common.dual_core.dchs_ofst = dchs_ofst;
     reg_frm->common.dual_core.dchs_dly  = dchs_dly;
@@ -2178,8 +2198,8 @@ static MPP_RET hal_h264e_vepu510_gen_regs(void *hal, HalEncTask *task)
     if (ret)
         return ret;
 
-    setup_vepu510_dual_core(ctx, slice->slice_type);
     setup_vepu510_codec(regs, sps, pps, slice);
+    setup_vepu510_dual_core(ctx, slice->slice_type, task->flags.curr_idx, task->flags.refr_idx);
     setup_vepu510_rdo_pred(ctx, sps, pps, slice);
     setup_vepu510_aq(ctx);
     setup_vepu510_anti_stripe(ctx);

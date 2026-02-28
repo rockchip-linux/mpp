@@ -175,6 +175,7 @@ typedef struct H265eV580HalContext_t {
     /* dchs cfg */
     RK_S32              curr_idx;
     RK_S32              prev_idx;
+    RK_S32              slot_to_dchs_txid[MAX_REFS];
 
     /* debug cfg */
     void                *dump_files;
@@ -1594,6 +1595,7 @@ MPP_RET hal_h265e_v580_init(void *hal, MppEncHalCfg *cfg)
     }
     ctx->output_cb = cfg->output_cb;
     cfg->cap_recn_out = 1;
+    memset(ctx->slot_to_dchs_txid, 0, sizeof(ctx->slot_to_dchs_txid));
 DONE:
     if (ret)
         hal_h265e_v580_deinit(hal);
@@ -2282,23 +2284,39 @@ FAILE:
     return ret;
 }
 
-static MPP_RET setup_vepu580_dual_core(H265eV580HalContext *ctx)
+static MPP_RET setup_vepu580_dual_core(H265eV580HalContext *ctx, RK_S32 curr_slot, RK_S32 refr_slot)
 {
     Vepu580H265eFrmCfg *frm = ctx->frm;
     H265eV580RegSet *regs = frm->regs_set[0];
     hevc_vepu580_base *reg_base = &regs->reg_base;
     RK_U32 dchs_ofst = 9;
     RK_U32 dchs_rxe  = 1;
+    RK_U32 dchs_txe  = 1;
+    RK_U32 rxid = 0;
+
+    if (curr_slot < 0 || curr_slot >= MAX_REFS || refr_slot < 0 || refr_slot >= MAX_REFS) {
+        mpp_loge_f("dual core setup failed! invalid frame slot index. curr_slot:%d, refr_slot:%d",
+                   curr_slot, refr_slot);
+        return MPP_ERR_UNKNOW;
+    }
 
     if (frm->frame_type == INTRA_FRAME) {
         ctx->curr_idx = 0;
         ctx->prev_idx = 0;
         dchs_rxe = 0;
+        rxid = 0;
+    } else {
+        rxid = ctx->slot_to_dchs_txid[refr_slot];
     }
 
+    if (!reg_base->reg0192_enc_pic.cur_frm_ref)
+        dchs_txe = 0;
+
+    ctx->slot_to_dchs_txid[curr_slot] = ctx->curr_idx;
+
     reg_base->reg0193_dual_core.dchs_txid = ctx->curr_idx;
-    reg_base->reg0193_dual_core.dchs_rxid = ctx->prev_idx;
-    reg_base->reg0193_dual_core.dchs_txe = 1;
+    reg_base->reg0193_dual_core.dchs_rxid = rxid;
+    reg_base->reg0193_dual_core.dchs_txe = dchs_txe;
     reg_base->reg0193_dual_core.dchs_rxe = dchs_rxe;
     reg_base->reg0193_dual_core.dchs_ofst = dchs_ofst;
 
@@ -2697,7 +2715,7 @@ MPP_RET hal_h265e_v580_gen_regs(void *hal, HalEncTask *task)
     memset(regs, 0, sizeof(H265eV580RegSet));
 
     if (ctx->task_cnt > 1)
-        setup_vepu580_dual_core(ctx);
+        setup_vepu580_dual_core(ctx, task->flags.curr_idx, task->flags.refr_idx);
 
     reg_ctl->reg0004_enc_strt.lkt_num      = 0;
     reg_ctl->reg0004_enc_strt.vepu_cmd     = ctx->enc_mode;

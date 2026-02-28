@@ -121,6 +121,7 @@ typedef struct H265eV510HalContext_t {
     /* dchs cfg */
     RK_S32              curr_idx;
     RK_S32              prev_idx;
+    RK_S32              slot_to_dchs_txid[MAX_REFS];
 
     Vepu510H265Fbk      feedback;
     Vepu510H265Fbk      last_frame_fb;
@@ -1169,6 +1170,7 @@ MPP_RET hal_h265e_v510_init(void *hal, MppEncHalCfg *cfg)
     cfg->cap_recn_out = 1;
 
     ctx->tune = vepu510_h265e_tune_init(ctx);
+    memset(ctx->slot_to_dchs_txid, 0, sizeof(ctx->slot_to_dchs_txid));
 
 DONE:
     if (ret)
@@ -1777,7 +1779,7 @@ static void setup_vepu510_ext_line_buf(H265eV510HalContext *ctx, H265eV510RegSet
     mpp_dev_ioctl(ctx->dev, MPP_DEV_RCB_INFO, &rcb_cfg);
 }
 
-static MPP_RET setup_vepu510_dual_core(H265eV510HalContext *ctx)
+static MPP_RET setup_vepu510_dual_core(H265eV510HalContext *ctx, RK_S32 curr_slot, RK_S32 refr_slot)
 {
     Vepu510H265eFrmCfg *frm = ctx->frm;
     H265eV510RegSet *regs = frm->regs_set;
@@ -1785,19 +1787,35 @@ static MPP_RET setup_vepu510_dual_core(H265eV510HalContext *ctx)
     RK_U32 dchs_ofst = 9;
     RK_U32 dchs_dly = 0;
     RK_U32 dchs_rxe  = 1;
+    RK_U32 dchs_txe  = 1;
+    RK_U32 rxid = 0;
 
     if (ctx->task_cnt == 1)
         return MPP_OK;
+
+    if (curr_slot < 0 || curr_slot >= MAX_REFS || refr_slot < 0 || refr_slot >= MAX_REFS) {
+        mpp_loge_f("dual core setup failed! invalid frame slot index. curr_slot:%d, refr_slot:%d",
+                   curr_slot, refr_slot);
+        return MPP_ERR_UNKNOW;
+    }
 
     if (ctx->frame_type == INTRA_FRAME) {
         ctx->curr_idx = 0;
         ctx->prev_idx = 0;
         dchs_rxe = 0;
+        rxid = 0;
+    } else {
+        rxid = ctx->slot_to_dchs_txid[refr_slot];
     }
 
+    if (!reg_frm->common.enc_pic.cur_frm_ref)
+        dchs_txe = 0;
+
+    ctx->slot_to_dchs_txid[curr_slot] = ctx->curr_idx;
+
     reg_frm->common.dual_core.dchs_txid = ctx->curr_idx;
-    reg_frm->common.dual_core.dchs_rxid = ctx->prev_idx;
-    reg_frm->common.dual_core.dchs_txe = 1;
+    reg_frm->common.dual_core.dchs_rxid = rxid;
+    reg_frm->common.dual_core.dchs_txe = dchs_txe;
     reg_frm->common.dual_core.dchs_rxe = dchs_rxe;
     reg_frm->common.dual_core.dchs_ofst = dchs_ofst;
     reg_frm->common.dual_core.dchs_dly = dchs_dly;
@@ -2014,7 +2032,7 @@ MPP_RET hal_h265e_v510_gen_regs(void *hal, HalEncTask *task)
     setup_vepu510_split(regs, ctx->cfg, syn->pp.tiles_enabled_flag);
 
     if (ctx->task_cnt > 1)
-        setup_vepu510_dual_core(ctx);
+        setup_vepu510_dual_core(ctx, task->flags.curr_idx, task->flags.refr_idx);
 
     vepu510_h265_set_me_regs(ctx, syn, reg_frm);
 
