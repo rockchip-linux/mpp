@@ -88,7 +88,10 @@ static void mpp_rt_srv_init()
     srv->allocator_valid[MPP_BUFFER_TYPE_DRM] =
         !access("/dev/dri/renderD128", F_OK | R_OK | W_OK) ||
         !access("/dev/dri/card0", F_OK | R_OK | W_OK);
-    srv->allocator_valid[MPP_BUFFER_TYPE_DMA_HEAP] = !access("/dev/dma_heap", F_OK | R_OK);
+    srv->allocator_valid[MPP_BUFFER_TYPE_DMA_HEAP] = !access("/dev/dma_heap/system", F_OK | R_OK) &&
+                                                     !access("/dev/dma_heap/system-dma32", F_OK | R_OK) &&
+                                                     !access("/dev/dma_heap/system-uncached", F_OK | R_OK) &&
+                                                     !access("/dev/dma_heap/system-uncached-dma32", F_OK | R_OK);
 
     if (!srv->allocator_valid[MPP_BUFFER_TYPE_ION] &&
         !srv->allocator_valid[MPP_BUFFER_TYPE_DRM] &&
