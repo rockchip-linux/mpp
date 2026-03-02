@@ -1,0 +1,52 @@
+{
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.5,
+    "enabled": true,
+    "name": "test_config",
+    "s8_val": -128,
+    "u8_val": 255,
+    "s16_val": -32768,
+    "u16_val": 65535,
+    "s32_val": -2147483648,
+    "u32_val": 4294967295,
+    "s64_val": -1000000,
+    "u64_val": 1000000,
+    "values": [0, 1, 2, 3, 4, 5],
+    "s8_array": [-128, -64, 0, 64, 127],
+    "u8_array": [0, 64, 128, 192, 255],
+    "s16_array": [-1000, -500, 0, 500, 1000],
+    "u16_array": [0, 1000, 2000, 3000, 4000],
+    "s64_array": [-1000000, -500000, 0, 500000, 1000000],
+    "u64_array": [0, 1000000, 2000000, 3000000, 4000000],
+    "bool_array": [true, false, true, false],
+    "string_array": ["hello", "world", "mpp", "test"],
+    "nested_array": [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ],
+    "codec": {
+        "type": "h264",
+        "profile": "high",
+        "level": 4.1,
+        "bitrate": 4000000
+    },
+    "objects": [
+        {
+            "id": 100,
+            "name": "obj_a",
+            "active": true
+        },
+        {
+            "id": 101,
+            "name": "obj_b",
+            "active": false
+        },
+        {
+            "id": 102,
+            "name": "obj_c",
+            "active": true
+        }
+    ]
+}
