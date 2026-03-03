@@ -128,7 +128,15 @@ typedef enum ElemType_e {
     /* userspace function poineter */
     ELEM_TYPE_ufp       = (ELEM_TYPE_USER + 2),
 
-    ELEM_TYPE_BUTT      = 0xf,
+    /* array type data */
+    ELEM_TYPE_arr       = 0x10,
+    ELEM_TYPE_s8        = 0x11,
+    ELEM_TYPE_u8        = 0x12,
+    ELEM_TYPE_s16       = 0x13,
+    ELEM_TYPE_u16       = 0x14,
+    /* variable size data */
+    ELEM_TYPE_var       = 0x15,
+    ELEM_TYPE_BUTT      = 0x16,
 } ElemType;
 
 typedef union KmppEntry_u {
