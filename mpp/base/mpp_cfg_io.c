@@ -78,6 +78,8 @@ struct MppCfgIoImpl_t {
     rk_s32                  name_len;
     rk_s32                  name_buf_len;
 
+    rk_s32                  array_count;
+
     /* location entry for structure access */
     MppTrie                 trie;
     KmppEntry               entry;
@@ -320,6 +322,7 @@ rk_s32 mpp_cfg_get_array(MppCfgObj *obj, const char *name, rk_s32 count)
 
     impl->type = MPP_CFG_TYPE_ARRAY;
     impl->buf_size = buf_size;
+    impl->array_count = 0;
     /* set invalid data type by default */
     impl->entry.tbl.elem_type = ELEM_TYPE_BUTT;
 
@@ -866,7 +869,7 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     if (impl->type < MPP_CFG_TYPE_OBJECT) {
         cfg_io_dbg_to("depth %d leaf write name %s type %d\n", str->depth, impl->name, impl->type);
 
-        if (impl->name)
+        if (impl->name && !strstr(impl->name, "array_"))
             len += snprintf(buf + len, total - len, "%s : ", impl->name);
 
         switch (impl->type) {
@@ -920,7 +923,7 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 
     cfg_io_dbg_to("depth %d branch write name %s type %d\n", str->depth, impl->name, impl->type);
 
-    if (impl->name)
+    if (impl->name && !strstr(impl->name, "array_"))
         len += snprintf(buf + len, total - len, "%s : ", impl->name);
 
     if (list_empty(&impl->child)) {
@@ -969,7 +972,7 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     if (impl->type < MPP_CFG_TYPE_OBJECT) {
         cfg_io_dbg_to("depth %d leaf write name %s type %d\n", str->depth, impl->name, impl->type);
 
-        if (impl->name)
+        if (impl->name && !strstr(impl->name, "array_"))
             len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
 
         switch (impl->type) {
@@ -1023,7 +1026,7 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 
     cfg_io_dbg_to("depth %d branch write name %s type %d\n", str->depth, impl->name, impl->type);
 
-    if (impl->name)
+    if (impl->name && !strstr(impl->name, "array_"))
         len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
 
     if (list_empty(&impl->child)) {
@@ -1076,7 +1079,7 @@ static rk_s32 mpp_toml_top(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     rk_s32 len = 0;
     rk_s32 total = sizeof(buf) - 1;
 
-    if (impl->name && impl->type == MPP_CFG_TYPE_OBJECT)
+    if (impl->name && !strstr(impl->name, "array_") && impl->type == MPP_CFG_TYPE_OBJECT)
         len += snprintf(buf + len, total - len, "\n[%s]\n", impl->name);
 
     return write_byte_f(str, buf, &len);
@@ -1088,7 +1091,7 @@ static rk_s32 mpp_toml_non_top(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     rk_s32 len = 0;
     rk_s32 total = sizeof(buf) - 1;
 
-    if (impl->name)
+    if (impl->name && !strstr(impl->name, "array_"))
         len += snprintf(buf + len, total - len, "%s = ", impl->name);
 
     if (list_empty(&impl->child)) {
@@ -1120,7 +1123,7 @@ static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str, rk_s32 firs
     if (impl->type < MPP_CFG_TYPE_OBJECT) {
         cfg_io_dbg_to("depth %d leaf write name %s type %d\n", str->depth, impl->name, impl->type);
 
-        if (impl->name)
+        if (impl->name && !strstr(impl->name, "array_"))
             len += snprintf(buf + len, total - len, "%s = ", impl->name);
 
         switch (impl->type) {
@@ -1343,12 +1346,14 @@ static rk_s32 parse_log_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
     char *buf = NULL;
     rk_s32 old = str->offset;
     rk_s32 ret = rk_nok;
+    char arr_name[64] = {0};
 
     if (str->depth >= MAX_CFG_DEPTH) {
         mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
         return rk_nok;
     }
 
+    parent->array_count = 0;
     str->depth++;
 
     cfg_io_dbg_from("depth %d offset %d array parse start\n", str->depth, str->offset);
@@ -1388,8 +1393,9 @@ static rk_s32 parse_log_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
             goto failed;
         }
 
+        snprintf(arr_name, sizeof(arr_name), "array_%d", parent->array_count);
         /* parse value */
-        ret = parse_log_value(parent, NULL, str);
+        ret = parse_log_value(parent, arr_name, str);
         if (ret) {
             ret = -6;
             goto failed;
@@ -1400,6 +1406,7 @@ static rk_s32 parse_log_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
             ret = -7;
             goto failed;
         }
+        parent->array_count++;
 
         if (buf[0] == ']')
             break;
@@ -1930,12 +1937,14 @@ static rk_s32 parse_json_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
     char *buf = NULL;
     rk_s32 old = str->offset;
     rk_s32 ret = rk_nok;
+    char arr_name[64] = {0};
 
     if (str->depth >= MAX_CFG_DEPTH) {
         mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
         return rk_nok;
     }
 
+    parent->array_count = 0;
     str->depth++;
 
     cfg_io_dbg_from("depth %d offset %d array parse start\n", str->depth, str->offset);
@@ -1975,8 +1984,10 @@ static rk_s32 parse_json_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
             goto failed;
         }
 
+        snprintf(arr_name, sizeof(arr_name), "array_%d", parent->array_count);
+
         /* parse value */
-        ret = parse_json_value(parent, NULL, str);
+        ret = parse_json_value(parent, arr_name, str);
         if (ret) {
             ret = -6;
             goto failed;
@@ -2000,6 +2011,7 @@ static rk_s32 parse_json_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
                 break;
 
             cfg_io_dbg_from("depth %d offset %d: get next array\n", str->depth, str->offset);
+            parent->array_count++;
             continue;
         }
         break;
@@ -2357,12 +2369,14 @@ static rk_s32 parse_toml_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
     char *buf = NULL;
     rk_s32 old = str->offset;
     rk_s32 ret = rk_nok;
+    char arr_name[64] = {0};
 
     if (str->depth >= MAX_CFG_DEPTH) {
         mpp_loge_f("depth %d reached max\n", MAX_CFG_DEPTH);
         return rk_nok;
     }
 
+    parent->array_count = 0;
     str->depth++;
 
     cfg_io_dbg_from("depth %d offset %d array parse start\n", str->depth, str->offset);
@@ -2401,8 +2415,9 @@ static rk_s32 parse_toml_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
             goto failed;
         }
 
+        snprintf(arr_name, sizeof(arr_name), "array_%d", parent->array_count);
         /* parse value */
-        ret = parse_toml_value(parent, NULL, str);
+        ret = parse_toml_value(parent, arr_name, str);
         if (ret) {
             ret = -65;
             goto failed;
@@ -2426,6 +2441,7 @@ static rk_s32 parse_toml_array(MppCfgIoImpl *obj, MppCfgStrBuf *str)
                 break;
 
             cfg_io_dbg_from("depth %d offset %d: get next array\n", str->depth, str->offset);
+            parent->array_count++;
             continue;
         }
         break;
