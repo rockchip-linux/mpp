@@ -112,6 +112,10 @@ static const char *strof_type(MppCfgType type)
         [MPP_CFG_TYPE_INVALID] = "invalid",
         [MPP_CFG_TYPE_NULL] = "null",
         [MPP_CFG_TYPE_BOOL] = "bool",
+        [MPP_CFG_TYPE_s8] = "s8",
+        [MPP_CFG_TYPE_u8] = "u8",
+        [MPP_CFG_TYPE_s16] = "s16",
+        [MPP_CFG_TYPE_u16] = "u16",
         [MPP_CFG_TYPE_s32] = "s32",
         [MPP_CFG_TYPE_u32] = "u32",
         [MPP_CFG_TYPE_s64] = "s64",
@@ -545,6 +549,42 @@ rk_s32 mpp_cfg_find(MppCfgObj *obj, MppCfgObj root, char *name, rk_s32 type)
     return rk_ok;
 }
 
+MppCfgType mpp_cfg_type_from_elem_type(ElemType type)
+{
+    switch (type) {
+    case ELEM_TYPE_s8 : {
+        return MPP_CFG_TYPE_s8;
+    } break;
+    case ELEM_TYPE_u8 : {
+        return MPP_CFG_TYPE_u8;
+    } break;
+    case ELEM_TYPE_s16 : {
+        return MPP_CFG_TYPE_s16;
+    } break;
+    case ELEM_TYPE_u16 : {
+        return MPP_CFG_TYPE_u16;
+    } break;
+    case ELEM_TYPE_s32 : {
+        return MPP_CFG_TYPE_s32;
+    } break;
+    case ELEM_TYPE_u32 : {
+        return MPP_CFG_TYPE_u32;
+    } break;
+    case ELEM_TYPE_s64 : {
+        return MPP_CFG_TYPE_s64;
+    } break;
+    case ELEM_TYPE_u64 : {
+        return MPP_CFG_TYPE_u64;
+    } break;
+    case ELEM_TYPE_arr : {
+        return MPP_CFG_TYPE_ARRAY;
+    } break;
+    default : {
+        return MPP_CFG_TYPE_BUTT;
+    } break;
+    }
+}
+
 rk_s32 mpp_cfg_set_entry(MppCfgObj obj, KmppEntry *entry)
 {
     MppCfgIoImpl *impl = (MppCfgIoImpl *)obj;
@@ -556,23 +596,7 @@ rk_s32 mpp_cfg_set_entry(MppCfgObj obj, KmppEntry *entry)
 
         if (entry->tbl.elem_type < ELEM_TYPE_BUTT) {
             memcpy(&impl->entry, entry, sizeof(impl->entry));
-
-            switch (entry->tbl.elem_type) {
-            case ELEM_TYPE_s32 : {
-                impl->type = MPP_CFG_TYPE_s32;
-            } break;
-            case ELEM_TYPE_u32 : {
-                impl->type = MPP_CFG_TYPE_u32;
-            } break;
-            case ELEM_TYPE_s64 : {
-                impl->type = MPP_CFG_TYPE_s64;
-            } break;
-            case ELEM_TYPE_u64 : {
-                impl->type = MPP_CFG_TYPE_u64;
-            } break;
-            default : {
-            } break;
-            }
+            impl->type = mpp_cfg_type_from_elem_type(entry->tbl.elem_type);
         } else {
             impl->entry.tbl.elem_type = ELEM_TYPE_BUTT;
         }
@@ -852,6 +876,18 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s\n", impl->val.b1 ? "true" : "false");
         } break;
+        case MPP_CFG_TYPE_s8 : {
+            len += snprintf(buf + len, total - len, "%d\n", impl->val.s8);
+        } break;
+        case MPP_CFG_TYPE_u8 : {
+            len += snprintf(buf + len, total - len, "%u\n", impl->val.u8);
+        } break;
+        case MPP_CFG_TYPE_s16 : {
+            len += snprintf(buf + len, total - len, "%d\n", impl->val.s16);
+        } break;
+        case MPP_CFG_TYPE_u16 : {
+            len += snprintf(buf + len, total - len, "%u\n", impl->val.u16);
+        } break;
         case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d\n", impl->val.s32);
         } break;
@@ -942,6 +978,18 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         } break;
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s,\n", impl->val.b1 ? "true" : "false");
+        } break;
+        case MPP_CFG_TYPE_s8 : {
+            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s8);
+        } break;
+        case MPP_CFG_TYPE_u8 : {
+            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u8);
+        } break;
+        case MPP_CFG_TYPE_s16 : {
+            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s16);
+        } break;
+        case MPP_CFG_TYPE_u16 : {
+            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u16);
         } break;
         case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d,\n", impl->val.s32);
@@ -1081,6 +1129,18 @@ static rk_s32 mpp_cfg_to_toml(MppCfgIoImpl *impl, MppCfgStrBuf *str, rk_s32 firs
         } break;
         case MPP_CFG_TYPE_BOOL : {
             len += snprintf(buf + len, total - len, "%s", impl->val.b1 ? "true" : "false");
+        } break;
+        case MPP_CFG_TYPE_s8 : {
+            len += snprintf(buf + len, total - len, "%d", impl->val.s8);
+        } break;
+        case MPP_CFG_TYPE_u8 : {
+            len += snprintf(buf + len, total - len, "%u", impl->val.u8);
+        } break;
+        case MPP_CFG_TYPE_s16 : {
+            len += snprintf(buf + len, total - len, "%d", impl->val.s16);
+        } break;
+        case MPP_CFG_TYPE_u16 : {
+            len += snprintf(buf + len, total - len, "%u", impl->val.u16);
         } break;
         case MPP_CFG_TYPE_s32 : {
             len += snprintf(buf + len, total - len, "%d", impl->val.s32);
@@ -3079,6 +3139,18 @@ static void write_struct(MppCfgIoImpl *obj, MppTrie trie, MppCfgStrBuf *str, voi
 
     if (tbl->tbl.elem_type < ELEM_TYPE_BUTT) {
         switch (tbl->tbl.elem_type) {
+        case ELEM_TYPE_s8 : {
+            kmpp_obj_impl_set_s8(tbl, st, obj->val.s8);
+        } break;
+        case ELEM_TYPE_u8 : {
+            kmpp_obj_impl_set_u8(tbl, st, obj->val.u8);
+        } break;
+        case ELEM_TYPE_s16 : {
+            kmpp_obj_impl_set_s16(tbl, st, obj->val.s16);
+        } break;
+        case ELEM_TYPE_u16 : {
+            kmpp_obj_impl_set_u16(tbl, st, obj->val.u16);
+        } break;
         case ELEM_TYPE_s32 : {
             kmpp_obj_impl_set_s32(tbl, st, obj->val.s32);
         } break;
@@ -3159,11 +3231,31 @@ static MppCfgObj read_struct(MppCfgIoImpl *impl, MppCfgObj parent, void *st)
 
     /* assign value by different type */
     switch (entry->tbl.elem_type) {
+    case ELEM_TYPE_s8 :
+    case ELEM_TYPE_u8 :
+    case ELEM_TYPE_s16 :
+    case ELEM_TYPE_u16 :
     case ELEM_TYPE_s32 :
     case ELEM_TYPE_u32 :
     case ELEM_TYPE_s64 :
     case ELEM_TYPE_u64 : {
         switch (entry->tbl.elem_type) {
+        case ELEM_TYPE_s8 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_s8);
+            kmpp_obj_impl_get_s8(entry, st, &ret->val.s8);
+        } break;
+        case ELEM_TYPE_u8 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_u8);
+            kmpp_obj_impl_get_u8(entry, st, &ret->val.u8);
+        } break;
+        case ELEM_TYPE_s16 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_s16);
+            kmpp_obj_impl_get_s16(entry, st, &ret->val.s16);
+        } break;
+        case ELEM_TYPE_u16 : {
+            mpp_assert(impl->type == MPP_CFG_TYPE_u16);
+            kmpp_obj_impl_get_u16(entry, st, &ret->val.u16);
+        } break;
         case ELEM_TYPE_s32 : {
             mpp_assert(impl->type == MPP_CFG_TYPE_s32);
             kmpp_obj_impl_get_s32(entry, st, &ret->val.s32);
@@ -3185,6 +3277,7 @@ static MppCfgObj read_struct(MppCfgIoImpl *impl, MppCfgObj parent, void *st)
         }
     } break;
     case ELEM_TYPE_st :
+    case ELEM_TYPE_arr :
     case ELEM_TYPE_ptr : {
         ret->val = impl->val;
     } break;

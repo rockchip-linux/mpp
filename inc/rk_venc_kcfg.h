@@ -29,6 +29,10 @@ MPP_RET mpp_venc_kcfg_init(MppVencKcfg *cfg, MppVencKcfgType type);
 MPP_RET mpp_venc_kcfg_init_by_name(MppVencKcfg *cfg, const char *name);
 MPP_RET mpp_venc_kcfg_deinit(MppVencKcfg cfg);
 
+MPP_RET mpp_venc_kcfg_set_s8(MppVencKcfg cfg, const char *name, RK_S8 val);
+MPP_RET mpp_venc_kcfg_set_u8(MppVencKcfg cfg, const char *name, RK_U8 val);
+MPP_RET mpp_venc_kcfg_set_s16(MppVencKcfg cfg, const char *name, RK_S16 val);
+MPP_RET mpp_venc_kcfg_set_u16(MppVencKcfg cfg, const char *name, RK_U16 val);
 MPP_RET mpp_venc_kcfg_set_s32(MppVencKcfg cfg, const char *name, RK_S32 val);
 MPP_RET mpp_venc_kcfg_set_u32(MppVencKcfg cfg, const char *name, RK_U32 val);
 MPP_RET mpp_venc_kcfg_set_s64(MppVencKcfg cfg, const char *name, RK_S64 val);
@@ -36,6 +40,10 @@ MPP_RET mpp_venc_kcfg_set_u64(MppVencKcfg cfg, const char *name, RK_U64 val);
 MPP_RET mpp_venc_kcfg_set_ptr(MppVencKcfg cfg, const char *name, void *val);
 MPP_RET mpp_venc_kcfg_set_st(MppVencKcfg cfg, const char *name, void *val);
 
+MPP_RET mpp_venc_kcfg_get_s8(MppVencKcfg cfg, const char *name, RK_S8 *val);
+MPP_RET mpp_venc_kcfg_get_u8(MppVencKcfg cfg, const char *name, RK_U8 *val);
+MPP_RET mpp_venc_kcfg_get_s16(MppVencKcfg cfg, const char *name, RK_S16 *val);
+MPP_RET mpp_venc_kcfg_get_u16(MppVencKcfg cfg, const char *name, RK_U16 *val);
 MPP_RET mpp_venc_kcfg_get_s32(MppVencKcfg cfg, const char *name, RK_S32 *val);
 MPP_RET mpp_venc_kcfg_get_u32(MppVencKcfg cfg, const char *name, RK_U32 *val);
 MPP_RET mpp_venc_kcfg_get_s64(MppVencKcfg cfg, const char *name, RK_S64 *val);

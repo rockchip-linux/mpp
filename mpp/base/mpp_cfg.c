@@ -30,7 +30,8 @@ MPP_RET check_cfg_entry(KmppEntry *node, const char *name, ElemType type,
     MPP_RET ret = MPP_OK;
 
     switch (type) {
-    case ELEM_TYPE_st : {
+    case ELEM_TYPE_st :
+    case ELEM_TYPE_arr : {
         if (cfg_type != type) {
             show_cfg_entry_err(node, type, func, name);
             ret = MPP_NOK;
@@ -42,6 +43,20 @@ MPP_RET check_cfg_entry(KmppEntry *node, const char *name, ElemType type,
     } break;
     case ELEM_TYPE_ptr : {
         if (cfg_type != type) {
+            show_cfg_entry_err(node, type, func, name);
+            ret = MPP_NOK;
+        }
+    } break;
+    case ELEM_TYPE_s8 :
+    case ELEM_TYPE_u8 : {
+        if (cfg_size != sizeof(RK_S8)) {
+            show_cfg_entry_err(node, type, func, name);
+            ret = MPP_NOK;
+        }
+    } break;
+    case ELEM_TYPE_s16 :
+    case ELEM_TYPE_u16 : {
+        if (cfg_size != sizeof(RK_S16)) {
             show_cfg_entry_err(node, type, func, name);
             ret = MPP_NOK;
         }

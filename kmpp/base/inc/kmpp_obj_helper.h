@@ -64,8 +64,31 @@
 #ifdef KMPP_OBJ_IMPL_TYPE
 #ifdef KMPP_OBJ_HIERARCHY_ENABLE
 
-#define MPP_CFG_TYPE_ptr MPP_CFG_TYPE_OBJECT
-#define MPP_CFG_TYPE_st  MPP_CFG_TYPE_OBJECT
+#define MPP_CFG_TYPE_ptr   MPP_CFG_TYPE_OBJECT
+#define MPP_CFG_TYPE_st    MPP_CFG_TYPE_OBJECT
+#define MPP_CFG_TYPE_starr MPP_CFG_TYPE_ARRAY
+#define ELEM_TYPE_starr    ELEM_TYPE_arr
+
+#define KMPP_TYPE_TO_ELEM_TYPE(type) ({ \
+    ElemType _ret = ELEM_TYPE_BUTT; \
+    if (__builtin_types_compatible_p(type, rk_s8)) \
+        _ret = ELEM_TYPE_s8; \
+    else if (__builtin_types_compatible_p(type, rk_u8)) \
+        _ret = ELEM_TYPE_u8; \
+    else if (__builtin_types_compatible_p(type, rk_s16)) \
+        _ret = ELEM_TYPE_s16; \
+    else if (__builtin_types_compatible_p(type, rk_u16)) \
+        _ret = ELEM_TYPE_u16; \
+    else if (__builtin_types_compatible_p(type, rk_s32)) \
+        _ret = ELEM_TYPE_s32; \
+    else if (__builtin_types_compatible_p(type, rk_u32)) \
+        _ret = ELEM_TYPE_u32; \
+    else if (__builtin_types_compatible_p(type, rk_s64)) \
+        _ret = ELEM_TYPE_s64; \
+    else if (__builtin_types_compatible_p(type, rk_u64)) \
+        _ret = ELEM_TYPE_u64; \
+    _ret; \
+})
 
 #define ENTRY_TO_TRIE(prefix, ftype, type, name, flag, ...) \
     do { \
@@ -77,7 +100,25 @@
             }; \
             MppCfgObj CONCAT_US(obj, name) = NULL; \
             kmpp_objdef_add_entry(KMPP_OBJ_DEF(prefix), ENTRY_TO_NAME_START(name), &tbl); \
-            mpp_cfg_get_object(&CONCAT_US(obj, name), TO_STR(name), MPP_CFG_TYPE_##ftype, NULL); \
+            if (tbl.tbl.elem_type == ELEM_TYPE_starr) { \
+                rk_s32 elem_size = sizeof(type); \
+                rk_s32 elem_cnt = (rk_s32)(tbl.tbl.elem_size / elem_size); \
+                rk_s32 i; \
+                char array_name[64]; \
+                mpp_cfg_get_array(&CONCAT_US(obj, name), TO_STR(name), 0); \
+                for (i = 0; i < elem_cnt; i++) { \
+                    KmppEntry tmp_tbl = { .val = 0 }; \
+                    MppCfgObj tmp_obj = NULL; \
+                    tmp_tbl.tbl.elem_offset = tbl.tbl.elem_offset + i * elem_size; \
+                    tmp_tbl.tbl.elem_size = elem_size; \
+                    tmp_tbl.tbl.elem_type = KMPP_TYPE_TO_ELEM_TYPE(type); \
+                    snprintf(array_name, sizeof(array_name), "array_%d", i); \
+                    mpp_cfg_get_object(&tmp_obj, array_name, mpp_cfg_type_from_elem_type(tmp_tbl.tbl.elem_type), NULL); \
+                    mpp_cfg_set_entry(tmp_obj, &tmp_tbl); \
+                    mpp_cfg_add(CONCAT_US(obj, name), tmp_obj); \
+                } \
+            } else \
+                mpp_cfg_get_object(&CONCAT_US(obj, name), TO_STR(name), MPP_CFG_TYPE_##ftype, NULL); \
             mpp_cfg_set_entry(CONCAT_US(obj, name), &tbl); \
             mpp_cfg_add(__parent, CONCAT_US(obj, name)); \
             ENTRY_TO_NAME_END(name); \

@@ -21,6 +21,10 @@ MPP_RET mpp_enc_cfg_init_k(MppEncCfg *cfg);
 /* common config deinit */
 MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg);
 
+MPP_RET mpp_enc_cfg_set_s8(MppEncCfg cfg, const char *name, RK_S8 val);
+MPP_RET mpp_enc_cfg_set_u8(MppEncCfg cfg, const char *name, RK_U8 val);
+MPP_RET mpp_enc_cfg_set_s16(MppEncCfg cfg, const char *name, RK_S16 val);
+MPP_RET mpp_enc_cfg_set_u16(MppEncCfg cfg, const char *name, RK_U16 val);
 MPP_RET mpp_enc_cfg_set_s32(MppEncCfg cfg, const char *name, RK_S32 val);
 MPP_RET mpp_enc_cfg_set_u32(MppEncCfg cfg, const char *name, RK_U32 val);
 MPP_RET mpp_enc_cfg_set_s64(MppEncCfg cfg, const char *name, RK_S64 val);
@@ -28,6 +32,10 @@ MPP_RET mpp_enc_cfg_set_u64(MppEncCfg cfg, const char *name, RK_U64 val);
 MPP_RET mpp_enc_cfg_set_ptr(MppEncCfg cfg, const char *name, void *val);
 MPP_RET mpp_enc_cfg_set_st(MppEncCfg cfg, const char *name, void *val);
 
+MPP_RET mpp_enc_cfg_get_s8(MppEncCfg cfg, const char *name, RK_S8 *val);
+MPP_RET mpp_enc_cfg_get_u8(MppEncCfg cfg, const char *name, RK_U8 *val);
+MPP_RET mpp_enc_cfg_get_s16(MppEncCfg cfg, const char *name, RK_S16 *val);
+MPP_RET mpp_enc_cfg_get_u16(MppEncCfg cfg, const char *name, RK_U16 *val);
 MPP_RET mpp_enc_cfg_get_s32(MppEncCfg cfg, const char *name, RK_S32 *val);
 MPP_RET mpp_enc_cfg_get_u32(MppEncCfg cfg, const char *name, RK_U32 *val);
 MPP_RET mpp_enc_cfg_get_s64(MppEncCfg cfg, const char *name, RK_S64 *val);

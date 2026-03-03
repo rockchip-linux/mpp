@@ -18,6 +18,10 @@ typedef enum MppCfgType_e {
 
     /* leaf type must with name */
     MPP_CFG_TYPE_BOOL,
+    MPP_CFG_TYPE_s8,
+    MPP_CFG_TYPE_u8,
+    MPP_CFG_TYPE_s16,
+    MPP_CFG_TYPE_u16,
     MPP_CFG_TYPE_s32,
     MPP_CFG_TYPE_u32,
     MPP_CFG_TYPE_s64,
@@ -36,6 +40,10 @@ typedef enum MppCfgType_e {
 
 typedef union MppCfgVal_u {
     rk_bool     b1;
+    rk_s8       s8;
+    rk_u8       u8;
+    rk_s16      s16;
+    rk_u16      u16;
     rk_s32      s32;
     rk_u32      u32;
     rk_s64      s64;
@@ -94,6 +102,9 @@ rk_s32 mpp_cfg_to_struct(MppCfgObj obj, MppCfgObj type, void *st);
 rk_s32 mpp_cfg_from_struct(MppCfgObj *obj, MppCfgObj type, void *st);
 
 rk_s32 mpp_cfg_print_string(char *buf);
+
+/* convert element type to config type */
+MppCfgType mpp_cfg_type_from_elem_type(ElemType type);
 
 #ifdef __cplusplus
 }

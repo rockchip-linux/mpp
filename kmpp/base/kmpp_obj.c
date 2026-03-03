@@ -57,6 +57,10 @@
 #define U64_TO_PTR(ptr)                 ((void *)(intptr_t)(ptr))
 
 #define ENTRY_TO_PTR(tbl, entry)        (((char *)entry) + tbl->tbl.elem_offset)
+#define ENTRY_TO_s8_PTR(tbl, entry)     ((rk_s8 *)ENTRY_TO_PTR(tbl, entry))
+#define ENTRY_TO_u8_PTR(tbl, entry)     ((rk_u8 *)ENTRY_TO_PTR(tbl, entry))
+#define ENTRY_TO_s16_PTR(tbl, entry)    ((rk_s16 *)ENTRY_TO_PTR(tbl, entry))
+#define ENTRY_TO_u16_PTR(tbl, entry)    ((rk_u16 *)ENTRY_TO_PTR(tbl, entry))
 #define ENTRY_TO_s32_PTR(tbl, entry)    ((rk_s32 *)ENTRY_TO_PTR(tbl, entry))
 #define ENTRY_TO_u32_PTR(tbl, entry)    ((rk_u32 *)ENTRY_TO_PTR(tbl, entry))
 #define ENTRY_TO_s64_PTR(tbl, entry)    ((rk_s64 *)ENTRY_TO_PTR(tbl, entry))
@@ -66,6 +70,7 @@
 #define ENTRY_TO_fp_PTR(tbl, entry)     ((void **)ENTRY_TO_PTR(tbl, entry))
 #define ENTRY_TO_st_PTR(tbl, entry)     ((void *)ENTRY_TO_PTR(tbl, entry))
 #define ENTRY_TO_shm_PTR(tbl, entry)    ((void *)ENTRY_TO_PTR(tbl, entry))
+#define ENTRY_TO_arr_PTR(tbl, entry)    ((void *)ENTRY_TO_PTR(tbl, entry))
 
 /* 32bit unsigned long pointer */
 #define ELEM_FLAG_U32_POS(offset)       (((offset) & (~31)) / 8)
@@ -197,12 +202,17 @@ static KmppObjs *objs = NULL;
 const char *strof_elem_type(ElemType type)
 {
     static const char *ELEM_TYPE_names[] = {
+        [ELEM_TYPE_s8]     = "s8",
+        [ELEM_TYPE_u8]     = "u8",
+        [ELEM_TYPE_s16]    = "s16",
+        [ELEM_TYPE_u16]    = "u16",
         [ELEM_TYPE_s32]    = "s32",
         [ELEM_TYPE_u32]    = "u32",
         [ELEM_TYPE_s64]    = "s64",
         [ELEM_TYPE_u64]    = "u64",
         [ELEM_TYPE_ptr]    = "ptr",
         [ELEM_TYPE_st]     = "struct",
+        [ELEM_TYPE_arr]    = "array",
         [ELEM_TYPE_shm]    = "shm_ptr",
         [ELEM_TYPE_kobj]   = "kobj",
         [ELEM_TYPE_kptr]   = "kptr",
@@ -248,7 +258,10 @@ const char *strof_elem_type(ElemType type)
         } \
         return rk_nok; \
     }
-
+MPP_OBJ_ACCESS_IMPL(s8, rk_s8, % d)
+MPP_OBJ_ACCESS_IMPL(u8, rk_u8, % u)
+MPP_OBJ_ACCESS_IMPL(s16, rk_s16, % d)
+MPP_OBJ_ACCESS_IMPL(u16, rk_u16, % u)
 MPP_OBJ_ACCESS_IMPL(s32, rk_s32, % d)
 MPP_OBJ_ACCESS_IMPL(u32, rk_u32, % u)
 MPP_OBJ_ACCESS_IMPL(s64, rk_s64, % #llx)
@@ -291,6 +304,7 @@ MPP_OBJ_ACCESS_IMPL(fp, void *, % p)
 
 MPP_OBJ_STRUCT_ACCESS_IMPL(st, void, % p)
 MPP_OBJ_STRUCT_ACCESS_IMPL(shm, KmppShmPtr, % p)
+MPP_OBJ_STRUCT_ACCESS_IMPL(arr, void, % p)
 
 static rk_s32 kmpp_ktrie_get(KmppKtrieInfo *info, const char *path, rk_ul cmd)
 {
@@ -1444,6 +1458,10 @@ rk_s32 kmpp_obj_to_offset(KmppObj obj, const char *name)
         return ret; \
     }
 
+MPP_OBJ_ACCESS(s8, rk_s8)
+MPP_OBJ_ACCESS(u8, rk_u8)
+MPP_OBJ_ACCESS(s16, rk_s16)
+MPP_OBJ_ACCESS(u16, rk_u16)
 MPP_OBJ_ACCESS(s32, rk_s32)
 MPP_OBJ_ACCESS(u32, rk_u32)
 MPP_OBJ_ACCESS(s64, rk_s64)
@@ -1465,6 +1483,8 @@ rk_s32 kmpp_obj_set_ptr(KmppObj obj, const char *name, void* val)
 
             if (tbl->tbl.elem_type == ELEM_TYPE_st)
                 ret = kmpp_obj_impl_set_st(tbl, impl->entry, val);
+            else if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+                ret = kmpp_obj_impl_set_arr(tbl, impl->entry, val);
             else
                 ret = kmpp_obj_impl_set_ptr(tbl, impl->entry, val);
         }
@@ -1490,6 +1510,8 @@ rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val)
 
             if (tbl->tbl.elem_type == ELEM_TYPE_st)
                 ret = kmpp_obj_impl_get_st(tbl, impl->entry, val);
+            else if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+                ret = kmpp_obj_impl_get_arr(tbl, impl->entry, val);
             else
                 ret = kmpp_obj_impl_get_ptr(tbl, impl->entry, val);
         }
@@ -1536,8 +1558,58 @@ rk_s32 kmpp_obj_get_ptr(KmppObj obj, const char *name, void **val)
         return ret; \
     }
 
-MPP_OBJ_STRUCT_ACCESS(st, void)
 MPP_OBJ_STRUCT_ACCESS(shm, KmppShmPtr)
+
+/* st access also handles arr for backward compatibility */
+rk_s32 kmpp_obj_set_st(KmppObj obj, const char *name, void *val)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl->trie) {
+        MppTrieInfo *info = mpp_trie_get_info(impl->trie, name);
+
+        if (info) {
+            KmppEntry *tbl = (KmppEntry *)mpp_trie_info_ctx(info);
+
+            if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+                ret = kmpp_obj_impl_set_arr(tbl, impl->entry, val);
+            else
+                ret = kmpp_obj_impl_set_st(tbl, impl->entry, val);
+        }
+    }
+
+    if (ret)
+        mpp_loge("obj %s set %s st failed ret %d\n",
+             impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+
+    return ret;
+}
+
+rk_s32 kmpp_obj_get_st(KmppObj obj, const char *name, void *val)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl->trie) {
+        MppTrieInfo *info = mpp_trie_get_info(impl->trie, name);
+
+        if (info) {
+            KmppEntry *tbl = (KmppEntry *)mpp_trie_info_ctx(info);
+
+            if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+                ret = kmpp_obj_impl_get_arr(tbl, impl->entry, val);
+            else
+                ret = kmpp_obj_impl_get_st(tbl, impl->entry, val);
+        }
+    }
+
+    if (ret)
+        mpp_loge("obj %s get %s st failed ret %d\n",
+             impl ? impl->def ? impl->def->name : NULL : NULL, name, ret);
+
+    return ret;
+}
 
 #define MPP_OBJ_TBL_ACCESS(type, base_type) \
     rk_s32 kmpp_obj_tbl_set_##type(KmppObj obj, KmppEntry *tbl, base_type val) \
@@ -1562,7 +1634,10 @@ MPP_OBJ_STRUCT_ACCESS(shm, KmppShmPtr)
                     impl ? impl->def ? impl->def->name : NULL : NULL, tbl ? tbl->val : 0, ret); \
         return ret; \
     }
-
+MPP_OBJ_TBL_ACCESS(s8, rk_s8)
+MPP_OBJ_TBL_ACCESS(u8, rk_u8)
+MPP_OBJ_TBL_ACCESS(s16, rk_s16)
+MPP_OBJ_TBL_ACCESS(u16, rk_u16)
 MPP_OBJ_TBL_ACCESS(s32, rk_s32)
 MPP_OBJ_TBL_ACCESS(u32, rk_u32)
 MPP_OBJ_TBL_ACCESS(s64, rk_s64)
@@ -1595,8 +1670,44 @@ MPP_OBJ_TBL_ACCESS(fp, void *)
         return ret; \
     }
 
-MPP_OBJ_STRUCT_TBL_ACCESS(st, void)
 MPP_OBJ_STRUCT_TBL_ACCESS(shm, KmppShmPtr)
+
+/* st tbl access also handles arr for backward compatibility */
+rk_s32 kmpp_obj_tbl_set_st(KmppObj obj, KmppEntry *tbl, void *val)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl) {
+        if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+            ret = kmpp_obj_impl_set_arr(tbl, impl->entry, val);
+        else
+            ret = kmpp_obj_impl_set_st(tbl, impl->entry, val);
+    }
+    if (ret)
+        mpp_loge("obj %s tbl %08x set st failed ret %d\n",
+             impl ? impl->def ? impl->def->name : NULL : NULL, tbl ? tbl->val : 0, ret);
+
+    return ret;
+}
+
+rk_s32 kmpp_obj_tbl_get_st(KmppObj obj, KmppEntry *tbl, void *val)
+{
+    KmppObjImpl *impl = (KmppObjImpl *)obj;
+    rk_s32 ret = rk_nok;
+
+    if (impl) {
+        if (tbl->tbl.elem_type == ELEM_TYPE_arr)
+            ret = kmpp_obj_impl_get_arr(tbl, impl->entry, val);
+        else
+            ret = kmpp_obj_impl_get_st(tbl, impl->entry, val);
+    }
+    if (ret)
+        mpp_loge("obj %s tbl %08x get st failed ret %d\n",
+             impl ? impl->def ? impl->def->name : NULL : NULL, tbl ? tbl->val : 0, ret);
+
+    return ret;
+}
 
 rk_s32 kmpp_obj_set_shm_obj(KmppObj obj, const char *name, KmppObj val)
 {
@@ -1863,6 +1974,62 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
         idx = i++;
 
         switch (e->tbl.elem_type) {
+        case ELEM_TYPE_s8 : {
+            rk_s8 val;
+            rk_s8 val_chk;
+
+            ret = kmpp_obj_tbl_get_s8(obj, e, &val);
+            if (!ret)
+                mpp_logi("%-2d - %-16s s8 %#x:%d\n", idx, name, val, val);
+            else
+                mpp_loge("%-2d - %-16s s8 get failed\n", idx, name);
+
+            kmpp_obj_get_s8(obj, name, &val_chk);
+            if (val != val_chk)
+                mpp_loge("%-2d - %-16s s8 check failed\n", idx, name);
+        } break;
+        case ELEM_TYPE_u8 : {
+            rk_u8 val;
+            rk_u8 val_chk;
+
+            ret = kmpp_obj_tbl_get_u8(obj, e, &val);
+            if (!ret)
+                mpp_logi("%-2d - %-16s u8 %#x:%u\n", idx, name, val, val);
+            else
+                mpp_loge("%-2d - %-16s u8 get failed\n", idx, name);
+
+            kmpp_obj_get_u8(obj, name, &val_chk);
+            if (val != val_chk)
+                mpp_loge("%-2d - %-16s u8 check failed\n", idx, name);
+        } break;
+        case ELEM_TYPE_s16 : {
+            rk_s16 val;
+            rk_s16 val_chk;
+
+            ret = kmpp_obj_tbl_get_s16(obj, e, &val);
+            if (!ret)
+                mpp_logi("%-2d - %-16s s16 %#x:%d\n", idx, name, val, val);
+            else
+                mpp_loge("%-2d - %-16s s16 get failed\n", idx, name);
+
+            kmpp_obj_get_s16(obj, name, &val_chk);
+            if (val != val_chk)
+                mpp_loge("%-2d - %-16s s16 check failed\n", idx, name);
+        } break;
+        case ELEM_TYPE_u16 : {
+            rk_u16 val;
+            rk_u16 val_chk;
+
+            ret = kmpp_obj_tbl_get_u16(obj, e, &val);
+            if (!ret)
+                mpp_logi("%-2d - %-16s u16 %#x:%u\n", idx, name, val, val);
+            else
+                mpp_loge("%-2d - %-16s u16 get failed\n", idx, name);
+
+            kmpp_obj_get_u16(obj, name, &val_chk);
+            if (val != val_chk)
+                mpp_loge("%-2d - %-16s u16 check failed\n", idx, name);
+        } break;
         case ELEM_TYPE_s32 : {
             rk_s32 val;
             rk_s32 val_chk;
@@ -1919,7 +2086,8 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
             if (val != val_chk)
                 mpp_loge("%-2d - %-16s u64 check failed\n", idx, name);
         } break;
-        case ELEM_TYPE_st : {
+        case ELEM_TYPE_st :
+        case ELEM_TYPE_arr : {
             void *val_chk = mpp_malloc_size(void, e->tbl.elem_size);
             void *val = mpp_malloc_size(void, e->tbl.elem_size);
             rk_s32 data_size = e->tbl.elem_size;
@@ -1930,7 +2098,7 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
                 rk_s32 pos;
                 rk_s32 j;
 
-                mpp_logi("%-2d - %-16s st  %d:%d\n", idx, name, e->tbl.elem_offset, data_size);
+                mpp_logi("%-2d - %-16s st/arr %d:%d\n", idx, name, e->tbl.elem_offset, data_size);
 
                 j = 0;
                 for (; j < data_size / 4 - 8; j += 8) {
@@ -1953,7 +2121,7 @@ rk_s32 kmpp_obj_udump_f(KmppObj obj, const char *caller)
 
             kmpp_obj_get_st(obj, name, val_chk);
             if (memcmp(val, val_chk, e->tbl.elem_size)) {
-                mpp_loge("%-2d - %-16s st  check failed\n", idx, name);
+                mpp_loge("%-2d - %-16s st/arr check failed\n", idx, name);
                 mpp_loge("val     %p\n", val);
                 mpp_loge("val_chk %p\n", val_chk);
             }
