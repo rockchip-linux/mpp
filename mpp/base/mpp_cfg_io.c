@@ -23,6 +23,7 @@
 #include "kmpp_obj.h"
 
 #define MAX_CFG_DEPTH                   (64)
+#define CFG_IO_ARRAY_ELEM_COUNT         (8)
 
 #define CFG_IO_DBG_FLOW                 (0x00000001)
 #define CFG_IO_DBG_BYTE                 (0x00000002)
@@ -855,6 +856,59 @@ static rk_s32 revert_comma(MppCfgStrBuf *str, const char *caller)
     return rk_ok;
 }
 
+static rk_s32 mpp_cfg_format_leaf_value(MppCfgIoImpl *impl, char *buf, rk_s32 total)
+{
+    rk_s32 len = 0;
+
+    switch (impl->type) {
+    case MPP_CFG_TYPE_NULL : {
+        len += snprintf(buf + len, total - len, "null");
+    } break;
+    case MPP_CFG_TYPE_BOOL : {
+        len += snprintf(buf + len, total - len, "%s", impl->val.b1 ? "true" : "false");
+    } break;
+    case MPP_CFG_TYPE_s8 : {
+        len += snprintf(buf + len, total - len, "%d", impl->val.s8);
+    } break;
+    case MPP_CFG_TYPE_u8 : {
+        len += snprintf(buf + len, total - len, "%u", impl->val.u8);
+    } break;
+    case MPP_CFG_TYPE_s16 : {
+        len += snprintf(buf + len, total - len, "%d", impl->val.s16);
+    } break;
+    case MPP_CFG_TYPE_u16 : {
+        len += snprintf(buf + len, total - len, "%u", impl->val.u16);
+    } break;
+    case MPP_CFG_TYPE_s32 : {
+        len += snprintf(buf + len, total - len, "%d", impl->val.s32);
+    } break;
+    case MPP_CFG_TYPE_u32 : {
+        len += snprintf(buf + len, total - len, "%u", impl->val.u32);
+    } break;
+    case MPP_CFG_TYPE_s64 : {
+        len += snprintf(buf + len, total - len, "%lld", impl->val.s64);
+    } break;
+    case MPP_CFG_TYPE_u64 : {
+        len += snprintf(buf + len, total - len, "%llu", impl->val.u64);
+    } break;
+    case MPP_CFG_TYPE_f32 : {
+        len += snprintf(buf + len, total - len, "%f", impl->val.f32);
+    } break;
+    case MPP_CFG_TYPE_f64 : {
+        len += snprintf(buf + len, total - len, "%lf", impl->val.f64);
+    } break;
+    case MPP_CFG_TYPE_STRING :
+    case MPP_CFG_TYPE_RAW : {
+        len += snprintf(buf + len, total - len, "\"%s\"", (char *)impl->val.str);
+    } break;
+    default : {
+        mpp_loge("invalid type %d\n", impl->type);
+    } break;
+    }
+
+    return len;
+}
+
 static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 {
     MppCfgIoImpl *pos, *n;
@@ -862,8 +916,16 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     rk_s32 len = 0;
     rk_s32 total = sizeof(buf) - 1;
     rk_s32 ret = rk_ok;
+    rk_s32 is_array_elem = impl->parent && impl->parent->type == MPP_CFG_TYPE_ARRAY;
+    rk_s32 is_array = impl->type == MPP_CFG_TYPE_ARRAY;
+    rk_s32 skip_indent = 0;  /* Flag to skip indent for array elements */
 
-    write_indent_f(str);
+    /* For simple array elements, skip indent - parent will handle it */
+    if (is_array_elem && impl->type < MPP_CFG_TYPE_OBJECT)
+        skip_indent = 1;
+
+    if (!skip_indent)
+        write_indent_f(str);
 
     /* leaf node write once and finish */
     if (impl->type < MPP_CFG_TYPE_OBJECT) {
@@ -872,51 +934,13 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         if (impl->name && !strstr(impl->name, "array_"))
             len += snprintf(buf + len, total - len, "%s : ", impl->name);
 
-        switch (impl->type) {
-        case MPP_CFG_TYPE_NULL : {
-            len += snprintf(buf + len, total - len, "null\n");
-        } break;
-        case MPP_CFG_TYPE_BOOL : {
-            len += snprintf(buf + len, total - len, "%s\n", impl->val.b1 ? "true" : "false");
-        } break;
-        case MPP_CFG_TYPE_s8 : {
-            len += snprintf(buf + len, total - len, "%d\n", impl->val.s8);
-        } break;
-        case MPP_CFG_TYPE_u8 : {
-            len += snprintf(buf + len, total - len, "%u\n", impl->val.u8);
-        } break;
-        case MPP_CFG_TYPE_s16 : {
-            len += snprintf(buf + len, total - len, "%d\n", impl->val.s16);
-        } break;
-        case MPP_CFG_TYPE_u16 : {
-            len += snprintf(buf + len, total - len, "%u\n", impl->val.u16);
-        } break;
-        case MPP_CFG_TYPE_s32 : {
-            len += snprintf(buf + len, total - len, "%d\n", impl->val.s32);
-        } break;
-        case MPP_CFG_TYPE_u32 : {
-            len += snprintf(buf + len, total - len, "%u\n", impl->val.u32);
-        } break;
-        case MPP_CFG_TYPE_s64 : {
-            len += snprintf(buf + len, total - len, "%lld\n", impl->val.s64);
-        } break;
-        case MPP_CFG_TYPE_u64 : {
-            len += snprintf(buf + len, total - len, "%llu\n", impl->val.u64);
-        } break;
-        case MPP_CFG_TYPE_f32 : {
-            len += snprintf(buf + len, total - len, "%f\n", impl->val.f32);
-        } break;
-        case MPP_CFG_TYPE_f64 : {
-            len += snprintf(buf + len, total - len, "%lf\n", impl->val.f64);
-        } break;
-        case MPP_CFG_TYPE_STRING :
-        case MPP_CFG_TYPE_RAW : {
-            len += snprintf(buf + len, total - len, "\"%s\"\n", (char *)impl->val.str);
-        } break;
-        default : {
-            mpp_loge("invalid type %d\n", impl->type);
-        } break;
-        }
+        len += mpp_cfg_format_leaf_value(impl, buf + len, total - len);
+
+        /* Add separator: " " for array elements, "\n" for others */
+        if (is_array_elem)
+            len += snprintf(buf + len, total - len, " ");
+        else
+            len += snprintf(buf + len, total - len, "\n");
 
         return write_byte_f(str, buf, &len);
     }
@@ -927,8 +951,14 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         len += snprintf(buf + len, total - len, "%s : ", impl->name);
 
     if (list_empty(&impl->child)) {
-        len += snprintf(buf + len, total - len, "%s\n",
+        len += snprintf(buf + len, total - len, "%s",
                         impl->type == MPP_CFG_TYPE_OBJECT ? "{}" : "[]");
+
+        if (is_array_elem)
+            len += snprintf(buf + len, total - len, " ");
+        else
+            len += snprintf(buf + len, total - len, "\n");
+
         return write_byte_f(str, buf, &len);
     }
 
@@ -941,15 +971,41 @@ static rk_s32 mpp_cfg_to_log(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 
     str->depth++;
 
-    list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
-        cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
-        ret = mpp_cfg_to_log(pos, str);
-        if (ret)
-            break;
+    /* For arrays, track element count to implement line break */
+    if (is_array) {
+        rk_s32 elem_count = 0;
+        list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+            cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+
+            /* Add indent for first element, newline + indent every define elements */
+            if (pos->type < MPP_CFG_TYPE_OBJECT) {
+                if (elem_count == 0) {
+                    write_indent_f(str);
+                } else if (elem_count % CFG_IO_ARRAY_ELEM_COUNT == 0) {
+                    write_byte_f(str, "\n", &(rk_s32) {1});
+                    write_indent_f(str);
+                }
+            }
+
+            ret = mpp_cfg_to_log(pos, str);
+            if (ret)
+                break;
+            elem_count++;
+        }
+    } else {
+        list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+            cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+            ret = mpp_cfg_to_log(pos, str);
+            if (ret)
+                break;
+        }
     }
 
     str->depth--;
 
+    /* Add newline before closing bracket for semi-compact format */
+    if (str->offset == 0 || str->buf[str->offset - 1] != '\n')
+        write_byte_f(str, "\n", &(rk_s32) {1});
     write_indent_f(str);
 
     len += snprintf(buf + len, total - len, "%c\n",
@@ -965,8 +1021,16 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
     rk_s32 len = 0;
     rk_s32 total = sizeof(buf) - 1;
     rk_s32 ret = rk_ok;
+    rk_s32 is_array_elem = impl->parent && impl->parent->type == MPP_CFG_TYPE_ARRAY;
+    rk_s32 is_array = impl->type == MPP_CFG_TYPE_ARRAY;
+    rk_s32 skip_indent = 0;  /* Flag to skip indent for array elements */
 
-    write_indent_f(str);
+    /* For simple array elements, skip indent - parent will handle it */
+    if (is_array_elem && impl->type < MPP_CFG_TYPE_OBJECT)
+        skip_indent = 1;
+
+    if (!skip_indent)
+        write_indent_f(str);
 
     /* leaf node write once and finish */
     if (impl->type < MPP_CFG_TYPE_OBJECT) {
@@ -975,51 +1039,13 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         if (impl->name && !strstr(impl->name, "array_"))
             len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
 
-        switch (impl->type) {
-        case MPP_CFG_TYPE_NULL : {
-            len += snprintf(buf + len, total - len, "null,\n");
-        } break;
-        case MPP_CFG_TYPE_BOOL : {
-            len += snprintf(buf + len, total - len, "%s,\n", impl->val.b1 ? "true" : "false");
-        } break;
-        case MPP_CFG_TYPE_s8 : {
-            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s8);
-        } break;
-        case MPP_CFG_TYPE_u8 : {
-            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u8);
-        } break;
-        case MPP_CFG_TYPE_s16 : {
-            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s16);
-        } break;
-        case MPP_CFG_TYPE_u16 : {
-            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u16);
-        } break;
-        case MPP_CFG_TYPE_s32 : {
-            len += snprintf(buf + len, total - len, "%d,\n", impl->val.s32);
-        } break;
-        case MPP_CFG_TYPE_u32 : {
-            len += snprintf(buf + len, total - len, "%u,\n", impl->val.u32);
-        } break;
-        case MPP_CFG_TYPE_s64 : {
-            len += snprintf(buf + len, total - len, "%lld,\n", impl->val.s64);
-        } break;
-        case MPP_CFG_TYPE_u64 : {
-            len += snprintf(buf + len, total - len, "%llu,\n", impl->val.u64);
-        } break;
-        case MPP_CFG_TYPE_f32 : {
-            len += snprintf(buf + len, total - len, "%f,\n", impl->val.f32);
-        } break;
-        case MPP_CFG_TYPE_f64 : {
-            len += snprintf(buf + len, total - len, "%lf,\n", impl->val.f64);
-        } break;
-        case MPP_CFG_TYPE_STRING :
-        case MPP_CFG_TYPE_RAW : {
-            len += snprintf(buf + len, total - len, "\"%s\",\n", (char *)impl->val.str);
-        } break;
-        default : {
-            mpp_loge("invalid type %d\n", impl->type);
-        } break;
-        }
+        len += mpp_cfg_format_leaf_value(impl, buf + len, total - len);
+
+        /* Add separator: ",\n" for non-array elements, ", " for array elements */
+        if (is_array_elem)
+            len += snprintf(buf + len, total - len, ", ");
+        else
+            len += snprintf(buf + len, total - len, ",\n");
 
         return write_byte_f(str, buf, &len);
     }
@@ -1030,8 +1056,14 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
         len += snprintf(buf + len, total - len, "\"%s\" : ", impl->name);
 
     if (list_empty(&impl->child)) {
-        len += snprintf(buf + len, total - len, "%s,\n",
+        len += snprintf(buf + len, total - len, "%s",
                         impl->type == MPP_CFG_TYPE_OBJECT ? "{}" : "[]");
+
+        if (is_array_elem)
+            len += snprintf(buf + len, total - len, ", ");
+        else
+            len += snprintf(buf + len, total - len, ",\n");
+
         return write_byte_f(str, buf, &len);
     }
 
@@ -1044,17 +1076,43 @@ static rk_s32 mpp_cfg_to_json(MppCfgIoImpl *impl, MppCfgStrBuf *str)
 
     str->depth++;
 
-    list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
-        cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
-        ret = mpp_cfg_to_json(pos, str);
-        if (ret)
-            break;
+    /* For arrays, track element count to implement line break */
+    if (is_array) {
+        rk_s32 elem_count = 0;
+        list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+            cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+
+            /* Add indent for first element, newline + indent every define elements */
+            if (pos->type < MPP_CFG_TYPE_OBJECT) {
+                if (elem_count == 0) {
+                    write_indent_f(str);
+                } else if (elem_count % CFG_IO_ARRAY_ELEM_COUNT == 0) {
+                    write_byte_f(str, "\n", &(rk_s32) {1});
+                    write_indent_f(str);
+                }
+            }
+
+            ret = mpp_cfg_to_json(pos, str);
+            if (ret)
+                break;
+            elem_count++;
+        }
+    } else {
+        list_for_each_entry_safe(pos, n, &impl->child, MppCfgIoImpl, list) {
+            cfg_io_dbg_to("depth %d child write name %s type %d\n", str->depth, pos->name, pos->type);
+            ret = mpp_cfg_to_json(pos, str);
+            if (ret)
+                break;
+        }
     }
 
     revert_comma_f(str);
 
     str->depth--;
 
+    /* Add newline before closing bracket for semi-compact format */
+    if (str->offset == 0 || str->buf[str->offset - 1] != '\n')
+        write_byte_f(str, "\n", &(rk_s32) {1});
     write_indent_f(str);
 
     if (str->depth)
