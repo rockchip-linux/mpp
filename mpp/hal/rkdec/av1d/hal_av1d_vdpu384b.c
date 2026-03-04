@@ -242,7 +242,7 @@ static MPP_RET hal_av1d_alloc_res(void *hal)
     reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
 
     //!< malloc buffers
-    BUF_CHECK(ret, mpp_buffer_get(p_hal->cfg->buf_group, &reg_ctx->bufs, MPP_ALIGN(VDPU384B_INFO_BUF_SIZE(max_cnt), SZ_2K)));
+    BUF_CHECK(ret, mpp_buffer_get(p_hal->cfg->buf_group, &reg_ctx->bufs, VDPU384B_INFO_BUF_SIZE(max_cnt)));
     mpp_buffer_attach_dev(reg_ctx->bufs, p_hal->cfg->dev);
     reg_ctx->bufs_fd = mpp_buffer_get_fd(reg_ctx->bufs);
     reg_ctx->bufs_ptr = mpp_buffer_get_ptr(reg_ctx->bufs);
@@ -293,6 +293,7 @@ MPP_RET vdpu384b_av1d_init(void *hal, MppHalCfg *cfg)
     INP_CHECK(ret, NULL == p_hal);
 
     p_hal->cfg = cfg;
+    cfg->support_fast_mode = 1;
     p_hal->fast_mode = cfg->cfg->base.fast_parse && cfg->support_fast_mode;
 
     FUN_CHECK(hal_av1d_alloc_res(hal));
@@ -479,10 +480,10 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
 
         /* uncompress header data */
         vdpu38x_av1d_uncomp_hdr(p_hal, dxva, (RK_U64 *)ctx->header_data, VDPU384B_UNCMPS_HEADER_SIZE / 8);
-        memcpy((char *)ctx->bufs_ptr, (void *)ctx->header_data, VDPU384B_UNCMPS_HEADER_SIZE);
+        memcpy((char *)ctx->bufs_ptr + ctx->offset_uncomps, (void *)ctx->header_data, VDPU384B_UNCMPS_HEADER_SIZE);
         regs->comm_paras.reg67_global_len = VDPU384B_UNCMPS_HEADER_SIZE / 16; // 128 bit as unit
         regs->comm_addrs.reg131_gbl_base = ctx->bufs_fd;
-        // mpp_dev_set_reg_offset(cfg->dev, 131, ctx->offset_uncomps);
+        mpp_dev_set_reg_offset(cfg->dev, 131, ctx->offset_uncomps);
 #ifdef DUMP_VDPU38X_DATAS
         {
             char *cur_fname = "global_cfg.dat";
@@ -500,8 +501,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
         regs->comm_addrs.reg129_stream_buf_st_base = mpp_buffer_get_fd(mbuffer);
         regs->comm_addrs.reg130_stream_buf_end_base = mpp_buffer_get_fd(mbuffer);
         mpp_dev_set_reg_offset(cfg->dev, 130, mpp_buffer_get_size(mbuffer));
-        regs->comm_paras.reg65_strm_start_bit = (ctx->offset_uncomps & 0xf) * 8; // bit start to decode
-        mpp_dev_set_reg_offset(cfg->dev, 128, ctx->offset_uncomps & 0xfffffff0);
+        regs->comm_paras.reg65_strm_start_bit = 0; // bit start to decode
         /* error */
         regs->comm_addrs.reg169_error_ref_base = mpp_buffer_get_fd(mbuffer);
 #ifdef DUMP_VDPU38X_DATAS
@@ -509,8 +509,7 @@ MPP_RET vdpu384b_av1d_gen_regs(void *hal, HalTaskInfo *task)
             char *cur_fname = "stream_in.dat";
             memset(vdpu38x_dump_cur_fname_path, 0, sizeof(vdpu38x_dump_cur_fname_path));
             sprintf(vdpu38x_dump_cur_fname_path, "%s/%s", vdpu38x_dump_cur_dir, cur_fname);
-            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer)
-                                      + ctx->offset_uncomps,
+            vdpu38x_dump_data_to_file(vdpu38x_dump_cur_fname_path, (void *)mpp_buffer_get_ptr(mbuffer),
                                       8 * p_hal->strm_len, 128, 0, 0);
         }
         {
