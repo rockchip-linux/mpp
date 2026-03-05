@@ -1754,78 +1754,60 @@ static void vepu511a_h265_set_anti_stripe_regs(H265eV511AHalContext *ctx, H265eV
     H265eVepu511aSqi *s = &regs->reg_sqi;
     pre_cst_par* pre_i32 = (pre_cst_par*)&s->preintra32_cst;
     pre_cst_par* pre_i16 = (pre_cst_par*)&s->preintra16_cst;
+    RK_U32 str = ctx->cfg->tune.atl_str;
+    RK_U32 str_idx = 0;
+    RK_U32 idx = 0;
+
+    static RK_U32 pre_i32_cst_thd[3][16] = {
+        { 4, 14, 4, 3, 3, 5, 6, 4, 9, 4, 6, 4, 6, 4, 5, 28 },
+        { 4, 14, 4, 3, 3, 5, 6, 4, 9, 4, 6, 4, 6, 4, 5, 28 },
+        { 6, 17, 6, 4, 4, 7, 8, 6, 12, 6, 8, 6, 8, 6, 5, 28 }
+    };
+
+    static RK_U32 pre_i32_cst_wgt[3][15] = {
+        { 19, 17, 18, 17, 13, 8, 14, 10, 13, 8, 14, 10, 17, 17, 17 },
+        { 20, 18, 19, 18, 12, 6, 13, 9, 12, 6, 13, 9, 18, 17, 17 },
+        { 22, 19, 20, 19, 11, 5, 12, 8, 11, 5, 12, 8, 19, 18, 18 }
+    };
+
+    static RK_U32 pre_i16_cst_thd[3][15] = {
+        { 4, 14, 4, 4, 3, 5, 6, 4, 9, 4, 6, 4, 6, 4, 5 },
+        { 4, 14, 4, 4, 3, 5, 6, 4, 9, 4, 6, 4, 6, 4, 5 },
+        { 6, 18, 6, 4, 4, 7, 8, 6, 12, 6, 8, 6, 8, 6, 5 }
+    };
+
+    static RK_U32 pre_i16_cst_wgt[3][15] = {
+        { 19, 17, 18, 17, 13, 8, 14, 10, 13, 8, 14, 10, 17, 17, 17 },
+        { 20, 18, 19, 18, 12, 6, 13, 9, 12, 6, 13, 9, 18, 17, 17 },
+        { 22, 19, 18, 19, 11, 5, 12, 8, 11, 5, 12, 8, 19, 18, 18 }
+    };
 
     pre_i32->cst_wgt3.anti_strp_e = !!ctx->cfg->tune.atl_str;
 
-    pre_i32->cst_madi_thd0.madi_thd0 = 5;
-    pre_i32->cst_madi_thd0.madi_thd1 = 15;
-    pre_i32->cst_madi_thd0.madi_thd2 = 5;
-    pre_i32->cst_madi_thd0.madi_thd3 = 3;
-    pre_i32->cst_madi_thd1.madi_thd4 = 3;
-    pre_i32->cst_madi_thd1.madi_thd5 = 6;
-    pre_i32->cst_madi_thd1.madi_thd6 = 7;
-    pre_i32->cst_madi_thd1.madi_thd7 = 5;
-    pre_i32->cst_madi_thd2.madi_thd8 = 10;
-    pre_i32->cst_madi_thd2.madi_thd9 = 5;
-    pre_i32->cst_madi_thd2.madi_thd10 = 7;
-    pre_i32->cst_madi_thd2.madi_thd11 = 5;
-    pre_i32->cst_madi_thd3.madi_thd12 = 7;
-    pre_i32->cst_madi_thd3.madi_thd13 = 5;
-    pre_i32->cst_madi_thd3.mode_th = 5;
+    if (str == 0)
+        return;
 
-    pre_i32->cst_wgt0.wgt0 = 20;
-    pre_i32->cst_wgt0.wgt1 = 18;
-    pre_i32->cst_wgt0.wgt2 = 19;
-    pre_i32->cst_wgt0.wgt3 = 18;
-    pre_i32->cst_wgt1.wgt4 = 12;
-    pre_i32->cst_wgt1.wgt5 = 6;
-    pre_i32->cst_wgt1.wgt6 = 13;
-    pre_i32->cst_wgt1.wgt7 = 9;
-    pre_i32->cst_wgt2.wgt8 = 12;
-    pre_i32->cst_wgt2.wgt9 = 6;
-    pre_i32->cst_wgt2.wgt10 = 13;
-    pre_i32->cst_wgt2.wgt11 = 9;
-    pre_i32->cst_wgt3.wgt12 = 18;
-    pre_i32->cst_wgt3.wgt13 = 17;
-    pre_i32->cst_wgt3.wgt14 = 17;
+    pre_i32->cst_wgt3.lambda_mv_bit_0 = 4;
+    pre_i32->cst_wgt3.lambda_mv_bit_1 = 3;
+    pre_i16->cst_wgt3.lambda_mv_bit_0 = 3;
+    pre_i16->cst_wgt3.lambda_mv_bit_1 = 3;
 
-    pre_i16->cst_madi_thd0.madi_thd0 = 5;
-    pre_i16->cst_madi_thd0.madi_thd1 = 15;
-    pre_i16->cst_madi_thd0.madi_thd2 = 5;
-    pre_i16->cst_madi_thd0.madi_thd3 = 3;
-    pre_i16->cst_madi_thd1.madi_thd4 = 3;
-    pre_i16->cst_madi_thd1.madi_thd5 = 6;
-    pre_i16->cst_madi_thd1.madi_thd6 = 7;
-    pre_i16->cst_madi_thd1.madi_thd7 = 5;
-    pre_i16->cst_madi_thd2.madi_thd8 = 10;
-    pre_i16->cst_madi_thd2.madi_thd9 = 5;
-    pre_i16->cst_madi_thd2.madi_thd10 = 7;
-    pre_i16->cst_madi_thd2.madi_thd11 = 5;
-    pre_i16->cst_madi_thd3.madi_thd12 = 7;
-    pre_i16->cst_madi_thd3.madi_thd13 = 5;
-    pre_i16->cst_madi_thd3.mode_th = 5;
+    /* 0 - disable; 1 - weak; 2 - medium; 3 - strong */
+    str_idx = str - 1;
+    for (idx = 0; idx < MPP_ARRAY_ELEMS(pre_i32->cst_madi_thd); idx++)
+        pre_i32->cst_madi_thd[idx] = pre_i32_cst_thd[str_idx][idx];
+    pre_i32->cst_madi_thd3.mode_th = pre_i32_cst_thd[str_idx][14];
+    pre_i32->cst_madi_thd3.qp_thd = pre_i32_cst_thd[str_idx][15];
 
-    pre_i16->cst_wgt0.wgt0 = 20;
-    pre_i16->cst_wgt0.wgt1 = 18;
-    pre_i16->cst_wgt0.wgt2 = 19;
-    pre_i16->cst_wgt0.wgt3 = 18;
-    pre_i16->cst_wgt1.wgt4 = 12;
-    pre_i16->cst_wgt1.wgt5 = 6;
-    pre_i16->cst_wgt1.wgt6 = 13;
-    pre_i16->cst_wgt1.wgt7 = 9;
-    pre_i16->cst_wgt2.wgt8 = 12;
-    pre_i16->cst_wgt2.wgt9 = 6;
-    pre_i16->cst_wgt2.wgt10 = 13;
-    pre_i16->cst_wgt2.wgt11 = 9;
-    pre_i16->cst_wgt3.wgt12 = 18;
-    pre_i16->cst_wgt3.wgt13 = 17;
-    pre_i16->cst_wgt3.wgt14 = 17;
+    for (idx = 0; idx < MPP_ARRAY_ELEMS(pre_i32->cst_wgt); idx++)
+        pre_i32->cst_wgt[idx] = pre_i32_cst_wgt[str_idx][idx];
 
-    pre_i32->cst_madi_thd3.qp_thd = 28;
-    pre_i32->cst_wgt3.lambda_mv_bit_0 = 5; // lv32
-    pre_i32->cst_wgt3.lambda_mv_bit_1 = 4; // lv16
-    pre_i16->cst_wgt3.lambda_mv_bit_0 = 4; // lv8
-    pre_i16->cst_wgt3.lambda_mv_bit_1 = 3; // lv4
+    for (idx = 0; idx < MPP_ARRAY_ELEMS(pre_i16->cst_madi_thd); idx++)
+        pre_i16->cst_madi_thd[idx] = pre_i16_cst_thd[str_idx][idx];
+    pre_i16->cst_madi_thd3.mode_th = pre_i16_cst_thd[str_idx][14];
+
+    for (idx = 0; idx < MPP_ARRAY_ELEMS(pre_i16->cst_wgt); idx++)
+        pre_i16->cst_wgt[idx] = pre_i16_cst_wgt[str_idx][idx];
 }
 
 static MPP_RET vepu511a_h265_set_rdo_regs(H265eV511ARegSet *regs)
