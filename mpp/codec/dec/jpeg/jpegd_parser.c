@@ -1056,25 +1056,7 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
 
     if (slot_idx == -1) {
         RK_U32 value;
-        MppFrameFormat fmt = MPP_FMT_YUV420SP;
-
-        switch (s->yuv_mode) {
-        case JPEGDEC_YUV420: {
-            fmt = MPP_FMT_YUV420SP;
-        } break;
-        case JPEGDEC_YUV422: {
-            fmt = MPP_FMT_YUV422SP;
-        } break;
-        case JPEGDEC_YUV444: {
-            fmt = MPP_FMT_YUV444SP;
-        } break;
-        case JPEGDEC_YUV400: {
-            fmt = MPP_FMT_YUV400;
-        } break;
-        default : {
-            fmt = MPP_FMT_YUV420SP;
-        } break;
-        }
+        MppFrameFormat fmt = 0 != ctx->usr_out_fmt_valid ? ctx->usr_out_fmt : s->output_fmt;
 
         mpp_frame_set_fmt(output, fmt);
         mpp_frame_set_width(output, s->width);
@@ -1284,9 +1266,22 @@ static MPP_RET jpegd_control(void *ctx, MpiCmd cmd, void *param)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
-    (void) ctx;
-    (void) cmd;
-    (void) param;
+    JpegdCtx *JpegCtx = (JpegdCtx *)ctx;
+
+    if (NULL == JpegCtx) {
+        mpp_err_f("NULL pointer");
+        return MPP_ERR_NULL_PTR;
+    }
+
+    switch (cmd) {
+    case MPP_DEC_SET_OUTPUT_FORMAT: {
+        JpegCtx->usr_out_fmt = *(MppFrameFormat *)param;
+        JpegCtx->usr_out_fmt_valid = 1;
+    } break;
+    default :
+        break;
+    }
+
     jpegd_dbg_func("exit\n");
     return ret;
 }

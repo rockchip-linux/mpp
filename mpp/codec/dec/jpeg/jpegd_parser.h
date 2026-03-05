@@ -128,6 +128,8 @@ typedef struct JpegdCtx {
 
     MppPacket                input_packet;
     MppFrame                 output_frame;
+    RK_U32                   usr_out_fmt;
+    RK_U32                   usr_out_fmt_valid;
 
     RK_S64                   pts;
     RK_U32                   eos;
