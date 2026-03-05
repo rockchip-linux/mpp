@@ -11,6 +11,7 @@
 #include "mpp_bit.h"
 #include "mpp_packet_impl.h"
 #include "rk_hdr_meta_com.h"
+#include "mpp_ref_pool.h"
 
 #include "mpp_parser.h"
 #include "h265d_debug.h"
@@ -1185,42 +1186,44 @@ typedef union {
 
 void h265d_fill_dynamic_meta(H265dPrs *p, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt)
 {
-    MppFrameHdrDynamicMeta *hdr_dynamic_meta = p->hdr_dynamic_meta;
+    MppRefPool *pool = &p->hdr_meta_pool;
+    RK_S32 idx;
+    MppFrameHdrDynamicMeta *meta;
 
-    if (hdr_dynamic_meta && (hdr_dynamic_meta->size < size)) {
-        mpp_free(hdr_dynamic_meta);
-        hdr_dynamic_meta = NULL;
+    /* Cleanup unused slots in pool */
+    mpp_ref_pool_cleanup(pool);
+
+    /* Allocate a new slot from pool (include struct header size) */
+    idx = mpp_ref_pool_get(pool, sizeof(MppFrameHdrDynamicMeta) + size);
+    if (idx < 0) {
+        mpp_loge_f("failed to allocate hdr meta slot\n");
+        return;
     }
 
-    if (!hdr_dynamic_meta) {
-        hdr_dynamic_meta = mpp_calloc_size(MppFrameHdrDynamicMeta,
-                                           sizeof(MppFrameHdrDynamicMeta) + size);
-        if (!hdr_dynamic_meta) {
-            mpp_loge_f("malloc hdr dynamic data failed!\n");
-            return;
-        }
-    }
+    meta = (MppFrameHdrDynamicMeta *)mpp_ref_pool_ptr(pool, idx);
     if (size && data) {
         switch (hdr_fmt) {
         case DLBY: {
             RK_U8 start_code[4] = {0, 0, 0, 1};
 
-            memcpy((RK_U8*)hdr_dynamic_meta->data, start_code, 4);
-            memcpy((RK_U8*)hdr_dynamic_meta->data + 4, (RK_U8*)data, size - 4);
+            memcpy((RK_U8*)meta->data, start_code, 4);
+            memcpy((RK_U8*)meta->data + 4, (RK_U8*)data, size - 4);
         } break;
         case HDRVIVID:
         case HDR10PLUS: {
-            memcpy((RK_U8*)hdr_dynamic_meta->data, (RK_U8*)data, size);
+            memcpy((RK_U8*)meta->data, (RK_U8*)data, size);
         } break;
         default:
             break;
         }
-        hdr_dynamic_meta->size = size;
-        hdr_dynamic_meta->hdr_fmt = hdr_fmt;
+        meta->size = size;
+        meta->hdr_fmt = hdr_fmt;
     }
-    p->hdr_dynamic_meta = hdr_dynamic_meta;
+    /* Update current active meta index */
+    p->hdr_meta_current = idx;
     p->hdr_dynamic = 1;
     p->is_hdr = 1;
+
 }
 
 RK_S32 h265d_nal_units(H265dPrs *p)
@@ -1554,6 +1557,7 @@ RK_S32 h265d_parser_init(H265dParser *s, H265dCtx* ctx)
     H265dPrs *p = NULL;
     RK_U8 *buf = NULL;
     RK_S32 size = SZ_512K;
+    RK_S32 ret = MPP_OK;
     RK_U32 i;
 
     if (NULL == s || NULL == ctx) {
@@ -1624,6 +1628,14 @@ RK_S32 h265d_parser_init(H265dParser *s, H265dCtx* ctx)
     p->vps_pool = mpp_mem_pool_init_f("h265d_vps", sizeof(H265dVps));
     p->sps_pool = mpp_mem_pool_init_f("h265d_sps", sizeof(H265dSps));
 
+    /* Initialize HDR metadata pool */
+    ret = mpp_ref_pool_init(&p->hdr_meta_pool, 4);
+    if (ret != MPP_OK) {
+        mpp_loge_f("failed to init hdr meta pool\n");
+        return ret;
+    }
+    p->hdr_meta_current = -1;
+
     *s = p;
 
     return MPP_OK;
@@ -1681,7 +1693,8 @@ RK_S32 h265d_parser_deinit(H265dParser ctx)
     if (p->sps_pool)
         mpp_mem_pool_deinit_f(p->sps_pool);
 
-    MPP_FREE((p->hdr_dynamic_meta));
+    /* Deinitialize HDR metadata pool */
+    mpp_ref_pool_deinit(&p->hdr_meta_pool);
 
     mpp_free(p);
 

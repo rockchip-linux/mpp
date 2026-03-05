@@ -5,8 +5,10 @@
 
 #define MODULE_TAG  "h265d"
 
+#include "mpp_log.h"
 #include "mpp_bit.h"
 #include "mpp_compat_impl.h"
+#include "mpp_ref_pool.h"
 
 #include "h265d_debug.h"
 #include "h265d_dpb.h"
@@ -30,10 +32,19 @@ void h265d_frame_unref(H265dPrs *p, RK_U32 dpb_idx, H265dFrmRefStatus clear_mask
 
     /* When frame is fully unreferenced, clear error status */
     if (!frame->ref_status.flags) {
+        RK_S32 hdr_meta_index = frame->hdr_meta_index;
+
         if (frame->slot_index <= 0x7f) {
             h265d_dbg_ref("poc %d clr ref index %d", frame->poc, frame->slot_index);
             mpp_buf_slot_clr_flag(p->slots, frame->slot_index, SLOT_CODEC_USE);
         }
+
+        /* Release HDR metadata reference */
+        if (hdr_meta_index >= 0) {
+            mpp_ref_pool_put(&p->hdr_meta_pool, hdr_meta_index);
+            frame->hdr_meta_index = -1;
+        }
+
         h265d_dbg_ref("unref_frame poc %d slot_index %d\n", frame->poc, frame->slot_index);
         frame->poc = INT_MAX;
         frame->slot_index = 0xff;
@@ -139,6 +150,9 @@ static H265dFrame *h265d_frame_create(H265dPrs *p, RK_S32 poc, RK_U32 ref_only)
         frame->poc = poc;
         frame->sequence = p->seq_decode;
 
+        /* Initialize HDR metadata index */
+        frame->hdr_meta_index = -1;
+
         if (ref_only) {
             mpp_buf_slot_set_prop(p->slots, frame->slot_index, SLOT_FRAME, frame->frame);
             mpp_buf_slot_set_flag(p->slots, frame->slot_index, SLOT_CODEC_READY);
@@ -148,8 +162,18 @@ static H265dFrame *h265d_frame_create(H265dPrs *p, RK_S32 poc, RK_U32 ref_only)
             frame->ref_status.st_ref = 0;
             frame->ref_status.lt_ref = 0;
         } else {
-            if (p->hdr_dynamic_meta && p->hdr_dynamic)
-                mpp_frame_set_hdr_dynamic_meta(frame->frame, p->hdr_dynamic_meta);
+            /* Use index-based HDR metadata reference */
+            RK_S32 hdr_meta_index = p->hdr_meta_current;
+            MppRefPool *hdr_meta_pool = &p->hdr_meta_pool;
+
+            if (hdr_meta_index >= 0 && p->hdr_dynamic) {
+                frame->hdr_meta_index = hdr_meta_index;
+                mpp_ref_pool_ref(hdr_meta_pool, hdr_meta_index);
+                mpp_frame_set_hdr_dynamic_meta(frame->frame,
+                                               (MppFrameHdrDynamicMeta*)mpp_ref_pool_ptr(hdr_meta_pool, hdr_meta_index));
+                h265d_dbg_ref("h265d_frame_create poc %d slot %d hdr_meta_index %d",
+                              poc, frame->slot_index, hdr_meta_index);
+            }
 
             h265d_dbg_ref("h265d_frame_create poc %d slot_index %d", poc, frame->slot_index);
             frame->ref_status.output = 1;
