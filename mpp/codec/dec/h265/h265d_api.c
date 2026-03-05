@@ -82,6 +82,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     RK_U8 *buf = NULL;
     void *pos = NULL;
     RK_S32 length = 0;
+    RK_S32 orig_length = 0;
     MPP_RET ret = MPP_OK;
 
     task->valid = 0;
@@ -99,6 +100,7 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     dts = mpp_packet_get_dts(pkt);
     h265d_dbg_pts("prepare get pts %lld", pts);
     length = (RK_S32)mpp_packet_get_length(pkt);
+    orig_length = length;
 
     if (mpp_packet_get_flag(pkt) & MPP_PACKET_FLAG_EXTRA_DATA) {
         p->extradata_size = length;
@@ -153,7 +155,15 @@ MPP_RET h265d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     if (MPP_OK == ret) {
         if (s->is_nalff) {
-            pos = buf + s->consumed_bytes;
+            RK_S32 consumed = s->consumed_bytes;
+
+            if (consumed > orig_length || consumed < 0)
+                consumed = orig_length;
+            if (consumed == 0 && orig_length > 0) {
+                mpp_loge_f("skip %d bytes with no progress\n", orig_length);
+                consumed = orig_length;
+            }
+            pos = buf + consumed;
             mpp_packet_set_pos(pkt, pos);
         }
 
