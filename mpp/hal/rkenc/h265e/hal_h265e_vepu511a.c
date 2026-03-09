@@ -1911,9 +1911,32 @@ static MPP_RET vepu511a_h265_set_rdo_regs(H265eV511ARegSet *regs)
     return MPP_OK;
 }
 
-static void vepu511a_h265_set_sao_regs(H265eV511ARegSet *regs)
+static void vepu511a_h265_set_sao_regs(H265eV511AHalContext *ctx, H265eV511ARegSet *regs)
 {
     H265eVepu511aSqi *sqi = &regs->reg_sqi;
+    RK_U32 mode_idx = (ctx->cfg->tune.scene_mode == MPP_ENC_SCENE_MODE_IPC) ? 0 : 1;
+    RK_U32 str = ctx->frame_type == INTRA_FRAME ?
+                 ctx->cfg->tune.sao_str_i : ctx->cfg->tune.sao_str_p;
+    RK_U32 str_idx = 0;
+
+    static const RK_U32 blur_low_madi_thd[2][4] = {
+        { 5, 5, 5, 5 }, { 4, 4, 4, 4 }
+    };
+    static const RK_U32 blur_high_madi_thd[2][4] = {
+        { 27, 27, 27, 27 }, { 36, 32, 32, 32 }
+    };
+    static const RK_U32 blur_low_cnt_thd[2][4] = {
+        { 15, 2, 3, 2 }, { 4, 4, 3, 3 }
+    };
+    static const RK_U32 blur_high_cnt_thd[2][4] = {
+        { 15, 2, 3, 2 }, { 4, 4, 3, 3 }
+    };
+    static const RK_U32 blur_sum_cnt_thd[2][4] = {
+        { 15, 10, 10, 8 }, { 14, 12, 12, 8 }
+    };
+    static const RK_U32 blur_motion_thd[2][4] = {
+        { 32, 32, 32, 32 }, { 32, 32, 32, 32 }
+    };
 
     /* Weight values are set to 4 to disable SAO subjective optimization.
      * They are not under the control of anti_blur_en.
@@ -1924,6 +1947,51 @@ static void vepu511a_h265_set_sao_regs(H265eV511ARegSet *regs)
     sqi->subj_anti_blur_wgt4.merge_cost_dist_bo_wgt1 = 4;
     sqi->subj_anti_blur_wgt4.merge_cost_bit_eo_wgt0 = 4;
     sqi->subj_anti_blur_wgt4.merge_cost_bit_bo_wgt0 = 4;
+
+    if (str == 0) {
+        sqi->subj_anti_blur_thd.anti_blur_en = 0;
+        return;
+    }
+
+    str_idx = str - 1;
+    sqi->subj_anti_blur_wgt3.merge_cost_dist_eo_wgt0 = 2;
+    sqi->subj_anti_blur_wgt3.merge_cost_dist_bo_wgt0 = 3;
+    sqi->subj_anti_blur_wgt4.merge_cost_dist_eo_wgt1 = 8;
+    sqi->subj_anti_blur_wgt4.merge_cost_dist_bo_wgt1 = 6;
+    sqi->subj_anti_blur_wgt4.merge_cost_bit_eo_wgt0 = 8;
+    sqi->subj_anti_blur_wgt4.merge_cost_bit_bo_wgt0 = 6;
+
+    sqi->subj_anti_blur_wgt0.notmerge_ofst_dist_eo_wgt0 = 12;
+    sqi->subj_anti_blur_wgt0.notmerge_ofst_dist_bo_wgt0 = 12;
+    sqi->subj_anti_blur_wgt0.notmerge_ofst_dist_eo_wgt1 = 24;
+    sqi->subj_anti_blur_wgt0.notmerge_ofst_dist_bo_wgt1 = 20;
+
+    sqi->subj_anti_blur_wgt1.notmerge_ofst_lambda_eo_wgt0 = 20;
+    sqi->subj_anti_blur_wgt1.notmerge_ofst_lambda_bo_wgt0 = 20;
+    sqi->subj_anti_blur_wgt1.notmerge_compare_dist_eo_wgt0 = 12;
+    sqi->subj_anti_blur_wgt1.notmerge_compare_dist_bo_wgt0 = 12;
+
+    sqi->subj_anti_blur_wgt2.notmerge_compare_dist_eo_wgt1 = 24;
+    sqi->subj_anti_blur_wgt2.notmerge_compare_dist_bo_wgt1 = 20;
+    sqi->subj_anti_blur_wgt2.notmerge_compare_rate_eo_wgt0 = 20;
+    sqi->subj_anti_blur_wgt2.notmerge_compare_rate_bo_wgt0 = 20;
+
+    sqi->subj_anti_blur_wgt3.sao_mode_compare_dist_eo_wgt0 = 24;
+    sqi->subj_anti_blur_wgt3.sao_mode_compare_dist_bo_wgt0 = 20;
+
+    sqi->subj_anti_blur_thd.anti_blur_en = 1;
+    sqi->subj_anti_blur_thd.scene_mode = mode_idx;
+    sqi->subj_anti_blur_sao.sao_ofst_thd_eo_luma = 4;
+    sqi->subj_anti_blur_sao.sao_ofst_thd_bo_luma = 4;
+    sqi->subj_anti_blur_sao.sao_ofst_thd_eo_chroma = 4;
+    sqi->subj_anti_blur_sao.sao_ofst_thd_bo_chroma = 4;
+
+    sqi->subj_anti_blur_thd.blur_low_madi_thd  = blur_low_madi_thd[mode_idx][str_idx];
+    sqi->subj_anti_blur_thd.blur_high_madi_thd = blur_high_madi_thd[mode_idx][str_idx];
+    sqi->subj_anti_blur_thd.blur_low_cnt_thd   = blur_low_cnt_thd[mode_idx][str_idx];
+    sqi->subj_anti_blur_thd.blur_hight_cnt_thd = blur_high_cnt_thd[mode_idx][str_idx];
+    sqi->subj_anti_blur_thd.blur_sum_cnt_thd   = blur_sum_cnt_thd[mode_idx][str_idx];
+    sqi->subj_anti_blur_sao.blur_motion_thd    = blur_motion_thd[mode_idx][str_idx];
 }
 
 static void vepu511a_h265_set_slice_regs(H265eSyntax_new *syn, H265eVepu511aFrame *regs)
@@ -2260,7 +2328,7 @@ MPP_RET hal_h265e_vepu511a_gen_regs(void *hal, HalEncTask *task)
     vepu511a_h265_set_rc_regs(ctx, regs, task);
     vepu511a_h265_set_rdo_regs(regs);
     vepu511a_h265_set_quant_regs(ctx, regs);
-    vepu511a_h265_set_sao_regs(regs);
+    vepu511a_h265_set_sao_regs(ctx, regs);
     vepu511a_h265_set_slice_regs(syn, reg_frm);
     vepu511a_h265_set_ref_regs(syn, reg_frm);
 
