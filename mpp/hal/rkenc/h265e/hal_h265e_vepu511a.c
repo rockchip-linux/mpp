@@ -158,6 +158,8 @@ typedef struct H265eV511AHalContext_t {
     void                *tune;
 } H265eV511AHalContext;
 
+#include "hal_h265e_vepu511a_tune.c"
+
 static const  RK_U32 lambda_tbl_pre_intra[52] = {
     4206,   4945,   5814,   6835,   8035,   9446,   11105,  13056,
     15348,  18044,  21213,  24938,  29318,  34467,  40521,  47637,
@@ -471,7 +473,7 @@ MPP_RET hal_h265e_vepu511a_deinit(void *hal)
     }
 
     if (ctx->tune) {
-        // vepu511a_h265e_tune_deinit(ctx->tune);
+        vepu511a_h265e_tune_deinit(ctx->tune);
         ctx->tune = NULL;
     }
 
@@ -538,7 +540,7 @@ MPP_RET hal_h265e_vepu511a_init(void *hal, MppEncHalCfg *cfg)
     ctx->output_cb = cfg->output_cb;
     cfg->cap_recn_out = 1;
 
-    // ctx->tune = vepu511a_h265e_tune_init(ctx);
+    ctx->tune = vepu511a_h265e_tune_init(ctx);
 
 DONE:
     if (ret)
@@ -2351,6 +2353,7 @@ MPP_RET hal_h265e_vepu511a_gen_regs(void *hal, HalEncTask *task)
 
     /*paramet cfg*/
     vepu511a_h265_global_cfg_set(ctx, regs);
+    vepu511a_h265e_tune_reg_patch(ctx->tune, task);
 
     /* two pass register patch */
     if (frm->save_pass1)

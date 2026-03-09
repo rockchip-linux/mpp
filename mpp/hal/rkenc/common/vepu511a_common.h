@@ -829,7 +829,8 @@ typedef struct Vepu511aFrmCommon_t {
         RK_U32 cur_frm_ref             : 1;
         RK_U32 mei_stor                : 1;
         RK_U32 bs_scp                  : 1;
-        RK_U32 reserved                : 3;
+        RK_U32 meiw_mode               : 1;
+        RK_U32 reserved                : 2;
         RK_U32 pic_qp                  : 6;
         RK_U32 num_pic_tot_cur_hevc    : 5;
         RK_U32 log2_ctu_num_hevc       : 5;
@@ -2937,12 +2938,57 @@ typedef struct Vepu511aH264RoiBlkCfg {
 } Vepu511aH264RoiBlkCfg;
 
 typedef struct Vepu511aH265RoiBlkCfg {
-    RK_U32 qp_adju        : 8;
-    RK_U32 reserved       : 12;
-    RK_U32 mdc_adju_inter : 4;
-    RK_U32 mdc_adju_skip  : 4;
-    RK_U32 mdc_adju_intra : 4;
+    RK_U32 qp_adju            : 8;
+    RK_U32 mdc_adju_intra     : 4;
+    RK_U32 mdc_adju_inter     : 4;
+    RK_U32 mdc_adju_split     : 4;
+    RK_U32 mdc_adju_res_intra : 4;
+    RK_U32 mdc_adju_res_inter : 4;
+    RK_U32 mdc_adju_res_mv0   : 4;
 } Vepu511aH265RoiBlkCfg;
+
+typedef struct Vepu511aH265RoiDpt1BlkCfg {
+    //W0
+    RK_U32 cu32_qp_adju              : 8;
+    RK_U32 cu32_mdc_adju_intra       : 4;
+    RK_U32 cu32_mdc_adju_inter       : 4;
+    RK_U32 cu32_mdc_adju_split       : 4;
+    RK_U32 cu32_mdc_adju_res_intra   : 4;
+    RK_U32 cu32_mdc_adju_res_inter   : 4;
+    RK_U32 cu32_mdc_adju_res_mv0     : 4;
+    //W1
+    RK_U32 cu16_0_qp_adju            : 8;
+    RK_U32 cu16_0_mdc_adju_intra     : 4;
+    RK_U32 cu16_0_mdc_adju_inter     : 4;
+    RK_U32 cu16_0_mdc_adju_split     : 4;
+    RK_U32 cu16_0_mdc_adju_res_intra : 4;
+    RK_U32 cu16_0_mdc_adju_res_inter : 4;
+    RK_U32 cu16_0_mdc_adju_res_mv0   : 4;
+    //W2
+    RK_U32 cu16_1_qp_adju            : 8;
+    RK_U32 cu16_1_mdc_adju_intra     : 4;
+    RK_U32 cu16_1_mdc_adju_inter     : 4;
+    RK_U32 cu16_1_mdc_adju_split     : 4;
+    RK_U32 cu16_1_mdc_adju_res_intra : 4;
+    RK_U32 cu16_1_mdc_adju_res_inter : 4;
+    RK_U32 cu16_1_mdc_adju_res_mv0   : 4;
+    //W3
+    RK_U32 cu16_2_qp_adju            : 8;
+    RK_U32 cu16_2_mdc_adju_intra     : 4;
+    RK_U32 cu16_2_mdc_adju_inter     : 4;
+    RK_U32 cu16_2_mdc_adju_split     : 4;
+    RK_U32 cu16_2_mdc_adju_res_intra : 4;
+    RK_U32 cu16_2_mdc_adju_res_inter : 4;
+    RK_U32 cu16_2_mdc_adju_res_mv0   : 4;
+    //W4
+    RK_U32 cu16_3_qp_adju            : 8;
+    RK_U32 cu16_3_mdc_adju_intra     : 4;
+    RK_U32 cu16_3_mdc_adju_inter     : 4;
+    RK_U32 cu16_3_mdc_adju_split     : 4;
+    RK_U32 cu16_3_mdc_adju_res_intra : 4;
+    RK_U32 cu16_3_mdc_adju_res_inter : 4;
+    RK_U32 cu16_3_mdc_adju_res_mv0   : 4;
+} Vepu511aH265RoiDpt1BlkCfg;
 
 #ifdef __cplusplus
 extern "C" {
