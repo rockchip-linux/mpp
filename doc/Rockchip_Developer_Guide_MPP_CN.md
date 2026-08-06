@@ -1069,7 +1069,13 @@ I mpp_info: mpp version: 6cc173d1 author: Ding Wei 2022-08-29 [hal_avsd]: Fix cr
 为mpi_dec_test本身的打印，表示解码器完成了解码30帧的功能，最大的内存开销为19.92 MB。
 
 解码器的demo具体代码参见test/mpi_dec_test.c。
+#### MJPEG 解码注意事项
 
+MJPEG 解码采用单线程处理路径（advanced 模式），与 H.264/H.265 等流式格式不同，使用时注意以下两点：
+
+1. **输出帧需要由调用方提供**：使用 `decode_put_packet` 高层接口时，需要先将输出帧挂到 packet 的 meta 上（`mpp_packet_get_meta` 获取 meta 后 `mpp_meta_set_frame(KEY_OUTPUT_FRAME, frame)`），解码线程会从 packet meta 中获取输出帧；否则任务会被丢弃，无法得到解码帧。
+
+2. **旧版本（2022 年前后）存在额外限制**：旧版 MJPEG 解码上下文仅分配 1 张输入任务单，`put_packet` 首次调用会为 eos 预留任务单导致任务池被抽空，后续调用全部返回 `MPP_ERR_BUFFER_FULL`，且旧版不支持将输出帧挂到 packet meta（当前 develop 分支已修复）。旧版本建议使用底层 task 接口：`poll -> dequeue -> meta_set_packet(KEY_INPUT_PACKET) + meta_set_frame(KEY_OUTPUT_FRAME) -> enqueue`，具体流程参见 `test/mpi_dec_test.c` 的 advanced 模式。
 ## 4.2 编码器demo
 
 编码器demo为mpi_enc_test系列程序，包括单线程的mpi_enc_test及多线程的mpi_enc_mt_test。
