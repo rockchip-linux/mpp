@@ -1,0 +1,10 @@
+{
+    "frame_idx"         : 0,
+    "repeat"            : -1,
+    "jpeg_non_roi_level": 1,
+    "jpeg_non_roi_en"   : 1,
+    "jpeg_roi_cnt"      : 1,
+    "jpeg_roi" : [
+        { "x" : 0, "y" : 0, "w" : 8738, "h" : 13107, "level" : 3, "roi_en" : 1 }
+    ]
+}

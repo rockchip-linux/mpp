@@ -1,0 +1,8 @@
+{
+    "frame_idx"         : 4,
+    "repeat"            : 0,
+    "input_idr_req"     : 1,
+    "enc_frame_qp"      : 37,
+    "enc_base_layer_pid": 1,
+    "temporal_id"       : 1
+}
