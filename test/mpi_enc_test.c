@@ -20,6 +20,7 @@
 #include "mpp_soc.h"
 
 #include "mpi_enc_utils.h"
+#include "kmpp_venc_utils.h"
 #include "osd3_test.h"
 #include "kmpp_obj.h"
 
@@ -48,6 +49,7 @@ typedef struct {
     pthread_t           thd;        // thread for for each instance
     MpiEncTestData      ctx;        // context of encoder
     MpiEncTestPriv      priv;       // private data for encoder
+    MppEncFrmMetaData   meta_data;  // frame meta materialization resources
     MpiEncMultiCtxRet   ret;        // return of encoder
 } MpiEncMultiCtxInfo;
 
@@ -242,6 +244,28 @@ MPP_RET test_mpp_run(MpiEncMultiCtxInfo *info)
         mpp_packet_set_length(packet, 0);
         mpp_meta_set_packet(meta, KEY_OUTPUT_PACKET, packet);
         mpp_meta_set_buffer(meta, KEY_MOTION_INFO, priv->md_info);
+
+        if (obj_set->frm_cfg.set.count) {
+            const MppEncFrmCfg *frm_cfg;
+
+            frm_cfg = mpp_enc_frm_cfg_lookup(&obj_set->frm_cfg.set, p->frm_cnt_out);
+            if (frm_cfg) {
+                if ((frm_cfg->userdata || frm_cfg->userdatas) && !frm_cfg->ud_buf) {
+                    memset(info->meta_data.ud_buf, 'A' + (p->frm_cnt_out % 26), info->meta_data.ud_buf_size);
+                }
+
+                ret = mpp_venc_gen_frame_meta(meta, p->width, p->height, frm_cfg, &info->meta_data);
+                if (ret) {
+                    mpp_loge("chn %d frame %d generate frm_cfg meta failed ret %d\n",
+                             chn, p->frm_cnt_out, ret);
+                    mpp_frame_deinit(&frame);
+                    mpp_packet_deinit(&packet);
+                    if (cam_frm_idx >= 0)
+                        camera_source_put_frame(p->cam_ctx, cam_frm_idx);
+                    goto RET;
+                }
+            }
+        }
 
         if (cmd->osd_enable || cmd->user_data_enable || cmd->roi_enable || cmd->roi_jpeg_enable) {
             if (cmd->user_data_enable) {
@@ -530,6 +554,16 @@ void *enc_test(void *arg)
         goto MPP_TEST_OUT;
     }
 
+    if (obj_set->frm_cfg.set.count) {
+        info->meta_data.ud_buf = mpp_malloc(RK_U8, 64);
+        if (!info->meta_data.ud_buf) {
+            ret = MPP_ERR_MALLOC;
+            goto MPP_TEST_OUT;
+        }
+
+        info->meta_data.ud_buf_size = 64;
+    }
+
     ret = mpp_buffer_group_get_internal(&p->buf_grp, MPP_BUFFER_TYPE_DRM | MPP_BUFFER_FLAGS_CACHABLE);
     if (ret) {
         mpp_err_f("failed to get mpp buffer group ret %d\n", ret);
@@ -634,6 +668,9 @@ void *enc_test(void *arg)
     enc_ret->delay = p->first_pkt - p->first_frm;
 
 MPP_TEST_OUT:
+    mpp_venc_frm_meta_deinit(&info->meta_data);
+    MPP_FREE(info->meta_data.ud_buf);
+
     if (p->ctx) {
         mpp_destroy(p->ctx);
         p->ctx = NULL;
