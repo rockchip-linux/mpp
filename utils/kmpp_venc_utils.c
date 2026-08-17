@@ -46,8 +46,7 @@ MppEncFrmCfg *venc_dup_frm_cfg_with_ud(const MppEncFrmCfg *entry, RK_U8 *ud_buf,
         size = MPP_MAX(size, end);
     }
     if (entry->jpeg_roi_cnt) {
-        end = entry->jpeg_roi_off +
-              entry->jpeg_roi_cnt * sizeof(MppEncFrmJpegRoi);
+        end = entry->jpeg_roi_off + entry->jpeg_roi_cnt * sizeof(MppEncFrmJpegRoi);
         size = MPP_MAX(size, end);
     }
 
@@ -82,21 +81,39 @@ static int find_nal_start(const RK_U8 *data, RK_S32 len, RK_S32 *offset)
     return 0;
 }
 
-RK_S32 kmpp_venc_scan_sei_userdata(const RK_U8 *data, RK_S32 len, const char *expect, RK_S32 expect_len)
+/*
+ * Scan H.264/H.265 SEI NAL for a userdata unregistered payload with an
+ * exact UUID and exact-length payload match.
+ * Returns 1 on match, 0 otherwise.
+ */
+RK_S32 kmpp_venc_scan_sei_userdata(const RK_U8 *data, RK_S32 len,
+                                   const RK_U8 *uuid, const void *expect, RK_S32 expect_len)
 {
     RK_S32 offset = 0;
 
+    if (!data || len <= 0 || !uuid || !expect || expect_len <= 0)
+        return 0;
+
     while (offset < len - 4) {
+        RK_S32 nal_type_h264;
+        RK_S32 nal_type_h265;
+        RK_S32 nal_hdr_len;
+
         if (!find_nal_start(data, len, &offset) || offset >= len)
             break;
 
-        /* check SEI NAL type */
-        if ((data[offset] & 0x1F) != 6)
+        nal_type_h264 = data[offset] & 0x1f;
+        nal_type_h265 = (data[offset] >> 1) & 0x3f;
+        if (nal_type_h264 == 6)
+            nal_hdr_len = 1;
+        else if ((nal_type_h265 == 39 || nal_type_h265 == 40) && offset + 1 < len)
+            nal_hdr_len = 2;
+        else
             continue;
 
         /* parse SEI payload_type and payload_size */
         {
-            RK_S32 pos = offset + 1;
+            RK_S32 pos = offset + nal_hdr_len;
             RK_S32 payload_type = 0;
             RK_S32 payload_size = 0;
 
@@ -122,22 +139,22 @@ RK_S32 kmpp_venc_scan_sei_userdata(const RK_U8 *data, RK_S32 len, const char *ex
             }
 
             /* check UUID match */
-            if (pos + 16 > len)
+            if (payload_size < MPP_ENC_USER_DATA_UUID_LEN || pos + payload_size > len)
                 break;
 
-            if (memcmp(data + pos, venc_test_uuid, 16) != 0)
+            if (memcmp(data + pos, uuid, MPP_ENC_USER_DATA_UUID_LEN) != 0)
                 continue;
 
-            pos += 16;
+            pos += MPP_ENC_USER_DATA_UUID_LEN;
 
-            /* verify payload content */
+            /* verify payload content (exact length match) */
             {
-                RK_S32 ud_len = payload_size - 16;
+                RK_S32 ud_len = payload_size - MPP_ENC_USER_DATA_UUID_LEN;
 
-                if (ud_len <= 0 || pos + ud_len > len)
+                if (ud_len != expect_len || pos + ud_len > len)
                     break;
 
-                if (ud_len >= expect_len && memcmp(data + pos, expect, expect_len) == 0)
+                if (memcmp(data + pos, expect, expect_len) == 0)
                     return 1;
             }
         }
@@ -419,8 +436,7 @@ static MPP_RET kmpp_venc_gen_jpeg_roi(KmppMeta meta, RK_U32 w, RK_U32 h,
     return kmpp_meta_set_ptr(meta, KEY_JPEG_ROI_DATA, &cfg);
 }
 
-MPP_RET kmpp_venc_gen_frame_meta(KmppMeta meta, RK_U32 w, RK_U32 h,
-                                 const MppEncFrmCfg *entry)
+MPP_RET kmpp_venc_gen_frame_meta(KmppMeta meta, RK_U32 w, RK_U32 h, const MppEncFrmCfg *entry)
 {
     MPP_RET ret = MPP_OK;
 

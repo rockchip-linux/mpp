@@ -34,6 +34,7 @@ typedef struct KmppVencTestCtx_t {
     KmppBufGrp buf_grp;
     RK_U8 *ud_buf;
     RK_U32 ud_buf_size;
+    const MppEncFrmCfgSet *frm_cfgs;
 } KmppVencTestCtx;
 
 static MPP_RET venc_cfg_setup(KmppVencTestCtx *ctx)
@@ -163,6 +164,10 @@ static MPP_RET venc_encode_oneframe(KmppVencTestCtx *ctx)
     KmppShmPtr sptr, grp_sptr;
     rk_s32 frame_cnt = ctx->frame_cnt;
     rk_s32 ud_sent = 0;
+    const RK_U8 *ud_uuid = NULL;
+    const RK_U8 *ud_expect = NULL;
+    RK_U32 ud_expect_len = 0;
+    MPP_RET ret = MPP_OK;
 
     /* allocate KmppBuffer and fill pixel data */
     kmpp_buffer_get(&kbuf);
@@ -212,28 +217,45 @@ static MPP_RET venc_encode_oneframe(KmppVencTestCtx *ctx)
             kmpp_obj_get_by_sptr_f(&frm_meta, &frm_meta_sptr);
 
             if (frm_meta) {
-                MppEncFrmCfg tmp_entry;
                 const MppEncFrmCfg *entry;
+                const MppEncFrmCfg *apply_entry;
+                MppEncFrmCfg *dup = NULL;
 
-                entry = mpp_enc_frm_cfg_lookup(&mpp_enc_test_frm_cfg,
-                                               frame_cnt);
+                entry = mpp_enc_frm_cfg_lookup(ctx->frm_cfgs, frame_cnt);
                 if (entry) {
-                    if (entry->ud_buf) {
-                        kmpp_venc_gen_frame_meta(frm_meta, ctx->width,
-                                                 ctx->height, entry);
-                    } else {
+                    apply_entry = entry;
+                    if ((entry->userdata || entry->userdatas) && !entry->ud_buf) {
                         /* fill test userdata buffer */
-                        memset(ctx->ud_buf, 'A' + (frame_cnt % 26),
-                               ctx->ud_buf_size);
+                        memset(ctx->ud_buf, 'A' + (frame_cnt % 26), ctx->ud_buf_size);
 
-                        tmp_entry = *entry;
-                        tmp_entry.ud_uuid = venc_test_uuid;
-                        tmp_entry.ud_buf = ctx->ud_buf;
-                        tmp_entry.ud_buf_size = ctx->ud_buf_size;
-                        kmpp_venc_gen_frame_meta(frm_meta, ctx->width,
-                                                 ctx->height, &tmp_entry);
+                        dup = venc_dup_frm_cfg_with_ud(entry, ctx->ud_buf, ctx->ud_buf_size);
+                        if (!dup) {
+                            mpp_loge("frame %d duplicate frm_cfg failed\n", frame_cnt);
+                            kmpp_obj_impl_put_f(frm_meta);
+                            ret = MPP_ERR_MALLOC;
+                            goto done;
+                        }
+
+                        apply_entry = dup;
                     }
-                    ud_sent = 1;
+
+                    if (kmpp_venc_gen_frame_meta(frm_meta, ctx->width, ctx->height, apply_entry)) {
+                        mpp_loge("frame %d generate meta failed\n", frame_cnt);
+                        MPP_FREE(dup);
+                        kmpp_obj_impl_put_f(frm_meta);
+                        ret = MPP_NOK;
+                        goto done;
+                    }
+
+                    if (apply_entry->userdata || apply_entry->userdatas) {
+                        ud_sent = 1;
+                        ud_uuid = apply_entry->userdatas && apply_entry->ud_uuid ?
+                                  apply_entry->ud_uuid : venc_test_uuid;
+                        ud_expect = apply_entry->ud_buf;
+                        ud_expect_len = apply_entry->ud_buf_size;
+                    }
+
+                    MPP_FREE(dup);
                 }
 
                 kmpp_obj_impl_put_f(frm_meta);
@@ -266,16 +288,20 @@ static MPP_RET venc_encode_oneframe(KmppVencTestCtx *ctx)
 
             kmpp_packet_get_pos(packet, &pos);
             if (pos.uptr && len > 0) {
-                char expect_char = 'A' + (frame_cnt % 26);
-                char expect[4];
                 rk_s32 sei_ok;
 
-                memset(expect, expect_char, sizeof(expect));
                 sei_ok = kmpp_venc_scan_sei_userdata((RK_U8 *)pos.uptr, len,
-                                                     expect, sizeof(expect));
+                                                     ud_uuid, ud_expect, ud_expect_len);
                 if (sei_ok)
                     log_len += snprintf(log_buf + log_len, log_size - log_len,
                                         " SEI ud");
+                else {
+                    mpp_loge("frame %d SEI userdata NOT found\n", frame_cnt);
+                    ret = MPP_NOK;
+                }
+            } else {
+                mpp_loge("frame %d has no packet data for SEI check\n", frame_cnt);
+                ret = MPP_NOK;
             }
         }
         mpp_logi("%s\n", log_buf);
@@ -313,12 +339,14 @@ static MPP_RET venc_encode_oneframe(KmppVencTestCtx *ctx)
         kmpp_packet_put(packet);
     } else {
         mpp_loge("frame %d get no packet\n", frame_cnt);
+        ret = MPP_NOK;
     }
 
+done:
     kmpp_frame_put(frame);
     kmpp_buffer_put(kbuf);
 
-    return rk_ok;
+    return ret;
 }
 
 static MPP_RET venc_test_ctx_init(KmppVencTestCtx *ctx)
@@ -412,6 +440,7 @@ int main(int argc, char **argv)
 
     cmd = obj_set->cmd;
     ctx.cmd = cmd;
+    ctx.frm_cfgs = obj_set->frm_cfg.set.count ? &obj_set->frm_cfg.set : &mpp_enc_test_frm_cfg;
     ret = venc_test_ctx_init(&ctx);
     if (ret)
         goto DONE;

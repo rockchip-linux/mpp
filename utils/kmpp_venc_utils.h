@@ -63,14 +63,15 @@ MPP_RET kmpp_venc_gen_osd(KmppMeta meta, RK_U32 w, RK_U32 h,
  * Dispatches to scalar, userdata/userdatas, ROI, OSD and JPEG ROI
  * w/h are the frame dimensions, used for ratio-to-pixel conversion.
  */
-MPP_RET kmpp_venc_gen_frame_meta(KmppMeta meta, RK_U32 w, RK_U32 h,
-                                 const MppEncFrmCfg *entry);
+MPP_RET kmpp_venc_gen_frame_meta(KmppMeta meta, RK_U32 w, RK_U32 h, const MppEncFrmCfg *entry);
 
 /*
- * Scan H.264/H.265 SEI NAL for userdata unregistered payload.
- * Returns 1 if payload matches 'expect', 0 otherwise.
+ * Scan H.264/H.265 SEI NAL for a userdata unregistered payload with an
+ * exact UUID and exact-length payload match.
+ * Returns 1 on match, 0 otherwise.
  */
-RK_S32 kmpp_venc_scan_sei_userdata(const RK_U8 *data, RK_S32 len, const char *expect, RK_S32 expect_len);
+RK_S32 kmpp_venc_scan_sei_userdata(const RK_U8 *data, RK_S32 len,
+                                   const RK_U8 *uuid, const void *expect, RK_S32 expect_len);
 
 /*
  * Persistent test resources referenced by ordinary MppMeta.
