@@ -366,14 +366,14 @@ MPP_RET mpp_enc_cfg_init(MppEncCfg *cfg)
     return mpp_enc_cfg_get(cfg);
 }
 
-RK_S32 mpp_enc_cfg_init_k(MppEncCfg *cfg)
+MPP_RET mpp_enc_cfg_init_k(MppEncCfg *cfg)
 {
     mpp_env_get_u32("mpp_enc_cfg_debug", &mpp_enc_cfg_debug, 0);
 
     return mpp_venc_kcfg_init(cfg, MPP_VENC_KCFG_TYPE_ST_CFG);
 }
 
-RK_S32 mpp_enc_cfg_deinit(MppEncCfg cfg)
+MPP_RET mpp_enc_cfg_deinit(MppEncCfg cfg)
 {
     return kmpp_obj_put_f(cfg);
 }

@@ -256,7 +256,7 @@ MPP_RET mpp_venc_ctrl_set_flex(MppVencKcfg ctrl, const void *data, RK_U32 size)
     return MPP_NOK;
 }
 
-rk_s32 kmpp_venc_ref_cfg_check(MppVencKcfg ref)
+MPP_RET kmpp_venc_ref_cfg_check(MppVencKcfg ref)
 {
     if (ref_cfg_check_cmd < 0 || !ref)
         return rk_nok;

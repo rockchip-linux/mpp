@@ -775,7 +775,7 @@ void vdpu38x_rcb_set_pic_h(Vdpu38xRcbCtx *ctx, RK_U32 pic_h);
 RK_U32 vdpu38x_rcb_get_pic_h(Vdpu38xRcbCtx *ctx);
 void vdpu38x_rcb_set_tile_dir(Vdpu38xRcbCtx *ctx, RK_U32 tile_dir);
 RK_U32 vdpu38x_rcb_get_tile_dir(Vdpu38xRcbCtx *ctx);
-void vdpu38x_rcb_set_fmt(Vdpu38xRcbCtx *ctx, RK_U32 fmt);
+void vdpu38x_rcb_set_fmt(Vdpu38xRcbCtx *ctx, Vdpu38xFmt fmt);
 Vdpu38xFmt vdpu38x_rcb_get_fmt(Vdpu38xRcbCtx *ctx);
 void vdpu38x_rcb_set_bit_depth(Vdpu38xRcbCtx *ctx, RK_U32 bit_depth);
 RK_U32 vdpu38x_rcb_get_bit_depth(Vdpu38xRcbCtx *ctx);

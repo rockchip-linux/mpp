@@ -25,6 +25,24 @@
 #define VDPP_WORK_MODE_VEP  (2)
 #define VDPP_WORK_MODE_DCI  (3) /* hist only mode */
 
+static MPP_RET make_result_path(char *dst, size_t dst_size,
+                                const char *dir, const char *name)
+{
+    size_t dir_len = strlen(dir);
+    size_t name_len = strlen(name);
+
+    if (dir_len + 1 + name_len + 1 > dst_size) {
+        mpp_loge("output path is too long: %s/%s\n", dir, name);
+        return MPP_ERR_VALUE;
+    }
+
+    memcpy(dst, dir, dir_len);
+    dst[dir_len] = '/';
+    memcpy(dst + dir_len + 1, name, name_len + 1);
+
+    return MPP_OK;
+}
+
 typedef struct {
     char src_file_name[MAX_URL_LEN];
     char dst_file_name_y[MAX_URL_LEN];
@@ -266,20 +284,34 @@ static void *multi_vdpp(void *cmd_ctx)
     if (cfg->dst_dir_name[0]) {
         char filename[MAX_URL_LEN] = {0};
 
-        snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_com.txt", cfg->dst_dir_name);
+        if (make_result_path(filename, sizeof(filename),
+                             cfg->dst_dir_name, "vdpp_res_com.txt"))
+            goto __RET;
+
         mul_ctx->fp_o_res = fopen(filename, "wt");
         if (mul_ctx->fp_o_res == NULL) {
             mpp_logw("failed to open output com file %s! %s\n", filename, strerror(errno));
         }
 
         if (cfg->en_hist) {
-            snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_hist_packed.bin", cfg->dst_dir_name);
+            if (make_result_path(filename, sizeof(filename),
+                                 cfg->dst_dir_name, "vdpp_res_hist_packed.bin"))
+                goto __RET;
+
             mul_ctx->fp_o_hist = fopen(filename, "wb");
         }
+
         if (cfg->en_pyr) {
             for (i = 0; i < 3; i++) {
-                snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_pyr_l%d.yuv",
-                         cfg->dst_dir_name, i + 1);
+                char result_name[32];
+
+                snprintf(result_name, sizeof(result_name),
+                         "vdpp_res_pyr_l%d.yuv", i + 1);
+
+                if (make_result_path(filename, sizeof(filename),
+                                     cfg->dst_dir_name, result_name))
+                    goto __RET;
+
                 mul_ctx->fp_o_pyrs[i] = fopen(filename, "wb");
             }
         }

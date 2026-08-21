@@ -605,12 +605,16 @@ rk_s32 CONCAT_US(KMPP_OBJ_NAME, size)(void)
     return kmpp_objdef_get_entry_size(KMPP_OBJ_DEF(KMPP_OBJ_NAME));
 }
 
-rk_s32 CONCAT_US(KMPP_OBJ_NAME, get)(KMPP_OBJ_INTF_TYPE *obj)
+#ifndef KMPP_OBJ_RET_TYPE
+#define KMPP_OBJ_RET_TYPE rk_s32
+#endif
+
+KMPP_OBJ_RET_TYPE CONCAT_US(KMPP_OBJ_NAME, get)(KMPP_OBJ_INTF_TYPE *obj)
 {
     return kmpp_obj_get_f((KmppObj *)obj, KMPP_OBJ_DEF(KMPP_OBJ_NAME));
 }
 
-rk_s32 CONCAT_US(KMPP_OBJ_NAME, put)(KMPP_OBJ_INTF_TYPE obj)
+KMPP_OBJ_RET_TYPE CONCAT_US(KMPP_OBJ_NAME, put)(KMPP_OBJ_INTF_TYPE obj)
 {
     return kmpp_obj_put_f(obj);
 }
@@ -792,6 +796,7 @@ extern "C" {
 
 #endif /* KMPP_OBJ_FUNC_IOCTL */
 
+#undef KMPP_OBJ_RET_TYPE
 #undef KMPP_OBJ_NAME
 #undef KMPP_OBJ_INTF_TYPE
 #undef KMPP_OBJ_IMPL_TYPE

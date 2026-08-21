@@ -26,6 +26,24 @@
 #define YUV_MAX_SIZE      (12582912) // 4096 * 2048 * 3 / 2
 #define DCI_HIST_SIZE     (10240)    // (16*16*16*18/8/4 + 256) * 4
 
+static MPP_RET make_result_path(char *dst, size_t dst_size,
+                                const char *dir, const char *name)
+{
+    size_t dir_len = strlen(dir);
+    size_t name_len = strlen(name);
+
+    if (dir_len + 1 + name_len + 1 > dst_size) {
+        mpp_loge("output path is too long: %s/%s\n", dir, name);
+        return MPP_ERR_VALUE;
+    }
+
+    memcpy(dst, dir, dir_len);
+    dst[dir_len] = '/';
+    memcpy(dst + dir_len + 1, name, name_len + 1);
+
+    return MPP_OK;
+}
+
 typedef struct VdppTestCfg_t {
     MppFrameFormat src_format; // see MppFrameFormat: 0-nv12, 15-nv24
     RK_U32 src_width;          // unit: pixel
@@ -979,26 +997,43 @@ RK_S32 main(RK_S32 argc, char **argv)
     if (cfg.out_dir[0]) {
         char filename[MAX_URL_LEN] = {0};
 
-        snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_com.txt", cfg.out_dir);
+        if (make_result_path(filename, sizeof(filename),
+                             cfg.out_dir, "vdpp_res_com.txt"))
+            return MPP_ERR_VALUE;
+
         cfg.fp_result = fopen(filename, "wt");
         if (cfg.fp_result == NULL) {
             mpp_logw("failed to open output com file %s! %s\n", filename, strerror(errno));
         }
 
         if (cfg.en_hist) {
-            snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_hist_packed.bin", cfg.out_dir);
+            if (make_result_path(filename, sizeof(filename),
+                                 cfg.out_dir, "vdpp_res_hist_packed.bin"))
+                return MPP_ERR_VALUE;
             cfg.fp_hist = fopen(filename, "wb");
 
-            snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_hist_local.bin", cfg.out_dir);
+            if (make_result_path(filename, sizeof(filename),
+                                 cfg.out_dir, "vdpp_res_hist_local.bin"))
+                return MPP_ERR_VALUE;
             cfg.fp_hist_l = fopen(filename, "wb");
 
-            snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_hist_global.bin", cfg.out_dir);
+            if (make_result_path(filename, sizeof(filename),
+                                 cfg.out_dir, "vdpp_res_hist_global.bin"))
+                return MPP_ERR_VALUE;
             cfg.fp_hist_g = fopen(filename, "wb");
         }
 
         if (cfg.en_pyr) {
             for (i = 0; i < 3; ++i) {
-                snprintf(filename, MAX_URL_LEN - 1, "%s/vdpp_res_pyr_l%d.yuv", cfg.out_dir, i + 1);
+                char result_name[32];
+
+                snprintf(result_name, sizeof(result_name),
+                         "vdpp_res_pyr_l%d.yuv", i + 1);
+
+                if (make_result_path(filename, sizeof(filename),
+                                     cfg.out_dir, result_name))
+                    return MPP_ERR_VALUE;
+
                 cfg.fp_pyrs[i] = fopen(filename, "wb");
             }
         }

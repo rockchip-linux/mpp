@@ -124,9 +124,9 @@ endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES "Release")
     # remove -g option for high version ndk
-    string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "(^|[ \t])-g([0-9]+)?([ \t]|$)" " " TMP "${CMAKE_C_FLAGS}")
     string(REGEX REPLACE "[ ]+" " " CMAKE_C_FLAGS "${TMP}")
-    string(REGEX REPLACE "-g[^ ]*" "" TMP "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "(^|[ \t])-g([0-9]+)?([ \t]|$)" " " TMP "${CMAKE_CXX_FLAGS}")
     string(REGEX REPLACE "[ ]+" " " CMAKE_CXX_FLAGS "${TMP}")
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG")

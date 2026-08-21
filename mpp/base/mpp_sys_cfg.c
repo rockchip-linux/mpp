@@ -75,6 +75,7 @@
     STRUCT_END(dec_buf_chk) \
     CFG_DEF_END()
 
+#define KMPP_OBJ_RET_TYPE           MPP_RET
 #define KMPP_OBJ_NAME               mpp_sys_cfg
 #define KMPP_OBJ_INTF_TYPE          MppSysCfg
 #define KMPP_OBJ_IMPL_TYPE          MppSysCfgSet
