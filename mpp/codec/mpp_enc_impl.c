@@ -1796,7 +1796,12 @@ static MPP_RET mpp_enc_check_pkt_buf(MppEncImpl *enc)
         pkt->pos    = pkt->data;
         pkt->size   = mpp_buffer_get_size(buffer);
         pkt->length = 0;
-        pkt->buffer = buffer;
+        /* Sync path: enc->packet is a persistent packet reused across
+         * frames. Use mpp_packet_set_buffer() so the previous frame's
+         * buffer is put before the new one is attached. The packet's
+         * final buffer is released once at encoder teardown via
+         * mpp_packet_deinit(). */
+        mpp_packet_set_buffer((MppPacket)enc->packet, buffer);
 
         enc_dbg_detail("create output pkt %p buf %p\n", enc->packet, buffer);
     } else {
