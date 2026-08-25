@@ -1104,6 +1104,14 @@ void *mpp_dec_advanced_thread(void *data)
             if (meta)
                 mpp_meta_set_packet(meta, KEY_INPUT_PACKET, packet);
 
+            /* Transfer ownership of the input packet to the frame meta consumer:
+             * MppPacket has no inc_ref API and MppMeta set/get just copies the raw
+             * pointer without touching refcounts. Clearing dec->mpp_pkt_in here
+             * prevents dec_release_input_packet() from deinit-ing the same packet
+             * a second time after the meta consumer already did (double free of
+             * the packet's underlying MppBuffer). */
+            dec->mpp_pkt_in = NULL;
+
             sys_dbg_pts("output frame pts %lld\n", mpp_frame_get_pts(frame));
 
             mpp_mutex_cond_lock(&list->cond_lock);
