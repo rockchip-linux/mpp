@@ -46,7 +46,92 @@ typedef struct {
     RK_S64          delay;
     FILE            *fp_verify;
     FrmCrc          checkcrc;
+
+    /* Optional raw decoder COLMV validation. */
+    RK_U32          colmv_enable;
+    RK_U32          colmv_frames;
+    RK_U32          colmv_nonzero_frames;
+    MPP_RET         colmv_ret;
 } MpiDecLoopData;
+
+static MPP_RET dec_validate_colmv(MpiDecLoopData *data, MppFrame frame)
+{
+    MppMeta meta = NULL;
+    MppBuffer colmv = NULL;
+    RK_S32 fmt = MPP_DEC_COLMV_FMT_NONE;
+    RK_U8 *ptr = NULL;
+    size_t capacity = 0;
+    size_t size = 0;
+    RK_S32 valid_size = 0;
+    size_t i;
+    RK_U32 nonzero = 0;
+    RK_U32 hash = 2166136261U;
+    MPP_RET ret;
+
+    if (!data->colmv_enable || !mpp_frame_has_meta(frame))
+        return MPP_OK;
+
+    meta = mpp_frame_get_meta(frame);
+    if (!meta)
+        return MPP_NOK;
+
+    ret = mpp_meta_get_buffer(meta, KEY_DEC_COLMV, &colmv);
+    if (ret || !colmv)
+        return MPP_OK;
+
+    ret = mpp_meta_get_s32(meta, KEY_DEC_COLMV_FMT, &fmt);
+    if (ret || fmt <= MPP_DEC_COLMV_FMT_NONE ||
+        fmt >= MPP_DEC_COLMV_FMT_BUTT) {
+        mpp_err_f("invalid COLMV format %d ret %d\n", fmt, ret);
+        return MPP_NOK;
+    }
+
+    ret = mpp_meta_get_s32(meta, KEY_DEC_COLMV_SIZE, &valid_size);
+    if (ret || valid_size <= 0) {
+        mpp_err_f("invalid COLMV valid size %d ret %d\n",
+                  valid_size, ret);
+        return MPP_NOK;
+    }
+
+    capacity = mpp_buffer_get_size(colmv);
+    size = (size_t)valid_size;
+    ptr = (RK_U8 *)mpp_buffer_get_ptr(colmv);
+    if (!capacity || !ptr || size > capacity) {
+        mpp_err_f("invalid COLMV buffer ptr %p valid %zu capacity %zu\n",
+                  ptr, size, capacity);
+        return MPP_NOK;
+    }
+
+    ret = mpp_buffer_sync_ro_begin(colmv);
+    if (ret) {
+        mpp_err_f("COLMV sync begin failed ret %d\n", ret);
+        return ret;
+    }
+
+    for (i = 0; i < size; i++) {
+        RK_U8 val = ptr[i];
+
+        if (val)
+            nonzero++;
+        hash ^= val;
+        hash *= 16777619U;
+    }
+
+    ret = mpp_buffer_sync_ro_end(colmv);
+    if (ret) {
+        mpp_err_f("COLMV sync end failed ret %d\n", ret);
+        return ret;
+    }
+
+    data->colmv_frames++;
+    if (nonzero)
+        data->colmv_nonzero_frames++;
+
+    mpp_log("COLMV frame %d fmt %d size %zu nonzero %u hash %08x\n",
+            data->frame_count, fmt, size, nonzero, hash);
+
+    return MPP_OK;
+}
 
 static MPP_RET dec_simple(MpiDecLoopData *data)
 {
@@ -185,6 +270,14 @@ static MPP_RET dec_simple(MpiDecLoopData *data)
 
                     if (!data->first_frm)
                         data->first_frm = mpp_time();
+
+                    ret = dec_validate_colmv(data, frame);
+                    if (ret) {
+                        mpp_err_f("COLMV validation failed ret %d\n", ret);
+                        data->colmv_ret = ret;
+                        mpp_frame_deinit(&frame);
+                        return ret;
+                    }
 
                     log_len += snprintf(log_buf + log_len, log_size - log_len,
                                         "decode get frame %d", data->frame_count);
@@ -426,6 +519,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     // config for runtime mode
     MppDecCfg cfg       = NULL;
     RK_U32 need_split   = 1;
+    RK_U32 enable_colmv = 0;
 
     // resources
     MppBuffer frm_buf   = NULL;
@@ -516,6 +610,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     }
 
     mpp_dec_cfg_init(&cfg);
+    mpp_env_get_u32("mpi_dec_colmv", &enable_colmv, 0);
 
     /* get default config from decoder context */
     ret = mpi->control(ctx, MPP_DEC_GET_CFG, cfg);
@@ -534,6 +629,15 @@ int dec_decode(MpiDecTestCmd *cmd)
         goto MPP_TEST_OUT;
     }
 
+    if (enable_colmv) {
+        ret = mpp_dec_cfg_set_u32(cfg, "base:enable_colmv", 1);
+        if (ret) {
+            mpp_err("%p failed to enable COLMV ret %d\n", ctx, ret);
+            goto MPP_TEST_OUT;
+        }
+        mpp_log("%p decoder raw COLMV export enabled\n", ctx);
+    }
+
     ret = mpi->control(ctx, MPP_DEC_SET_CFG, cfg);
     if (ret) {
         mpp_err("%p failed to set cfg %p ret %d\n", ctx, cfg, ret);
@@ -549,6 +653,7 @@ int dec_decode(MpiDecTestCmd *cmd)
     data.frame_count    = 0;
     data.frame_num      = cmd->frame_num;
     data.quiet          = cmd->quiet;
+    data.colmv_enable   = enable_colmv;
 
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
@@ -569,6 +674,24 @@ int dec_decode(MpiDecTestCmd *cmd)
     }
 
     pthread_join(thd, NULL);
+
+    if (enable_colmv) {
+        if (data.colmv_ret) {
+            mpp_err("COLMV validation thread failed ret %d\n",
+                    data.colmv_ret);
+            ret = data.colmv_ret;
+            goto MPP_TEST_OUT;
+        }
+
+        mpp_log("COLMV summary frames %u nonzero_frames %u\n",
+                data.colmv_frames, data.colmv_nonzero_frames);
+
+        if (!data.colmv_frames) {
+            mpp_err("COLMV export enabled but no COLMV buffer was received\n");
+            ret = MPP_NOK;
+            goto MPP_TEST_OUT;
+        }
+    }
 
     cmd->max_usage = data.max_usage;
 

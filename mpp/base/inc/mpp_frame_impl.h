@@ -150,6 +150,8 @@ struct MppFrameImpl_t {
      * NOTE: buf_size only access internally
      */
     MppBuffer       buffer;
+    /* Keep exported decoder COLMV alive for the frame lifetime. */
+    MppBuffer       colmv_buf;
     size_t          buf_size;
 
     /*
@@ -206,6 +208,8 @@ RK_U32  mpp_frame_get_fbc_offset(MppFrame frame);
 RK_U32  mpp_frame_get_fbc_stride(MppFrame frame);
 size_t  mpp_frame_get_fbc_size(MppFrame frame);
 void    mpp_frame_set_fbc_size(MppFrame frame, size_t size);
+
+void mpp_frame_set_colmv_buffer(MppFrame frame, MppBuffer buffer);
 
 MppFrameStatus *mpp_frame_get_status(MppFrame frame);
 
