@@ -131,6 +131,8 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj *out, const c
 #define kmpp_obj_check_f(obj)                   kmpp_obj_check(obj, __FUNCTION__)
 #define kmpp_obj_ioctl_f(ctx, cmd, in, out)     kmpp_obj_ioctl(ctx, cmd, in, out, __FUNCTION__)
 
+/* safe check whether a pointer refers to a valid KmppObj (plain struct safe) */
+rk_s32 kmpp_obj_is_obj(KmppObj obj);
 /* check a object is kobject or not */
 rk_s32 kmpp_obj_is_kobj(KmppObj obj);
 /* object to its objdef */

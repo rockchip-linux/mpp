@@ -171,6 +171,8 @@ typedef struct KmppObjDefImpl_t {
 } KmppObjDefImpl;
 
 typedef struct KmppObjImpl_t {
+    /* module_name address for O(1) is_obj screening */
+    const void *module;
     const char *name;
     struct list_head list;
     /* class infomation link */
@@ -203,6 +205,7 @@ typedef struct KmppObjs_t {
 
 static rk_u32 kmpp_obj_debug = 0;
 static KmppObjs *objs = NULL;
+static const char *module_name = MODULE_TAG;
 
 #define get_objs(caller) \
 ({ \
@@ -1077,6 +1080,7 @@ static KmppObjImpl *_get_obj_from_def(KmppObjs *p, KmppObjDefImpl *def, KmppShmP
     }
 
     base = (rk_u8 *)impl + MPP_ALIGN8(sizeof(KmppObjImpl));
+    impl->module = module_name;
     impl->name = def->name;
     impl->def = def;
     impl->trie = def->trie;
@@ -1106,6 +1110,7 @@ static KmppObjImpl *_get_obj_from_def(KmppObjs *p, KmppObjDefImpl *def, KmppShmP
         if (!impl->entry) {
             mpp_loge("%s alloc flex entry %s size %d failed at %s\n",
                      func, def->name, def->buf_size, caller);
+            impl->module = NULL;
             mpp_mem_pool_put(def->pool, impl, caller);
             return NULL;
         }
@@ -1339,6 +1344,7 @@ rk_s32 kmpp_obj_put(KmppObj obj, const char *caller)
             MPP_FREE(impl->entry);
         }
 
+        impl->module = NULL;
         mpp_mem_pool_put(def->pool, impl, caller);
 
         return rk_ok;
@@ -1475,6 +1481,7 @@ rk_s32 kmpp_obj_impl_put(KmppObj obj, const char *caller)
         /* clear def to mark "in release": repeated put is detected at
          * entry before deinit runs again */
         impl->def = NULL;
+        impl->module = NULL;
 
         if (def->flex_entry && !impl->shm)
             MPP_FREE(impl->entry);
@@ -1636,6 +1643,18 @@ rk_s32 kmpp_obj_ioctl(KmppObj ctx, rk_s32 cmd, KmppObj in, KmppObj *out, const c
     }
 
     return ret;
+}
+
+rk_s32 kmpp_obj_is_obj(KmppObj obj)
+{
+    const void *module;
+
+    if (!obj)
+        return 0;
+
+    memcpy(&module, obj, sizeof(module));
+
+    return module == module_name;
 }
 
 rk_s32 kmpp_obj_is_kobj(KmppObj obj)
