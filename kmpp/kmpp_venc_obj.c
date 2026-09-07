@@ -455,6 +455,10 @@ static rk_s32 kmpp_venc_ctrl_exec(KmppVenc venc, KmppObj ctrl, MpiCmd cmd, MppPa
     } break;
     case MPP_ENC_GET_HDR_SYNC: {
     } break;
+    case MPP_ENC_SET_REF_CFG: {
+        if (mpp_venc_ctrl_set_flex(ctrl, param, sizeof(MppEncRefParam)))
+            return rk_nok;
+    } break;
     default: {
         return rk_ok;
     } break;
@@ -540,7 +544,15 @@ rk_s32 kmpp_venc_ctrl(KmppVenc venc, MpiCmd cmd, MppParam param)
         MppVencKcfg def_ref = NULL;
 
         if (param) {
-            VENC_KOBJ_CHECK(param, "SET_REF_CFG");
+            if (!kmpp_obj_is_obj((KmppObj)(param))) {
+                mpp_logi_f("SET_REF_CFG the param is not obj, apply as legacy MppEncRefParam\n");
+                goto DEFAULT;
+            }
+
+            if (!kmpp_obj_is_kobj((KmppObj)(param))) {
+                mpp_loge_f("SET_REF_CFG the param is not kobj\n");
+                return rk_nok;
+            }
         } else {
             /* NULL → apply default IPPP (1 st frame, forward ref, no lt) */
             mpp_venc_kcfg_init(&def_ref, MPP_VENC_KCFG_TYPE_REF_CFG);
@@ -565,14 +577,17 @@ rk_s32 kmpp_venc_ctrl(KmppVenc venc, MpiCmd cmd, MppParam param)
         ret = kmpp_venc_init(venc, param);
     } break;
     default: {
-        MppVencKcfg ctrl = NULL;
+DEFAULT:
+        {
+            MppVencKcfg ctrl = NULL;
 
-        mpp_venc_kcfg_init(&ctrl, MPP_VENC_KCFG_TYPE_CTRL_CFG);
-        if (ctrl) {
-            ret = kmpp_venc_ctrl_exec(venc, ctrl, cmd, param);
-            mpp_venc_kcfg_deinit(ctrl);
-        } else {
-            mpp_loge_f("can not create valid ctrl_cfg object\n");
+            mpp_venc_kcfg_init(&ctrl, MPP_VENC_KCFG_TYPE_CTRL_CFG);
+            if (ctrl) {
+                ret = kmpp_venc_ctrl_exec(venc, ctrl, cmd, param);
+                mpp_venc_kcfg_deinit(ctrl);
+            } else {
+                mpp_loge_f("can not create valid ctrl_cfg object\n");
+            }
         }
     } break;
     }
