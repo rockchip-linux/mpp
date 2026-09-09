@@ -54,6 +54,12 @@ static MPP_RET mpp_cache_extra_packet(Mpp *mpp, MppPacket src)
     size_t capacity = dst_impl ? dst_impl->size : 0;
     MPP_RET ret;
 
+    /* No cache buffer allocated and nothing to store: the incoming extra
+     * packet is empty (length == 0). Just ignore it, otherwise the NULL
+     * dst_impl would be dereferenced below. */
+    if (!dst_impl && !src_length)
+        return MPP_OK;
+
     if (capacity < length) {
         void *data;
 
