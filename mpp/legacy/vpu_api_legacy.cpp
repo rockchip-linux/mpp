@@ -30,7 +30,7 @@
 #include "mpp_frame.h"
 #include "mpp_compat.h"
 
-#define VPU_API_ENC_INPUT_TIMEOUT 100
+#define VPU_API_ENC_INPUT_TIMEOUT 2000
 
 RK_U32 vpu_api_debug = 0;
 
