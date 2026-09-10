@@ -2723,7 +2723,6 @@ TASK_DONE:
 
 static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
 {
-    Mpp *mpp = (Mpp*)enc->mpp;
     EncRcTask *rc_task = hal_task->rc_task;
     EncFrmStatus *frm = &rc_task->frm;
     MppPacket packet = hal_task->packet;
@@ -2773,9 +2772,6 @@ static MPP_RET set_enc_info_to_packet(MppEncImpl *enc, HalEncTask *hal_task)
 
     if (hal_task->md_info)
         mpp_meta_set_buffer(meta, KEY_MOTION_INFO, hal_task->md_info);
-
-    if (mpp->mEncAyncIo)
-        mpp_meta_set_frame(meta, KEY_INPUT_FRAME, hal_task->frame);
 
     return MPP_OK;
 }
@@ -3604,6 +3600,14 @@ TASK_DONE:
         mpp_err_f("enc failed force idr!\n");
     } else
         set_enc_info_to_packet(enc, hal_task);
+
+    /* attach input frame to output packet for user to release */
+    if (hal_task->frame) {
+        MppMeta meta = mpp_packet_get_meta(pkt);
+
+        if (meta)
+            mpp_meta_set_frame(meta, KEY_INPUT_FRAME, hal_task->frame);
+    }
 
     if (mpp->mPktOut) {
         MppList *pkt_out = mpp->mPktOut;
