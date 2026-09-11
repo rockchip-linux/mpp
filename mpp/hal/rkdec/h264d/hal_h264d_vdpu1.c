@@ -835,6 +835,7 @@ MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task)
         (task->dec.flags.ref_err && !p_hal->cfg->cfg->base.disable_error)) {
         goto __RETURN;
     }
+    hal_h264d_explain_input_buffer(hal, &task->dec);
     priv = p_hal->priv;
     priv->layed_id = p_hal->pp->curr_layer_id;
 
@@ -857,7 +858,6 @@ MPP_RET vdpu1_h264d_gen_regs(void *hal, HalTaskInfo *task)
         task->dec.reg_index = 0;
     }
 
-    hal_h264d_explain_input_buffer(hal, &task->dec);
     FUN_CHECK(ret = adjust_input(priv, &p_hal->slice_long[0], p_hal->pp));
     FUN_CHECK(ret = vdpu1_set_device_regs(p_hal, (H264dVdpu1Regs_t *)reg_ctx->regs));
     FUN_CHECK(ret = vdpu1_set_pic_regs(p_hal, (H264dVdpu1Regs_t *)reg_ctx->regs));
