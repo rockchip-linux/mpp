@@ -2086,13 +2086,36 @@ __BITREAD_ERR:
     return MPP_ERR_READ_BIT;
 }
 
+/* grow the reusable hdr dynamic meta buffer if needed */
+static MPP_RET prepare_dynamic_meta(Av1Codec *ctx, RK_U32 need)
+{
+    MppFrameHdrDynamicMeta *dynamic;
+
+    if (ctx->hdr_dynamic_meta && ctx->hdr_dynamic_meta_size >= need)
+        return MPP_OK;
+
+    dynamic = mpp_calloc_size(MppFrameHdrDynamicMeta, sizeof(*dynamic) + need);
+    if (!dynamic) {
+        mpp_err_f("malloc hdr dynamic data failed!\n");
+        return MPP_ERR_NOMEM;
+    }
+
+    /* NOTE: replace the old buffer only after the new one is ready */
+    MPP_FREE(ctx->hdr_dynamic_meta);
+    ctx->hdr_dynamic_meta = dynamic;
+    ctx->hdr_dynamic_meta_size = need;
+
+    return MPP_OK;
+}
+
 static MPP_RET get_dlby_rpu(Av1Codec *ctx, BitReadCtx_t *gb)
 {
-    MppFrameHdrDynamicMeta *dynamic = ctx->hdr_dynamic_meta;
+    MppFrameHdrDynamicMeta *dynamic;
     MppWriteCtx m_bc, *bc = &m_bc;
     RK_U32 emdf_payload_size = 0;
     RK_S32 flag = 0;
     RK_U32 i;
+    RK_U32 need;
 
     // skip emdf_container
     SKIP_BITS(gb, 3);
@@ -2117,15 +2140,20 @@ static MPP_RET get_dlby_rpu(Av1Codec *ctx, BitReadCtx_t *gb)
         emdf_payload_size += (1 << 8);
     } while (flag);
 
-    if (!dynamic) {
-        dynamic = mpp_calloc_size(MppFrameHdrDynamicMeta, sizeof(*dynamic) + SZ_1K);
-        if (!dynamic) {
-            mpp_err_f("malloc hdr dynamic data failed!\n");
-            return MPP_ERR_NOMEM;
-        }
+    if (emdf_payload_size > SZ_1M) {
+        mpp_err_f("invalid dlby rpu size %u\n", emdf_payload_size);
+        return MPP_ERR_STREAM;
     }
 
-    mpp_writer_init(bc, dynamic->data, SZ_1K);
+    /* Payload + worst-case emulation bytes + 5-byte raw header. */
+    need = emdf_payload_size + emdf_payload_size / 2 + 5;
+
+    if (prepare_dynamic_meta(ctx, need))
+        return MPP_ERR_NOMEM;
+
+    dynamic = ctx->hdr_dynamic_meta;
+
+    mpp_writer_init(bc, dynamic->data, need);
 
     mpp_writer_put_raw_bits(bc, 0, 24);
     mpp_writer_put_raw_bits(bc, 1, 8);
@@ -2142,7 +2170,6 @@ static MPP_RET get_dlby_rpu(Av1Codec *ctx, BitReadCtx_t *gb)
     av1d_dbg(AV1D_DBG_STRMIN, "dlby rpu size %d -> %d\n",
              emdf_payload_size, dynamic->size);
 
-    ctx->hdr_dynamic_meta = dynamic;
     ctx->hdr_dynamic = 1;
     ctx->is_hdr = 1;
 
@@ -2168,21 +2195,14 @@ __BITREAD_ERR:
 
 static MPP_RET fill_dynamic_meta(Av1Codec *ctx, const RK_U8 *data, RK_U32 size, RK_U32 hdr_fmt)
 {
-    MppFrameHdrDynamicMeta *dynamic = ctx->hdr_dynamic_meta;
+    MppFrameHdrDynamicMeta *dynamic;
 
-    if (dynamic && (dynamic->size < size)) {
-        mpp_free(dynamic);
-        dynamic = NULL;
-    }
-
-    if (!dynamic) {
-        dynamic = mpp_calloc_size(MppFrameHdrDynamicMeta, sizeof(*dynamic) + size);
-        if (!dynamic) {
-            mpp_err_f("malloc hdr dynamic data failed!\n");
-            return MPP_ERR_NOMEM;
-        }
-    }
     if (size && data) {
+        if (prepare_dynamic_meta(ctx, size))
+            return MPP_ERR_NOMEM;
+
+        dynamic = ctx->hdr_dynamic_meta;
+
         switch (hdr_fmt) {
         case HDR10PLUS: {
             memcpy((RK_U8*)dynamic->data, (RK_U8*)data, size);
@@ -2192,7 +2212,6 @@ static MPP_RET fill_dynamic_meta(Av1Codec *ctx, const RK_U8 *data, RK_U32 size, 
         dynamic->size = size;
         dynamic->hdr_fmt = hdr_fmt;
 
-        ctx->hdr_dynamic_meta = dynamic;
         ctx->hdr_dynamic = 1;
         ctx->is_hdr = 1;
     }

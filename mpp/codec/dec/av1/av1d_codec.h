@@ -581,6 +581,7 @@ typedef struct Av1Codec_t {
     MppFrameMasteringDisplayMetadata mastering_display;
     MppFrameContentLightMetadata content_light;
     MppFrameHdrDynamicMeta *hdr_dynamic_meta;
+    RK_U32 hdr_dynamic_meta_size;
     RK_U32 hdr_dynamic;
     RK_U32 is_hdr;
 
