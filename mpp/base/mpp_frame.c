@@ -41,6 +41,14 @@ static void hdr_meta_ref_put(MppFrameImpl *p)
     }
 }
 
+static void colmv_buf_put(MppFrameImpl *p)
+{
+    if (p->colmv_buf) {
+        mpp_buffer_put(p->colmv_buf);
+        p->colmv_buf = NULL;
+    }
+}
+
 static void setup_mpp_frame_name(MppFrameImpl *frame)
 {
     frame->name = module_name;
@@ -53,6 +61,7 @@ static void setup_mpp_frame_defaults(MppFrameImpl *frame)
     frame->color_trc = MPP_FRAME_TRC_UNSPECIFIED;
     frame->colorspace = MPP_FRAME_SPC_UNSPECIFIED;
     frame->hdr_dynamic_meta = NULL;
+    frame->colmv_buf = NULL;
 }
 
 #define check_is_mpp_frame(frame) _check_is_mpp_frame(__FUNCTION__, frame)
@@ -131,6 +140,8 @@ MPP_RET mpp_frame_deinit(MppFrame *frame)
     if (p->buffer)
         mpp_buffer_put(p->buffer);
 
+    colmv_buf_put(p);
+
     if (p->meta)
         mpp_meta_put(p->meta);
 
@@ -169,6 +180,22 @@ void mpp_frame_set_buffer(MppFrame frame, MppBuffer buffer)
             mpp_buffer_put(p->buffer);
 
         p->buffer = buffer;
+    }
+}
+
+void mpp_frame_set_colmv_buffer(MppFrame frame, MppBuffer buffer)
+{
+    MppFrameImpl *p = (MppFrameImpl *)frame;
+
+    if (check_is_mpp_frame(p))
+        return;
+
+    if (p->colmv_buf != buffer) {
+        if (buffer)
+            mpp_buffer_inc_ref(buffer);
+
+        colmv_buf_put(p);
+        p->colmv_buf = buffer;
     }
 }
 
@@ -268,6 +295,9 @@ MppFrame mpp_frame_dup(MppFrame src)
     if (p->meta)
         ret->meta = mpp_meta_dup(p->meta);
 
+    if (p->colmv_buf)
+        mpp_buffer_inc_ref(p->colmv_buf);
+
     return frame;
 }
 
@@ -283,12 +313,15 @@ MPP_RET mpp_frame_copy(MppFrame dst, MppFrame src)
     if (p->meta)
         mpp_meta_put(p->meta);
 
+    colmv_buf_put(p);
     hdr_meta_ref_put(p);
 
     memcpy(dst, src, sizeof(MppFrameImpl));
     p = (MppFrameImpl *)src;
     if (p->meta)
         mpp_meta_inc_ref(p->meta);
+    if (p->colmv_buf)
+        mpp_buffer_inc_ref(p->colmv_buf);
 
     /* share the refcounted hdr meta instead of duplicating it */
     p = (MppFrameImpl *)dst;

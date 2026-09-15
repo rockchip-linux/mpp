@@ -31,6 +31,18 @@
  * 2. Flow control metadata
  *
  */
+/*
+ * Raw decoder collocated motion-vector buffer layout.
+ * The buffer is hardware-generated and format-specific.
+ */
+typedef enum MppDecColmvFormat_e {
+    MPP_DEC_COLMV_FMT_NONE = 0,
+    MPP_DEC_COLMV_FMT_VDPU34X_H264_COMPRESSED,
+    MPP_DEC_COLMV_FMT_VDPU34X_H264_UNCOMPRESSED,
+    MPP_DEC_COLMV_FMT_VDPU34X_H265_COMPRESSED,
+    MPP_DEC_COLMV_FMT_BUTT,
+} MppDecColmvFormat;
+
 typedef enum MppMetaKey_e {
     /* data flow key */
     KEY_INPUT_FRAME             = FOURCC_META('i', 'f', 'r', 'm'),
@@ -152,6 +164,12 @@ typedef enum MppMetaKey_e {
     KEY_DEC_TBN_EN              = FOURCC_META('t', 'b', 'e', 'n'),
     KEY_DEC_TBN_Y_OFFSET        = FOURCC_META('t', 'b', 'y', 'o'),
     KEY_DEC_TBN_UV_OFFSET       = FOURCC_META('t', 'b', 'c', 'o'),
+
+    /* Raw decoder collocated motion-vector buffer and layout. */
+    KEY_DEC_COLMV               = FOURCC_META('d', 'c', 'm', 'v'),
+    KEY_DEC_COLMV_FMT           = FOURCC_META('d', 'c', 'm', 'f'),
+    /* Number of valid bytes in KEY_DEC_COLMV for this frame. */
+    KEY_DEC_COLMV_SIZE          = FOURCC_META('d', 'c', 'm', 's'),
 
     /* combo frame */
     KEY_COMBO_FRAME             = FOURCC_META('c', 'f', 'r', 'm'),
