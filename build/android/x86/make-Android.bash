@@ -7,13 +7,10 @@ else
     ANDROID_NDK=~/work/android/ndk/android-ndk-r10d/
 fi
 
-PLATFORM=$ANDROID_NDK/platforms/android-21/arch-x86
-
 cmake -DCMAKE_TOOLCHAIN_FILE=../android.toolchain.cmake                     \
       -DCMAKE_BUILD_TYPE=Release                                            \
       -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
-      -DANDROID_SYSROOT=${PLATFORM}                                         \
       -DANDROID_ABI="x86"                                                   \
       -DANDROID_TOOLCHAIN_NAME="x86-4.8"                                    \
       -DANDROID_NATIVE_API_LEVEL=android-21                                 \

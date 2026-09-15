@@ -24,14 +24,12 @@ ${CMAKE_PROGRAM} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}                   \
       -DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}                                  \
       -DANDROID_FORCE_ARM_BUILD=ON                                          \
       -DANDROID_NDK=${ANDROID_NDK}                                          \
-      -DANDROID_SYSROOT=${PLATFORM}                                         \
-      -DANDROID_ABI=${ANDROID_ABI}                                          \
+      -DANDROID_ABI="${ANDROID_ABI}"                                        \
       -DANDROID_TOOLCHAIN_NAME=${TOOLCHAIN_NAME}                            \
       -DANDROID_NATIVE_API_LEVEL=${NATIVE_API_LEVEL}                        \
       -DANDROID_STL=${ANDROID_STL}                                          \
       -DMPP_PROJECT_NAME=mpp                                                \
       -DVPU_PROJECT_NAME=vpu                                                \
-      -DHAVE_DRM=ON                                                         \
       ../../../
 
 if [ "${CMAKE_PARALLEL_ENABLE}" = "0" ]; then
