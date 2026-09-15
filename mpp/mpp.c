@@ -132,9 +132,7 @@ static RK_S32 check_frm_task_cnt_cap(MppCodingType coding)
             return 4;
     }
 
-    mpp_log("Only rk3588's h264/265/jpeg and rk3576's h264/265 encoder can use frame parallel\n");
-
-    return 1;
+    return 2;
 }
 
 MPP_RET mpp_ctx_create(Mpp **mpp, MppCtx ctx)
@@ -278,10 +276,7 @@ MPP_RET mpp_ctx_init(Mpp *mpp, MppCtxType type, MppCodingType coding)
 
         if (mpp->mInputTimeout == MPP_POLL_NON_BLOCK) {
             mpp->mEncAyncIo = 1;
-
             mpp->mInputTaskCount = check_frm_task_cnt_cap(coding);
-            if (mpp->mInputTaskCount == 1)
-                mpp->mInputTimeout = MPP_POLL_BLOCK;
         }
         mpp->mOutputTaskCount = 8;
 
