@@ -547,7 +547,7 @@ static MPP_RET set_output_frame(Av1DecCtx *ctx)
     if (s->hdr_dynamic_meta && s->hdr_dynamic) {
         mpp_frame_set_hdr_dynamic_meta(frame, s->hdr_dynamic_meta);
         s->hdr_dynamic = 0;
-        if (s->frame_header->show_existing_frame)
+        if (s->frame_header->show_existing_frame && ctx->cfg->base.enable_hdr_meta)
             fill_hdr_meta_to_frame(frame, MPP_VIDEO_CodingAV1);
     }
     mpp_frame_set_pts(frame, s->pts);
