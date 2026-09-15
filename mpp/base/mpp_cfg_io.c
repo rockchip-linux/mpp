@@ -2190,7 +2190,7 @@ static rk_s32 parse_number(MppCfgStrBuf *str, MppCfgType *type, MppCfgVal *val, 
     char tmp[64];
     long double value;
     rk_u32 i;
-    rk_u32 str_offset;
+    rk_u32 str_offset = 0;
 
     if (peek)
         str_offset = str->offset;

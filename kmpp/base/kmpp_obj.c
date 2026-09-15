@@ -2135,7 +2135,7 @@ rk_s32 kmpp_obj_get_shm_obj(KmppObj obj, const char *name, KmppObj *val)
                    obj, name, val);
     } else {
         KmppObjImpl *impl = (KmppObjImpl *)obj;
-        KmppShmPtr sptr = {0};
+        KmppShmPtr sptr = {{0}, {0}};
 
         *val = NULL;
 

@@ -71,7 +71,7 @@ static MPP_RET test_user_datas_uuid(void)
 
 static MPP_RET meta_set(KmppMeta meta, rk_u8 *ud_data)
 {
-    KmppShmPtr zero = {0};
+    KmppShmPtr zero = {{0}, {0}};
     MppEncUserDataShm ud = {0};
     MppEncUserDataSetShm uds = {0};
     MPP_RET ret = MPP_OK;
