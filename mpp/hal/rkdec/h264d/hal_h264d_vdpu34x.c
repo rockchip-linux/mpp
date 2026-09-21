@@ -27,6 +27,7 @@
 #include "mpp_bitput.h"
 
 #include "mpp_device.h"
+#include "mpp_frame_impl.h"
 
 #include "hal_h264d_global.h"
 #include "hal_h264d_vdpu34x.h"
@@ -754,6 +755,30 @@ MPP_RET vdpu34x_h264d_gen_regs(void *hal, HalTaskInfo *task)
 
     if (vdpu34x_h264d_setup_colmv_buf(hal, width, height))
         goto __RETURN;
+
+    if (cfg->cfg->base.enable_colmv &&
+        mpp_get_soc_type() == ROCKCHIP_SOC_RK3588 &&
+        task->dec.output >= 0) {
+        RK_U32 compress = p_hal->pp->frame_mbs_only_flag ? 1 : 0;
+        RK_U32 valid_size = vdpu34x_get_colmv_size(width, height,
+                                                    16, 16, 4,
+                                                    compress);
+        MppFrame frame = NULL;
+
+        if (!p_hal->pp->frame_mbs_only_flag)
+            valid_size *= 2;
+
+        mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
+                              SLOT_FRAME_PTR, &frame);
+        if (frame) {
+            MppMeta meta = mpp_frame_get_meta(frame);
+
+            if (!meta || mpp_meta_set_s32(meta, KEY_DEC_COLMV_SIZE,
+                                         (RK_S32)valid_size))
+                mpp_err_f("failed to set H264 COLMV valid size\n");
+        }
+    }
+
     prepare_spspps(p_hal, (RK_U64 *)ctx->spspps, VDPU34X_SPSPPS_UNIT_SIZE / 8);
     prepare_framerps(p_hal, (RK_U64 *)ctx->rps, VDPU34X_RPS_SIZE / 8);
     prepare_scanlist(p_hal, ctx->sclst, VDPU34X_SCALING_LIST_SIZE);
@@ -900,6 +925,59 @@ __RETURN:
     return ret = MPP_OK;
 }
 
+static void vdpu34x_h264d_export_colmv(H264dHalCtx_t *p_hal,
+                                       HalTaskInfo *task,
+                                       Vdpu34xRegSet *regs,
+                                       RK_U32 valid)
+{
+    MppHalCfg *cfg = p_hal->cfg;
+    MppFrame frame = NULL;
+    MppMeta meta = NULL;
+    MppBuffer colmv = NULL;
+    MPP_RET meta_ret = MPP_OK;
+    RK_S32 fmt = MPP_DEC_COLMV_FMT_NONE;
+
+    if (mpp_get_soc_type() != ROCKCHIP_SOC_RK3588 ||
+        task->dec.output < 0)
+        return;
+
+    mpp_buf_slot_get_prop(cfg->frame_slots, task->dec.output,
+                          SLOT_FRAME_PTR, &frame);
+    if (!frame)
+        return;
+
+    if (valid && p_hal->cmv_bufs) {
+        HalBuf *mv_buf = hal_bufs_get_buf(p_hal->cmv_bufs,
+                                          task->dec.output);
+
+        if (mv_buf)
+            colmv = mv_buf->buf[0];
+        if (!colmv)
+            valid = 0;
+    }
+
+    if (!valid)
+        mpp_frame_set_colmv_buffer(frame, NULL);
+
+    meta = mpp_frame_get_meta(frame);
+    if (!meta)
+        return;
+
+    if (valid) {
+        mpp_frame_set_colmv_buffer(frame, colmv);
+        fmt = regs->comm_gen.reg012.colmv_compress_en ?
+              MPP_DEC_COLMV_FMT_VDPU34X_H264_COMPRESSED :
+              MPP_DEC_COLMV_FMT_VDPU34X_H264_UNCOMPRESSED;
+    }
+
+    meta_ret |= mpp_meta_set_buffer(meta, KEY_DEC_COLMV, colmv);
+    meta_ret |= mpp_meta_set_s32(meta, KEY_DEC_COLMV_FMT, fmt);
+    if (!valid)
+        meta_ret |= mpp_meta_set_s32(meta, KEY_DEC_COLMV_SIZE, 0);
+    if (meta_ret)
+        mpp_err_f("failed to export decoder COLMV metadata\n");
+}
+
 MPP_RET vdpu34x_h264d_wait(void *hal, HalTaskInfo *task)
 {
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -921,6 +999,23 @@ MPP_RET vdpu34x_h264d_wait(void *hal, HalTaskInfo *task)
         mpp_err_f("poll cmd failed %d\n", ret);
 
 __SKIP_HARD:
+    if (p_hal->cfg->cfg->base.enable_colmv) {
+        RK_U32 colmv_valid =
+            !task->dec.flags.parse_err &&
+            !(task->dec.flags.ref_err &&
+              !p_hal->cfg->cfg->base.disable_error) &&
+            ret == MPP_OK &&
+            !p_regs->irq_status.reg224.dec_error_sta &&
+            p_regs->irq_status.reg224.dec_rdy_sta &&
+            !p_regs->irq_status.reg224.buf_empty_sta &&
+            !p_regs->irq_status.reg226.strmd_error_status &&
+            !p_regs->irq_status.reg227.colmv_error_ref_picidx &&
+            !p_regs->irq_status.reg225.strmd_detect_error_flag;
+
+        vdpu34x_h264d_export_colmv(p_hal, task, p_regs,
+                                   colmv_valid);
+    }
+
     if (p_hal->cfg->dec_cb) {
         DecCbHalDone param;
 
