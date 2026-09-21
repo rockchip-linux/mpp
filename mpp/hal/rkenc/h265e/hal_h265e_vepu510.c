@@ -922,7 +922,7 @@ static void vepu510_h265_global_cfg_set(H265eV510HalContext *ctx, H265eV510RegSe
     } else {
         reg_param->common.rime_mvd_th_comb.rime_mvd_th0  = 0;
         reg_param->common.rime_mvd_th_comb.rime_mvd_th1  = 0;
-        reg_param->common.rime_mvd_th_comb.fme_madp_th   = 30;
+        reg_param->common.rime_mvd_th_comb.fme_madp_th   = 10;
         reg_param->common.rime_madp_th_comb.rime_madp_th0 = 0;
         reg_param->common.rime_madp_th_comb.rime_madp_th1 = 0;
         reg_param->common.rime_multi_comb.rime_multi0 = 4;
