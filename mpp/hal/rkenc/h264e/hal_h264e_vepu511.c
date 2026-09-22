@@ -1577,26 +1577,6 @@ static void setup_vepu511_me(HalH264eVepu511Ctx *ctx)
     hal_h264e_dbg_func("leave\n");
 }
 
-static void
-setup_vepu511_l2(HalH264eVepu511Ctx *ctx)
-{
-    HalVepu511RegSet *regs = ctx->regs_set;
-    MppEncSceneMode sm = ctx->cfg->tune.scene_mode;
-    RK_S32 lambda_idx = ctx->cfg->tune.lambda_idx_i; //TODO: lambda_idx_p
-
-    hal_h264e_dbg_func("enter\n");
-
-    if (sm == MPP_ENC_SCENE_MODE_IPC) {
-        memcpy(regs->reg_param.common.rdo_wgta_qp_grpa_0_51,
-               &vepu51x_h264e_lambda_default_60[lambda_idx], H264E_LAMBDA_TAB_SIZE);
-    } else {
-        memcpy(regs->reg_param.common.rdo_wgta_qp_grpa_0_51,
-               &vepu51x_h264e_lambda_cvr_60[lambda_idx], H264E_LAMBDA_TAB_SIZE);
-    }
-
-    hal_h264e_dbg_func("leave\n");
-}
-
 static void setup_vepu511_ext_line_buf(HalVepu511RegSet *regs, HalH264eVepu511Ctx *ctx)
 {
     MppDevRcbInfoCfg rcb_cfg;
@@ -2096,7 +2076,6 @@ static MPP_RET hal_h264e_vepu511_gen_regs(void *hal, HalEncTask *task)
     if (frm->is_i_refresh)
         setup_vepu511_intra_refresh(regs, ctx, frm->seq_idx % cfg->rc.gop);
 
-    setup_vepu511_l2(ctx);
     setup_vepu511_ext_line_buf(regs, ctx);
 
     if (ctx->osd_cfg.osd_data3)
