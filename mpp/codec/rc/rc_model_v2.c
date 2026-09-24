@@ -330,25 +330,41 @@ void bit_statics_update(RcModelV2Ctx *ctx, RK_U32 real_bit)
     ctx->avg_gbits  = (gop_len - 1) * (RK_S64)mean_pbits + mean_ibits;
 }
 
+/*
+ * Effective water level used for QP decision:
+ *   clamp(committed + sum(pending predictions))
+ * The committed part only ever counts real bits, the pending part holds the
+ * not-yet-encoded frames' estimated (bit_target - bit_per_frame).
+ */
+static RK_S32 watl_effective_level(RcModelV2Ctx *ctx)
+{
+    RK_S32 level = ctx->watl_commit;
+    RK_U32 i;
+
+    for (i = 0; i < ctx->watl_pend_cnt; i++)
+        level += ctx->watl_pend[i];
+
+    return mpp_clip(level, 0, ctx->watl_thrd - (RK_S32)ctx->bit_per_frame);
+}
+
 MPP_RET bits_model_preset(RcModelV2Ctx *ctx, EncRcTaskInfo *info)
 {
     RcCfg *usr_cfg = &ctx->usr_cfg;
     RK_S32 preset_bit = info->bit_target;
-    RK_S32 water_level = 0;
 
     mpp_data_preset_v2(ctx->stat_rate, preset_bit != 0);
     mpp_data_preset_v2(ctx->stat_bits, preset_bit);
 
     ctx->ins_bps = mpp_data_sum_v2(ctx->stat_bits) / usr_cfg->stats_time;
-    if (preset_bit + ctx->stat_watl > ctx->watl_thrd)
-        water_level = ctx->watl_thrd - ctx->bit_per_frame;
-    else
-        water_level = preset_bit + ctx->stat_watl - ctx->bit_per_frame;
 
-    if (water_level < 0) {
-        water_level = 0;
-    }
-    ctx->stat_watl = water_level;
+    /*
+     * Only record the prediction, do not touch the committed level. This keeps
+     * the prediction strictly removable in bits_model_update() even if the
+     * effective level is clamped here.
+     */
+    mpp_assert(ctx->watl_pend_cnt < MPP_ARRAY_ELEMS(ctx->watl_pend));
+    ctx->watl_pend[ctx->watl_pend_cnt++] = preset_bit - (RK_S32)ctx->bit_per_frame;
+    ctx->stat_watl = watl_effective_level(ctx);
     switch (info->frame_type) {
     case INTRA_FRAME : {
         mpp_data_preset_v2(ctx->i_bit, preset_bit);
@@ -392,7 +408,7 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     RcCfg *usr_cfg = &ctx->usr_cfg;
     RK_S32 real_bit = cfg->bit_real;
     RK_U32 madi = cfg->madi;
-    RK_S32 water_level = 0;
+    RK_U32 i;
 
     rc_dbg_func("enter %p\n", ctx);
 
@@ -400,15 +416,28 @@ MPP_RET bits_model_update(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
     mpp_data_update_v2(ctx->stat_bits, real_bit);
 
     ctx->ins_bps = mpp_data_sum_v2(ctx->stat_bits) / usr_cfg->stats_time;
-    if (real_bit + ctx->stat_watl > ctx->watl_thrd)
-        water_level = ctx->watl_thrd - ctx->bit_per_frame;
+
+    /*
+     * Drop the matching preset prediction (FIFO head) and commit the real bits
+     * into the committed level. Since the committed level was never touched by
+     * the prediction, replacing estimated bits with real bits is exact, no
+     * matter how the effective level was clamped during preset.
+     */
+    if (ctx->watl_pend_cnt) {
+        ctx->watl_pend_cnt--;
+        for (i = 0; i < ctx->watl_pend_cnt; i++)
+            ctx->watl_pend[i] = ctx->watl_pend[i + 1];
+    }
+
+    if (ctx->watl_commit + real_bit > ctx->watl_thrd)
+        ctx->watl_commit = ctx->watl_thrd - (RK_S32)ctx->bit_per_frame;
     else
-        water_level = real_bit + ctx->stat_watl - ctx->bit_per_frame;
+        ctx->watl_commit = ctx->watl_commit + real_bit - (RK_S32)ctx->bit_per_frame;
 
-    if (water_level < 0)
-        water_level = 0;
+    if (ctx->watl_commit < 0)
+        ctx->watl_commit = 0;
 
-    ctx->stat_watl = water_level;
+    ctx->stat_watl = watl_effective_level(ctx);
 
     switch (cfg->frame_type) {
     case INTRA_FRAME : {
@@ -731,10 +760,10 @@ MPP_RET reenc_calc_cbr_ratio(void *ctx, EncRcTaskInfo *cfg)
         return reenc_calc_super_frm_ratio(ctx, cfg);
     }
 
-    if (real_bit + p->stat_watl > p->watl_thrd)
+    /* hypothetical level if this frame used real bits instead of its preset */
+    water_level = p->stat_watl + real_bit - target_bit;
+    if (water_level > p->watl_thrd)
         water_level = p->watl_thrd - p->bit_per_frame;
-    else
-        water_level = real_bit + p->stat_watl - p->bit_per_frame;
 
     if (water_level < 0) {
         water_level = 0;
@@ -1189,6 +1218,9 @@ MPP_RET bits_model_init(RcModelV2Ctx *ctx)
     ctx->watl_thrd = 3 * target_bps;
     ctx->stat_watl = ctx->watl_thrd  >> 3;
     ctx->watl_base = ctx->stat_watl;
+    ctx->watl_commit = ctx->stat_watl;
+    ctx->watl_pend_cnt = 0;
+    memset(ctx->watl_pend, 0, sizeof(ctx->watl_pend));
 
     rc_dbg_rc("gop %d total bit %lld per_frame %d statistics time %d second\n",
               ctx->usr_cfg.igop, ctx->gop_total_bits, ctx->bit_per_frame,

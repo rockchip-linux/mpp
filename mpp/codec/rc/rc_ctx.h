@@ -76,8 +76,11 @@ typedef struct RcModelV2Ctx_t {
     MppDataV2       *gop_bits;
     MppDataV2       *stat_rate;
     RK_S32          watl_thrd;
-    RK_S32          stat_watl;
+    RK_S32          stat_watl;      /* effective level = committed + pending */
     RK_S32          watl_base;
+    RK_S32          watl_commit;    /* committed level, only real bits counted */
+    RK_S32          watl_pend[4];   /* pending (bit_target - bit_per_frame) FIFO */
+    RK_U32          watl_pend_cnt;
 
     RK_S32          next_i_ratio;      // scale 64
     RK_S32          next_ratio;        // scale 64
