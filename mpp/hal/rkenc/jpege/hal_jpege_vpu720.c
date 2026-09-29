@@ -477,8 +477,6 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
 
     memset(regs, 0, sizeof(JpegeVpu720Reg));
 
-    mpp_buffer_sync_begin(task->output);
-
     if (syntax->q_mode == JPEG_QFACTOR) {
         syntax->q_factor = 100 - task->rc_task->info.quality_target;
         hal_jpege_rc_update(&ctx->hal_rc, syntax);

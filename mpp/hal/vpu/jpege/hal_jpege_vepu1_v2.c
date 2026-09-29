@@ -226,8 +226,6 @@ static MPP_RET hal_jpege_vepu1_gen_regs(void *hal, HalEncTask *task)
     ctx->part_x_fill = x_fill;
     ctx->part_y_fill = y_fill;
 
-    mpp_buffer_sync_begin(output);
-
     if (syntax->q_mode == JPEG_QFACTOR) {
         syntax->q_factor = 100 - task->rc_task->info.quality_target;
         hal_jpege_rc_update(&ctx->hal_rc, syntax);
