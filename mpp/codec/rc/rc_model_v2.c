@@ -148,6 +148,56 @@ MPP_RET bits_model_param_deinit(RcModelV2Ctx *ctx)
     return MPP_OK;
 }
 
+/*
+ * Initialize stat_bits with the I/P frame bit distribution of a gop, so that
+ * the statistic window represents a steady state instead of a flat average.
+ *
+ * An I frame is placed every igop frames (slot 0 is always I) and the P frame
+ * bits are derived from the gop target bits, then the I frame bits are derived
+ * from the P frame bits by init_ip_ratio.
+ *
+ * e.g. stat_len 50, fps 25, igop 25 -> slot 0 and slot 25 hold I frame bits,
+ * the other slots hold P frame bits.
+ */
+static MPP_RET stat_bits_param_init(RcModelV2Ctx *ctx, RK_U32 stat_len)
+{
+    RcCfg *usr_cfg = &ctx->usr_cfg;
+    RK_S32 gop_len = usr_cfg->igop;
+    RK_S32 p_bit = ctx->bit_per_frame;
+    RK_S32 i_bit = ctx->bit_per_frame;
+    MppDataV2 *p;
+    RK_U32 i;
+
+    if (ctx->stat_bits) {
+        mpp_data_deinit_v2(ctx->stat_bits);
+        ctx->stat_bits = NULL;
+    }
+
+    if (usr_cfg->gop_mode != SMART_P && gop_len > 1) {
+        RK_S32 i_scale = usr_cfg->init_ip_ratio;
+        RK_S32 p_scale = 16;
+
+        p_bit = ctx->gop_total_bits * p_scale / (i_scale + p_scale * (gop_len - 1));
+        i_bit = p_bit * i_scale / p_scale;
+    }
+
+    mpp_data_init_v2(&ctx->stat_bits, stat_len, p_bit);
+    if (ctx->stat_bits == NULL) {
+        mpp_err("stat_bits init fail stat_len %d", stat_len);
+        return MPP_ERR_MALLOC;
+    }
+
+    if (i_bit != p_bit && gop_len > 0) {
+        p = ctx->stat_bits;
+        for (i = 0; i < stat_len; i += gop_len) {
+            p->sum += i_bit - p_bit;
+            p->val[i] = i_bit;
+        }
+    }
+
+    return MPP_OK;
+}
+
 MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
 {
     RK_S32 gop_len = ctx->usr_cfg.igop;
@@ -207,9 +257,7 @@ MPP_RET bits_model_param_init(RcModelV2Ctx *ctx)
         return MPP_ERR_MALLOC;
     }
 
-    mpp_data_init_v2(&ctx->stat_bits, stat_len, ctx->bit_per_frame);
-    if (ctx->stat_bits == NULL) {
-        mpp_err("stat_bits init fail stat_len %d", stat_len);
+    if (stat_bits_param_init(ctx, stat_len)) {
         return MPP_ERR_MALLOC;
     }
 
@@ -1257,16 +1305,7 @@ static MPP_RET update_mode_param(RcModelV2Ctx *ctx, RK_U32 fps)
 
     ctx->bit_per_frame = target_bps / fps;
 
-    if (ctx->stat_bits != NULL) {
-        mpp_data_deinit_v2(ctx->stat_bits);
-        ctx->stat_bits = NULL;
-    }
-    mpp_data_init_v2(&ctx->stat_bits, stat_len , ctx->bit_per_frame);
-    if (ctx->stat_bits == NULL) {
-        mpp_err("stat_bits init fail stat_len %d", stat_len);
-        return MPP_ERR_MALLOC;
-    }
-    return MPP_OK;
+    return stat_bits_param_init(ctx, stat_len);
 }
 
 static MPP_RET fps_chg_update_mode(RcModelV2Ctx *ctx)
