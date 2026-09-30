@@ -2243,9 +2243,7 @@ static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncAsyncTaskInfo *task)
     MppEncImpl *enc = (MppEncImpl *)mpp->mEnc;
     EncRcTask *rc_task = &task->rc;
     EncRcTaskInfo *info = &rc_task->info;
-    EncFrmStatus *frm = &rc_task->frm;
     HalEncTask *hal_task = &task->task;
-    MPP_RET ret = MPP_OK;
 
     enc_dbg_func("enter\n");
     mpp_enc_refs_rollback(enc->refs);
@@ -2253,12 +2251,8 @@ static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncAsyncTaskInfo *task)
     info->bit_real = hal_task->length;
     info->quality_real = info->quality_target;
 
-    enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
-    ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
-
-TASK_DONE:
     enc_dbg_func("leave\n");
-    return ret;
+    return MPP_OK;
 }
 
 static MPP_RET mpp_enc_reenc_force_pskip(Mpp *mpp, EncAsyncTaskInfo *task)
@@ -2814,8 +2808,11 @@ static MPP_RET try_proc_normal_task(MppEncImpl *enc, EncAsyncTaskInfo *task)
         frm->force_pskip = 0;
         mpp_enc_reenc_simple(mpp, task);
     }
-    enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
-    ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+    /* pskip frame has called rc_frm_end in pskip flow */
+    if (!frm_cfg->force_pskip) {
+        enc_dbg_detail("task %d rc frame end\n", frm->seq_idx);
+        ENC_RUN_FUNC2(rc_frm_end, enc->rc_ctx, rc_task, mpp, ret);
+    }
 
     enc->time_end = mpp_time();
     enc->frame_count++;
