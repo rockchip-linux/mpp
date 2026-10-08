@@ -266,9 +266,10 @@ static MPP_RET init(Kmpp *ctx, MppCtxType type, MppCodingType coding)
         mpp_buffer_group_get_internal(&ctx->mPacketGroup, MPP_BUFFER_TYPE_ION);
 
 done:
+    if (kcfg)
+        mpp_venc_kcfg_deinit(kcfg);
+
     if (ret) {
-        if (kcfg)
-            mpp_venc_kcfg_deinit(kcfg);
         if (venc)
             kmpp_venc_put(venc);
 
