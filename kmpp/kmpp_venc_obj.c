@@ -177,7 +177,10 @@ static KmppFrame kmpp_convert_frame(Kmpp *ctx, MppFrame frame, RK_U32 *is_kframe
         kmpp_frame_set_hor_stride_pixel(ctx->mKframe, impl->hor_stride_pixel);
 
         if (impl->buffer) {
-            KmppShmPtr *buf_shm = kmpp_obj_to_shm(impl->buffer);
+            KmppShmPtr *buf_shm = NULL;
+
+            if (kmpp_obj_is_obj(impl->buffer))
+                buf_shm = kmpp_obj_to_shm(impl->buffer);
 
             if (buf_shm) {
                 kmpp_frame_set_buffer(ctx->mKframe, buf_shm);
