@@ -124,6 +124,9 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
     if (!ctx)
         return NULL;
 
+    for (i = 0; i < sizeof(ctx->fbuf) / sizeof(ctx->fbuf[0]); i++)
+        ctx->fbuf[i].export_fd = -1;
+
     ctx->bufcnt = bufcnt;
     ctx->fd = open(device, O_RDWR | O_CLOEXEC, 0);
     if (ctx->fd < 0) {
@@ -274,13 +277,16 @@ CamSource *camera_source_init(const char *device, RK_U32 bufcnt, RK_U32 width, R
             mpp_log("get dma buf(%d)-fd: %d\n", i, expbuf.fd);
             MppBufferInfo info;
             memset(&info, 0, sizeof(MppBufferInfo));
+            ctx->fbuf[i].export_fd = expbuf.fd;
             info.type = MPP_BUFFER_TYPE_EXT_DMA;
             info.fd =  expbuf.fd;
             info.size = buf_len & 0x07ffffff;
             info.index = (buf_len & 0xf8000000) >> 27;
-            mpp_buffer_import(&ctx->fbuf[i].buffer, &info);
+            if (mpp_buffer_import(&ctx->fbuf[i].buffer, &info)) {
+                mpp_err_f("import dma buf failed\n");
+                goto FAIL;
+            }
         }
-        ctx->fbuf[i].export_fd = expbuf.fd;
     }
 
     for (i = 0; i < ctx->bufcnt; i++ ) {
@@ -326,37 +332,28 @@ FAIL:
 // Returns NULL on error.
 MPP_RET camera_source_deinit(CamSource *ctx)
 {
-    struct v4l2_buffer buf;
-    enum v4l2_buf_type type;
     RK_U32 i;
 
     if (NULL == ctx)
         return MPP_OK;
 
-    if (ctx->fd < 0)
-        return MPP_OK;
+    // Stop capturing before releasing the acquired buffers
+    if (ctx->fd >= 0)
+        camera_source_ioctl(ctx->fd, VIDIOC_STREAMOFF, &ctx->type);
 
-    // Stop capturing
-    type = ctx->type;
+    for (i = 0; i < sizeof(ctx->fbuf) / sizeof(ctx->fbuf[0]); i++) {
+        CamFrame *frame = &ctx->fbuf[i];
 
-    camera_source_ioctl(ctx->fd, VIDIOC_STREAMOFF, &type);
-
-    // un-mmap() buffers
-    for (i = 0 ; i < ctx->bufcnt; i++) {
-        buf = (struct v4l2_buffer) {0};
-        buf.type    = type;
-        buf.memory  = V4L2_MEMORY_MMAP;
-        buf.index   = i;
-        camera_source_ioctl(ctx->fd, VIDIOC_QUERYBUF, &buf);
-        if (ctx->fbuf[buf.index].buffer) {
-            mpp_buffer_put(ctx->fbuf[buf.index].buffer);
-        }
-        munmap(ctx->fbuf[buf.index].start, ctx->fbuf[buf.index].length);
-        close(ctx->fbuf[i].export_fd);
+        if (frame->buffer)
+            mpp_buffer_put(frame->buffer);
+        if (frame->length)
+            munmap(frame->start, frame->length);
+        if (frame->export_fd >= 0)
+            close(frame->export_fd);
     }
 
-    // Close v4l2 device
-    close(ctx->fd);
+    if (ctx->fd >= 0)
+        close(ctx->fd);
     MPP_FREE(ctx);
     return MPP_OK;
 }
