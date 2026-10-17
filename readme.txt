@@ -39,7 +39,9 @@ NOTE:
    develop gitee : https://gitee.com/hermanchen82/mpp
 5. Commit message format should base on https://keepachangelog.com/en/1.0.0/
 
-More document can be found at http://opensource.rock-chips.com/wiki_Mpp
+More documentation can be found in the developer guides:
+  English: doc/Rockchip_Developer_Guide_MPP_EN.md
+  Chinese: doc/Rockchip_Developer_Guide_MPP_CN.md
 
 ----                             top
    |
