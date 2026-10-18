@@ -326,8 +326,10 @@ static RK_S32 vp9_alloc_frame(Vp9DecCtx *ctx, VP9Frame *frame)
     mpp_frame_set_discard(frame->f, 0);
     mpp_frame_set_pts(frame->f, s->pts);
     mpp_frame_set_dts(frame->f, s->dts);
-    // set current poc
+    // Limit frame tags to 1..0xffff for the 16-bit prob/segid fields.
     s->cur_poc++;
+    if (s->cur_poc > 0xffff)
+        s->cur_poc = 1;
     mpp_frame_set_poc(frame->f, s->cur_poc);
 
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {
