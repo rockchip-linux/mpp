@@ -1354,7 +1354,7 @@ MPP_RET check_super_frame(RcModelV2Ctx *ctx, EncRcTaskInfo *cfg)
             bits_thr = usr_cfg->super_cfg.super_i_thd;
         }
 
-        if ((RK_U32)cfg->bit_real >= bits_thr) {
+        if (cfg->bit_real >= (RK_S32)bits_thr) {
             if (usr_cfg->super_cfg.super_mode == MPP_ENC_RC_SUPER_FRM_DROP) {
                 rc_dbg_rc("super frame drop current frame");
                 usr_cfg->drop_mode = MPP_ENC_RC_DROP_FRM_NORMAL;
@@ -1543,6 +1543,7 @@ MPP_RET rc_model_v2_start(void *ctx, EncRcTask *task)
     rc_dbg_rc("quality [%d : %d : %d]\n", info->quality_min, info->quality_target, info->quality_max);
 
     p->reenc_cnt = 0;
+    p->qp_add = 0;
     p->last_frame_type = info->frame_type;
 
     rc_dbg_func("leave %p\n", ctx);
@@ -1718,7 +1719,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
             else
                 start_qp = (p->pre_i_qp + qp_scale_t) >> 1;
 
-            if (i_quality_delta) {
+            if (i_quality_delta && !p->reenc_cnt) {
                 RK_U32 index = mpp_clip(mpp_data_mean_v2(p->madi) / 4, 0, 7);
                 RK_S32 max_ip_delta = max_ip_qp_dealt[index];
 
@@ -1730,9 +1731,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
                           usr_cfg->i_quality_delta, max_ip_delta,
                           start_qp - i_quality_delta, p->reenc_cnt);
 
-                //if (!p->reenc_cnt) {
                 start_qp -= i_quality_delta;
-                //}
             }
 
             start_qp = mpp_clip(start_qp, qpmin, usr_cfg->fqp_max_i);
@@ -1773,6 +1772,7 @@ MPP_RET rc_model_v2_hal_start(void *ctx, EncRcTask *task)
         }
     }
 
+    p->start_qp += p->qp_add;
     if (frm->is_intra)
         p->start_qp = mpp_clip(p->start_qp, usr_cfg->fqp_min_i, usr_cfg->fqp_max_i);
     else
@@ -1823,6 +1823,12 @@ MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task)
 
     if (check_re_enc(p, cfg)) {
         MppEncRcDropFrmMode drop_mode = usr_cfg->drop_mode;
+        RK_S32 bits_thr = cfg->frame_type == INTRA_FRAME ? usr_cfg->super_cfg.super_i_thd :
+                          usr_cfg->super_cfg.super_p_thd;
+
+        if (!usr_cfg->super_cfg.super_mode || bits_thr <= 0)
+            bits_thr = cfg->frame_type == INTRA_FRAME ? 3 * cfg->bit_target / 2 :
+                       3 * cfg->bit_target;
 
         if (frm->is_intra)
             drop_mode = MPP_ENC_RC_DROP_FRM_DISABLED;
@@ -1852,10 +1858,14 @@ MPP_RET rc_model_v2_check_reenc(void *ctx, EncRcTask *task)
         } break;
         case MPP_ENC_RC_DROP_FRM_DISABLED :
         default : {
-            if (p->re_calc_ratio)
-                p->re_calc_ratio(p, cfg);
+            if (cfg->bit_real > bits_thr * 2)
+                p->qp_add += 3;
+            else if (cfg->bit_real > bits_thr * 3 / 2)
+                p->qp_add += 2;
+            else if (cfg->bit_real > bits_thr)
+                p->qp_add += 1;
 
-            if (p->next_ratio != 0 && cfg->quality_target < cfg->quality_max) {
+            if (cfg->quality_target + p->qp_add <= cfg->quality_max) {
                 p->reenc_cnt++;
                 frm->reencode = 1;
             }
@@ -1909,6 +1919,7 @@ MPP_RET rc_model_v2_end(void *ctx, EncRcTask *task)
 
     p->on_drop = 0;
     p->on_pskip = 0;
+    p->qp_add = 0;
 
 DONE:
     rc_dbg_func("leave %p\n", ctx);

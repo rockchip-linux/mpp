@@ -1016,7 +1016,7 @@ MPP_RET check_super_frame_smt(RcModelV2SmtCtx *ctx, EncRcTaskInfo *cfg)
         if (frame_type == INTRA_FRAME)
             bits_thr = usr_cfg->super_cfg.super_i_thd;
 
-        if ((RK_U32)cfg->bit_real >= bits_thr) {
+        if (cfg->bit_real >= (RK_S32)bits_thr) {
             if (usr_cfg->super_cfg.super_mode == MPP_ENC_RC_SUPER_FRM_DROP) {
                 rc_dbg_rc("super frame drop current frame");
                 usr_cfg->drop_mode = MPP_ENC_RC_DROP_FRM_NORMAL;

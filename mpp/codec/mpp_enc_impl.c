@@ -2248,7 +2248,13 @@ static MPP_RET mpp_enc_reenc_drop(Mpp *mpp, EncAsyncTaskInfo *task)
     enc_dbg_func("enter\n");
     mpp_enc_refs_rollback(enc->refs);
 
-    info->bit_real = hal_task->length;
+    /*
+     * bit_real is consumed by the rc model in BITS (bps targets, super
+     * frame thresholds, reenc checks) and the legacy h264e_api_v2/
+     * h265e_api paths fill it as length * 8 - normalize this task path
+     * to the same unit (hal_task->length is the stream size in bytes).
+     */
+    info->bit_real = hal_task->length * 8;
     info->quality_real = info->quality_target;
 
     enc_dbg_func("leave\n");
