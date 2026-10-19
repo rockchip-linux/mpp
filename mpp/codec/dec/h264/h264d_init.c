@@ -562,6 +562,15 @@ static MPP_RET dpb_mark_malloc(H264dVideoCtx_t *p_Vid, H264_StorePic_t *dec_pic)
 
             mpp_buf_slot_set_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME, p_Dec->curframe);
             mpp_buf_slot_get_prop(p_Dec->frame_slots, cur_mark->slot_idx, SLOT_FRAME_PTR, &cur_mark->mframe);
+
+            /*
+             * info change may start a new sequence, so enable fast play
+             * again to avoid extra reorder delay on its first I frame.
+             */
+            if (mpp_buf_slot_is_changed(p_Dec->frame_slots)) {
+                p_Dec->p_Vid->dpb_fast_out = p_Dec->cfg->base.enable_fast_play;
+                p_Dec->p_Vid->dpb_first_fast_played = 0;
+            }
         }
 
         p_Vid->active_dpb_mark[layer_id] = cur_mark;
