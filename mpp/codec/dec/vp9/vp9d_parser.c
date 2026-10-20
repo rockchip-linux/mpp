@@ -327,7 +327,16 @@ static RK_S32 vp9_alloc_frame(Vp9DecCtx *ctx, VP9Frame *frame)
     mpp_frame_set_pts(frame->f, s->pts);
     mpp_frame_set_dts(frame->f, s->dts);
     // set current poc
+    // VP9 has no picture order count; this counter only labels frames for the
+    // hardware, which writes it to the multi-core reference registers
+    // (cur_poc, last/golden/altref_poc, col/prob/segid_ref_poc). With more
+    // than one task in flight the RK3588 rkvdec cores behave as if they
+    // compare those labels in 16 bits: the wait for a frame on the other core
+    // fails once the label exceeds 0xffff (reset storm, err 0x23/0x107).
+    // Keep it in 1..0xffff; 0 means "no reference" to the HAL.
     s->cur_poc++;
+    if (s->cur_poc > 0xffff)
+        s->cur_poc = 1;
     mpp_frame_set_poc(frame->f, s->cur_poc);
 
     if (MPP_FRAME_FMT_IS_FBC(s->cfg->base.out_fmt)) {

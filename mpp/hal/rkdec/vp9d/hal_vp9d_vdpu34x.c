@@ -234,8 +234,6 @@ static MPP_RET hal_vp9d_vdpu34x_init(void *hal, MppHalCfg *cfg)
     mpp_env_get_u32("hal_vp9d_debug", &hal_vp9d_debug, 0);
 
     cfg->support_fast_mode = 1;
-    if (mpp_get_soc_type() == ROCKCHIP_SOC_RK3588)
-        cfg->support_fast_mode = 0;
 
     p_hal->cfg = cfg;
     p_hal->client_type = VPU_CLIENT_RKVDEC;
