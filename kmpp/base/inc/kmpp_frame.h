@@ -33,6 +33,12 @@
     STRCT(prefix, st,  MppFrameRational,    sar,                FLAG_NONE,  sar) \
     STRCT(prefix, shm, KmppShmPtr,          buffer,             FLAG_NONE,  buffer)
 
+#define KMPP_FRAME_INFO_ENTRY_TABLE(prefix, ENTRY, STRCT, EHOOK, SHOOK, ALIAS) \
+    ENTRY(prefix, s32, rk_s32,              chan_id,            FLAG_NONE,  chan_id) \
+    ENTRY(prefix, u32, rk_u32,              line_nb,            FLAG_NONE,  line_nb) \
+    ENTRY(prefix, u32, rk_u32,              eos,                FLAG_NONE,  eos) \
+    ENTRY(prefix, u32, rk_u32,              info_change,        FLAG_NONE,  info_change)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,6 +50,12 @@ extern "C" {
 
 rk_s32 kmpp_frame_has_meta(KmppFrame frame);
 rk_s32 kmpp_frame_get_meta_obj(KmppFrame frame, KmppMeta *meta);
+
+/* Release borrowed FrameInfo wrappers with kmpp_obj_impl_put_f(). */
+#define KMPP_OBJ_NAME           kmpp_frame_info
+#define KMPP_OBJ_INTF_TYPE      KmppFrameInfo
+#define KMPP_OBJ_ENTRY_TABLE    KMPP_FRAME_INFO_ENTRY_TABLE
+#include "kmpp_obj_func.h"
 
 #ifdef __cplusplus
 }

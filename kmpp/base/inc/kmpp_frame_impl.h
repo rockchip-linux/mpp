@@ -81,4 +81,11 @@ typedef struct KmppFramePriv_t {
     KmppMeta    meta;
 } KmppFramePriv;
 
+typedef struct KmppFrameInfoImpl_t {
+    rk_s32 chan_id;
+    rk_u32 line_nb;
+    rk_u32 eos;
+    rk_u32 info_change;
+} KmppFrameInfoImpl;
+
 #endif /* KMPP_FRAME_IMPL_H */

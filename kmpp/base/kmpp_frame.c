@@ -94,3 +94,10 @@ static rk_s32 kmpp_frame_impl_deinit(void *entry, KmppObj obj, const char *calle
 #define KMPP_OBJ_ENTRY_TABLE        KMPP_FRAME_ENTRY_TABLE
 #define KMPP_OBJ_PRIV_SIZE          sizeof(KmppFramePriv)
 #include "kmpp_obj_helper.h"
+
+#define KMPP_OBJ_NAME               kmpp_frame_info
+#define KMPP_OBJ_INTF_TYPE          KmppFrameInfo
+#define KMPP_OBJ_IMPL_TYPE          KmppFrameInfoImpl
+#define KMPP_OBJ_SGLN_ID            MPP_SGLN_KMPP_FRAME_INFO
+#define KMPP_OBJ_ENTRY_TABLE        KMPP_FRAME_INFO_ENTRY_TABLE
+#include "kmpp_obj_helper.h"

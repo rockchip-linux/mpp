@@ -181,6 +181,7 @@ typedef void* KmppShm;
 /* kmpp transaction object */
 typedef void* KmppMeta;
 typedef void* KmppFrame;
+typedef void* KmppFrameInfo;
 typedef void* KmppPacket;
 
 typedef void* KmppBuffer;
