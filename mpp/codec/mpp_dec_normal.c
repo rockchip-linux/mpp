@@ -1072,6 +1072,7 @@ void *mpp_dec_advanced_thread(void *data)
             mpp_frame_set_hor_stride_pixel(frame, mpp_frame_get_hor_stride_pixel(tmp));
             mpp_frame_set_pts(frame, mpp_frame_get_pts(tmp));
             mpp_frame_set_fmt(frame, mpp_frame_get_fmt(tmp));
+            mpp_frame_set_color_range(frame, mpp_frame_get_color_range(tmp));
             mpp_frame_set_errinfo(frame, mpp_frame_get_errinfo(tmp));
             mpp_frame_set_buf_size(frame, mpp_frame_get_buf_size(tmp));
 
