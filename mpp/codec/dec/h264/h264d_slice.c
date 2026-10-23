@@ -25,6 +25,7 @@
 #include "h264d_slice.h"
 #include "h264d_sps.h"
 #include "h264d_pps.h"
+#include "h264d_sei.h"
 #include "h2645d_sei.h"
 
 #define PIXW_1080P      (1920)
@@ -394,6 +395,7 @@ static MPP_RET set_slice_user_parmeters(H264_SLICE_t *currSlice)
 
     FUN_CHECK(ret = activate_sps(p_Vid, cur_sps, cur_subsps));
     FUN_CHECK(ret = activate_pps(p_Vid, cur_pps));
+    process_pending_pic_timing(p_Vid);
 
     if (p_Vid->last_sps_id != cur_sps->seq_parameter_set_id ||
         p_Vid->last_pps_id != cur_pps->pic_parameter_set_id) {
