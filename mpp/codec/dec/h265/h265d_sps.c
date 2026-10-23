@@ -578,6 +578,11 @@ RK_S32 h265d_nal_sps(BitReadCtx_t *bit, H265dSps *sps, const H265dVps *vps_list[
 
     switch (sps->chroma_format_idc) {
     case H265_CHROMA_400 : {
+        if (sps->bit_depth != 8) {
+            mpp_loge("sps: unsupported bit depth %d for yuv400\n", sps->bit_depth);
+            ret = MPP_ERR_PROTOL;
+            goto err;
+        }
         sps->pix_fmt = MPP_FMT_YUV400;
     } break;
     case H265_CHROMA_420 : {
