@@ -906,7 +906,7 @@ static MPP_RET av1d_parser2_syntax(Av1DecCtx *ctx)
 
     pp->tiles.tile_sz_mag = h->frame_header->tile_size_bytes_minus1;
     /* Coding tools */
-    pp->coding.current_operating_point      = seq->operating_point_idc[h->operating_point_idc];
+    pp->coding.current_operating_point      = h->operating_point_idc;
     pp->coding.use_128x128_superblock       = seq->use_128x128_superblock;
     pp->coding.intra_edge_filter            = seq->enable_intra_edge_filter;
     pp->coding.interintra_compound          = seq->enable_interintra_compound;
