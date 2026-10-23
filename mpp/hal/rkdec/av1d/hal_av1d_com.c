@@ -1454,11 +1454,18 @@ MPP_RET vdpu38x_av1d_uncomp_hdr(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
     return MPP_OK;
 }
 
+/*
+ * The per-slot cdf/segid and colmv buffers hold state that later frames read
+ * through their references, and reallocating them drops it. Size them for the
+ * largest frame of the sequence so that a frame size change does not.
+ */
 MPP_RET vdpu38x_av1d_cdf_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
-    size_t segid_size = (MPP_ALIGN(dxva->width, 128) / 128) * \
-                        (MPP_ALIGN(dxva->height, 128) / 128) * \
+    RK_U32 width = MPP_MAX(dxva->width, dxva->max_width);
+    RK_U32 height = MPP_MAX(dxva->height, dxva->max_height);
+    size_t segid_size = (MPP_ALIGN(width, 128) / 128) * \
+                        (MPP_ALIGN(height, 128) / 128) * \
                         32 * 16;
     size_t size = ALL_CDF_SIZE + segid_size;
     MPP_RET ret = MPP_ERR_UNKNOW;
@@ -1599,11 +1606,13 @@ void vdpu38x_av1d_set_cdf_segid(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva,
 MPP_RET vdpu38x_av1d_colmv_setup(Av1dHalCtx *p_hal, DXVA_PicParams_AV1 *dxva)
 {
     Vdpu38xAv1dRegCtx *reg_ctx = (Vdpu38xAv1dRegCtx *)p_hal->reg_ctx;
+    RK_U32 width = MPP_MAX(dxva->width, dxva->max_width);
+    RK_U32 height = MPP_MAX(dxva->height, dxva->max_height);
     size_t mv_size;
     MPP_RET ret = MPP_ERR_UNKNOW;
 
     /* the worst case is the frame is error with whole frame */
-    mv_size = MPP_ALIGN(dxva->width, 64) / 64 * MPP_ALIGN(dxva->height, 64) / 64 * 1024;
+    mv_size = MPP_ALIGN(width, 64) / 64 * MPP_ALIGN(height, 64) / 64 * 1024;
     if (reg_ctx->colmv_bufs == NULL || reg_ctx->colmv_size < mv_size) {
         if (reg_ctx->colmv_bufs) {
             hal_bufs_deinit(reg_ctx->colmv_bufs);
