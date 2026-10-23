@@ -2654,6 +2654,9 @@ MPP_RET hal_h265e_vepu511a_get_task(void *hal, HalEncTask *task)
     h265e_dpb_hal_start(ctx->dpb, ctx->frm->hal_curr_idx);
     h265e_dpb_hal_start(ctx->dpb, ctx->frm->hal_refr_idx);
 
+    task->flags.curr_idx = ctx->frm->hal_curr_idx;
+    task->flags.refr_idx = ctx->frm->hal_refr_idx;
+
     memset(&ctx->frm->feedback, 0, sizeof(Vepu511aH265Fbk));
 
     hal_h265e_leave();
@@ -2669,8 +2672,8 @@ MPP_RET hal_h265e_vepu511a_ret_task(void *hal, HalEncTask *task)
 
     hal_h265e_enter();
 
-    h265e_dpb_hal_end(ctx->dpb, ctx->frm->hal_curr_idx);
-    h265e_dpb_hal_end(ctx->dpb, ctx->frm->hal_refr_idx);
+    h265e_dpb_hal_end(ctx->dpb, task->flags.curr_idx);
+    h265e_dpb_hal_end(ctx->dpb, task->flags.refr_idx);
 
     /* check enc status */
     if (!ctx->frm->regs_ret->enc_done_sta) {
