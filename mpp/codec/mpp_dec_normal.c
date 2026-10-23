@@ -1046,6 +1046,8 @@ void *mpp_dec_advanced_thread(void *data)
                 if (slot_size > buffer_size) {
                     mpp_err_f("required buffer size %d is larger than input buffer size %d\n",
                               slot_size, buffer_size);
+                    /* hal skips the hardware and the parser marks the frame as error */
+                    task_dec->flags.parse_err = 1;
                 }
             }
 
