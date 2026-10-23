@@ -5,6 +5,7 @@
 
 #define MODULE_TAG "h265d"
 
+#include "mpp_mem.h"
 #include "mpp_bitread.h"
 #include "rk_hdr_meta_com.h"
 
@@ -302,18 +303,32 @@ __BITREAD_ERR:
     return MPP_ERR_STREAM;
 }
 
-static RK_S32 vivid_display_info(H265dPrs *p, BitReadCtx_t *gb, RK_U32 size)
+static RK_S32 t35_dynamic_meta(H265dPrs *p, BitReadCtx_t *gb, RK_U32 hdr_fmt)
 {
-    if (gb)
-        h265d_fill_dynamic_meta(p, gb->data_, size, HDRVIVID);
-    return 0;
-}
+    RK_S32 size = mpp_get_bits_left(gb) >> 3;
+    RK_U8 *data = NULL;
+    RK_S32 val;
+    RK_S32 i;
 
-static RK_S32 hdr10plus_dynamic_data(H265dPrs *p, BitReadCtx_t *gb, RK_U32 size)
-{
-    if (gb)
-        h265d_fill_dynamic_meta(p, gb->data_, size, HDR10PLUS);
+    /* read through gb so that emulation prevention bytes are dropped */
+    if (size > 0) {
+        data = mpp_malloc(RK_U8, size);
+        if (!data)
+            return MPP_ERR_NOMEM;
+
+        for (i = 0; i < size; i++) {
+            READ_BITS(gb, 8, &val);
+            data[i] = val;
+        }
+    }
+
+    h265d_fill_dynamic_meta(p, data, size, hdr_fmt);
+    MPP_FREE(data);
     return 0;
+
+__BITREAD_ERR:
+    MPP_FREE(data);
+    return MPP_ERR_STREAM;
 }
 
 static RK_S32 user_data_registered_itu_t_t35(H265dPrs *p, BitReadCtx_t *gb, RK_S32 size)
@@ -343,7 +358,7 @@ static RK_S32 user_data_registered_itu_t_t35(H265dPrs *p, BitReadCtx_t *gb, RK_S
                   country_code, provider_code, provider_oriented_code);
     switch (provider_code) {
     case 0x4: {
-        vivid_display_info(p, gb, mpp_get_bits_left(gb) >> 3);
+        t35_dynamic_meta(p, gb, HDRVIVID);
     } break;
     case 0x3c: {
         const RK_U16 smpte2094_40_provider_oriented_code = 0x0001;
@@ -353,7 +368,7 @@ static RK_S32 user_data_registered_itu_t_t35(H265dPrs *p, BitReadCtx_t *gb, RK_S
         READ_BITS(gb, 8, &application_identifier);
         if (provider_oriented_code == smpte2094_40_provider_oriented_code &&
             application_identifier == smpte2094_40_application_identifier)
-            hdr10plus_dynamic_data(p, gb, mpp_get_bits_left(gb) >> 3);
+            t35_dynamic_meta(p, gb, HDR10PLUS);
     } break;
     default:
         break;
