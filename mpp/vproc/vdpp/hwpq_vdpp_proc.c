@@ -39,6 +39,7 @@ typedef struct VdppCtxImpl_t {
 
     MppBufferGroup  memGroup;
     MppBuffer       histbuf;
+    RK_S32          frame_cnt;
 
     // outut data
     struct {
@@ -873,7 +874,7 @@ int hwpq_vdpp_init(HwpqVdppContext *p_ctx_ptr)
     hwpq_enter();
 
     /* alloc vdpp ctx impl */
-    ctx_impl = mpp_malloc(VdppCtxImpl, 1);
+    ctx_impl = mpp_calloc(VdppCtxImpl, 1);
     if (NULL == ctx_impl) {
         hwpq_loge("alloc vdpp ctx failed!");
         ret = MPP_ERR_MALLOC;
@@ -1024,8 +1025,6 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
     RK_U32 update_flag = 0;
     RK_S32 ret = MPP_OK;
 
-    static RK_S32 internal_frame_idx = 0;
-
     if (NULL == ctx || NULL == hwpq_param) {
         hwpq_loge("found NULL input ctx %p proc_param %p\n", ctx, hwpq_param);
         return MPP_ERR_NULL_PTR;
@@ -1075,7 +1074,7 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
 
     /* update params */
     update_flag = hwpq_param->vdpp_config_update_flag || (0 == hwpq_param->frame_idx) ||
-                  (0 == internal_frame_idx);
+                  (0 == ctx_impl->frame_cnt);
     ret = vdpp_set_user_cfg(ctx_com, hwpq_param, update_flag);
     if (ret)
         hwpq_logw("warning: set user cfg failed for some module! %d\n", ret);
@@ -1199,8 +1198,8 @@ int hwpq_vdpp_proc(HwpqVdppContext ctx, HwpqVdppParams *hwpq_param)
         }
     }
 
-    vdpp_dump_bufs(hwpq_param, internal_frame_idx);
-    internal_frame_idx++;
+    vdpp_dump_bufs(hwpq_param, ctx_impl->frame_cnt);
+    ctx_impl->frame_cnt++;
 
     hwpq_leave();
     return MPP_OK;
