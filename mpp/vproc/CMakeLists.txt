@@ -6,10 +6,14 @@ endif()
 
 if( HAVE_VPROC_IEP2 )
     add_subdirectory(iep2)
+    install(FILES inc/iep_common.h inc/iep2_api.h
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/rockchip")
 endif()
 
 if( HAVE_VPROC_VDPP )
     add_subdirectory(vdpp)
+    install(FILES inc/hwpq_vdpp_proc_api.h
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/rockchip")
 endif()
 
 # ----------------------------------------------------------------------------
