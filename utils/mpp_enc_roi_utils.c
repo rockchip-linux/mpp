@@ -699,8 +699,9 @@ MPP_RET mpp_enc_roi_init(MppEncRoiCtx *ctx, RK_U32 w, RK_U32 h, MppCodingType ty
             if (!impl->tmp || !impl->cu_map)
                 goto done;
         } else {
-            impl->cu_map   = mpp_calloc(RK_U8, mb_w * mb_h);
-            impl->cu_size  = mb_w * mb_h;
+            /* cu_map is addressed with stride_h rows, same as dst_base */
+            impl->cu_map   = mpp_calloc(RK_U8, stride_h * mb_h);
+            impl->cu_size  = stride_h * mb_h;
             if (!impl->cu_map)
                 goto done;
         }
