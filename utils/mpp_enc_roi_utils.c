@@ -314,7 +314,7 @@ static MPP_RET gen_vepu54x_roi(MppEncRoiImpl *ctx, Vepu541RoiCfg *dst)
 
         if (ctx->type == MPP_VIDEO_CodingHEVC) {
             map = ctx->cu_map;
-            RK_U32 stride_cu64_h = stride_h * 16 / 64;
+            RK_S32 stride_cu64_h = stride_h * 16 / 64;
 
             roi_width  = (region->w + 64) / 64;
             roi_height = (region->h + 64) / 64;
@@ -337,10 +337,12 @@ static MPP_RET gen_vepu54x_roi(MppEncRoiImpl *ctx, Vepu541RoiCfg *dst)
             } else
                 pos_y_init = region->y / 64;
 
+            pos_x_end = MPP_MIN(pos_x_init + roi_width, stride_cu64_h);
+            pos_y_end = MPP_MIN(pos_y_init + roi_height, MPP_ALIGN(ctx->h, 64) / 64);
             map += pos_y_init * stride_cu64_h + pos_x_init;
-            for (y = 0; y < roi_height; y++) {
-                for (x = 0; x < roi_width; x++) {
-                    *(map + x) = 1;
+            for (y = pos_y_init; y < pos_y_end; y++) {
+                for (x = pos_x_init; x < pos_x_end; x++) {
+                    map[x - pos_x_init] = 1;
                 }
                 map += stride_cu64_h;
             }
@@ -674,7 +676,7 @@ MPP_RET mpp_enc_roi_init(MppEncRoiCtx *ctx, RK_U32 w, RK_U32 h, MppCodingType ty
         RK_S32 mb_w = MPP_ALIGN(impl->w, 16) / 16;
         RK_S32 mb_h = MPP_ALIGN(impl->h, 16) / 16;
         RK_U32 ctu_w = MPP_ALIGN(impl->w, 64) / 64;
-        RK_U32 ctu_h  = MPP_ALIGN(impl->w, 64) / 64;
+        RK_U32 ctu_h  = MPP_ALIGN(impl->h, 64) / 64;
         RK_S32 stride_h = MPP_ALIGN(mb_w, 4);
         RK_S32 stride_v = MPP_ALIGN(mb_h, 4);
 
