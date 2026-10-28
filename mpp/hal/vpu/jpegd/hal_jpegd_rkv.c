@@ -157,7 +157,7 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
     return ret;
 }
 
-static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
+static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax, size_t buf_size)
 {
     jpegd_dbg_func("enter\n");
     MPP_RET ret = MPP_OK;
@@ -223,6 +223,8 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     RK_U32 y_hor_stride = out_width >> 4;
     RK_U32 y_virstride = 0;
     RK_U32 uv_hor_virstride = 0;
+    RK_U32 uv_height;
+    RK_U64 out_size;
 
     switch (regs->reg2_sys.yuv_out_format) {
     case YUV_OUT_FMT_2_RGB888:
@@ -255,6 +257,21 @@ static MPP_RET jpegd_gen_regs(JpegdHalCtx *ctx, JpegdSyntax *syntax)
     }
 
     y_virstride = y_hor_stride * out_height;
+
+    /* the hardware writes the layout programmed here, not the one the caller asked for */
+    uv_height = out_height;
+    if (regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_2_NV12 ||
+        (regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_NO_TRANS &&
+         (regs->reg4_pic_fmt.jpeg_mode == YUV_MODE_420 ||
+          regs->reg4_pic_fmt.jpeg_mode == YUV_MODE_440)))
+        uv_height >>= 1;
+    out_size = ((RK_U64)y_virstride + (RK_U64)uv_hor_virstride * uv_height) << 4;
+    if (out_size > buf_size) {
+        mpp_err_f("output buffer size %zu is smaller than the %llu bytes written for yuv mode %d\n",
+                  buf_size, (unsigned long long)out_size, regs->reg4_pic_fmt.jpeg_mode);
+        return MPP_NOK;
+    }
+
     if (regs->reg2_sys.dec_out_sequence == OUTPUT_TILE) {
         // The new JPEG decoder supports tile 4x4 output by default.
         if (mpp_get_soc_type() >= ROCKCHIP_SOC_RK3576) {
@@ -435,7 +452,7 @@ static MPP_RET hal_jpegd_rkv_gen_regs(void *hal,  HalTaskInfo *syn)
 
     setup_output_fmt(ctx, s, syn->dec.output);
 
-    ret = jpegd_gen_regs(ctx, s);
+    ret = jpegd_gen_regs(ctx, s, mpp_buffer_get_size(output_buf));
     mpp_buffer_sync_end(strm_buf);
     mpp_buffer_sync_end(ctx->pTableBase);
 
