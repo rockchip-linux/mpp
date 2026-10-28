@@ -473,7 +473,9 @@ MPP_RET hal_jpege_vpu720_gen_regs(void *hal, HalEncTask *task)
     hal_jpege_enter();
 
     hal_dbg_setup(ctx->dbg_ctx, NULL);
-    jpege_vpu720_setup_format(hal, task);
+    ret = jpege_vpu720_setup_format(hal, task);
+    if (ret)
+        return ret;
 
     memset(regs, 0, sizeof(JpegeVpu720Reg));
 
