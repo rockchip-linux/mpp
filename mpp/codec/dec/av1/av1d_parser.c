@@ -73,12 +73,8 @@ static MPP_RET get_pixel_format(Av1DecCtx *ctx)
             return MPP_ERR_UNKNOW;
         } else if (seq->color_config.subsampling_x == 1 &&
                    seq->color_config.subsampling_y == 0) {
-            if (bit_depth == 8)
-                pix_fmt = MPP_FMT_YUV422P;
-            else {
-                mpp_err_f("no support yuv422 bit depth > 8\n");
-                return MPP_ERR_UNKNOW;
-            }
+            mpp_err_f("no support yuv422 AV1 pixel format.\n");
+            return MPP_ERR_UNKNOW;
         } else if (seq->color_config.subsampling_x == 1 &&
                    seq->color_config.subsampling_y == 1) {
             if (bit_depth == 8)
@@ -1172,13 +1168,11 @@ MPP_RET av1d_parser_frame(Av1DecCtx *ctx, HalDecTask *task)
     s->current_obu.data_size = size;
     s->tile_offset = 0;
     ret = av1d_get_fragment_units(&s->current_obu);
-    if (ret < 0) {
-        return ret;
-    }
+    if (ret < 0)
+        goto end;
     ret = av1d_read_fragment_uints(s, &s->current_obu);
-    if (ret < 0) {
-        return ret;
-    }
+    if (ret < 0)
+        goto end;
 
     for (i = 0; i < s->current_obu.nb_units; i++) {
         Av1ObuUnit *unit = &s->current_obu.units[i];
@@ -1336,6 +1330,8 @@ end:
     av1d_fragment_reset(&s->current_obu);
     if (ret < 0)
         s->frame_header = NULL;
+    if (s->seq_header != s->seq_ref)
+        s->seq_header = NULL;
 
     av1d_dbg_func("leave ctx %p\n", ctx);
     return ret;
