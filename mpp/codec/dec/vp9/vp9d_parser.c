@@ -410,6 +410,42 @@ static const MppFrameColorSpace colorspaces_table[8] = {
     MPP_FRAME_SPC_UNSPECIFIED, MPP_FRAME_SPC_BT470BG, MPP_FRAME_SPC_BT709, MPP_FRAME_SPC_SMPTE170M,
     MPP_FRAME_SPC_SMPTE240M, MPP_FRAME_SPC_BT2020_NCL, MPP_FRAME_SPC_RESERVED, MPP_FRAME_SPC_RGB,
 };
+
+static MPP_RET read_colorspace_details(Vp9DecCtx *ctx, RK_S32 *fmt)
+{
+    VP9Context *s = ctx->priv_data;
+    BitReadCtx_t *gb = &s->gb;
+    RK_S32 bits = 0; // 0:8, 1:10, 2:12
+    RK_S32 val;
+
+    if (ctx->profile == VP9_PROFILE_2) {
+        READ_ONEBIT(gb, &bits);
+        bits += 1;
+    }
+    *fmt = bits ? MPP_FMT_YUV420SP_10BIT : MPP_FMT_YUV420SP;
+    vp9d_dbg(VP9D_DBG_HEADER, "bit_depth %d", 8 + bits * 2);
+    s->bpp_index = bits;
+    s->bpp = 8 + bits * 2;
+    s->bytesperpixel = (7 + s->bpp) >> 3;
+    READ_BITS(gb, 3, &val); // color_space
+    ctx->colorspace = colorspaces_table[val];
+    vp9d_dbg(VP9D_DBG_HEADER, "color_space %d", ctx->colorspace);
+    if (ctx->colorspace == MPP_FRAME_SPC_RGB) { // RGB = profile 1 VP9_CS_SRGB
+        mpp_err("RGB not supported in profile %d\n", ctx->profile);
+        return MPP_ERR_STREAM;
+    }
+    // profile 0/2
+    READ_ONEBIT(gb, &val);
+    ctx->color_range = val ? MPP_FRAME_RANGE_JPEG : MPP_FRAME_RANGE_MPEG;
+    vp9d_dbg(VP9D_DBG_HEADER, "color_range %d", ctx->color_range);
+    s->extra_plane = 0;
+    s->subsampling_x = s->subsampling_y = 1;
+
+    return MPP_OK;
+__BITREAD_ERR:
+    return MPP_ERR_STREAM;
+}
+
 static MPP_RET read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S32 size,
                                         RK_S32 *refo)
 {
@@ -484,31 +520,8 @@ static MPP_RET read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S3
             return MPP_ERR_STREAM;
         }
         // read bitdepth colorspace sampling
-        {
-            RK_S32 bits = 0; // 0:8, 1:10, 2:12
-            if (ctx->profile == VP9_PROFILE_2) {
-                READ_ONEBIT(gb, &bits);
-                bits += 1;
-            }
-            fmt = bits ? MPP_FMT_YUV420SP_10BIT : MPP_FMT_YUV420SP;
-            vp9d_dbg(VP9D_DBG_HEADER, "bit_depth %d", 8 + bits * 2);
-            s->bpp_index = bits;
-            s->bpp = 8 + bits * 2;
-            s->bytesperpixel = (7 + s->bpp) >> 3;
-            READ_BITS(gb, 3, &val); // color_space
-            ctx->colorspace = colorspaces_table[val];
-            vp9d_dbg(VP9D_DBG_HEADER, "color_space %d", ctx->colorspace);
-            if (ctx->colorspace == MPP_FRAME_SPC_RGB) { // RGB = profile 1 VP9_CS_SRGB
-                mpp_err("RGB not supported in profile %d\n", ctx->profile);
-                return MPP_ERR_STREAM;
-            } else { // profile 0/2
-                READ_ONEBIT(gb, &val);
-                ctx->color_range = val ? MPP_FRAME_RANGE_JPEG : MPP_FRAME_RANGE_MPEG;
-                vp9d_dbg(VP9D_DBG_HEADER, "color_range %d", ctx->color_range);
-                s->extra_plane = 0;
-                s->subsampling_x = s->subsampling_y = 1;
-            }
-        }
+        if (read_colorspace_details(ctx, &fmt) != MPP_OK)
+            return MPP_ERR_STREAM;
 
         s->refresh_frame_flags = 0xff;
         READ_BITS(gb, 16, &w);
@@ -545,14 +558,19 @@ static MPP_RET read_uncompressed_header(Vp9DecCtx *ctx, const RK_U8 *data, RK_S3
                 mpp_err("Invalid sync code\n");
                 return MPP_ERR_STREAM;
             }
-            s->subsampling_x = 1;
-            s->subsampling_y = 1;
-            s->bpp = 8;
-            s->bpp_index = 0;
-            s->bytesperpixel = 1;
-            fmt = MPP_FMT_YUV420SP;
-            ctx->colorspace = MPP_FRAME_SPC_BT470BG;
-            ctx->color_range = MPP_FRAME_RANGE_JPEG;
+            if (ctx->profile > VP9_PROFILE_0) {
+                if (read_colorspace_details(ctx, &fmt) != MPP_OK)
+                    return MPP_ERR_STREAM;
+            } else {
+                s->subsampling_x = 1;
+                s->subsampling_y = 1;
+                s->bpp = 8;
+                s->bpp_index = 0;
+                s->bytesperpixel = 1;
+                fmt = MPP_FMT_YUV420SP;
+                ctx->colorspace = MPP_FRAME_SPC_BT470BG;
+                ctx->color_range = MPP_FRAME_RANGE_JPEG;
+            }
 
             READ_BITS(gb, 8, &s->refresh_frame_flags);
             vp9d_dbg(VP9D_DBG_HEADER, "refresh_frame_flags %d", s->refresh_frame_flags);
