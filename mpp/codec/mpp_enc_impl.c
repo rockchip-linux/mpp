@@ -549,17 +549,26 @@ static void proc_prep_cfg(MppEncImpl *enc)
         set->rotation = MPP_ENC_ROT_0;
     }
 
-    if (set->range >= MPP_FRAME_RANGE_NB ||
-        set->color >= MPP_FRAME_SPC_NB ||
-        set->colorprim >= MPP_FRAME_PRI_NB ||
-        set->colortrc >= MPP_FRAME_TRC_NB) {
-        mpp_loge("invalid color range %d colorspace %d primaries %d transfer characteristic %d\n",
-                 set->range, set->color, set->colorprim, set->colortrc);
-        mpp_loge("restore color range %d colorspace %d primaries %d transfer characteristic %d\n",
-                 cfg->range, cfg->color, cfg->colorprim, cfg->colortrc);
+    if (set->range >= MPP_FRAME_RANGE_NB) {
+        mpp_loge("invalid color range %d, restore %d\n", set->range, cfg->range);
         set->range = cfg->range;
+    }
+
+    if (set->color >= MPP_FRAME_SPC_NB) {
+        mpp_loge("invalid colorspace %d, restore %d\n", set->color, cfg->color);
         set->color = cfg->color;
+    }
+
+    /* primaries 13 to 21 are reserved */
+    if (set->colorprim >= MPP_FRAME_PRI_NB ||
+        (set->colorprim > MPP_FRAME_PRI_SMPTE432 &&
+         set->colorprim < MPP_FRAME_PRI_JEDEC_P22)) {
+        mpp_loge("invalid color primaries %d, restore %d\n", set->colorprim, cfg->colorprim);
         set->colorprim = cfg->colorprim;
+    }
+
+    if (set->colortrc >= MPP_FRAME_TRC_NB) {
+        mpp_loge("invalid transfer characteristic %d, restore %d\n", set->colortrc, cfg->colortrc);
         set->colortrc = cfg->colortrc;
     }
 
