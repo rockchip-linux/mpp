@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #include "mpp_common.h"
+#include "mpp_debug.h"
 #include "mpp_buffer.h"
 
 #include "iep2_api.h"
