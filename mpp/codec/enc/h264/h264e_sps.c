@@ -35,7 +35,7 @@ typedef struct H264eLevelInfo_t {
 } H264eLevelInfo;
 
 H264eLevelInfo level_infos[] = {
-    /*  level             max_MBs  max_MBPS  max_DpbMBs  max_BR  name  */
+    /*  level            max_MBPS  max_MBs  max_DpbMBs  max_BR  name  */
     {   H264_LEVEL_1_0,     1485,       99,        396,      64, "1"   },
     {   H264_LEVEL_1_b,     1485,       99,        396,     128, "1.b" },
     {   H264_LEVEL_1_1,     3000,      396,        900,     192, "1.1" },
@@ -136,14 +136,20 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     if (force_flag & 32)
         sps->constraint_set5 = (constraint_force & 32) ? 1 : 0;
 
-    // level_idc is connected with frame size
+    /*
+     * level_idc is connected with frame size and macroblock rate, the
+     * configured level is only raised when it is too low for either limit
+     */
     {
         RK_S32 mbs = (aligned_w * aligned_h) >> 8;
+        RK_S64 fps_denom = (rc->fps_out_denom > 0) ? rc->fps_out_denom : 1;
+        RK_S64 mbps = ((RK_S64)mbs * rc->fps_out_num + fps_denom - 1) / fps_denom;
         RK_S32 i;
         RK_S32 min_level = 10;
 
         for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(level_infos); i++) {
-            if (level_infos[i].max_MBs >= mbs) {
+            if (level_infos[i].max_MBs >= mbs &&
+                level_infos[i].max_MBPS >= mbps) {
                 min_level = level_infos[i].level;
 
                 if (min_level > (RK_S32)level_idc &&
