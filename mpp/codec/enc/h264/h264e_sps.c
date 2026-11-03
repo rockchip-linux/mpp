@@ -80,6 +80,11 @@ MPP_RET h264e_sps_update(H264eSps *sps, MppEncCfgSet *cfg)
     // default sps
     // profile baseline
     sps->profile_idc = h264->profile;
+    /* chroma_format_idc is only coded from High profile */
+    if (fmt == MPP_FMT_YUV400 && sps->profile_idc < H264_PROFILE_HIGH) {
+        mpp_logw("profile %d can not code YUV400, use high profile\n", sps->profile_idc);
+        sps->profile_idc = H264_PROFILE_HIGH;
+    }
     switch (sps->profile_idc) {
     case H264_PROFILE_BASELINE : {
         sps->constraint_set0 = 1;
