@@ -151,7 +151,11 @@ static MPP_RET setup_output_fmt(JpegdHalCtx *ctx, JpegdSyntax *syntax, RK_S32 ou
         regs->reg2_sys.fill_down_e = s->fill_bottom;
     regs->reg2_sys.fill_right_e = s->fill_right;
 
-    mpp_frame_set_fmt(frm, ctx->output_fmt);
+    /* without a conversion the hardware writes the source layout */
+    if (regs->reg2_sys.yuv_out_format == YUV_OUT_FMT_NO_TRANS)
+        mpp_frame_set_fmt(frm, s->output_fmt | (ctx->output_fmt & MPP_FRAME_TILE_FLAG));
+    else
+        mpp_frame_set_fmt(frm, ctx->output_fmt);
 
     jpegd_dbg_func("exit\n");
     return ret;
