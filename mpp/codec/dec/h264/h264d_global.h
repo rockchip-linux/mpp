@@ -755,6 +755,9 @@ typedef struct h264_sei_t {
     RK_U32 seq_parameter_set_id;
 
     H264_SEI_PIC_TIMING_t pic_timing;
+    RK_S32 pic_timing_pending;
+    RK_S32 pic_timing_size;
+    RK_U8  pic_timing_data[64];
 
     struct h264_dec_ctx_t *p_Dec;
 } H264_SEI_t;

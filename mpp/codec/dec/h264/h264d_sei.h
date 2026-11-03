@@ -27,6 +27,7 @@ extern "C" {
 #endif
 
 MPP_RET process_sei(H264_SLICE_t *currSlice);
+void process_pending_pic_timing(H264dVideoCtx_t *p_Vid);
 
 #ifdef  __cplusplus
 }

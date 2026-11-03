@@ -29,7 +29,7 @@
 static MPP_RET interpret_picture_timing_info(
     BitReadCtx_t *p_bitctx,
     H264_SEI_t *sei_msg,
-    H264dVideoCtx_t *p_videoctx)
+    struct h264_vui_t *vui_seq_parameters)
 {
     RK_S32 cpb_removal_delay_length = 0;
     RK_S32 dpb_output_delay_length = 0;
@@ -38,14 +38,7 @@ static MPP_RET interpret_picture_timing_info(
     RK_U32 i = 0;
     H264_SEI_PIC_TIMING_t *pic_timing = NULL;
     RK_U32 num_clock_ts[9] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
-    struct h264_vui_t *vui_seq_parameters = NULL;
-    RK_U32 seq_parameter_set_id = sei_msg->seq_parameter_set_id;
 
-    if (seq_parameter_set_id >= MAXSPS || !p_videoctx->spsSet[seq_parameter_set_id]) {
-        H264D_ERR("seq_parameter_set_id %d may be invalid\n", seq_parameter_set_id);
-        goto __BITREAD_ERR;
-    }
-    vui_seq_parameters = &(p_videoctx->spsSet[sei_msg->seq_parameter_set_id]->vui_seq_parameters);
     pic_timing = &(sei_msg->pic_timing);
 
     if (vui_seq_parameters->nal_hrd_parameters_present_flag) {
@@ -155,6 +148,30 @@ static MPP_RET interpret_picture_timing_info(
     return MPP_OK;
 __BITREAD_ERR:
     return MPP_ERR_STREAM;
+}
+
+/*
+ * A picture timing SEI may precede the SPS it refers to in the same access
+ * unit, e.g. SEI, SPS, PPS, IDR. Its layout depends on the VUI of that SPS,
+ * so keep the payload and parse it once the slice has activated the SPS.
+ */
+static MPP_RET defer_picture_timing_info(BitReadCtx_t *p_bitctx, H264_SEI_t *sei_msg)
+{
+    RK_S32 i = 0;
+
+    if (sei_msg->payload_size > (RK_S32)sizeof(sei_msg->pic_timing_data))
+        return MPP_ERR_STREAM;
+
+    for (i = 0; i < sei_msg->payload_size; i++)
+        READ_BITS(p_bitctx, 8, &sei_msg->pic_timing_data[i]);
+
+    sei_msg->pic_timing_size = sei_msg->payload_size;
+    sei_msg->pic_timing_pending = 1;
+    H264D_DBG(H264D_DBG_SEI, "Defer picture timing until SPS is activated");
+
+    return MPP_OK;
+__BITREAD_ERR:
+    return p_bitctx->ret;
 }
 
 static MPP_RET interpret_buffering_period_info(
@@ -289,9 +306,15 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
         case H264_SEI_BUFFERING_PERIOD:
             FUN_CHECK(ret = interpret_buffering_period_info(&payload_bitctx, sei_msg, currSlice->p_Vid));
             break;
-        case H264_SEI_PIC_TIMING:
-            FUN_CHECK(interpret_picture_timing_info(&payload_bitctx, sei_msg, currSlice->p_Vid));
-            break;
+        case H264_SEI_PIC_TIMING: {
+            RK_U32 sps_id = sei_msg->seq_parameter_set_id;
+            H264_SPS_t *sps = (sps_id < MAXSPS) ? currSlice->p_Vid->spsSet[sps_id] : NULL;
+
+            if (sps)
+                FUN_CHECK(interpret_picture_timing_info(&payload_bitctx, sei_msg, &sps->vui_seq_parameters));
+            else
+                FUN_CHECK(defer_picture_timing_info(&payload_bitctx, sei_msg));
+        } break;
         case H264_SEI_USER_DATA_UNREGISTERED:
             FUN_CHECK(check_encoder_sei_info(&payload_bitctx, sei_msg->payload_size, &currSlice->p_Vid->deny_flag));
 
@@ -318,4 +341,18 @@ MPP_RET process_sei(H264_SLICE_t *currSlice)
 __BITREAD_ERR:
 __FAILED:
     return ret;
+}
+
+void process_pending_pic_timing(H264dVideoCtx_t *p_Vid)
+{
+    H264_SEI_t *sei = p_Vid->p_Cur->sei;
+    BitReadCtx_t bitctx;
+
+    if (!sei || !sei->pic_timing_pending || !p_Vid->active_sps)
+        return;
+
+    sei->pic_timing_pending = 0;
+    memset(&bitctx, 0, sizeof(bitctx));
+    mpp_set_bitread_ctx(&bitctx, sei->pic_timing_data, sei->pic_timing_size);
+    interpret_picture_timing_info(&bitctx, sei, &p_Vid->active_sps->vui_seq_parameters);
 }
