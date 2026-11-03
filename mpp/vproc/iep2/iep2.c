@@ -454,17 +454,15 @@ static MPP_RET iep2_control(IepCtx ictx, IepCmd cmd, void *iparam)
     case IEP_CMD_RUN_SYNC: {
         struct iep2_api_info *inf = (struct iep2_api_info*)iparam;
 
-        if (0 > iep2_param_check(ctx))
-            break;
-        if (0 > iep2_start(ctx))
+        if (iep2_param_check(ctx))
             return MPP_NOK;
-        iep2_wait(ctx);
+        if (iep2_start(ctx) || iep2_wait(ctx))
+            return MPP_NOK;
 
         if (ctx->params.dil_mode == IEP2_DIL_MODE_PD) {
             ctx->params.dil_mode = IEP2_DIL_MODE_DECT;
-            if (0 > iep2_start(ctx))
+            if (iep2_start(ctx) || iep2_wait(ctx))
                 return MPP_NOK;
-            iep2_wait(ctx);
         }
 
         // store current pd mode;
