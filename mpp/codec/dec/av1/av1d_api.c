@@ -145,25 +145,30 @@ MPP_RET av1d_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
         s->current_obu.data = buf;
         s->current_obu.data_size = length;
         ret = av1d_parser_fragment_header(&s->current_obu);
-        if (ret < 0) {
-            return ret;
-        }
+        if (ret < 0)
+            goto end;
         ret = av1d_get_fragment_units(&s->current_obu);
-        if (ret < 0) {
-            return ret;
-        }
+        if (ret < 0)
+            goto end;
         ret = av1d_read_fragment_uints(s, &s->current_obu);
-        if (ret < 0) {
-            return ret;
-        }
+        if (ret < 0)
+            goto end;
         if (!s->seq_header) {
             goto end;
         }
+        if (s->seq_header != s->seq_ref) {
+            memcpy(s->seq_ref, s->seq_header, sizeof(AV1SeqHeader));
+            s->seq_header = s->seq_ref;
+        }
         ret = av1d_set_context_with_seq(av1_ctx, s->seq_header);
+        if (ret < 0)
+            s->seq_header = NULL;
     end:
         pos = buf + length;
         mpp_packet_set_pos(pkt, pos);
         av1d_fragment_reset(&s->current_obu);
+        if (s->seq_header != s->seq_ref)
+            s->seq_header = NULL;
         return ret;
     }
 
