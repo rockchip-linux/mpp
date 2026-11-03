@@ -99,7 +99,8 @@ static MPP_RET try_flip_flag(RK_U32 orig, RK_U32 flag)
         used = (RK_U32)(orig | flag);
 
     src = &heap_infos[used];
-    if (src->fd > 0) {
+    /* a remapped entry keeps the flags of its source, so only a real heap matches */
+    if (src->fd > 0 && src->flags == used) {
         /* found valid heap use it */
         dst->fd = mpp_dup(src->fd);
         dst->flags = src->flags;
