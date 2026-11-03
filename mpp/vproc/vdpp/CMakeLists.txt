@@ -9,12 +9,13 @@ add_library(vproc_vdpp OBJECT
     vdpp2.c
     vdpp3.c
     vdpp_common.c
+    hwpq_vdpp_proc.c
 )
 
 add_subdirectory(test)
 
 # libvdpp.so for hwpq
-add_library(vdpp SHARED hwpq_vdpp_proc.c ../../mpp_info.c)
+add_library(vdpp SHARED ../../mpp_info.c)
 set_target_properties(vdpp PROPERTIES FOLDER "mpp/vproc/vdpp")
 set_target_properties(vdpp PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(vdpp osal mpp_base kmpp_base vproc_vdpp m)
