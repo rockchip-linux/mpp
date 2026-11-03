@@ -1064,6 +1064,8 @@ static MPP_RET jpegd_allocate_frame(JpegdCtx *ctx)
         mpp_frame_set_hor_stride(output, s->hor_stride);
         mpp_frame_set_ver_stride(output, s->ver_stride);
         mpp_frame_set_pts(output, ctx->pts);
+        /* JFIF samples are full range */
+        mpp_frame_set_color_range(output, MPP_FRAME_RANGE_JPEG);
 
         if (ctx->eos)
             mpp_frame_set_eos(output, 1);
