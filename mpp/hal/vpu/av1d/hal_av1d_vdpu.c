@@ -1712,8 +1712,8 @@ static void vdpu_av1d_set_fgs(VdpuAv1dRegCtx *ctx, DXVA_PicParams_AV1 *dxva)
        }
        asic_buff->fg_params[asic_buff->out_buffer_i] = *fg_params;*/
 
-    // film grain applied on secondary output
-    //  sw_ctrl->sw_apply_grain = dec_cont->pp_enabled ? 1 : 0;
+    // film grain applied on secondary output, pp output is always enabled
+    regs->swreg7.sw_apply_grain = 1;
     regs->swreg7.sw_num_y_points_b = dxva->film_grain.num_y_points > 0;
     regs->swreg7.sw_num_cb_points_b = dxva->film_grain.num_cb_points > 0;
     regs->swreg7.sw_num_cr_points_b = dxva->film_grain.num_cr_points > 0;
