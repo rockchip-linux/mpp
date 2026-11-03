@@ -117,8 +117,11 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     MppEncH265Cfg *codec = &ctx->cfg->h265;
     ProfileTierLevel *profileTierLevel = &vps->m_ptl.m_generalPTL;
     MppEncPrepCfg *prep = &ctx->cfg->prep;
+    MppEncRcCfg *rc = &ctx->cfg->rc;
     MppEncRefCfg ref_cfg = ctx->cfg->ref_cfg;
     RK_U32 maxlumas = prep->width * prep->height;
+    RK_U64 fps_denom = (rc->fps_out_denom > 0) ? rc->fps_out_denom : 1;
+    RK_U64 maxlumasr = ((RK_U64)maxlumas * MPP_MAX(rc->fps_out_num, 0) + fps_denom - 1) / fps_denom;
     RK_S32 level_idc = H265_LEVEL_NONE;
     MppEncRefCfgImpl *refs = (MppEncRefCfgImpl *)kmpp_obj_to_entry(ref_cfg);
 
@@ -140,7 +143,8 @@ MPP_RET h265e_set_vps(H265eCtx *ctx, H265eVps *vps)
     memset(vps->m_ptl.m_subLayerProfilePresentFlag, 0, sizeof(vps->m_ptl.m_subLayerProfilePresentFlag));
     memset(vps->m_ptl.m_subLayerLevelPresentFlag,   0, sizeof(vps->m_ptl.m_subLayerLevelPresentFlag));
     for (i = 0; i < (RK_S32)MPP_ARRAY_ELEMS(levels); i++) {
-        if (levels[i].maxLumaSamples >= maxlumas) {
+        if (levels[i].maxLumaSamples >= maxlumas &&
+            levels[i].maxLumaSamplesPerSecond >= maxlumasr) {
             level_idc = levels[i].levelEnum;
             break;
         }
