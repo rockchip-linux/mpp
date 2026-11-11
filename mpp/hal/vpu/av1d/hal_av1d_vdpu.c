@@ -1811,7 +1811,7 @@ static MPP_RET vdpu_av1d_setup_tile_bufs(void *hal, DXVA_PicParams_AV1 *dxva)
 {
     Av1dHalCtx *p_hal = (Av1dHalCtx *)hal;
     VdpuAv1dRegCtx *ctx = (VdpuAv1dRegCtx *)p_hal->reg_ctx;
-    RK_U32 out_w = MPP_ALIGN(dxva->max_width * dxva->bitdepth, 16 * 8) / 8;
+    RK_U32 out_w = MPP_ALIGN(MPP_ALIGN(dxva->max_width, 8) * dxva->bitdepth, 16 * 8) / 8;
     RK_U32 num_sbs = (MPP_ALIGN(dxva->max_width, 64) / 64 + 1) * (MPP_ALIGN(dxva->max_height, 64) / 64  + 1);
     RK_U32 dir_mvs_size = MPP_ALIGN(num_sbs * 24 * 128 / 8, 16) * 2;
     RK_U32 out_h = MPP_ALIGN(dxva->max_height, 16);
